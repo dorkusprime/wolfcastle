@@ -13,10 +13,20 @@ import (
 var taskUnblockCmd = &cobra.Command{
 	Use:   "unblock",
 	Short: "Unblock a task (transition from blocked to not_started, reset failure counter)",
+	Long: `Resets a blocked task back to not_started and clears its failure counter.
+
+This is the simple (Tier 1) unblock. For model-assisted debugging, use
+'wolfcastle unblock --node <task>' instead.
+
+Examples:
+  wolfcastle task unblock --node my-project/task-1`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		nodeFlag, _ := cmd.Flags().GetString("node")
 		if nodeFlag == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required — specify the blocked task address (e.g. my-project/task-1)")
 		}
 
 		nodeAddr, taskID, err := tree.SplitTaskAddress(nodeFlag)

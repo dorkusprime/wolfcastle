@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -13,12 +14,26 @@ import (
 var taskAddCmd = &cobra.Command{
 	Use:   "add [description]",
 	Short: "Add a task to a leaf node",
-	Args:  cobra.ExactArgs(1),
+	Long: `Adds a new task to a leaf node's task list.
+
+The task is created in the not_started state. Tasks are executed in order
+by the daemon. Use 'wolfcastle navigate' to find the next actionable task.
+
+Examples:
+  wolfcastle task add --node my-project "implement the API endpoint"
+  wolfcastle task add --node auth/login "add rate limiting"`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		description := args[0]
+		if strings.TrimSpace(description) == "" {
+			return fmt.Errorf("task description cannot be empty")
+		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
 		if nodeAddr == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required — specify the target leaf node address")
 		}
 
 		addr, err := tree.ParseAddress(nodeAddr)

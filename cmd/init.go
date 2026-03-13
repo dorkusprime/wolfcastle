@@ -13,7 +13,13 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a Wolfcastle project in the current directory",
-	Long:  "Creates the .wolfcastle/ directory with default configuration, base prompts, and engineer identity.",
+	Long: `Creates the .wolfcastle/ directory with default configuration, base prompts,
+and engineer identity in the current working directory.
+
+This is typically the first command you run in a new repository.
+
+Examples:
+  cd my-repo && wolfcastle init`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {

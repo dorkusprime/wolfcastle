@@ -120,9 +120,9 @@ The root `state.json` (at `.wolfcastle/projects/{identity}/state.json`) is the c
 
 #### INVALID_TRANSITION_BLOCKED_WITHOUT_REASON
 
-**Description**: A node or task has `state: "blocked"` but no `blocked_reason` field, or the field is empty.
+**Description**: A node or task has `state: "blocked"` but no `block_reason` field, or the field is empty.
 
-**Detection**: For every node and task with `state == "blocked"`, verify that `blocked_reason` is present and non-empty.
+**Detection**: For every node and task with `state == "blocked"`, verify that `block_reason` is present and non-empty.
 
 **Severity**: Error
 
@@ -247,7 +247,7 @@ Some issues are unfixable by the engine and require manual intervention.
 | `MULTIPLE_AUDIT_TASKS` | **Model-assisted** | Ambiguous: which audit task is the "real" one? The model examines the descriptions, states, and breadcrumbs of each audit task to determine which to keep and which to merge or remove. |
 | `INVALID_STATE_VALUE` | **Model-assisted** | The model examines the invalid value, the node's context (children states, task states, breadcrumbs), and infers the intended valid state. Common typos (e.g., `"completed"` -> `"complete"`, `"pending"` -> `"not_started"`) may be resolved deterministically as a fast path before falling through to model assistance. |
 | `INVALID_TRANSITION_COMPLETE_WITH_INCOMPLETE` | **Model-assisted** | Ambiguous: is the node actually complete (and the child/task state is stale), or is the node not actually complete (and the node state is wrong)? The model examines breadcrumbs, task history, and audit results to determine which direction to correct. |
-| `INVALID_TRANSITION_BLOCKED_WITHOUT_REASON` | **Deterministic** | Set `blocked_reason` to `"Blocked reason missing — added by wolfcastle doctor"`. This preserves the blocked state while making the invariant hold. The user can edit the reason later. |
+| `INVALID_TRANSITION_BLOCKED_WITHOUT_REASON` | **Deterministic** | Set `block_reason` to `"Blocked reason missing — added by wolfcastle doctor"`. This preserves the blocked state while making the invariant hold. The user can edit the reason later. |
 | `STALE_IN_PROGRESS` | **No fix** | The daemon's self-healing mechanism handles this on startup (state machine spec, Section 9). Doctor reports it for awareness but does not change the state, because the model needs to inspect the working directory and decide how to proceed. |
 | `MULTIPLE_IN_PROGRESS` | **Model-assisted** | The model examines the timestamps, breadcrumbs, and task positions of all `in_progress` tasks to determine which one was the genuinely active task. All others are reset to their previous valid state (typically `not_started` if no breadcrumbs exist, or left as `in_progress` for the one legitimate task). |
 | `DEPTH_MISMATCH` | **Deterministic** | Set the child's `decomposition_depth` to `max(child.decomposition_depth, parent.decomposition_depth)`. The depth can only increase through decomposition, so the parent's depth is the lower bound. |
@@ -268,7 +268,7 @@ Some issues are unfixable by the engine and require manual intervention.
 
 ## 4. Validation API
 
-The validation engine is a Go package (`pkg/validate`) that provides composable check functions and a top-level runner. Individual checks can be run in isolation (for testing, CI, or targeted diagnostics) or composed into suites.
+The validation engine is a Go package (under `internal/`, per ADR-032's project structure) that provides composable check functions and a top-level runner. Individual checks can be run in isolation (for testing, CI, or targeted diagnostics) or composed into suites.
 
 ### 4.1 Core Types
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -13,12 +14,26 @@ import (
 var auditBreadcrumbCmd = &cobra.Command{
 	Use:   "breadcrumb [text]",
 	Short: "Add a breadcrumb to a node's audit trail",
-	Args:  cobra.ExactArgs(1),
+	Long: `Records a timestamped breadcrumb note on a node's audit trail.
+
+Breadcrumbs provide a narrative log of progress, decisions, and observations
+that persists across daemon iterations.
+
+Examples:
+  wolfcastle audit breadcrumb --node my-project "refactored auth module"
+  wolfcastle audit breadcrumb --node auth/login "switched to JWT tokens"`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		text := args[0]
+		if strings.TrimSpace(text) == "" {
+			return fmt.Errorf("breadcrumb text cannot be empty")
+		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
 		if nodeAddr == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required — specify the target node address")
 		}
 
 		addr, err := tree.ParseAddress(nodeAddr)

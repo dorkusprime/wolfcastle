@@ -253,17 +253,14 @@ The summary is an optional pipeline stage that runs after the audit task complet
 
 ### Invocation
 
-The summary stage is a standard pipeline stage (per ADR-006, ADR-013) with its own model configuration. It is defined in the pipeline config:
+The summary stage is configured separately from the main pipeline stages via the `summary` config key (per ADR-016). It runs conditionally when a node completes its audit, not as part of the regular pipeline stage array.
 
 ```json
 {
-  "pipeline": {
-    "stages": [
-      { "name": "expand", "model": "fast", "prompt_file": "expand.md" },
-      { "name": "file", "model": "mid", "prompt_file": "file.md" },
-      { "name": "execute", "model": "heavy", "prompt_file": "execute.md" },
-      { "name": "summary", "model": "fast", "prompt_file": "summary.md" }
-    ]
+  "summary": {
+    "enabled": true,
+    "model": "fast",
+    "prompt_file": "summary.md"
   }
 }
 ```
@@ -283,18 +280,20 @@ This gives the model the full picture of what happened, enabling a coherent summ
 
 ### Output
 
-The summary model produces plain-text prose: one or more paragraphs explaining what the node accomplished and why it matters. The daemon captures this output and writes it to the node's JSON state in the `summary` field.
+The summary model produces plain-text prose: one or more paragraphs explaining what the node accomplished and why it matters. The daemon captures this output and writes it to the node's `audit.result_summary` field in JSON state.
 
 ### Where the Summary Lives Before Rollup
 
-The summary is stored in the node's JSON state as a string field:
+The summary is stored in the node's `audit.result_summary` field in its `state.json`:
 
 ```json
 {
-  "path": "attunement-tree/fire-impl",
+  "id": "fire-impl",
   "state": "complete",
-  "summary": "Implemented fire attunement stamina cost...",
-  ...
+  "audit": {
+    "result_summary": "Implemented fire attunement stamina cost...",
+    ...
+  }
 }
 ```
 
@@ -302,21 +301,17 @@ It lives here temporarily until `wolfcastle archive add` reads it and renders it
 
 ### Opt-Out
 
-The summary stage is enabled by default. To disable it, remove the `summary` stage from the pipeline configuration:
+The summary stage is enabled by default. To disable it, set `summary.enabled` to `false` in config:
 
 ```json
 {
-  "pipeline": {
-    "stages": [
-      { "name": "expand", "model": "fast", "prompt_file": "expand.md" },
-      { "name": "file", "model": "mid", "prompt_file": "file.md" },
-      { "name": "execute", "model": "heavy", "prompt_file": "execute.md" }
-    ]
+  "summary": {
+    "enabled": false
   }
 }
 ```
 
-When the summary stage is absent from the pipeline, no model is invoked for summarization, the `summary` field in JSON state remains null, and the archive entry omits the Summary section entirely.
+When summary is disabled, no model is invoked for summarization, the `audit.result_summary` field in JSON state remains null, and the archive entry omits the Summary section entirely.
 
 ### Summary Stage Failure
 
@@ -332,16 +327,15 @@ This section enumerates every field the archive script reads from JSON state and
 
 | JSON field | Type | Archive section | Notes |
 |------------|------|-----------------|-------|
-| `path` | string | Title, Metadata (Node) | Tree-addressed node path |
+| (node address) | string | Title, Metadata (Node) | Tree-addressed node path, from the `--node` argument |
 | `state` | string | (validation only) | Must be `"complete"` or rollup fails |
-| `completed_at` | string (ISO 8601) | Metadata (Completed) | Set by `wolfcastle task complete` |
-| `summary` | string or null | Summary | Written by summary stage; null if disabled |
+| `audit.completed_at` | string (ISO 8601) | Metadata (Completed) | Set when the audit task completes |
 | `audit.breadcrumbs` | array of objects | Breadcrumbs | Each has `timestamp`, `task` (tree address), and `text` |
 | `audit.scope` | object | Audit (Scope) | `description`, `files`, `systems`, `criteria` |
 | `audit.gaps` | array of objects | Audit (Gaps found) | Each has `description`, `status` (`open` or `fixed`), `fixed_by`, `fixed_at` |
 | `audit.escalations` | array of objects | Audit (Escalations) | Each has `description`, `source_node`, `status` (`open` or `resolved`) |
 | `audit.status` | string | Audit (Status) | `pending`, `in_progress`, `passed`, or `failed` |
-| `audit.result_summary` | string or null | Audit (Summary) | Model-written summary of audit outcome |
+| `audit.result_summary` | string or null | Summary, Audit (Summary) | Written by summary stage; null if disabled. Used for both the Summary archive section and the Audit summary. |
 
 ### External Sources
 

@@ -26,11 +26,17 @@ func propagateState(nodeAddr string, nodeState state.NodeStatus) error {
 		nodeAddr,
 		nodeState,
 		func(addr string) (*state.NodeState, error) {
-			a := tree.MustParse(addr)
+			a, err := tree.ParseAddress(addr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
+			}
 			return state.LoadNodeState(resolver.NodeStatePath(a))
 		},
 		func(addr string, ns *state.NodeState) error {
-			a := tree.MustParse(addr)
+			a, err := tree.ParseAddress(addr)
+			if err != nil {
+				return fmt.Errorf("parsing address %q: %w", addr, err)
+			}
 			return state.SaveNodeState(resolver.NodeStatePath(a), ns)
 		},
 		func(addr string) string {
@@ -56,10 +62,13 @@ func propagateState(nodeAddr string, nodeState state.NodeStatus) error {
 		if parentAddr == "" {
 			break
 		}
-		a := tree.MustParse(parentAddr)
+		a, parseErr := tree.ParseAddress(parentAddr)
+		if parseErr != nil {
+			return fmt.Errorf("parsing parent address %q: %w", parentAddr, parseErr)
+		}
 		parentNS, err := state.LoadNodeState(resolver.NodeStatePath(a))
 		if err != nil {
-			break
+			return fmt.Errorf("loading parent state for %q: %w", parentAddr, err)
 		}
 		if parentEntry, ok := idx.Nodes[parentAddr]; ok {
 			parentEntry.State = parentNS.State

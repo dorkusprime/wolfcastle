@@ -13,9 +13,25 @@ import (
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show current state of the project tree",
+	Long: `Displays a summary of node states in the project tree.
+
+Use --node to scope the status to a specific subtree.
+Use --all to show status across all engineers' namespaces.
+
+Examples:
+  wolfcastle status
+  wolfcastle status --node auth-system
+  wolfcastle status --all
+  wolfcastle status --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		showAll, _ := cmd.Flags().GetBool("all")
 		scopeNode, _ := cmd.Flags().GetString("node")
+
+		if !showAll {
+			if err := requireResolver(); err != nil {
+				return err
+			}
+		}
 
 		if showAll {
 			return showAllStatus()
@@ -67,8 +83,19 @@ func showAllStatus() error {
 	projectsDir := filepath.Join(wolfcastleDir, "projects")
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
-		return fmt.Errorf("reading projects dir: %w", err)
+		return fmt.Errorf("reading projects dir: %w — is this a valid Wolfcastle workspace?", err)
 	}
+
+	type namespaceSummary struct {
+		Namespace   string `json:"namespace"`
+		Total       int    `json:"total"`
+		Complete    int    `json:"complete"`
+		InProgress  int    `json:"in_progress"`
+		Blocked     int    `json:"blocked"`
+		NotStarted  int    `json:"not_started"`
+	}
+
+	var summaries []namespaceSummary
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -83,11 +110,30 @@ func showAllStatus() error {
 		for _, e := range idx.Nodes {
 			counts[e.State]++
 		}
-		output.PrintHuman("[%s] %d nodes: %d complete, %d in-progress, %d blocked",
-			entry.Name(), len(idx.Nodes),
-			counts[state.StatusComplete],
-			counts[state.StatusInProgress],
-			counts[state.StatusBlocked])
+		summaries = append(summaries, namespaceSummary{
+			Namespace:  entry.Name(),
+			Total:      len(idx.Nodes),
+			Complete:   counts[state.StatusComplete],
+			InProgress: counts[state.StatusInProgress],
+			Blocked:    counts[state.StatusBlocked],
+			NotStarted: counts[state.StatusNotStarted],
+		})
+	}
+
+	if jsonOutput {
+		output.Print(output.Ok("status_all", map[string]any{
+			"namespaces": summaries,
+			"count":      len(summaries),
+		}))
+	} else {
+		if len(summaries) == 0 {
+			output.PrintHuman("No engineer namespaces found in projects/")
+		} else {
+			for _, s := range summaries {
+				output.PrintHuman("[%s] %d nodes: %d complete, %d in-progress, %d blocked",
+					s.Namespace, s.Total, s.Complete, s.InProgress, s.Blocked)
+			}
+		}
 	}
 	return nil
 }

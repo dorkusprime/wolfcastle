@@ -13,10 +13,19 @@ import (
 var taskClaimCmd = &cobra.Command{
 	Use:   "claim",
 	Short: "Claim a task (transition from not_started to in_progress)",
+	Long: `Claims a task, transitioning it from not_started to in_progress.
+
+Use 'wolfcastle navigate' to find the next claimable task, then claim it.
+
+Examples:
+  wolfcastle task claim --node my-project/task-1`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		nodeFlag, _ := cmd.Flags().GetString("node")
 		if nodeFlag == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required — specify the task address (e.g. my-project/task-1)")
 		}
 
 		// Parse as task address (node/task-N)

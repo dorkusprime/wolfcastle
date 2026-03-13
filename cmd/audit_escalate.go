@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -13,12 +14,27 @@ import (
 var auditEscalateCmd = &cobra.Command{
 	Use:   "escalate [gap description]",
 	Short: "Escalate a gap to the parent node's audit",
-	Args:  cobra.ExactArgs(1),
+	Long: `Records an escalation on the parent orchestrator's audit trail.
+
+Use this when a leaf node encounters a gap that its parent needs to address,
+such as missing requirements, unclear scope, or cross-cutting concerns.
+The source node must not be a root-level node (it must have a parent).
+
+Examples:
+  wolfcastle audit escalate --node auth/login "missing error handling spec"
+  wolfcastle audit escalate --node api/endpoints "rate limiting not defined"`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		description := args[0]
+		if strings.TrimSpace(description) == "" {
+			return fmt.Errorf("escalation description cannot be empty — describe the gap")
+		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
 		if nodeAddr == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required — specify the source node address")
 		}
 
 		addr, err := tree.ParseAddress(nodeAddr)

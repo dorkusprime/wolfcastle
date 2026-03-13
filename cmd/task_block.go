@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -13,12 +14,26 @@ import (
 var taskBlockCmd = &cobra.Command{
 	Use:   "block [reason]",
 	Short: "Block a task (transition from in_progress to blocked)",
-	Args:  cobra.ExactArgs(1),
+	Long: `Marks a task as blocked with a reason. The task must currently be in_progress.
+
+Blocking a task propagates state changes up through parent orchestrators.
+Use 'wolfcastle task unblock' or 'wolfcastle unblock' to resolve the block.
+
+Examples:
+  wolfcastle task block --node my-project/task-1 "waiting on upstream API"
+  wolfcastle task block --node auth/login/task-2 "needs design review"`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		reason := args[0]
+		if strings.TrimSpace(reason) == "" {
+			return fmt.Errorf("block reason cannot be empty — describe why the task is blocked")
+		}
 		nodeFlag, _ := cmd.Flags().GetString("node")
 		if nodeFlag == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required — specify the task address (e.g. my-project/task-1)")
 		}
 
 		nodeAddr, taskID, err := tree.SplitTaskAddress(nodeFlag)

@@ -13,7 +13,10 @@ import (
 var installCmd = &cobra.Command{
 	Use:   "install [target]",
 	Short: "Install integrations",
-	Long:  "Install integrations with external tools. Currently supports: skill",
+	Long: `Install integrations with external tools. Currently supports: skill.
+
+Examples:
+  wolfcastle install skill`,
 }
 
 var installSkillCmd = &cobra.Command{
@@ -118,7 +121,9 @@ Use this skill to interact with the Wolfcastle project orchestrator.
 
 All commands support ` + "`--json`" + ` for structured output.
 `
-		os.WriteFile(skillFile, []byte(content), 0644)
+		if err := os.WriteFile(skillFile, []byte(content), 0644); err != nil {
+			return fmt.Errorf("writing skill definition: %w", err)
+		}
 	}
 	return nil
 }

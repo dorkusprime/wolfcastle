@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -12,8 +13,19 @@ import (
 var navigateCmd = &cobra.Command{
 	Use:   "navigate",
 	Short: "Find the next actionable task via depth-first traversal",
-	Long:  "Returns the next task to work on. Does NOT claim the task.",
+	Long: `Returns the next task to work on via depth-first traversal of the project tree.
+
+Does NOT claim the task — use 'wolfcastle task claim' to claim it.
+Optionally scope navigation to a subtree with --node.
+
+Examples:
+  wolfcastle navigate
+  wolfcastle navigate --node auth-system
+  wolfcastle navigate --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		scopeNode, _ := cmd.Flags().GetString("node")
 
 		idx, err := resolver.LoadRootIndex()
@@ -22,7 +34,10 @@ var navigateCmd = &cobra.Command{
 		}
 
 		result, err := state.FindNextTask(idx, scopeNode, func(addr string) (*state.NodeState, error) {
-			a := tree.MustParse(addr)
+			a, err := tree.ParseAddress(addr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
+			}
 			return state.LoadNodeState(filepath.Join(resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
 		})
 		if err != nil {

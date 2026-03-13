@@ -63,11 +63,21 @@ Wolfcastle needs a complete, consistent set of CLI commands that serve three aud
 |---------|-------------|
 | `wolfcastle archive add --node <path>` | Generate archive entry from node's completed state |
 
+### Spec Commands (model and user)
+
+| Command | Description |
+|---------|-------------|
+| `wolfcastle spec create --node <path> "title"` | Create a new spec in `docs/specs/` and optionally link it to a node |
+| `wolfcastle spec link --node <path> <filename>` | Link an existing spec to a node |
+| `wolfcastle spec list [--node <path>]` | List all specs, or specs linked to a specific node |
+
 ### Inbox Commands (user-facing)
 
 | Command | Description |
 |---------|-------------|
 | `wolfcastle inbox add "idea"` | Add an item to the inbox (alternative to editing the inbox file directly) |
+| `wolfcastle inbox list` | Show all inbox items with status and timestamp |
+| `wolfcastle inbox clear [--all]` | Remove filed/expanded items from inbox; `--all` removes everything |
 
 ## Conventions
 
@@ -82,4 +92,4 @@ Wolfcastle needs a complete, consistent set of CLI commands that serve three aud
 - The command reference is auto-generated into the system prompt (per ADR-017)
 - All state-mutating commands are deterministic and testable
 - The surface is intentionally minimal — new commands can be added as needs arise during implementation
-- Additional commands added in later ADRs: `wolfcastle doctor` (ADR-025), `wolfcastle install <target>` (ADR-026), `wolfcastle unblock` (ADR-028). See the CLI commands spec for the complete reference.
+- Additional commands added in later ADRs: `wolfcastle doctor` (ADR-025), `wolfcastle install <target>` (ADR-026), `wolfcastle unblock` (ADR-028), `wolfcastle spec create/link/list` (ADR-031). See the CLI commands spec for the complete reference.

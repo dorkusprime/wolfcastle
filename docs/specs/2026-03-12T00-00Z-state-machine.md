@@ -116,7 +116,7 @@ Leaf transitions are a consequence of task transitions within the leaf.
 | Not Started | In Progress | First task in the leaf is claimed |
 | In Progress | Complete | All tasks (including audit) complete |
 | In Progress | Blocked | Active task is blocked (manual or auto) |
-| Blocked | Not Started | Blocked task is unblocked (resets to Not Started per ADR-028) |
+| Blocked | In Progress | Blocked task is unblocked (task resets to Not Started per ADR-028; leaf becomes In Progress since work exists) |
 
 ### 4.3 Orchestrator Node Transitions
 
@@ -636,7 +636,7 @@ Task descriptions: the brief `description` field in the leaf's `state.json` is s
       "minimum": 0,
       "description": "How many levels of decomposition produced this node. 0 = original."
     },
-    "blocked_reason": {
+    "block_reason": {
       "type": "string",
       "description": "Present only when state is blocked. Explains why."
     },
@@ -649,6 +649,11 @@ Task descriptions: the brief `description` field in the leaf's `state.json` is s
       "type": "array",
       "items": { "$ref": "#/$defs/task" },
       "description": "Present only for leaf nodes. Last item must have is_audit=true."
+    },
+    "specs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Filenames of specs linked to this node (ADR-031). Used for context injection."
     },
     "audit": { "$ref": "#/$defs/audit" }
   },
@@ -701,7 +706,7 @@ Task descriptions: the brief `description` field in the leaf's `state.json` is s
           "default": false,
           "description": "True only for the audit task (must be last in array)"
         },
-        "blocked_reason": {
+        "block_reason": {
           "type": "string",
           "description": "Present only when state is blocked"
         }
@@ -816,8 +821,8 @@ All state mutations pass through deterministic scripts (ADR-003). The model neve
 | `wolfcastle task add --node <path> "desc"` | Inserts task before audit task with state `not_started`, `failure_count: 0` | Leaf's `state.json` only (adding a Not Started task doesn't change node state) |
 | `wolfcastle task claim --node <path>` | Sets task state to `in_progress` | Leaf's `state.json`, parent's `state.json` (child state summary), root index |
 | `wolfcastle task complete --node <path>` | Sets task state to `complete` | Leaf's `state.json`, parent's `state.json`, root index; if all tasks complete, propagation continues up the tree |
-| `wolfcastle task block --node <path> "reason"` | Sets task state to `blocked`, records `blocked_reason` | Leaf's `state.json`, parent's `state.json`, root index |
-| `wolfcastle task unblock --node <path>` | Sets task state to `not_started` (ADR-028), clears `blocked_reason`, resets `failure_count` to 0 | Leaf's `state.json`, parent's `state.json`, root index |
+| `wolfcastle task block --node <path> "reason"` | Sets task state to `blocked`, records `block_reason` | Leaf's `state.json`, parent's `state.json`, root index |
+| `wolfcastle task unblock --node <path>` | Sets task state to `not_started` (ADR-028), clears `block_reason`, resets `failure_count` to 0 | Leaf's `state.json`, parent's `state.json`, root index |
 | `wolfcastle project create --node <parent> "name"` | Creates child directory with `state.json` (state `not_started`), updates parent's children list | New child's `state.json`, parent's `state.json`, root index |
 | `wolfcastle audit breadcrumb --node <path> "text"` | Appends to `audit.breadcrumbs` | Node's `state.json` only (breadcrumbs don't affect state) |
 | `wolfcastle audit escalate --node <path> "gap"` | Appends to parent's `audit.escalations` | Parent's `state.json` only (escalations are informational) |
@@ -878,7 +883,7 @@ These invariants must hold at all times. Scripts enforce them; violations indica
 4. **State Consistency**: An orchestrator's state always equals the result of `recompute_parent()` over its children.
 5. **Depth Monotonicity**: A child's `decomposition_depth` is always >= its parent's `decomposition_depth`.
 6. **Failure Counter Non-Negative**: `failure_count` is always >= 0.
-7. **Blocked Requires Reason**: If `state == "blocked"`, `blocked_reason` must be present and non-empty.
+7. **Blocked Requires Reason**: If `state == "blocked"`, `block_reason` must be present and non-empty.
 8. **Complete Is Terminal**: A task or node in `complete` state never transitions to another state.
 9. **Breadcrumbs Append-Only**: Entries in `audit.breadcrumbs` are never modified or removed.
 10. **Valid State Values**: State is always one of: `not_started`, `in_progress`, `complete`, `blocked`.
@@ -901,7 +906,7 @@ Per ADR-025, the validation engine checks consistency across distributed state f
 | Orchestrator state derivation | Error | Each orchestrator's state equals `recompute_parent()` over its children's states. |
 | Single In Progress | Error | At most one task across the entire tree is `In Progress`. |
 | Audit-last invariant | Error | Every leaf's last task has `is_audit: true`. |
-| Blocked reason presence | Warning | Every blocked node/task has a non-empty `blocked_reason`. |
+| Blocked reason presence | Warning | Every blocked node/task has a non-empty `block_reason`. |
 | Orphaned directories | Warning | Node directories that exist on disk but have no index entry. |
 | Stale index entries | Warning | Index entries that point to non-existent directories. |
 | Schema version | Error | All `state.json` files have a recognized `version` field. |

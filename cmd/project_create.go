@@ -17,9 +17,17 @@ var projectCreateCmd = &cobra.Command{
 	Short: "Create a new project or sub-project",
 	Long: `Creates a new project node in the work tree.
 Without --node, creates a root-level project.
-With --node, creates a child under the specified parent.`,
+With --node, creates a child under the specified parent.
+
+Examples:
+  wolfcastle project create "auth-system"
+  wolfcastle project create --type orchestrator "auth-system"
+  wolfcastle project create --node auth-system "login-flow"`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		name := args[0]
 		parentNode, _ := cmd.Flags().GetString("node")
 		nodeType, _ := cmd.Flags().GetString("type")
@@ -55,7 +63,7 @@ With --node, creates a child under the specified parent.`,
 		}
 
 		// Create the project
-		ns, addr, err := project.CreateProject(idx, parentNode, slug, name, nt, nil)
+		ns, addr, err := project.CreateProject(idx, parentNode, slug, name, nt)
 		if err != nil {
 			return err
 		}
@@ -81,7 +89,9 @@ With --node, creates a child under the specified parent.`,
 			}
 			parentDir := filepath.Join(resolver.ProjectsDir(), filepath.Join(parentParsed.Parts...))
 			descPath := filepath.Join(parentDir, slug+".md")
-			os.WriteFile(descPath, []byte("# "+name+"\n\nProject description goes here.\n"), 0644)
+			if err := os.WriteFile(descPath, []byte("# "+name+"\n\nProject description goes here.\n"), 0644); err != nil {
+				return fmt.Errorf("writing project description: %w", err)
+			}
 
 			// Update parent node state to include child ref
 			parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
@@ -91,11 +101,15 @@ With --node, creates a child under the specified parent.`,
 					Address: addr,
 					State:   state.StatusNotStarted,
 				})
-				state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentState)
+				if err := state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentState); err != nil {
+					return fmt.Errorf("saving parent state: %w", err)
+				}
 			}
 		} else {
 			descPath := filepath.Join(resolver.ProjectsDir(), slug+".md")
-			os.WriteFile(descPath, []byte("# "+name+"\n\nProject description goes here.\n"), 0644)
+			if err := os.WriteFile(descPath, []byte("# "+name+"\n\nProject description goes here.\n"), 0644); err != nil {
+				return fmt.Errorf("writing project description: %w", err)
+			}
 		}
 
 		// Save updated root index

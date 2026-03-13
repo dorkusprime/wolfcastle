@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/inbox"
@@ -13,9 +14,20 @@ import (
 var inboxAddCmd = &cobra.Command{
 	Use:   "add [idea]",
 	Short: "Add an item to the inbox",
-	Args:  cobra.ExactArgs(1),
+	Long: `Adds a quick idea or work item to the inbox for later triage.
+
+Examples:
+  wolfcastle inbox add "refactor the auth middleware"
+  wolfcastle inbox add "investigate flaky test in CI"`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		text := args[0]
+		if strings.TrimSpace(text) == "" {
+			return fmt.Errorf("inbox item text cannot be empty")
+		}
 
 		inboxPath := filepath.Join(resolver.ProjectsDir(), "inbox.json")
 

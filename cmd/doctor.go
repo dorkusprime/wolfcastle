@@ -23,7 +23,16 @@ type doctorIssue struct {
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Validate structural integrity of the project tree",
-	Long:  "Checks for orphaned files, state inconsistencies, missing audit tasks, and other structural issues.",
+	Long: `Checks for orphaned files, state inconsistencies, missing audit tasks,
+and other structural issues in the project tree.
+
+Use --fix to automatically repair deterministic issues like missing audit
+tasks, state mismatches between index and node files, and orphaned entries.
+
+Examples:
+  wolfcastle doctor
+  wolfcastle doctor --fix
+  wolfcastle doctor --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if resolver == nil {
 			return fmt.Errorf("identity not configured — run 'wolfcastle init' first")

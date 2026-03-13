@@ -13,6 +13,14 @@ import (
 var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop the Wolfcastle daemon",
+	Long: `Sends a stop signal to the running Wolfcastle daemon.
+
+By default, sends SIGTERM for a graceful shutdown. Use --force to send
+SIGKILL if the daemon is not responding.
+
+Examples:
+  wolfcastle stop
+  wolfcastle stop --force`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		force, _ := cmd.Flags().GetBool("force")
 

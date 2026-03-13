@@ -16,10 +16,17 @@ import (
 var archiveAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Generate an archive entry for a completed node",
+	Long: `Generates a Markdown archive entry for a completed project node.
+
+The node must be in the 'complete' state. The archive entry includes
+the node's audit trail, result summary, and metadata.
+
+Examples:
+  wolfcastle archive add --node my-project`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		nodeAddr, _ := cmd.Flags().GetString("node")
 		if nodeAddr == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required — specify the completed node to archive")
 		}
 
 		addr, err := tree.ParseAddress(nodeAddr)
@@ -32,7 +39,7 @@ var archiveAddCmd = &cobra.Command{
 		}
 
 		if ns.State != "complete" {
-			return fmt.Errorf("node %s is %s, must be complete to archive", nodeAddr, ns.State)
+			return fmt.Errorf("node %s is %s, must be complete to archive — finish all tasks first", nodeAddr, ns.State)
 		}
 
 		// Get current branch
@@ -46,7 +53,9 @@ var archiveAddCmd = &cobra.Command{
 		entry := archive.GenerateEntry(nodeAddr, ns, cfg, branch, ns.Audit.ResultSummary)
 
 		archiveDir := filepath.Join(wolfcastleDir, "archive")
-		os.MkdirAll(archiveDir, 0755)
+		if err := os.MkdirAll(archiveDir, 0755); err != nil {
+			return fmt.Errorf("creating archive directory: %w", err)
+		}
 		archivePath := filepath.Join(archiveDir, entry.Filename)
 
 		if err := os.WriteFile(archivePath, []byte(entry.Content), 0644); err != nil {

@@ -16,9 +16,21 @@ import (
 var adrCreateCmd = &cobra.Command{
 	Use:   "create [title]",
 	Short: "Create a new architecture decision record",
-	Args:  cobra.ExactArgs(1),
+	Long: `Creates a timestamped ADR Markdown file in docs/decisions/.
+
+The body can be provided via --stdin or --file. Without either, a
+template with Context/Decision/Consequences sections is generated.
+
+Examples:
+  wolfcastle adr create "Use JWT for authentication"
+  wolfcastle adr create --stdin "Migration strategy" < body.md
+  wolfcastle adr create --file rationale.md "Switch to PostgreSQL"`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title := args[0]
+		if strings.TrimSpace(title) == "" {
+			return fmt.Errorf("ADR title cannot be empty")
+		}
 		useStdin, _ := cmd.Flags().GetBool("stdin")
 		bodyFile, _ := cmd.Flags().GetString("file")
 
@@ -60,7 +72,9 @@ var adrCreateCmd = &cobra.Command{
 
 		// Resolve docs directory
 		docsDir := filepath.Join(wolfcastleDir, cfg.Docs.Directory, "decisions")
-		os.MkdirAll(docsDir, 0755)
+		if err := os.MkdirAll(docsDir, 0755); err != nil {
+			return fmt.Errorf("creating decisions directory: %w", err)
+		}
 		adrPath := filepath.Join(docsDir, filename)
 
 		if err := os.WriteFile(adrPath, []byte(content.String()), 0644); err != nil {

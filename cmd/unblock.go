@@ -18,14 +18,21 @@ import (
 var unblockCmd = &cobra.Command{
 	Use:   "unblock",
 	Short: "Interactive model-assisted unblock, or agent context dump",
-	Long: `Tier 2: wolfcastle unblock --node <path>
-  Starts a multi-turn interactive chat with a model, pre-loaded with block context.
+	Long: `Model-assisted unblock with three tiers:
 
-Tier 3: wolfcastle unblock --agent --node <path>
+Tier 1 (simple flip): wolfcastle task unblock --node <path>
+Tier 2 (interactive): wolfcastle unblock --node <path>
+  Starts a multi-turn interactive chat with a model, pre-loaded with block context.
+Tier 3 (agent dump):  wolfcastle unblock --agent --node <path>
   Outputs rich diagnostic context for an already-running interactive agent.
 
-For simple status flip (Tier 1), use: wolfcastle task unblock --node <path>`,
+Examples:
+  wolfcastle unblock --node my-project/task-1
+  wolfcastle unblock --agent --node my-project/task-1`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		nodeFlag, _ := cmd.Flags().GetString("node")
 		agentMode, _ := cmd.Flags().GetBool("agent")
 
@@ -154,9 +161,12 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	fmt.Println("(Type 'quit' or 'exit' to end the session)")
 	fmt.Println()
 
-	// Simple multi-turn: invoke model, show response, get user input, repeat
+	// Simple multi-turn: invoke model, show response, get user input, repeat.
+	// Keep a sliding window of conversation history to avoid unbounded growth.
+	const maxConversationBytes = 100_000
 	repoDir := filepath.Dir(wolfcastleDir)
 	conversation := prompt
+	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
 		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
@@ -175,7 +185,6 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 
 		// Get user input
 		fmt.Print("\n> ")
-		scanner := bufio.NewScanner(os.Stdin)
 		if !scanner.Scan() {
 			break
 		}
@@ -188,6 +197,17 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		}
 
 		conversation += "\n\nUser: " + input + "\n\nAssistant: "
+
+		// Trim conversation to avoid unbounded memory growth; keep the
+		// original prompt (diagnostic context) and the most recent turns.
+		if len(conversation) > maxConversationBytes {
+			excess := len(conversation) - maxConversationBytes
+			// Find a turn boundary after the excess point
+			cutPoint := strings.Index(conversation[excess:], "\n\nUser: ")
+			if cutPoint > 0 {
+				conversation = prompt + "\n\n[Earlier conversation truncated]\n" + conversation[excess+cutPoint:]
+			}
+		}
 	}
 
 	return nil

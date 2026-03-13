@@ -295,6 +295,8 @@ The default pipeline ships with Wolfcastle and is written into `config.json` by 
 
 ### Full Default Configuration
 
+The default `pipeline.stages` array contains three stages. The summary stage is controlled separately via the `summary` config key (see Section 7) and is not a pipeline stage — it runs conditionally based on `summary.enabled` after a node completes its audit.
+
 ```json
 {
   "models": {
@@ -327,16 +329,13 @@ The default pipeline ships with Wolfcastle and is written into `config.json` by 
         "name": "execute",
         "model": "heavy",
         "prompt_file": "execute.md"
-      },
-      {
-        "name": "summary",
-        "model": "fast",
-        "prompt_file": "summary.md"
       }
     ]
   },
   "summary": {
-    "enabled": true
+    "enabled": true,
+    "model": "fast",
+    "prompt_file": "summary.md"
   }
 }
 ```

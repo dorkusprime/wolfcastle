@@ -80,6 +80,18 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 		return nil, err
 	}
 
+	// Return in_progress tasks first (self-healing: resume after crash)
+	for _, task := range ns.Tasks {
+		if task.State == StatusInProgress {
+			return &NavigationResult{
+				NodeAddress: addr,
+				TaskID:      task.ID,
+				Description: task.Description,
+				Found:       true,
+			}, nil
+		}
+	}
+	// Then not_started tasks
 	for _, task := range ns.Tasks {
 		if task.State == StatusNotStarted {
 			return &NavigationResult{

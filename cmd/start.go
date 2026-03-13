@@ -14,7 +14,17 @@ import (
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the Wolfcastle daemon",
-	Long:  "Runs the daemon loop, executing tasks from the project tree.",
+	Long: `Starts the Wolfcastle daemon loop, executing tasks from the project tree.
+
+The daemon picks the next actionable task, invokes the configured model
+pipeline, and updates state. Use --node to scope execution to a subtree.
+Use -d to run in the background, then 'wolfcastle follow' to watch output.
+
+Examples:
+  wolfcastle start
+  wolfcastle start --node auth-system
+  wolfcastle start -d
+  wolfcastle start --worktree feature-branch`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		nodeScope, _ := cmd.Flags().GetString("node")
 		background, _ := cmd.Flags().GetBool("d")
@@ -26,6 +36,7 @@ var startCmd = &cobra.Command{
 
 		// Find repo root (parent of .wolfcastle)
 		repoDir := filepath.Dir(wolfcastleDir)
+		originalRepoDir := repoDir
 
 		// Handle worktree mode
 		var wtDir string
@@ -40,7 +51,7 @@ var startCmd = &cobra.Command{
 		}
 		defer func() {
 			if worktreeBranch != "" {
-				cleanupWorktree(repoDir, wtDir)
+				cleanupWorktree(originalRepoDir, wtDir)
 			}
 		}()
 
@@ -92,7 +103,9 @@ func startBackground(nodeScope, worktreeBranch string) error {
 
 	// Write PID file
 	pidFile := filepath.Join(wolfcastleDir, "wolfcastle.pid")
-	os.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", proc.Process.Pid)), 0644)
+	if err := os.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", proc.Process.Pid)), 0644); err != nil {
+		return fmt.Errorf("writing PID file: %w", err)
+	}
 
 	fmt.Printf("Wolfcastle started in background (PID %d)\n", proc.Process.Pid)
 	fmt.Println("  Use 'wolfcastle follow' to watch output")

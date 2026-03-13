@@ -12,7 +12,15 @@ import (
 var inboxListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all items in the inbox",
+	Long: `Lists all items in the inbox with their status and timestamp.
+
+Examples:
+  wolfcastle inbox list
+  wolfcastle inbox list --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		inboxPath := filepath.Join(resolver.ProjectsDir(), "inbox.json")
 
 		inboxData, err := inbox.Load(inboxPath)

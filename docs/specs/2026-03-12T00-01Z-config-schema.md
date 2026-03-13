@@ -40,6 +40,7 @@ Arrays are **not** deep-merged. An array in `config.local.json` replaces the ent
 | `doctor` | Yes | Yes | |
 | `unblock` | Yes | Yes | |
 | `overlap_advisory` | Yes | Yes | Enabled by default in team config; can be disabled in local config |
+| `audit` | Yes | Yes | Codebase audit command configuration (ADR-029) |
 
 `identity` is the only field restricted to `config.local.json`. All other fields may appear in either file.
 
@@ -463,6 +464,28 @@ Arrays are **not** deep-merged. An array in `config.local.json` replaces the ent
       }
     },
 
+    "audit": {
+      "type": "object",
+      "description": "Configuration for `wolfcastle audit`, the codebase audit command with discoverable scopes. (ADR-029)",
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "type": "string",
+          "default": "heavy",
+          "description": "Key referencing an entry in the `models` dictionary. Codebase audits use a capable model for thorough analysis."
+        },
+        "prompt_file": {
+          "type": "string",
+          "default": "audit.md",
+          "description": "Prompt template for the audit command, resolved through three-tier merge."
+        }
+      },
+      "default": {
+        "model": "heavy",
+        "prompt_file": "audit.md"
+      }
+    },
+
     "git": {
       "type": "object",
       "description": "Git behavior configuration. (ADR-015)",
@@ -536,6 +559,8 @@ All fields are optional. Omitted fields use the defaults specified above. A comp
 | `unblock.prompt_file` | `"unblock.md"` |
 | `overlap_advisory.enabled` | `true` |
 | `overlap_advisory.model` | `"fast"` |
+| `audit.model` | `"heavy"` |
+| `audit.prompt_file` | `"audit.md"` |
 
 ---
 
@@ -655,6 +680,11 @@ This is the team-shared configuration committed to git. Shows all fields with th
     "model": "fast"
   },
 
+  "audit": {
+    "model": "heavy",
+    "prompt_file": "audit.md"
+  },
+
   "git": {
     "auto_commit": true,
     "commit_message_format": "wolfcastle: {action} [{node}]",
@@ -744,12 +774,12 @@ The Go binary carries hardcoded defaults for every field. `config.json` override
 
 The following validation is performed when config is loaded:
 
-1. **Model references**: Every `model` value in `pipeline.stages`, `summary.model`, `doctor.model`, `unblock.model`, and `overlap_advisory.model` must reference a key that exists in the resolved `models` dictionary (after merge).
+1. **Model references**: Every `model` value in `pipeline.stages`, `summary.model`, `doctor.model`, `unblock.model`, `overlap_advisory.model`, and `audit.model` must reference a key that exists in the resolved `models` dictionary (after merge).
 2. **Stage name uniqueness**: No two entries in `pipeline.stages` may share the same `name`.
 3. **No identity in config.json**: If `identity` appears in `config.json`, emit a warning. Identity is personal and should only be in `config.local.json`.
 4. **Type checking**: All fields must match their declared types. Unknown keys at the top level are rejected (`additionalProperties: false`).
 5. **Constraint checking**: Numeric fields respect their `minimum` constraints. `hard_cap` must be >= `decomposition_threshold`.
-6. **Prompt file existence**: `prompt_file` values in `pipeline.stages`, `summary.prompt_file`, `doctor.prompt_file`, and `unblock.prompt_file` should resolve to an existing file in at least one tier (base/, custom/, or local/). Missing prompt files produce a startup error.
+6. **Prompt file existence**: `prompt_file` values in `pipeline.stages`, `summary.prompt_file`, `doctor.prompt_file`, `unblock.prompt_file`, and `audit.prompt_file` should resolve to an existing file in at least one tier (base/, custom/, or local/). Missing prompt files produce a startup error.
 
 ---
 
@@ -772,5 +802,6 @@ The following validation is performed when config is loaded:
 | `doctor` | ADR-025 |
 | `unblock` | ADR-028 |
 | `overlap_advisory` | ADR-027 |
+| `audit` | ADR-029 |
 | Merge semantics | ADR-018 |
 | Three-tier layering | ADR-009 |

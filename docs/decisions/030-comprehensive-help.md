@@ -32,9 +32,9 @@ Help text for commands with discoverable features (like `wolfcastle audit`) incl
 - **Task**: task add/claim/complete/block/unblock
 - **Project**: project create
 - **Audit**: audit (codebase), audit breadcrumb, audit escalate
-- **Documentation**: adr create
+- **Documentation**: adr create, spec create/link/list
 - **Archive**: archive add
-- **Inbox**: inbox add
+- **Inbox**: inbox add/list/clear
 - **Navigation**: navigate
 - **Diagnostics**: doctor, unblock
 - **Integration**: install

@@ -16,14 +16,33 @@ import (
 var specCmd = &cobra.Command{
 	Use:   "spec",
 	Short: "Manage specs linked to project nodes",
+	Long: `Create, link, and list specification documents tied to project nodes.
+
+Specs are stored as Markdown files in docs/specs/ and can be linked to
+one or more project nodes. They appear in unblock diagnostics and audit
+context.
+
+Examples:
+  wolfcastle spec create "API Authentication Flow"
+  wolfcastle spec create --node auth-system "Token Refresh Spec"
+  wolfcastle spec link auth-spec.md --node auth-system
+  wolfcastle spec list --node auth-system`,
 }
 
 var specCreateCmd = &cobra.Command{
 	Use:   "create [title]",
 	Short: "Create a new spec and link it to a node",
-	Args:  cobra.ExactArgs(1),
+	Long: `Creates a new spec Markdown file in docs/specs/ and optionally links it to a node.
+
+Examples:
+  wolfcastle spec create "API Authentication Flow"
+  wolfcastle spec create --node auth-system "Token Refresh Spec"`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title := args[0]
+		if strings.TrimSpace(title) == "" {
+			return fmt.Errorf("spec title cannot be empty")
+		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
 
 		now := time.Now().UTC()
@@ -32,7 +51,9 @@ var specCreateCmd = &cobra.Command{
 		filename := fmt.Sprintf("%s-%s.md", timestamp, slug)
 
 		docsDir := filepath.Join(wolfcastleDir, cfg.Docs.Directory, "specs")
-		os.MkdirAll(docsDir, 0755)
+		if err := os.MkdirAll(docsDir, 0755); err != nil {
+			return fmt.Errorf("creating specs directory: %w", err)
+		}
 		specPath := filepath.Join(docsDir, filename)
 
 		content := fmt.Sprintf("# %s\n\n[Spec content goes here.]\n", title)
@@ -77,12 +98,19 @@ var specCreateCmd = &cobra.Command{
 var specLinkCmd = &cobra.Command{
 	Use:   "link [filename]",
 	Short: "Link an existing spec to a node",
-	Args:  cobra.ExactArgs(1),
+	Long: `Links an existing spec file to a project node.
+
+The spec file must already exist in docs/specs/. A spec can be linked
+to multiple nodes.
+
+Examples:
+  wolfcastle spec link 2025-01-15T10-30Z-auth-flow.md --node auth-system`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filename := args[0]
 		nodeAddr, _ := cmd.Flags().GetString("node")
 		if nodeAddr == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required — specify the target node to link the spec to")
 		}
 
 		// Verify spec exists
@@ -129,6 +157,12 @@ var specLinkCmd = &cobra.Command{
 var specListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List specs, optionally filtered by node",
+	Long: `Lists all specs, or only specs linked to a specific node.
+
+Examples:
+  wolfcastle spec list
+  wolfcastle spec list --node auth-system
+  wolfcastle spec list --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		nodeAddr, _ := cmd.Flags().GetString("node")
 

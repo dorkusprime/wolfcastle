@@ -105,7 +105,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 
 		navResult, err := state.FindNextTask(idx, d.ScopeNode, func(addr string) (*state.NodeState, error) {
-			a := tree.MustParse(addr)
+			a, err := tree.ParseAddress(addr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
+			}
 			return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
 		})
 		if err != nil {
@@ -152,7 +155,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, idx *state.RootIndex) error {
 	// Claim the task
-	addr := tree.MustParse(nav.NodeAddress)
+	addr, err := tree.ParseAddress(nav.NodeAddress)
+	if err != nil {
+		return fmt.Errorf("parsing node address %q: %w", nav.NodeAddress, err)
+	}
 	statePath := filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
 	ns, err := state.LoadNodeState(statePath)
 	if err != nil {
@@ -170,7 +176,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	if entry, ok := idx.Nodes[nav.NodeAddress]; ok {
 		entry.State = ns.State
 		idx.Nodes[nav.NodeAddress] = entry
-		state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
+		if err := state.SaveRootIndex(d.Resolver.RootIndexPath(), idx); err != nil {
+			return fmt.Errorf("saving root index after claim: %w", err)
+		}
 	}
 
 	// Run pipeline stages
@@ -210,10 +218,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 
 		invokeCtx := ctx
+		var cancel context.CancelFunc
 		if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
-			var cancel context.CancelFunc
 			invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
-			defer cancel()
 		}
 
 		d.Logger.Log(map[string]any{
@@ -225,6 +232,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		})
 
 		result, err := invoke.InvokeStreaming(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter())
+		if cancel != nil {
+			cancel()
+		}
 		if err != nil {
 			d.Logger.Log(map[string]any{"type": "stage_error", "stage": stage.Name, "error": err.Error()})
 			return err

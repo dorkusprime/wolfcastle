@@ -144,7 +144,6 @@ func CreateProject(
 	slug string,
 	name string,
 	nodeType state.NodeType,
-	resolver interface{ NodeDir(addr interface{}) string },
 ) (*state.NodeState, string, error) {
 	// Build the new address
 	var addr string

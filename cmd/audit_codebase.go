@@ -24,8 +24,17 @@ var auditCodebaseCmd = &cobra.Command{
 	Long: `Runs a model-driven codebase audit and presents findings for approval.
 Approved findings become projects/tasks in the work tree.
 
-Scopes are discovered from base/audits/, custom/audits/, and local/audits/.`,
+Scopes are discovered from base/audits/, custom/audits/, and local/audits/.
+Use --list to see available scopes, or --scope to run specific ones.
+
+Examples:
+  wolfcastle audit run
+  wolfcastle audit run --scope security,performance
+  wolfcastle audit run --list`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		scopeFlag, _ := cmd.Flags().GetString("scope")
 		listFlag, _ := cmd.Flags().GetBool("list")
 
@@ -267,21 +276,33 @@ func createProjectsFromFindings(findings string) error {
 			continue
 		}
 
-		ns, addr, err := project.CreateProject(idx, "", slug, title, state.NodeLeaf, nil)
+		ns, addr, err := project.CreateProject(idx, "", slug, title, state.NodeLeaf)
 		if err != nil {
 			fmt.Printf("  Error creating %s: %v\n", title, err)
 			continue
 		}
 
 		// Write node state
-		addrParsed, _ := tree.ParseAddress(addr)
+		addrParsed, parseErr := tree.ParseAddress(addr)
+		if parseErr != nil {
+			fmt.Printf("  Error parsing address %s: %v\n", addr, parseErr)
+			continue
+		}
 		nodeDir := filepath.Join(resolver.ProjectsDir(), filepath.Join(addrParsed.Parts...))
-		os.MkdirAll(nodeDir, 0755)
-		state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns)
+		if err := os.MkdirAll(nodeDir, 0755); err != nil {
+			fmt.Printf("  Error creating directory for %s: %v\n", title, err)
+			continue
+		}
+		if err := state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns); err != nil {
+			fmt.Printf("  Error saving state for %s: %v\n", title, err)
+			continue
+		}
 
 		// Write description
 		descPath := filepath.Join(resolver.ProjectsDir(), slug+".md")
-		os.WriteFile(descPath, []byte("# "+title+"\n\nAudit finding — see audit output for details.\n"), 0644)
+		if err := os.WriteFile(descPath, []byte("# "+title+"\n\nAudit finding — see audit output for details.\n"), 0644); err != nil {
+			fmt.Printf("  Error writing description for %s: %v\n", title, err)
+		}
 
 		fmt.Printf("  Created: %s\n", addr)
 	}
@@ -306,6 +327,11 @@ func scopeNames(scopes []auditScope) string {
 var auditListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List available audit scopes",
+	Long: `Lists audit scopes discovered from base/audits/, custom/audits/, and local/audits/.
+
+Examples:
+  wolfcastle audit list
+  wolfcastle audit list --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		scopes, err := discoverScopes()
 		if err != nil {

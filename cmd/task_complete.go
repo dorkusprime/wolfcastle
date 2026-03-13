@@ -16,10 +16,21 @@ import (
 var taskCompleteCmd = &cobra.Command{
 	Use:   "complete",
 	Short: "Complete a task (transition from in_progress to complete)",
+	Long: `Marks a task as complete, transitioning it from in_progress to complete.
+
+If validation commands are configured, they run before the completion is saved.
+When all tasks in a leaf node are complete, the node itself becomes complete
+and the state change propagates up through parent orchestrators.
+
+Examples:
+  wolfcastle task complete --node my-project/task-1`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		nodeFlag, _ := cmd.Flags().GetString("node")
 		if nodeFlag == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required — specify the task address (e.g. my-project/task-1)")
 		}
 
 		nodeAddr, taskID, err := tree.SplitTaskAddress(nodeFlag)

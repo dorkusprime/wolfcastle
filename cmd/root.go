@@ -22,7 +22,16 @@ var rootCmd = &cobra.Command{
 	Short: "Model-agnostic autonomous project orchestrator",
 	Long: `Wolfcastle breaks complex work into a persistent tree of projects,
 sub-projects, and tasks, then executes them through configurable
-multi-model pipelines.`,
+multi-model pipelines.
+
+Quick start:
+  wolfcastle init                          Initialize a project
+  wolfcastle project create "my-feature"   Create a root project
+  wolfcastle task add --node my-feature "implement API"
+  wolfcastle start                         Run the daemon
+
+Use "wolfcastle [command] --help" for more information about a command.
+All commands support --json for machine-readable output.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip config loading for commands that don't need it
 		switch cmd.Name() {
@@ -77,6 +86,15 @@ func loadConfig() error {
 	if err != nil {
 		// Not fatal for all commands
 		resolver = nil
+	}
+	return nil
+}
+
+// requireResolver returns an error if the resolver is not initialized.
+// Commands that operate on the project tree should call this early.
+func requireResolver() error {
+	if resolver == nil {
+		return fmt.Errorf("identity not configured — run 'wolfcastle init' first")
 	}
 	return nil
 }

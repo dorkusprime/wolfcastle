@@ -11,9 +11,17 @@ import (
 
 var inboxClearCmd = &cobra.Command{
 	Use:   "clear",
-	Short: "Clear processed items from the inbox",
-	Long:  "Removes items with status 'processed' or 'expanded'. Use --all to remove everything.",
+	Short: "Clear filed items from the inbox",
+	Long: `Removes items with status 'filed' or 'expanded' from the inbox.
+Items with status 'new' are kept unless --all is specified.
+
+Examples:
+  wolfcastle inbox clear
+  wolfcastle inbox clear --all`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		clearAll, _ := cmd.Flags().GetBool("all")
 
 		inboxPath := filepath.Join(resolver.ProjectsDir(), "inbox.json")

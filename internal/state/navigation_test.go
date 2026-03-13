@@ -61,6 +61,36 @@ func TestFindNextTask_FindsFirstNotStartedTask(t *testing.T) {
 	}
 }
 
+func TestFindNextTask_PrefersInProgressForSelfHealing(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["leaf-a"] = IndexEntry{
+		Name:  "Leaf A",
+		Type:  NodeLeaf,
+		State: StatusInProgress,
+	}
+
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "task-1", Description: "already done", State: StatusComplete},
+		{ID: "task-2", Description: "was working on this", State: StatusInProgress},
+		{ID: "task-3", Description: "not started yet", State: StatusNotStarted},
+	}
+
+	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Found {
+		t.Fatal("expected to find a task")
+	}
+	if result.TaskID != "task-2" {
+		t.Errorf("expected in_progress task-2 (self-healing), got %s", result.TaskID)
+	}
+}
+
 func TestFindNextTask_SkipsCompleteNodes(t *testing.T) {
 	t.Parallel()
 	idx := NewRootIndex()

@@ -16,6 +16,13 @@ import (
 var followCmd = &cobra.Command{
 	Use:   "follow",
 	Short: "Tail the latest iteration's model output in real time",
+	Long: `Streams the daemon's model output in real time, similar to 'tail -f'.
+
+Automatically follows new log files as the daemon starts new iterations.
+Press Ctrl+C to stop following.
+
+Examples:
+  wolfcastle follow`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logDir := filepath.Join(wolfcastleDir, "logs")
 		var currentFile string
@@ -118,9 +125,13 @@ func tailFileStreaming(path string) error {
 		}
 	}
 
-	// Update the offset to the current position
-	pos, _ := f.Seek(0, 1) // current position
-	setOffset(path, pos)
+	// Update the offset to the current file size. We re-stat because
+	// the file may have grown since our initial check. Using f.Seek(0,1)
+	// would be unreliable because bufio.Scanner reads ahead into an
+	// internal buffer.
+	if endInfo, err := os.Stat(path); err == nil {
+		setOffset(path, endInfo.Size())
+	}
 
 	return scanner.Err()
 }
