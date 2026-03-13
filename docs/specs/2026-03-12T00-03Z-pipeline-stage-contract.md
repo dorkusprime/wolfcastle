@@ -1,0 +1,607 @@
+# Pipeline Stage Contract
+
+This spec defines how pipeline stages are configured, invoked, and how they interact within the Wolfcastle daemon loop. It covers the full lifecycle from stage definition through prompt assembly, execution, output handling, error recovery, and iteration.
+
+## Governing ADRs
+
+- ADR-004: Model-agnostic design
+- ADR-005: Composable rule fragments with sensible defaults
+- ADR-006: Configurable pipelines
+- ADR-009: Three-tier file layering (base/custom/local)
+- ADR-012: NDJSON logs with per-iteration files
+- ADR-013: Model invocation via CLI shell-out with pipeline configuration
+- ADR-016: Archive format with deterministic rollup and model summary
+- ADR-017: Script reference via prompt injection
+- ADR-018: Merge semantics for config and prompt layering
+- ADR-019: Failure handling, decomposition, and retry thresholds
+- ADR-020: Daemon lifecycle and process management
+
+---
+
+## 1. Stage Definition Schema
+
+Each stage is an object in the `pipeline.stages` array in `config.json`. The full schema:
+
+```json
+{
+  "name": "<string, required>",
+  "model": "<string, required>",
+  "prompt_file": "<string, required>",
+  "enabled": "<boolean, optional, default: true>",
+  "skip_prompt_assembly": "<boolean, optional, default: false>"
+}
+```
+
+### Field Reference
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | string | yes | -- | Unique identifier for the stage within the pipeline. Used in log records, error messages, and stage-level configuration references. Must be unique across all stages. |
+| `model` | string | yes | -- | Key into the top-level `models` dictionary. Resolved at pipeline load time; a missing key is a fatal config error. |
+| `prompt_file` | string | yes | -- | Filename (not path) of the stage-specific prompt. Resolved through the three-tier merge (base/custom/local) per ADR-009 and ADR-018. |
+| `enabled` | boolean | no | `true` | When `false`, the stage is skipped entirely during pipeline execution. Allows opt-out without removing the stage from config. |
+| `skip_prompt_assembly` | boolean | no | `false` | When `true`, the stage receives only its own `prompt_file` content as the prompt, without the full system prompt assembly (no rule fragments, no script reference). Useful for lightweight stages that do not need the full context. |
+
+### Model Definition (reference)
+
+Models are defined separately in `config.json` under the `models` key (ADR-013). A stage references a model by its key:
+
+```json
+{
+  "models": {
+    "fast": {
+      "command": "claude",
+      "args": ["-p", "--model", "claude-haiku-4-5-20251001", "--output-format", "stream-json", "--dangerously-skip-permissions"]
+    },
+    "mid": {
+      "command": "claude",
+      "args": ["-p", "--model", "claude-sonnet-4-6", "--output-format", "stream-json", "--dangerously-skip-permissions"]
+    },
+    "heavy": {
+      "command": "claude",
+      "args": ["-p", "--model", "claude-opus-4-6", "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions"]
+    }
+  }
+}
+```
+
+---
+
+## 2. Stage Invocation
+
+Wolfcastle invokes each stage by constructing a CLI command from the model definition and the assembled prompt, then shelling out to that command as a child process.
+
+### Command Construction
+
+Given a stage with `"model": "heavy"` and the model definition above, Wolfcastle builds:
+
+```
+claude -p --model claude-opus-4-6 --output-format stream-json --verbose --dangerously-skip-permissions
+```
+
+The assembled prompt is piped to the command's stdin. Wolfcastle does **not** write the prompt to a temporary file; it is streamed directly.
+
+### Pseudocode
+
+```
+func invokeStage(stage Stage, prompt string, workDir string) (output string, err error) {
+    model := resolvedConfig.Models[stage.Model]
+    cmd := exec.Command(model.Command, model.Args...)
+    cmd.Dir = workDir
+    cmd.Stdin = strings.NewReader(prompt)
+    cmd.Stdout = logCapture   // captured for logging and downstream stages
+    cmd.Stderr = stderrCapture
+    // Child process is spawned in its own process group (ADR-020)
+    cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+    err = cmd.Run()
+    return logCapture.String(), err
+}
+```
+
+### Working Directory
+
+All stages execute with the working directory set to the project root (or the worktree root if `--worktree` was used, per ADR-015). The model navigates within the project via Wolfcastle commands and standard filesystem operations.
+
+### Process Lifecycle
+
+Per ADR-020, the Go daemon owns the child process:
+- The child is spawned in its own process group.
+- The daemon intercepts SIGTERM/SIGINT and propagates to the child.
+- Context cancellation coordinates graceful shutdown.
+- If the daemon receives a stop signal mid-stage, it waits for the current stage's child process to exit before shutting down. It does **not** proceed to the next stage.
+
+---
+
+## 3. Prompt Assembly
+
+Each stage's prompt is assembled from multiple sources, layered in a defined order. The final prompt is a single string that becomes the model's system prompt.
+
+### Assembly Order
+
+For stages with `skip_prompt_assembly: false` (the default):
+
+```
+1. Rule fragments (merged via three-tier layering)
+2. Script reference (auto-generated from Go command definitions)
+3. Stage prompt (from prompt_file, merged via three-tier layering)
+4. Iteration context (current node state, task details, tree position)
+```
+
+This is the same 4-layer model defined in the orchestrator prompt spec. The stage prompt (e.g., `execute.md`) contains the stage-specific instructions including the model's role within Wolfcastle. There is no separate "orchestrator prompt" layer — the stage prompt serves this purpose.
+
+Each section is concatenated with clear delimiters so the model can distinguish them.
+
+For stages with `skip_prompt_assembly: true`:
+
+```
+1. Stage-specific prompt (from prompt_file only)
+2. Iteration context (current node state)
+```
+
+### Three-Tier Prompt Resolution
+
+Each `prompt_file` is resolved through the three-tier merge (ADR-009, ADR-018):
+
+1. **`base/prompts/{prompt_file}`** -- Wolfcastle-managed defaults, regenerated on `wolfcastle init` and `wolfcastle update`.
+2. **`custom/prompts/{prompt_file}`** -- Team-shared overrides, committed to git.
+3. **`local/prompts/{prompt_file}`** -- Personal overrides, gitignored.
+
+A same-named file in a higher tier **completely replaces** the lower tier's version (file-level replacement, not partial merge, per ADR-018). If no file exists in any tier for a given `prompt_file`, that is a fatal config error.
+
+The same resolution applies to rule fragments referenced in config.
+
+### Script Reference Injection
+
+Per ADR-017, the script reference is a prompt fragment generated from Wolfcastle's Go command definitions. It is:
+- Regenerated on `wolfcastle init` and `wolfcastle update`.
+- Stored in `base/prompts/script-reference.md`.
+- Injected into every stage that has `skip_prompt_assembly: false`.
+- Never separately maintained -- single source of truth in Go code.
+
+### Iteration Context
+
+Wolfcastle injects dynamic context at the end of the assembled prompt. This includes:
+- The current node's tree address.
+- The current node's state (task list, statuses, breadcrumbs, audit state).
+- Failure history for the current node (failure count, decomposition depth), so the model is aware of prior attempts.
+- The inbox contents (for stages that process the inbox, e.g. `expand`).
+
+The iteration context is always injected regardless of `skip_prompt_assembly`.
+
+### Example: Assembled Prompt for the `execute` Stage
+
+```markdown
+<!-- Rule Fragments -->
+[git-conventions.md content]
+[commit-format.md content]
+[adr-policy.md content]
+[...any additional rule fragments...]
+
+<!-- Script Reference -->
+The following commands are available to you:
+[script-reference.md content]
+
+<!-- Stage Prompt: execute.md -->
+You are Wolfcastle, an autonomous software engineering agent...
+You are in the execute stage. Your job is to complete the current task...
+[execute.md content]
+
+<!-- Iteration Context -->
+Current node: attunement-tree/fire-implementation/task-3
+Current state:
+{...JSON state of the node...}
+```
+
+---
+
+## 4. Input/Output Contract
+
+### Stage Input
+
+Every stage receives:
+
+1. **The assembled prompt** (via stdin to the CLI command) -- as described in section 3.
+2. **The working directory** -- project root or worktree root.
+3. **The filesystem** -- the model can read any file in the project. What it can write depends on the CLI's permission flags (ADR-022).
+
+Stages do **not** receive the output of the previous stage as direct input. Instead, stages communicate through **side effects**: changes to the filesystem (committed code, state file mutations via Wolfcastle commands). This is deliberate. Each stage reads the current state of the world, not a message from the previous stage.
+
+### Stage Output
+
+The model's stdout is captured by Wolfcastle for:
+- **Logging** -- written to the current iteration's NDJSON log file (ADR-012).
+- **`wolfcastle follow`** -- streamed to the terminal in real time.
+- **Error detection** -- Wolfcastle inspects the exit code and output for invocation failures.
+
+The model's **meaningful output** is not its stdout text but its **side effects**:
+- Calls to `wolfcastle task claim`, `wolfcastle task complete`, `wolfcastle audit breadcrumb`, etc.
+- Files created, modified, or deleted.
+- Git commits made during execution.
+
+### Per-Stage Expectations
+
+| Stage | Expected Input State | Expected Side Effects |
+|-------|---------------------|----------------------|
+| `expand` | Inbox has unprocessed items | Creates/updates tasks in the project tree via `wolfcastle task add` and `wolfcastle project create`. May reorganize existing work. |
+| `file` | Tasks exist in the tree, some may lack proper scoping or placement | Refines task descriptions, moves tasks to appropriate nodes, ensures audit scopes are defined. |
+| `execute` | A navigable task exists in `not_started` or `in_progress` state | Claims a task, does the work (writes code, runs tests, etc.), writes breadcrumbs, marks tasks complete or blocked. May create subtasks. |
+| `summary` | A node has completed execution and audit | Writes a plain-language summary of what was accomplished. The summary is stored in node state for later archive rollup. |
+
+---
+
+## 5. Stage Ordering and Dependencies
+
+### Ordering
+
+Stages execute in the order they appear in the `pipeline.stages` array. The daemon processes them sequentially -- stage N must complete before stage N+1 begins. There is no parallel stage execution.
+
+### Conditional Stages
+
+Stages can be conditional in two ways:
+
+1. **Static opt-out via `enabled: false`** -- the stage is always skipped. Configured at init time and does not change during execution. Useful for permanently removing a stage (e.g., disabling `expand` for projects that don't use an inbox).
+
+2. **Dynamic skipping by the daemon** -- Wolfcastle may skip a stage when its preconditions are not met. The daemon checks stage-specific preconditions before invocation:
+
+| Stage | Skip Condition |
+|-------|---------------|
+| `expand` | Inbox is empty (no items to process). |
+| `file` | No unfiled or unscoped tasks exist. |
+| `execute` | No navigable task in `not_started` or `in_progress` state (all tasks are `complete`, `blocked`, or not yet created). |
+| `summary` | No node has completed audit without an existing summary. Or summary is disabled in config. |
+
+When a stage is skipped, Wolfcastle logs the skip reason and proceeds to the next stage.
+
+### Dependency Model
+
+Stages do not declare explicit dependencies on each other. Instead, the ordering in the array combined with the shared filesystem and state creates an implicit dependency chain:
+- `expand` creates tasks that `file` organizes.
+- `file` organizes tasks that `execute` picks up.
+- `execute` completes work that `summary` summarizes.
+
+Because stages communicate through side effects (not direct output passing), a user can remove or reorder stages as long as the resulting state flow makes sense. For example, removing `expand` and `file` is valid if the user manually populates the task tree -- `execute` will still find tasks to work on.
+
+---
+
+## 6. The Default Pipeline
+
+The default pipeline ships with Wolfcastle and is written into `config.json` by `wolfcastle init`. It implements the Ralph-style expand-file-execute flow with the addition of the summary stage.
+
+### Full Default Configuration
+
+```json
+{
+  "models": {
+    "fast": {
+      "command": "claude",
+      "args": ["-p", "--model", "claude-haiku-4-5-20251001", "--output-format", "stream-json", "--dangerously-skip-permissions"]
+    },
+    "mid": {
+      "command": "claude",
+      "args": ["-p", "--model", "claude-sonnet-4-6", "--output-format", "stream-json", "--dangerously-skip-permissions"]
+    },
+    "heavy": {
+      "command": "claude",
+      "args": ["-p", "--model", "claude-opus-4-6", "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions"]
+    }
+  },
+  "pipeline": {
+    "stages": [
+      {
+        "name": "expand",
+        "model": "fast",
+        "prompt_file": "expand.md"
+      },
+      {
+        "name": "file",
+        "model": "mid",
+        "prompt_file": "file.md"
+      },
+      {
+        "name": "execute",
+        "model": "heavy",
+        "prompt_file": "execute.md"
+      },
+      {
+        "name": "summary",
+        "model": "fast",
+        "prompt_file": "summary.md"
+      }
+    ]
+  },
+  "summary": {
+    "enabled": true
+  }
+}
+```
+
+### Stage Descriptions
+
+**expand** (model: fast)
+- Reads the inbox file and existing project tree.
+- Breaks down inbox items into concrete tasks.
+- Creates projects and tasks via `wolfcastle project create` and `wolfcastle task add`.
+- Uses the cheapest model tier because this is organizational work, not implementation.
+
+**file** (model: mid)
+- Reviews tasks created by `expand` (or manually by the user).
+- Ensures tasks are properly scoped, placed in the correct project nodes, and have clear acceptance criteria.
+- Defines audit scopes for each node.
+- Uses a mid-tier model because filing requires judgment about task structure and scope.
+
+**execute** (model: heavy)
+- Navigates to the next actionable task via `wolfcastle navigate`.
+- Claims the task, performs the work (writes code, runs tests, creates documentation).
+- Writes breadcrumbs along the way via `wolfcastle audit breadcrumb`.
+- Marks tasks complete or blocked.
+- Handles audit tasks (the last task in every node, enforced by scripts per ADR-007).
+- Uses the most capable model because execution requires deep reasoning and code generation.
+
+**summary** (model: fast)
+- Runs after a node completes its audit.
+- Writes a brief plain-language summary of what the node accomplished and why it matters.
+- The summary is stored in node state and later included in the archive entry (ADR-016).
+- Uses a cheap model because summarization is straightforward given the breadcrumbs and audit results already recorded.
+
+---
+
+## 7. The Summary Stage
+
+The summary stage has special handling because it is opt-out (ADR-016) and runs conditionally based on node completion state rather than as part of every iteration.
+
+### Configuration
+
+```json
+{
+  "summary": {
+    "enabled": true
+  }
+}
+```
+
+Setting `"enabled": false` disables the summary stage entirely. When disabled:
+- The stage is skipped in every iteration.
+- Archive entries are still generated but without a model-written summary section -- they contain breadcrumbs, audit results, and metadata only.
+- This saves token cost for users who do not need narrative summaries.
+
+The `summary.enabled` config key is separate from the stage's `enabled` field to provide a clear, discoverable toggle. When `summary.enabled` is `false`, the daemon treats the summary stage as skipped regardless of the stage's own `enabled` field.
+
+### When Summary Runs
+
+The summary stage is not triggered on every iteration. It runs when:
+1. A node has just completed its audit task (the audit task transitioned to `Complete` during the current iteration's `execute` stage).
+2. That node does not already have a summary recorded.
+3. Summary is enabled in config.
+
+The daemon checks these conditions before invoking the summary stage. If no node needs summarization, the stage is skipped.
+
+### Summary Prompt Context
+
+The summary stage's prompt includes:
+- The completed node's full breadcrumb trail.
+- The audit results (scope verification, gaps found, fixes applied).
+- The node's task list with final statuses.
+- The node's position in the tree (for context about how it relates to the larger project).
+
+The summary model does **not** need the script reference or full rule fragments -- it is reading completed work, not performing work. Setting `skip_prompt_assembly: true` on the summary stage is a reasonable optimization.
+
+### Output
+
+The daemon captures the summary model's stdout as the summary text and writes it to the node's `audit.result_summary` field in state. The model does not call any Wolfcastle command to store the summary — it simply outputs the summary text to stdout, and the daemon handles persistence. The archive rollup script (ADR-016) reads the `audit.result_summary` from state when generating the archive entry.
+
+---
+
+## 8. Error Handling Per Stage
+
+Errors during stage execution fall into two categories with distinct handling.
+
+### Model Invocation Failures
+
+These are infrastructure-level failures: the CLI command crashes, returns a non-zero exit code with no output, the API is down, or the process is killed.
+
+Per ADR-019:
+- Wolfcastle applies exponential backoff starting at `retries.initial_delay_seconds` (default: 30).
+- Backoff doubles each attempt up to `retries.max_delay_seconds` (default: 600).
+- No retry cap by default (`retries.max_retries: -1` means unlimited).
+- The daemon waits patiently and retries the **same stage** with the **same prompt**.
+- Each retry is logged as a distinct record in the iteration's NDJSON log.
+
+```json
+{
+  "retries": {
+    "initial_delay_seconds": 30,
+    "max_delay_seconds": 600,
+    "max_retries": -1
+  }
+}
+```
+
+If `max_retries` is set to a positive integer and retries are exhausted, the daemon logs the failure and stops (it does not proceed to the next stage with a failed stage behind it).
+
+### Task-Level Failures
+
+These are failures detected by the model during execution: tests don't pass, validation fails, the model gets stuck. These are handled **within** the `execute` stage, not between stages. The model uses its judgment per ADR-019's escalation thresholds:
+
+| Failure Count | Behavior |
+|---------------|----------|
+| 0 to N (default N=10) | Keep fixing. Model iterates on the problem. |
+| N (default 10) | Model is prompted to consider decomposition. |
+| Hard cap (default 50) | Node is auto-blocked regardless of model judgment. |
+
+Task-level failures are tracked per node in state and persist across iterations. The failure counter resets when `wolfcastle task unblock` is called.
+
+### Stage-Level Error Propagation
+
+If a stage fails in a way that is not a retryable invocation error and not a task-level failure (e.g., the model produces no script calls and exits cleanly but accomplishes nothing), the daemon:
+1. Logs the stage result.
+2. Proceeds to the next stage. An unproductive stage is not treated as a blocking error -- the next iteration will try again with updated state.
+
+The critical invariant: **the daemon never silently drops errors**. Every stage invocation, whether successful, retried, or failed, produces a log record.
+
+### Per-Stage Error Log Record
+
+```json
+{
+  "timestamp": "2026-03-12T18:45:32Z",
+  "iteration": 7,
+  "stage": "execute",
+  "model": "heavy",
+  "node": "attunement-tree/fire-implementation/task-3",
+  "exit_code": 1,
+  "error": "API rate limit exceeded",
+  "retry_attempt": 2,
+  "next_retry_delay_seconds": 120
+}
+```
+
+---
+
+## 9. Daemon Loop and Stage Iteration
+
+The daemon loop is the top-level control flow that drives pipeline execution. Each pass through the loop is one **iteration**.
+
+### Iteration Lifecycle
+
+```
+1. Branch verification (ADR-015)
+2. Create iteration log file (ADR-012)
+3. For each stage in pipeline.stages:
+   a. Check if stage is enabled
+   b. Check stage-specific preconditions (section 5)
+   c. If skipped, log skip reason and continue
+   d. Assemble prompt (section 3)
+   e. Invoke stage (section 2)
+   f. Handle errors (section 8)
+   g. Log stage result
+4. Commit state changes (state committed alongside code)
+5. Check for stop signal (graceful shutdown per ADR-020)
+6. If work remains, begin next iteration (go to 1)
+7. If no work remains (all tasks complete/blocked, inbox empty), idle or exit
+```
+
+### One Iteration, All Stages
+
+A single iteration runs through **all enabled stages** in order. This means one iteration might expand the inbox, file new tasks, and execute a task. The next iteration does the same: checks for new inbox items, re-evaluates filing, picks up the next task.
+
+This contrasts with a design where each iteration runs only one stage. Running all stages per iteration keeps the pipeline moving forward without requiring multiple iterations to propagate work from inbox to execution.
+
+### Navigation Within Execute
+
+The `execute` stage works on **one task per iteration**. At the start of the execute stage, the daemon calls `wolfcastle navigate` to find the next actionable task (depth-first traversal per ADR-014). The model then works on that single task.
+
+If the task completes within the stage invocation, the daemon does **not** re-invoke execute for the next task in the same iteration. The next task is picked up in the next iteration. This keeps iterations bounded and predictable.
+
+### Idle Behavior
+
+When the daemon completes an iteration and finds no actionable work:
+- No inbox items to expand.
+- No tasks to file.
+- No tasks in `not_started` or `in_progress` state.
+- No nodes awaiting summary.
+
+The daemon enters an idle poll loop. It periodically checks for new inbox items or unblocked tasks. The poll interval is configurable:
+
+```json
+{
+  "daemon": {
+    "blocked_poll_interval_seconds": 60
+  }
+}
+```
+
+### Iteration Logging
+
+Each iteration produces its own NDJSON log file (ADR-012):
+
+```
+.wolfcastle/logs/0001-20260312T18-45Z.jsonl
+.wolfcastle/logs/0002-20260312T18-47Z.jsonl
+```
+
+Within each log file, every stage invocation produces structured records including:
+- Stage name and model used.
+- Prompt hash (for debugging prompt assembly issues without logging the full prompt).
+- Duration.
+- Exit code.
+- Node operated on (for `execute` and `summary`).
+- Whether the stage was skipped and why.
+
+### Stop Signal Handling
+
+Per ADR-020, `wolfcastle stop` sends a graceful shutdown signal. The daemon:
+1. Finishes the **current stage** invocation (waits for the child process to exit).
+2. Does **not** proceed to subsequent stages in the current iteration.
+3. Logs the partial iteration.
+4. Exits cleanly.
+
+`wolfcastle stop --force` kills the child process immediately via the process group.
+
+---
+
+## Appendix: Minimal Custom Pipeline Example
+
+A simplified pipeline that skips inbox processing and filing, going straight to execution:
+
+```json
+{
+  "models": {
+    "worker": {
+      "command": "claude",
+      "args": ["-p", "--model", "claude-sonnet-4-6", "--output-format", "stream-json", "--dangerously-skip-permissions"]
+    }
+  },
+  "pipeline": {
+    "stages": [
+      {
+        "name": "execute",
+        "model": "worker",
+        "prompt_file": "execute.md"
+      }
+    ]
+  },
+  "summary": {
+    "enabled": false
+  }
+}
+```
+
+This is valid. The user manually populates the task tree and Wolfcastle only executes. No expand, no file, no summary.
+
+---
+
+## Appendix: Pipeline Stage Lifecycle Diagram
+
+```
+wolfcastle start
+       |
+       v
+  [Iteration N]
+       |
+       +---> Branch check (ADR-015)
+       |
+       +---> expand stage
+       |        |-- inbox empty? --> skip
+       |        |-- else --> invoke fast model with expand.md prompt
+       |
+       +---> file stage
+       |        |-- nothing to file? --> skip
+       |        |-- else --> invoke mid model with file.md prompt
+       |
+       +---> execute stage
+       |        |-- no actionable task? --> skip
+       |        |-- else --> navigate, invoke heavy model with execute.md prompt
+       |        |        |
+       |        |        +-- invocation failure? --> retry with backoff
+       |        |        +-- task failure? --> model iterates (ADR-019 thresholds)
+       |        |        +-- task complete? --> proceed
+       |
+       +---> summary stage
+       |        |-- summary disabled? --> skip
+       |        |-- no node needs summary? --> skip
+       |        |-- else --> invoke fast model with summary.md prompt
+       |
+       +---> Commit state
+       +---> Check stop signal
+       +---> Work remains? --> [Iteration N+1]
+       +---> No work? --> idle poll
+```
