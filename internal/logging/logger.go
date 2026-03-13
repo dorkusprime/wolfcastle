@@ -3,6 +3,7 @@ package logging
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -48,6 +49,32 @@ func (l *Logger) Log(record map[string]any) error {
 	}
 	_, err = l.file.Write(append(data, '\n'))
 	return err
+}
+
+// AssistantWriter returns an io.Writer that formats each line written to it
+// as an NDJSON record with type "assistant" and writes it to the current log file.
+// Returns nil if no iteration is active.
+func (l *Logger) AssistantWriter() io.Writer {
+	if l.file == nil {
+		return nil
+	}
+	return &assistantLogWriter{logger: l}
+}
+
+type assistantLogWriter struct {
+	logger *Logger
+}
+
+func (w *assistantLogWriter) Write(p []byte) (int, error) {
+	text := string(p)
+	err := w.logger.Log(map[string]any{
+		"type": "assistant",
+		"text": text,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 // Close closes the current iteration's log file.

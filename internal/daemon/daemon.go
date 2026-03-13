@@ -223,7 +223,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			"task":  nav.TaskID,
 		})
 
-		result, err := invoke.Invoke(invokeCtx, model, prompt, d.RepoDir)
+		result, err := invoke.InvokeStreaming(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter())
 		if err != nil {
 			d.Logger.Log(map[string]any{"type": "stage_error", "stage": stage.Name, "error": err.Error()})
 			return err
@@ -317,7 +317,7 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
 	defer cancel()
 
-	result, err := invoke.Invoke(invokeCtx, model, prompt, d.RepoDir)
+	result, err := invoke.InvokeStreaming(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter())
 	if err != nil {
 		return err
 	}
@@ -359,7 +359,7 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
 	defer cancel()
 
-	result, err := invoke.Invoke(invokeCtx, model, prompt, d.RepoDir)
+	result, err := invoke.InvokeStreaming(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter())
 	if err != nil {
 		return err
 	}
@@ -421,7 +421,7 @@ func (d *Daemon) runSummaryStage(ctx context.Context, nodeAddr string, statePath
 	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
 	defer cancel()
 
-	result, err := invoke.Invoke(invokeCtx, model, prompt, d.RepoDir)
+	result, err := invoke.InvokeStreaming(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter())
 	if err != nil {
 		return err
 	}

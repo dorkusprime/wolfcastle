@@ -112,6 +112,12 @@ With --node, creates a child under the specified parent.`,
 		} else {
 			output.PrintHuman("Created %s project: %s", nt, addr)
 		}
+
+		// Run overlap advisory if enabled (ADR-027)
+		if cfg != nil && cfg.OverlapAdvisory.Enabled {
+			checkOverlap(name, "# "+name+"\n\nProject description goes here.")
+		}
+
 		return nil
 	},
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -11,6 +12,9 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
+	"github.com/dorkusprime/wolfcastle/internal/project"
+	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -175,10 +179,119 @@ func runCodebaseAudit(ctx context.Context, scopes []auditScope) error {
 	// Present findings
 	fmt.Println("\n=== Audit Findings ===")
 	fmt.Println(result.Stdout)
-	fmt.Println("\nReview findings above. Create projects for these items using:")
-	fmt.Println("  wolfcastle project create \"<finding>\"")
-	fmt.Println("  wolfcastle task add --node <project> \"<specific fix>\"")
 
+	// Interactive approval
+	return approveFindings(result.Stdout)
+}
+
+func approveFindings(findings string) error {
+	fmt.Println("\n--- Approval ---")
+	fmt.Println("Options:")
+	fmt.Println("  [a] Approve all — create projects for every finding")
+	fmt.Println("  [s] Skip — review later, don't create anything now")
+	fmt.Println("  [m] Manual — use the commands below to create projects selectively")
+	fmt.Print("\nChoice [a/s/m]: ")
+
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return nil // EOF or error, just skip
+	}
+	input = strings.TrimSpace(strings.ToLower(input))
+
+	switch input {
+	case "a":
+		return createProjectsFromFindings(findings)
+	case "s":
+		fmt.Println("Skipped. Findings are printed above for reference.")
+		return nil
+	case "m":
+		fmt.Println("\nCreate projects manually:")
+		fmt.Println("  wolfcastle project create \"<finding title>\"")
+		fmt.Println("  wolfcastle task add --node <project> \"<specific fix>\"")
+		return nil
+	default:
+		fmt.Println("Unrecognized choice. Skipping.")
+		return nil
+	}
+}
+
+func createProjectsFromFindings(findings string) error {
+	// Parse findings — look for lines that look like titled findings
+	// Common patterns: "## Finding:", "### Title", "1. **Title**"
+	var titles []string
+	for _, line := range strings.Split(findings, "\n") {
+		line = strings.TrimSpace(line)
+		// Match markdown headings
+		if strings.HasPrefix(line, "## ") || strings.HasPrefix(line, "### ") {
+			title := strings.TrimLeft(line, "# ")
+			title = strings.TrimSpace(title)
+			if title != "" && !strings.EqualFold(title, "Audit Findings") {
+				titles = append(titles, title)
+			}
+			continue
+		}
+		// Match numbered bold items: "1. **Title**"
+		if len(line) > 3 && line[0] >= '0' && line[0] <= '9' && strings.Contains(line, "**") {
+			start := strings.Index(line, "**") + 2
+			end := strings.Index(line[start:], "**")
+			if end > 0 {
+				titles = append(titles, line[start:start+end])
+			}
+		}
+	}
+
+	if len(titles) == 0 {
+		fmt.Println("Could not parse individual findings from the output.")
+		fmt.Println("Create projects manually using wolfcastle project create.")
+		return nil
+	}
+
+	fmt.Printf("\nCreating %d projects from findings...\n", len(titles))
+
+	idx, err := resolver.LoadRootIndex()
+	if err != nil {
+		return fmt.Errorf("loading root index: %w", err)
+	}
+
+	for _, title := range titles {
+		slug := tree.ToSlug(title)
+		if err := tree.ValidateSlug(slug); err != nil {
+			fmt.Printf("  Skipped (invalid name): %s\n", title)
+			continue
+		}
+
+		// Check for duplicate
+		if _, exists := idx.Nodes[slug]; exists {
+			fmt.Printf("  Skipped (exists): %s\n", slug)
+			continue
+		}
+
+		ns, addr, err := project.CreateProject(idx, "", slug, title, state.NodeLeaf, nil)
+		if err != nil {
+			fmt.Printf("  Error creating %s: %v\n", title, err)
+			continue
+		}
+
+		// Write node state
+		addrParsed, _ := tree.ParseAddress(addr)
+		nodeDir := filepath.Join(resolver.ProjectsDir(), filepath.Join(addrParsed.Parts...))
+		os.MkdirAll(nodeDir, 0755)
+		state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns)
+
+		// Write description
+		descPath := filepath.Join(resolver.ProjectsDir(), slug+".md")
+		os.WriteFile(descPath, []byte("# "+title+"\n\nAudit finding — see audit output for details.\n"), 0644)
+
+		fmt.Printf("  Created: %s\n", addr)
+	}
+
+	// Save updated root index
+	if err := state.SaveRootIndex(resolver.RootIndexPath(), idx); err != nil {
+		return err
+	}
+
+	fmt.Println("\nProjects created. Add tasks with: wolfcastle task add --node <project> \"description\"")
 	return nil
 }
 

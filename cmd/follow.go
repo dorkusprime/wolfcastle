@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/logging"
@@ -17,6 +18,7 @@ var followCmd = &cobra.Command{
 	Short: "Tail the latest iteration's model output in real time",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logDir := filepath.Join(wolfcastleDir, "logs")
+		var currentFile string
 
 		for {
 			latestPath, err := logging.LatestLogFile(logDir)
@@ -26,21 +28,48 @@ var followCmd = &cobra.Command{
 				continue
 			}
 
-			if err := tailFile(latestPath); err != nil {
+			if latestPath != currentFile {
+				if currentFile != "" {
+					fmt.Printf("\n--- New iteration: %s ---\n\n", filepath.Base(latestPath))
+				} else {
+					fmt.Printf("--- Following: %s ---\n\n", filepath.Base(latestPath))
+				}
+				currentFile = latestPath
+			}
+
+			if err := tailFileStreaming(currentFile); err != nil {
 				return err
 			}
-			// File ended, look for a new one
-			time.Sleep(1 * time.Second)
+			// After EOF, poll for new data or new files
+			time.Sleep(500 * time.Millisecond)
 		}
 	},
 }
 
-func tailFile(path string) error {
+func tailFileStreaming(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
+
+	// Seek to where we last left off by checking current file size
+	// We use a static map to track offsets across calls
+	offset := getOffset(path)
+	if offset > 0 {
+		if _, err := f.Seek(offset, 0); err != nil {
+			return err
+		}
+	}
+
+	// Check if the file has grown
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if info.Size() <= offset {
+		return nil // No new data
+	}
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -50,29 +79,61 @@ func tailFile(path string) error {
 			continue
 		}
 
-		// Extract relevant info
 		typ, _ := record["type"].(string)
 		switch typ {
 		case "stage_start":
 			stage, _ := record["stage"].(string)
 			node, _ := record["node"].(string)
 			task, _ := record["task"].(string)
-			fmt.Printf("[%s] Starting %s/%s\n", stage, node, task)
+			if node != "" {
+				fmt.Printf("[%s] Starting %s/%s\n", stage, node, task)
+			} else {
+				fmt.Printf("[%s] Starting\n", stage)
+			}
 		case "stage_complete":
 			stage, _ := record["stage"].(string)
-			fmt.Printf("[%s] Complete\n", stage)
+			exitCode, _ := record["exit_code"].(float64)
+			fmt.Printf("[%s] Complete (exit=%d)\n", stage, int(exitCode))
 		case "stage_error":
 			stage, _ := record["stage"].(string)
 			errMsg, _ := record["error"].(string)
 			fmt.Printf("[%s] Error: %s\n", stage, errMsg)
 		case "assistant":
-			// Model output
 			if content, ok := record["text"].(string); ok {
-				fmt.Print(content)
+				// Print without extra newline if content already has one
+				if strings.HasSuffix(content, "\n") {
+					fmt.Print(content)
+				} else {
+					fmt.Println(content)
+				}
 			}
+		case "failure_increment":
+			task, _ := record["task"].(string)
+			count, _ := record["count"].(float64)
+			fmt.Printf("[failure] Task %s failure count: %d\n", task, int(count))
+		case "auto_block":
+			task, _ := record["task"].(string)
+			reason, _ := record["reason"].(string)
+			fmt.Printf("[blocked] Task %s auto-blocked: %s\n", task, reason)
 		}
 	}
+
+	// Update the offset to the current position
+	pos, _ := f.Seek(0, 1) // current position
+	setOffset(path, pos)
+
 	return scanner.Err()
+}
+
+// Simple offset tracking for tail -f behavior
+var fileOffsets = make(map[string]int64)
+
+func getOffset(path string) int64 {
+	return fileOffsets[path]
+}
+
+func setOffset(path string, offset int64) {
+	fileOffsets[path] = offset
 }
 
 func init() {
