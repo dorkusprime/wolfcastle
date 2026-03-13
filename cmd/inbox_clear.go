@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 
+	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -18,52 +17,38 @@ var inboxClearCmd = &cobra.Command{
 		clearAll, _ := cmd.Flags().GetBool("all")
 
 		inboxPath := filepath.Join(resolver.ProjectsDir(), "inbox.json")
-		data, err := os.ReadFile(inboxPath)
+		inboxData, err := inbox.Load(inboxPath)
 		if err != nil {
-			if os.IsNotExist(err) {
-				output.PrintHuman("Inbox is empty")
-				return nil
-			}
 			return fmt.Errorf("reading inbox: %w", err)
 		}
 
-		var inbox inboxFile
-		if err := json.Unmarshal(data, &inbox); err != nil {
-			return fmt.Errorf("parsing inbox: %w", err)
-		}
-
-		originalCount := len(inbox.Items)
+		originalCount := len(inboxData.Items)
 
 		if clearAll {
-			inbox.Items = nil
+			inboxData.Items = nil
 		} else {
-			var kept []inboxItem
-			for _, item := range inbox.Items {
+			var kept []inbox.Item
+			for _, item := range inboxData.Items {
 				if item.Status == "new" {
 					kept = append(kept, item)
 				}
 			}
-			inbox.Items = kept
+			inboxData.Items = kept
 		}
 
-		removedCount := originalCount - len(inbox.Items)
+		removedCount := originalCount - len(inboxData.Items)
 
-		out, err := json.MarshalIndent(inbox, "", "  ")
-		if err != nil {
-			return err
-		}
-		out = append(out, '\n')
-		if err := os.WriteFile(inboxPath, out, 0644); err != nil {
+		if err := inbox.Save(inboxPath, inboxData); err != nil {
 			return err
 		}
 
 		if jsonOutput {
 			output.Print(output.Ok("inbox_clear", map[string]any{
 				"removed":   removedCount,
-				"remaining": len(inbox.Items),
+				"remaining": len(inboxData.Items),
 			}))
 		} else {
-			output.PrintHuman("Cleared %d items from inbox (%d remaining)", removedCount, len(inbox.Items))
+			output.PrintHuman("Cleared %d items from inbox (%d remaining)", removedCount, len(inboxData.Items))
 		}
 		return nil
 	},

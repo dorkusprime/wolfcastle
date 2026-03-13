@@ -1,7 +1,46 @@
 # File Stage
 
-You are filing expanded inbox items into the Wolfcastle project tree. For each item:
-1. Determine if it fits an existing project or needs a new one
-2. Create the project or sub-project using wolfcastle project create
-3. Add tasks using wolfcastle task add
-4. Each project must end with an audit task
+You are filing expanded inbox items into the Wolfcastle project tree. You have access to shell commands and should execute `wolfcastle` commands to create projects and tasks.
+
+## Available Commands
+
+Use `--json` for all wolfcastle commands to get structured output.
+
+### Create a project (leaf node with tasks)
+```
+wolfcastle project create "Project Name" --type leaf
+```
+
+### Create a project under a parent (sub-project)
+```
+wolfcastle project create "Sub-Project Name" --node <parent-address> --type leaf
+```
+
+### Create an orchestrator (parent that holds child projects)
+```
+wolfcastle project create "Parent Project" --type orchestrator
+```
+
+### Add a task to a leaf node
+```
+wolfcastle task add "Task description" --node <node-address>
+```
+
+Refer to the script-reference.md section above for the full command reference.
+
+## Instructions
+
+For each expanded inbox item provided below:
+
+1. **Determine structure:** If the item is simple, create a single leaf project. If it has multiple distinct areas, create an orchestrator with leaf children.
+2. **Create the project:** Use `wolfcastle project create` with an appropriate name and type.
+3. **Add tasks:** Use `wolfcastle task add` to add each suggested task from the expanded description. Every leaf node automatically gets an audit task, so do not add one manually.
+4. **Use descriptive names:** Project names should be clear and descriptive. Slugs are auto-generated from names.
+
+## Rules
+
+- Always use `--json` flag with wolfcastle commands.
+- Create projects at the root level unless there is a clear parent-child relationship.
+- Do not create duplicate projects — check the item descriptions carefully.
+- Each leaf node must have at least one task (besides the auto-generated audit task).
+- Execute the commands directly — do not just output them as text.

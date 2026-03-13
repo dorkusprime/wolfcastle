@@ -181,3 +181,102 @@ func TestValidate_PassesOnDefaults(t *testing.T) {
 		t.Errorf("expected no error on valid config, got: %v", err)
 	}
 }
+
+func TestValidate_CatchesMissingSummaryModel(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
+	cfg.Summary.Enabled = true
+	cfg.Summary.Model = "nonexistent"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("expected error for missing summary model reference")
+	}
+}
+
+func TestValidate_CatchesMissingDoctorModel(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
+	cfg.Doctor.Model = "nonexistent"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("expected error for missing doctor model reference")
+	}
+}
+
+func TestValidate_CatchesMissingUnblockModel(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
+	cfg.Unblock.Model = "nonexistent"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("expected error for missing unblock model reference")
+	}
+}
+
+func TestValidate_CatchesMissingOverlapAdvisoryModel(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Model = "nonexistent"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("expected error for missing overlap_advisory model reference")
+	}
+}
+
+func TestValidate_CatchesMissingAuditModel(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
+	cfg.Audit.Model = "nonexistent"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("expected error for missing audit model reference")
+	}
+}
+
+func TestValidate_CatchesMissingIdentity(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Identity = nil
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("expected error for missing identity")
+	}
+}
+
+func TestValidate_SkipsDisabledSummaryModelCheck(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
+	cfg.Summary.Enabled = false
+	cfg.Summary.Model = "nonexistent"
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Errorf("expected no error when summary is disabled, got: %v", err)
+	}
+}
+
+func TestValidate_SkipsDisabledOverlapAdvisoryModelCheck(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
+	cfg.OverlapAdvisory.Enabled = false
+	cfg.OverlapAdvisory.Model = "nonexistent"
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Errorf("expected no error when overlap_advisory is disabled, got: %v", err)
+	}
+}
