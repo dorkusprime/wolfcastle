@@ -81,20 +81,46 @@ claude -p --model claude-opus-4-6 --output-format stream-json --verbose --danger
 
 The assembled prompt is piped to the command's stdin. Wolfcastle does **not** write the prompt to a temporary file; it is streamed directly.
 
+### Streaming Invocation
+
+Model invocations use a streaming pattern (`InvokeStreaming`) that enables real-time output via `wolfcastle follow`:
+
+1. The child process's stdout is connected to a pipe
+2. A scanner reads stdout line by line
+3. Each line is simultaneously:
+   - Written to the NDJSON log file as an `{"type": "assistant", "text": "..."}` record (via `Logger.AssistantWriter()`)
+   - Captured in a buffer for the daemon to inspect after completion (terminal marker detection, etc.)
+4. Stderr is captured separately in a buffer
+
+This means:
+- `wolfcastle follow` can display model output in real time by tailing the log file
+- The daemon still has the full output for marker detection (`WOLFCASTLE_YIELD`, etc.)
+- If no streaming is needed (e.g., lightweight stages), `Invoke()` falls back to direct buffer capture with no overhead
+
 ### Pseudocode
 
 ```
-func invokeStage(stage Stage, prompt string, workDir string) (output string, err error) {
-    model := resolvedConfig.Models[stage.Model]
+func InvokeStreaming(ctx, model, prompt, workDir, logWriter) (Result, error) {
     cmd := exec.Command(model.Command, model.Args...)
     cmd.Dir = workDir
     cmd.Stdin = strings.NewReader(prompt)
-    cmd.Stdout = logCapture   // captured for logging and downstream stages
-    cmd.Stderr = stderrCapture
-    // Child process is spawned in its own process group (ADR-020)
     cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-    err = cmd.Run()
-    return logCapture.String(), err
+
+    stdoutPipe := cmd.StdoutPipe()
+    cmd.Start()
+
+    var captured bytes.Buffer
+    scanner := bufio.NewScanner(stdoutPipe)
+    for scanner.Scan() {
+        line := scanner.Text()
+        captured.WriteString(line + "\n")
+        if logWriter != nil {
+            fmt.Fprintln(logWriter, line)  // streams to NDJSON log
+        }
+    }
+
+    cmd.Wait()
+    return Result{Stdout: captured.String(), ...}, nil
 }
 ```
 

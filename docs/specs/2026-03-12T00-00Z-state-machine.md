@@ -170,7 +170,24 @@ Per ADR-024, state is distributed across per-node `state.json` files. When a chi
 
 All three writes happen within the same script invocation. If the process is interrupted mid-propagation, the root index may be stale -- this is a condition that `wolfcastle doctor` detects and repairs (see Section 14).
 
-### 5.3 Propagation Examples
+### 5.3 Implementation Pattern
+
+The `propagateState` helper (in `cmd/helpers.go`) implements a two-pass approach used by all state-mutating commands (`task claim`, `task complete`, `task block`, `task unblock`):
+
+1. **Update the originating node** in the root index
+2. **Walk up the tree** via `state.PropagateUp()`:
+   - For each parent: load its `state.json`, update the child ref's state, recompute parent state via `RecomputeState()`, save
+   - Collect all ancestor addresses that were touched
+3. **Update root index entries** for all ancestors that changed state
+4. **Save root index once** at the end (single atomic write)
+
+This pattern ensures:
+- Node state files are always consistent with their children
+- The root index reflects the current state of every node
+- A single root index write at the end minimizes corruption risk
+- Every command uses the same propagation logic (no duplication)
+
+### 5.4 Propagation Examples
 
 | Children States | Computed Parent State | Reasoning |
 |-----------------|-----------------------|-----------|

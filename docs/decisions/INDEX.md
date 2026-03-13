@@ -33,3 +33,6 @@
 | 029 | [Codebase Audit Command with Discoverable Scopes](029-codebase-audit-command.md) | Accepted | 2026-03-13 |
 | 030 | [Comprehensive Help at Every CLI Level](030-comprehensive-help.md) | Accepted | 2026-03-13 |
 | 031 | [In-Flight Specs with State-Based Linkage](031-in-flight-specs.md) | Accepted | 2026-03-13 |
+| 032 | [Go Project Structure and Cobra CLI Framework](032-go-project-structure.md) | Accepted | 2026-03-13 |
+| 033 | [Embedded Templates via go:embed](033-embedded-templates.md) | Accepted | 2026-03-13 |
+| 034 | [Inbox Format and Lifecycle](034-inbox-format.md) | Accepted | 2026-03-13 |
