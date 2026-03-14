@@ -1,16 +1,21 @@
 codecov:
   require_ci_to_pass: false
-  branch: main
+  notify:
+    after_n_builds: 1
+    wait_for_ci: true
 
 coverage:
+  precision: 2
+  round: down
+  range: 80..100
   status:
     project:
       default:
-        target: 85%
+        target: 90%
         threshold: 2%
     patch:
       default:
-        target: 80%
+        target: 85%
 
 comment:
   layout: "reach,diff,flags,files"
