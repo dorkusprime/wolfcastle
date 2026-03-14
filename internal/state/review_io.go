@@ -26,13 +26,9 @@ func LoadBatch(path string) (*Batch, error) {
 	return &b, nil
 }
 
-// SaveBatch writes the review batch to disk.
+// SaveBatch writes the review batch to disk atomically.
 func SaveBatch(path string, b *Batch) error {
-	data, err := json.MarshalIndent(b, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshaling review batch: %w", err)
-	}
-	return os.WriteFile(path, append(data, '\n'), 0644)
+	return atomicWriteJSON(path, b)
 }
 
 // RemoveBatch deletes the review batch file.
@@ -61,13 +57,9 @@ func LoadHistory(path string) (*History, error) {
 	return &h, nil
 }
 
-// SaveHistory writes the review history to disk.
+// SaveHistory writes the review history to disk atomically.
 func SaveHistory(path string, h *History) error {
-	data, err := json.MarshalIndent(h, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshaling review history: %w", err)
-	}
-	return os.WriteFile(path, append(data, '\n'), 0644)
+	return atomicWriteJSON(path, h)
 }
 
 // EnforceRetention trims history entries older than maxAgeDays and keeps
@@ -95,4 +87,3 @@ func EnforceRetention(h *History, maxEntries int, maxAgeDays int, clocks ...cloc
 	}
 }
 
-// resolveOptionalClock is defined in audit_lifecycle.go and shared here.

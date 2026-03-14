@@ -23,15 +23,7 @@ func LoadInbox(path string) (*InboxFile, error) {
 	return &f, nil
 }
 
-// SaveInbox writes the inbox file to disk as indented JSON.
+// SaveInbox writes the inbox file to disk atomically.
 func SaveInbox(path string, f *InboxFile) error {
-	data, err := json.MarshalIndent(f, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshalling inbox: %w", err)
-	}
-	data = append(data, '\n')
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		return fmt.Errorf("writing inbox: %w", err)
-	}
-	return nil
+	return atomicWriteJSON(path, f)
 }

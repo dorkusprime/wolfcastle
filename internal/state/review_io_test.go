@@ -472,22 +472,27 @@ func TestLoadHistory_ReadError(t *testing.T) {
 	}
 }
 
-func TestSaveBatch_WriteError(t *testing.T) {
+func TestSaveBatch_CreatesDirectories(t *testing.T) {
 	t.Parallel()
-	// Path into a nonexistent directory triggers a write error.
-	path := filepath.Join(t.TempDir(), "no", "such", "dir", "batch.json")
+	path := filepath.Join(t.TempDir(), "nested", "deep", "batch.json")
 	b := &Batch{ID: "x"}
-	if err := SaveBatch(path, b); err == nil {
-		t.Error("expected error writing to nonexistent directory")
+	if err := SaveBatch(path, b); err != nil {
+		t.Fatalf("expected SaveBatch to create directories, got error: %v", err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("file should exist: %v", err)
 	}
 }
 
-func TestSaveHistory_WriteError(t *testing.T) {
+func TestSaveHistory_CreatesDirectories(t *testing.T) {
 	t.Parallel()
-	path := filepath.Join(t.TempDir(), "no", "such", "dir", "history.json")
+	path := filepath.Join(t.TempDir(), "nested", "deep", "history.json")
 	h := &History{}
-	if err := SaveHistory(path, h); err == nil {
-		t.Error("expected error writing to nonexistent directory")
+	if err := SaveHistory(path, h); err != nil {
+		t.Fatalf("expected SaveHistory to create directories, got error: %v", err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("file should exist: %v", err)
 	}
 }
 

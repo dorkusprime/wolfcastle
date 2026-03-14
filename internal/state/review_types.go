@@ -6,7 +6,9 @@ import "time"
 type BatchStatus string
 
 const (
-	BatchPending   BatchStatus = "pending"
+	// BatchPending indicates the batch is awaiting human review.
+	BatchPending BatchStatus = "pending"
+	// BatchCompleted indicates all findings in the batch have been decided.
 	BatchCompleted BatchStatus = "completed"
 )
 
@@ -14,8 +16,11 @@ const (
 type FindingStatus string
 
 const (
-	FindingPending  FindingStatus = "pending"
+	// FindingPending indicates no decision has been made yet.
+	FindingPending FindingStatus = "pending"
+	// FindingApproved indicates the finding was accepted and a node may be created.
 	FindingApproved FindingStatus = "approved"
+	// FindingRejected indicates the finding was dismissed.
 	FindingRejected FindingStatus = "rejected"
 )
 

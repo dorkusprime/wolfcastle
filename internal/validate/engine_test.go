@@ -643,7 +643,7 @@ func TestValidateAll_DetectsInvalidAuditGap(t *testing.T) {
 	os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("bad-gap", "Bad Gap", state.NodeLeaf)
 	ns.Audit.Gaps = []state.Gap{
-		{ID: "", Description: "", Status: "open"}, // missing ID and description
+		{ID: "", Description: "", Status: state.GapOpen}, // missing ID and description
 	}
 	ns.Tasks = []state.Task{
 		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
@@ -678,7 +678,7 @@ func TestValidateAll_DetectsStaleGapMetadata(t *testing.T) {
 	os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("stale-gap", "Stale Gap", state.NodeLeaf)
 	ns.Audit.Gaps = []state.Gap{
-		{ID: "gap-1", Description: "test gap", Status: "open", FixedBy: "should-not-be-here"},
+		{ID: "gap-1", Description: "test gap", Status: state.GapOpen, FixedBy: "should-not-be-here"},
 	}
 	ns.Tasks = []state.Task{
 		{ID: "task-1", Description: "work", State: state.StatusNotStarted},

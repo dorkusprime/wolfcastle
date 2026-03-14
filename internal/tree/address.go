@@ -1,3 +1,7 @@
+// Package tree provides address parsing, slug validation, and filesystem
+// resolution for Wolfcastle's hierarchical project tree. Addresses are
+// slash-separated kebab-case paths (e.g., "project/submodule/leaf") that
+// map to per-node directories on disk.
 package tree
 
 import (

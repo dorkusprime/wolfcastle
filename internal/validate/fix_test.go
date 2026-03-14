@@ -695,8 +695,8 @@ func TestFix_InvalidAuditGap_ClearsStaleMetadata(t *testing.T) {
 	now := time.Now()
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.Audit.Gaps = []state.Gap{
-		{ID: "gap-1", Description: "open gap", Status: "open", FixedBy: "someone", FixedAt: &now},
-		{ID: "gap-2", Description: "fixed gap", Status: "fixed", FixedBy: "someone"},
+		{ID: "gap-1", Description: "open gap", Status: state.GapOpen, FixedBy: "someone", FixedAt: &now},
+		{ID: "gap-2", Description: "fixed gap", Status: state.GapFixed, FixedBy: "someone"},
 	}
 	ns.Tasks = []state.Task{
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
@@ -1339,7 +1339,7 @@ func TestDetect_AuditStatusMismatch_CompleteWithOpenGaps(t *testing.T) {
 	ns.State = state.StatusComplete
 	ns.Audit.Status = state.AuditPassed // wrong — has open gaps, should be failed
 	ns.Audit.Gaps = []state.Gap{
-		{ID: "g1", Description: "open gap", Status: "open"},
+		{ID: "g1", Description: "open gap", Status: state.GapOpen},
 	}
 	ns.Tasks = []state.Task{
 		{ID: "t1", Description: "work", State: state.StatusComplete},

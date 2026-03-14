@@ -85,8 +85,8 @@ func TestGenerateEntry_IncludesAuditGaps(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Audit.Gaps = []state.Gap{
-		{ID: "g1", Description: "Missing error handling", Status: "open"},
-		{ID: "g2", Description: "No input validation", Status: "fixed", FixedBy: "task-2"},
+		{ID: "g1", Description: "Missing error handling", Status: state.GapOpen},
+		{ID: "g2", Description: "No input validation", Status: state.GapFixed, FixedBy: "task-2"},
 	}
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "dev", Machine: "laptop"}
@@ -174,14 +174,14 @@ func TestGenerateEntry_Escalations_OpenAndResolved(t *testing.T) {
 			Timestamp:   time.Date(2026, 3, 1, 10, 0, 0, 0, time.UTC),
 			Description: "API contract mismatch",
 			SourceNode:  "project/api",
-			Status:      "open",
+			Status:      state.EscalationOpen,
 		},
 		{
 			ID:          "e2",
 			Timestamp:   time.Date(2026, 3, 2, 10, 0, 0, 0, time.UTC),
 			Description: "Missing rate limiting",
 			SourceNode:  "project/gateway",
-			Status:      "resolved",
+			Status:      state.EscalationResolved,
 			ResolvedBy:  "task-5",
 		},
 	}
@@ -363,7 +363,7 @@ func TestGenerateEntry_GapOpenWithoutFixedBy(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Audit.Gaps = []state.Gap{
-		{ID: "g1", Description: "Missing validation", Status: "open"},
+		{ID: "g1", Description: "Missing validation", Status: state.GapOpen},
 	}
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "dev", Machine: "laptop"}
