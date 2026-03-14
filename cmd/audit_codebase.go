@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -12,17 +11,18 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
-	"github.com/dorkusprime/wolfcastle/internal/project"
-	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/dorkusprime/wolfcastle/internal/review"
 	"github.com/spf13/cobra"
 )
 
 var auditCodebaseCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run a codebase audit with discoverable scopes",
-	Long: `Runs a model-driven codebase audit and presents findings for approval.
-Approved findings become projects/tasks in the work tree.
+	Long: `Runs a model-driven codebase audit and saves findings for review.
+
+Findings are saved as a pending batch in audit-review.json. Use
+'audit pending' to view them, 'audit approve' and 'audit reject'
+to act on individual findings, and 'audit history' to see past decisions.
 
 Scopes are discovered from base/audits/, custom/audits/, and local/audits/.
 Use --list to see available scopes, or --scope to run specific ones.
@@ -56,6 +56,22 @@ Examples:
 				}
 			}
 			return nil
+		}
+
+		// Check for existing pending batch
+		batchPath := filepath.Join(wolfcastleDir, "audit-review.json")
+		existing, err := review.LoadBatch(batchPath)
+		if err != nil {
+			return err
+		}
+		if existing != nil && existing.Status == review.BatchPending {
+			pendingCount := 0
+			for _, f := range existing.Findings {
+				if f.Status == review.FindingPending {
+					pendingCount++
+				}
+			}
+			return fmt.Errorf("pending review batch exists with %d finding(s) — use 'audit pending' to review or 'audit reject --all' to discard", pendingCount)
 		}
 
 		// Filter scopes
@@ -170,7 +186,7 @@ func runCodebaseAudit(ctx context.Context, scopes []auditScope) error {
 
 	prompt := strings.Join(promptParts, "\n\n---\n\n")
 
-	fmt.Printf("Running audit with %d scope(s): %s\n", len(scopes), scopeNames(scopes))
+	output.PrintHuman("Running audit with %d scope(s): %s", len(scopes), scopeNames(scopes))
 
 	repoDir := filepath.Dir(wolfcastleDir)
 	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
@@ -185,135 +201,119 @@ func runCodebaseAudit(ctx context.Context, scopes []auditScope) error {
 		return fmt.Errorf("audit model exited with code %d: %s", result.ExitCode, result.Stderr)
 	}
 
-	// Present findings
-	fmt.Println("\n=== Audit Findings ===")
-	fmt.Println(result.Stdout)
+	// Parse findings from model output
+	findings := parseFindings(result.Stdout)
 
-	// Interactive approval
-	return approveFindings(result.Stdout)
-}
-
-func approveFindings(findings string) error {
-	fmt.Println("\n--- Approval ---")
-	fmt.Println("Options:")
-	fmt.Println("  [a] Approve all — create projects for every finding")
-	fmt.Println("  [s] Skip — review later, don't create anything now")
-	fmt.Println("  [m] Manual — use the commands below to create projects selectively")
-	fmt.Print("\nChoice [a/s/m]: ")
-
-	reader := bufio.NewReader(os.Stdin)
-	input, err := reader.ReadString('\n')
-	if err != nil {
-		return nil // EOF or error, just skip
-	}
-	input = strings.TrimSpace(strings.ToLower(input))
-
-	switch input {
-	case "a":
-		return createProjectsFromFindings(findings)
-	case "s":
-		fmt.Println("Skipped. Findings are printed above for reference.")
-		return nil
-	case "m":
-		fmt.Println("\nCreate projects manually:")
-		fmt.Println("  wolfcastle project create \"<finding title>\"")
-		fmt.Println("  wolfcastle task add --node <project> \"<specific fix>\"")
-		return nil
-	default:
-		fmt.Println("Unrecognized choice. Skipping.")
-		return nil
-	}
-}
-
-func createProjectsFromFindings(findings string) error {
-	// Parse findings — look for lines that look like titled findings
-	// Common patterns: "## Finding:", "### Title", "1. **Title**"
-	var titles []string
-	for _, line := range strings.Split(findings, "\n") {
-		line = strings.TrimSpace(line)
-		// Match markdown headings
-		if strings.HasPrefix(line, "## ") || strings.HasPrefix(line, "### ") {
-			title := strings.TrimLeft(line, "# ")
-			title = strings.TrimSpace(title)
-			if title != "" && !strings.EqualFold(title, "Audit Findings") {
-				titles = append(titles, title)
-			}
-			continue
-		}
-		// Match numbered bold items: "1. **Title**"
-		if len(line) > 3 && line[0] >= '0' && line[0] <= '9' && strings.Contains(line, "**") {
-			start := strings.Index(line, "**") + 2
-			end := strings.Index(line[start:], "**")
-			if end > 0 {
-				titles = append(titles, line[start:start+end])
-			}
-		}
-	}
-
-	if len(titles) == 0 {
-		fmt.Println("Could not parse individual findings from the output.")
-		fmt.Println("Create projects manually using wolfcastle project create.")
+	if len(findings) == 0 {
+		output.PrintHuman("No findings parsed from audit output.")
+		output.PrintHuman("\nRaw output:\n%s", result.Stdout)
 		return nil
 	}
 
-	fmt.Printf("\nCreating %d projects from findings...\n", len(titles))
-
-	idx, err := resolver.LoadRootIndex()
-	if err != nil {
-		return fmt.Errorf("loading root index: %w", err)
+	// Build the batch
+	now := time.Now().UTC()
+	batch := &review.Batch{
+		ID:        fmt.Sprintf("audit-%s", now.Format("20060102T150405Z")),
+		Timestamp: now,
+		Scopes:    scopeNames2(scopes),
+		Status:    review.BatchPending,
+		Findings:  findings,
+		RawOutput: result.Stdout,
 	}
 
-	for _, title := range titles {
-		slug := tree.ToSlug(title)
-		if err := tree.ValidateSlug(slug); err != nil {
-			fmt.Printf("  Skipped (invalid name): %s\n", title)
-			continue
-		}
-
-		// Check for duplicate
-		if _, exists := idx.Nodes[slug]; exists {
-			fmt.Printf("  Skipped (exists): %s\n", slug)
-			continue
-		}
-
-		ns, addr, err := project.CreateProject(idx, "", slug, title, state.NodeLeaf)
-		if err != nil {
-			fmt.Printf("  Error creating %s: %v\n", title, err)
-			continue
-		}
-
-		// Write node state
-		addrParsed, parseErr := tree.ParseAddress(addr)
-		if parseErr != nil {
-			fmt.Printf("  Error parsing address %s: %v\n", addr, parseErr)
-			continue
-		}
-		nodeDir := filepath.Join(resolver.ProjectsDir(), filepath.Join(addrParsed.Parts...))
-		if err := os.MkdirAll(nodeDir, 0755); err != nil {
-			fmt.Printf("  Error creating directory for %s: %v\n", title, err)
-			continue
-		}
-		if err := state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns); err != nil {
-			fmt.Printf("  Error saving state for %s: %v\n", title, err)
-			continue
-		}
-
-		// Write description
-		descPath := filepath.Join(resolver.ProjectsDir(), slug+".md")
-		if err := os.WriteFile(descPath, []byte("# "+title+"\n\nAudit finding — see audit output for details.\n"), 0644); err != nil {
-			fmt.Printf("  Error writing description for %s: %v\n", title, err)
-		}
-
-		fmt.Printf("  Created: %s\n", addr)
-	}
-
-	// Save updated root index
-	if err := state.SaveRootIndex(resolver.RootIndexPath(), idx); err != nil {
+	// Save the batch
+	batchPath := filepath.Join(wolfcastleDir, "audit-review.json")
+	if err := review.SaveBatch(batchPath, batch); err != nil {
 		return err
 	}
 
-	fmt.Println("\nProjects created. Add tasks with: wolfcastle task add --node <project> \"description\"")
+	if jsonOutput {
+		output.Print(output.Ok("audit_run", map[string]any{
+			"batch_id":      batch.ID,
+			"finding_count": len(findings),
+			"scopes":        batch.Scopes,
+		}))
+	} else {
+		output.PrintHuman("\nSaved %d finding(s) for review.", len(findings))
+		for i, f := range findings {
+			output.PrintHuman("  %d. %s", i+1, f.Title)
+		}
+		output.PrintHuman("\nReview with: wolfcastle audit pending")
+		output.PrintHuman("Approve:     wolfcastle audit approve <id>")
+		output.PrintHuman("Reject:      wolfcastle audit reject <id>")
+	}
+
 	return nil
+}
+
+// parseFindings extracts structured findings from model output.
+func parseFindings(rawOutput string) []review.Finding {
+	var findings []review.Finding
+	lines := strings.Split(rawOutput, "\n")
+	findingNum := 0
+
+	var currentTitle string
+	var currentDesc strings.Builder
+
+	flush := func() {
+		if currentTitle == "" {
+			return
+		}
+		findingNum++
+		findings = append(findings, review.Finding{
+			ID:          fmt.Sprintf("finding-%d", findingNum),
+			Title:       currentTitle,
+			Description: strings.TrimSpace(currentDesc.String()),
+			Status:      review.FindingPending,
+		})
+		currentTitle = ""
+		currentDesc.Reset()
+	}
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Match markdown headings
+		if strings.HasPrefix(trimmed, "## ") || strings.HasPrefix(trimmed, "### ") {
+			title := strings.TrimLeft(trimmed, "# ")
+			title = strings.TrimSpace(title)
+			if title != "" && !strings.EqualFold(title, "Audit Findings") {
+				flush()
+				currentTitle = title
+				continue
+			}
+		}
+
+		// Match numbered bold items: "1. **Title**"
+		if len(trimmed) > 3 && trimmed[0] >= '0' && trimmed[0] <= '9' && strings.Contains(trimmed, "**") {
+			start := strings.Index(trimmed, "**") + 2
+			end := strings.Index(trimmed[start:], "**")
+			if end > 0 {
+				flush()
+				currentTitle = trimmed[start : start+end]
+				// Capture any text after the bold title as description start
+				rest := strings.TrimSpace(trimmed[start+end+2:])
+				if rest != "" {
+					rest = strings.TrimPrefix(rest, ":")
+					rest = strings.TrimPrefix(rest, " — ")
+					rest = strings.TrimPrefix(rest, " - ")
+					currentDesc.WriteString(strings.TrimSpace(rest))
+				}
+				continue
+			}
+		}
+
+		// Accumulate description lines
+		if currentTitle != "" && trimmed != "" {
+			if currentDesc.Len() > 0 {
+				currentDesc.WriteString("\n")
+			}
+			currentDesc.WriteString(line)
+		}
+	}
+	flush()
+
+	return findings
 }
 
 func scopeNames(scopes []auditScope) string {
@@ -322,6 +322,14 @@ func scopeNames(scopes []auditScope) string {
 		names = append(names, s.ID)
 	}
 	return strings.Join(names, ", ")
+}
+
+func scopeNames2(scopes []auditScope) []string {
+	var names []string
+	for _, s := range scopes {
+		names = append(names, s.ID)
+	}
+	return names
 }
 
 var auditListCmd = &cobra.Command{

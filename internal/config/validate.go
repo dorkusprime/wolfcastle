@@ -84,6 +84,11 @@ func ValidateStructure(cfg *Config) error {
 		errs = append(errs, fmt.Sprintf("logs.max_age_days (%d) must be > 0", cfg.Logs.MaxAgeDays))
 	}
 
+	// Overlap advisory threshold must be in [0, 1]
+	if cfg.OverlapAdvisory.Threshold < 0 || cfg.OverlapAdvisory.Threshold > 1 {
+		errs = append(errs, fmt.Sprintf("overlap_advisory.threshold (%.2f) must be between 0 and 1", cfg.OverlapAdvisory.Threshold))
+	}
+
 	// Model definitions must have a command
 	for name, model := range cfg.Models {
 		if model.Command == "" {
@@ -123,12 +128,9 @@ func Validate(cfg *Config) error {
 		errs = append(errs, fmt.Sprintf("unblock references unknown model %q", cfg.Unblock.Model))
 	}
 
-	// Check overlap advisory model reference (only when enabled)
-	if cfg.OverlapAdvisory.Enabled {
-		if _, ok := cfg.Models[cfg.OverlapAdvisory.Model]; !ok {
-			errs = append(errs, fmt.Sprintf("overlap_advisory references unknown model %q", cfg.OverlapAdvisory.Model))
-		}
-	}
+	// Overlap advisory model is optional — algorithmic detection (ADR-041)
+	// does not require a model. The model field is retained for potential
+	// future hybrid use but is not validated.
 
 	// Check audit model reference
 	if _, ok := cfg.Models[cfg.Audit.Model]; !ok {

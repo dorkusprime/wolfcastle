@@ -2,7 +2,7 @@
 
 This spec defines the structural validation engine that powers `wolfcastle doctor` and the daemon startup health checks. It is the core infrastructure for detecting, classifying, and repairing inconsistencies in the distributed state tree.
 
-**Governing ADRs**: ADR-002 (JSON state), ADR-003 (deterministic scripts), ADR-007 (audit invariants), ADR-008 (tree addressing), ADR-009 (project layout), ADR-014 (serial execution), ADR-019 (failure/decomposition), ADR-020 (daemon lifecycle, self-healing, stale PID), ADR-024 (distributed state files, per-node state.json, root index), ADR-025 (wolfcastle doctor, validation as infrastructure).
+**Governing ADRs**: ADR-002 (JSON state), ADR-003 (deterministic scripts), ADR-007 (audit invariants), ADR-008 (tree addressing), ADR-009 (project layout), ADR-014 (serial execution), ADR-019 (failure/decomposition), ADR-020 (daemon lifecycle, self-healing, stale PID), ADR-024 (distributed state files, per-node state.json, root index), ADR-025 (wolfcastle doctor, validation as infrastructure), ADR-040 (daemon artifact cleanup).
 
 ---
 
@@ -191,6 +191,30 @@ Additionally, if more than one task across the entire tree is `in_progress`, thi
 
 **Severity**: Error
 
+### 1.13 Daemon Artifact Issues
+
+Daemon artifacts are operational files that can be left behind when the daemon crashes or is killed without cleanup. They are not structural state issues but can block normal daemon operation.
+
+#### STALE_PID_FILE
+
+**Description**: A `daemon.pid` file exists in the `.wolfcastle/` directory but the referenced process is not alive. This typically occurs after a daemon crash or forced kill.
+
+**Detection**: Read the PID from `daemon.pid`, check if the process is alive via signal 0. If the process is not alive (or the PID file can't be parsed), report the issue.
+
+**Severity**: Warning
+
+**Example**: `daemon.pid` contains `12345` but process 12345 is not running. The next `wolfcastle start` may refuse to start.
+
+#### STALE_STOP_FILE
+
+**Description**: A `stop` file exists in the `.wolfcastle/` directory but no daemon process is running. This occurs when `wolfcastle stop` is issued after the daemon has already exited.
+
+**Detection**: Check if the `stop` file exists and no daemon is alive. If both conditions are true, the stop file is stale.
+
+**Severity**: Warning
+
+**Example**: The `stop` file exists but no daemon is running. The next `wolfcastle start` would immediately shut down upon seeing it.
+
 ---
 
 ## 2. Severity Levels
@@ -211,6 +235,8 @@ Every issue found by the validation engine is classified into one of three sever
 | `ROOTINDEX_MISSING_ENTRY` | Error |
 | `ORPHAN_STATE` | Error |
 | `ORPHAN_DEFINITION` | Warning |
+| `STALE_PID_FILE` | Warning |
+| `STALE_STOP_FILE` | Warning |
 | `PROPAGATION_MISMATCH` | Error |
 | `MISSING_AUDIT_TASK` | Error |
 | `AUDIT_NOT_LAST` | Error |

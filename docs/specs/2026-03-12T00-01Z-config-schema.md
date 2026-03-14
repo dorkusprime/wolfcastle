@@ -422,23 +422,29 @@ Arrays are **not** deep-merged. An array in `config.local.json` replaces the ent
 
     "overlap_advisory": {
       "type": "object",
-      "description": "Cross-engineer overlap detection at project creation time. Compares a new project's scope against other engineers' active projects and prints an advisory. Read-only and informational only. (ADR-027)",
+      "description": "Cross-engineer overlap detection at project creation time. Uses bigram Jaccard similarity to compare a new project's scope against other engineers' active projects and prints an advisory. Algorithmic — no model invocation required. Read-only and informational only. (ADR-027, ADR-041)",
       "additionalProperties": false,
       "properties": {
         "enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Whether to run the overlap check when creating a new project. Enabled by default in team config; can be disabled in config.local.json for solo or cost-sensitive engineers."
+          "description": "Whether to run the overlap check when creating a new project. Enabled by default in team config; can be disabled in config.local.json for solo engineers."
         },
         "model": {
           "type": "string",
           "default": "fast",
-          "description": "Key referencing an entry in the `models` dictionary. Typically a cheap model since the check only reads project descriptions."
+          "description": "Retained for potential future hybrid detection. Not currently used or validated (ADR-041)."
+        },
+        "threshold": {
+          "type": "number",
+          "default": 0.3,
+          "description": "Jaccard similarity threshold (0–1) above which projects are flagged as overlapping. Lower values are more sensitive. (ADR-041)"
         }
       },
       "default": {
         "enabled": true,
-        "model": "fast"
+        "model": "fast",
+        "threshold": 0.3
       }
     },
 
@@ -559,6 +565,7 @@ All fields are optional. Omitted fields use the defaults specified above. A comp
 | `unblock.prompt_file` | `"unblock.md"` |
 | `overlap_advisory.enabled` | `true` |
 | `overlap_advisory.model` | `"fast"` |
+| `overlap_advisory.threshold` | `0.3` |
 | `audit.model` | `"heavy"` |
 | `audit.prompt_file` | `"audit.md"` |
 
@@ -677,7 +684,8 @@ This is the team-shared configuration committed to git. Shows all fields with th
 
   "overlap_advisory": {
     "enabled": true,
-    "model": "fast"
+    "model": "fast",
+    "threshold": 0.3
   },
 
   "audit": {
@@ -774,7 +782,7 @@ The Go binary carries hardcoded defaults for every field. `config.json` override
 
 The following validation is performed when config is loaded:
 
-1. **Model references**: Every `model` value in `pipeline.stages`, `summary.model`, `doctor.model`, `unblock.model`, `overlap_advisory.model`, and `audit.model` must reference a key that exists in the resolved `models` dictionary (after merge).
+1. **Model references**: Every `model` value in `pipeline.stages`, `summary.model`, `doctor.model`, `unblock.model`, and `audit.model` must reference a key that exists in the resolved `models` dictionary (after merge). Note: `overlap_advisory.model` is not validated — overlap detection is algorithmic per ADR-041.
 2. **Stage name uniqueness**: No two entries in `pipeline.stages` may share the same `name`.
 3. **No identity in config.json**: If `identity` appears in `config.json`, emit a warning. Identity is personal and should only be in `config.local.json`.
 4. **Type checking**: All fields must match their declared types. Unknown keys at the top level are rejected (`additionalProperties: false`).
@@ -801,7 +809,7 @@ The following validation is performed when config is loaded:
 | `git` | ADR-015 |
 | `doctor` | ADR-025 |
 | `unblock` | ADR-028 |
-| `overlap_advisory` | ADR-027 |
+| `overlap_advisory` | ADR-027, ADR-041 |
 | `audit` | ADR-029 |
 | Merge semantics | ADR-018 |
 | Three-tier layering | ADR-009 |

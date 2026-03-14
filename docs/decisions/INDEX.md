@@ -39,3 +39,7 @@
 | 035 | [Model-Driven Decomposition via CLI](035-decomposition-via-cli.md) | Accepted | 2026-03-13 |
 | 036 | [Summaries via Inline Marker, Not Separate Stage](036-summary-via-inline-marker.md) | Accepted | 2026-03-13 |
 | 037 | [Daemon Dual Output — Console + NDJSON](037-daemon-logging-dual-output.md) | Accepted | 2026-03-13 |
+| 038 | [Staged Audit Review Workflow](038-staged-audit-review.md) | Accepted | 2026-03-14 |
+| 039 | [Clean Daemon Iteration Boundary](039-daemon-iteration-boundary.md) | Accepted | 2026-03-14 |
+| 040 | [Daemon Artifact Cleanup in Doctor](040-daemon-artifact-cleanup.md) | Accepted | 2026-03-14 |
+| 041 | [Algorithmic Overlap Detection](041-algorithmic-overlap-detection.md) | Accepted | 2026-03-14 |

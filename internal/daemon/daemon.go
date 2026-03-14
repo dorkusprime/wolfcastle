@@ -32,6 +32,7 @@ type Daemon struct {
 	shutdown     chan struct{}
 	shutdownOnce sync.Once
 	branch       string
+	iteration    int
 }
 
 // New creates a new daemon.
@@ -110,11 +111,26 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		fmt.Printf("Daemon crashed (attempt %d/%d): %v — restarting in %v\n", restart+1, maxRestarts, err, delay)
 		time.Sleep(delay)
 
-		// Reset shutdown state for next Run() iteration
+		// Reset daemon state for next Run() invocation
 		d.shutdown = make(chan struct{})
 		d.shutdownOnce = sync.Once{}
+		d.iteration = 0
 	}
 }
+
+// IterationResult describes the outcome of a single daemon iteration.
+type IterationResult int
+
+const (
+	// IterationDidWork means work was found and the pipeline ran.
+	IterationDidWork IterationResult = iota
+	// IterationNoWork means no actionable tasks were found.
+	IterationNoWork
+	// IterationStop means the daemon should shut down (signal, stop file, cap).
+	IterationStop
+	// IterationError means the iteration encountered a recoverable error.
+	IterationError
+)
 
 // Run executes the daemon loop.
 func (d *Daemon) Run(ctx context.Context) error {
@@ -144,99 +160,114 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 	}
 
-	iteration := 0
-	maxIter := d.Config.Daemon.MaxIterations
-
+	d.iteration = 0
 	d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
 	fmt.Printf("=== Wolfcastle starting (scope=%s) ===\n", d.scopeLabel())
 
 	for {
-		// Check shutdown
-		select {
-		case <-d.shutdown:
-			d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "signal"})
-			fmt.Println("=== Wolfcastle stopped by signal ===")
-			return nil
-		default:
-		}
-
-		// Check stop file
-		stopFilePath := filepath.Join(d.WolfcastleDir, "stop")
-		if _, err := os.Stat(stopFilePath); err == nil {
-			os.Remove(stopFilePath)
-			d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
-			fmt.Println("=== Wolfcastle stopped by stop file ===")
-			return nil
-		}
-
-		// Max iterations check
-		if maxIter > 0 && iteration >= maxIter {
-			d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": iteration})
-			fmt.Printf("=== Wolfcastle hit iteration cap (%d) ===\n", maxIter)
-			return nil
-		}
-
-		// Verify branch hasn't changed
-		if d.Config.Git.VerifyBranch {
-			current, err := currentBranch(d.RepoDir)
-			if err == nil && current != d.branch {
-				return fmt.Errorf("WOLFCASTLE_BLOCKED: branch changed from %s to %s", d.branch, current)
-			}
-		}
-
-		// Navigate to find work
-		idx, err := d.Resolver.LoadRootIndex()
+		result, err := d.RunOnce(ctx)
 		if err != nil {
-			return fmt.Errorf("loading root index: %w", err)
+			return err
 		}
 
-		navResult, err := state.FindNextTask(idx, d.ScopeNode, func(addr string) (*state.NodeState, error) {
-			a, err := tree.ParseAddress(addr)
-			if err != nil {
-				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
-			}
-			return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
-		})
-		if err != nil {
-			return fmt.Errorf("navigation failed: %w", err)
-		}
-
-		if !navResult.Found {
-			if navResult.Reason == "all_complete" {
-				fmt.Println("WOLFCASTLE_COMPLETE")
-				time.Sleep(time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds) * time.Second)
-				continue
-			}
-			fmt.Printf("No work: %s — sleeping %ds\n", navResult.Reason, d.Config.Daemon.BlockedPollIntervalSeconds)
+		switch result {
+		case IterationStop:
+			return nil
+		case IterationNoWork:
 			time.Sleep(time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds) * time.Second)
-			continue
-		}
-
-		iteration++
-		fmt.Printf("--- Iteration %d: %s/%s ---\n", iteration, navResult.NodeAddress, navResult.TaskID)
-
-		// Start iteration log
-		d.Logger.StartIteration()
-
-		// Run pipeline stages
-		err = d.runIteration(ctx, navResult, idx)
-		d.Logger.Close()
-
-		if err != nil {
-			fmt.Printf("Iteration error: %v\n", err)
+		case IterationError:
 			time.Sleep(time.Duration(d.Config.Daemon.PollIntervalSeconds) * time.Second)
-			continue
+		case IterationDidWork:
+			logging.EnforceRetention(
+				filepath.Join(d.WolfcastleDir, "logs"),
+				d.Config.Logs.MaxFiles,
+				d.Config.Logs.MaxAgeDays,
+			)
+			time.Sleep(time.Duration(d.Config.Daemon.PollIntervalSeconds) * time.Second)
 		}
-
-		// Log retention
-		logging.EnforceRetention(
-			filepath.Join(d.WolfcastleDir, "logs"),
-			d.Config.Logs.MaxFiles,
-			d.Config.Logs.MaxAgeDays,
-		)
-
-		time.Sleep(time.Duration(d.Config.Daemon.PollIntervalSeconds) * time.Second)
 	}
+}
+
+// RunOnce executes a single daemon iteration: check preconditions, find work,
+// and run the pipeline. Returns a result indicating what happened and a
+// non-nil error only for fatal conditions that should halt the daemon.
+func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
+	// Check shutdown signal
+	select {
+	case <-d.shutdown:
+		d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "signal"})
+		fmt.Println("=== Wolfcastle stopped by signal ===")
+		return IterationStop, nil
+	default:
+	}
+
+	// Check stop file
+	stopFilePath := filepath.Join(d.WolfcastleDir, "stop")
+	if _, err := os.Stat(stopFilePath); err == nil {
+		os.Remove(stopFilePath)
+		d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
+		fmt.Println("=== Wolfcastle stopped by stop file ===")
+		return IterationStop, nil
+	}
+
+	// Max iterations check
+	maxIter := d.Config.Daemon.MaxIterations
+	if maxIter > 0 && d.iteration >= maxIter {
+		d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration})
+		fmt.Printf("=== Wolfcastle hit iteration cap (%d) ===\n", maxIter)
+		return IterationStop, nil
+	}
+
+	// Verify branch hasn't changed
+	if d.Config.Git.VerifyBranch {
+		current, err := currentBranch(d.RepoDir)
+		if err == nil && current != d.branch {
+			return IterationStop, fmt.Errorf("WOLFCASTLE_BLOCKED: branch changed from %s to %s", d.branch, current)
+		}
+	}
+
+	// Navigate to find work
+	idx, err := d.Resolver.LoadRootIndex()
+	if err != nil {
+		return IterationStop, fmt.Errorf("loading root index: %w", err)
+	}
+
+	navResult, err := state.FindNextTask(idx, d.ScopeNode, func(addr string) (*state.NodeState, error) {
+		a, err := tree.ParseAddress(addr)
+		if err != nil {
+			return nil, fmt.Errorf("parsing address %q: %w", addr, err)
+		}
+		return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+	})
+	if err != nil {
+		return IterationStop, fmt.Errorf("navigation failed: %w", err)
+	}
+
+	if !navResult.Found {
+		if navResult.Reason == "all_complete" {
+			fmt.Println("WOLFCASTLE_COMPLETE")
+		} else {
+			fmt.Printf("No work: %s — sleeping %ds\n", navResult.Reason, d.Config.Daemon.BlockedPollIntervalSeconds)
+		}
+		return IterationNoWork, nil
+	}
+
+	d.iteration++
+	fmt.Printf("--- Iteration %d: %s/%s ---\n", d.iteration, navResult.NodeAddress, navResult.TaskID)
+
+	// Start iteration log
+	d.Logger.StartIteration()
+
+	// Run pipeline stages
+	err = d.runIteration(ctx, navResult, idx)
+	d.Logger.Close()
+
+	if err != nil {
+		fmt.Printf("Iteration error: %v\n", err)
+		return IterationError, nil
+	}
+
+	return IterationDidWork, nil
 }
 
 func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, idx *state.RootIndex) error {
@@ -263,6 +294,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		return fmt.Errorf("propagating state after claim: %w", err)
 	}
 
+	// Check inbox state once for stage-skip decisions (ADR-039)
+	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	hasNewItems, hasExpandedItems := d.checkInboxState(inboxPath)
+
 	// Run pipeline stages
 	for _, stage := range d.Config.Pipeline.Stages {
 		if !stage.IsEnabled() {
@@ -271,18 +306,36 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		switch stage.Name {
 		case "expand":
+			if !hasNewItems {
+				d.Logger.Log(map[string]any{"type": "stage_skip", "stage": "expand", "reason": "no_new_inbox_items"})
+				continue
+			}
 			if err := d.runExpandStage(ctx, stage); err != nil {
 				d.Logger.Log(map[string]any{"type": "stage_error", "stage": "expand", "error": err.Error()})
 				// Non-fatal: expand failure doesn't block execution
 				fmt.Printf("  Expand stage error (non-fatal): %v\n", err)
 			}
+			// Re-check inbox state after expand — items may now be expanded
+			hasNewItems, hasExpandedItems = d.checkInboxState(inboxPath)
 			continue
 
 		case "file":
+			if !hasExpandedItems {
+				d.Logger.Log(map[string]any{"type": "stage_skip", "stage": "file", "reason": "no_expanded_inbox_items"})
+				continue
+			}
 			if err := d.runFileStage(ctx, stage); err != nil {
 				d.Logger.Log(map[string]any{"type": "stage_error", "stage": "file", "error": err.Error()})
 				fmt.Printf("  File stage error (non-fatal): %v\n", err)
 			}
+			continue
+		}
+
+		// Skip execute stage if there are expanded items awaiting filing —
+		// prioritize filing over execution to avoid working on a stale tree.
+		if hasExpandedItems {
+			d.Logger.Log(map[string]any{"type": "stage_skip", "stage": stage.Name, "reason": "pending_filing"})
+			fmt.Printf("  Skipping %s stage: expanded items await filing\n", stage.Name)
 			continue
 		}
 
@@ -712,6 +765,25 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 	}
 
 	return state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
+}
+
+// checkInboxState returns whether the inbox has new items (needing expand)
+// and expanded items (needing filing). Returns false, false if the inbox
+// file doesn't exist or can't be read.
+func (d *Daemon) checkInboxState(inboxPath string) (hasNew, hasExpanded bool) {
+	inboxData, err := inbox.Load(inboxPath)
+	if err != nil {
+		return false, false
+	}
+	for _, item := range inboxData.Items {
+		switch item.Status {
+		case "new":
+			hasNew = true
+		case "expanded":
+			hasExpanded = true
+		}
+	}
+	return
 }
 
 func (d *Daemon) scopeLabel() string {

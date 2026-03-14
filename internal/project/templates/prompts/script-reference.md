@@ -146,6 +146,52 @@ wolfcastle audit escalate "description of the gap" --node <source-node-address>
 wolfcastle audit escalate "API contract is inconsistent with frontend expectations" --node my-project/api
 ```
 
+## Audit Review Commands
+
+Review findings from `wolfcastle audit run`. Findings are saved as a pending batch; use these commands to approve or reject them individually.
+
+### wolfcastle audit pending
+
+Show pending audit findings awaiting review.
+
+```
+wolfcastle audit pending
+```
+
+### wolfcastle audit approve
+
+Approve a finding and create a project for it.
+
+```
+wolfcastle audit approve <finding-id>
+wolfcastle audit approve --all
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--all` | No | Approve all pending findings |
+
+### wolfcastle audit reject
+
+Reject a finding without creating a project.
+
+```
+wolfcastle audit reject <finding-id>
+wolfcastle audit reject --all
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--all` | No | Reject all pending findings |
+
+### wolfcastle audit history
+
+Show past audit review decisions.
+
+```
+wolfcastle audit history
+```
+
 ---
 
 ## Documentation Commands

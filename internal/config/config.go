@@ -80,8 +80,9 @@ func Defaults() *Config {
 			PromptFile: "doctor.md",
 		},
 		OverlapAdvisory: OverlapConfig{
-			Enabled: true,
-			Model:   "fast",
+			Enabled:   true,
+			Model:     "fast",
+			Threshold: 0.3,
 		},
 		Unblock: UnblockConfig{
 			Model:      "heavy",

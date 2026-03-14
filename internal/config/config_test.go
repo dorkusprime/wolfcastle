@@ -232,7 +232,7 @@ func TestValidate_CatchesMissingUnblockModel(t *testing.T) {
 	}
 }
 
-func TestValidate_CatchesMissingOverlapAdvisoryModel(t *testing.T) {
+func TestValidate_SkipsOverlapAdvisoryModelValidation(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
 	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
@@ -240,8 +240,8 @@ func TestValidate_CatchesMissingOverlapAdvisoryModel(t *testing.T) {
 	cfg.OverlapAdvisory.Model = "nonexistent"
 
 	err := Validate(cfg)
-	if err == nil {
-		t.Error("expected error for missing overlap_advisory model reference")
+	if err != nil {
+		t.Errorf("overlap_advisory model should not be validated (ADR-041), got: %v", err)
 	}
 }
 

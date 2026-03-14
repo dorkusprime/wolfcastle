@@ -267,16 +267,18 @@ Stages can be conditional in two ways:
 
 1. **Static opt-out via `enabled: false`** -- the stage is always skipped. Configured at init time and does not change during execution. Useful for permanently removing a stage (e.g., disabling `expand` for projects that don't use an inbox).
 
-2. **Dynamic skipping by the daemon** -- Wolfcastle may skip a stage when its preconditions are not met. The daemon checks stage-specific preconditions before invocation:
+2. **Dynamic skipping by the daemon** -- Wolfcastle may skip a stage when its preconditions are not met. The daemon checks inbox state once per iteration, then evaluates stage-specific preconditions before each invocation:
 
-| Stage | Skip Condition |
-|-------|---------------|
-| `expand` | Inbox is empty (no items to process). |
-| `file` | No unfiled or unscoped tasks exist. |
-| `execute` | No navigable task in `not_started` or `in_progress` state (all tasks are `complete`, `blocked`, or not yet created). |
-| `summary` | No node has completed audit without an existing summary. Or summary is disabled in config. |
+| Stage | Skip Condition | Log Reason |
+|-------|---------------|------------|
+| `expand` | No inbox items with status `"new"`. | `no_new_inbox_items` |
+| `file` | No inbox items with status `"expanded"`. | `no_expanded_inbox_items` |
+| `execute` (and other custom stages) | Expanded items exist but have not been filed — filing takes priority over execution to avoid working on a stale tree. | `pending_filing` |
+| `summary` | No node has completed audit without an existing summary. Or summary is disabled in config. | `no_summary_needed` |
 
-When a stage is skipped, Wolfcastle logs the skip reason and proceeds to the next stage.
+When a stage is skipped, Wolfcastle emits a `stage_skip` log record with the stage name and reason, then proceeds to the next stage. After `expand` completes, inbox state is re-checked so that the `file` stage sees freshly expanded items.
+
+The filing-priority rule ensures the tree is up to date before execution begins. Without it, the execute stage could work on tasks derived from stale inbox state while expanded items await filing.
 
 ### Dependency Model
 

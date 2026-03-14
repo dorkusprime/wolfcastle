@@ -53,7 +53,7 @@ Examples:
 		}
 
 		// Apply deterministic fixes
-		fixes, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, resolver.ProjectsDir(), resolver.RootIndexPath())
+		fixes, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, resolver.ProjectsDir(), resolver.RootIndexPath(), wolfcastleDir)
 
 		if len(fixes) == 0 {
 			output.PrintHuman("\nNo auto-fixable issues found")

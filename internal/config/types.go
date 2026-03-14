@@ -127,8 +127,9 @@ type DoctorConfig struct {
 }
 
 type OverlapConfig struct {
-	Enabled bool   `json:"enabled"`
-	Model   string `json:"model"`
+	Enabled   bool    `json:"enabled"`
+	Model     string  `json:"model"`
+	Threshold float64 `json:"threshold"`
 }
 
 type UnblockConfig struct {

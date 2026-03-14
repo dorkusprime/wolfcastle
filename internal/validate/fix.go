@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -18,13 +19,19 @@ type FixResult struct {
 
 // ApplyDeterministicFixes attempts to repair all deterministic-fixable issues.
 // It stages changes in memory, writes leaf->parent->root, and re-validates.
+// wolfcastleDir is optional — pass "" to skip daemon artifact cleanup.
 // Returns the list of fixes applied.
 func ApplyDeterministicFixes(
 	idx *state.RootIndex,
 	issues []Issue,
 	projectsDir string,
 	indexPath string,
+	wolfcastleDirs ...string,
 ) ([]FixResult, error) {
+	var wolfcastleDir string
+	if len(wolfcastleDirs) > 0 {
+		wolfcastleDir = wolfcastleDirs[0]
+	}
 	var fixes []FixResult
 	modifiedStates := map[string]*state.NodeState{}
 	indexModified := false
@@ -270,6 +277,22 @@ func ApplyDeterministicFixes(
 		case CatOrphanDefinition:
 			// Deterministic fix: no action needed (just a warning)
 			fixes = append(fixes, FixResult{issue.Category, issue.Node, "orphan definition detected (no auto-fix)"})
+
+		case CatStalePIDFile:
+			if wolfcastleDir != "" {
+				pidPath := filepath.Join(wolfcastleDir, "daemon.pid")
+				if err := os.Remove(pidPath); err == nil {
+					fixes = append(fixes, FixResult{issue.Category, "", "removed stale PID file"})
+				}
+			}
+
+		case CatStaleStopFile:
+			if wolfcastleDir != "" {
+				stopPath := filepath.Join(wolfcastleDir, "stop")
+				if err := os.Remove(stopPath); err == nil {
+					fixes = append(fixes, FixResult{issue.Category, "", "removed stale stop file"})
+				}
+			}
 		}
 	}
 

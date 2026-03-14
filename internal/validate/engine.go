@@ -272,6 +272,36 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 		}
 	}
 
+	// Daemon artifact checks
+	if e.include(CatStalePIDFile, categories) {
+		if e.wolfcastleDir != "" && !e.isDaemonAlive() {
+			pidPath := filepath.Join(e.wolfcastleDir, "daemon.pid")
+			if _, err := os.Stat(pidPath); err == nil {
+				report.Issues = append(report.Issues, Issue{
+					Severity:    SeverityWarning,
+					Category:    CatStalePIDFile,
+					Description: "PID file exists but daemon process is not alive",
+					CanAutoFix:  true,
+					FixType:     FixDeterministic,
+				})
+			}
+		}
+	}
+	if e.include(CatStaleStopFile, categories) {
+		if e.wolfcastleDir != "" && !e.isDaemonAlive() {
+			stopPath := filepath.Join(e.wolfcastleDir, "stop")
+			if _, err := os.Stat(stopPath); err == nil {
+				report.Issues = append(report.Issues, Issue{
+					Severity:    SeverityWarning,
+					Category:    CatStaleStopFile,
+					Description: "Stop file exists but no daemon is running — would block next start",
+					CanAutoFix:  true,
+					FixType:     FixDeterministic,
+				})
+			}
+		}
+	}
+
 	report.Counts()
 	return report
 }

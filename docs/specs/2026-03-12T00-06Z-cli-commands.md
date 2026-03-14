@@ -1547,6 +1547,119 @@ wolfcastle audit escalate --node attunement-tree/fire-impl \
 
 ---
 
+## wolfcastle audit pending
+
+### Synopsis
+
+```
+wolfcastle audit pending
+```
+
+### Description
+
+Displays the current batch of audit findings that have not yet been approved or rejected. Shows finding IDs, titles, and description previews. If no pending batch exists, reports that (ADR-038).
+
+### Behavior
+
+1. Load `audit-review.json` from `.wolfcastle/`.
+2. If no file exists, report "No pending audit review batch."
+3. Filter findings with status `"pending"`.
+4. Display each finding's ID, title, and first line of description.
+5. With `--json`, return the full batch metadata and pending findings array.
+
+### Output
+
+Human output lists findings with IDs for use with `approve`/`reject`:
+
+```
+Pending audit findings (batch audit-20260314T120000Z, 2 scope(s)):
+
+  [finding-1] Missing input validation on API endpoints
+  [finding-2] Stale database migration files
+```
+
+---
+
+## wolfcastle audit approve
+
+### Synopsis
+
+```
+wolfcastle audit approve <finding-id>
+wolfcastle audit approve --all
+```
+
+### Description
+
+Approves a pending audit finding, creating a leaf project in the work tree. Use `--all` to approve every remaining pending finding. When all findings have been decided, the batch is archived to `audit-review-history.json` and the pending file is removed (ADR-038).
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `<finding-id>` | string (positional) | Yes (unless `--all`) | -- | ID of the finding to approve |
+| `--all` | boolean | No | false | Approve all pending findings |
+
+### Behavior
+
+1. Load `audit-review.json`. Fail if not found.
+2. Load root index.
+3. For each targeted finding: create a leaf project with the finding title, write state and description files.
+4. Mark findings as `"approved"` with timestamp and created node address.
+5. Save updated batch and root index.
+6. If all findings are decided, archive the batch to history with retention (100 entries, 90 days) and remove the pending file.
+
+---
+
+## wolfcastle audit reject
+
+### Synopsis
+
+```
+wolfcastle audit reject <finding-id>
+wolfcastle audit reject --all
+```
+
+### Description
+
+Rejects a pending audit finding without creating any project. The decision is recorded for audit trail purposes. When all findings have been decided, the batch is archived to history and the pending file is removed (ADR-038).
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `<finding-id>` | string (positional) | Yes (unless `--all`) | -- | ID of the finding to reject |
+| `--all` | boolean | No | false | Reject all pending findings |
+
+### Behavior
+
+1. Load `audit-review.json`. Fail if not found.
+2. Mark targeted findings as `"rejected"` with timestamp.
+3. Save updated batch.
+4. If all findings are decided, archive the batch to history and remove the pending file.
+
+---
+
+## wolfcastle audit history
+
+### Synopsis
+
+```
+wolfcastle audit history
+```
+
+### Description
+
+Displays the history of completed audit review batches with their decisions. Most recent batches are shown first. Each entry shows the batch ID, completion timestamp, scopes, and a summary of approved/rejected findings (ADR-038).
+
+### Behavior
+
+1. Load `audit-review-history.json` from `.wolfcastle/`.
+2. If no file exists, report "No audit review history."
+3. Display entries in reverse chronological order with decision counts and individual finding outcomes.
+
+---
+
 ## wolfcastle archive add
 
 ### Synopsis
