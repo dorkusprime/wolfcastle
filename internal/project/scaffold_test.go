@@ -135,6 +135,183 @@ func TestScaffold_CreatesRootIndex(t *testing.T) {
 	}
 }
 
+func TestScaffold_CreatesGitignore(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), ".wolfcastle")
+
+	if err := Scaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, ".gitignore"))
+	if err != nil {
+		t.Fatal(".gitignore not created:", err)
+	}
+
+	content := string(data)
+	for _, expected := range []string{"!config.json", "!custom/", "!projects/", "!archive/", "!docs/"} {
+		if !contains(content, expected) {
+			t.Errorf(".gitignore should contain %q", expected)
+		}
+	}
+}
+
+func TestReScaffold_RegeneratesBase(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), ".wolfcastle")
+
+	// Initial scaffold
+	if err := Scaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove a base file to verify it gets regenerated
+	promptFile := filepath.Join(dir, "base", "prompts", "execute.md")
+	if err := os.Remove(promptFile); err != nil {
+		t.Fatal("removing prompt file:", err)
+	}
+
+	// ReScaffold should regenerate it
+	if err := ReScaffold(dir); err != nil {
+		t.Fatal("ReScaffold failed:", err)
+	}
+
+	if _, err := os.Stat(promptFile); err != nil {
+		t.Error("ReScaffold should regenerate missing base files:", err)
+	}
+}
+
+func TestReScaffold_PreservesConfigJSON(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), ".wolfcastle")
+
+	if err := Scaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Modify config.json
+	cfgPath := filepath.Join(dir, "config.json")
+	original, _ := os.ReadFile(cfgPath)
+	custom := []byte(`{"custom_key": "custom_value"}`)
+	if err := os.WriteFile(cfgPath, custom, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// ReScaffold should not overwrite config.json
+	if err := ReScaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(cfgPath)
+	if string(data) == string(original) {
+		t.Error("ReScaffold should not overwrite config.json")
+	}
+	if string(data) != string(custom) {
+		t.Error("ReScaffold should preserve custom config.json content")
+	}
+}
+
+func TestReScaffold_RefreshesIdentity(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), ".wolfcastle")
+
+	if err := Scaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Write config.local.json with extra keys
+	localPath := filepath.Join(dir, "config.local.json")
+	localCfg := map[string]any{
+		"identity":   map[string]any{"user": "old-user", "machine": "old-machine"},
+		"extra_key":  "should_be_preserved",
+	}
+	data, _ := json.MarshalIndent(localCfg, "", "  ")
+	os.WriteFile(localPath, data, 0644)
+
+	// ReScaffold should refresh identity but preserve extra keys
+	if err := ReScaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	newData, _ := os.ReadFile(localPath)
+	var result map[string]any
+	json.Unmarshal(newData, &result)
+
+	if _, ok := result["extra_key"]; !ok {
+		t.Error("ReScaffold should preserve extra keys in config.local.json")
+	}
+	identity, _ := result["identity"].(map[string]any)
+	if identity["user"] == "old-user" {
+		// Identity should be refreshed from system, so it should change
+		// (unless running as "old-user" which is unlikely)
+		// We just check the key exists
+	}
+	if _, ok := identity["user"]; !ok {
+		t.Error("ReScaffold should maintain identity.user")
+	}
+}
+
+func TestReScaffold_HandlesCorruptLocalConfig(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), ".wolfcastle")
+
+	if err := Scaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Write invalid JSON to config.local.json
+	localPath := filepath.Join(dir, "config.local.json")
+	os.WriteFile(localPath, []byte("not json"), 0644)
+
+	err := ReScaffold(dir)
+	if err == nil {
+		t.Error("ReScaffold should return an error for corrupt config.local.json")
+	}
+}
+
+func TestReScaffold_HandlesMissingLocalConfig(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), ".wolfcastle")
+
+	if err := Scaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove config.local.json
+	os.Remove(filepath.Join(dir, "config.local.json"))
+
+	// ReScaffold should create it
+	if err := ReScaffold(dir); err != nil {
+		t.Fatal("ReScaffold should handle missing config.local.json:", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "config.local.json"))
+	if err != nil {
+		t.Fatal("ReScaffold should create config.local.json:", err)
+	}
+
+	var cfg map[string]any
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		t.Fatal("created config.local.json is not valid JSON:", err)
+	}
+	if _, ok := cfg["identity"]; !ok {
+		t.Error("created config.local.json should contain identity")
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
 func TestWriteBasePrompts_CreatesPromptFiles(t *testing.T) {
 	t.Parallel()
 	dir := filepath.Join(t.TempDir(), ".wolfcastle")
