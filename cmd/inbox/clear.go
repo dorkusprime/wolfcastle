@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,7 @@ Examples:
 			clearAll, _ := cmd.Flags().GetBool("all")
 
 			inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
-			inboxData, err := inbox.Load(inboxPath)
+			inboxData, err := state.LoadInbox(inboxPath)
 			if err != nil {
 				return fmt.Errorf("reading inbox: %w", err)
 			}
@@ -37,7 +37,7 @@ Examples:
 			if clearAll {
 				inboxData.Items = nil
 			} else {
-				var kept []inbox.Item
+				var kept []state.InboxItem
 				for _, item := range inboxData.Items {
 					if item.Status == "new" {
 						kept = append(kept, item)
@@ -48,7 +48,7 @@ Examples:
 
 			removedCount := originalCount - len(inboxData.Items)
 
-			if err := inbox.Save(inboxPath, inboxData); err != nil {
+			if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 				return err
 			}
 

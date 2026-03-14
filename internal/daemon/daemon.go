@@ -14,7 +14,6 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -477,13 +476,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage) error {
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	inboxData, err := inbox.Load(inboxPath)
+	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
 		return nil // No inbox file = nothing to expand
 	}
 
 	// Filter to only "new" status items
-	var newItems []inbox.Item
+	var newItems []state.InboxItem
 	var newIndices []int
 	for i, item := range inboxData.Items {
 		if item.Status == "new" {
@@ -546,7 +545,7 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		}
 	}
 
-	if err := inbox.Save(inboxPath, inboxData); err != nil {
+	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		return fmt.Errorf("saving inbox after expand: %w", err)
 	}
 
@@ -585,7 +584,7 @@ func parseExpandedSections(output string) []string {
 
 func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) error {
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	inboxData, err := inbox.Load(inboxPath)
+	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
 		return nil
 	}
@@ -647,7 +646,7 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 		inboxData.Items[idx].Status = "filed"
 	}
 
-	if err := inbox.Save(inboxPath, inboxData); err != nil {
+	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		return fmt.Errorf("saving inbox after file stage: %w", err)
 	}
 
@@ -793,7 +792,7 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 // and expanded items (needing filing). Returns false, false if the inbox
 // file doesn't exist or can't be read.
 func (d *Daemon) checkInboxState(inboxPath string) (hasNew, hasExpanded bool) {
-	inboxData, err := inbox.Load(inboxPath)
+	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
 		return false, false
 	}

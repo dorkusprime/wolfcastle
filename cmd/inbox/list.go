@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ Examples:
 			}
 			inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
 
-			inboxData, err := inbox.Load(inboxPath)
+			inboxData, err := state.LoadInbox(inboxPath)
 			if err != nil {
 				return fmt.Errorf("reading inbox: %w", err)
 			}
