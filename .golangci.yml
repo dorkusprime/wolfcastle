@@ -26,7 +26,3 @@ linters:
     nolintlint:
       require-explanation: true
       require-specific: true
-
-run:
-  skip-dirs:
-    - vendor
