@@ -43,7 +43,12 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, 
 			b.WriteString(fmt.Sprintf("- Max decomposition depth: %d (current: %d)\n", cfg.Failure.MaxDecompositionDepth, ns.DecompositionDepth))
 			b.WriteString(fmt.Sprintf("- Hard failure cap: %d\n", cfg.Failure.HardCap))
 			if t.NeedsDecomposition {
-				b.WriteString("\n**Decomposition recommended.** Consider breaking this leaf into smaller sub-tasks.\n")
+				b.WriteString("\n**Decomposition required.** This task has failed too many times to continue as-is.\n")
+				b.WriteString("Break this leaf into smaller sub-tasks using the wolfcastle CLI:\n\n")
+				b.WriteString(fmt.Sprintf("1. Create child nodes: `wolfcastle project create --node %s --type leaf \"<name>\"`\n", nodeAddr))
+				b.WriteString(fmt.Sprintf("2. Add tasks to each child: `wolfcastle task add --node %s/<child-slug> \"<description>\"`\n", nodeAddr))
+				b.WriteString("3. Emit WOLFCASTLE_YIELD when decomposition is complete.\n\n")
+				b.WriteString("The parent node will automatically convert from leaf to orchestrator when the first child is created.\n")
 			}
 			break
 		}
@@ -75,5 +80,29 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, 
 		}
 	}
 
+	// Summary guidance — when this is the last incomplete task in the node,
+	// instruct the model to include a summary marker with WOLFCASTLE_COMPLETE.
+	if isLastIncompleteTask(ns, taskID) {
+		b.WriteString("\n## Summary Required\n\n")
+		b.WriteString("This is the last incomplete task in this node. When you complete it, ")
+		b.WriteString("include a summary of all work done in this node using:\n\n")
+		b.WriteString("`WOLFCASTLE_SUMMARY: <one-paragraph summary of what was accomplished>`\n\n")
+		b.WriteString("Emit this on its own line before WOLFCASTLE_COMPLETE.\n")
+	}
+
 	return b.String()
+}
+
+// isLastIncompleteTask returns true if taskID is the only non-complete task
+// remaining in the node (excluding itself).
+func isLastIncompleteTask(ns *state.NodeState, taskID string) bool {
+	for _, t := range ns.Tasks {
+		if t.ID == taskID {
+			continue
+		}
+		if t.State != state.StatusComplete {
+			return false
+		}
+	}
+	return true
 }

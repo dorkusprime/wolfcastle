@@ -21,7 +21,6 @@ const (
 	CatMalformedJSON             = "MALFORMED_JSON"
 
 	// Audit-specific categories
-	CatMissingAuditObject        = "MISSING_AUDIT_OBJECT"
 	CatInvalidAuditScope         = "INVALID_AUDIT_SCOPE"
 	CatInvalidAuditStatus        = "INVALID_AUDIT_STATUS"
 	CatInvalidAuditGap           = "INVALID_AUDIT_GAP"

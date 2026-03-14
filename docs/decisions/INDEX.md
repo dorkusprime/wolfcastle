@@ -36,3 +36,6 @@
 | 032 | [Go Project Structure and Cobra CLI Framework](032-go-project-structure.md) | Accepted | 2026-03-13 |
 | 033 | [Embedded Templates via go:embed](033-embedded-templates.md) | Accepted | 2026-03-13 |
 | 034 | [Inbox Format and Lifecycle](034-inbox-format.md) | Accepted | 2026-03-13 |
+| 035 | [Model-Driven Decomposition via CLI](035-decomposition-via-cli.md) | Accepted | 2026-03-13 |
+| 036 | [Summaries via Inline Marker, Not Separate Stage](036-summary-via-inline-marker.md) | Accepted | 2026-03-13 |
+| 037 | [Daemon Dual Output — Console + NDJSON](037-daemon-logging-dual-output.md) | Accepted | 2026-03-13 |

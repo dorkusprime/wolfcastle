@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -290,5 +291,79 @@ func TestValidate_SkipsDisabledOverlapAdvisoryModelCheck(t *testing.T) {
 	err := Validate(cfg)
 	if err != nil {
 		t.Errorf("expected no error when overlap_advisory is disabled, got: %v", err)
+	}
+}
+
+func TestValidateStructure_CatchesNegativeDaemonTimings(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.PollIntervalSeconds = 0
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for zero poll interval")
+	}
+}
+
+func TestValidateStructure_CatchesNegativeFailureValues(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Failure.DecompositionThreshold = -1
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for negative decomposition threshold")
+	}
+}
+
+func TestValidateStructure_CatchesEmptyModelCommand(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Models["broken"] = ModelDef{Command: ""}
+	cfg.Pipeline.Stages = []PipelineStage{{Name: "test", Model: "broken", PromptFile: "test.md"}}
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for empty model command")
+	}
+}
+
+func TestValidateStructure_CatchesEmptyStagePromptFile(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Pipeline.Stages[0].PromptFile = ""
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for empty stage prompt file")
+	}
+}
+
+func TestValidateStructure_ReportsMultipleErrors(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Pipeline.Stages = nil
+	cfg.Daemon.PollIntervalSeconds = 0
+	cfg.Failure.HardCap = -1
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	// Should contain multiple error lines
+	errStr := err.Error()
+	if count := len(strings.Split(errStr, "\n")); count < 3 {
+		t.Errorf("expected multiple error lines, got %d: %s", count, errStr)
+	}
+}
+
+func TestValidateStructure_CatchesNegativeLogRetention(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Logs.MaxFiles = 0
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for zero max_files")
 	}
 }

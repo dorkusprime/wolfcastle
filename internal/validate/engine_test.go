@@ -3,6 +3,7 @@ package validate
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -563,6 +564,211 @@ func TestApplyDeterministicFixes_MissingAudit(t *testing.T) {
 	lastTask := loaded.Tasks[len(loaded.Tasks)-1]
 	if !lastTask.IsAudit {
 		t.Error("expected last task to have IsAudit=true")
+	}
+}
+
+func TestValidateAll_DetectsInvalidAuditStatus(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	idx := state.NewRootIndex()
+
+	leafDir := filepath.Join(dir, "bad-audit")
+	os.MkdirAll(leafDir, 0755)
+	ns := state.NewNodeState("bad-audit", "Bad Audit", state.NodeLeaf)
+	ns.Audit.Status = "garbage"
+	ns.Tasks = []state.Task{
+		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
+	state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
+
+	idx.Nodes["bad-audit"] = state.IndexEntry{
+		Name: "Bad Audit", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "bad-audit",
+	}
+
+	engine := NewEngine(dir, DefaultNodeLoader(dir))
+	report := engine.ValidateAll(idx)
+
+	found := false
+	for _, issue := range report.Issues {
+		if issue.Category == CatInvalidAuditStatus {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected INVALID_AUDIT_STATUS issue")
+	}
+}
+
+func TestValidateAll_DetectsAuditStatusTaskMismatch(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	idx := state.NewRootIndex()
+
+	leafDir := filepath.Join(dir, "mismatch")
+	os.MkdirAll(leafDir, 0755)
+	ns := state.NewNodeState("mismatch", "Mismatch", state.NodeLeaf)
+	ns.State = state.StatusInProgress
+	ns.Audit.Status = state.AuditPassed // wrong — should be in_progress
+	ns.Tasks = []state.Task{
+		{ID: "task-1", Description: "work", State: state.StatusInProgress},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
+	state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
+
+	idx.Nodes["mismatch"] = state.IndexEntry{
+		Name: "Mismatch", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "mismatch",
+	}
+
+	engine := NewEngine(dir, DefaultNodeLoader(dir))
+	report := engine.ValidateAll(idx)
+
+	found := false
+	for _, issue := range report.Issues {
+		if issue.Category == CatAuditStatusTaskMismatch {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected AUDIT_STATUS_TASK_MISMATCH issue")
+	}
+}
+
+func TestValidateAll_DetectsInvalidAuditGap(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	idx := state.NewRootIndex()
+
+	leafDir := filepath.Join(dir, "bad-gap")
+	os.MkdirAll(leafDir, 0755)
+	ns := state.NewNodeState("bad-gap", "Bad Gap", state.NodeLeaf)
+	ns.Audit.Gaps = []state.Gap{
+		{ID: "", Description: "", Status: "open"}, // missing ID and description
+	}
+	ns.Tasks = []state.Task{
+		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
+	state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
+
+	idx.Nodes["bad-gap"] = state.IndexEntry{
+		Name: "Bad Gap", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "bad-gap",
+	}
+
+	engine := NewEngine(dir, DefaultNodeLoader(dir))
+	report := engine.ValidateAll(idx)
+
+	found := false
+	for _, issue := range report.Issues {
+		if issue.Category == CatInvalidAuditGap {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected INVALID_AUDIT_GAP issue")
+	}
+}
+
+func TestValidateAll_DetectsStaleGapMetadata(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	idx := state.NewRootIndex()
+
+	leafDir := filepath.Join(dir, "stale-gap")
+	os.MkdirAll(leafDir, 0755)
+	ns := state.NewNodeState("stale-gap", "Stale Gap", state.NodeLeaf)
+	ns.Audit.Gaps = []state.Gap{
+		{ID: "gap-1", Description: "test gap", Status: "open", FixedBy: "should-not-be-here"},
+	}
+	ns.Tasks = []state.Task{
+		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
+	state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
+
+	idx.Nodes["stale-gap"] = state.IndexEntry{
+		Name: "Stale Gap", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "stale-gap",
+	}
+
+	engine := NewEngine(dir, DefaultNodeLoader(dir))
+	report := engine.ValidateAll(idx)
+
+	found := false
+	for _, issue := range report.Issues {
+		if issue.Category == CatInvalidAuditGap && strings.Contains(issue.Description, "stale") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected INVALID_AUDIT_GAP issue for stale fixed_by metadata")
+	}
+}
+
+func TestValidateAll_DetectsInvalidAuditEscalation(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	idx := state.NewRootIndex()
+
+	leafDir := filepath.Join(dir, "bad-esc")
+	os.MkdirAll(leafDir, 0755)
+	ns := state.NewNodeState("bad-esc", "Bad Escalation", state.NodeLeaf)
+	ns.Audit.Escalations = []state.Escalation{
+		{ID: "", Description: "", SourceNode: ""}, // all empty
+	}
+	ns.Tasks = []state.Task{
+		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
+	state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
+
+	idx.Nodes["bad-esc"] = state.IndexEntry{
+		Name: "Bad Escalation", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "bad-esc",
+	}
+
+	engine := NewEngine(dir, DefaultNodeLoader(dir))
+	report := engine.ValidateAll(idx)
+
+	found := false
+	for _, issue := range report.Issues {
+		if issue.Category == CatInvalidAuditEscalation {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected INVALID_AUDIT_ESCALATION issue")
+	}
+}
+
+func TestValidateAll_DetectsInvalidAuditScope(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	idx := state.NewRootIndex()
+
+	leafDir := filepath.Join(dir, "bad-scope")
+	os.MkdirAll(leafDir, 0755)
+	ns := state.NewNodeState("bad-scope", "Bad Scope", state.NodeLeaf)
+	ns.Audit.Scope = &state.AuditScope{Description: ""} // empty description
+	ns.Tasks = []state.Task{
+		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
+	state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
+
+	idx.Nodes["bad-scope"] = state.IndexEntry{
+		Name: "Bad Scope", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "bad-scope",
+	}
+
+	engine := NewEngine(dir, DefaultNodeLoader(dir))
+	report := engine.ValidateAll(idx)
+
+	found := false
+	for _, issue := range report.Issues {
+		if issue.Category == CatInvalidAuditScope {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected INVALID_AUDIT_SCOPE issue")
 	}
 }
 

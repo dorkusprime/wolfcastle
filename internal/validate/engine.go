@@ -342,6 +342,19 @@ func (e *Engine) checkLeafTasks(ns *state.NodeState, addr string, categories map
 }
 
 func (e *Engine) checkAuditState(ns *state.NodeState, addr string, categories map[string]bool, report *Report) {
+	// INVALID_AUDIT_SCOPE: audit scope present but missing required description
+	if e.include(CatInvalidAuditScope, categories) && ns.Audit.Scope != nil {
+		if ns.Audit.Scope.Description == "" {
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityWarning,
+				Category:    CatInvalidAuditScope,
+				Node:        addr,
+				Description: "Audit scope exists but has no description",
+				FixType:     FixManual,
+			})
+		}
+	}
+
 	// INVALID_AUDIT_STATUS: audit status must be one of the valid values
 	if e.include(CatInvalidAuditStatus, categories) {
 		switch ns.Audit.Status {

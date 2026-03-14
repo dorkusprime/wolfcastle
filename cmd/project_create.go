@@ -55,14 +55,30 @@ Examples:
 			return fmt.Errorf("loading root index: %w", err)
 		}
 
-		// Validate parent exists and is an orchestrator if specified
+		// Validate parent exists if specified; auto-promote leaf → orchestrator
 		if parentNode != "" {
 			parentEntry, ok := idx.Nodes[parentNode]
 			if !ok {
 				return fmt.Errorf("parent node %q not found", parentNode)
 			}
-			if parentEntry.Type != state.NodeOrchestrator {
-				return fmt.Errorf("parent node %q is a %s — only orchestrator nodes can have children", parentNode, parentEntry.Type)
+			if parentEntry.Type == state.NodeLeaf {
+				// Auto-promote: convert leaf parent to orchestrator (decomposition)
+				parentParsed, err := tree.ParseAddress(parentNode)
+				if err != nil {
+					return fmt.Errorf("invalid parent address: %w", err)
+				}
+				parentDir := filepath.Join(resolver.ProjectsDir(), filepath.Join(parentParsed.Parts...))
+				parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
+				if err != nil {
+					return fmt.Errorf("loading parent state for promotion: %w", err)
+				}
+				parentState.Type = state.NodeOrchestrator
+				parentState.Tasks = nil // orchestrators don't have tasks
+				if err := state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentState); err != nil {
+					return fmt.Errorf("saving promoted parent state: %w", err)
+				}
+				parentEntry.Type = state.NodeOrchestrator
+				idx.Nodes[parentNode] = parentEntry
 			}
 		}
 
