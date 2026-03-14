@@ -4,7 +4,7 @@ Validates the structural integrity of your project tree and repairs what it find
 
 ## What It Does
 
-Loads the root index and runs a comprehensive set of checks against the [distributed state](../how-it-works.md#distributed-state) files:
+Loads the root index and runs 17 structural checks against the [distributed state](../how-it-works.md#distributed-state) files:
 
 - Root index consistency (all nodes registered, no phantom entries).
 - Per-node state integrity (required fields present, valid values).

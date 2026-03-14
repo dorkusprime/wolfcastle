@@ -15,7 +15,7 @@ Wolfcastle breaks complex work into pieces and sends AI models to eliminate ever
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-pre--release-blue)](https://github.com/dorkusprime/wolfcastle)
 
-Pre-release. The architecture is locked, the implementation is complete, and the test suite is comprehensive. Heading toward a first tagged release.
+Pre-release. The architecture is locked, the implementation is complete, and the test suite covers every package above 90%. Heading toward a first tagged release.
 
 See the [Architecture Decision Records](docs/decisions/INDEX.md) and [Specifications](docs/specs/) for the full design.
 
@@ -55,7 +55,7 @@ Nodes have [four states](docs/humans/how-it-works.md#four-states): `not_started`
 
 ## The Daemon
 
-`wolfcastle start` launches a [daemon](docs/humans/how-it-works.md#the-daemon) that runs a [pipeline of stages](docs/humans/how-it-works.md#the-pipeline) in a loop. The default pipeline has four stages: expand (break inbox items into tasks), file (organize tasks into the tree), execute (claim a task and do the work), and summary (write a plain-language record after audit). Each stage invokes a [model](docs/humans/configuration.md#models) with a specific role. Stages are decoupled; they read state from disk and act on it independently.
+`wolfcastle start` launches a [daemon](docs/humans/how-it-works.md#the-daemon) that runs a [pipeline of stages](docs/humans/how-it-works.md#the-pipeline) in a loop. The default pipeline has three stages: expand (break inbox items into tasks), file (organize tasks into the tree), and execute (claim a task and do the work). Summaries are generated inline during execution via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage. Each stage invokes a [model](docs/humans/configuration.md#models) with a specific role. Stages are decoupled; they read state from disk and act on it independently.
 
 When the execute stage claims a task, the model follows a [seven-phase protocol](docs/humans/how-it-works.md#seven-phase-execution): claim, study, implement, validate, record, commit, yield. The model communicates only through deterministic script calls that enforce invariants. It cannot corrupt the tree.
 
@@ -85,7 +85,7 @@ Wolfcastle [commits to your current branch](docs/humans/collaboration.md#git-int
 
 ## CLI
 
-[32 commands](docs/humans/cli.md#commands) across lifecycle, task management, auditing, diagnostics, and documentation. Every command accepts `--json` for structured output. Every command that operates on a node accepts `--node` with a slash-separated [tree address](docs/humans/cli.md#tree-addressing). The [inbox](docs/humans/cli.md#the-inbox) (`wolfcastle inbox add`) captures ideas mid-flight for the daemon to decompose and file. See the full [project layout](docs/humans/cli.md#project-layout) and [installation options](docs/humans/cli.md#installation) in the CLI reference.
+[38 commands](docs/humans/cli.md#commands) across lifecycle, task management, auditing, diagnostics, and documentation. Every command accepts `--json` for structured output. Every command that operates on a node accepts `--node` with a slash-separated [tree address](docs/humans/cli.md#tree-addressing). The [inbox](docs/humans/cli.md#the-inbox) (`wolfcastle inbox add`) captures ideas mid-flight for the daemon to decompose and file. See the full [project layout](docs/humans/cli.md#project-layout) and [installation options](docs/humans/cli.md#installation) in the CLI reference.
 
 ## Design Documents
 
