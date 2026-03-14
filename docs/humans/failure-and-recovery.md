@@ -4,7 +4,7 @@
 
 Tasks fail. Wolfcastle does not take it personally. It takes it systematically.
 
-Each task tracks a failure counter:
+Each task tracks a failure counter. All thresholds are [configurable](configuration.md):
 
 | Failures | Depth OK | Action |
 |----------|----------|--------|
@@ -27,7 +27,7 @@ All thresholds are configurable:
 
 ## Decomposition
 
-When a task hits the decomposition threshold, the model breaks it into smaller problems. The leaf node transforms into an orchestrator node with new child leaves. Each child inherits `decomposition_depth + 1`. Each child's failure counter starts at zero.
+When a task hits the decomposition threshold, the model breaks it into smaller problems. The [leaf node transforms into an orchestrator node](how-it-works.md#the-project-tree) with new child leaves. Each child inherits `decomposition_depth + 1`. Each child's failure counter starts at zero.
 
 Decomposition can recurse. A decomposed task's children can themselves decompose. The `max_decomposition_depth` setting prevents infinite recursion. The `hard_cap` prevents infinite iteration. Between them, Wolfcastle always stops eventually.
 
@@ -49,7 +49,7 @@ Model API failures (timeouts, rate limits, server errors) get exponential backof
 
 ## Self-Healing
 
-If the daemon crashes mid-task (power failure, OOM, act of god), it recovers on restart. It finds the task left `in_progress`, hands the situation to the model, and lets it decide: resume, roll back, or block. Stale PID files are detected and ignored.
+If [the daemon](how-it-works.md#the-daemon) crashes mid-task (power failure, OOM, act of god), it recovers on restart. It finds the task left `in_progress`, hands the situation to the model, and lets it decide: resume, roll back, or block. Stale PID files are detected and ignored.
 
 ## The Unblock Workflow
 
@@ -61,7 +61,7 @@ Tasks block. It happens. Wolfcastle provides three escalating tiers to deal with
 wolfcastle task unblock --node backend/auth/session-tokens
 ```
 
-Zero cost. You already fixed the problem externally. This resets the failure counter and sets the task back to `not_started`. No model involved.
+Zero cost. You already fixed the problem externally. This resets the failure counter and sets the task back to [`not_started`](how-it-works.md#four-states). No model involved.
 
 ### Tier 2: Interactive Model-Assisted
 
@@ -69,7 +69,7 @@ Zero cost. You already fixed the problem externally. This resets the failure cou
 wolfcastle unblock --node backend/auth/session-tokens
 ```
 
-Multi-turn conversation with a model, pre-loaded with the block reason, failure history, breadcrumbs, audit context, and previous attempts. You and the model work through the fix together. This is not autonomous; the human drives.
+Multi-turn conversation with a model, pre-loaded with the block reason, failure history, [breadcrumbs](audits.md#breadcrumbs), [audit context](audits.md#the-audit-system), and previous attempts. You and the model work through the fix together. This is not autonomous; the human drives.
 
 ### Tier 3: Agent Context Dump
 
@@ -77,6 +77,6 @@ Multi-turn conversation with a model, pre-loaded with the block reason, failure 
 wolfcastle unblock --agent --node backend/auth/session-tokens
 ```
 
-Rich structured diagnostic output for consumption by an external agent. Full block diagnostic, breadcrumbs, audit state, file paths, suggested approaches, and instructions. Feed it to whatever agent you're running.
+Rich structured diagnostic output for consumption by an external agent. Full block diagnostic, [breadcrumbs](audits.md#breadcrumbs), audit state, file paths, suggested approaches, and instructions. Feed it to whatever agent you're running.
 
-All tiers reset the task to `not_started`. Fresh evaluation, no blind resumption.
+All tiers reset the task to [`not_started`](how-it-works.md#four-states). Fresh evaluation, no blind resumption.

@@ -11,9 +11,9 @@ Multiple engineers work on the same repo simultaneously. No merge conflicts. No 
   sarah-laptop/          <- Sarah's tree
 ```
 
-Each engineer reads and writes only their own namespace. Everyone can see everyone else's work (the `projects/` directory is committed), but nobody steps on anyone else's state.
+Each engineer reads and writes only their own namespace. Everyone can see everyone else's work (the `projects/` directory is committed), but nobody steps on anyone else's [state](how-it-works.md#distributed-state).
 
-`wolfcastle status` shows your tree. `wolfcastle status --all` aggregates across all engineers at runtime. No shared index file. No merge conflicts.
+[`wolfcastle status`](cli.md#commands) shows your tree. `wolfcastle status --all` aggregates across all engineers at runtime. No shared index file. No merge conflicts.
 
 ### Overlap Advisory
 
@@ -32,7 +32,7 @@ When you create a new project, Wolfcastle optionally scans other engineers' acti
 
 ### Default Behavior
 
-Wolfcastle commits to your current branch. No branch creation. No branch management. At the start of each iteration and before every commit, Wolfcastle verifies the current branch matches the branch recorded at startup. If someone switched branches underneath it, the daemon blocks immediately. It does not commit to the wrong branch.
+Wolfcastle commits to your current branch. No branch creation. No branch management. At the start of each iteration and before every commit, Wolfcastle verifies the current branch matches the branch recorded at startup. If someone switched branches underneath it, [the daemon](how-it-works.md#the-daemon) blocks immediately. It does not commit to the wrong branch.
 
 ### Worktree Isolation
 
@@ -62,7 +62,7 @@ wolfcastle spec link --node backend/auth/oauth oauth-spec.md
 wolfcastle spec list --node backend/auth
 ```
 
-Specs live in the committed `docs/specs/` directory with ISO 8601 timestamp filenames. Each node's `state.json` references the specs relevant to it. Only referenced specs are injected into the model's context for that node. Multiple nodes can reference the same spec.
+Specs live in the committed `docs/specs/` directory with ISO 8601 timestamp filenames. Each node's [`state.json`](how-it-works.md#distributed-state) references the specs relevant to it. Only referenced specs are injected into the [model's context](how-it-works.md#seven-phase-execution) for that node. Multiple nodes can reference the same spec.
 
 ## Logging
 
@@ -95,4 +95,4 @@ When a project completes, it graduates to the archive. Each archive entry is a s
 .wolfcastle/archive/2026-03-12T18-45Z-auth-implementation-complete.md
 ```
 
-Contents: model-written summary, chronological breadcrumbs, audit results, and metadata (node path, timestamp, engineer, branch). Archive filenames are unique by construction. Append-only. Merge-conflict-proof.
+Contents: model-written summary, chronological [breadcrumbs](audits.md#breadcrumbs), [audit results](audits.md#the-audit-system), and metadata (node path, timestamp, engineer, branch). Archive filenames are unique by construction. Append-only. Merge-conflict-proof.

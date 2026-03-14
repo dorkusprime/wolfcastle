@@ -12,12 +12,12 @@ Configuration merges across three tiers. Each tier overrides the one below it.
 
 **JSON objects** deep-merge recursively. Override a single nested field without rewriting the whole object. **Arrays** replace entirely. Set a field to **`null`** in a higher tier to delete it from the resolved config.
 
-The same three-tier resolution applies to prompt templates and rule fragments. Same-named files in higher tiers completely replace lower tier versions. New files are added.
+The same three-tier resolution applies to prompt templates and [rule fragments](#rule-fragments). Same-named files in higher tiers completely replace lower tier versions. New files are added.
 
 Two config files control runtime behavior:
 
-- **`config.json`**: Team-shared, committed. Models, pipelines, thresholds, validation commands.
-- **`config.local.json`**: Personal, gitignored. Identity, model overrides, local preferences.
+- **`config.json`**: Team-shared, committed. Models, [pipelines](#pipelines), thresholds, validation commands.
+- **`config.local.json`**: Personal, gitignored. [Identity](#identity), model overrides, local preferences.
 
 ## Models
 
@@ -50,7 +50,7 @@ Authentication is your problem. Use environment variables, CLI login commands, o
 
 ## Pipelines
 
-The pipeline is a sequence of stages. Each stage names a model tier and a prompt file:
+The [daemon](how-it-works.md#the-daemon) runs a pipeline of stages. Each stage names a model tier and a prompt file:
 
 ```json
 {
@@ -80,11 +80,11 @@ Your identity lives in `config.local.json`, auto-populated on `wolfcastle init`:
 }
 ```
 
-This determines your project namespace. Your work lives under `.wolfcastle/projects/wild-macbook/`. Nobody else writes there. You write nowhere else.
+This determines your project [namespace](collaboration.md#engineer-namespacing). Your work lives under `.wolfcastle/projects/wild-macbook/`. Nobody else writes there. You write nowhere else.
 
 ## Rule Fragments
 
-Prompts and rules are assembled from composable fragments with sensible defaults. Wolfcastle ships base fragments covering git conventions, commit format, ADR usage, and more. Teams add custom fragments in `custom/`. Engineers add personal fragments in `local/`.
+Prompts and rules are assembled from composable fragments with sensible defaults. Wolfcastle ships base fragments covering git conventions, commit format, ADR usage, and more. Teams add custom fragments in `custom/`. Engineers add personal fragments in `local/`. (See the [project layout](cli.md#project-layout) for directory structure.)
 
 Fragments merge in order defined by config. An empty array means auto-discovery in alphabetical order. An explicit array means you control the sequence.
 

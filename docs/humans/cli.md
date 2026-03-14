@@ -1,6 +1,6 @@
 # CLI Reference
 
-21+ commands. Every one accepts `--json` for structured output. Every one that operates on a node accepts `--node` with a slash-separated tree address. Every one has `-h` help with dynamic content (available scopes, install targets, spec lists are discovered at runtime).
+21+ commands. Every one accepts `--json` for structured output. Every one that operates on a node accepts `--node` with a slash-separated [tree address](#tree-addressing). Every one has `-h` help with dynamic content (available [scopes](audits.md#scopes), install targets, [spec](collaboration.md#specs) lists are discovered at runtime).
 
 ## Commands
 
@@ -27,7 +27,7 @@ wolfcastle start --node backend
 wolfcastle status --node frontend/login-flow
 ```
 
-Scripts validate that the target node exists and is the correct type. You cannot add a task to an orchestrator. You cannot create a child under a leaf. The tree has rules.
+Scripts validate that the target node exists and is the correct type. You cannot add a task to an [orchestrator](how-it-works.md#the-project-tree). You cannot create a child under a leaf. The tree has rules.
 
 ## The Inbox
 
@@ -38,7 +38,7 @@ wolfcastle inbox add "Support OAuth2 PKCE flow"
 wolfcastle inbox list
 ```
 
-Items land in the inbox. The expand pipeline stage picks them up, decomposes them into tasks, and the file stage organizes them into the tree.
+Items land in the inbox. The [expand pipeline stage](how-it-works.md#the-pipeline) picks them up, decomposes them into tasks, and the file stage organizes them into the [tree](how-it-works.md#the-project-tree).
 
 ## Installation
 
@@ -59,7 +59,7 @@ Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (au
 
 ## Project Layout
 
-`wolfcastle init` creates the `.wolfcastle/` directory:
+`wolfcastle init` creates the `.wolfcastle/` directory. [Configuration](configuration.md) merges across the `base/`, `custom/`, and `local/` tiers:
 
 ```
 .wolfcastle/
@@ -88,5 +88,5 @@ Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (au
 
 1. Clone the repo. You get `config.json`, `custom/`, `archive/`, and `docs/` immediately.
 2. Install Wolfcastle. `brew install wolfcastle` or the curl installer.
-3. `wolfcastle init`. Creates `config.local.json` with your identity. Generates `base/`.
-4. `wolfcastle start`. The daemon wakes up. Your namespace is created. Work begins.
+3. `wolfcastle init`. Creates `config.local.json` with your [identity](configuration.md#identity). Generates `base/`.
+4. `wolfcastle start`. [The daemon](how-it-works.md#the-daemon) wakes up. Your [namespace](collaboration.md#engineer-namespacing) is created. Work begins.
