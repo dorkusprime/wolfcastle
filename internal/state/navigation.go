@@ -87,10 +87,17 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 				return result, nil
 			}
 		}
-		return nil, nil
+		// Children exhausted — check orchestrator's own tasks (e.g. audit)
+		return findActionableTask(addr, loadNode)
 	}
 
 	// Leaf node — find next actionable task
+	return findActionableTask(addr, loadNode)
+}
+
+// findActionableTask loads a node's state and returns the first actionable task.
+// It prefers in_progress tasks (self-healing) over not_started ones.
+func findActionableTask(addr string, loadNode func(addr string) (*NodeState, error)) (*NavigationResult, error) {
 	ns, err := loadNode(addr)
 	if err != nil {
 		return nil, err

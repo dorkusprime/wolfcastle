@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
@@ -32,6 +33,7 @@ Quick start:
 
 Use "wolfcastle [command] --help" for more information about a command.
 All commands support --json for machine-readable output.`,
+	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip config loading for commands that don't need it
 		switch cmd.Name() {
@@ -48,6 +50,11 @@ func init() {
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
+		if jsonOutput {
+			output.Print(output.Err("error", 1, err.Error()))
+		} else {
+			output.PrintError("%s", err)
+		}
 		os.Exit(1)
 	}
 }

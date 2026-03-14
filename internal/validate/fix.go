@@ -20,14 +20,14 @@ type FixResult struct {
 // ApplyDeterministicFixes attempts to repair all deterministic-fixable issues.
 // It stages changes in memory, writes leaf->parent->root, and re-validates.
 // wolfcastleDir is optional — pass "" to skip daemon artifact cleanup.
-// Returns the list of fixes applied.
+// Returns the list of fixes applied, any post-fix re-validation warnings, and an error.
 func ApplyDeterministicFixes(
 	idx *state.RootIndex,
 	issues []Issue,
 	projectsDir string,
 	indexPath string,
 	wolfcastleDirs ...string,
-) ([]FixResult, error) {
+) ([]FixResult, []Issue, error) {
 	var wolfcastleDir string
 	if len(wolfcastleDirs) > 0 {
 		wolfcastleDir = wolfcastleDirs[0]
@@ -299,16 +299,30 @@ func ApplyDeterministicFixes(
 	// Save modified state files
 	for statePath, ns := range modifiedStates {
 		if err := state.SaveNodeState(statePath, ns); err != nil {
-			return fixes, fmt.Errorf("saving %s: %w", statePath, err)
+			return fixes, nil, fmt.Errorf("saving %s: %w", statePath, err)
 		}
 	}
 
 	// Save root index if modified
 	if indexModified {
 		if err := state.SaveRootIndex(indexPath, idx); err != nil {
-			return fixes, fmt.Errorf("saving root index: %w", err)
+			return fixes, nil, fmt.Errorf("saving root index: %w", err)
 		}
 	}
 
-	return fixes, nil
+	// Post-fix re-validation: ensure fixes didn't introduce new issues.
+	// Any remaining issues are returned as warnings so callers can surface them
+	// without treating them as failures.
+	var postFixWarnings []Issue
+	if len(fixes) > 0 {
+		engine := NewEngine(projectsDir, DefaultNodeLoader(projectsDir), wolfcastleDir)
+		postReport := engine.ValidateAll(idx)
+		for _, issue := range postReport.Issues {
+			issue.Severity = SeverityWarning
+			issue.Description = "post-fix: " + issue.Description
+			postFixWarnings = append(postFixWarnings, issue)
+		}
+	}
+
+	return fixes, postFixWarnings, nil
 }

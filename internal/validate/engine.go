@@ -269,7 +269,7 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 				Severity:    SeverityWarning,
 				Category:    CatStaleInProgress,
 				Description: fmt.Sprintf("Task(s) in progress (%s) with no live daemon — likely stale", strings.Join(inProgressTasks, ", ")),
-				FixType:     FixManual,
+				FixType:     FixNone,
 			})
 		}
 	}

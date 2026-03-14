@@ -19,7 +19,8 @@ and engineer identity in the current working directory.
 This is typically the first command you run in a new repository.
 
 Examples:
-  cd my-repo && wolfcastle init`,
+  cd my-repo && wolfcastle init
+  wolfcastle init --force`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -27,9 +28,38 @@ Examples:
 		}
 		wcDir := filepath.Join(cwd, ".wolfcastle")
 
+		force, _ := cmd.Flags().GetBool("force")
+
 		// Check if already initialized
 		if _, err := os.Stat(wcDir); err == nil {
-			return fmt.Errorf(".wolfcastle already exists — use 'wolfcastle update' to refresh base/")
+			if !force {
+				// Per spec: print message and exit 0
+				if jsonOutput {
+					output.Print(output.Ok("init", map[string]string{
+						"path":    wcDir,
+						"status":  "already_initialized",
+						"message": "Wolfcastle already initialized in .wolfcastle/. Use --force to reinitialize.",
+					}))
+				} else {
+					output.PrintHuman("Wolfcastle already initialized in %s. Use --force to reinitialize.", wcDir)
+				}
+				return nil
+			}
+
+			// Force mode: re-scaffold base/ and refresh identity
+			if err := project.ReScaffold(wcDir); err != nil {
+				return fmt.Errorf("re-scaffold failed: %w", err)
+			}
+
+			if jsonOutput {
+				output.Print(output.Ok("init", map[string]string{
+					"path":   wcDir,
+					"status": "reinitialized",
+				}))
+			} else {
+				output.PrintHuman("Reinitialized Wolfcastle project in %s", wcDir)
+			}
+			return nil
 		}
 
 		if err := project.Scaffold(wcDir); err != nil {
@@ -53,5 +83,6 @@ Examples:
 }
 
 func init() {
+	initCmd.Flags().Bool("force", false, "Re-scaffold base/ templates and refresh identity")
 	rootCmd.AddCommand(initCmd)
 }

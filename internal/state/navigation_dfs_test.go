@@ -47,12 +47,93 @@ func TestDfs_OrchestratorAllChildrenComplete(t *testing.T) {
 		Parent: "orch",
 	}
 
-	result, err := dfs(idx, "orch", makeLoadNode(nil))
+	orchState := NewNodeState("orch", "Orchestrator", NodeOrchestrator)
+	// No actionable tasks on the orchestrator itself
+	orchState.Tasks = []Task{
+		{ID: "audit-1", Description: "audit", State: StatusComplete, IsAudit: true},
+	}
+
+	result, err := dfs(idx, "orch", makeLoadNode(map[string]*NodeState{
+		"orch": orchState,
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if result != nil && result.Found {
-		t.Error("expected no task found when all children complete")
+		t.Error("expected no task found when all children complete and orchestrator audit is complete")
+	}
+}
+
+func TestDfs_OrchestratorAuditTaskAfterChildrenComplete(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["orch"] = IndexEntry{
+		Name:     "Orchestrator",
+		Type:     NodeOrchestrator,
+		State:    StatusInProgress,
+		Children: []string{"orch/leaf-a"},
+	}
+	idx.Nodes["orch/leaf-a"] = IndexEntry{
+		Name:   "Leaf A",
+		Type:   NodeLeaf,
+		State:  StatusComplete,
+		Parent: "orch",
+	}
+
+	orchState := NewNodeState("orch", "Orchestrator", NodeOrchestrator)
+	orchState.Tasks = []Task{
+		{ID: "audit-1", Description: "audit the orchestrator", State: StatusNotStarted, IsAudit: true},
+	}
+
+	result, err := dfs(idx, "orch", makeLoadNode(map[string]*NodeState{
+		"orch": orchState,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result == nil || !result.Found {
+		t.Fatal("expected to find orchestrator audit task after all children complete")
+	}
+	if result.NodeAddress != "orch" {
+		t.Errorf("expected node address 'orch', got %s", result.NodeAddress)
+	}
+	if result.TaskID != "audit-1" {
+		t.Errorf("expected task 'audit-1', got %s", result.TaskID)
+	}
+}
+
+func TestDfs_OrchestratorAuditTaskInProgress(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["orch"] = IndexEntry{
+		Name:     "Orchestrator",
+		Type:     NodeOrchestrator,
+		State:    StatusInProgress,
+		Children: []string{"orch/leaf-a"},
+	}
+	idx.Nodes["orch/leaf-a"] = IndexEntry{
+		Name:   "Leaf A",
+		Type:   NodeLeaf,
+		State:  StatusComplete,
+		Parent: "orch",
+	}
+
+	orchState := NewNodeState("orch", "Orchestrator", NodeOrchestrator)
+	orchState.Tasks = []Task{
+		{ID: "audit-1", Description: "audit the orchestrator", State: StatusInProgress, IsAudit: true},
+	}
+
+	result, err := dfs(idx, "orch", makeLoadNode(map[string]*NodeState{
+		"orch": orchState,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result == nil || !result.Found {
+		t.Fatal("expected to find in-progress orchestrator audit task")
+	}
+	if result.TaskID != "audit-1" {
+		t.Errorf("expected task 'audit-1', got %s", result.TaskID)
 	}
 }
 

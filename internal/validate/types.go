@@ -37,6 +37,7 @@ const (
 	FixDeterministic  = "deterministic"
 	FixModelAssisted  = "model-assisted"
 	FixManual         = "manual"
+	FixNone           = "none"
 )
 
 // Severity levels.
@@ -100,4 +101,5 @@ var StartupCategories = map[string]bool{
 	CatMissingAuditTask:       true,
 	CatStaleInProgress:        true,
 	CatMultipleInProgress:     true,
+	CatBlockedWithoutReason:   true,
 }

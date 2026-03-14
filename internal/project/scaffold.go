@@ -139,6 +139,51 @@ func WriteBasePrompts(wolfcastleDir string) error {
 	})
 }
 
+// ReScaffold regenerates base/ templates and refreshes identity in
+// config.local.json without overwriting config.json or other user data.
+func ReScaffold(wolfcastleDir string) error {
+	// Remove existing base/ and regenerate
+	baseDir := filepath.Join(wolfcastleDir, "base")
+	if err := os.RemoveAll(baseDir); err != nil {
+		return fmt.Errorf("removing base/: %w", err)
+	}
+	baseDirs := []string{
+		"base/prompts",
+		"base/rules",
+		"base/audits",
+	}
+	for _, d := range baseDirs {
+		if err := os.MkdirAll(filepath.Join(wolfcastleDir, d), 0755); err != nil {
+			return err
+		}
+	}
+	if err := WriteBasePrompts(wolfcastleDir); err != nil {
+		return fmt.Errorf("regenerating base/: %w", err)
+	}
+
+	// Refresh identity in config.local.json, preserving other keys
+	localPath := filepath.Join(wolfcastleDir, "config.local.json")
+	localCfg := map[string]any{}
+
+	if data, err := os.ReadFile(localPath); err == nil {
+		if err := json.Unmarshal(data, &localCfg); err != nil {
+			return fmt.Errorf("config.local.json exists but is not valid JSON")
+		}
+	}
+
+	localCfg["identity"] = detectIdentity()
+	localData, err := json.MarshalIndent(localCfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	localData = append(localData, '\n')
+	if err := os.WriteFile(localPath, localData, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // CreateProject creates a new project node in the tree.
 func CreateProject(
 	idx *state.RootIndex,

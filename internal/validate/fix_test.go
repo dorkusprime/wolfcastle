@@ -146,7 +146,7 @@ func TestFix_DanglingRef(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func TestFix_MissingEntry_TopLevel(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestFix_MissingEntry_Nested(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestFix_PropagationMismatch(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +357,7 @@ func TestFix_AuditNotLast(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -406,7 +406,7 @@ func TestFix_InvalidStateValue(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -449,7 +449,7 @@ func TestFix_InvalidStateValue_NonNormalizable(t *testing.T) {
 		CanAutoFix: false, FixType: FixModelAssisted,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -483,7 +483,7 @@ func TestFix_BlockedWithoutReason(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -537,7 +537,7 @@ func TestFix_DepthMismatch(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -575,7 +575,7 @@ func TestFix_MissingRequiredField(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -625,7 +625,7 @@ func TestFix_InvalidAuditStatus(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -668,7 +668,7 @@ func TestFix_AuditStatusTaskMismatch(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -713,7 +713,7 @@ func TestFix_InvalidAuditGap_ClearsStaleMetadata(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -751,7 +751,7 @@ func TestFix_OrphanDefinition(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -782,7 +782,7 @@ func TestFix_StalePIDFile(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, wolfcastleDir)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, wolfcastleDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -807,7 +807,7 @@ func TestFix_StalePIDFile_NoWolfcastleDir(t *testing.T) {
 	}}
 
 	// No wolfcastleDir passed — fix should silently do nothing
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -833,7 +833,7 @@ func TestFix_StaleStopFile(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, wolfcastleDir)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, wolfcastleDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -857,7 +857,7 @@ func TestFix_StaleStopFile_NoWolfcastleDir(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -879,7 +879,7 @@ func TestFix_SkipsNonDeterministic(t *testing.T) {
 		{Severity: SeverityError, Category: CatCompleteWithIncomplete, Node: "y", CanAutoFix: false, FixType: FixModelAssisted},
 	}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1541,7 +1541,7 @@ func TestFix_LoadError_ContinuesGracefully(t *testing.T) {
 			CanAutoFix: true, FixType: FixDeterministic,
 		}}
 
-		fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+		fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 		if err != nil {
 			t.Fatalf("category %s: unexpected error: %v", cat, err)
 		}
@@ -1571,7 +1571,7 @@ func TestFix_LoadError_DepthMismatch(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1593,7 +1593,7 @@ func TestFix_LoadError_MissingEntry_InvalidAddress(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1631,7 +1631,7 @@ func TestFix_CacheHit_TwoFixesSameNode(t *testing.T) {
 		{Severity: SeverityError, Category: CatInvalidAuditStatus, Node: "leaf", CanAutoFix: true, FixType: FixDeterministic},
 	}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1672,7 +1672,7 @@ func TestFix_PropagationMismatch_LeafOnlyUpdatesIndex(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -545,7 +545,7 @@ func TestApplyDeterministicFixes_MissingAudit(t *testing.T) {
 	idxPath := filepath.Join(dir, "state.json")
 	state.SaveRootIndex(idxPath, idx)
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -799,7 +799,7 @@ func TestApplyDeterministicFixes_NegativeFailureCount(t *testing.T) {
 	idxPath := filepath.Join(dir, "state.json")
 	state.SaveRootIndex(idxPath, idx)
 
-	fixes, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/validate"
@@ -53,7 +55,7 @@ Examples:
 		}
 
 		// Apply deterministic fixes
-		fixes, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, resolver.ProjectsDir(), resolver.RootIndexPath(), wolfcastleDir)
+		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, resolver.ProjectsDir(), resolver.RootIndexPath(), wolfcastleDir)
 
 		if len(fixes) == 0 {
 			output.PrintHuman("\nNo auto-fixable issues found")
@@ -64,8 +66,50 @@ Examples:
 			}
 		}
 
+		if len(postFixWarnings) > 0 {
+			output.PrintHuman("\nPost-fix re-validation found %d remaining issue(s):", len(postFixWarnings))
+			for _, w := range postFixWarnings {
+				output.PrintHuman("  WARN  [%s] %s: %s", w.Category, w.Node, w.Description)
+			}
+		}
+
 		if fixErr != nil {
 			output.PrintError("Fix error: %v", fixErr)
+		}
+
+		// Model-assisted fixes for issues that deterministic repair cannot resolve
+		if cfg != nil && cfg.Doctor.Model != "" {
+			model, ok := cfg.Models[cfg.Doctor.Model]
+			if ok {
+				var modelIssues []validate.Issue
+				for _, issue := range report.Issues {
+					if issue.FixType == validate.FixModelAssisted {
+						modelIssues = append(modelIssues, issue)
+					}
+				}
+				if len(modelIssues) > 0 {
+					output.PrintHuman("\nAttempting model-assisted fixes for %d issues...", len(modelIssues))
+					ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+					defer cancel()
+					modelFixed := 0
+					for _, issue := range modelIssues {
+						applied, err := validate.TryModelAssistedFix(ctx, model, issue, resolver.ProjectsDir())
+						if err != nil {
+							output.PrintHuman("  SKIP  [%s] %s: %v", issue.Category, issue.Node, err)
+							continue
+						}
+						if applied {
+							modelFixed++
+							output.PrintHuman("  FIXED [%s] %s: model-assisted resolution", issue.Category, issue.Node)
+						}
+					}
+					if modelFixed > 0 {
+						output.PrintHuman("Model-assisted fixes applied: %d/%d", modelFixed, len(modelIssues))
+					} else {
+						output.PrintHuman("No model-assisted fixes were applicable")
+					}
+				}
+			}
 		}
 
 		return nil

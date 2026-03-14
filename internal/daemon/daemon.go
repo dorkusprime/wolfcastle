@@ -3,6 +3,7 @@ package daemon
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -366,7 +367,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			"task":  nav.TaskID,
 		})
 
-		result, err := invoke.InvokeStreaming(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter())
+		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), stage.Name)
 		if cancel != nil {
 			cancel()
 		}
@@ -499,7 +500,7 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
 	defer cancel()
 
-	result, err := invoke.InvokeStreaming(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter())
+	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "expand")
 	if err != nil {
 		return err
 	}
@@ -608,7 +609,7 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 	defer cancel()
 
 	// The model executes wolfcastle commands directly via tool calls
-	result, err := invoke.InvokeStreaming(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter())
+	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "file")
 	if err != nil {
 		return err
 	}
@@ -791,4 +792,58 @@ func (d *Daemon) scopeLabel() string {
 		return d.ScopeNode
 	}
 	return "full tree"
+}
+
+// invokeWithRetry wraps invoke.InvokeStreaming with exponential backoff
+// governed by the config's retries settings. Only invocation errors (non-nil
+// error returns) are retried — a successful process exit (even with a
+// non-zero exit code captured in Result) is not retried here.
+func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, prompt string, workDir string, logWriter io.Writer, stageName string) (*invoke.Result, error) {
+	rc := d.Config.Retries
+	delay := time.Duration(rc.InitialDelaySeconds) * time.Second
+	maxDelay := time.Duration(rc.MaxDelaySeconds) * time.Second
+
+	for attempt := 0; ; attempt++ {
+		result, err := invoke.InvokeStreaming(ctx, model, prompt, workDir, logWriter)
+		if err == nil {
+			return result, nil
+		}
+
+		// Context cancellation is not retryable — the daemon is shutting down.
+		if ctx.Err() != nil {
+			return result, err
+		}
+
+		// Check whether we've exhausted our retry budget (-1 = unlimited).
+		if rc.MaxRetries >= 0 && attempt >= rc.MaxRetries {
+			d.Logger.Log(map[string]any{
+				"type":     "retry_exhausted",
+				"stage":    stageName,
+				"attempts": attempt + 1,
+				"error":    err.Error(),
+			})
+			return result, err
+		}
+
+		d.Logger.Log(map[string]any{
+			"type":    "retry",
+			"stage":   stageName,
+			"attempt": attempt + 1,
+			"delay_s": delay.Seconds(),
+			"error":   err.Error(),
+		})
+		fmt.Printf("  Invocation error (attempt %d): %v — retrying in %v\n", attempt+1, err, delay)
+
+		select {
+		case <-ctx.Done():
+			return result, ctx.Err()
+		case <-time.After(delay):
+		}
+
+		// Exponential backoff: double the delay, capped at max.
+		delay *= 2
+		if delay > maxDelay {
+			delay = maxDelay
+		}
+	}
 }
