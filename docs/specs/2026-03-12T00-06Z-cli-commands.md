@@ -1561,7 +1561,7 @@ Displays the current batch of audit findings that have not yet been approved or 
 
 ### Behavior
 
-1. Load `audit-review.json` from `.wolfcastle/`.
+1. Load `audit-state.json` from `.wolfcastle/`.
 2. If no file exists, report "No pending audit review batch."
 3. Filter findings with status `"pending"`.
 4. Display each finding's ID, title, and first line of description.
@@ -1602,7 +1602,7 @@ Approves a pending audit finding, creating a leaf project in the work tree. Use 
 
 ### Behavior
 
-1. Load `audit-review.json`. Fail if not found.
+1. Load `audit-state.json`. Fail if not found.
 2. Load root index.
 3. For each targeted finding: create a leaf project with the finding title, write state and description files.
 4. Mark findings as `"approved"` with timestamp and created node address.
@@ -1633,7 +1633,7 @@ Rejects a pending audit finding without creating any project. The decision is re
 
 ### Behavior
 
-1. Load `audit-review.json`. Fail if not found.
+1. Load `audit-state.json`. Fail if not found.
 2. Mark targeted findings as `"rejected"` with timestamp.
 3. Save updated batch.
 4. If all findings are decided, archive the batch to history and remove the pending file.

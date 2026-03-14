@@ -36,9 +36,9 @@ Gaps are tracked individually with deterministic IDs, open/fixed status, and ful
 A standalone command for auditing your codebase against composable, discoverable scopes:
 
 ```
-wolfcastle audit                              # all scopes
-wolfcastle audit --scope dry,modularity       # specific scopes
-wolfcastle audit --list                       # show available scopes
+wolfcastle audit run                              # all scopes
+wolfcastle audit run --scope dry,modularity       # specific scopes
+wolfcastle audit list                             # show available scopes
 ```
 
 Strictly read-only. The model reads your code, analyzes it against the requested scopes, and produces a Markdown report. It does not modify files, create branches, or touch your codebase. The only output is the report.

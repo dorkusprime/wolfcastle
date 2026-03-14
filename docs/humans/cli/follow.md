@@ -6,9 +6,7 @@ Tails the daemon's output in real time. Like `tail -f` for your work.
 
 Finds the highest-numbered [log file](../collaboration.md#logging) in `.wolfcastle/logs/`, prints the last `n` lines (parsed from NDJSON into human-readable output with timestamps and stage names), then streams new lines as they appear.
 
-When the daemon moves to a new iteration and creates a new log file, `follow` detects the switch, prints a separator, and starts tailing the new file. Continues until you press Ctrl+C or the daemon exits.
-
-Periodically checks the PID file and process status. When the daemon stops, prints a final message and exits.
+When the daemon moves to a new iteration and creates a new log file, `follow` detects the switch, prints a separator, and starts tailing the new file. Continues until you press Ctrl+C.
 
 ## Flags
 

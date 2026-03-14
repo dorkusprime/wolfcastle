@@ -17,6 +17,7 @@ Then the loop begins: [navigate](navigate.md) to the next task, run the [pipelin
 | `-d` | Run as a background daemon. Forks, writes PID to `.wolfcastle/wolfcastle.pid`, returns immediately. |
 | `--node <path>` | Scope execution to a specific subtree. Only tasks under this node will be worked. |
 | `--worktree <branch>` | Run in an isolated [git worktree](../collaboration.md#worktree-isolation). Creates or checks out the specified branch in `.wolfcastle/worktrees/`. Your working directory is never touched. |
+| `-v`, `--verbose` | Set daemon console log level to debug. Overrides `daemon.log_level` in config. |
 | `--json` | Output as structured JSON. |
 
 `--node` and `--worktree` compose: `wolfcastle start --worktree feature/auth --node backend/auth` gives you an isolated branch scoped to a single subtree.

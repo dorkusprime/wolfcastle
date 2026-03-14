@@ -9,7 +9,7 @@ Every command accepts `--json` for structured output. Every command that operate
 | **Lifecycle**     | [`init`](cli/init.md), [`start`](cli/start.md), [`stop`](cli/stop.md), [`status`](cli/status.md), [`follow`](cli/follow.md), [`update`](cli/update.md), [`version`](cli/version.md)                                                                                                     |
 | **Task**          | [`task add`](cli/task-add.md), [`task claim`](cli/task-claim.md), [`task complete`](cli/task-complete.md), [`task block`](cli/task-block.md), [`task unblock`](cli/task-unblock.md)                                                                                                     |
 | **Project**       | [`project create`](cli/project-create.md)                                                                                                                                                                                                                                               |
-| **Audit**         | [`audit`](cli/audit-run.md), [`audit breadcrumb`](cli/audit-breadcrumb.md), [`audit escalate`](cli/audit-escalate.md), [`audit pending`](cli/audit-pending.md), [`audit approve`](cli/audit-approve.md), [`audit reject`](cli/audit-reject.md), [`audit history`](cli/audit-history.md) |
+| **Audit**         | [`audit run`](cli/audit-run.md), [`audit list`](cli/audit-run.md), [`audit breadcrumb`](cli/audit-breadcrumb.md), [`audit escalate`](cli/audit-escalate.md), [`audit pending`](cli/audit-pending.md), [`audit approve`](cli/audit-approve.md), [`audit reject`](cli/audit-reject.md), [`audit history`](cli/audit-history.md) |
 | **Navigation**    | [`navigate`](cli/navigate.md)                                                                                                                                                                                                                                                           |
 | **Diagnostics**   | [`doctor`](cli/doctor.md), [`unblock`](cli/unblock.md)                                                                                                                                                                                                                                  |
 | **Documentation** | [`adr create`](cli/adr-create.md), [`spec create`](cli/spec-create.md), [`spec link`](cli/spec-link.md), [`spec list`](cli/spec-list.md)                                                                                                                                                |
@@ -30,6 +30,10 @@ wolfcastle status --node frontend/login-flow
 ```
 
 Scripts validate that the target node exists and is the correct type. You cannot add a task to an [orchestrator](how-it-works.md#the-project-tree). You cannot create a child under a leaf. The tree has rules.
+
+## The Inbox
+
+The inbox is the fastest way to get an idea into Wolfcastle. [`wolfcastle inbox add`](cli/inbox-add.md) drops a text item into a queue. The daemon's [expand stage](how-it-works.md#the-pipeline) picks it up, uses a model to decompose it into tasks, and the file stage organizes those tasks into the tree. You can also [`inbox list`](cli/inbox-list.md) to see what's pending and [`inbox clear`](cli/inbox-clear.md) to wipe the queue.
 
 ## Installation
 

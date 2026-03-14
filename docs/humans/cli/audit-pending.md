@@ -4,7 +4,7 @@ Shows audit findings waiting for your decision. Read-only.
 
 ## What It Does
 
-Loads `audit-review.json` and filters to findings with status `pending`. Displays each finding's ID, title, and description preview.
+Loads `audit-state.json` and filters to findings with status `pending`. Displays each finding's ID, title, and description preview.
 
 If no review batch exists, reports that there are no pending findings.
 

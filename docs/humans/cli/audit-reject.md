@@ -4,7 +4,7 @@ Rejects a pending audit finding. No project is created. The finding disappears.
 
 ## What It Does
 
-Loads `audit-review.json`, marks the targeted finding (or all pending findings with `--all`) as `rejected` with a timestamp. No nodes are created, no state changes beyond the batch file.
+Loads `audit-state.json`, marks the targeted finding (or all pending findings with `--all`) as `rejected` with a timestamp. No nodes are created, no state changes beyond the batch file.
 
 When all findings in a batch have been decided, the batch is archived and the pending file is removed.
 
@@ -37,7 +37,7 @@ wolfcastle audit reject --all
 
 ## Consequences
 
-- Mutates `audit-review.json`.
+- Mutates `audit-state.json`.
 - Archives the batch when all findings are decided.
 - No project nodes created.
 
