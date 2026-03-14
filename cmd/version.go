@@ -5,8 +5,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Version is set at build time via ldflags.
-var Version = "dev"
+// Build-time variables injected via ldflags.
+var (
+	Version = "dev"
+	Commit  = "unknown"
+	Date    = "unknown"
+)
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
@@ -15,9 +19,11 @@ var versionCmd = &cobra.Command{
 		if app.JSONOutput {
 			output.Print(output.Ok("version", map[string]string{
 				"version": Version,
+				"commit":  Commit,
+				"date":    Date,
 			}))
 		} else {
-			output.PrintHuman("wolfcastle %s", Version)
+			output.PrintHuman("wolfcastle %s (%s, %s)", Version, Commit, Date)
 		}
 	},
 }
