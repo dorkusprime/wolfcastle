@@ -44,5 +44,5 @@ func PrintHuman(format string, args ...any) {
 
 // PrintError writes an error message to stderr.
 func PrintError(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
+	_, _ = fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
 }
