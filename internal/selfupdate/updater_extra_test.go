@@ -95,8 +95,11 @@ func (m *mockUpdater) Apply() (*Result, error) {
 func TestUpdaterInterface_Compliance(t *testing.T) {
 	t.Parallel()
 	// Verify the interface is satisfied by both stub and mock
-	var _ Updater = NewUpdater("v1.0.0")
-	var _ Updater = &mockUpdater{}
+	// Interface compliance checks
+	u := NewUpdater("v1.0.0")
+	_ = u
+	var m Updater = &mockUpdater{}
+	_ = m
 }
 
 func TestMockUpdater_ApplyWhenNotCurrent(t *testing.T) {

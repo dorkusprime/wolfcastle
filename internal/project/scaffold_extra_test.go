@@ -157,7 +157,7 @@ func TestReScaffold_WritesLocalConfigWhenMissing(t *testing.T) {
 	}
 
 	// Remove local config
-	os.Remove(filepath.Join(dir, "config.local.json"))
+	_ = os.Remove(filepath.Join(dir, "config.local.json"))
 
 	if err := ReScaffold(dir); err != nil {
 		t.Fatal(err)
