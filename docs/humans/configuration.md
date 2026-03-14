@@ -2,13 +2,13 @@
 
 ## Three Tiers
 
-Configuration merges across three tiers. Each tier overrides the one above it.
+Configuration merges across three tiers. Each tier overrides the one below it.
 
 | Tier | Location | Ownership | Git Status |
 |------|----------|-----------|------------|
-| **base/** | `.wolfcastle/base/` | Wolfcastle | Gitignored. Regenerated on init/update. |
-| **custom/** | `.wolfcastle/custom/` | Team | Committed. Shared across all engineers. |
 | **local/** | `.wolfcastle/local/` | You | Gitignored. Personal overrides. |
+| **custom/** | `.wolfcastle/custom/` | Team | Committed. Shared across all engineers. |
+| **base/** | `.wolfcastle/base/` | Wolfcastle | Gitignored. Regenerated on init/update. |
 
 **JSON objects** deep-merge recursively. Override a single nested field without rewriting the whole object. **Arrays** replace entirely. Set a field to **`null`** in a higher tier to delete it from the resolved config.
 
