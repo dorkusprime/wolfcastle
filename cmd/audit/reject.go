@@ -3,7 +3,6 @@ package audit
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -39,7 +38,7 @@ Examples:
 				return fmt.Errorf("no pending review batch — run 'wolfcastle audit run' first")
 			}
 
-			now := time.Now().UTC()
+			now := app.Clock.Now()
 			var rejected []review.Decision
 
 			for i := range batch.Findings {

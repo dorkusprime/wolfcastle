@@ -9,12 +9,13 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/inbox"
 	"github.com/dorkusprime/wolfcastle/cmd/project"
 	"github.com/dorkusprime/wolfcastle/cmd/task"
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/spf13/cobra"
 )
 
 // app is the shared runtime state for the CLI.
-var app = &cmdutil.App{}
+var app = &cmdutil.App{Clock: clock.New()}
 
 var rootCmd = &cobra.Command{
 	Use:   "wolfcastle",

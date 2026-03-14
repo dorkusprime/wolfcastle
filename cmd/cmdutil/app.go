@@ -10,6 +10,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -22,6 +23,7 @@ type App struct {
 	WolfcastleDir string
 	Cfg           *config.Config
 	Resolver      *tree.Resolver
+	Clock         clock.Clock
 	JSONOutput    bool
 }
 

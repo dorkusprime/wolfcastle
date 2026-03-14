@@ -49,7 +49,7 @@ Examples:
 				return fmt.Errorf("loading node state: %w", err)
 			}
 
-			state.AddBreadcrumb(ns, nodeAddr, text)
+			state.AddBreadcrumb(ns, nodeAddr, text, app.Clock)
 
 			if err := state.SaveNodeState(statePath, ns); err != nil {
 				return err

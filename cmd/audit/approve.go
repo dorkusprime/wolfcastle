@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -52,7 +51,7 @@ Examples:
 				return fmt.Errorf("loading root index: %w", err)
 			}
 
-			now := time.Now().UTC()
+			now := app.Clock.Now()
 			var approved []review.Decision
 
 			for i := range batch.Findings {
@@ -210,7 +209,7 @@ func finalizeBatchIfComplete(app *cmdutil.App, batch *review.Batch, batchPath st
 
 	entry := review.HistoryEntry{
 		BatchID:     batch.ID,
-		CompletedAt: time.Now().UTC(),
+		CompletedAt: app.Clock.Now(),
 		Scopes:      batch.Scopes,
 		Decisions:   decisions,
 	}

@@ -3,7 +3,6 @@ package audit
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -50,7 +49,7 @@ Examples:
 					}
 					ns.Audit.Escalations[i].Status = state.EscalationResolved
 					ns.Audit.Escalations[i].ResolvedBy = nodeAddr
-					now := time.Now().UTC()
+					now := app.Clock.Now()
 					ns.Audit.Escalations[i].ResolvedAt = &now
 					found = true
 					break

@@ -252,7 +252,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 	}
 
 	// Build the batch
-	now := time.Now().UTC()
+	now := app.Clock.Now()
 	batch := &review.Batch{
 		ID:        fmt.Sprintf("audit-%s", now.Format("20060102T150405Z")),
 		Timestamp: now,

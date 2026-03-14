@@ -1,6 +1,8 @@
 package state
 
-import "time"
+import (
+	"github.com/dorkusprime/wolfcastle/internal/clock"
+)
 
 // SyncAuditLifecycle synchronizes the audit status with the node's task state.
 // Call after TaskClaim, TaskComplete, TaskBlock, TaskUnblock, and after
@@ -13,7 +15,11 @@ import "time"
 //	complete + open gaps → failed (blocks audit task)
 //	complete + no open gaps → passed (records CompletedAt)
 //	blocked      → failed
-func SyncAuditLifecycle(ns *NodeState) {
+//
+// An optional clock may be provided (at most one). When omitted, the
+// real system clock is used, preserving backward compatibility.
+func SyncAuditLifecycle(ns *NodeState, clocks ...clock.Clock) {
+	clk := resolveOptionalClock(clocks)
 	switch ns.State {
 	case StatusNotStarted:
 		ns.Audit.Status = AuditPending
@@ -22,7 +28,7 @@ func SyncAuditLifecycle(ns *NodeState) {
 		if ns.Audit.Status != AuditInProgress {
 			ns.Audit.Status = AuditInProgress
 			if ns.Audit.StartedAt == nil {
-				now := time.Now().UTC()
+				now := clk.Now()
 				ns.Audit.StartedAt = &now
 			}
 		}
@@ -37,7 +43,7 @@ func SyncAuditLifecycle(ns *NodeState) {
 		} else {
 			ns.Audit.Status = AuditPassed
 			if ns.Audit.CompletedAt == nil {
-				now := time.Now().UTC()
+				now := clk.Now()
 				ns.Audit.CompletedAt = &now
 			}
 		}
@@ -45,6 +51,14 @@ func SyncAuditLifecycle(ns *NodeState) {
 	case StatusBlocked:
 		ns.Audit.Status = AuditFailed
 	}
+}
+
+// resolveOptionalClock returns the first clock if provided, otherwise the real clock.
+func resolveOptionalClock(clocks []clock.Clock) clock.Clock {
+	if len(clocks) > 0 && clocks[0] != nil {
+		return clocks[0]
+	}
+	return clock.New()
 }
 
 // hasOpenGaps returns true if any gap has status "open".

@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"time"
+
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 )
 
 // LoadBatch reads the pending review batch from disk.
@@ -71,9 +72,11 @@ func SaveHistory(path string, h *History) error {
 
 // EnforceRetention trims history entries older than maxAgeDays and keeps
 // at most maxEntries. Pass 0 for either to skip that limit.
-func EnforceRetention(h *History, maxEntries int, maxAgeDays int) {
+// An optional clock may be provided for deterministic testing.
+func EnforceRetention(h *History, maxEntries int, maxAgeDays int, clocks ...clock.Clock) {
 	if maxAgeDays > 0 {
-		cutoff := time.Now().UTC().AddDate(0, 0, -maxAgeDays)
+		clk := resolveOptionalClock(clocks)
+		cutoff := clk.Now().AddDate(0, 0, -maxAgeDays)
 		var kept []HistoryEntry
 		for _, e := range h.Entries {
 			if e.CompletedAt.After(cutoff) {
@@ -90,4 +93,12 @@ func EnforceRetention(h *History, maxEntries int, maxAgeDays int) {
 		})
 		h.Entries = h.Entries[:maxEntries]
 	}
+}
+
+// resolveOptionalClock returns the first clock if provided, otherwise the real clock.
+func resolveOptionalClock(clocks []clock.Clock) clock.Clock {
+	if len(clocks) > 0 && clocks[0] != nil {
+		return clocks[0]
+	}
+	return clock.New()
 }

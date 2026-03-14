@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
+
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 )
 
 // TaskAdd inserts a new task into a leaf node before the audit task.
@@ -136,9 +137,9 @@ func TaskUnblock(ns *NodeState, taskID string) error {
 }
 
 // AddBreadcrumb appends a breadcrumb to the node's audit trail.
-func AddBreadcrumb(ns *NodeState, taskAddr string, text string) {
+func AddBreadcrumb(ns *NodeState, taskAddr string, text string, clk clock.Clock) {
 	ns.Audit.Breadcrumbs = append(ns.Audit.Breadcrumbs, Breadcrumb{
-		Timestamp: time.Now().UTC(),
+		Timestamp: clk.Now(),
 		Task:      taskAddr,
 		Text:      text,
 	})
@@ -146,7 +147,7 @@ func AddBreadcrumb(ns *NodeState, taskAddr string, text string) {
 
 // AddEscalation adds an escalation to a parent node.
 // The ID uses the child (source) slug per spec: escalation-{child-slug}-{sequential}.
-func AddEscalation(parent *NodeState, sourceNode string, description string, sourceGapID string) {
+func AddEscalation(parent *NodeState, sourceNode string, description string, sourceGapID string, clk clock.Clock) {
 	// Extract child slug from the source node address (last segment)
 	childSlug := sourceNode
 	for i := len(sourceNode) - 1; i >= 0; i-- {
@@ -158,7 +159,7 @@ func AddEscalation(parent *NodeState, sourceNode string, description string, sou
 	id := fmt.Sprintf("escalation-%s-%d", childSlug, len(parent.Audit.Escalations)+1)
 	parent.Audit.Escalations = append(parent.Audit.Escalations, Escalation{
 		ID:          id,
-		Timestamp:   time.Now().UTC(),
+		Timestamp:   clk.Now(),
 		Description: description,
 		SourceNode:  sourceNode,
 		SourceGapID: sourceGapID,

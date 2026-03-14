@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
@@ -30,6 +31,7 @@ type Daemon struct {
 	ScopeNode     string
 	Logger        *logging.Logger
 	RepoDir       string
+	Clock         clock.Clock
 
 	shutdown     chan struct{}
 	shutdownOnce sync.Once
@@ -52,6 +54,7 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 		ScopeNode:     scopeNode,
 		Logger:        logger,
 		RepoDir:       repoDir,
+		Clock:         clock.New(),
 		shutdown:      make(chan struct{}),
 	}, nil
 }
@@ -647,7 +650,7 @@ func (d *Daemon) applyModelMarkers(output string, ns *state.NodeState, nav *stat
 		case strings.HasPrefix(line, "WOLFCASTLE_BREADCRUMB:"):
 			text := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_BREADCRUMB:"))
 			if text != "" {
-				state.AddBreadcrumb(ns, nav.NodeAddress+"/"+nav.TaskID, text)
+				state.AddBreadcrumb(ns, nav.NodeAddress+"/"+nav.TaskID, text, d.Clock)
 				d.Logger.Log(map[string]any{"type": "marker_breadcrumb", "text": text})
 			}
 
@@ -657,7 +660,7 @@ func (d *Daemon) applyModelMarkers(output string, ns *state.NodeState, nav *stat
 				gapID := fmt.Sprintf("gap-%s-%d", ns.ID, len(ns.Audit.Gaps)+1)
 				ns.Audit.Gaps = append(ns.Audit.Gaps, state.Gap{
 					ID:          gapID,
-					Timestamp:   time.Now().UTC(),
+					Timestamp:   d.Clock.Now(),
 					Description: desc,
 					Source:      nav.NodeAddress,
 					Status:      state.GapOpen,
@@ -671,7 +674,7 @@ func (d *Daemon) applyModelMarkers(output string, ns *state.NodeState, nav *stat
 				if ns.Audit.Gaps[i].ID == gapID && ns.Audit.Gaps[i].Status == state.GapOpen {
 					ns.Audit.Gaps[i].Status = state.GapFixed
 					ns.Audit.Gaps[i].FixedBy = nav.NodeAddress + "/" + nav.TaskID
-					now := time.Now().UTC()
+					now := d.Clock.Now()
 					ns.Audit.Gaps[i].FixedAt = &now
 					d.Logger.Log(map[string]any{"type": "marker_fix_gap", "gap_id": gapID})
 					break
@@ -722,7 +725,7 @@ func (d *Daemon) applyModelMarkers(output string, ns *state.NodeState, nav *stat
 				if ns.Audit.Escalations[i].ID == escID && ns.Audit.Escalations[i].Status == state.EscalationOpen {
 					ns.Audit.Escalations[i].Status = state.EscalationResolved
 					ns.Audit.Escalations[i].ResolvedBy = nav.NodeAddress + "/" + nav.TaskID
-					now := time.Now().UTC()
+					now := d.Clock.Now()
 					ns.Audit.Escalations[i].ResolvedAt = &now
 					d.Logger.Log(map[string]any{"type": "marker_resolve_escalation", "escalation_id": escID})
 					break
