@@ -4,7 +4,7 @@
 
 The most common path: you tell your coding agent what you want done. "Add OAuth2 PKCE support to the auth service." You go back and forth with the agent, refining scope, adding constraints, clarifying how you want things structured, until the plan feels right. Then the agent uses Wolfcastle's [CLI](cli.md) to inject the work, decompose it into tasks, and start [the daemon](#the-daemon). Wolfcastle handles the orchestration from there.
 
-When you want direct control, three CLI commands cover the range:
+When you want direct control, the CLI has you covered:
 
 **The inbox** is for quick capture. `wolfcastle inbox add "support OAuth2 PKCE"` drops an item into a queue. The daemon's [expand stage](#the-pipeline) picks it up on its next iteration, uses a model to decompose it into tasks, and the file stage organizes those tasks into the right place in the tree. You throw an idea at Wolfcastle. It figures out the rest. ([More on the inbox.](cli.md#the-inbox))
 

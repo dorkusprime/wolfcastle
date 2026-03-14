@@ -46,4 +46,4 @@ wolfcastle task add --node <path> "<description>"
 
 - [`wolfcastle project create`](project-create.md) to create the node first.
 - [`wolfcastle inbox add`](inbox-add.md) if you'd rather let the daemon figure out where the task belongs.
-- [Getting Work In](../how-it-works.md#getting-work-in) for the three ways work enters the system.
+- [Getting Work In](../how-it-works.md#getting-work-in) for how work enters the system.
