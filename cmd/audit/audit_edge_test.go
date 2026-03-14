@@ -671,7 +671,6 @@ func TestShow_FullAuditState(t *testing.T) {
 	}
 }
 
-
 // ---------------------------------------------------------------------------
 // audit approve — duplicate project (CreateProject error)
 // ---------------------------------------------------------------------------
