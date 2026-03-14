@@ -49,7 +49,7 @@ new → expanded → filed
 | `filed` | The file stage has created projects/tasks from this item. Terminal state. |
 
 ### Shared Package
-Inbox types and I/O live in `internal/inbox/` so they're accessible from both `cmd/` (CLI commands) and `internal/daemon/` (pipeline stages).
+Inbox types and I/O live in `internal/state/` (moved from `internal/inbox/` per ADR-058) so they're accessible from both `cmd/` (CLI commands) and `internal/daemon/` (pipeline stages).
 
 ### CLI Commands
 - `wolfcastle inbox add "idea"` — creates a new item with status `new`

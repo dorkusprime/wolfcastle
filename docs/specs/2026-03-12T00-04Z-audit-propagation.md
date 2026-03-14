@@ -493,15 +493,15 @@ wolfcastle audit escalate --node <path> "description"
 
 ### Gap Recording (Internal to Audit Task Execution)
 
-Gaps are recorded during audit task execution. While there is no dedicated `wolfcastle audit gap` CLI command in the current surface (ADR-021), gap management is handled internally by the audit task's script operations. The audit task writes gaps as part of its state mutations when it finds issues during verification.
+Gaps are recorded during audit task execution. Explicit CLI commands now exist for gap management:
 
-A future expansion of the CLI surface may expose explicit gap commands:
-```
-wolfcastle audit gap add --node <path> "description"
-wolfcastle audit gap fix --node <path> --gap <gap-id>
-```
+- `wolfcastle audit gap --node <path> "description"` — records a gap
+- `wolfcastle audit fix-gap --node <path> --gap <gap-id>` — marks a gap as fixed
+- `wolfcastle audit scope --node <path>` — sets or displays audit scope
+- `wolfcastle audit resolve --node <path> --escalation <id>` — resolves an escalation
+- `wolfcastle audit show --node <path>` — displays audit state
 
-Until then, gap creation and resolution are implicit in the audit task's execution flow — the model identifies gaps, the scripts record them, and the model fixes or escalates them.
+The model uses these commands during audit task execution. The daemon's marker protocol (`WOLFCASTLE_GAP:`, `WOLFCASTLE_FIX_GAP:`, `WOLFCASTLE_SCOPE:`) provides a parallel path for inline gap management during non-audit task execution.
 
 ---
 

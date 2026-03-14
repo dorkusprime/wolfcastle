@@ -172,7 +172,7 @@ All three writes happen within the same script invocation. If the process is int
 
 ### 5.3 Implementation Pattern
 
-The `propagateState` helper (in `cmd/helpers.go`) implements a two-pass approach used by all state-mutating commands (`task claim`, `task complete`, `task block`, `task unblock`):
+The `PropagateState` helper (in `cmd/cmdutil/app.go`) implements a two-pass approach used by all state-mutating commands (`task claim`, `task complete`, `task block`, `task unblock`):
 
 1. **Update the originating node** in the root index
 2. **Walk up the tree** via `state.PropagateUp()`:

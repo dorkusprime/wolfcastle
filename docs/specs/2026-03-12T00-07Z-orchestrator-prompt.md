@@ -376,19 +376,13 @@ The default pipeline has three stages (ADR-006, ADR-013): expand, file, execute.
 
 **What the prompt instructs:** The full phase sequence described in Section 3 (Claim, Study, Implement, Validate, Record, Commit, Yield).
 
-### 6.4 Summary Stage (optional, per ADR-016)
+### 6.4 Summary (inline, per ADR-036)
+
+> **Note:** The original design described the summary as a separate pipeline stage. ADR-036 superseded this — summaries are now generated inline by the executing model.
 
 **Purpose:** Write a plain-language summary of what a completed node accomplished, used as the top section of the archive entry.
 
-**Model tier:** Configurable, typically cheap (e.g. Haiku).
-
-**What the iteration context contains:** The node's full breadcrumb trail, audit results, task descriptions, and completion metadata.
-
-**What the prompt instructs:**
-- Read all breadcrumbs and audit results for the completed node.
-- Write a concise, plain-language summary of what was accomplished and why it matters.
-- Output the summary text. The Go binary captures it for the archive entry.
-- This stage does not call any `wolfcastle` commands. It is read-only.
+**How it works:** When `BuildIterationContext` detects that the current task is the last incomplete task in the node, it appends a "Summary Required" section to the prompt. The executing model emits a `WOLFCASTLE_SUMMARY:` marker alongside `WOLFCASTLE_COMPLETE`. The daemon parses this and stores it in `audit.result_summary`. No separate model invocation occurs.
 
 ## 7. Guardrails Expressed in the Prompt
 

@@ -56,9 +56,10 @@ heuristics as before, but now each finding carries a description (the text
 between headings) in addition to its title, providing richer context for
 the reviewer.
 
-A new `internal/review` package owns the types (`Batch`, `Finding`,
-`HistoryEntry`, `Decision`, `History`) and I/O (`LoadBatch`, `SaveBatch`,
-`LoadHistory`, `SaveHistory`, `EnforceRetention`).
+The review types (`Batch`, `Finding`, `HistoryEntry`, `Decision`, `History`)
+and I/O (`LoadBatch`, `SaveBatch`, `LoadHistory`, `SaveHistory`,
+`EnforceRetention`) live in `internal/state/` (moved from the original
+`internal/review/` per ADR-058).
 
 ## Consequences
 
