@@ -1,5 +1,7 @@
 # Wolfcastle
 
+[![CI](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml/badge.svg)](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml)
+
 ![Wolfcastle](assets/wolfcastle-alpha.png)
 
 You have a goal. Wolfcastle will destroy it.
