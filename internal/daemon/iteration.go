@@ -13,6 +13,9 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
+// runIteration executes a single daemon iteration: claims the task, runs each
+// enabled pipeline stage in order, applies model output markers, persists
+// state mutations, and handles failure escalation (decomposition, auto-block).
 func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, idx *state.RootIndex) error {
 	// Claim the task
 	addr, err := tree.ParseAddress(nav.NodeAddress)
@@ -22,14 +25,14 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	statePath := filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
 	ns, err := state.LoadNodeState(statePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("loading node state for %s: %w", nav.NodeAddress, err)
 	}
 
 	if err := state.TaskClaim(ns, nav.TaskID); err != nil {
-		return err
+		return fmt.Errorf("claiming task %s: %w", nav.TaskID, err)
 	}
 	if err := state.SaveNodeState(statePath, ns); err != nil {
-		return err
+		return fmt.Errorf("saving node state after claim: %w", err)
 	}
 
 	// Propagate claim state to ancestors and root index (ADR-024)

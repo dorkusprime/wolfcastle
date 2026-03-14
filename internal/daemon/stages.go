@@ -55,8 +55,12 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 
 	d.Logger.Log(map[string]any{"type": "stage_start", "stage": "expand", "new_items": len(newItems)})
 
-	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
-	defer cancel()
+	invokeCtx := ctx
+	if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
+		var cancel context.CancelFunc
+		invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
+		defer cancel()
+	}
 
 	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "expand")
 	if err != nil {
@@ -164,8 +168,12 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 
 	d.Logger.Log(map[string]any{"type": "stage_start", "stage": "file", "expanded_items": len(expandedIndices)})
 
-	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
-	defer cancel()
+	invokeCtx := ctx
+	if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
+		var cancel context.CancelFunc
+		invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
+		defer cancel()
+	}
 
 	// The model executes wolfcastle commands directly via tool calls
 	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "file")
