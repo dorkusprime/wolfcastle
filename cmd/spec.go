@@ -58,7 +58,7 @@ Examples:
 
 		content := fmt.Sprintf("# %s\n\n[Spec content goes here.]\n", title)
 		if err := os.WriteFile(specPath, []byte(content), 0644); err != nil {
-			return err
+			return fmt.Errorf("writing spec file: %w", err)
 		}
 
 		// Link to node if specified
@@ -67,14 +67,14 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
-			statePath := filepath.Join(resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-			ns, err := resolver.LoadNodeState(addr)
+			statePath := resolver.NodeStatePath(addr)
+			ns, err := state.LoadNodeState(statePath)
 			if err != nil {
 				return fmt.Errorf("loading node state: %w", err)
 			}
 			ns.Specs = append(ns.Specs, filename)
-			if err := writeNodeState(statePath, ns); err != nil {
-				return err
+			if err := state.SaveNodeState(statePath, ns); err != nil {
+				return fmt.Errorf("saving node state: %w", err)
 			}
 		}
 
@@ -124,8 +124,8 @@ Examples:
 		if err != nil {
 			return fmt.Errorf("invalid node address: %w", err)
 		}
-		statePath := filepath.Join(resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-		ns, err := resolver.LoadNodeState(addr)
+		statePath := resolver.NodeStatePath(addr)
+		ns, err := state.LoadNodeState(statePath)
 		if err != nil {
 			return fmt.Errorf("loading node state: %w", err)
 		}
@@ -138,8 +138,8 @@ Examples:
 		}
 
 		ns.Specs = append(ns.Specs, filename)
-		if err := writeNodeState(statePath, ns); err != nil {
-			return err
+		if err := state.SaveNodeState(statePath, ns); err != nil {
+			return fmt.Errorf("saving node state: %w", err)
 		}
 
 		if jsonOutput {
@@ -179,7 +179,7 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
-			ns, err := resolver.LoadNodeState(addr)
+			ns, err := state.LoadNodeState(resolver.NodeStatePath(addr))
 			if err != nil {
 				return fmt.Errorf("loading node state: %w", err)
 			}
@@ -238,7 +238,3 @@ func init() {
 	rootCmd.AddCommand(specCmd)
 }
 
-// writeNodeState is a helper that saves node state via the state package.
-func writeNodeState(path string, ns *state.NodeState) error {
-	return state.SaveNodeState(path, ns)
-}

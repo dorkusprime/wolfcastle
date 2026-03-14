@@ -22,4 +22,4 @@ Coming soon. Target distribution: `curl` installer, Homebrew tap, optional npm w
 ## Documentation
 
 - [Architecture Decision Records](docs/decisions/INDEX.md)
-- [Specs](docs/specs/) (coming soon)
+- [Specs](docs/specs/README.md)

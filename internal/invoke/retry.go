@@ -15,7 +15,7 @@ func RetryLoop(ctx context.Context, retryCfg config.RetriesConfig, fn func() (*R
 
 	for {
 		result, err := fn()
-		if err == nil && result.ExitCode == 0 && result.Stdout != "" {
+		if err == nil && result.ExitCode == 0 {
 			return result, nil
 		}
 

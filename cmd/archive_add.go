@@ -9,6 +9,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/archive"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +39,7 @@ Examples:
 			return fmt.Errorf("loading node state: %w", err)
 		}
 
-		if ns.State != "complete" {
+		if ns.State != state.StatusComplete {
 			return fmt.Errorf("node %s is %s, must be complete to archive — finish all tasks first", nodeAddr, ns.State)
 		}
 
@@ -59,7 +60,7 @@ Examples:
 		archivePath := filepath.Join(archiveDir, entry.Filename)
 
 		if err := os.WriteFile(archivePath, []byte(entry.Content), 0644); err != nil {
-			return err
+			return fmt.Errorf("writing archive entry: %w", err)
 		}
 
 		if jsonOutput {

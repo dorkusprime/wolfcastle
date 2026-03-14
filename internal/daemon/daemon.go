@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -28,8 +29,9 @@ type Daemon struct {
 	Logger        *logging.Logger
 	RepoDir       string
 
-	shutdown chan struct{}
-	branch   string
+	shutdown     chan struct{}
+	shutdownOnce sync.Once
+	branch       string
 }
 
 // New creates a new daemon.
@@ -58,7 +60,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
-		close(d.shutdown)
+		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
 
 	// Record starting branch
@@ -281,14 +283,18 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				} else {
 					fmt.Printf("  Auto-blocking %s/%s: decomposition threshold at max depth\n", nav.NodeAddress, nav.TaskID)
 					d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "max_decomposition_depth"})
-					state.TaskBlock(ns, nav.TaskID, "auto-blocked: decomposition threshold reached at max depth")
+					if blockErr := state.TaskBlock(ns, nav.TaskID, "auto-blocked: decomposition threshold reached at max depth"); blockErr != nil {
+						d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
+					}
 				}
 			}
 
 			if failCount >= d.Config.Failure.HardCap && d.Config.Failure.HardCap > 0 {
 				fmt.Printf("  Auto-blocking %s/%s: hard cap reached (%d)\n", nav.NodeAddress, nav.TaskID, failCount)
 				d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "hard_cap"})
-				state.TaskBlock(ns, nav.TaskID, fmt.Sprintf("auto-blocked: failure hard cap reached (%d)", failCount))
+				if blockErr := state.TaskBlock(ns, nav.TaskID, fmt.Sprintf("auto-blocked: failure hard cap reached (%d)", failCount)); blockErr != nil {
+					d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
+				}
 			}
 
 			if err := state.SaveNodeState(statePath, ns); err != nil {

@@ -133,6 +133,18 @@ func TestLoad_NoConfigFiles_ReturnsDefaults(t *testing.T) {
 	}
 }
 
+func TestValidate_CatchesEmptyPipelineStages(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
+	cfg.Pipeline.Stages = nil
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("expected error for empty pipeline stages")
+	}
+}
+
 func TestValidate_CatchesMissingModelReferences(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()

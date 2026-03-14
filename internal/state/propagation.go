@@ -1,5 +1,7 @@
 package state
 
+import "fmt"
+
 // RecomputeState derives an orchestrator's state from its children.
 func RecomputeState(children []ChildRef) NodeStatus {
 	if len(children) == 0 {
@@ -46,6 +48,9 @@ func RecomputeState(children []ChildRef) NodeStatus {
 	return StatusInProgress
 }
 
+// maxPropagationDepth guards against cycles in the parent chain.
+const maxPropagationDepth = 100
+
 // PropagateUp updates parent states up to the root.
 // It takes a function that loads and saves parent state given an address.
 // Returns the list of addresses that were updated.
@@ -59,11 +64,21 @@ func PropagateUp(
 	var updated []string
 	current := childAddr
 	currentState := childState
+	visited := make(map[string]bool)
 
 	for {
 		parentAddr := getParentAddr(current)
 		if parentAddr == "" {
 			break
+		}
+
+		if visited[parentAddr] {
+			return updated, fmt.Errorf("cycle detected in parent chain at %q", parentAddr)
+		}
+		visited[parentAddr] = true
+
+		if len(visited) > maxPropagationDepth {
+			return updated, fmt.Errorf("parent chain exceeds maximum depth (%d) — possible cycle", maxPropagationDepth)
 		}
 
 		parent, err := loadParent(parentAddr)

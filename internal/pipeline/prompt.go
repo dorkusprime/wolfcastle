@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
@@ -22,7 +23,10 @@ func AssemblePrompt(wolfcastleDir string, cfg *config.Config, stage config.Pipel
 
 	// 1. Rule fragments
 	fragments, err := ResolveAllFragments(wolfcastleDir, "rules", cfg.Prompts.Fragments, cfg.Prompts.ExcludeFragments)
-	if err == nil && len(fragments) > 0 {
+	if err != nil {
+		return "", fmt.Errorf("resolving rule fragments: %w", err)
+	}
+	if len(fragments) > 0 {
 		sections = append(sections, "# Project Rules\n\n"+strings.Join(fragments, "\n\n"))
 	}
 

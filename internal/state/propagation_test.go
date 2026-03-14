@@ -78,3 +78,45 @@ func TestRecomputeState_AllBlocked(t *testing.T) {
 		t.Errorf("expected blocked, got %s", got)
 	}
 }
+
+func TestPropagateUp_DetectsCycle(t *testing.T) {
+	t.Parallel()
+	states := map[string]*NodeState{
+		"a": {ID: "a", Type: NodeOrchestrator, Children: []ChildRef{{ID: "b", Address: "b", State: StatusInProgress}}},
+		"b": {ID: "b", Type: NodeOrchestrator, Children: []ChildRef{{ID: "a", Address: "a", State: StatusInProgress}}},
+	}
+	parents := map[string]string{"a": "b", "b": "a"}
+
+	_, err := PropagateUp(
+		"a",
+		StatusInProgress,
+		func(addr string) (*NodeState, error) { return states[addr], nil },
+		func(addr string, ns *NodeState) error { return nil },
+		func(addr string) string { return parents[addr] },
+	)
+	if err == nil {
+		t.Error("expected error for cycle in parent chain")
+	}
+}
+
+func TestPropagateUp_NormalChain(t *testing.T) {
+	t.Parallel()
+	states := map[string]*NodeState{
+		"root": {ID: "root", Type: NodeOrchestrator, Children: []ChildRef{{ID: "child", Address: "child", State: StatusNotStarted}}},
+	}
+	parents := map[string]string{"child": "root"}
+
+	updated, err := PropagateUp(
+		"child",
+		StatusInProgress,
+		func(addr string) (*NodeState, error) { return states[addr], nil },
+		func(addr string, ns *NodeState) error { return nil },
+		func(addr string) string { return parents[addr] },
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(updated) != 1 || updated[0] != "root" {
+		t.Errorf("expected [root], got %v", updated)
+	}
+}

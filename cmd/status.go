@@ -49,7 +49,7 @@ Examples:
 func showTreeStatus(idx *state.RootIndex, scope string) error {
 	counts := map[state.NodeStatus]int{}
 	for _, entry := range idx.Nodes {
-		if scope != "" && entry.Address != scope && entry.Parent != scope {
+		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
 			continue
 		}
 		counts[entry.State]++
@@ -136,6 +136,22 @@ func showAllStatus() error {
 		}
 	}
 	return nil
+}
+
+// isInSubtree checks whether addr is the scope node or a descendant of it.
+func isInSubtree(idx *state.RootIndex, addr string, scope string) bool {
+	current := addr
+	for current != "" {
+		if current == scope {
+			return true
+		}
+		entry, ok := idx.Nodes[current]
+		if !ok {
+			return false
+		}
+		current = entry.Parent
+	}
+	return false
 }
 
 func init() {

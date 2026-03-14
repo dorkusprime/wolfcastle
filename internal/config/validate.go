@@ -4,6 +4,11 @@ import "fmt"
 
 // Validate checks the resolved config for consistency.
 func Validate(cfg *Config) error {
+	// Check pipeline has at least one stage
+	if len(cfg.Pipeline.Stages) == 0 {
+		return fmt.Errorf("pipeline has no stages — at least one stage is required")
+	}
+
 	// Check model references in pipeline stages
 	for _, stage := range cfg.Pipeline.Stages {
 		if _, ok := cfg.Models[stage.Model]; !ok {

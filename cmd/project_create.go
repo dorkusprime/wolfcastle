@@ -55,10 +55,14 @@ Examples:
 			return fmt.Errorf("loading root index: %w", err)
 		}
 
-		// Validate parent exists if specified
+		// Validate parent exists and is an orchestrator if specified
 		if parentNode != "" {
-			if _, ok := idx.Nodes[parentNode]; !ok {
+			parentEntry, ok := idx.Nodes[parentNode]
+			if !ok {
 				return fmt.Errorf("parent node %q not found", parentNode)
+			}
+			if parentEntry.Type != state.NodeOrchestrator {
+				return fmt.Errorf("parent node %q is a %s — only orchestrator nodes can have children", parentNode, parentEntry.Type)
 			}
 		}
 
@@ -75,10 +79,10 @@ Examples:
 		}
 		nodeDir := filepath.Join(resolver.ProjectsDir(), filepath.Join(addrParsed.Parts...))
 		if err := os.MkdirAll(nodeDir, 0755); err != nil {
-			return err
+			return fmt.Errorf("creating node directory: %w", err)
 		}
 		if err := state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns); err != nil {
-			return err
+			return fmt.Errorf("saving node state: %w", err)
 		}
 
 		// Write project description Markdown
@@ -114,7 +118,7 @@ Examples:
 
 		// Save updated root index
 		if err := state.SaveRootIndex(resolver.RootIndexPath(), idx); err != nil {
-			return err
+			return fmt.Errorf("saving root index: %w", err)
 		}
 
 		if jsonOutput {

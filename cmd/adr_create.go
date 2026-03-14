@@ -78,7 +78,7 @@ Examples:
 		adrPath := filepath.Join(docsDir, filename)
 
 		if err := os.WriteFile(adrPath, []byte(content.String()), 0644); err != nil {
-			return err
+			return fmt.Errorf("writing ADR file: %w", err)
 		}
 
 		if jsonOutput {
