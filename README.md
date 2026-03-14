@@ -429,13 +429,15 @@ wolfcastle audit --scope dry,modularity       # specific scopes
 wolfcastle audit --list                       # show available scopes
 ```
 
+The audit is strictly read-only. The model reads your code, analyzes it against the requested scopes, and produces a Markdown report. It does not modify files, create branches, write code, or touch your codebase in any way. The only output is the report. Observation without interference.
+
 ### Scopes
 
 Scopes are enum-like IDs backed by prompt fragments. Base scopes ship with Wolfcastle (`dry`, `modularity`, `decomposition`, `comments`, etc.). Add custom scopes in `custom/audits/` or personal scopes in `local/audits/`. All three tiers are discovered at runtime.
 
 ### The Approval Gate
 
-Audit findings do not become tasks automatically. The model generates prioritized findings. You review them. Approve all, review individually, or reject all. Approved findings become projects and tasks in your tree. Rejected findings disappear. Wolfcastle does not create work without permission. It has manners. Aggressive manners, but manners.
+Audit findings do not become tasks automatically. The model generates prioritized findings in its Markdown report. You review them. Approve all, review individually, or reject all. Approved findings become projects and tasks in your tree. Rejected findings disappear. Nothing changes until you say so. Wolfcastle does not create work without permission. It has manners. Aggressive manners, but manners.
 
 ## In-Flight Specs
 
