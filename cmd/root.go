@@ -65,19 +65,19 @@ func Execute() {
 		&cobra.Group{ID: "integration", Title: "Integration:"},
 	)
 
-	// Assign groups to commands
+	// Assign groups to top-level commands (direct children of rootCmd).
+	// Subcommands inherit their parent's group; setting GroupID on a
+	// child of a non-root parent causes a Cobra panic.
 	initCmd.GroupID = "lifecycle"
 	versionCmd.GroupID = "lifecycle"
 	updateCmd.GroupID = "lifecycle"
 	navigateCmd.GroupID = "work"
+	archiveCmd.GroupID = "work"
 	doctorCmd.GroupID = "diagnostics"
 	unblockCmd.GroupID = "diagnostics"
 	installCmd.GroupID = "integration"
-	specCreateCmd.GroupID = "docs"
-	specLinkCmd.GroupID = "docs"
-	specListCmd.GroupID = "docs"
-	adrCreateCmd.GroupID = "docs"
-	archiveAddCmd.GroupID = "work"
+	specCmd.GroupID = "docs"
+	adrCmd.GroupID = "docs"
 
 	audit.Register(app, rootCmd)
 	daemon.Register(app, rootCmd)
