@@ -22,7 +22,7 @@ See the [Architecture Decision Records](docs/decisions/INDEX.md) and [Specificat
 
 ## How It Works
 
-You describe what you want to your coding agent. "Add OAuth2 PKCE support to the auth service." You go back and forth, refining the scope, adding constraints, specifying how you want things structured. When you're satisfied, the agent injects the work into Wolfcastle, which decomposes it into a tree of projects and tasks. A daemon takes over: it picks the next target, invokes a model, validates the result, records what happened, and moves to the next target. Serial execution, depth-first, until the tree is conquered or something gets in the way.
+You describe what you want to your coding agent. "Add OAuth2 PKCE support to the auth service." You go back and forth, refining the scope, adding constraints, specifying how you want things structured. When you're satisfied, the agent injects the work into Wolfcastle, which decomposes it into a tree of projects and tasks. The daemon takes over: it picks the first target, invokes a model, validates the result, records what happened, and moves to the next. Serial execution, depth-first, until the tree is conquered or something gets in the way.
 
 If a task fails, Wolfcastle tries again. If it fails ten times, Wolfcastle decomposes it into smaller, weaker problems and destroys those instead. If decomposition runs out of room, the task is blocked and Wolfcastle moves on. It does not waste time on the fallen.
 
