@@ -673,6 +673,78 @@ wolfcastle update && wolfcastle status
 
 ---
 
+## wolfcastle version
+
+### Synopsis
+
+```
+wolfcastle version [--json]
+```
+
+### Description
+
+Prints the Wolfcastle binary's version, git commit hash, and build date. Does not require a `.wolfcastle/` directory or identity. This command always succeeds.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Output as structured JSON with version, commit, and date fields |
+
+### Behavior
+
+1. Read the version, commit, and date values injected at build time via ldflags.
+2. Output them.
+
+No filesystem access, no identity resolution, no `.wolfcastle/` directory required.
+
+### Output
+
+Human-readable:
+
+```
+wolfcastle v0.4.0 (a1b2c3d, 2026-03-14T10:00:00Z)
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "version",
+  "data": {
+    "version": "v0.4.0",
+    "commit": "a1b2c3d",
+    "date": "2026-03-14T10:00:00Z"
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Always |
+
+### Examples
+
+```bash
+# Print version
+wolfcastle version
+
+# Get version as JSON
+wolfcastle version --json
+
+# Extract just the version string
+wolfcastle version --json | jq -r '.data.version'
+```
+
+### Error Cases
+
+None. This command always exits 0.
+
+---
+
 ## wolfcastle task add
 
 ### Synopsis
@@ -1384,6 +1456,274 @@ echo "## Status\nAccepted\n..." | wolfcastle adr create "Adopt Conventional Comm
 
 ---
 
+## wolfcastle spec create
+
+### Synopsis
+
+```
+wolfcastle spec create [--node <path>] "<title>"
+```
+
+### Description
+
+Creates a new specification document in `.wolfcastle/docs/specs/` and optionally links it to a node. The filename follows the ISO 8601 timestamp format (ADR-011). Specs are Markdown files that travel with work: when linked to a node, they are injected into the model's context during task execution on that node.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `"<title>"` | string (positional) | Yes | -- | Title of the spec |
+| `--node <path>` | string | No | -- | Link the new spec to this node immediately |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. If `--node` is provided, resolve engineer identity and validate the node exists.
+3. Generate the filename:
+   - Get the current UTC timestamp with minute precision.
+   - Format as `{YYYY}-{MM}-{DD}T{HH}-{mm}Z-{slug}.md` (ADR-011).
+   - Slug is derived from the title (lowercase, hyphens for spaces, strip special characters).
+4. Ensure the `docs/specs/` directory exists (create if needed).
+5. Write a template spec file:
+   ```markdown
+   # {title}
+
+   [Spec content goes here.]
+   ```
+6. If `--node` is provided, load the node's `state.json` and append the filename to its `specs` array.
+7. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Created spec: .wolfcastle/docs/specs/2026-03-14T12-00Z-authentication-protocol.md
+Linked to node: backend/auth
+```
+
+Without `--node`:
+
+```
+Created spec: .wolfcastle/docs/specs/2026-03-14T12-00Z-authentication-protocol.md
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "spec_create",
+  "data": {
+    "title": "Authentication Protocol",
+    "filename": "2026-03-14T12-00Z-authentication-protocol.md",
+    "path": ".wolfcastle/docs/specs/2026-03-14T12-00Z-authentication-protocol.md",
+    "node": "backend/auth"
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Spec created |
+| 1 | `.wolfcastle/` not found, title is empty, node not found, or filesystem error |
+
+### Examples
+
+```bash
+# Create a spec (no node link)
+wolfcastle spec create "Authentication Protocol"
+
+# Create a spec and link it to a node
+wolfcastle spec create --node backend/auth "Authentication Protocol"
+
+# Create with JSON output
+wolfcastle spec create "Token Refresh Spec" --json
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Empty title | `{"ok": false, "error": "spec title cannot be empty", "code": "EMPTY_TITLE"}` | 1 |
+| Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 1 |
+
+---
+
+## wolfcastle spec link
+
+### Synopsis
+
+```
+wolfcastle spec link --node <path> "<filename>"
+```
+
+### Description
+
+Links an existing spec file to a project node. The spec must already exist in `.wolfcastle/docs/specs/`. Once linked, the spec is injected into the model's context during task execution on that node. A single spec can be linked to multiple nodes for cross-cutting concerns.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `"<filename>"` | string (positional) | Yes | -- | Spec filename to link (must exist in `docs/specs/`) |
+| `--node <path>` | string | Yes | -- | Target node to link the spec to (ADR-008) |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Verify the spec file exists in `.wolfcastle/docs/specs/`. Fail if not found.
+4. Validate the `--node` path exists in the tree index.
+5. Load the node's `state.json`.
+6. Check the node's `specs` array for duplicates. If the filename is already linked, fail.
+7. Append the filename to the node's `specs` array.
+8. Write the updated `state.json`.
+9. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Linked 2026-03-14T12-00Z-authentication-protocol.md to backend/auth
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "spec_link",
+  "data": {
+    "filename": "2026-03-14T12-00Z-authentication-protocol.md",
+    "node": "backend/auth"
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Spec linked |
+| 1 | `.wolfcastle/` not found or identity not configured |
+| 2 | Node not found |
+
+### Examples
+
+```bash
+# Link a spec to a node
+wolfcastle spec link --node backend/auth 2026-03-14T12-00Z-authentication-protocol.md
+
+# Link with JSON output
+wolfcastle spec link --node backend/auth auth-spec.md --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Spec not found | `spec file not found: .wolfcastle/docs/specs/foo.md` | 1 |
+| Node not found | `fatal: node 'foo/bar' not found in tree` | 2 |
+| Already linked | `spec foo.md is already linked to backend/auth` | 1 |
+| Missing --node | `--node is required: specify the target node to link the spec to` | 1 |
+
+---
+
+## wolfcastle spec list
+
+### Synopsis
+
+```
+wolfcastle spec list [--node <path>] [--json]
+```
+
+### Description
+
+Lists spec files. Without `--node`, lists all `.md` files in `.wolfcastle/docs/specs/`. With `--node`, filters to only specs referenced in that node's `state.json`. Read-only.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | No | -- | Filter to specs linked to this node |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. If `--node` is provided, resolve engineer identity and validate the node exists.
+3. Read all `.md` files in `.wolfcastle/docs/specs/` (excluding `README.md`). Skip directories and non-Markdown files. Deduplicate by filename.
+4. If `--node` is provided, load the node's `state.json` and filter the file list to only those filenames present in the node's `specs` array.
+5. Display the list.
+
+### Output
+
+Human-readable:
+
+```
+  2026-03-14T12-00Z-authentication-protocol.md
+  2026-03-12T09-30Z-rate-limiting-design.md
+```
+
+No specs found:
+
+```
+No specs found
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "spec_list",
+  "data": {
+    "specs": [
+      {"filename": "2026-03-14T12-00Z-authentication-protocol.md"},
+      {"filename": "2026-03-12T09-30Z-rate-limiting-design.md"}
+    ],
+    "count": 2
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success (including empty list) |
+| 1 | `.wolfcastle/` not found, identity not configured, or node not found |
+
+### Examples
+
+```bash
+# List all specs
+wolfcastle spec list
+
+# List specs linked to a specific node
+wolfcastle spec list --node backend/auth
+
+# List as JSON
+wolfcastle spec list --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| Node not found | `fatal: node 'foo/bar' not found in tree` | 1 |
+
+---
+
 ## wolfcastle audit breadcrumb
 
 ### Synopsis
@@ -1547,36 +1887,815 @@ wolfcastle audit escalate --node attunement-tree/fire-impl \
 
 ---
 
+## wolfcastle audit show
+
+### Synopsis
+
+```
+wolfcastle audit show --node <path> [--json]
+```
+
+### Description
+
+Displays the complete audit record for a node: scope, breadcrumbs, gaps, escalations, status, and result summary. A single command that gives the full picture of a node's audit state. Read-only.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the target node (ADR-008) |
+| `--json` | boolean | No | `false` | Output as structured JSON instead of human-readable text |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
+4. Validate the `--node` path exists in the tree index.
+5. Load the node's co-located `state.json` at `projects/{identity}/{node-path}/state.json`.
+6. Render every field in the node's `audit` object:
+   - Status
+   - Scope (description, files, systems, criteria)
+   - Breadcrumbs (chronological with timestamps)
+   - Gaps (ID, status, description)
+   - Escalations (ID, status, source node, description)
+   - Result summary (if present)
+7. Output as human-readable text or JSON.
+
+### Output
+
+Human-readable (default):
+
+```
+Audit for attunement-tree/fire-impl
+  Status: in_progress
+  Scope: Verify fire attunement combat integration
+    Files: ["fire_ability.go","stamina.go"]
+    Systems: ["combat","stamina"]
+    Criteria: ["no regressions in PvP balance","stamina cost applied correctly"]
+  Breadcrumbs (3):
+    [2026-03-12 18:30] attunement-tree/fire-impl/task-1: Implemented base fire ability
+    [2026-03-12 18:35] attunement-tree/fire-impl/task-2: Added stamina cost deduction
+    [2026-03-12 18:40] attunement-tree/fire-impl/task-3: Wrote integration tests
+  Gaps (1):
+    gap-fire-impl-1 [open]: Missing edge case test for zero stamina
+  Escalations (0):
+  Result Summary: (none)
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_show",
+  "data": {
+    "status": "in_progress",
+    "scope": {
+      "description": "Verify fire attunement combat integration",
+      "files": ["fire_ability.go", "stamina.go"],
+      "systems": ["combat", "stamina"],
+      "criteria": ["no regressions in PvP balance", "stamina cost applied correctly"]
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-12T18:30:00Z",
+        "task": "attunement-tree/fire-impl/task-1",
+        "text": "Implemented base fire ability"
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-fire-impl-1",
+        "status": "open",
+        "description": "Missing edge case test for zero stamina"
+      }
+    ],
+    "escalations": [],
+    "result_summary": ""
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Audit state displayed |
+| 1 | `.wolfcastle/` not found, identity not configured, or node not found |
+
+### Examples
+
+```bash
+# Show full audit state for a node
+wolfcastle audit show --node attunement-tree/fire-impl
+
+# Show as JSON for scripting
+wolfcastle audit show --node attunement-tree/fire-impl --json
+
+# Pipe JSON to jq to inspect gaps
+wolfcastle audit show --node attunement-tree/fire-impl --json | jq '.data.gaps'
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Node not found | `fatal: node 'foo/bar' not found in tree` | 1 |
+
+---
+
+## wolfcastle audit scope
+
+### Synopsis
+
+```
+wolfcastle audit scope --node <path> [--description <text>] [--files <list>] [--systems <list>] [--criteria <list>] [--json]
+```
+
+### Description
+
+Sets structured audit scope on a node: what to verify, which files, which systems, which acceptance criteria. The audit task uses this scope to determine what "correct" looks like when verifying the node's work. Fields not specified are left unchanged, so the scope can be built incrementally across multiple calls.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the target node (ADR-008) |
+| `--description <text>` | string | No | -- | Audit scope description |
+| `--files <list>` | string | No | -- | Pipe-delimited list of files to audit |
+| `--systems <list>` | string | No | -- | Pipe-delimited list of systems to audit |
+| `--criteria <list>` | string | No | -- | Pipe-delimited list of acceptance criteria |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+At least one of `--description`, `--files`, `--systems`, or `--criteria` is required.
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
+4. Validate the `--node` path exists in the tree index.
+5. Load the node's co-located `state.json`.
+6. If the node's `audit.scope` is null, initialize it as an empty scope object.
+7. For each provided flag, update the corresponding scope field:
+   - `--description`: set `scope.description`
+   - `--files`: parse pipe-delimited string, deduplicate, set `scope.files`
+   - `--systems`: parse pipe-delimited string, deduplicate, set `scope.systems`
+   - `--criteria`: parse pipe-delimited string, deduplicate, set `scope.criteria`
+8. Write the updated node `state.json`.
+9. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Audit scope updated for attunement-tree/fire-impl
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_scope",
+  "data": {
+    "description": "Verify fire attunement combat integration",
+    "files": ["fire_ability.go", "stamina.go"],
+    "systems": ["combat", "stamina"],
+    "criteria": ["no regressions in PvP balance"]
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Scope updated |
+| 1 | `.wolfcastle/` not found, identity not configured, node not found, or no fields specified |
+
+### Examples
+
+```bash
+# Set description and files
+wolfcastle audit scope --node attunement-tree/fire-impl \
+  --description "Verify fire attunement combat integration" \
+  --files "fire_ability.go|stamina.go"
+
+# Add criteria on a subsequent call (description and files are preserved)
+wolfcastle audit scope --node attunement-tree/fire-impl \
+  --criteria "no regressions in PvP balance|stamina cost applied correctly"
+
+# Set systems
+wolfcastle audit scope --node attunement-tree/fire-impl --systems "combat|stamina"
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Node not found | `fatal: node 'foo/bar' not found in tree` | 1 |
+| No fields | `at least one scope field is required (--description, --files, --systems, --criteria)` | 1 |
+
+---
+
+## wolfcastle audit gap
+
+### Synopsis
+
+```
+wolfcastle audit gap --node <path> "<description>"
+```
+
+### Description
+
+Records a gap in a node's audit record. Gaps are issues found during audit that need resolution before the audit can pass. Each gap receives a deterministic ID (e.g., `gap-my-project-1`), a timestamp, and an `open` status. Gaps accumulate until they are fixed with `audit fix-gap` or escalated with `audit escalate`.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the target node (ADR-008) |
+| `"<description>"` | string (positional) | Yes | -- | What the gap is. Cannot be empty |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
+4. Validate the `--node` path exists in the tree index.
+5. Load the node's co-located `state.json`.
+6. Generate a gap ID: `gap-{node-id}-{N}` where N is one greater than the current number of gaps.
+7. Append a new gap entry to the node's `audit.gaps` array:
+   ```json
+   {
+     "id": "gap-fire-impl-1",
+     "timestamp": "2026-03-12T18:45:03Z",
+     "description": "missing error handling in auth module",
+     "source": "attunement-tree/fire-impl",
+     "status": "open"
+   }
+   ```
+8. Write the updated node `state.json`.
+9. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Gap gap-fire-impl-1 recorded on attunement-tree/fire-impl
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_gap",
+  "data": {
+    "node": "attunement-tree/fire-impl",
+    "gap_id": "gap-fire-impl-1"
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Gap recorded |
+| 1 | `.wolfcastle/` not found, identity not configured, node not found, or empty description |
+
+### Examples
+
+```bash
+# Record a gap during audit
+wolfcastle audit gap --node attunement-tree/fire-impl "Missing error handling in auth module"
+
+# Record a gap with JSON output
+wolfcastle audit gap --node api/endpoints "No rate limiting tests" --json
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 1 |
+| Empty description | `{"ok": false, "error": "gap description cannot be empty", "code": "EMPTY_DESCRIPTION"}` | 1 |
+
+---
+
+## wolfcastle audit fix-gap
+
+### Synopsis
+
+```
+wolfcastle audit fix-gap --node <path> <gap-id>
+```
+
+### Description
+
+Marks an open audit gap as fixed. The gap stays in the record for traceability (nothing is erased), but its status changes from `open` to `fixed` with a timestamp and attribution. Refuses to fix a gap that is already fixed.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the node containing the gap (ADR-008) |
+| `<gap-id>` | string (positional) | Yes | -- | The ID of the gap to fix (e.g., `gap-my-project-1`) |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
+4. Validate the `--node` path exists in the tree index.
+5. Load the node's co-located `state.json`.
+6. Search the node's `audit.gaps` array for the given gap ID.
+7. If not found, fail.
+8. If the gap's status is already `fixed`, fail.
+9. Transition the gap's status from `open` to `fixed`.
+10. Record `fixed_by` (node address) and `fixed_at` (timestamp).
+11. Write the updated node `state.json`.
+12. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Gap gap-fire-impl-1 marked as fixed on attunement-tree/fire-impl
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_fix_gap",
+  "data": {
+    "node": "attunement-tree/fire-impl",
+    "gap_id": "gap-fire-impl-1"
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Gap marked as fixed |
+| 1 | `.wolfcastle/` not found, identity not configured, node not found, gap not found, or gap already fixed |
+
+### Examples
+
+```bash
+# Fix a gap by ID
+wolfcastle audit fix-gap --node attunement-tree/fire-impl gap-fire-impl-1
+
+# Fix with JSON output
+wolfcastle audit fix-gap --node attunement-tree/fire-impl gap-fire-impl-1 --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| Node not found | `fatal: node 'foo/bar' not found in tree` | 1 |
+| Gap not found | `gap gap-fire-impl-99 not found in attunement-tree/fire-impl` | 1 |
+| Already fixed | `gap gap-fire-impl-1 is already fixed` | 1 |
+
+---
+
+## wolfcastle audit resolve
+
+### Synopsis
+
+```
+wolfcastle audit resolve --node <path> <escalation-id>
+```
+
+### Description
+
+Marks an open escalation as resolved. The escalation stays in the record for traceability, but its status changes from `open` to `resolved` with a timestamp and attribution. Refuses to resolve an escalation that is already resolved.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the node containing the escalation (ADR-008) |
+| `<escalation-id>` | string (positional) | Yes | -- | The ID of the escalation to resolve (e.g., `escalation-my-project-1`) |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
+4. Validate the `--node` path exists in the tree index.
+5. Load the node's co-located `state.json`.
+6. Search the node's `audit.escalations` array for the given escalation ID.
+7. If not found, fail.
+8. If the escalation's status is already `resolved`, fail.
+9. Transition the escalation's status from `open` to `resolved`.
+10. Record `resolved_by` (node address) and `resolved_at` (timestamp).
+11. Write the updated node `state.json`.
+12. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Escalation escalation-fire-impl-1 resolved on attunement-tree/fire-impl
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_resolve",
+  "data": {
+    "node": "attunement-tree/fire-impl",
+    "escalation_id": "escalation-fire-impl-1"
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Escalation resolved |
+| 1 | `.wolfcastle/` not found, identity not configured, node not found, escalation not found, or already resolved |
+
+### Examples
+
+```bash
+# Resolve an escalation by ID
+wolfcastle audit resolve --node attunement-tree/fire-impl escalation-fire-impl-1
+
+# Resolve with JSON output
+wolfcastle audit resolve --node attunement-tree/fire-impl escalation-fire-impl-1 --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| Node not found | `fatal: node 'foo/bar' not found in tree` | 1 |
+| Escalation not found | `escalation escalation-fire-impl-99 not found in attunement-tree/fire-impl` | 1 |
+| Already resolved | `escalation escalation-fire-impl-1 is already resolved` | 1 |
+
+---
+
+## wolfcastle audit run
+
+### Synopsis
+
+```
+wolfcastle audit run [--scope <scopes>] [--list] [--json]
+```
+
+### Description
+
+Runs a read-only codebase audit against composable scopes. Discovers available scopes from `base/audits/`, `custom/audits/`, and `local/audits/` (all three configuration tiers). For each requested scope, invokes a model to analyze the codebase and collect findings. Saves the findings as a pending batch in `audit-state.json`.
+
+The audit is strictly read-only. The model reads code and produces a report. It does not modify files, create branches, or write code.
+
+Findings do not become tasks automatically. They go through an approval gate: use `wolfcastle audit approve` or `wolfcastle audit reject` to decide their fate (ADR-038).
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--scope <scopes>` | string | No | (all discovered scopes) | Comma-separated scope IDs to run. Defaults to all |
+| `--list` | boolean | No | `false` | List available scopes and exit (equivalent to `audit list`) |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Discover available scopes by scanning `base/audits/`, `custom/audits/`, and `local/audits/` for `.md` files. Higher tiers override lower tiers when scope IDs collide. Each scope's ID is its filename without extension; its description is the first non-heading, non-empty line of the file.
+4. **If `--list` is set**: display the discovered scopes (ID and description) and exit 0.
+5. **Check for existing pending batch**: load `audit-state.json`. If a pending batch already exists, fail with a message directing the user to review or discard it.
+6. **Filter scopes**: if `--scope` is provided, select only the requested scope IDs. Fail if any requested ID is unknown.
+7. If no scopes are available after filtering, fail.
+8. Resolve the audit model from `config.json` under `audit.model`.
+9. Resolve the base audit prompt from `audit.prompt_file` via three-tier merge, then append each selected scope's prompt file content.
+10. Invoke the model with the assembled prompt and the repository root as working directory.
+11. Parse findings from the model's output (headings and numbered bold items are recognized as finding titles; subsequent text becomes the description).
+12. Build a batch with a timestamped ID, the scope IDs, status `"pending"`, and the parsed findings.
+13. Save the batch to `.wolfcastle/audit-state.json`.
+14. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Running audit with 2 scope(s): security, performance
+
+Saved 3 finding(s) for review.
+  1. Missing input validation on API endpoints
+  2. Unbounded query in user search
+  3. No connection pool limits
+
+Review with: wolfcastle audit pending
+Approve:     wolfcastle audit approve <id>
+Reject:      wolfcastle audit reject <id>
+```
+
+With `--list`:
+
+```
+Available audit scopes:
+  security             Check for common security vulnerabilities
+  performance          Identify performance bottlenecks
+  dry                  Detect DRY violations and duplicated logic
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_run",
+  "data": {
+    "batch_id": "audit-20260314T120000Z",
+    "finding_count": 3,
+    "scopes": ["security", "performance"]
+  }
+}
+```
+
+JSON (`--json --list`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_list",
+  "data": {
+    "scopes": [
+      {"id": "security", "description": "Check for common security vulnerabilities", "prompt_file": ".wolfcastle/base/audits/security.md"},
+      {"id": "performance", "description": "Identify performance bottlenecks", "prompt_file": ".wolfcastle/custom/audits/performance.md"}
+    ]
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Audit complete, or scopes listed |
+| 1 | `.wolfcastle/` not found, identity not configured, pending batch exists, unknown scope, no scopes found, or model invocation failed |
+
+### Examples
+
+```bash
+# Run all scopes
+wolfcastle audit run
+
+# Run specific scopes
+wolfcastle audit run --scope security,performance
+
+# List available scopes
+wolfcastle audit run --list
+
+# Run and get JSON output
+wolfcastle audit run --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| Pending batch exists | `pending review batch exists with 3 finding(s). Use 'audit pending' to review or 'audit reject --all' to discard` | 1 |
+| Unknown scope | `unknown scope "foo". Use --list to see available scopes` | 1 |
+| No scopes | `no audit scopes found. Add .md files to base/audits/, custom/audits/, or local/audits/` | 1 |
+| Model failure | `audit invocation failed: {error}` | 1 |
+
+### Configuration
+
+The model and prompt are configured in `config.json`:
+
+```json
+{
+  "audit": {
+    "model": "heavy",
+    "prompt_file": "audit.md"
+  }
+}
+```
+
+---
+
+## wolfcastle audit list
+
+### Synopsis
+
+```
+wolfcastle audit list [--json]
+```
+
+### Description
+
+Lists available audit scopes discovered from `base/audits/`, `custom/audits/`, and `local/audits/`. This is a standalone alias for the `audit run --list` behavior, provided for discoverability.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Discover available scopes by scanning all three configuration tiers for `.md` files under `audits/`. Higher tiers override lower tiers when scope IDs collide.
+3. Display each scope's ID and description.
+
+### Output
+
+Human-readable:
+
+```
+Available audit scopes:
+  security             Check for common security vulnerabilities
+  performance          Identify performance bottlenecks
+  dry                  Detect DRY violations and duplicated logic
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_list",
+  "data": {
+    "scopes": [
+      {"id": "security", "description": "Check for common security vulnerabilities", "prompt_file": ".wolfcastle/base/audits/security.md"}
+    ]
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Scopes listed (including empty list) |
+| 1 | `.wolfcastle/` not found |
+
+### Examples
+
+```bash
+# List all available scopes
+wolfcastle audit list
+
+# List as JSON
+wolfcastle audit list --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+
+---
+
 ## wolfcastle audit pending
 
 ### Synopsis
 
 ```
-wolfcastle audit pending
+wolfcastle audit pending [--json]
 ```
 
 ### Description
 
-Displays the current batch of audit findings that have not yet been approved or rejected. Shows finding IDs, titles, and description previews. If no pending batch exists, reports that (ADR-038).
+Displays the current batch of audit findings that have not yet been approved or rejected. Shows finding IDs, titles, and description previews. If no pending batch exists, reports that. This is the entry point for the approval gate (ADR-038).
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Output as structured JSON |
 
 ### Behavior
 
-1. Load `audit-state.json` from `.wolfcastle/`.
-2. If no file exists, report "No pending audit review batch."
-3. Filter findings with status `"pending"`.
-4. Display each finding's ID, title, and first line of description.
-5. With `--json`, return the full batch metadata and pending findings array.
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Load `audit-state.json` from `.wolfcastle/`.
+3. If no file exists or the batch is null, report "No pending audit review batch." and exit 0.
+4. Filter findings with status `"pending"`.
+5. If all findings have been decided but the batch hasn't been archived yet, report that and suggest approving or rejecting the final finding to trigger archival.
+6. Display each pending finding's ID, title, and first line of description (truncated to 80 characters).
+7. Print usage hints for `approve` and `reject`.
 
 ### Output
 
-Human output lists findings with IDs for use with `approve`/`reject`:
+Human-readable:
 
 ```
 Pending audit findings (batch audit-20260314T120000Z, 2 scope(s)):
 
   [finding-1] Missing input validation on API endpoints
+         Endpoints in api/handlers/ accept unvalidated user input...
   [finding-2] Stale database migration files
+         Three migration files reference tables that no longer exist...
+
+  Approve: wolfcastle audit approve <id>
+  Reject:  wolfcastle audit reject <id>
+  Detail:  wolfcastle audit pending --json | jq '.data.findings[] | select(.id=="<id>")'
 ```
+
+No pending batch:
+
+```
+No pending audit review batch.
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_pending",
+  "data": {
+    "batch_id": "audit-20260314T120000Z",
+    "scopes": ["security", "performance"],
+    "pending": 2,
+    "total": 3,
+    "findings": [
+      {
+        "id": "finding-1",
+        "title": "Missing input validation on API endpoints",
+        "description": "Endpoints in api/handlers/ accept unvalidated user input...",
+        "status": "pending"
+      },
+      {
+        "id": "finding-2",
+        "title": "Stale database migration files",
+        "description": "Three migration files reference tables that no longer exist...",
+        "status": "pending"
+      }
+    ]
+  }
+}
+```
+
+JSON (no pending batch):
+
+```json
+{
+  "ok": true,
+  "action": "audit_pending",
+  "data": {
+    "pending": 0
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Always (informational command) |
+| 1 | `.wolfcastle/` not found |
+
+### Examples
+
+```bash
+# View pending findings
+wolfcastle audit pending
+
+# Get full finding details as JSON
+wolfcastle audit pending --json
+
+# Inspect a specific finding
+wolfcastle audit pending --json | jq '.data.findings[] | select(.id=="finding-1")'
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
 
 ---
 
@@ -1591,23 +2710,102 @@ wolfcastle audit approve --all
 
 ### Description
 
-Approves a pending audit finding, creating a leaf project in the work tree. Use `--all` to approve every remaining pending finding. When all findings have been decided, the batch is archived to `audit-review-history.json` and the pending file is removed (ADR-038).
+Approves a pending audit finding, creating a leaf project in the work tree. The finding's title becomes the project name; its description becomes the project's description file content. Use `--all` to approve every remaining pending finding in one pass. When all findings in the batch have been decided (approved or rejected), the batch is archived to `audit-review-history.json` with retention (100 entries, 90 days) and the pending file is removed (ADR-038).
 
 ### Arguments and Flags
 
 | Flag/Arg | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `<finding-id>` | string (positional) | Yes (unless `--all`) | -- | ID of the finding to approve |
-| `--all` | boolean | No | false | Approve all pending findings |
+| `<finding-id>` | string (positional) | Yes (unless `--all`) | -- | ID of the finding to approve (e.g., `finding-1`) |
+| `--all` | boolean | No | `false` | Approve all remaining pending findings |
+| `--json` | boolean | No | `false` | Output as structured JSON |
 
 ### Behavior
 
-1. Load `audit-state.json`. Fail if not found.
-2. Load root index.
-3. For each targeted finding: create a leaf project with the finding title, write state and description files.
-4. Mark findings as `"approved"` with timestamp and created node address.
-5. Save updated batch and root index.
-6. If all findings are decided, archive the batch to history with retention (100 entries, 90 days) and remove the pending file.
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load `audit-state.json`. Fail if no pending batch exists.
+4. Load the root state index.
+5. For each targeted finding (by ID, or all pending if `--all`):
+   a. Generate a slug from the finding's title.
+   b. Validate the slug. If invalid (e.g., title produces empty slug), skip with a warning in `--all` mode or fail in single-finding mode.
+   c. If a project with that slug already exists in the root index, mark the finding as approved without creating a duplicate.
+   d. Otherwise, create a leaf project: directory, `state.json`, and description `.md` file containing the finding's title, batch ID, and description.
+   e. Update the finding's status to `"approved"` with timestamp and created node address.
+6. Save the updated batch file.
+7. Save the updated root index (new projects were added).
+8. If all findings in the batch are decided, archive the batch to `audit-review-history.json` and remove `audit-state.json`.
+9. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+  Approved: finding-1 → missing-input-validation
+  Approved: finding-2 → stale-database-migrations
+
+Approved 2 finding(s).
+Batch audit-20260314T120000Z complete. Archived to history.
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_approve",
+  "data": {
+    "approved": 2,
+    "decisions": [
+      {
+        "finding_id": "finding-1",
+        "title": "Missing input validation on API endpoints",
+        "action": "approved",
+        "timestamp": "2026-03-14T12:05:00Z",
+        "created_node": "missing-input-validation"
+      },
+      {
+        "finding_id": "finding-2",
+        "title": "Stale database migration files",
+        "action": "approved",
+        "timestamp": "2026-03-14T12:05:00Z",
+        "created_node": "stale-database-migrations"
+      }
+    ]
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Finding(s) approved |
+| 1 | `.wolfcastle/` not found, identity not configured, no pending batch, finding not found, or finding already decided |
+
+### Examples
+
+```bash
+# Approve a single finding
+wolfcastle audit approve finding-1
+
+# Approve all remaining findings
+wolfcastle audit approve --all
+
+# Approve with JSON output
+wolfcastle audit approve finding-1 --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No batch | `no pending review batch. Run 'wolfcastle audit run' first` | 1 |
+| No args | `provide a finding ID or use --all` | 1 |
+| Not found | `finding "finding-99" not found or already decided` | 1 |
+| No pending | `no pending findings to approve` | 1 |
 
 ---
 
@@ -1622,21 +2820,86 @@ wolfcastle audit reject --all
 
 ### Description
 
-Rejects a pending audit finding without creating any project. The decision is recorded for audit trail purposes. When all findings have been decided, the batch is archived to history and the pending file is removed (ADR-038).
+Rejects a pending audit finding without creating any project. The decision is recorded for audit trail purposes. Use `--all` to reject every remaining pending finding. When all findings in the batch have been decided, the batch is archived to `audit-review-history.json` and the pending file is removed (ADR-038).
 
 ### Arguments and Flags
 
 | Flag/Arg | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
 | `<finding-id>` | string (positional) | Yes (unless `--all`) | -- | ID of the finding to reject |
-| `--all` | boolean | No | false | Reject all pending findings |
+| `--all` | boolean | No | `false` | Reject all remaining pending findings |
+| `--json` | boolean | No | `false` | Output as structured JSON |
 
 ### Behavior
 
-1. Load `audit-state.json`. Fail if not found.
-2. Mark targeted findings as `"rejected"` with timestamp.
-3. Save updated batch.
-4. If all findings are decided, archive the batch to history and remove the pending file.
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Load `audit-state.json`. Fail if no pending batch exists.
+3. For each targeted finding (by ID, or all pending if `--all`):
+   a. Update the finding's status to `"rejected"` with timestamp.
+   b. No project is created.
+4. Save the updated batch file.
+5. If all findings in the batch are decided, archive the batch to `audit-review-history.json` with retention (100 entries, 90 days) and remove `audit-state.json`.
+6. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+  Rejected: finding-3 (No connection pool limits)
+
+Rejected 1 finding(s).
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_reject",
+  "data": {
+    "rejected": 1,
+    "decisions": [
+      {
+        "finding_id": "finding-3",
+        "title": "No connection pool limits",
+        "action": "rejected",
+        "timestamp": "2026-03-14T12:10:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Finding(s) rejected |
+| 1 | `.wolfcastle/` not found, no pending batch, finding not found, or finding already decided |
+
+### Examples
+
+```bash
+# Reject a single finding
+wolfcastle audit reject finding-3
+
+# Reject all remaining findings
+wolfcastle audit reject --all
+
+# Reject with JSON output
+wolfcastle audit reject finding-3 --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No batch | `no pending review batch. Run 'wolfcastle audit run' first` | 1 |
+| No args | `provide a finding ID or use --all` | 1 |
+| Not found | `finding "finding-99" not found or already decided` | 1 |
+| No pending | `no pending findings to reject` | 1 |
 
 ---
 
@@ -1645,18 +2908,113 @@ Rejects a pending audit finding without creating any project. The decision is re
 ### Synopsis
 
 ```
-wolfcastle audit history
+wolfcastle audit history [--json]
 ```
 
 ### Description
 
-Displays the history of completed audit review batches with their decisions. Most recent batches are shown first. Each entry shows the batch ID, completion timestamp, scopes, and a summary of approved/rejected findings (ADR-038).
+Displays the history of completed audit review batches with their decisions. Most recent batches are shown first. Each entry shows the batch ID, completion timestamp, scopes, and a summary of approved versus rejected findings with individual outcomes (ADR-038).
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Output as structured JSON |
 
 ### Behavior
 
-1. Load `audit-review-history.json` from `.wolfcastle/`.
-2. If no file exists, report "No audit review history."
-3. Display entries in reverse chronological order with decision counts and individual finding outcomes.
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Load `audit-review-history.json` from `.wolfcastle/`.
+3. If no file exists or the history is empty, report "No audit review history." and exit 0.
+4. Display entries in reverse chronological order (most recent first):
+   - Batch ID and completion timestamp
+   - Scopes that were audited
+   - Counts of approved and rejected findings
+   - Individual finding outcomes with `[+]` for approved and `[-]` for rejected, including created node addresses where applicable.
+
+### Output
+
+Human-readable:
+
+```
+Batch audit-20260314T120000Z (completed 2026-03-14 12:10)
+  Scopes: [security performance]
+  Decisions: 2 approved, 1 rejected
+    [+] Missing input validation on API endpoints → missing-input-validation
+    [+] Stale database migration files → stale-database-migrations
+    [-] No connection pool limits
+
+Batch audit-20260310T090000Z (completed 2026-03-10 09:15)
+  Scopes: [dry]
+  Decisions: 1 approved, 0 rejected
+    [+] Duplicated HTTP client setup → duplicated-http-client
+```
+
+No history:
+
+```
+No audit review history.
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "audit_history",
+  "data": {
+    "entries": [
+      {
+        "batch_id": "audit-20260314T120000Z",
+        "completed_at": "2026-03-14T12:10:00Z",
+        "scopes": ["security", "performance"],
+        "decisions": [
+          {
+            "finding_id": "finding-1",
+            "title": "Missing input validation on API endpoints",
+            "action": "approved",
+            "timestamp": "2026-03-14T12:05:00Z",
+            "created_node": "missing-input-validation"
+          },
+          {
+            "finding_id": "finding-3",
+            "title": "No connection pool limits",
+            "action": "rejected",
+            "timestamp": "2026-03-14T12:10:00Z"
+          }
+        ]
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | History displayed (including empty history) |
+| 1 | `.wolfcastle/` not found |
+
+### Examples
+
+```bash
+# View audit history
+wolfcastle audit history
+
+# Get history as JSON
+wolfcastle audit history --json
+
+# Count total approved findings across all batches
+wolfcastle audit history --json | jq '[.data.entries[].decisions[] | select(.action=="approved")] | length'
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
 
 ---
 
@@ -1843,6 +3201,180 @@ wolfcastle inbox add "Refactor the auth middleware to support OAuth2 — current
 | Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
 | No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
 | Empty idea | `fatal: idea text must not be empty` | 2 |
+
+---
+
+## wolfcastle inbox list
+
+### Synopsis
+
+```
+wolfcastle inbox list [--json]
+```
+
+### Description
+
+Shows everything in the inbox, grouped by status. Read-only. Items are displayed with their index number, status, text, and timestamp.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load `inbox.json` from `projects/{identity}/`.
+4. Display all items with their status (`new`, `expanded`, `filed`), text, and timestamp.
+
+### Output
+
+Human-readable:
+
+```
+  1. [new] Add caching layer for database queries (2026-03-14T12:00:00Z)
+  2. [expanded] Refactor auth middleware (2026-03-13T09:30:00Z)
+  3. [filed] Add rate limiting to API (2026-03-12T16:00:00Z)
+```
+
+Empty inbox:
+
+```
+Inbox is empty
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "inbox_list",
+  "data": {
+    "items": [
+      {
+        "timestamp": "2026-03-14T12:00:00Z",
+        "text": "Add caching layer for database queries",
+        "status": "new"
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success (including empty inbox) |
+| 1 | `.wolfcastle/` not found or identity not configured |
+
+### Examples
+
+```bash
+# List all inbox items
+wolfcastle inbox list
+
+# List as JSON
+wolfcastle inbox list --json
+
+# Count new items
+wolfcastle inbox list --json | jq '[.data.items[] | select(.status=="new")] | length'
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+
+---
+
+## wolfcastle inbox clear
+
+### Synopsis
+
+```
+wolfcastle inbox clear [--all] [--json]
+```
+
+### Description
+
+Removes processed items from the inbox. Without `--all`, only removes items with status `filed` or `expanded` (items the daemon has already processed). With `--all`, clears everything including unprocessed `new` items.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--all` | boolean | No | `false` | Remove everything, including unprocessed `new` items |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load `inbox.json` from `projects/{identity}/`.
+4. **Without `--all`**: remove items with status `filed` or `expanded`, keep items with status `new`.
+5. **With `--all`**: remove all items.
+6. Save the updated `inbox.json`.
+7. Output the count of removed and remaining items.
+
+### Output
+
+Human-readable:
+
+```
+Cleared 5 items from inbox (2 remaining)
+```
+
+With `--all`:
+
+```
+Cleared 7 items from inbox (0 remaining)
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "inbox_clear",
+  "data": {
+    "removed": 5,
+    "remaining": 2
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Inbox cleared (even if nothing was removed) |
+| 1 | `.wolfcastle/` not found or identity not configured |
+
+### Examples
+
+```bash
+# Clear processed items only
+wolfcastle inbox clear
+
+# Clear everything
+wolfcastle inbox clear --all
+
+# Clear and verify
+wolfcastle inbox clear && wolfcastle inbox list
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
 
 ---
 
