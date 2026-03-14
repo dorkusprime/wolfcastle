@@ -23,6 +23,7 @@ Consult these topic-specific files before making changes in their domain:
 | [Daemon](docs/agents/daemon.md) | Touching daemon loop, pipeline execution, or model invocation |
 | [State & Types](docs/agents/state-and-types.md) | Modifying state files, types, or propagation logic |
 | [Documentation](docs/agents/documentation.md) | Writing specs, ADRs, or updating existing docs |
+| [Voice](docs/agents/VOICE.md) | Writing user-facing copy, error messages, README text, or any prose that represents Wolfcastle's personality |
 
 ## Critical Rules
 
