@@ -8,7 +8,7 @@ Wolfcastle is a model-agnostic autonomous project orchestrator. It takes complex
 
 ## Status
 
-Pre-alpha. Architecture and design phase. The blueprints for the weapon are complete. Construction has not begun.
+Pre-alpha. Under active construction. The architecture is locked down and implementation is underway.
 
 See the [Architecture Decision Records](docs/decisions/INDEX.md) and [Specifications](docs/specs/) for the full design.
 
