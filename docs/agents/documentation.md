@@ -4,8 +4,10 @@
 
 1. **ADRs** (Architecture Decision Records) — the authoritative record of *why* a design choice was made. Found in `docs/decisions/`. ADRs override specs when there's a conflict.
 2. **Specs** — detailed implementation reference for major subsystems. Found in `docs/specs/`. Specs describe *how* things work and must be updated when behavior changes.
-3. **AGENTS.md** — agent-facing guidance. Found in `docs/agents/` with a top-level index at `AGENTS.md`.
-4. **Code doc comments** — Go doc comments on packages, types, and functions.
+3. **Human docs** — user-facing documentation. Found in `docs/humans/` with topic pages and individual command pages in `docs/humans/cli/`. Must be updated when user-visible behavior changes.
+4. **AGENTS.md** — agent-facing guidance. Found in `docs/agents/` with a top-level index at `AGENTS.md`.
+5. **Code doc comments** — Go doc comments on packages, types, and functions.
+6. **Voice guide** — [VOICE.md](VOICE.md) defines the product personality. Consult when writing user-facing copy.
 
 ## ADR Conventions
 
@@ -41,4 +43,5 @@ The original specs (pipeline-stage-contract, archive-format) described the summa
 | Behavioral change | Spec (and ADR if it's a design reversal) |
 | New package or exported API | Code doc comments |
 | Bug fix | Nothing (the fix is in the code, the commit message has context) |
-| New CLI command | Spec (cli-commands), code doc comments, scriptref.go |
+| New CLI command | Spec (cli-commands), code doc comments, scriptref.go, `docs/humans/cli.md` command table, new page in `docs/humans/cli/`, update `docs/humans/cli.md` |
+| User-visible behavior change | Relevant `docs/humans/` page |

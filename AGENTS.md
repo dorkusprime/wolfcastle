@@ -25,6 +25,12 @@ Consult these topic-specific files before making changes in their domain:
 | [Documentation](docs/agents/documentation.md) | Writing specs, ADRs, or updating existing docs |
 | [Voice](docs/agents/VOICE.md) | Writing user-facing copy, error messages, README text, or any prose that represents Wolfcastle's personality |
 
+## Design References
+
+- [Architecture Decision Records](docs/decisions/INDEX.md) (58 ADRs) document every major design choice. Consult these before making architectural decisions.
+- [Specifications](docs/specs/) (14 specs) describe the current system in detail. Consult these before modifying behavior.
+- [Full documentation hub](docs/)
+
 ## Critical Rules
 
 1. **All output through `output` package.** Never use `fmt.Println`/`fmt.Printf` for user-facing output in commands or the daemon. Use `output.PrintHuman()` and `output.PrintError()`.

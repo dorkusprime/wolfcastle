@@ -1,5 +1,7 @@
 # State & Types
 
+The authoritative specification for the state machine is [docs/specs/2026-03-12T00-00Z-state-machine.md](../specs/2026-03-12T00-00Z-state-machine.md). This guide covers the practical details for developers working with the code.
+
 ## State Files
 
 Wolfcastle persists all state as JSON files under `.wolfcastle/`:

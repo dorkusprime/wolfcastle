@@ -71,8 +71,8 @@ Wolfcastle [commits to your current branch](docs/humans/collaboration.md#git-int
 
 ## CLI
 
-[21+ commands](docs/humans/cli.md#commands) across lifecycle, task management, auditing, diagnostics, and documentation. Every command accepts `--json` for structured output. Every command that operates on a node accepts `--node` with a slash-separated [tree address](docs/humans/cli.md#tree-addressing). The [inbox](docs/humans/cli.md#the-inbox) (`wolfcastle inbox add`) captures ideas mid-flight for the daemon to decompose and file. See the full [project layout](docs/humans/cli.md#project-layout) and [installation options](docs/humans/cli.md#installation) in the CLI reference.
+[32 commands](docs/humans/cli.md#commands) across lifecycle, task management, auditing, diagnostics, and documentation. Every command accepts `--json` for structured output. Every command that operates on a node accepts `--node` with a slash-separated [tree address](docs/humans/cli.md#tree-addressing). The [inbox](docs/humans/cli.md#the-inbox) (`wolfcastle inbox add`) captures ideas mid-flight for the daemon to decompose and file. See the full [project layout](docs/humans/cli.md#project-layout) and [installation options](docs/humans/cli.md#installation) in the CLI reference.
 
 ## Design Documents
 
-The [Architecture Decision Records](docs/decisions/INDEX.md) document every major design choice. The [Specifications](docs/specs/) provide detailed formal specs for the state machine, configuration system, pipelines, CLI surface, and validation engine.
+The [Architecture Decision Records](docs/decisions/INDEX.md) document every major design choice. The [Specifications](docs/specs/) provide detailed formal specs for the state machine, configuration system, pipelines, CLI surface, and validation engine. For developer and agent guides covering code standards, architecture, and internals, see [AGENTS.md](AGENTS.md) and [docs/agents/](docs/agents/).
