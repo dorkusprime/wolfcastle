@@ -14,6 +14,7 @@ var Commit = "unknown"
 // Date is the build timestamp, injected at build time via ldflags.
 var Date = "unknown"
 
+// versionCmd prints the binary's version, commit, and build date.
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the Wolfcastle version",

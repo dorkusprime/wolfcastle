@@ -2,6 +2,7 @@ package cmd
 
 import "github.com/spf13/cobra"
 
+// adrCmd is the parent command for architecture decision record management.
 var adrCmd = &cobra.Command{
 	Use:   "adr",
 	Short: "Manage architecture decision records",

@@ -2,6 +2,7 @@ package cmd
 
 import "github.com/spf13/cobra"
 
+// archiveCmd is the parent command for archive management.
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
 	Short: "Manage the archive of completed work",

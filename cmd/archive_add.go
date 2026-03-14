@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// archiveAddCmd generates an archive entry for a completed node.
 var archiveAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Generate an archive entry for a completed node",

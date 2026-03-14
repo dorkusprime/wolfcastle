@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// doctorCmd validates the structural integrity of the project tree.
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Validate structural integrity of the project tree",
