@@ -11,18 +11,18 @@ Work is organized as a tree. Two node types. No depth limit.
 Orchestrators can contain orchestrators. Those can contain more orchestrators. The tree goes as deep as the work demands.
 
 ```
-goal/
-  backend/
-    auth/
-      session-tokens/        <- leaf: tasks live here
-      oauth-provider/        <- leaf
-    database/
-      migrations/            <- leaf
-      connection-pool/       <- leaf
-  frontend/
-    login-flow/
-      form-validation/       <- leaf
-      error-states/          <- leaf
+goal/                       <- orchestrator (root)
+  backend/                  <- orchestrator
+    auth/                   <- orchestrator
+      session-tokens/       <- leaf: tasks live here
+      oauth-provider/       <- leaf
+    database/               <- orchestrator
+      migrations/           <- leaf
+      connection-pool/      <- leaf
+  frontend/                 <- orchestrator
+    login-flow/             <- orchestrator
+      form-validation/      <- leaf
+      error-states/         <- leaf
 ```
 
 Traversal is depth-first. Top-to-bottom, left-to-right, one task at a time. One target. One model.
@@ -31,12 +31,12 @@ Traversal is depth-first. Top-to-bottom, left-to-right, one task at a time. One 
 
 Every node and task has exactly one state.
 
-| State | Meaning |
-|-------|---------|
-| `not_started` | Waiting. Its time will come. |
-| `in_progress` | Under attack. |
-| `complete` | Destroyed. Terminal. Never comes back. |
-| `blocked` | Cannot proceed. Waiting for a human. |
+| State         | Meaning                                |
+| ------------- | -------------------------------------- |
+| `not_started` | Waiting. Its time will come.           |
+| `in_progress` | Under attack.                          |
+| `complete`    | Destroyed. Terminal. Never comes back. |
+| `blocked`     | Cannot proceed. Waiting for a human.   |
 
 There is no `failed`. There is no `cancelled`. There is no `paused`. Work that cannot continue is blocked. Work that is done is complete. Everything else is in progress or waiting.
 
@@ -68,12 +68,12 @@ Each iteration walks the configured pipeline stages, invokes models, and advance
 
 The daemon runs a pipeline of stages. Each stage invokes a model with a specific role. The default:
 
-| Stage | Model Tier | Mission |
-|-------|-----------|---------|
-| **expand** | cheap | Reads the inbox. Breaks new items into tasks. |
-| **file** | mid | Organizes tasks into the correct project nodes. |
-| **execute** | capable | Claims a task. Does the work. Writes code. Makes commits. |
-| **summary** | cheap | Writes a plain-language summary after audit completion. |
+| Stage       | Model Tier | Mission                                                   |
+| ----------- | ---------- | --------------------------------------------------------- |
+| **expand**  | cheap      | Reads the inbox. Breaks new items into tasks.             |
+| **file**    | mid        | Organizes tasks into the correct project nodes.           |
+| **execute** | capable    | Claims a task. Does the work. Writes code. Makes commits. |
+| **summary** | cheap      | Writes a plain-language summary after audit completion.   |
 
 Stages do not pass output to each other. They read the current state of the world and act on it. The expand stage creates tasks. The execute stage finds them. No coupling. No handoffs. Just state on disk and models that know how to read it.
 
