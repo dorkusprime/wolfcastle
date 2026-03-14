@@ -1,5 +1,7 @@
 # Wolfcastle
 
+![Wolfcastle](assets/wolfcastle-alpha.png)
+
 You have a goal. Wolfcastle will destroy it.
 
 Wolfcastle is a model-agnostic autonomous project orchestrator. It takes complex work, breaks it into a tree of projects and tasks that goes as deep as it needs to, then sends AI models to hunt every task down and eliminate it. One by one. Relentlessly. While you do whatever it is you do.
