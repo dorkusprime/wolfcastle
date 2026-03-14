@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// navigateCmd finds the next actionable task via depth-first traversal.
 var navigateCmd = &cobra.Command{
 	Use:   "navigate",
 	Short: "Find the next actionable task via depth-first traversal",

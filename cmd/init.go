@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// initCmd scaffolds the .wolfcastle directory in the current working directory.
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a Wolfcastle project in the current directory",

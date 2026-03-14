@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// installCmd is the parent command for integration installs.
 var installCmd = &cobra.Command{
 	Use:   "install [target]",
 	Short: "Install integrations",
@@ -19,6 +20,7 @@ Examples:
   wolfcastle install skill`,
 }
 
+// installSkillCmd installs the Claude Code skill for Wolfcastle interaction.
 var installSkillCmd = &cobra.Command{
 	Use:   "skill",
 	Short: "Install Claude Code skill for Wolfcastle interaction",

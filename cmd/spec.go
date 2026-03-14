@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// specCmd is the parent command for spec create, link, and list.
 var specCmd = &cobra.Command{
 	Use:   "spec",
 	Short: "Manage specs linked to project nodes",
@@ -28,6 +29,7 @@ Examples:
   wolfcastle spec list --node auth-system`,
 }
 
+// specCreateCmd creates a new spec file and optionally links it to a node.
 var specCreateCmd = &cobra.Command{
 	Use:   "create [title]",
 	Short: "Create a new spec and link it to a node",
@@ -100,6 +102,7 @@ Examples:
 	},
 }
 
+// specLinkCmd links an existing spec file to a project node.
 var specLinkCmd = &cobra.Command{
 	Use:   "link [filename]",
 	Short: "Link an existing spec to a node",
@@ -162,6 +165,7 @@ Examples:
 	},
 }
 
+// specListCmd lists specs, optionally filtered by a linked node.
 var specListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List specs, optionally filtered by node",

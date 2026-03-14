@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// unblockCmd provides model-assisted unblocking and agent context dumps.
 var unblockCmd = &cobra.Command{
 	Use:   "unblock",
 	Short: "Interactive model-assisted unblock, or agent context dump",

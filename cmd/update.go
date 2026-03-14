@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// updateCmd checks for binary updates and regenerates base/ prompts.
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update Wolfcastle binary and regenerate base/",

@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// adrCreateCmd creates a new timestamped ADR Markdown file.
 var adrCreateCmd = &cobra.Command{
 	Use:   "create [title]",
 	Short: "Create a new architecture decision record",
