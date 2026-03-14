@@ -29,11 +29,12 @@ func Err(action string, code int, msg string) Response {
 	return Response{OK: false, Action: action, Error: msg, Code: code}
 }
 
-// Print writes a response as JSON to stdout.
+// Print writes a response as JSON to stdout. Encoding errors are silently
+// discarded because output failures at this layer have no recovery path.
 func Print(r Response) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	enc.Encode(r)
+	_ = enc.Encode(r)
 }
 
 // PrintHuman writes a human-readable message to stdout.

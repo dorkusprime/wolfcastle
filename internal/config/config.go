@@ -1,3 +1,6 @@
+// Package config handles loading, merging, and validating the Wolfcastle
+// configuration. Configuration is resolved by deep-merging hardcoded
+// defaults with config.json and config.local.json (ADR-018, ADR-053).
 package config
 
 import (
@@ -102,14 +105,14 @@ func Load(wolfcastleDir string) (*Config, error) {
 	// Start with defaults as raw map
 	defaultsRaw, err := structToMap(Defaults())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshaling defaults: %w", err)
 	}
 
 	// Load config.json
 	configPath := filepath.Join(wolfcastleDir, "config.json")
 	configRaw, err := loadJSONFile(configPath)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, err
+		return nil, fmt.Errorf("reading config.json: %w", err)
 	}
 	if configRaw != nil {
 		defaultsRaw = DeepMerge(defaultsRaw, configRaw)
@@ -119,7 +122,7 @@ func Load(wolfcastleDir string) (*Config, error) {
 	localPath := filepath.Join(wolfcastleDir, "config.local.json")
 	localRaw, err := loadJSONFile(localPath)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, err
+		return nil, fmt.Errorf("reading config.local.json: %w", err)
 	}
 	if localRaw != nil {
 		defaultsRaw = DeepMerge(defaultsRaw, localRaw)
@@ -128,11 +131,11 @@ func Load(wolfcastleDir string) (*Config, error) {
 	// Marshal back to Config struct
 	merged, err := json.Marshal(defaultsRaw)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshaling merged config: %w", err)
 	}
 	var cfg Config
 	if err := json.Unmarshal(merged, &cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshaling merged config: %w", err)
 	}
 
 	// Validate structural integrity (skip identity — handled by resolver)
@@ -143,6 +146,8 @@ func Load(wolfcastleDir string) (*Config, error) {
 	return &cfg, nil
 }
 
+// loadJSONFile reads a JSON file and returns its contents as a map.
+// Returns (nil, os.ErrNotExist) if the file does not exist.
 func loadJSONFile(path string) (map[string]any, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -150,19 +155,20 @@ func loadJSONFile(path string) (map[string]any, error) {
 	}
 	var m map[string]any
 	if err := json.Unmarshal(data, &m); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing %s: %w", filepath.Base(path), err)
 	}
 	return m, nil
 }
 
+// structToMap converts a struct to a map[string]any via JSON round-trip.
 func structToMap(v any) (map[string]any, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshaling struct: %w", err)
 	}
 	var m map[string]any
 	if err := json.Unmarshal(data, &m); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshaling to map: %w", err)
 	}
 	return m, nil
 }

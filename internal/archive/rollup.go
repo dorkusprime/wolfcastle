@@ -1,3 +1,6 @@
+// Package archive generates timestamped Markdown archive entries from
+// completed node state. Archive entries include breadcrumbs, audit results,
+// and metadata, providing a permanent record of completed work (ADR-016).
 package archive
 
 import (

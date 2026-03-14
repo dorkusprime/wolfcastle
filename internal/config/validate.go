@@ -99,11 +99,26 @@ func ValidateStructure(cfg *Config) error {
 		errs = append(errs, fmt.Sprintf("retries.max_retries (%d) must be >= -1", cfg.Retries.MaxRetries))
 	}
 
-	// Validation command timeouts
+	// Validation command names and timeouts
+	cmdNames := make(map[string]bool)
 	for i, cmd := range cfg.Validation.Commands {
+		if cmd.Name == "" {
+			errs = append(errs, fmt.Sprintf("validation.commands[%d] has empty name", i))
+		} else if cmdNames[cmd.Name] {
+			errs = append(errs, fmt.Sprintf("validation.commands[%d] has duplicate name %q", i, cmd.Name))
+		}
+		cmdNames[cmd.Name] = true
+		if cmd.Run == "" {
+			errs = append(errs, fmt.Sprintf("validation.commands[%d].run must not be empty", i))
+		}
 		if cmd.TimeoutSeconds < 1 {
 			errs = append(errs, fmt.Sprintf("validation.commands[%d].timeout_seconds (%d) must be >= 1", i, cmd.TimeoutSeconds))
 		}
+	}
+
+	// Git commit message format must contain the {action} placeholder
+	if cfg.Git.CommitMessageFormat == "" {
+		errs = append(errs, "git.commit_message_format must not be empty")
 	}
 
 	// Overlap advisory threshold must be in [0, 1]
