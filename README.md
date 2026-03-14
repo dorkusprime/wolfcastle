@@ -10,7 +10,7 @@
 
 ![Wolfcastle](assets/wolfcastle-alpha.png)
 
-You have a goal. Wolfcastle will destroy it.
+**You have goals. _Wolfcastle will destroy them._**
 
 Wolfcastle breaks complex work into pieces and sends AI models to eliminate every one of them, as deep as the work demands. If your models can write code, Wolfcastle will put them to work. While you do whatever it is you do.
 
