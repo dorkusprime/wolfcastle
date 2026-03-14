@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/logging"
+	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +31,7 @@ Examples:
 		for {
 			latestPath, err := logging.LatestLogFile(logDir)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Waiting for logs...\n")
+				output.PrintError("Waiting for logs...")
 				time.Sleep(2 * time.Second)
 				continue
 			}

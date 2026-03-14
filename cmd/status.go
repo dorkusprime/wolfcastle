@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"syscall"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -48,11 +52,38 @@ Examples:
 
 func showTreeStatus(idx *state.RootIndex, scope string) error {
 	counts := map[state.NodeStatus]int{}
-	for _, entry := range idx.Nodes {
+	auditCounts := map[state.AuditStatus]int{}
+	openGaps := 0
+	openEscalations := 0
+
+	for addr, entry := range idx.Nodes {
 		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
 			continue
 		}
 		counts[entry.State]++
+
+		// Load leaf nodes for audit stats
+		if entry.Type == state.NodeLeaf {
+			a, err := tree.ParseAddress(addr)
+			if err != nil {
+				continue
+			}
+			ns, err := state.LoadNodeState(resolver.NodeStatePath(a))
+			if err != nil {
+				continue
+			}
+			auditCounts[ns.Audit.Status]++
+			for _, g := range ns.Audit.Gaps {
+				if g.Status == "open" {
+					openGaps++
+				}
+			}
+			for _, e := range ns.Audit.Escalations {
+				if e.Status == "open" {
+					openEscalations++
+				}
+			}
+		}
 	}
 
 	total := len(idx.Nodes)
@@ -60,23 +91,69 @@ func showTreeStatus(idx *state.RootIndex, scope string) error {
 		total = counts[state.StatusNotStarted] + counts[state.StatusInProgress] + counts[state.StatusComplete] + counts[state.StatusBlocked]
 	}
 
+	daemonStatus := getDaemonStatus()
+
 	if jsonOutput {
 		output.Print(output.Ok("status", map[string]any{
-			"total":       total,
-			"not_started": counts[state.StatusNotStarted],
-			"in_progress": counts[state.StatusInProgress],
-			"complete":    counts[state.StatusComplete],
-			"blocked":     counts[state.StatusBlocked],
+			"total":            total,
+			"not_started":      counts[state.StatusNotStarted],
+			"in_progress":      counts[state.StatusInProgress],
+			"complete":         counts[state.StatusComplete],
+			"blocked":          counts[state.StatusBlocked],
+			"daemon":           daemonStatus,
+			"audit_pending":    auditCounts[state.AuditPending],
+			"audit_in_progress": auditCounts[state.AuditInProgress],
+			"audit_passed":     auditCounts[state.AuditPassed],
+			"audit_failed":     auditCounts[state.AuditFailed],
+			"open_gaps":        openGaps,
+			"open_escalations": openEscalations,
 		}))
 	} else {
 		output.PrintHuman("Wolfcastle Status")
-		output.PrintHuman("  Total nodes:  %d", total)
-		output.PrintHuman("  Not started:  %d", counts[state.StatusNotStarted])
-		output.PrintHuman("  In progress:  %d", counts[state.StatusInProgress])
-		output.PrintHuman("  Complete:     %d", counts[state.StatusComplete])
-		output.PrintHuman("  Blocked:      %d", counts[state.StatusBlocked])
+		output.PrintHuman("")
+		output.PrintHuman("  Nodes")
+		output.PrintHuman("    Total:        %d", total)
+		output.PrintHuman("    Not started:  %d", counts[state.StatusNotStarted])
+		output.PrintHuman("    In progress:  %d", counts[state.StatusInProgress])
+		output.PrintHuman("    Complete:     %d", counts[state.StatusComplete])
+		output.PrintHuman("    Blocked:      %d", counts[state.StatusBlocked])
+		output.PrintHuman("")
+		output.PrintHuman("  Audit")
+		output.PrintHuman("    Pending:      %d", auditCounts[state.AuditPending])
+		output.PrintHuman("    In progress:  %d", auditCounts[state.AuditInProgress])
+		output.PrintHuman("    Passed:       %d", auditCounts[state.AuditPassed])
+		output.PrintHuman("    Failed:       %d", auditCounts[state.AuditFailed])
+		if openGaps > 0 {
+			output.PrintHuman("    Open gaps:    %d", openGaps)
+		}
+		if openEscalations > 0 {
+			output.PrintHuman("    Open escalations: %d", openEscalations)
+		}
+		output.PrintHuman("")
+		output.PrintHuman("  Daemon: %s", daemonStatus)
 	}
 	return nil
+}
+
+// getDaemonStatus checks the PID file and reports daemon status.
+func getDaemonStatus() string {
+	pidPath := filepath.Join(wolfcastleDir, "daemon.pid")
+	data, err := os.ReadFile(pidPath)
+	if err != nil {
+		return "stopped"
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return "unknown (malformed PID file)"
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return fmt.Sprintf("stopped (stale PID %d)", pid)
+	}
+	if err := proc.Signal(syscall.Signal(0)); err != nil {
+		return fmt.Sprintf("stopped (stale PID %d)", pid)
+	}
+	return fmt.Sprintf("running (PID %d)", pid)
 }
 
 func showAllStatus() error {

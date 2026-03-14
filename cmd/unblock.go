@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
+	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
@@ -180,7 +181,7 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		// Display model response
 		fmt.Println(result.Stdout)
 		if result.Stderr != "" {
-			fmt.Fprintf(os.Stderr, "%s\n", result.Stderr)
+			output.PrintError("%s", result.Stderr)
 		}
 
 		// Get user input
