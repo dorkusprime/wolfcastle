@@ -1,12 +1,15 @@
 package cmdutil
 
 import (
+	"encoding/json"
 	"math"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/spf13/cobra"
 )
 
 // ---------------------------------------------------------------------------
@@ -346,5 +349,437 @@ func TestCompareNamespace_RecursesSubdirs(t *testing.T) {
 
 	if len(matches) == 0 {
 		t.Error("should recurse into subdirectories")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// LoadConfig
+// ---------------------------------------------------------------------------
+
+func TestLoadConfig_Success(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	os.MkdirAll(wcDir, 0755)
+
+	// Use Defaults() to get a valid config, then marshal
+	cfg := config.Defaults()
+	cfg.Identity = &config.IdentityConfig{User: "tester", Machine: "box"}
+	cfgData, _ := json.MarshalIndent(cfg, "", "  ")
+	os.WriteFile(filepath.Join(wcDir, "config.json"), cfgData, 0644)
+
+	localJSON := `{"identity": {"user": "tester", "machine": "box"}}`
+	os.WriteFile(filepath.Join(wcDir, "config.local.json"), []byte(localJSON), 0644)
+
+	// Create projects dir for namespace
+	ns := "tester-box"
+	projDir := filepath.Join(wcDir, "projects", ns)
+	os.MkdirAll(projDir, 0755)
+
+	// Write a root index so the resolver can init
+	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
+
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir)
+
+	// cd into a subdirectory so FindWolfcastleDir walks up
+	sub := filepath.Join(tmp, "deep", "nested")
+	os.MkdirAll(sub, 0755)
+	os.Chdir(sub)
+
+	a := &App{}
+	err := a.LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+	if a.Cfg == nil {
+		t.Error("expected config to be loaded")
+	}
+	// Resolver may or may not init depending on identity; at minimum WolfcastleDir is set
+	resolvedWC, _ := filepath.EvalSymlinks(wcDir)
+	resolvedApp, _ := filepath.EvalSymlinks(a.WolfcastleDir)
+	if resolvedApp != resolvedWC {
+		t.Errorf("WolfcastleDir = %q, want %q", resolvedApp, resolvedWC)
+	}
+}
+
+func TestLoadConfig_NoWolfcastleDir(t *testing.T) {
+	tmp := t.TempDir()
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir)
+	os.Chdir(tmp)
+
+	a := &App{}
+	err := a.LoadConfig()
+	if err == nil {
+		t.Error("expected error when no .wolfcastle exists")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// PropagateState
+// ---------------------------------------------------------------------------
+
+func TestPropagateState_SimpleLeaf(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "test-dev"
+	projDir := filepath.Join(wcDir, "projects", ns)
+	os.MkdirAll(projDir, 0755)
+
+	// Create root index with a single leaf node
+	idxJSON := `{
+		"root_id": "my-node",
+		"root_state": "not_started",
+		"nodes": {
+			"my-node": {
+				"name": "My Node",
+				"type": "leaf",
+				"state": "not_started",
+				"address": "my-node",
+				"children": []
+			}
+		}
+	}`
+	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+
+	// Create node state
+	nodeDir := filepath.Join(projDir, "my-node")
+	os.MkdirAll(nodeDir, 0755)
+	nodeJSON := `{
+		"id": "my-node",
+		"name": "My Node",
+		"type": "leaf",
+		"state": "in_progress",
+		"tasks": [],
+		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
+	}`
+	os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
+
+	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
+	a := &App{
+		WolfcastleDir: wcDir,
+		Resolver:      resolver,
+	}
+
+	// Propagate with in_progress status
+	err := a.PropagateState("my-node", "in_progress")
+	if err != nil {
+		t.Fatalf("PropagateState failed: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// CheckOverlap
+// ---------------------------------------------------------------------------
+
+func TestCheckOverlap_DisabledConfig(t *testing.T) {
+	a := &App{} // nil Cfg
+	// Should not panic
+	a.CheckOverlap("test", "description")
+}
+
+func TestCheckOverlap_NilResolver(t *testing.T) {
+	a := &App{
+		Cfg: &config.Config{
+			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.3},
+		},
+	}
+	// Should return silently when resolver is nil
+	a.CheckOverlap("test", "description")
+}
+
+func TestCheckOverlap_NotEnabled(t *testing.T) {
+	a := &App{
+		Cfg: &config.Config{
+			OverlapAdvisory: config.OverlapConfig{Enabled: false},
+		},
+		Resolver: &tree.Resolver{WolfcastleDir: "/tmp/fake", Namespace: "test"},
+	}
+	// Should return without error
+	a.CheckOverlap("test", "description")
+}
+
+func TestCheckOverlap_EmptyProject(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "me-dev"
+	os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
+
+	a := &App{
+		WolfcastleDir: wcDir,
+		Cfg: &config.Config{
+			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.3},
+		},
+		Resolver: &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+	}
+	// No other namespaces, should not panic
+	a.CheckOverlap("database migration", "migrate the database schema")
+}
+
+func TestCheckOverlap_FindsMatch(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "me-dev"
+	os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
+
+	// Create another engineer's namespace with similar project
+	otherDir := filepath.Join(wcDir, "projects", "alice-dev")
+	os.MkdirAll(otherDir, 0755)
+	os.WriteFile(filepath.Join(otherDir, "database-migration.md"),
+		[]byte("database migration schema upgrade postgresql"), 0644)
+
+	a := &App{
+		WolfcastleDir: wcDir,
+		Cfg: &config.Config{
+			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.1},
+		},
+		Resolver: &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+	}
+	// Should not panic, should detect overlap silently
+	a.CheckOverlap("database migration", "database migration schema upgrade postgresql")
+}
+
+// ---------------------------------------------------------------------------
+// Completions
+// ---------------------------------------------------------------------------
+
+func TestCompleteNodeAddresses_NilResolver(t *testing.T) {
+	a := &App{}
+	fn := CompleteNodeAddresses(a)
+	addrs, directive := fn(nil, nil, "")
+	if addrs != nil {
+		t.Errorf("expected nil addrs, got %v", addrs)
+	}
+	if directive != cobra.ShellCompDirectiveNoFileComp {
+		t.Error("expected NoFileComp directive")
+	}
+}
+
+func TestCompleteTaskAddresses_NilResolver(t *testing.T) {
+	a := &App{}
+	fn := CompleteTaskAddresses(a)
+	addrs, directive := fn(nil, nil, "")
+	if addrs != nil {
+		t.Errorf("expected nil addrs, got %v", addrs)
+	}
+	if directive != cobra.ShellCompDirectiveNoFileComp {
+		t.Error("expected NoFileComp directive")
+	}
+}
+
+func TestCompleteNodeAddresses_WithResolver(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "test-dev"
+	projDir := filepath.Join(wcDir, "projects", ns)
+	os.MkdirAll(projDir, 0755)
+
+	idxJSON := `{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"not_started","address":"my-node","children":[]}}}`
+	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+
+	a := &App{
+		WolfcastleDir: wcDir,
+		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+	}
+	fn := CompleteNodeAddresses(a)
+	addrs, _ := fn(nil, nil, "")
+	if len(addrs) != 1 {
+		t.Fatalf("expected 1 address, got %d", len(addrs))
+	}
+	if addrs[0] != "my-node" {
+		t.Errorf("expected 'my-node', got %q", addrs[0])
+	}
+}
+
+func TestConfigNotReady_Error(t *testing.T) {
+	e := &ConfigNotReady{}
+	if e.Error() != "config not ready" {
+		t.Errorf("unexpected error message: %s", e.Error())
+	}
+}
+
+func TestLoadRootIndexForCompletion_AlreadyLoaded(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "test-dev"
+	projDir := filepath.Join(wcDir, "projects", ns)
+	os.MkdirAll(projDir, 0755)
+
+	idxJSON := `{"nodes":{}}`
+	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+
+	a := &App{
+		WolfcastleDir: wcDir,
+		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+	}
+	idx, err := loadRootIndexForCompletion(a)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if idx == nil {
+		t.Error("expected non-nil index")
+	}
+}
+
+func TestResolverForCompletion_AlreadyLoaded(t *testing.T) {
+	r := &tree.Resolver{WolfcastleDir: "/tmp/fake", Namespace: "test"}
+	a := &App{Resolver: r}
+	got, err := resolverForCompletion(a)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != r {
+		t.Error("expected the same resolver")
+	}
+}
+
+func TestResolverForCompletion_NilResolverNoConfig(t *testing.T) {
+	tmp := t.TempDir()
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir)
+	os.Chdir(tmp)
+
+	a := &App{}
+	_, err := resolverForCompletion(a)
+	if err == nil {
+		t.Error("expected error when resolver and config are both unavailable")
+	}
+}
+
+func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "test-dev"
+	projDir := filepath.Join(wcDir, "projects", ns)
+	os.MkdirAll(projDir, 0755)
+
+	// Create a root index with a leaf node
+	idxJSON := `{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"in_progress","address":"my-node","children":[]}}}`
+	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+
+	// Create node state with a task
+	nodeDir := filepath.Join(projDir, "my-node")
+	os.MkdirAll(nodeDir, 0755)
+	nodeJSON := `{
+		"id": "my-node",
+		"name": "My Node",
+		"type": "leaf",
+		"state": "in_progress",
+		"tasks": [{"id":"task-1","description":"do work","state":"not_started"}],
+		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
+	}`
+	os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
+
+	a := &App{
+		WolfcastleDir: wcDir,
+		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+	}
+	fn := CompleteTaskAddresses(a)
+	addrs, _ := fn(nil, nil, "")
+	// Should contain both the node address and the task address
+	foundNode := false
+	foundTask := false
+	for _, addr := range addrs {
+		if addr == "my-node" {
+			foundNode = true
+		}
+		if addr == "my-node/task-1" {
+			foundTask = true
+		}
+	}
+	if !foundNode {
+		t.Error("expected node address in completions")
+	}
+	if !foundTask {
+		t.Error("expected task address in completions")
+	}
+}
+
+func TestPropagateState_WithParentChild(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "test-dev"
+	projDir := filepath.Join(wcDir, "projects", ns)
+	os.MkdirAll(projDir, 0755)
+
+	// Create root index with orchestrator + child leaf
+	idxJSON := `{
+		"root_id": "parent",
+		"root_state": "not_started",
+		"nodes": {
+			"parent": {
+				"name": "Parent",
+				"type": "orchestrator",
+				"state": "not_started",
+				"address": "parent",
+				"children": ["parent/child"]
+			},
+			"parent/child": {
+				"name": "Child",
+				"type": "leaf",
+				"state": "not_started",
+				"address": "parent/child",
+				"parent": "parent",
+				"children": []
+			}
+		}
+	}`
+	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+
+	// Create parent node state
+	parentDir := filepath.Join(projDir, "parent")
+	os.MkdirAll(parentDir, 0755)
+	parentJSON := `{
+		"id": "parent",
+		"name": "Parent",
+		"type": "orchestrator",
+		"state": "not_started",
+		"children": [{"id": "child", "address": "parent/child", "state": "not_started"}],
+		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
+	}`
+	os.WriteFile(filepath.Join(parentDir, "state.json"), []byte(parentJSON), 0644)
+
+	// Create child node state
+	childDir := filepath.Join(projDir, "parent", "child")
+	os.MkdirAll(childDir, 0755)
+	childJSON := `{
+		"id": "child",
+		"name": "Child",
+		"type": "leaf",
+		"state": "in_progress",
+		"tasks": [],
+		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
+	}`
+	os.WriteFile(filepath.Join(childDir, "state.json"), []byte(childJSON), 0644)
+
+	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
+	a := &App{
+		WolfcastleDir: wcDir,
+		Resolver:      resolver,
+	}
+
+	err := a.PropagateState("parent/child", "in_progress")
+	if err != nil {
+		t.Fatalf("PropagateState with parent failed: %v", err)
+	}
+}
+
+func TestPropagateState_NoRootIndex(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "test-dev"
+	projDir := filepath.Join(wcDir, "projects", ns)
+	os.MkdirAll(projDir, 0755)
+
+	// No state.json exists, so LoadRootIndex will fail
+	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
+	a := &App{
+		WolfcastleDir: wcDir,
+		Resolver:      resolver,
+	}
+
+	err := a.PropagateState("some-node", "in_progress")
+	if err == nil {
+		t.Error("expected error when root index cannot be loaded")
 	}
 }

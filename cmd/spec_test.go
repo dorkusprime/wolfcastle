@@ -165,6 +165,37 @@ func TestSpecLink_FileNotFound(t *testing.T) {
 	}
 }
 
+func TestSpecCreate_JSONOutput(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+	app.JSONOutput = true
+	defer func() { app.JSONOutput = false }()
+
+	// Explicitly pass no --node to avoid flag pollution from other tests
+	rootCmd.SetArgs([]string{"spec", "create", "--node", "", "JSON Spec"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("spec create --json failed: %v", err)
+	}
+}
+
+func TestSpecList_JSONOutput(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+	app.JSONOutput = true
+	defer func() { app.JSONOutput = false }()
+
+	rootCmd.SetArgs([]string{"spec", "list", "--json"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("spec list --json failed: %v", err)
+	}
+}
+
 func TestSpecList_FilterByNode(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()

@@ -236,3 +236,61 @@ func TestProjectCreate_SetsRootMetadata(t *testing.T) {
 		t.Errorf("expected root_id 'first-project', got %q", idx.RootID)
 	}
 }
+
+func TestProjectCreate_JSONOutput(t *testing.T) {
+	env := newTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "json-proj"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("project create JSON failed: %v", err)
+	}
+}
+
+func TestProjectCreate_AutoPromoteLeafToOrchestrator(t *testing.T) {
+	env := newTestEnv(t)
+
+	// Create a leaf project (no tasks besides audit)
+	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "parent-leaf"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("failed to create leaf: %v", err)
+	}
+
+	// Create a child under the leaf (should auto-promote)
+	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "--node", "parent-leaf", "child-leaf"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("failed to create child (auto-promote): %v", err)
+	}
+
+	// Verify parent was promoted to orchestrator
+	parentPath := filepath.Join(env.ProjectsDir, "parent-leaf", "state.json")
+	parentNs, err := state.LoadNodeState(parentPath)
+	if err != nil {
+		t.Fatalf("loading parent: %v", err)
+	}
+	if parentNs.Type != state.NodeOrchestrator {
+		t.Errorf("expected parent to be promoted to orchestrator, got %s", parentNs.Type)
+	}
+}
+
+func TestProjectCreate_AutoPromoteBlockedByTasks(t *testing.T) {
+	env := newTestEnv(t)
+
+	// Create leaf project and add a non-audit task
+	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "tasked-leaf"})
+	env.RootCmd.Execute()
+
+	// Add a task manually
+	statePath := filepath.Join(env.ProjectsDir, "tasked-leaf", "state.json")
+	ns, _ := state.LoadNodeState(statePath)
+	state.TaskAdd(ns, "some work")
+	state.SaveNodeState(statePath, ns)
+
+	// Trying to add child should fail because parent has tasks
+	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "--node", "tasked-leaf", "child"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error when parent has non-audit tasks")
+	}
+}

@@ -88,6 +88,22 @@ func TestADRCreate_WithFile(t *testing.T) {
 	}
 }
 
+func TestADRCreate_JSONOutput(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+	app.JSONOutput = true
+	defer func() { app.JSONOutput = false }()
+
+	// Explicitly clear --file to avoid flag pollution from other tests
+	rootCmd.SetArgs([]string{"adr", "create", "--file", "", "JSON ADR"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("adr create --json failed: %v", err)
+	}
+}
+
 func TestADRCreate_StdinAndFileMutuallyExclusive(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()

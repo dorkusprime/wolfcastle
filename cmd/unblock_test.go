@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -163,5 +164,56 @@ func TestUnblockCmd_NoResolver(t *testing.T) {
 	err := rootCmd.Execute()
 	if err == nil {
 		t.Error("expected error without resolver")
+	}
+}
+
+func TestLoadUnblockPreamble_NoWolfcastleDir(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	app = &cmdutil.App{}
+	preamble := loadUnblockPreamble()
+	if preamble == "" {
+		t.Error("expected non-empty fallback preamble")
+	}
+	if !strings.Contains(preamble, "Help the user") {
+		t.Error("expected default preamble text")
+	}
+}
+
+func TestLoadUnblockPreamble_WithWolfcastleDir(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+	preamble := loadUnblockPreamble()
+	if preamble == "" {
+		t.Error("expected non-empty preamble")
+	}
+}
+
+func TestBuildDiagnostic_EmptyNode(t *testing.T) {
+	ns := state.NewNodeState("empty", "Empty", state.NodeLeaf)
+	task := &state.Task{
+		ID:    "t-1",
+		State: state.StatusBlocked,
+	}
+	diag := buildDiagnostic("empty", "t-1", ns, task)
+	if !strings.Contains(diag, "Unblock Diagnostic") {
+		t.Error("diagnostic should contain header")
+	}
+}
+
+func TestBuildDiagnostic_WithTaskBreadcrumbs(t *testing.T) {
+	ns := state.NewNodeState("proj", "Proj", state.NodeLeaf)
+	task := &state.Task{
+		ID:          "t-1",
+		State:       state.StatusBlocked,
+		Breadcrumbs: []string{"tried X", "tried Y"},
+	}
+	diag := buildDiagnostic("proj", "t-1", ns, task)
+	if !strings.Contains(diag, "tried X") {
+		t.Error("expected task breadcrumbs in diagnostic")
 	}
 }

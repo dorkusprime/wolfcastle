@@ -90,3 +90,37 @@ func TestDoctorCmd_WithResolver(t *testing.T) {
 		t.Fatalf("doctor failed: %v", err)
 	}
 }
+
+func TestDoctorCmd_JSONOutput(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+	app.JSONOutput = true
+	defer func() { app.JSONOutput = false }()
+
+	rootCmd.SetArgs([]string{"doctor", "--json"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("doctor --json failed: %v", err)
+	}
+}
+
+func TestReportValidationIssues_AllSeverities(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+
+	issues := []validate.Issue{
+		{Severity: validate.SeverityError, Category: "a", Description: "err", Node: "n1"},
+		{Severity: validate.SeverityWarning, Category: "b", Description: "warn"},
+		{Severity: validate.SeverityInfo, Category: "c", Description: "info", FixType: "deterministic"},
+	}
+
+	err := reportValidationIssues(issues)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
