@@ -1,3 +1,6 @@
+// Package logging provides per-iteration NDJSON log files for the
+// Wolfcastle daemon. Each daemon iteration writes to its own .jsonl
+// file, and log retention is enforced by file count and age.
 package logging
 
 import (
@@ -133,7 +136,7 @@ func EnforceRetention(logDir string, maxFiles int, maxAgeDays int) error {
 			continue
 		}
 		if info.ModTime().Before(cutoff) {
-			os.Remove(filepath.Join(logDir, l.Name()))
+			_ = os.Remove(filepath.Join(logDir, l.Name()))
 		}
 	}
 
@@ -150,7 +153,7 @@ func EnforceRetention(logDir string, maxFiles int, maxAgeDays int) error {
 			return logs[i].Name() < logs[j].Name()
 		})
 		for _, l := range logs[:len(logs)-maxFiles] {
-			os.Remove(filepath.Join(logDir, l.Name()))
+			_ = os.Remove(filepath.Join(logDir, l.Name()))
 		}
 	}
 

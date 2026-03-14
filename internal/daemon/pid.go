@@ -25,9 +25,10 @@ func ReadPID(wolfcastleDir string) (int, error) {
 	return strconv.Atoi(strings.TrimSpace(string(data)))
 }
 
-// RemovePID removes the PID file.
+// RemovePID removes the PID file. Errors are ignored because the PID
+// file is advisory; a missing file is not a failure condition.
 func RemovePID(wolfcastleDir string) {
-	os.Remove(filepath.Join(wolfcastleDir, "wolfcastle.pid"))
+	_ = os.Remove(filepath.Join(wolfcastleDir, "wolfcastle.pid"))
 }
 
 // IsProcessRunning checks if a process with the given PID is still alive.

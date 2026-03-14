@@ -266,7 +266,7 @@ func ApplyDeterministicFixes(
 			}
 			// Clear stale fixed metadata on open gaps
 			for i := range ns.Audit.Gaps {
-				if ns.Audit.Gaps[i].Status == "open" {
+				if ns.Audit.Gaps[i].Status == state.GapOpen {
 					ns.Audit.Gaps[i].FixedBy = ""
 					ns.Audit.Gaps[i].FixedAt = nil
 				}

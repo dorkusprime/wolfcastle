@@ -55,7 +55,10 @@ Examples:
 				return err
 			}
 
-			// Run configured validation commands before saving
+			// Run configured validation commands before saving.
+			// If a validation command fails, the error is returned before
+			// SaveNodeState is called, so the in-memory mutation is discarded
+			// and the on-disk state remains unchanged.
 			if app.Cfg != nil {
 				for _, vc := range app.Cfg.Validation.Commands {
 					timeout := 30 * time.Second
@@ -66,8 +69,7 @@ Examples:
 					out, err := exec.CommandContext(ctx, "sh", "-c", vc.Run).CombinedOutput()
 					cancel()
 					if err != nil {
-						// Undo the completion by reverting task state
-						return fmt.Errorf("validation command %q failed: %v\n%s", vc.Name, err, string(out))
+						return fmt.Errorf("validation command %q failed (completion not saved): %v\n%s", vc.Name, err, string(out))
 					}
 				}
 			}

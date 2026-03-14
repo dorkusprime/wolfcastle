@@ -1,3 +1,6 @@
+// Package cmdutil provides the shared App context and utility functions
+// used across all CLI subcommands. It handles config loading, tree
+// resolver initialization, state propagation, and overlap detection.
 package cmdutil
 
 import (

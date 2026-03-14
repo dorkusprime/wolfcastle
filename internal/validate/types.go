@@ -2,42 +2,42 @@ package validate
 
 // Category constants for all validation issue categories.
 const (
-	CatRootIndexDanglingRef      = "ROOTINDEX_DANGLING_REF"
-	CatRootIndexMissingEntry     = "ROOTINDEX_MISSING_ENTRY"
-	CatOrphanState               = "ORPHAN_STATE"
-	CatOrphanDefinition          = "ORPHAN_DEFINITION"
-	CatPropagationMismatch       = "PROPAGATION_MISMATCH"
-	CatMissingAuditTask          = "MISSING_AUDIT_TASK"
-	CatAuditNotLast              = "AUDIT_NOT_LAST"
-	CatMultipleAuditTasks        = "MULTIPLE_AUDIT_TASKS"
-	CatInvalidStateValue         = "INVALID_STATE_VALUE"
-	CatCompleteWithIncomplete    = "INVALID_TRANSITION_COMPLETE_WITH_INCOMPLETE"
-	CatBlockedWithoutReason      = "INVALID_TRANSITION_BLOCKED_WITHOUT_REASON"
-	CatStaleInProgress           = "STALE_IN_PROGRESS"
-	CatMultipleInProgress        = "MULTIPLE_IN_PROGRESS"
-	CatDepthMismatch             = "DEPTH_MISMATCH"
-	CatNegativeFailureCount      = "NEGATIVE_FAILURE_COUNT"
-	CatMissingRequiredField      = "MISSING_REQUIRED_FIELD"
-	CatMalformedJSON             = "MALFORMED_JSON"
+	CatRootIndexDanglingRef   = "ROOTINDEX_DANGLING_REF"
+	CatRootIndexMissingEntry  = "ROOTINDEX_MISSING_ENTRY"
+	CatOrphanState            = "ORPHAN_STATE"
+	CatOrphanDefinition       = "ORPHAN_DEFINITION"
+	CatPropagationMismatch    = "PROPAGATION_MISMATCH"
+	CatMissingAuditTask       = "MISSING_AUDIT_TASK"
+	CatAuditNotLast           = "AUDIT_NOT_LAST"
+	CatMultipleAuditTasks     = "MULTIPLE_AUDIT_TASKS"
+	CatInvalidStateValue      = "INVALID_STATE_VALUE"
+	CatCompleteWithIncomplete = "INVALID_TRANSITION_COMPLETE_WITH_INCOMPLETE"
+	CatBlockedWithoutReason   = "INVALID_TRANSITION_BLOCKED_WITHOUT_REASON"
+	CatStaleInProgress        = "STALE_IN_PROGRESS"
+	CatMultipleInProgress     = "MULTIPLE_IN_PROGRESS"
+	CatDepthMismatch          = "DEPTH_MISMATCH"
+	CatNegativeFailureCount   = "NEGATIVE_FAILURE_COUNT"
+	CatMissingRequiredField   = "MISSING_REQUIRED_FIELD"
+	CatMalformedJSON          = "MALFORMED_JSON"
 
 	// Audit-specific categories
-	CatInvalidAuditScope         = "INVALID_AUDIT_SCOPE"
-	CatInvalidAuditStatus        = "INVALID_AUDIT_STATUS"
-	CatInvalidAuditGap           = "INVALID_AUDIT_GAP"
-	CatInvalidAuditEscalation    = "INVALID_AUDIT_ESCALATION"
-	CatAuditStatusTaskMismatch   = "AUDIT_STATUS_TASK_MISMATCH"
+	CatInvalidAuditScope       = "INVALID_AUDIT_SCOPE"
+	CatInvalidAuditStatus      = "INVALID_AUDIT_STATUS"
+	CatInvalidAuditGap         = "INVALID_AUDIT_GAP"
+	CatInvalidAuditEscalation  = "INVALID_AUDIT_ESCALATION"
+	CatAuditStatusTaskMismatch = "AUDIT_STATUS_TASK_MISMATCH"
 
 	// Daemon artifact categories
-	CatStalePIDFile              = "STALE_PID_FILE"
-	CatStaleStopFile             = "STALE_STOP_FILE"
+	CatStalePIDFile  = "STALE_PID_FILE"
+	CatStaleStopFile = "STALE_STOP_FILE"
 )
 
 // FixType describes the repair strategy.
 const (
-	FixDeterministic  = "deterministic"
-	FixModelAssisted  = "model-assisted"
-	FixManual         = "manual"
-	FixNone           = "none"
+	FixDeterministic = "deterministic"
+	FixModelAssisted = "model-assisted"
+	FixManual        = "manual"
+	FixNone          = "none"
 )
 
 // Severity levels.
@@ -59,9 +59,9 @@ type Issue struct {
 
 // Report is the result of a full validation run.
 type Report struct {
-	Issues []Issue `json:"issues"`
-	Errors int     `json:"errors"`
-	Warnings int   `json:"warnings"`
+	Issues   []Issue `json:"issues"`
+	Errors   int     `json:"errors"`
+	Warnings int     `json:"warnings"`
 }
 
 // Counts populates the error and warning counts.

@@ -12,6 +12,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/validate"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +54,7 @@ Examples:
 					return fmt.Errorf("creating worktree: %w", err)
 				}
 				repoDir = wtDir
-				fmt.Printf("Working in worktree: %s (branch: %s)\n", wtDir, worktreeBranch)
+				output.PrintHuman("Working in worktree: %s (branch: %s)", wtDir, worktreeBranch)
 			}
 			defer func() {
 				if worktreeBranch != "" {
@@ -78,16 +79,16 @@ Examples:
 					engine := validate.NewEngine(app.Resolver.ProjectsDir(), validate.DefaultNodeLoader(app.Resolver.ProjectsDir()), app.WolfcastleDir)
 					report := engine.ValidateStartup(idx)
 					if report.HasErrors() {
-						fmt.Printf("Startup validation found %d errors:\n", report.Errors)
+						output.PrintHuman("Startup validation found %d errors:", report.Errors)
 						for _, issue := range report.Issues {
 							if issue.Severity == validate.SeverityError {
-								fmt.Printf("  ERROR [%s] %s: %s\n", issue.Category, issue.Node, issue.Description)
+								output.PrintHuman("  ERROR [%s] %s: %s", issue.Category, issue.Node, issue.Description)
 							}
 						}
 						return fmt.Errorf("startup blocked by validation errors — run 'wolfcastle doctor --fix' to repair")
 					}
 					if report.Warnings > 0 {
-						fmt.Printf("Startup validation: %d warnings (proceeding)\n", report.Warnings)
+						output.PrintHuman("Startup validation: %d warnings (proceeding)", report.Warnings)
 					}
 				}
 			}
@@ -138,9 +139,9 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch string) error {
 		return fmt.Errorf("writing PID file: %w", err)
 	}
 
-	fmt.Printf("Wolfcastle started in background (PID %d)\n", proc.Process.Pid)
-	fmt.Println("  Use 'wolfcastle follow' to watch output")
-	fmt.Println("  Use 'wolfcastle stop' to stop")
+	output.PrintHuman("Wolfcastle started in background (PID %d)", proc.Process.Pid)
+	output.PrintHuman("  Use 'wolfcastle follow' to watch output")
+	output.PrintHuman("  Use 'wolfcastle stop' to stop")
 
 	// Detach
 	proc.Process.Release()
@@ -151,9 +152,9 @@ func cleanupWorktree(repoDir, wtDir string) {
 	removeCmd := exec.Command("git", "worktree", "remove", wtDir)
 	removeCmd.Dir = repoDir
 	if out, err := removeCmd.CombinedOutput(); err != nil {
-		fmt.Printf("WARNING: could not remove worktree %s: %s (%v)\n", wtDir, string(out), err)
+		output.PrintHuman("WARNING: could not remove worktree %s: %s (%v)", wtDir, string(out), err)
 	} else {
-		fmt.Printf("Cleaned up worktree: %s\n", wtDir)
+		output.PrintHuman("Cleaned up worktree: %s", wtDir)
 	}
 }
 
@@ -191,18 +192,18 @@ func recoverStaleDaemonState(wolfcastleDir string) {
 	}
 	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil {
-		os.Remove(pidPath)
+		_ = os.Remove(pidPath)
 		return
 	}
 	process, err := os.FindProcess(pid)
 	if err != nil {
-		os.Remove(pidPath)
+		_ = os.Remove(pidPath)
 		return
 	}
 	if err := process.Signal(syscall.Signal(0)); err != nil {
 		// Process is dead — clean up stale files
-		os.Remove(pidPath)
-		os.Remove(filepath.Join(wolfcastleDir, "daemon.meta.json"))
-		os.Remove(filepath.Join(wolfcastleDir, "stop"))
+		_ = os.Remove(pidPath)
+		_ = os.Remove(filepath.Join(wolfcastleDir, "daemon.meta.json"))
+		_ = os.Remove(filepath.Join(wolfcastleDir, "stop"))
 	}
 }

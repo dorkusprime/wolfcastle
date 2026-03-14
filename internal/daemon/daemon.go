@@ -16,6 +16,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
+	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -57,10 +58,10 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 
 // selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
 func (d *Daemon) selfHeal() error {
-	fmt.Println("Running self-healing check...")
+	output.PrintHuman("Running self-healing check...")
 	idx, err := d.Resolver.LoadRootIndex()
 	if err != nil {
-		fmt.Println("No root index found — nothing to heal.")
+		output.PrintHuman("No root index found — nothing to heal.")
 		return nil
 	}
 
@@ -88,10 +89,10 @@ func (d *Daemon) selfHeal() error {
 		return fmt.Errorf("state corruption: %d tasks in progress (serial execution requires at most 1)", len(inProgress))
 	}
 	if len(inProgress) == 1 {
-		fmt.Printf("Found interrupted task: %s/%s — will resume on next iteration\n",
+		output.PrintHuman("Found interrupted task: %s/%s — will resume on next iteration",
 			inProgress[0].addr, inProgress[0].taskID)
 	} else {
-		fmt.Println("No interrupted tasks found.")
+		output.PrintHuman("No interrupted tasks found.")
 	}
 	return nil
 }
@@ -109,10 +110,13 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		if restart >= maxRestarts {
 			return fmt.Errorf("daemon exceeded max restarts (%d): %w", maxRestarts, err)
 		}
-		fmt.Printf("Daemon crashed (attempt %d/%d): %v — restarting in %v\n", restart+1, maxRestarts, err, delay)
+		output.PrintHuman("Daemon crashed (attempt %d/%d): %v — restarting in %v", restart+1, maxRestarts, err, delay)
 		time.Sleep(delay)
 
-		// Reset daemon state for next Run() invocation
+		// Reset daemon state for next Run() invocation.
+		// Resetting sync.Once is safe here because all goroutines from
+		// the previous Run() have exited — the signal-forwarding goroutine
+		// terminates when ctx.Done() closes, and Run() has returned.
 		d.shutdown = make(chan struct{})
 		d.shutdownOnce = sync.Once{}
 		d.iteration = 0
@@ -163,7 +167,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	d.iteration = 0
 	d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
-	fmt.Printf("=== Wolfcastle starting (scope=%s) ===\n", d.scopeLabel())
+	output.PrintHuman("=== Wolfcastle starting (scope=%s) ===", d.scopeLabel())
 
 	for {
 		result, err := d.RunOnce(ctx)
@@ -197,7 +201,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	select {
 	case <-d.shutdown:
 		d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "signal"})
-		fmt.Println("=== Wolfcastle stopped by signal ===")
+		output.PrintHuman("=== Wolfcastle stopped by signal ===")
 		return IterationStop, nil
 	default:
 	}
@@ -205,9 +209,9 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// Check stop file
 	stopFilePath := filepath.Join(d.WolfcastleDir, "stop")
 	if _, err := os.Stat(stopFilePath); err == nil {
-		os.Remove(stopFilePath)
+		_ = os.Remove(stopFilePath)
 		d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
-		fmt.Println("=== Wolfcastle stopped by stop file ===")
+		output.PrintHuman("=== Wolfcastle stopped by stop file ===")
 		return IterationStop, nil
 	}
 
@@ -215,7 +219,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	maxIter := d.Config.Daemon.MaxIterations
 	if maxIter > 0 && d.iteration >= maxIter {
 		d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration})
-		fmt.Printf("=== Wolfcastle hit iteration cap (%d) ===\n", maxIter)
+		output.PrintHuman("=== Wolfcastle hit iteration cap (%d) ===", maxIter)
 		return IterationStop, nil
 	}
 
@@ -246,15 +250,15 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 
 	if !navResult.Found {
 		if navResult.Reason == "all_complete" {
-			fmt.Println("WOLFCASTLE_COMPLETE")
+			output.PrintHuman("WOLFCASTLE_COMPLETE")
 		} else {
-			fmt.Printf("No work: %s — sleeping %ds\n", navResult.Reason, d.Config.Daemon.BlockedPollIntervalSeconds)
+			output.PrintHuman("No work: %s — sleeping %ds", navResult.Reason, d.Config.Daemon.BlockedPollIntervalSeconds)
 		}
 		return IterationNoWork, nil
 	}
 
 	d.iteration++
-	fmt.Printf("--- Iteration %d: %s/%s ---\n", d.iteration, navResult.NodeAddress, navResult.TaskID)
+	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration, navResult.NodeAddress, navResult.TaskID)
 
 	// Start iteration log
 	d.Logger.StartIteration()
@@ -264,7 +268,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	d.Logger.Close()
 
 	if err != nil {
-		fmt.Printf("Iteration error: %v\n", err)
+		output.PrintHuman("Iteration error: %v", err)
 		return IterationError, nil
 	}
 
@@ -314,7 +318,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			if err := d.runExpandStage(ctx, stage); err != nil {
 				d.Logger.Log(map[string]any{"type": "stage_error", "stage": "expand", "error": err.Error()})
 				// Non-fatal: expand failure doesn't block execution
-				fmt.Printf("  Expand stage error (non-fatal): %v\n", err)
+				output.PrintHuman("  Expand stage error (non-fatal): %v", err)
 			}
 			// Re-check inbox state after expand — items may now be expanded
 			hasNewItems, hasExpandedItems = d.checkInboxState(inboxPath)
@@ -327,7 +331,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 			if err := d.runFileStage(ctx, stage); err != nil {
 				d.Logger.Log(map[string]any{"type": "stage_error", "stage": "file", "error": err.Error()})
-				fmt.Printf("  File stage error (non-fatal): %v\n", err)
+				output.PrintHuman("  File stage error (non-fatal): %v", err)
 			}
 			continue
 		}
@@ -336,7 +340,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		// prioritize filing over execution to avoid working on a stale tree.
 		if hasExpandedItems {
 			d.Logger.Log(map[string]any{"type": "stage_skip", "stage": stage.Name, "reason": "pending_filing"})
-			fmt.Printf("  Skipping %s stage: expanded items await filing\n", stage.Name)
+			output.PrintHuman("  Skipping %s stage: expanded items await filing", stage.Name)
 			continue
 		}
 
@@ -414,9 +418,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		// No terminal marker — increment failure count
 		d.Logger.Log(map[string]any{
-			"type":   "no_terminal_marker",
-			"empty":  result.Stdout == "",
-			"task":   nav.TaskID,
+			"type":  "no_terminal_marker",
+			"empty": result.Stdout == "",
+			"task":  nav.TaskID,
 		})
 
 		failCount, err := state.IncrementFailure(ns, nav.TaskID)
@@ -530,7 +534,7 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		return fmt.Errorf("saving inbox after expand: %w", err)
 	}
 
-	fmt.Printf("  Expand stage: %d items expanded\n", len(newItems))
+	output.PrintHuman("  Expand stage: %d items expanded", len(newItems))
 	return nil
 }
 
@@ -630,7 +634,7 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 		return fmt.Errorf("saving inbox after file stage: %w", err)
 	}
 
-	fmt.Printf("  File stage: %d items filed\n", len(expandedIndices))
+	output.PrintHuman("  File stage: %d items filed", len(expandedIndices))
 	return nil
 }
 
@@ -656,7 +660,7 @@ func (d *Daemon) applyModelMarkers(output string, ns *state.NodeState, nav *stat
 					Timestamp:   time.Now().UTC(),
 					Description: desc,
 					Source:      nav.NodeAddress,
-					Status:      "open",
+					Status:      state.GapOpen,
 				})
 				d.Logger.Log(map[string]any{"type": "marker_gap", "gap_id": gapID})
 			}
@@ -664,8 +668,8 @@ func (d *Daemon) applyModelMarkers(output string, ns *state.NodeState, nav *stat
 		case strings.HasPrefix(line, "WOLFCASTLE_FIX_GAP:"):
 			gapID := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_FIX_GAP:"))
 			for i := range ns.Audit.Gaps {
-				if ns.Audit.Gaps[i].ID == gapID && ns.Audit.Gaps[i].Status == "open" {
-					ns.Audit.Gaps[i].Status = "fixed"
+				if ns.Audit.Gaps[i].ID == gapID && ns.Audit.Gaps[i].Status == state.GapOpen {
+					ns.Audit.Gaps[i].Status = state.GapFixed
 					ns.Audit.Gaps[i].FixedBy = nav.NodeAddress + "/" + nav.TaskID
 					now := time.Now().UTC()
 					ns.Audit.Gaps[i].FixedAt = &now
@@ -715,8 +719,8 @@ func (d *Daemon) applyModelMarkers(output string, ns *state.NodeState, nav *stat
 		case strings.HasPrefix(line, "WOLFCASTLE_RESOLVE_ESCALATION:"):
 			escID := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_RESOLVE_ESCALATION:"))
 			for i := range ns.Audit.Escalations {
-				if ns.Audit.Escalations[i].ID == escID && ns.Audit.Escalations[i].Status == "open" {
-					ns.Audit.Escalations[i].Status = "resolved"
+				if ns.Audit.Escalations[i].ID == escID && ns.Audit.Escalations[i].Status == state.EscalationOpen {
+					ns.Audit.Escalations[i].Status = state.EscalationResolved
 					ns.Audit.Escalations[i].ResolvedBy = nav.NodeAddress + "/" + nav.TaskID
 					now := time.Now().UTC()
 					ns.Audit.Escalations[i].ResolvedAt = &now
@@ -832,7 +836,7 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 			"delay_s": delay.Seconds(),
 			"error":   err.Error(),
 		})
-		fmt.Printf("  Invocation error (attempt %d): %v — retrying in %v\n", attempt+1, err, delay)
+		output.PrintHuman("  Invocation error (attempt %d): %v — retrying in %v", attempt+1, err, delay)
 
 		select {
 		case <-ctx.Done():

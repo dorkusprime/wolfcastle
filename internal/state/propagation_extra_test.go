@@ -145,7 +145,7 @@ func TestPropagateUp_MaxDepthExceeded(t *testing.T) {
 func TestPropagateUp_MultiLevelChain(t *testing.T) {
 	t.Parallel()
 	states := map[string]*NodeState{
-		"mid": {ID: "mid", Type: NodeOrchestrator, Children: []ChildRef{{ID: "child", Address: "child", State: StatusNotStarted}}},
+		"mid":  {ID: "mid", Type: NodeOrchestrator, Children: []ChildRef{{ID: "child", Address: "child", State: StatusNotStarted}}},
 		"root": {ID: "root", Type: NodeOrchestrator, Children: []ChildRef{{ID: "mid", Address: "mid", State: StatusNotStarted}}},
 	}
 	parents := map[string]string{"child": "mid", "mid": "root"}

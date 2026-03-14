@@ -128,7 +128,7 @@ The H1 uses the full tree-addressed node path exactly as it appears in JSON stat
 
 ### 3.2 Summary
 
-The summary is a model-generated paragraph (or short set of paragraphs) explaining what the node accomplished and why it matters. It is written by a separate model invocation during the summary stage (see Section 5) and stored in the node's JSON state before rollup.
+The summary is a model-generated paragraph (or short set of paragraphs) explaining what the node accomplished and why it matters. Per ADR-036, it is generated inline by the executing model (via the `WOLFCASTLE_SUMMARY:` marker) and stored in the node's JSON state before rollup (see Section 5).
 
 The archive script copies the summary text verbatim from JSON state into this section. It does not reformat, truncate, or modify the model's output.
 
@@ -247,40 +247,15 @@ The metadata table captures context for traceability. All values are determined 
 
 ---
 
-## 5. The Summary Stage
+## 5. Summary Generation (Inline via ADR-036)
 
-The summary is an optional pipeline stage that runs after the audit task completes and before archive rollup. It gives the archive entry a human-readable narrative that breadcrumbs alone cannot provide.
+> **Note:** The original design described the summary as a separate pipeline stage with its own model invocation. ADR-036 superseded this approach — summaries are now generated inline by the executing model, eliminating an extra model call.
 
-### Invocation
+### How It Works
 
-The summary stage is configured separately from the main pipeline stages via the `summary` config key (per ADR-016). It runs conditionally when a node completes its audit, not as part of the regular pipeline stage array.
+When the executing model completes the last task in a node, the daemon's `BuildIterationContext` function appends a "Summary Required" section to the prompt. This instructs the model to emit a `WOLFCASTLE_SUMMARY:` marker in its output alongside `WOLFCASTLE_COMPLETE`. The daemon's `applyModelMarkers` function parses this marker and stores the text in the node's `audit.result_summary` field.
 
-```json
-{
-  "summary": {
-    "enabled": true,
-    "model": "fast",
-    "prompt_file": "summary.md"
-  }
-}
-```
-
-The summary stage typically uses a lower-tier model (e.g., `fast`) because summarization does not require the reasoning depth of execution. The model tier is configurable — teams can use any model key defined in their `models` dictionary.
-
-### Input to the Summary Model
-
-The summary model receives a prompt that includes:
-
-- The node's tree-addressed path.
-- The full list of breadcrumbs (timestamps and text).
-- The audit results (scope, gaps, fixes, escalations).
-- The node's task descriptions.
-
-This gives the model the full picture of what happened, enabling a coherent summary.
-
-### Output
-
-The summary model produces plain-text prose: one or more paragraphs explaining what the node accomplished and why it matters. The daemon captures this output and writes it to the node's `audit.result_summary` field in JSON state.
+No separate model invocation occurs for summarization.
 
 ### Where the Summary Lives Before Rollup
 
@@ -297,11 +272,11 @@ The summary is stored in the node's `audit.result_summary` field in its `state.j
 }
 ```
 
-It lives here temporarily until `wolfcastle archive add` reads it and renders it into the Markdown archive entry. The summary is part of the node's committed state (`.wolfcastle/projects/` is committed per ADR-009), so it survives daemon restarts between the summary stage and rollup.
+It lives here until `wolfcastle archive add` reads it and renders it into the Markdown archive entry. The summary is part of the node's committed state (`.wolfcastle/projects/` is committed per ADR-009), so it survives daemon restarts.
 
 ### Opt-Out
 
-The summary stage is enabled by default. To disable it, set `summary.enabled` to `false` in config:
+Summary generation is enabled by default. To disable it, set `summary.enabled` to `false` in config:
 
 ```json
 {
@@ -311,11 +286,7 @@ The summary stage is enabled by default. To disable it, set `summary.enabled` to
 }
 ```
 
-When summary is disabled, no model is invoked for summarization, the `audit.result_summary` field in JSON state remains null, and the archive entry omits the Summary section entirely.
-
-### Summary Stage Failure
-
-If the summary model invocation fails (API error, empty output, timeout), the daemon logs the failure but does not block archive rollup. The archive entry is generated without a summary, same as the opt-out case. Summary failure is non-fatal because the breadcrumbs and audit data are the authoritative record; the summary is a convenience.
+When summary is disabled, the "Summary Required" section is not appended to the prompt, the `audit.result_summary` field in JSON state remains null, and the archive entry omits the Summary section entirely.
 
 ---
 
@@ -335,7 +306,7 @@ This section enumerates every field the archive script reads from JSON state and
 | `audit.gaps` | array of objects | Audit (Gaps found) | Each has `description`, `status` (`open` or `fixed`), `fixed_by`, `fixed_at` |
 | `audit.escalations` | array of objects | Audit (Escalations) | Each has `description`, `source_node`, `status` (`open` or `resolved`) |
 | `audit.status` | string | Audit (Status) | `pending`, `in_progress`, `passed`, or `failed` |
-| `audit.result_summary` | string or null | Summary, Audit (Summary) | Written by summary stage; null if disabled. Used for both the Summary archive section and the Audit summary. |
+| `audit.result_summary` | string or null | Summary, Audit (Summary) | Written inline by the executing model via `WOLFCASTLE_SUMMARY:` marker (ADR-036); null if summary is disabled. Used for both the Summary archive section and the Audit summary. |
 
 ### External Sources
 

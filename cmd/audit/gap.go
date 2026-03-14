@@ -54,7 +54,7 @@ Examples:
 				Timestamp:   time.Now().UTC(),
 				Description: description,
 				Source:      nodeAddr,
-				Status:      "open",
+				Status:      state.GapOpen,
 			})
 
 			if err := state.SaveNodeState(statePath, ns); err != nil {

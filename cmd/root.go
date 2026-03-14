@@ -46,6 +46,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&app.JSONOutput, "json", false, "Output in JSON format")
 }
 
+// Execute registers all subcommand groups and runs the root command.
+// It handles top-level error formatting (JSON or human-readable) and
+// exits with code 1 on any command failure.
 func Execute() {
 	audit.Register(app, rootCmd)
 	daemon.Register(app, rootCmd)

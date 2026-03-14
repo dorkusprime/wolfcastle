@@ -87,11 +87,11 @@ func atomicWriteJSON(path string, v any) error {
 
 	if _, err := tmp.Write(data); err != nil {
 		tmp.Close()
-		os.Remove(tmpName)
+		_ = os.Remove(tmpName) // best-effort cleanup
 		return err
 	}
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmpName)
+		_ = os.Remove(tmpName) // best-effort cleanup
 		return err
 	}
 	return os.Rename(tmpName, path)

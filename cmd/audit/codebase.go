@@ -227,7 +227,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 
 	prompt := strings.Join(promptParts, "\n\n---\n\n")
 
-	output.PrintHuman("Running audit with %d scope(s): %s", len(scopes), scopeNames(scopes))
+	output.PrintHuman("Running audit with %d scope(s): %s", len(scopes), strings.Join(scopeIDs(scopes), ", "))
 
 	repoDir := filepath.Dir(app.WolfcastleDir)
 	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(app.Cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
@@ -256,7 +256,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 	batch := &review.Batch{
 		ID:        fmt.Sprintf("audit-%s", now.Format("20060102T150405Z")),
 		Timestamp: now,
-		Scopes:    scopeNames2(scopes),
+		Scopes:    scopeIDs(scopes),
 		Status:    review.BatchPending,
 		Findings:  findings,
 		RawOutput: result.Stdout,
@@ -357,18 +357,11 @@ func parseFindings(rawOutput string) []review.Finding {
 	return findings
 }
 
-func scopeNames(scopes []auditScope) string {
-	var names []string
-	for _, s := range scopes {
-		names = append(names, s.ID)
+// scopeIDs returns the IDs of the given scopes as a slice.
+func scopeIDs(scopes []auditScope) []string {
+	ids := make([]string, len(scopes))
+	for i, s := range scopes {
+		ids[i] = s.ID
 	}
-	return strings.Join(names, ", ")
-}
-
-func scopeNames2(scopes []auditScope) []string {
-	var names []string
-	for _, s := range scopes {
-		names = append(names, s.ID)
-	}
-	return names
+	return ids
 }

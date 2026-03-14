@@ -251,7 +251,7 @@ The model's **meaningful output** is not its stdout text but its **side effects*
 | `expand` | Inbox has unprocessed items | Creates/updates tasks in the project tree via `wolfcastle task add` and `wolfcastle project create`. May reorganize existing work. |
 | `file` | Tasks exist in the tree, some may lack proper scoping or placement | Refines task descriptions, moves tasks to appropriate nodes, ensures audit scopes are defined. |
 | `execute` | A navigable task exists in `not_started` or `in_progress` state | Claims a task, does the work (writes code, runs tests, etc.), writes breadcrumbs, marks tasks complete or blocked. May create subtasks. |
-| `summary` | A node has completed execution and audit | Writes a plain-language summary of what was accomplished. The summary is stored in node state for later archive rollup. |
+| (summary) | N/A — inline | Per ADR-036, summaries are emitted inline by the executing model via `WOLFCASTLE_SUMMARY:` marker, not as a separate stage invocation. |
 
 ---
 
@@ -274,7 +274,7 @@ Stages can be conditional in two ways:
 | `expand` | No inbox items with status `"new"`. | `no_new_inbox_items` |
 | `file` | No inbox items with status `"expanded"`. | `no_expanded_inbox_items` |
 | `execute` (and other custom stages) | Expanded items exist but have not been filed — filing takes priority over execution to avoid working on a stale tree. | `pending_filing` |
-| `summary` | No node has completed audit without an existing summary. Or summary is disabled in config. | `no_summary_needed` |
+| (summary) | N/A — summary is generated inline by the executing model per ADR-036, not as a separate stage. | N/A |
 
 When a stage is skipped, Wolfcastle emits a `stage_skip` log record with the stage name and reason, then proceeds to the next stage. After `expand` completes, inbox state is re-checked so that the `file` stage sees freshly expanded items.
 
@@ -364,17 +364,22 @@ The default `pipeline.stages` array contains three stages. The summary stage is 
 - Handles audit tasks (the last task in every node, enforced by scripts per ADR-007).
 - Uses the most capable model because execution requires deep reasoning and code generation.
 
-**summary** (model: fast)
-- Runs after a node completes its audit.
-- Writes a brief plain-language summary of what the node accomplished and why it matters.
+**summary** (inline, per ADR-036)
+- Not a separate pipeline stage. The executing model generates the summary inline when it completes the last task in a node.
+- The daemon prompts the model to emit `WOLFCASTLE_SUMMARY:` alongside `WOLFCASTLE_COMPLETE`.
 - The summary is stored in node state and later included in the archive entry (ADR-016).
-- Uses a cheap model because summarization is straightforward given the breadcrumbs and audit results already recorded.
 
 ---
 
-## 7. The Summary Stage
+## 7. Summary Generation (Inline via ADR-036)
 
-The summary stage has special handling because it is opt-out (ADR-016) and runs conditionally based on node completion state rather than as part of every iteration.
+> **Note:** The original design described the summary as a separate pipeline stage with its own model invocation. ADR-036 superseded this approach — summaries are now generated inline by the executing model, eliminating an extra model call.
+
+### How It Works
+
+When `BuildIterationContext` detects that the current task is the last incomplete task in the node, it appends a "Summary Required" section to the prompt. This instructs the executing model to emit a `WOLFCASTLE_SUMMARY:` marker in its output alongside `WOLFCASTLE_COMPLETE`. The daemon parses this marker and stores the text in the node's `audit.result_summary` field.
+
+No separate model invocation occurs for summarization. The executing model generates the summary as part of its final task output.
 
 ### Configuration
 
@@ -386,35 +391,14 @@ The summary stage has special handling because it is opt-out (ADR-016) and runs 
 }
 ```
 
-Setting `"enabled": false` disables the summary stage entirely. When disabled:
-- The stage is skipped in every iteration.
-- Archive entries are still generated but without a model-written summary section -- they contain breadcrumbs, audit results, and metadata only.
+Setting `"enabled": false` disables summary generation entirely. When disabled:
+- The "Summary Required" section is not appended to the prompt.
+- Archive entries are still generated but without a model-written summary section — they contain breadcrumbs, audit results, and metadata only.
 - This saves token cost for users who do not need narrative summaries.
-
-The `summary.enabled` config key is separate from the stage's `enabled` field to provide a clear, discoverable toggle. When `summary.enabled` is `false`, the daemon treats the summary stage as skipped regardless of the stage's own `enabled` field.
-
-### When Summary Runs
-
-The summary stage is not triggered on every iteration. It runs when:
-1. A node has just completed its audit task (the audit task transitioned to `Complete` during the current iteration's `execute` stage).
-2. That node does not already have a summary recorded.
-3. Summary is enabled in config.
-
-The daemon checks these conditions before invoking the summary stage. If no node needs summarization, the stage is skipped.
-
-### Summary Prompt Context
-
-The summary stage's prompt includes:
-- The completed node's full breadcrumb trail.
-- The audit results (scope verification, gaps found, fixes applied).
-- The node's task list with final statuses.
-- The node's position in the tree (for context about how it relates to the larger project).
-
-The summary model does **not** need the script reference or full rule fragments -- it is reading completed work, not performing work. Setting `skip_prompt_assembly: true` on the summary stage is a reasonable optimization.
 
 ### Output
 
-The daemon captures the summary model's stdout as the summary text and writes it to the node's `audit.result_summary` field in state. The model does not call any Wolfcastle command to store the summary — it simply outputs the summary text to stdout, and the daemon handles persistence. The archive rollup script (ADR-016) reads the `audit.result_summary` from state when generating the archive entry.
+The daemon's `applyModelMarkers` function detects the `WOLFCASTLE_SUMMARY:` prefix in model output and writes the text to `audit.result_summary` in the node's state. The archive rollup (ADR-016) reads this field when generating the archive entry.
 
 ---
 
@@ -622,10 +606,7 @@ wolfcastle start
        |        |        +-- task failure? --> model iterates (ADR-019 thresholds)
        |        |        +-- task complete? --> proceed
        |
-       +---> summary stage
-       |        |-- summary disabled? --> skip
-       |        |-- no node needs summary? --> skip
-       |        |-- else --> invoke fast model with summary.md prompt
+       +---> (summary generated inline by execute stage per ADR-036)
        |
        +---> Commit state
        +---> Check stop signal

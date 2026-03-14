@@ -72,7 +72,7 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 		b.WriteString("### Gaps\n\n")
 		for _, g := range ns.Audit.Gaps {
 			status := "OPEN"
-			if g.Status == "fixed" {
+			if g.Status == state.GapFixed {
 				status = "FIXED"
 			}
 			b.WriteString(fmt.Sprintf("- [%s] %s", status, g.Description))
@@ -88,7 +88,7 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 		b.WriteString("### Escalations\n\n")
 		for _, e := range ns.Audit.Escalations {
 			status := "OPEN"
-			if e.Status == "resolved" {
+			if e.Status == state.EscalationResolved {
 				status = "RESOLVED"
 			}
 			b.WriteString(fmt.Sprintf("- [%s] %s (from %s)\n", status, e.Description, e.SourceNode))

@@ -77,12 +77,12 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 			}
 			auditCounts[ns.Audit.Status]++
 			for _, g := range ns.Audit.Gaps {
-				if g.Status == "open" {
+				if g.Status == state.GapOpen {
 					openGaps++
 				}
 			}
 			for _, e := range ns.Audit.Escalations {
-				if e.Status == "open" {
+				if e.Status == state.EscalationOpen {
 					openEscalations++
 				}
 			}

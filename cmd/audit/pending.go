@@ -2,6 +2,7 @@ package audit
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -63,7 +64,7 @@ Examples:
 					if f.Description != "" {
 						// Show first line of description
 						desc := f.Description
-						if idx := indexOf(desc, '\n'); idx > 0 {
+						if idx := strings.IndexByte(desc, '\n'); idx > 0 {
 							desc = desc[:idx]
 						}
 						if len(desc) > 80 {
@@ -79,13 +80,4 @@ Examples:
 			return nil
 		},
 	}
-}
-
-func indexOf(s string, c byte) int {
-	for i := 0; i < len(s); i++ {
-		if s[i] == c {
-			return i
-		}
-	}
-	return -1
 }

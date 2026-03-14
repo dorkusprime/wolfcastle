@@ -50,7 +50,7 @@ func SyncAuditLifecycle(ns *NodeState) {
 // hasOpenGaps returns true if any gap has status "open".
 func hasOpenGaps(ns *NodeState) bool {
 	for _, g := range ns.Audit.Gaps {
-		if g.Status == "open" {
+		if g.Status == GapOpen {
 			return true
 		}
 	}

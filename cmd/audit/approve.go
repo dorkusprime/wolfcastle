@@ -120,7 +120,9 @@ Examples:
 					descContent += "\n## Details\n\n" + f.Description + "\n"
 				}
 				descPath := filepath.Join(app.Resolver.ProjectsDir(), slug+".md")
-				_ = os.WriteFile(descPath, []byte(descContent), 0644)
+				if writeErr := os.WriteFile(descPath, []byte(descContent), 0644); writeErr != nil {
+					output.PrintHuman("  Warning: could not write description for %s: %v", f.ID, writeErr)
+				}
 
 				f.Status = review.FindingApproved
 				f.DecidedAt = &now

@@ -45,10 +45,10 @@ Examples:
 			found := false
 			for i := range ns.Audit.Escalations {
 				if ns.Audit.Escalations[i].ID == escalationID {
-					if ns.Audit.Escalations[i].Status == "resolved" {
+					if ns.Audit.Escalations[i].Status == state.EscalationResolved {
 						return fmt.Errorf("escalation %s is already resolved", escalationID)
 					}
-					ns.Audit.Escalations[i].Status = "resolved"
+					ns.Audit.Escalations[i].Status = state.EscalationResolved
 					ns.Audit.Escalations[i].ResolvedBy = nodeAddr
 					now := time.Now().UTC()
 					ns.Audit.Escalations[i].ResolvedAt = &now

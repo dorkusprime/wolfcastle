@@ -22,6 +22,22 @@ const (
 	AuditFailed     AuditStatus = "failed"
 )
 
+// GapStatus represents the lifecycle states of an audit gap.
+type GapStatus = string
+
+const (
+	GapOpen  GapStatus = "open"
+	GapFixed GapStatus = "fixed"
+)
+
+// EscalationStatus represents the lifecycle states of an escalation.
+type EscalationStatus = string
+
+const (
+	EscalationOpen     EscalationStatus = "open"
+	EscalationResolved EscalationStatus = "resolved"
+)
+
 // NodeType distinguishes orchestrators from leaves.
 type NodeType string
 

@@ -1,3 +1,7 @@
+// Package output provides structured JSON envelope formatting and
+// human-readable printing for all CLI command output. Every command
+// routes its output through this package to ensure consistent
+// formatting across --json and default modes.
 package output
 
 import (

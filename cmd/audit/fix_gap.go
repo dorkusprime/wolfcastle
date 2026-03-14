@@ -45,10 +45,10 @@ Examples:
 			found := false
 			for i := range ns.Audit.Gaps {
 				if ns.Audit.Gaps[i].ID == gapID {
-					if ns.Audit.Gaps[i].Status == "fixed" {
+					if ns.Audit.Gaps[i].Status == state.GapFixed {
 						return fmt.Errorf("gap %s is already fixed", gapID)
 					}
-					ns.Audit.Gaps[i].Status = "fixed"
+					ns.Audit.Gaps[i].Status = state.GapFixed
 					ns.Audit.Gaps[i].FixedBy = nodeAddr
 					now := time.Now().UTC()
 					ns.Audit.Gaps[i].FixedAt = &now

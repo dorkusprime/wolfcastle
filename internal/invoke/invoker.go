@@ -1,3 +1,7 @@
+// Package invoke handles model CLI invocation, piping assembled prompts
+// to stdin and capturing stdout/stderr. It supports both buffered and
+// streaming modes, with the latter enabling real-time log output via
+// wolfcastle follow.
 package invoke
 
 import (

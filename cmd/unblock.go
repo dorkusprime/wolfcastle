@@ -78,11 +78,11 @@ Examples:
 
 		if agentMode {
 			// Tier 3: dump context for an interactive agent
-			fmt.Println(diagnostic)
-			fmt.Println()
-			fmt.Println("---")
-			fmt.Println()
-			fmt.Printf("When the issue is resolved, run:\n  wolfcastle task unblock --node %s\n", nodeFlag)
+			output.PrintHuman("%s", diagnostic)
+			output.PrintHuman("")
+			output.PrintHuman("---")
+			output.PrintHuman("")
+			output.PrintHuman("When the issue is resolved, run:\n  wolfcastle task unblock --node %s", nodeFlag)
 			return nil
 		}
 
@@ -158,9 +158,9 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		"When the issue is resolved, remind the user to run:\n" +
 		fmt.Sprintf("  wolfcastle task unblock --node %s\n", taskAddr)
 
-	fmt.Println("Starting interactive unblock session...")
-	fmt.Println("(Type 'quit' or 'exit' to end the session)")
-	fmt.Println()
+	output.PrintHuman("Starting interactive unblock session...")
+	output.PrintHuman("(Type 'quit' or 'exit' to end the session)")
+	output.PrintHuman("")
 
 	// Simple multi-turn: invoke model, show response, get user input, repeat.
 	// Keep a sliding window of conversation history to avoid unbounded growth.
@@ -179,7 +179,7 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		}
 
 		// Display model response
-		fmt.Println(result.Stdout)
+		output.PrintHuman("%s", result.Stdout)
 		if result.Stderr != "" {
 			output.PrintError("%s", result.Stderr)
 		}
@@ -192,8 +192,8 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		input := strings.TrimSpace(scanner.Text())
 
 		if input == "quit" || input == "exit" || input == "" {
-			fmt.Println("Session ended.")
-			fmt.Printf("\nWhen ready, run: wolfcastle task unblock --node %s\n", taskAddr)
+			output.PrintHuman("Session ended.")
+			output.PrintHuman("\nWhen ready, run: wolfcastle task unblock --node %s", taskAddr)
 			break
 		}
 

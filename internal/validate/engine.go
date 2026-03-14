@@ -73,12 +73,12 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 			// ROOTINDEX_DANGLING_REF: index references non-existent node
 			if e.include(CatRootIndexDanglingRef, categories) {
 				report.Issues = append(report.Issues, Issue{
-					Severity:   SeverityError,
-					Category:   CatRootIndexDanglingRef,
-					Node:       addr,
+					Severity:    SeverityError,
+					Category:    CatRootIndexDanglingRef,
+					Node:        addr,
 					Description: fmt.Sprintf("Index references node but state file missing: %v", err),
-					CanAutoFix: true,
-					FixType:    FixDeterministic,
+					CanAutoFix:  true,
+					FixType:     FixDeterministic,
 				})
 			}
 			continue
@@ -321,23 +321,23 @@ func (e *Engine) checkLeafAudit(ns *state.NodeState, addr string, categories map
 
 	if e.include(CatMissingAuditTask, categories) && auditCount == 0 {
 		report.Issues = append(report.Issues, Issue{
-			Severity:   SeverityError,
-			Category:   CatMissingAuditTask,
-			Node:       addr,
+			Severity:    SeverityError,
+			Category:    CatMissingAuditTask,
+			Node:        addr,
 			Description: "Leaf node has no audit task",
-			CanAutoFix: true,
-			FixType:    FixDeterministic,
+			CanAutoFix:  true,
+			FixType:     FixDeterministic,
 		})
 	}
 
 	if e.include(CatAuditNotLast, categories) && auditCount == 1 && !auditLast {
 		report.Issues = append(report.Issues, Issue{
-			Severity:   SeverityError,
-			Category:   CatAuditNotLast,
-			Node:       addr,
+			Severity:    SeverityError,
+			Category:    CatAuditNotLast,
+			Node:        addr,
 			Description: "Audit task is not the last task",
-			CanAutoFix: true,
-			FixType:    FixDeterministic,
+			CanAutoFix:  true,
+			FixType:     FixDeterministic,
 		})
 	}
 
@@ -431,7 +431,7 @@ func (e *Engine) checkAuditState(ns *state.NodeState, addr string, categories ma
 					FixType:     FixManual,
 				})
 			}
-			if g.Status != "open" && g.Status != "fixed" {
+			if g.Status != state.GapOpen && g.Status != state.GapFixed {
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityError,
 					Category:    CatInvalidAuditGap,
@@ -442,7 +442,7 @@ func (e *Engine) checkAuditState(ns *state.NodeState, addr string, categories ma
 				})
 			}
 			// Stale fixed metadata on open gaps
-			if g.Status == "open" && g.FixedBy != "" {
+			if g.Status == state.GapOpen && g.FixedBy != "" {
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityWarning,
 					Category:    CatInvalidAuditGap,
@@ -481,7 +481,7 @@ func expectedAuditStatus(ns *state.NodeState) state.AuditStatus {
 		return state.AuditFailed
 	case state.StatusComplete:
 		for _, g := range ns.Audit.Gaps {
-			if g.Status == "open" {
+			if g.Status == state.GapOpen {
 				return state.AuditFailed
 			}
 		}

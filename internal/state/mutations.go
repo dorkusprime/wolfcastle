@@ -162,7 +162,7 @@ func AddEscalation(parent *NodeState, sourceNode string, description string, sou
 		Description: description,
 		SourceNode:  sourceNode,
 		SourceGapID: sourceGapID,
-		Status:      "open",
+		Status:      EscalationOpen,
 	})
 }
 

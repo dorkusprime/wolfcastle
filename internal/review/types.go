@@ -41,9 +41,9 @@ type Finding struct {
 
 // HistoryEntry records a completed review batch with its decisions.
 type HistoryEntry struct {
-	BatchID     string    `json:"batch_id"`
-	CompletedAt time.Time `json:"completed_at"`
-	Scopes      []string  `json:"scopes"`
+	BatchID     string     `json:"batch_id"`
+	CompletedAt time.Time  `json:"completed_at"`
+	Scopes      []string   `json:"scopes"`
 	Decisions   []Decision `json:"decisions"`
 }
 
