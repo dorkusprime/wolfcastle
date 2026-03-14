@@ -1,6 +1,6 @@
 # Codebase Audit
 
-You are performing a comprehensive codebase audit. For each scope below, analyze the codebase thoroughly and produce actionable findings.
+You are performing a full codebase audit. For each scope below, analyze the codebase thoroughly and produce actionable findings.
 
 ## Output Format
 
