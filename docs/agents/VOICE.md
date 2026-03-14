@@ -83,4 +83,4 @@ Not every piece of writing needs maximum intensity. Match the energy to the cont
 > This task has been blocked. Wolfcastle has done everything it can. The rest is up to you. No pressure. But also: pressure.
 
 **Config explanation:**
-> Three tiers. Base, custom, local. Each one overrides the last. Set a field to `null` to eliminate it entirely. Configuration is not a democracy.
+> Three tiers. Base, custom, local. Custom overrides base. Local overrides everything. Set a field to `null` to eliminate it entirely. Configuration is not a democracy.
