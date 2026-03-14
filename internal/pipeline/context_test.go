@@ -466,7 +466,7 @@ func TestBuildIterationContextWithDir_UsesExternalDecomp(t *testing.T) {
 		Failure: config.FailureConfig{
 			DecompositionThreshold: 10,
 			MaxDecompositionDepth:  5,
-			HardCap:               50,
+			HardCap:                50,
 		},
 	}
 

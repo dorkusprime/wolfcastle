@@ -222,8 +222,8 @@ func TestReScaffold_RefreshesIdentity(t *testing.T) {
 	// Write config.local.json with extra keys
 	localPath := filepath.Join(dir, "config.local.json")
 	localCfg := map[string]any{
-		"identity":   map[string]any{"user": "old-user", "machine": "old-machine"},
-		"extra_key":  "should_be_preserved",
+		"identity":  map[string]any{"user": "old-user", "machine": "old-machine"},
+		"extra_key": "should_be_preserved",
 	}
 	data, _ := json.MarshalIndent(localCfg, "", "  ")
 	os.WriteFile(localPath, data, 0644)

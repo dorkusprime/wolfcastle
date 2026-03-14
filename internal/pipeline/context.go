@@ -10,11 +10,11 @@ import (
 
 // FailureHeaderContext holds template variables for context-headers.md.
 type FailureHeaderContext struct {
-	FailureCount   int
+	FailureCount    int
 	DecompThreshold int
-	MaxDecompDepth int
-	CurrentDepth   int
-	HardCap        int
+	MaxDecompDepth  int
+	CurrentDepth    int
+	HardCap         int
 }
 
 // DecompositionContext holds template variables for decomposition.md.
@@ -60,11 +60,11 @@ func BuildIterationContextWithDir(wolfcastleDir string, nodeAddr string, ns *sta
 		// Failure history and decomposition policy
 		if t.FailureCount > 0 && cfg != nil {
 			headerCtx := FailureHeaderContext{
-				FailureCount:   t.FailureCount,
+				FailureCount:    t.FailureCount,
 				DecompThreshold: cfg.Failure.DecompositionThreshold,
-				MaxDecompDepth: cfg.Failure.MaxDecompositionDepth,
-				CurrentDepth:   ns.DecompositionDepth,
-				HardCap:        cfg.Failure.HardCap,
+				MaxDecompDepth:  cfg.Failure.MaxDecompositionDepth,
+				CurrentDepth:    ns.DecompositionDepth,
+				HardCap:         cfg.Failure.HardCap,
 			}
 			header := renderFailureHeader(wolfcastleDir, headerCtx)
 			b.WriteString("\n" + header)

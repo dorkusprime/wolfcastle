@@ -329,7 +329,7 @@ func testConfig() *config.Config {
 		Failure: config.FailureConfig{
 			DecompositionThreshold: 3,
 			MaxDecompositionDepth:  2,
-			HardCap:               5,
+			HardCap:                5,
 		},
 		Daemon: config.DaemonConfig{
 			PollIntervalSeconds:        0,
