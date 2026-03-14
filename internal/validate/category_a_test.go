@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -124,7 +125,7 @@ func TestTryModelAssistedFix_InvokeError(t *testing.T) {
 	// Use a nonexistent command to trigger invocation failure
 	model := config.ModelDef{Command: "/nonexistent/command/wolfcastle-test", Args: []string{}}
 
-	ok, err := TryModelAssistedFix(context.Background(), model, issue, dir)
+	ok, err := TryModelAssistedFix(context.Background(), invoke.NewProcessInvoker(), model, issue, dir)
 	if ok {
 		t.Error("expected ok=false for invoke error")
 	}
@@ -159,7 +160,7 @@ func TestTryModelAssistedFix_JSONParseError(t *testing.T) {
 	// Use echo to return non-JSON output
 	model := config.ModelDef{Command: "echo", Args: []string{"this is not json"}}
 
-	ok, err := TryModelAssistedFix(context.Background(), model, issue, dir)
+	ok, err := TryModelAssistedFix(context.Background(), invoke.NewProcessInvoker(), model, issue, dir)
 	if ok {
 		t.Error("expected ok=false for non-JSON response")
 	}

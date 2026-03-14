@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -224,7 +225,7 @@ func TestTryModelAssistedFix_InvalidModelResponse(t *testing.T) {
 
 	issue := Issue{Node: "test-node", Category: CatInvalidStateValue, FixType: FixModelAssisted}
 	model := config.ModelDef{Command: "echo", Args: []string{"not json at all"}}
-	ok, err := TryModelAssistedFix(context.Background(), model, issue, dir)
+	ok, err := TryModelAssistedFix(context.Background(), invoke.NewProcessInvoker(), model, issue, dir)
 	if ok {
 		t.Error("expected ok=false for invalid model response")
 	}
@@ -244,7 +245,7 @@ func TestTryModelAssistedFix_InvalidResolution(t *testing.T) {
 
 	issue := Issue{Node: "test-node", Category: CatInvalidStateValue, FixType: FixModelAssisted}
 	model := config.ModelDef{Command: "printf", Args: []string{`{"resolution":"garbage","reason":"test"}`}}
-	ok, err := TryModelAssistedFix(context.Background(), model, issue, dir)
+	ok, err := TryModelAssistedFix(context.Background(), invoke.NewProcessInvoker(), model, issue, dir)
 	if ok {
 		t.Error("expected ok=false")
 	}
@@ -264,7 +265,7 @@ func TestTryModelAssistedFix_SuccessfulFix(t *testing.T) {
 
 	issue := Issue{Node: "test-node", Category: CatInvalidStateValue, FixType: FixModelAssisted}
 	model := config.ModelDef{Command: "printf", Args: []string{`{"resolution":"complete","reason":"all done"}`}}
-	ok, err := TryModelAssistedFix(context.Background(), model, issue, dir)
+	ok, err := TryModelAssistedFix(context.Background(), invoke.NewProcessInvoker(), model, issue, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +295,7 @@ func TestTryModelAssistedFix_WithWolfcastleDirTemplate(t *testing.T) {
 
 	issue := Issue{Node: "test-node", Category: CatInvalidStateValue, FixType: FixModelAssisted, Description: "bad state"}
 	model := config.ModelDef{Command: "printf", Args: []string{`{"resolution":"blocked","reason":"stuck"}`}}
-	ok, err := TryModelAssistedFix(context.Background(), model, issue, dir, wolfDir)
+	ok, err := TryModelAssistedFix(context.Background(), invoke.NewProcessInvoker(), model, issue, dir, wolfDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -308,7 +309,7 @@ func TestTryModelAssistedFix_MissingNodeState(t *testing.T) {
 	dir := t.TempDir()
 	issue := Issue{Node: "ghost-node", Category: CatInvalidStateValue, FixType: FixModelAssisted}
 	model := config.ModelDef{Command: "printf", Args: []string{`{"resolution":"complete","reason":"done"}`}}
-	ok, err := TryModelAssistedFix(context.Background(), model, issue, dir)
+	ok, err := TryModelAssistedFix(context.Background(), invoke.NewProcessInvoker(), model, issue, dir)
 	if ok {
 		t.Error("expected ok=false")
 	}

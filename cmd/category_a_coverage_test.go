@@ -8,6 +8,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/dorkusprime/wolfcastle/internal/validate"
@@ -63,6 +64,7 @@ func TestDoctorCmd_ModelAssistedFixBlock(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
+	app.Invoker = invoke.NewProcessInvoker()
 
 	// Set up config with a doctor model reference (the model won't actually
 	// be invoked because there are no model-assisted issues)
@@ -83,6 +85,7 @@ func TestDoctorCmd_ModelAssistedFixWithIssues(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
+	app.Invoker = invoke.NewProcessInvoker()
 
 	// Set up config with a doctor model
 	app.Cfg.Doctor.Model = "test-model"

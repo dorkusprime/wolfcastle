@@ -31,7 +31,7 @@ type DoctorPromptContext struct {
 // Returns true if the fix was applied successfully.
 // wolfcastleDir is optional — when provided, the doctor prompt is loaded from
 // the three-tier template system; otherwise a hardcoded fallback is used.
-func TryModelAssistedFix(ctx context.Context, model config.ModelDef, issue Issue, projectsDir string, wolfcastleDirs ...string) (bool, error) {
+func TryModelAssistedFix(ctx context.Context, invoker invoke.Invoker, model config.ModelDef, issue Issue, projectsDir string, wolfcastleDirs ...string) (bool, error) {
 	if issue.Node == "" {
 		return false, fmt.Errorf("model-assisted fix requires a node address")
 	}
@@ -43,7 +43,7 @@ func TryModelAssistedFix(ctx context.Context, model config.ModelDef, issue Issue
 
 	prompt := buildDoctorPrompt(wolfcastleDir, issue)
 
-	result, err := invoke.Invoke(ctx, model, prompt, projectsDir)
+	result, err := invoker.Invoke(ctx, model, prompt, projectsDir, nil, nil)
 	if err != nil {
 		return false, fmt.Errorf("model invocation failed: %w", err)
 	}

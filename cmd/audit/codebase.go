@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -233,7 +232,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(app.Cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
 	defer cancel()
 
-	result, err := invoke.Invoke(invokeCtx, model, prompt, repoDir)
+	result, err := app.Invoker.Invoke(invokeCtx, model, prompt, repoDir, nil, nil)
 	if err != nil {
 		return fmt.Errorf("audit invocation failed: %w", err)
 	}

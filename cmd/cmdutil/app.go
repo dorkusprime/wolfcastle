@@ -12,6 +12,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -24,6 +25,7 @@ type App struct {
 	Cfg           *config.Config
 	Resolver      *tree.Resolver
 	Clock         clock.Clock
+	Invoker       invoke.Invoker
 	JSONOutput    bool
 }
 

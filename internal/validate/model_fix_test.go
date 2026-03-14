@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 )
 
 func TestBuildDoctorPrompt_FallbackWhenNoDir(t *testing.T) {
@@ -98,7 +99,7 @@ func TestTryModelAssistedFix_RequiresNodeAddress(t *testing.T) {
 	t.Parallel()
 	issue := Issue{Node: "", Category: CatMultipleInProgress}
 	model := config.ModelDef{Command: "echo", Args: []string{"test"}}
-	ok, err := TryModelAssistedFix(context.Background(), model, issue, t.TempDir())
+	ok, err := TryModelAssistedFix(context.Background(), invoke.NewProcessInvoker(), model, issue, t.TempDir())
 	if ok {
 		t.Error("expected ok=false for empty node address")
 	}
