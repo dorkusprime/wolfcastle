@@ -23,10 +23,9 @@ var app = &cmdutil.App{Clock: clock.New()}
 
 var rootCmd = &cobra.Command{
 	Use:   "wolfcastle",
-	Short: "Model-agnostic autonomous project orchestrator",
-	Long: `Wolfcastle breaks complex work into a persistent tree of projects,
-sub-projects, and tasks, then executes them through configurable
-multi-model pipelines.
+	Short: "Wolfcastle takes complex work, breaks it into pieces, and sends AI models to destroy every one of them",
+	Long: `Wolfcastle takes complex work, breaks it into pieces, and sends AI
+models to destroy every one of them.
 
 Quick start:
   wolfcastle init                          Initialize a project

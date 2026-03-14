@@ -1,6 +1,6 @@
 # Wolfcastle Agent Guide
 
-Wolfcastle is a model-agnostic autonomous project orchestrator — a Go CLI that breaks complex work into a persistent tree of projects, sub-projects, and tasks, then executes them through configurable multi-model pipelines.
+Wolfcastle is Ralph on steroids. It's what happens when you give an action hero a task backlog and tell them not to come back until the job is done. Deterministic by design: state is JSON on disk and mutations go through compiled scripts with the soul of a 90s sysadmin but with none of the typos. Models only get called when something actually needs thinking.
 
 ## Quick Orientation
 

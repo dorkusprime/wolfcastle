@@ -12,7 +12,7 @@
 
 You have a goal. Wolfcastle will destroy it.
 
-Wolfcastle is a model-agnostic autonomous project orchestrator. It takes complex work and breaks it into a tree of projects and tasks, as deep as the work demands, then sends AI models to hunt every task down and eliminate it. One by one. Relentlessly. While you do whatever it is you do.
+Wolfcastle takes complex work, breaks it into pieces, and sends AI models to destroy every one of them. The tree goes as deep as the work demands. One task. One model. No mercy. While you do whatever it is you do.
 
 ## Status
 
