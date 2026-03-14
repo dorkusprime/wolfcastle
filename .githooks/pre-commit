@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+echo "pre-commit: checking formatting..."
+bad=$(gofmt -l . 2>/dev/null | grep -v vendor/ || true)
+if [ -n "$bad" ]; then
+    echo "gofmt needed on:"
+    echo "$bad"
+    exit 1
+fi
+
+echo "pre-commit: running vet..."
+go vet ./...
+
+echo "pre-commit: building..."
+go build ./...
+
+echo "pre-commit: running lint..."
+if command -v golangci-lint >/dev/null 2>&1; then
+    golangci-lint run ./...
+else
+    echo "  (golangci-lint not installed, skipping)"
+fi
+
+echo "pre-commit: all checks passed"
