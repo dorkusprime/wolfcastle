@@ -19,3 +19,5 @@ The root-level [AGENTS.md](../../AGENTS.md) provides quick orientation (language
 **[Documentation](documentation.md)** explains how to write specs, ADRs, and update existing docs. Covers naming conventions, the ADR format, and the relationship between specs and ADRs.
 
 **[Voice](VOICE.md)** defines how Wolfcastle talks. Read this when writing user-facing copy, error messages, README text, or any prose that represents the product's personality.
+
+**[Audit](AUDIT.md)** is a 12-section structured checklist for comprehensive codebase audits. Covers correctness, Go best practices, error handling, security, architecture, documentation, voice, testing, CI/CD, cross-platform, code coverage, and usability. Read this when running a full audit or reviewing a major change.
