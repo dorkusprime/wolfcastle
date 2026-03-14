@@ -12,7 +12,7 @@ When you want direct control, the CLI has you covered:
 
 **Task addition** is for precision. `wolfcastle task add --node backend/auth/session-tokens "Implement token rotation"` places a single task exactly where you want it. No model involved. No decomposition. You know what needs doing and where it belongs.
 
-All of these compose freely. Your agent might create a project, you might add a few tasks by hand, then drop something in the inbox while the daemon is running. The tree accepts work from any direction.
+All of these compose freely. Your agent might create a project, you might add a few tasks by hand, then drop something in the inbox while the daemon is running. The tree accepts work from either direction.
 
 ## The Project Tree
 
