@@ -50,10 +50,10 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&app.JSONOutput, "json", false, "Output in JSON format")
 }
 
-// Execute registers all subcommand groups and runs the root command.
-// It handles top-level error formatting (JSON or human-readable) and
-// exits with code 1 on any command failure.
-func Execute() {
+// setupCommands registers all subcommand groups and wires up
+// command-group associations. It is separated from Execute so that
+// tests can exercise the registration logic without triggering os.Exit.
+func setupCommands() {
 	// Command groups for organized help output (ADR-030)
 	rootCmd.AddGroup(
 		&cobra.Group{ID: "lifecycle", Title: "Lifecycle:"},
@@ -83,13 +83,29 @@ func Execute() {
 	inbox.Register(app, rootCmd)
 	project.Register(app, rootCmd)
 	task.Register(app, rootCmd)
+}
 
+// executeRoot runs the root command and returns any error along with
+// whether JSON mode was active — allowing the caller to format the
+// error appropriately. Separated from Execute for testability.
+func executeRoot() error {
+	setupCommands()
 	if err := rootCmd.Execute(); err != nil {
 		if app.JSONOutput {
 			output.Print(output.Err("error", 1, err.Error()))
 		} else {
 			output.PrintError("%s", err)
 		}
+		return err
+	}
+	return nil
+}
+
+// Execute registers all subcommand groups and runs the root command.
+// It handles top-level error formatting (JSON or human-readable) and
+// exits with code 1 on any command failure.
+func Execute() {
+	if err := executeRoot(); err != nil {
 		os.Exit(1)
 	}
 }

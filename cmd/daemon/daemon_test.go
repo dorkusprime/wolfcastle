@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/config"
@@ -262,6 +264,145 @@ func TestStopCmd_StalePid(t *testing.T) {
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for stale PID")
+	}
+}
+
+func TestStopCmd_StalePid_Force(t *testing.T) {
+	env := newTestEnv(t)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	env.RootCmd.SetArgs([]string{"stop", "--force"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error for stale PID even with force")
+	}
+}
+
+func TestStopCmd_RunningProcess_SIGTERM(t *testing.T) {
+	env := newTestEnv(t)
+
+	// Start a long-lived subprocess that we can safely send SIGTERM to
+	sleepCmd := exec.Command("sleep", "60")
+	if err := sleepCmd.Start(); err != nil {
+		t.Fatalf("starting sleep process: %v", err)
+	}
+	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
+
+	pid := sleepCmd.Process.Pid
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+
+	env.RootCmd.SetArgs([]string{"stop"})
+	err := env.RootCmd.Execute()
+	if err != nil {
+		t.Fatalf("stop should succeed for running process: %v", err)
+	}
+}
+
+func TestStopCmd_RunningProcess_SIGTERM_JSON(t *testing.T) {
+	env := newTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	sleepCmd := exec.Command("sleep", "60")
+	if err := sleepCmd.Start(); err != nil {
+		t.Fatalf("starting sleep process: %v", err)
+	}
+	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
+
+	pid := sleepCmd.Process.Pid
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+
+	env.RootCmd.SetArgs([]string{"stop"})
+	err := env.RootCmd.Execute()
+	if err != nil {
+		t.Fatalf("stop --json should succeed for running process: %v", err)
+	}
+}
+
+func TestStopCmd_RunningProcess_Force(t *testing.T) {
+	env := newTestEnv(t)
+
+	sleepCmd := exec.Command("sleep", "60")
+	if err := sleepCmd.Start(); err != nil {
+		t.Fatalf("starting sleep process: %v", err)
+	}
+	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
+
+	pid := sleepCmd.Process.Pid
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+
+	env.RootCmd.SetArgs([]string{"stop", "--force"})
+	err := env.RootCmd.Execute()
+	if err != nil {
+		t.Fatalf("stop --force should succeed for running process: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// follow command - RunE path testing
+// ---------------------------------------------------------------------------
+
+func TestFollowCmd_WithLogFile(t *testing.T) {
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "logs")
+	_ = os.MkdirAll(logDir, 0755)
+	logFile := filepath.Join(logDir, "001-test.jsonl")
+	_ = os.WriteFile(logFile, []byte(`{"type":"assistant","text":"hello"}`+"\n"), 0644)
+
+	done := make(chan error, 1)
+	go func() {
+		env.RootCmd.SetArgs([]string{"follow", "--lines", "5"})
+		done <- env.RootCmd.Execute()
+	}()
+
+	// Follow loops forever; let it run long enough to exercise the code paths
+	select {
+	case err := <-done:
+		_ = err
+	case <-time.After(1500 * time.Millisecond):
+		// Expected: still running in the tail loop
+	}
+}
+
+func TestFollowCmd_NoLogs(t *testing.T) {
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "logs")
+	_ = os.MkdirAll(logDir, 0755)
+
+	done := make(chan error, 1)
+	go func() {
+		env.RootCmd.SetArgs([]string{"follow"})
+		done <- env.RootCmd.Execute()
+	}()
+
+	// Follow waits for logs (2s sleep + retry), let it run briefly
+	select {
+	case err := <-done:
+		_ = err
+	case <-time.After(2500 * time.Millisecond):
+		// Expected: stuck waiting for log files
+	}
+}
+
+func TestStopCmd_RunningProcess_Force_JSON(t *testing.T) {
+	env := newTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	sleepCmd := exec.Command("sleep", "60")
+	if err := sleepCmd.Start(); err != nil {
+		t.Fatalf("starting sleep process: %v", err)
+	}
+	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
+
+	pid := sleepCmd.Process.Pid
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+
+	env.RootCmd.SetArgs([]string{"stop", "--force"})
+	err := env.RootCmd.Execute()
+	if err != nil {
+		t.Fatalf("stop --force --json should succeed: %v", err)
 	}
 }
 
