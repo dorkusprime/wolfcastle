@@ -1,7 +1,5 @@
 # Wolfcastle
 
-[![CI](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml/badge.svg)](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml)
-
 ![Wolfcastle](assets/wolfcastle-alpha.png)
 
 You have a goal. Wolfcastle will destroy it.
@@ -20,7 +18,7 @@ You describe what you want to your coding agent. "Add OAuth2 PKCE support to the
 
 If a task fails, Wolfcastle tries again. If it fails ten times, Wolfcastle decomposes it into smaller, weaker problems and destroys those instead. If decomposition runs out of room, the task is blocked and Wolfcastle moves on. It does not waste time on the fallen.
 
-Everything is deterministic except the model's output. State is JSON on disk. The model decides *what* to do. Go scripts do it *correctly*. You can stop the daemon, check on progress with `wolfcastle status`, rearrange things by hand, and restart. Wolfcastle picks up exactly where it left off.
+Everything is deterministic except the model's output. State is JSON on disk. The model decides _what_ to do. Go scripts do it _correctly_. You can stop the daemon, check on progress with `wolfcastle status`, rearrange things by hand, and restart. Wolfcastle picks up exactly where it left off.
 
 You can also interact with Wolfcastle directly when you want to: `wolfcastle inbox add` for quick capture, `wolfcastle project create` for structured planning, `wolfcastle task add` for placing tasks exactly where they belong. [More on getting work in.](docs/humans/how-it-works.md#getting-work-in)
 
