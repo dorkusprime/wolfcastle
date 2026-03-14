@@ -34,7 +34,7 @@ Examples:
 		if _, err := os.Stat(wcDir); err == nil {
 			if !force {
 				// Per spec: print message and exit 0
-				if jsonOutput {
+				if app.JSONOutput {
 					output.Print(output.Ok("init", map[string]string{
 						"path":    wcDir,
 						"status":  "already_initialized",
@@ -51,7 +51,7 @@ Examples:
 				return fmt.Errorf("re-scaffold failed: %w", err)
 			}
 
-			if jsonOutput {
+			if app.JSONOutput {
 				output.Print(output.Ok("init", map[string]string{
 					"path":   wcDir,
 					"status": "reinitialized",
@@ -66,7 +66,7 @@ Examples:
 			return fmt.Errorf("scaffold failed: %w", err)
 		}
 
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("init", map[string]string{
 				"path": wcDir,
 			}))

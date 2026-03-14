@@ -25,12 +25,12 @@ Examples:
   wolfcastle doctor --fix
   wolfcastle doctor --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if resolver == nil {
+		if app.Resolver == nil {
 			return fmt.Errorf("identity not configured — run 'wolfcastle init' first")
 		}
 
 		// Load root index
-		idx, err := resolver.LoadRootIndex()
+		idx, err := app.Resolver.LoadRootIndex()
 		if err != nil {
 			issues := []validate.Issue{{
 				Severity:    validate.SeverityError,
@@ -41,7 +41,7 @@ Examples:
 		}
 
 		// Run validation
-		engine := validate.NewEngine(resolver.ProjectsDir(), validate.DefaultNodeLoader(resolver.ProjectsDir()), wolfcastleDir)
+		engine := validate.NewEngine(app.Resolver.ProjectsDir(), validate.DefaultNodeLoader(app.Resolver.ProjectsDir()), app.WolfcastleDir)
 		report := engine.ValidateAll(idx)
 
 		fix, _ := cmd.Flags().GetBool("fix")
@@ -55,7 +55,7 @@ Examples:
 		}
 
 		// Apply deterministic fixes
-		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, resolver.ProjectsDir(), resolver.RootIndexPath(), wolfcastleDir)
+		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, app.Resolver.ProjectsDir(), app.Resolver.RootIndexPath(), app.WolfcastleDir)
 
 		if len(fixes) == 0 {
 			output.PrintHuman("\nNo auto-fixable issues found")
@@ -78,8 +78,8 @@ Examples:
 		}
 
 		// Model-assisted fixes for issues that deterministic repair cannot resolve
-		if cfg != nil && cfg.Doctor.Model != "" {
-			model, ok := cfg.Models[cfg.Doctor.Model]
+		if app.Cfg != nil && app.Cfg.Doctor.Model != "" {
+			model, ok := app.Cfg.Models[app.Cfg.Doctor.Model]
 			if ok {
 				var modelIssues []validate.Issue
 				for _, issue := range report.Issues {
@@ -93,7 +93,7 @@ Examples:
 					defer cancel()
 					modelFixed := 0
 					for _, issue := range modelIssues {
-						applied, err := validate.TryModelAssistedFix(ctx, model, issue, resolver.ProjectsDir())
+						applied, err := validate.TryModelAssistedFix(ctx, model, issue, app.Resolver.ProjectsDir())
 						if err != nil {
 							output.PrintHuman("  SKIP  [%s] %s: %v", issue.Category, issue.Node, err)
 							continue
@@ -117,7 +117,7 @@ Examples:
 }
 
 func reportValidationIssues(issues []validate.Issue) error {
-	if jsonOutput {
+	if app.JSONOutput {
 		output.Print(output.Ok("doctor", map[string]any{
 			"issues": issues,
 			"count":  len(issues),

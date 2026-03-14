@@ -1,22 +1,20 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/cmd/audit"
+	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	"github.com/dorkusprime/wolfcastle/cmd/daemon"
+	"github.com/dorkusprime/wolfcastle/cmd/inbox"
+	"github.com/dorkusprime/wolfcastle/cmd/project"
+	"github.com/dorkusprime/wolfcastle/cmd/task"
 	"github.com/dorkusprime/wolfcastle/internal/output"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
-var (
-	jsonOutput    bool
-	wolfcastleDir string
-	cfg           *config.Config
-	resolver      *tree.Resolver
-)
+// app is the shared runtime state for the CLI.
+var app = &cmdutil.App{}
 
 var rootCmd = &cobra.Command{
 	Use:   "wolfcastle",
@@ -40,68 +38,27 @@ All commands support --json for machine-readable output.`,
 		case "init", "version", "help":
 			return nil
 		}
-		return loadConfig()
+		return app.LoadConfig()
 	},
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
+	rootCmd.PersistentFlags().BoolVar(&app.JSONOutput, "json", false, "Output in JSON format")
 }
 
 func Execute() {
+	audit.Register(app, rootCmd)
+	daemon.Register(app, rootCmd)
+	inbox.Register(app, rootCmd)
+	project.Register(app, rootCmd)
+	task.Register(app, rootCmd)
+
 	if err := rootCmd.Execute(); err != nil {
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Err("error", 1, err.Error()))
 		} else {
 			output.PrintError("%s", err)
 		}
 		os.Exit(1)
 	}
-}
-
-func findWolfcastleDir() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	for {
-		candidate := filepath.Join(dir, ".wolfcastle")
-		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-			return candidate, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-	return "", fmt.Errorf("no .wolfcastle directory found — run 'wolfcastle init' first")
-}
-
-func loadConfig() error {
-	var err error
-	wolfcastleDir, err = findWolfcastleDir()
-	if err != nil {
-		return err
-	}
-	cfg, err = config.Load(wolfcastleDir)
-	if err != nil {
-		return fmt.Errorf("loading config: %w", err)
-	}
-	// Don't validate identity for commands that don't need it
-	resolver, err = tree.NewResolver(wolfcastleDir, cfg)
-	if err != nil {
-		// Not fatal for all commands
-		resolver = nil
-	}
-	return nil
-}
-
-// requireResolver returns an error if the resolver is not initialized.
-// Commands that operate on the project tree should call this early.
-func requireResolver() error {
-	if resolver == nil {
-		return fmt.Errorf("identity not configured — run 'wolfcastle init' first")
-	}
-	return nil
 }

@@ -75,7 +75,7 @@ Examples:
 		}
 
 		// Resolve docs directory
-		docsDir := filepath.Join(wolfcastleDir, cfg.Docs.Directory, "decisions")
+		docsDir := filepath.Join(app.WolfcastleDir, app.Cfg.Docs.Directory, "decisions")
 		if err := os.MkdirAll(docsDir, 0755); err != nil {
 			return fmt.Errorf("creating decisions directory: %w", err)
 		}
@@ -85,7 +85,7 @@ Examples:
 			return fmt.Errorf("writing ADR file: %w", err)
 		}
 
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("adr_create", map[string]string{
 				"title":    title,
 				"filename": filename,

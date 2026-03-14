@@ -25,7 +25,7 @@ the node's audit trail, result summary, and metadata.
 Examples:
   wolfcastle archive add --node my-project`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireResolver(); err != nil {
+		if err := app.RequireResolver(); err != nil {
 			return err
 		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
@@ -37,7 +37,7 @@ Examples:
 		if err != nil {
 			return fmt.Errorf("invalid node address: %w", err)
 		}
-		ns, err := resolver.LoadNodeState(addr)
+		ns, err := app.Resolver.LoadNodeState(addr)
 		if err != nil {
 			return fmt.Errorf("loading node state: %w", err)
 		}
@@ -49,14 +49,14 @@ Examples:
 		// Get current branch
 		branch := ""
 		branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-		branchCmd.Dir = filepath.Dir(wolfcastleDir)
+		branchCmd.Dir = filepath.Dir(app.WolfcastleDir)
 		if out, err := branchCmd.Output(); err == nil {
 			branch = strings.TrimSpace(string(out))
 		}
 
-		entry := archive.GenerateEntry(nodeAddr, ns, cfg, branch, ns.Audit.ResultSummary)
+		entry := archive.GenerateEntry(nodeAddr, ns, app.Cfg, branch, ns.Audit.ResultSummary)
 
-		archiveDir := filepath.Join(wolfcastleDir, "archive")
+		archiveDir := filepath.Join(app.WolfcastleDir, "archive")
 		if err := os.MkdirAll(archiveDir, 0755); err != nil {
 			return fmt.Errorf("creating archive directory: %w", err)
 		}
@@ -66,7 +66,7 @@ Examples:
 			return fmt.Errorf("writing archive entry: %w", err)
 		}
 
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("archive_add", map[string]string{
 				"node":     nodeAddr,
 				"filename": entry.Filename,

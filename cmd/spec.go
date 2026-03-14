@@ -50,7 +50,7 @@ Examples:
 		slug := tree.ToSlug(title)
 		filename := fmt.Sprintf("%s-%s.md", timestamp, slug)
 
-		docsDir := filepath.Join(wolfcastleDir, cfg.Docs.Directory, "specs")
+		docsDir := filepath.Join(app.WolfcastleDir, app.Cfg.Docs.Directory, "specs")
 		if err := os.MkdirAll(docsDir, 0755); err != nil {
 			return fmt.Errorf("creating specs directory: %w", err)
 		}
@@ -67,7 +67,7 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
-			statePath := resolver.NodeStatePath(addr)
+			statePath := app.Resolver.NodeStatePath(addr)
 			ns, err := state.LoadNodeState(statePath)
 			if err != nil {
 				return fmt.Errorf("loading node state: %w", err)
@@ -78,7 +78,7 @@ Examples:
 			}
 		}
 
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("spec_create", map[string]string{
 				"title":    title,
 				"filename": filename,
@@ -114,7 +114,7 @@ Examples:
 		}
 
 		// Verify spec exists
-		docsDir := filepath.Join(wolfcastleDir, cfg.Docs.Directory, "specs")
+		docsDir := filepath.Join(app.WolfcastleDir, app.Cfg.Docs.Directory, "specs")
 		specPath := filepath.Join(docsDir, filename)
 		if _, err := os.Stat(specPath); err != nil {
 			return fmt.Errorf("spec file not found: %s", specPath)
@@ -124,7 +124,7 @@ Examples:
 		if err != nil {
 			return fmt.Errorf("invalid node address: %w", err)
 		}
-		statePath := resolver.NodeStatePath(addr)
+		statePath := app.Resolver.NodeStatePath(addr)
 		ns, err := state.LoadNodeState(statePath)
 		if err != nil {
 			return fmt.Errorf("loading node state: %w", err)
@@ -142,7 +142,7 @@ Examples:
 			return fmt.Errorf("saving node state: %w", err)
 		}
 
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("spec_link", map[string]string{
 				"filename": filename,
 				"node":     nodeAddr,
@@ -166,7 +166,7 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		nodeAddr, _ := cmd.Flags().GetString("node")
 
-		docsDir := filepath.Join(wolfcastleDir, cfg.Docs.Directory, "specs")
+		docsDir := filepath.Join(app.WolfcastleDir, app.Cfg.Docs.Directory, "specs")
 		entries, err := os.ReadDir(docsDir)
 		if err != nil {
 			return fmt.Errorf("reading specs dir: %w", err)
@@ -179,7 +179,7 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
-			ns, err := state.LoadNodeState(resolver.NodeStatePath(addr))
+			ns, err := state.LoadNodeState(app.Resolver.NodeStatePath(addr))
 			if err != nil {
 				return fmt.Errorf("loading node state: %w", err)
 			}
@@ -208,7 +208,7 @@ Examples:
 			})
 		}
 
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("spec_list", map[string]any{
 				"specs": specs,
 				"count": len(specs),

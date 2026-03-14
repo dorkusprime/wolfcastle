@@ -31,7 +31,7 @@ Examples:
   wolfcastle unblock --node my-project/task-1
   wolfcastle unblock --agent --node my-project/task-1`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireResolver(); err != nil {
+		if err := app.RequireResolver(); err != nil {
 			return err
 		}
 		nodeFlag, _ := cmd.Flags().GetString("node")
@@ -52,7 +52,7 @@ Examples:
 		if err != nil {
 			return fmt.Errorf("invalid node address: %w", err)
 		}
-		statePath := filepath.Join(resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
+		statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
 		ns, err := state.LoadNodeState(statePath)
 		if err != nil {
 			return fmt.Errorf("loading node state: %w", err)
@@ -147,9 +147,9 @@ func buildDiagnostic(nodeAddr, taskID string, ns *state.NodeState, task *state.T
 }
 
 func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic string) error {
-	model, ok := cfg.Models[cfg.Unblock.Model]
+	model, ok := app.Cfg.Models[app.Cfg.Unblock.Model]
 	if !ok {
-		return fmt.Errorf("unblock model %q not found", cfg.Unblock.Model)
+		return fmt.Errorf("unblock model %q not found", app.Cfg.Unblock.Model)
 	}
 
 	// Build the unblock prompt
@@ -165,12 +165,12 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	// Simple multi-turn: invoke model, show response, get user input, repeat.
 	// Keep a sliding window of conversation history to avoid unbounded growth.
 	const maxConversationBytes = 100_000
-	repoDir := filepath.Dir(wolfcastleDir)
+	repoDir := filepath.Dir(app.WolfcastleDir)
 	conversation := prompt
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
-		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
+		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(app.Cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
 		result, err := invoke.Invoke(invokeCtx, model, conversation, repoDir)
 		cancel()
 

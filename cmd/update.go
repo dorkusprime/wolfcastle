@@ -23,16 +23,16 @@ Examples:
 		// TODO: self-update binary from release channel
 
 		// Regenerate base/ prompts and rules
-		if err := project.WriteBasePrompts(wolfcastleDir); err != nil {
+		if err := project.WriteBasePrompts(app.WolfcastleDir); err != nil {
 			return fmt.Errorf("regenerating base prompts: %w", err)
 		}
 
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("update", map[string]string{
-				"path": wolfcastleDir,
+				"path": app.WolfcastleDir,
 			}))
 		} else {
-			output.PrintHuman("Regenerated base/ prompts and rules in %s", wolfcastleDir)
+			output.PrintHuman("Regenerated base/ prompts and rules in %s", app.WolfcastleDir)
 		}
 		return nil
 	},

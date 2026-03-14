@@ -28,12 +28,12 @@ Claude Code users to interact with Wolfcastle natively from their session.
 Uses symlinks where supported (macOS, Linux) for automatic updates.
 Falls back to copying on Windows.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repoDir := filepath.Dir(wolfcastleDir)
+		repoDir := filepath.Dir(app.WolfcastleDir)
 		claudeDir := filepath.Join(repoDir, ".claude")
 		skillDir := filepath.Join(claudeDir, "wolfcastle")
 
 		// Source: base/skills/ in .wolfcastle
-		sourceDir := filepath.Join(wolfcastleDir, "base", "skills")
+		sourceDir := filepath.Join(app.WolfcastleDir, "base", "skills")
 
 		// Ensure source exists and has content
 		if err := ensureSkillSource(sourceDir); err != nil {
@@ -54,7 +54,7 @@ Falls back to copying on Windows.`,
 				// Fall back to copy
 				return copyDir(sourceDir, skillDir)
 			}
-			if jsonOutput {
+			if app.JSONOutput {
 				output.Print(output.Ok("install_skill", map[string]string{
 					"method": "symlink",
 					"source": sourceDir,
@@ -72,7 +72,7 @@ Falls back to copying on Windows.`,
 		if err := copyDir(sourceDir, skillDir); err != nil {
 			return err
 		}
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("install_skill", map[string]string{
 				"method": "copy",
 				"source": sourceDir,

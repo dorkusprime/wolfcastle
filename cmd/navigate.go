@@ -23,12 +23,12 @@ Examples:
   wolfcastle navigate --node auth-system
   wolfcastle navigate --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireResolver(); err != nil {
+		if err := app.RequireResolver(); err != nil {
 			return err
 		}
 		scopeNode, _ := cmd.Flags().GetString("node")
 
-		idx, err := resolver.LoadRootIndex()
+		idx, err := app.Resolver.LoadRootIndex()
 		if err != nil {
 			return err
 		}
@@ -38,13 +38,13 @@ Examples:
 			if err != nil {
 				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
 			}
-			return state.LoadNodeState(filepath.Join(resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+			return state.LoadNodeState(filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
 		})
 		if err != nil {
 			return err
 		}
 
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("navigate", result))
 		} else {
 			if result.Found {

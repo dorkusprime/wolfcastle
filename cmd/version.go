@@ -12,7 +12,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the Wolfcastle version",
 	Run: func(cmd *cobra.Command, args []string) {
-		if jsonOutput {
+		if app.JSONOutput {
 			output.Print(output.Ok("version", map[string]string{
 				"version": Version,
 			}))
