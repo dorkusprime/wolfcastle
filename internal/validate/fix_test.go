@@ -1685,3 +1685,122 @@ func TestFix_PropagationMismatch_LeafOnlyUpdatesIndex(t *testing.T) {
 		t.Errorf("expected index state in_progress, got %s", idx.Nodes["leaf"].State)
 	}
 }
+
+func TestHasAutoFixable(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty report", func(t *testing.T) {
+		r := &Report{}
+		if r.HasAutoFixable() {
+			t.Error("empty report should not be auto-fixable")
+		}
+	})
+
+	t.Run("no fixable issues", func(t *testing.T) {
+		r := &Report{
+			Issues: []Issue{
+				{Category: CatOrphanDefinition, CanAutoFix: false},
+			},
+		}
+		if r.HasAutoFixable() {
+			t.Error("report with no fixable issues should not be auto-fixable")
+		}
+	})
+
+	t.Run("has fixable issue", func(t *testing.T) {
+		r := &Report{
+			Issues: []Issue{
+				{Category: CatMissingAuditTask, CanAutoFix: true},
+			},
+		}
+		if !r.HasAutoFixable() {
+			t.Error("report with fixable issue should be auto-fixable")
+		}
+	})
+}
+
+func TestFixWithVerification_SinglePass(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	projectsDir := dir
+
+	// Create a leaf missing its audit task
+	leaf := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
+	leaf.Tasks = []state.Task{
+		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+	}
+	saveLeaf(t, dir, "leaf", leaf)
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"leaf"}
+	idx.Nodes["leaf"] = state.IndexEntry{
+		Name:    "Leaf",
+		Type:    state.NodeLeaf,
+		State:   state.StatusNotStarted,
+		Address: "leaf",
+	}
+	indexPath := saveIndex(t, dir, idx)
+
+	loader := DefaultNodeLoader(projectsDir)
+	fixes, finalReport, err := FixWithVerification(projectsDir, indexPath, loader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(fixes) == 0 {
+		t.Error("expected at least one fix")
+	}
+
+	// Check that the fix has Pass set
+	foundAuditFix := false
+	for _, fix := range fixes {
+		if fix.Category == CatMissingAuditTask {
+			foundAuditFix = true
+			if fix.Pass != 1 {
+				t.Errorf("expected fix on pass 1, got pass %d", fix.Pass)
+			}
+		}
+	}
+	if !foundAuditFix {
+		t.Error("expected missing audit task fix")
+	}
+
+	// Final report should show no critical issues
+	if finalReport == nil {
+		t.Fatal("expected final report")
+	}
+}
+
+func TestFixWithVerification_CleanTree(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	projectsDir := dir
+
+	// Create a valid leaf with audit task
+	leaf := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
+	leaf.Tasks = []state.Task{
+		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "audit", Description: "verify", State: state.StatusNotStarted, IsAudit: true},
+	}
+	saveLeaf(t, dir, "leaf", leaf)
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"leaf"}
+	idx.Nodes["leaf"] = state.IndexEntry{
+		Name:    "Leaf",
+		Type:    state.NodeLeaf,
+		State:   state.StatusNotStarted,
+		Address: "leaf",
+	}
+	indexPath := saveIndex(t, dir, idx)
+
+	loader := DefaultNodeLoader(projectsDir)
+	fixes, _, err := FixWithVerification(projectsDir, indexPath, loader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(fixes) != 0 {
+		t.Errorf("expected no fixes for clean tree, got %d", len(fixes))
+	}
+}

@@ -15,6 +15,66 @@ type FixResult struct {
 	Category    string
 	Node        string
 	Description string
+	Pass        int
+}
+
+const maxFixPasses = 5
+
+// FixWithVerification runs a multi-pass fix loop per ADR-051. Each pass
+// validates the tree, applies deterministic fixes, and re-validates. The
+// loop exits when no fixable issues remain or the pass cap is reached.
+// Returns a final report with all residual issues.
+func FixWithVerification(
+	projectsDir string,
+	indexPath string,
+	loadNode NodeLoader,
+	wolfcastleDirs ...string,
+) ([]FixResult, *Report, error) {
+	var wolfcastleDir string
+	if len(wolfcastleDirs) > 0 {
+		wolfcastleDir = wolfcastleDirs[0]
+	}
+
+	var allFixes []FixResult
+
+	for pass := 1; pass <= maxFixPasses; pass++ {
+		// Reload index from disk (prior pass may have modified it)
+		idx, err := state.LoadRootIndex(indexPath)
+		if err != nil {
+			return allFixes, nil, fmt.Errorf("loading root index on pass %d: %w", pass, err)
+		}
+
+		engine := NewEngine(projectsDir, loadNode, wolfcastleDir)
+		report := engine.ValidateAll(idx)
+
+		if !report.HasAutoFixable() {
+			return allFixes, report, nil
+		}
+
+		fixes, _, err := ApplyDeterministicFixes(idx, report.Issues, projectsDir, indexPath, wolfcastleDir)
+		if err != nil {
+			return allFixes, report, fmt.Errorf("applying fixes on pass %d: %w", pass, err)
+		}
+
+		if len(fixes) == 0 {
+			break
+		}
+
+		for i := range fixes {
+			fixes[i].Pass = pass
+		}
+		allFixes = append(allFixes, fixes...)
+	}
+
+	// Final validation-only pass
+	idx, err := state.LoadRootIndex(indexPath)
+	if err != nil {
+		return allFixes, nil, fmt.Errorf("loading root index for final validation: %w", err)
+	}
+	engine := NewEngine(projectsDir, loadNode, wolfcastleDir)
+	finalReport := engine.ValidateAll(idx)
+
+	return allFixes, finalReport, nil
 }
 
 // ApplyDeterministicFixes attempts to repair all deterministic-fixable issues.
@@ -77,7 +137,7 @@ func ApplyDeterministicFixes(
 				}
 			}
 			indexModified = true
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "removed dangling entry from index"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "removed dangling entry from index"})
 
 		case CatRootIndexMissingEntry:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -110,7 +170,7 @@ func ApplyDeterministicFixes(
 			}
 			indexModified = true
 			_ = statePath
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "added orphaned node to index"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "added orphaned node to index"})
 
 		case CatPropagationMismatch:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -127,7 +187,7 @@ func ApplyDeterministicFixes(
 				idx.Nodes[issue.Node] = entry
 				indexModified = true
 			}
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, fmt.Sprintf("updated state to %s", ns.State)})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: fmt.Sprintf("updated state to %s", ns.State)})
 
 		case CatMissingAuditTask:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -141,7 +201,7 @@ func ApplyDeterministicFixes(
 				IsAudit:     true,
 			})
 			modifiedStates[statePath] = ns
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "added audit task"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "added audit task"})
 
 		case CatAuditNotLast:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -162,7 +222,7 @@ func ApplyDeterministicFixes(
 				ns.Tasks = append(others, *auditTask)
 				modifiedStates[statePath] = ns
 			}
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "moved audit task to end"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "moved audit task to end"})
 
 		case CatInvalidStateValue:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -178,7 +238,7 @@ func ApplyDeterministicFixes(
 					idx.Nodes[issue.Node] = entry
 					indexModified = true
 				}
-				fixes = append(fixes, FixResult{issue.Category, issue.Node, fmt.Sprintf("normalized state to %s", normalized)})
+				fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: fmt.Sprintf("normalized state to %s", normalized)})
 			}
 
 		case CatBlockedWithoutReason:
@@ -192,7 +252,7 @@ func ApplyDeterministicFixes(
 				}
 			}
 			modifiedStates[statePath] = ns
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "added placeholder blocked reason"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "added placeholder blocked reason"})
 
 		case CatDepthMismatch:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -204,7 +264,7 @@ func ApplyDeterministicFixes(
 				if parentErr == nil {
 					ns.DecompositionDepth = parentNS.DecompositionDepth
 					modifiedStates[statePath] = ns
-					fixes = append(fixes, FixResult{issue.Category, issue.Node, fmt.Sprintf("set depth to %d", ns.DecompositionDepth)})
+					fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: fmt.Sprintf("set depth to %d", ns.DecompositionDepth)})
 				}
 			}
 
@@ -219,7 +279,7 @@ func ApplyDeterministicFixes(
 				}
 			}
 			modifiedStates[statePath] = ns
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "reset negative failure count to 0"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "reset negative failure count to 0"})
 
 		case CatMissingRequiredField:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -239,7 +299,7 @@ func ApplyDeterministicFixes(
 				ns.State = state.StatusNotStarted
 			}
 			modifiedStates[statePath] = ns
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "populated missing required fields"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "populated missing required fields"})
 
 		case CatInvalidAuditStatus:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -248,7 +308,7 @@ func ApplyDeterministicFixes(
 			}
 			ns.Audit.Status = state.AuditPending
 			modifiedStates[statePath] = ns
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "reset audit status to pending"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "reset audit status to pending"})
 
 		case CatAuditStatusTaskMismatch:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -257,7 +317,7 @@ func ApplyDeterministicFixes(
 			}
 			state.SyncAuditLifecycle(ns)
 			modifiedStates[statePath] = ns
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, fmt.Sprintf("synced audit status to %s", ns.Audit.Status)})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: fmt.Sprintf("synced audit status to %s", ns.Audit.Status)})
 
 		case CatInvalidAuditGap:
 			ns, statePath, err := loadOrCached(issue.Node)
@@ -272,17 +332,17 @@ func ApplyDeterministicFixes(
 				}
 			}
 			modifiedStates[statePath] = ns
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "cleared stale gap metadata"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "cleared stale gap metadata"})
 
 		case CatOrphanDefinition:
 			// Deterministic fix: no action needed (just a warning)
-			fixes = append(fixes, FixResult{issue.Category, issue.Node, "orphan definition detected (no auto-fix)"})
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "orphan definition detected (no auto-fix)"})
 
 		case CatStalePIDFile:
 			if wolfcastleDir != "" {
 				pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
 				if err := os.Remove(pidPath); err == nil {
-					fixes = append(fixes, FixResult{issue.Category, "", "removed stale PID file"})
+					fixes = append(fixes, FixResult{Category: issue.Category, Description: "removed stale PID file"})
 				}
 			}
 
@@ -290,7 +350,7 @@ func ApplyDeterministicFixes(
 			if wolfcastleDir != "" {
 				stopPath := filepath.Join(wolfcastleDir, "stop")
 				if err := os.Remove(stopPath); err == nil {
-					fixes = append(fixes, FixResult{issue.Category, "", "removed stale stop file"})
+					fixes = append(fixes, FixResult{Category: issue.Category, Description: "removed stale stop file"})
 				}
 			}
 		}

@@ -88,6 +88,16 @@ func (r *Report) HasErrors() bool {
 	return false
 }
 
+// HasAutoFixable returns true if any issue can be automatically fixed.
+func (r *Report) HasAutoFixable() bool {
+	for _, issue := range r.Issues {
+		if issue.CanAutoFix {
+			return true
+		}
+	}
+	return false
+}
+
 // StartupCategories returns the subset of categories checked at daemon startup.
 var StartupCategories = map[string]bool{
 	CatMalformedJSON:          true,
