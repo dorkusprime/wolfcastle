@@ -86,4 +86,3 @@ func EnforceRetention(h *History, maxEntries int, maxAgeDays int, clocks ...cloc
 		h.Entries = h.Entries[:maxEntries]
 	}
 }
-

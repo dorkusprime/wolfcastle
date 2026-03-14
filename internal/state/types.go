@@ -161,14 +161,14 @@ type Gap struct {
 
 // Escalation is a gap escalated to a parent node.
 type Escalation struct {
-	ID          string     `json:"id"`
-	Timestamp   time.Time  `json:"timestamp"`
-	Description string     `json:"description"`
-	SourceNode  string     `json:"source_node"`
-	SourceGapID string     `json:"source_gap_id,omitempty"`
+	ID          string           `json:"id"`
+	Timestamp   time.Time        `json:"timestamp"`
+	Description string           `json:"description"`
+	SourceNode  string           `json:"source_node"`
+	SourceGapID string           `json:"source_gap_id,omitempty"`
 	Status      EscalationStatus `json:"status"`
-	ResolvedBy  string     `json:"resolved_by,omitempty"`
-	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
+	ResolvedBy  string           `json:"resolved_by,omitempty"`
+	ResolvedAt  *time.Time       `json:"resolved_at,omitempty"`
 }
 
 // NewRootIndex creates an empty root index.

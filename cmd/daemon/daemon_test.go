@@ -439,9 +439,9 @@ func TestIsInSubtree_MissingNode(t *testing.T) {
 func TestIsInSubtree_DeepChild(t *testing.T) {
 	idx := &state.RootIndex{
 		Nodes: map[string]state.IndexEntry{
-			"root":             {Address: "root"},
-			"root/mid":         {Address: "root/mid", Parent: "root"},
-			"root/mid/deep":    {Address: "root/mid/deep", Parent: "root/mid"},
+			"root":          {Address: "root"},
+			"root/mid":      {Address: "root/mid", Parent: "root"},
+			"root/mid/deep": {Address: "root/mid/deep", Parent: "root/mid"},
 		},
 	}
 	if !isInSubtree(idx, "root/mid/deep", "root") {

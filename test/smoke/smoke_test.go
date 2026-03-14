@@ -68,8 +68,9 @@ func TestHelpCommand(t *testing.T) {
 	if !strings.Contains(output, "wolfcastle") {
 		t.Errorf("help output does not contain 'wolfcastle': %s", output)
 	}
-	if !strings.Contains(output, "Available Commands") {
-		t.Errorf("help output does not list commands: %s", output)
+	// With command groups, Cobra shows group titles instead of "Available Commands"
+	if !strings.Contains(output, "Lifecycle:") {
+		t.Errorf("help output does not show command groups: %s", output)
 	}
 }
 
