@@ -1,5 +1,13 @@
 # Wolfcastle
 
+[![CI](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/dorkusprime/wolfcastle/branch/main/graph/badge.svg)](https://codecov.io/gh/dorkusprime/wolfcastle)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dorkusprime/wolfcastle)](https://goreportcard.com/report/github.com/dorkusprime/wolfcastle)
+[![Go Reference](https://pkg.go.dev/badge/github.com/dorkusprime/wolfcastle.svg)](https://pkg.go.dev/github.com/dorkusprime/wolfcastle)
+[![Go version](https://img.shields.io/github/go-mod/go-version/dorkusprime/wolfcastle)](https://go.dev/)
+[![License: MIT](https://img.shields.io/github/license/dorkusprime/wolfcastle)](LICENSE)
+[![Status](https://img.shields.io/badge/status-pre--release-blue)](https://github.com/dorkusprime/wolfcastle)
+
 ![Wolfcastle](assets/wolfcastle-alpha.png)
 
 You have a goal. Wolfcastle will destroy it.
@@ -8,7 +16,7 @@ Wolfcastle is a model-agnostic autonomous project orchestrator. It takes complex
 
 ## Status
 
-Pre-alpha. Under active construction. The architecture is locked down and implementation is underway.
+Pre-release. The architecture is locked, the implementation is complete, and the test suite is comprehensive. Heading toward a first tagged release.
 
 See the [Architecture Decision Records](docs/decisions/INDEX.md) and [Specifications](docs/specs/) for the full design.
 

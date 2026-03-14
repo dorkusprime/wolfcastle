@@ -34,12 +34,13 @@ jobs:
       - name: Test
         run: go test -race -coverprofile=coverage.out ./...
 
-      - name: Upload coverage
+      - name: Upload coverage to Codecov
         if: matrix.go-version == 'stable'
-        uses: actions/upload-artifact@v4
+        uses: codecov/codecov-action@v5
         with:
-          name: coverage
-          path: coverage.out
+          files: coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
   lint:
     runs-on: ubuntu-latest
