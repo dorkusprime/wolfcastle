@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"text/template"
 )
 
 // ResolveFragment finds a file through the three-tier merge.
@@ -81,4 +82,26 @@ func ResolveAllFragments(wolfcastleDir string, subdir string, include, exclude [
 	}
 
 	return contents, nil
+}
+
+// ResolvePromptTemplate loads a prompt file via the three-tier system and
+// optionally executes it as a Go text/template. If ctx is nil the raw
+// content is returned without template execution.
+func ResolvePromptTemplate(wolfcastleDir, promptFile string, ctx any) (string, error) {
+	raw, err := ResolveFragment(wolfcastleDir, "prompts/"+promptFile)
+	if err != nil {
+		return "", err
+	}
+	if ctx == nil {
+		return raw, nil
+	}
+	tmpl, err := template.New(promptFile).Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("parsing prompt template %s: %w", promptFile, err)
+	}
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, ctx); err != nil {
+		return "", fmt.Errorf("executing prompt template %s: %w", promptFile, err)
+	}
+	return buf.String(), nil
 }

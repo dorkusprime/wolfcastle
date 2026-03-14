@@ -1,6 +1,8 @@
 package pipeline
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -436,5 +438,82 @@ func TestBuildIterationContext_NoAuditScope(t *testing.T) {
 
 	if strings.Contains(result, "## Audit Scope") {
 		t.Error("audit scope section should be absent when nil")
+	}
+}
+
+func TestBuildIterationContextWithDir_UsesExternalDecomp(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	// Write a custom decomposition prompt
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "decomposition.md"),
+		[]byte("CUSTOM: decompose {{.NodeAddr}} now"), 0644)
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "context-headers.md"),
+		[]byte("## Failure History\n\nFailed {{.FailureCount}} times. Threshold: {{.DecompThreshold}}"), 0644)
+
+	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
+	ns.Tasks = []state.Task{
+		{
+			ID:                 "task-1",
+			Description:        "Implement auth",
+			State:              state.StatusInProgress,
+			FailureCount:       12,
+			NeedsDecomposition: true,
+		},
+	}
+	cfg := &config.Config{
+		Failure: config.FailureConfig{
+			DecompositionThreshold: 10,
+			MaxDecompositionDepth:  5,
+			HardCap:               50,
+		},
+	}
+
+	result := BuildIterationContextWithDir(dir, "project/auth", ns, "task-1", cfg)
+
+	if !strings.Contains(result, "CUSTOM: decompose project/auth now") {
+		t.Error("expected externalized decomposition prompt")
+	}
+	if !strings.Contains(result, "Failed 12 times. Threshold: 10") {
+		t.Error("expected externalized failure header")
+	}
+}
+
+func TestBuildIterationContextWithDir_UsesExternalSummary(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "summary-required.md"),
+		[]byte("CUSTOM SUMMARY: emit WOLFCASTLE_SUMMARY before WOLFCASTLE_COMPLETE"), 0644)
+
+	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
+	ns.Tasks = []state.Task{
+		{ID: "task-1", Description: "Only task", State: state.StatusInProgress},
+	}
+
+	result := BuildIterationContextWithDir(dir, "project/auth", ns, "task-1")
+
+	if !strings.Contains(result, "CUSTOM SUMMARY:") {
+		t.Error("expected externalized summary-required prompt")
+	}
+}
+
+func TestBuildIterationContextWithDir_FallbackWhenNoDir(t *testing.T) {
+	t.Parallel()
+	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
+	ns.Tasks = []state.Task{
+		{ID: "task-1", Description: "Only task", State: state.StatusInProgress},
+	}
+
+	// Empty wolfcastleDir triggers fallback
+	result := BuildIterationContextWithDir("", "project/auth", ns, "task-1")
+
+	if !strings.Contains(result, "## Summary Required") {
+		t.Error("expected fallback summary section")
+	}
+	if !strings.Contains(result, "WOLFCASTLE_SUMMARY") {
+		t.Error("expected fallback summary marker instruction")
 	}
 }

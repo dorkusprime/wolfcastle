@@ -179,3 +179,145 @@ func TestResolveAllFragments_RespectsIncludeListOrdering(t *testing.T) {
 		t.Errorf("second: expected %q, got %q", "a", contents[1])
 	}
 }
+
+// ── ResolvePromptTemplate tests ──────────────────────────────────────────
+
+func TestResolvePromptTemplate_PlainString(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "hello.md"), []byte("Hello, world!"), 0644)
+
+	got, err := ResolvePromptTemplate(dir, "hello.md", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Hello, world!" {
+		t.Errorf("expected %q, got %q", "Hello, world!", got)
+	}
+}
+
+func TestResolvePromptTemplate_WithTemplateVars(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "greet.md"),
+		[]byte("Hello, {{.Name}}! You are {{.Age}} years old."), 0644)
+
+	ctx := struct {
+		Name string
+		Age  int
+	}{"Alice", 30}
+
+	got, err := ResolvePromptTemplate(dir, "greet.md", ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := "Hello, Alice! You are 30 years old."
+	if got != expected {
+		t.Errorf("expected %q, got %q", expected, got)
+	}
+}
+
+func TestResolvePromptTemplate_CustomOverridesBase(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "msg.md"), []byte("base: {{.Val}}"), 0644)
+	os.WriteFile(filepath.Join(dir, "custom", "prompts", "msg.md"), []byte("custom: {{.Val}}"), 0644)
+
+	got, err := ResolvePromptTemplate(dir, "msg.md", struct{ Val string }{"test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "custom: test" {
+		t.Errorf("expected %q, got %q", "custom: test", got)
+	}
+}
+
+func TestResolvePromptTemplate_LocalOverridesAll(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "msg.md"), []byte("base"), 0644)
+	os.WriteFile(filepath.Join(dir, "custom", "prompts", "msg.md"), []byte("custom"), 0644)
+	os.WriteFile(filepath.Join(dir, "local", "prompts", "msg.md"), []byte("local"), 0644)
+
+	got, err := ResolvePromptTemplate(dir, "msg.md", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "local" {
+		t.Errorf("expected %q, got %q", "local", got)
+	}
+}
+
+func TestResolvePromptTemplate_ErrorOnMissingFile(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	_, err := ResolvePromptTemplate(dir, "missing.md", nil)
+	if err == nil {
+		t.Error("expected error for missing prompt file")
+	}
+}
+
+func TestResolvePromptTemplate_ErrorOnBadTemplate(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "bad.md"), []byte("{{.Foo"), 0644)
+
+	_, err := ResolvePromptTemplate(dir, "bad.md", struct{ Foo string }{"x"})
+	if err == nil {
+		t.Error("expected error for malformed template")
+	}
+}
+
+func TestResolvePromptTemplate_DecompositionTemplate(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	tmpl := "Break {{.NodeAddr}} into sub-tasks."
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "decomposition.md"), []byte(tmpl), 0644)
+
+	ctx := DecompositionContext{NodeAddr: "project/auth"}
+	got, err := ResolvePromptTemplate(dir, "decomposition.md", ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Break project/auth into sub-tasks." {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestResolvePromptTemplate_ContextHeadersTemplate(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	tmpl := "Failed {{.FailureCount}} times. Threshold: {{.DecompThreshold}}"
+	os.WriteFile(filepath.Join(dir, "base", "prompts", "context-headers.md"), []byte(tmpl), 0644)
+
+	ctx := FailureHeaderContext{
+		FailureCount:    5,
+		DecompThreshold: 10,
+		MaxDecompDepth:  3,
+		CurrentDepth:    1,
+		HardCap:         50,
+	}
+	got, err := ResolvePromptTemplate(dir, "context-headers.md", ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Failed 5 times. Threshold: 10" {
+		t.Errorf("got %q", got)
+	}
+}

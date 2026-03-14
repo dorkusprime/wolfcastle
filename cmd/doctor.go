@@ -93,7 +93,7 @@ Examples:
 					defer cancel()
 					modelFixed := 0
 					for _, issue := range modelIssues {
-						applied, err := validate.TryModelAssistedFix(ctx, model, issue, app.Resolver.ProjectsDir())
+						applied, err := validate.TryModelAssistedFix(ctx, model, issue, app.Resolver.ProjectsDir(), app.WolfcastleDir)
 						if err != nil {
 							output.PrintHuman("  SKIP  [%s] %s: %v", issue.Category, issue.Node, err)
 							continue

@@ -8,9 +8,31 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
+// FailureHeaderContext holds template variables for context-headers.md.
+type FailureHeaderContext struct {
+	FailureCount   int
+	DecompThreshold int
+	MaxDecompDepth int
+	CurrentDepth   int
+	HardCap        int
+}
+
+// DecompositionContext holds template variables for decomposition.md.
+type DecompositionContext struct {
+	NodeAddr string
+}
+
 // BuildIterationContext creates the iteration context section for the execute stage.
 // cfg may be nil for backward compatibility (no failure policy context).
+// wolfcastleDir is optional — when provided, instructional text is loaded from
+// externalized prompt templates via the three-tier resolution system.
 func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, cfgs ...*config.Config) string {
+	return BuildIterationContextWithDir("", nodeAddr, ns, taskID, cfgs...)
+}
+
+// BuildIterationContextWithDir is like BuildIterationContext but accepts a
+// wolfcastleDir for loading externalized prompt templates.
+func BuildIterationContextWithDir(wolfcastleDir string, nodeAddr string, ns *state.NodeState, taskID string, cfgs ...*config.Config) string {
 	var cfg *config.Config
 	if len(cfgs) > 0 {
 		cfg = cfgs[0]
@@ -37,18 +59,20 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, 
 
 		// Failure history and decomposition policy
 		if t.FailureCount > 0 && cfg != nil {
-			b.WriteString("\n## Failure History\n\n")
-			b.WriteString(fmt.Sprintf("This task has failed %d times.\n", t.FailureCount))
-			b.WriteString(fmt.Sprintf("- Decomposition threshold: %d\n", cfg.Failure.DecompositionThreshold))
-			b.WriteString(fmt.Sprintf("- Max decomposition depth: %d (current: %d)\n", cfg.Failure.MaxDecompositionDepth, ns.DecompositionDepth))
-			b.WriteString(fmt.Sprintf("- Hard failure cap: %d\n", cfg.Failure.HardCap))
+			headerCtx := FailureHeaderContext{
+				FailureCount:   t.FailureCount,
+				DecompThreshold: cfg.Failure.DecompositionThreshold,
+				MaxDecompDepth: cfg.Failure.MaxDecompositionDepth,
+				CurrentDepth:   ns.DecompositionDepth,
+				HardCap:        cfg.Failure.HardCap,
+			}
+			header := renderFailureHeader(wolfcastleDir, headerCtx)
+			b.WriteString("\n" + header)
+
 			if t.NeedsDecomposition {
-				b.WriteString("\n**Decomposition required.** This task has failed too many times to continue as-is.\n")
-				b.WriteString("Break this leaf into smaller sub-tasks using the wolfcastle CLI:\n\n")
-				b.WriteString(fmt.Sprintf("1. Create child nodes: `wolfcastle project create --node %s --type leaf \"<name>\"`\n", nodeAddr))
-				b.WriteString(fmt.Sprintf("2. Add tasks to each child: `wolfcastle task add --node %s/<child-slug> \"<description>\"`\n", nodeAddr))
-				b.WriteString("3. Emit WOLFCASTLE_YIELD when decomposition is complete.\n\n")
-				b.WriteString("The parent node will automatically convert from leaf to orchestrator when the first child is created.\n")
+				decompCtx := DecompositionContext{NodeAddr: nodeAddr}
+				decomp := renderDecomposition(wolfcastleDir, decompCtx)
+				b.WriteString("\n" + decomp)
 			}
 		}
 		break
@@ -83,13 +107,66 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, 
 	// Summary guidance — when this is the last incomplete task in the node,
 	// instruct the model to include a summary marker with WOLFCASTLE_COMPLETE.
 	if taskFound && isLastIncompleteTask(ns, taskID) {
+		summary := renderSummaryRequired(wolfcastleDir)
 		b.WriteString("\n## Summary Required\n\n")
-		b.WriteString("This is the last incomplete task in this node. When you complete it, ")
-		b.WriteString("include a summary of all work done in this node using:\n\n")
-		b.WriteString("`WOLFCASTLE_SUMMARY: <one-paragraph summary of what was accomplished>`\n\n")
-		b.WriteString("Emit this on its own line before WOLFCASTLE_COMPLETE.\n")
+		b.WriteString(summary)
 	}
 
+	return b.String()
+}
+
+// renderFailureHeader loads the context-headers.md template or falls back to
+// a hardcoded default when wolfcastleDir is empty or loading fails.
+func renderFailureHeader(wolfcastleDir string, ctx FailureHeaderContext) string {
+	if wolfcastleDir != "" {
+		rendered, err := ResolvePromptTemplate(wolfcastleDir, "context-headers.md", ctx)
+		if err == nil {
+			return rendered
+		}
+	}
+	// Fallback
+	var b strings.Builder
+	b.WriteString("## Failure History\n\n")
+	b.WriteString(fmt.Sprintf("This task has failed %d times.\n", ctx.FailureCount))
+	b.WriteString(fmt.Sprintf("- Decomposition threshold: %d\n", ctx.DecompThreshold))
+	b.WriteString(fmt.Sprintf("- Max decomposition depth: %d (current: %d)\n", ctx.MaxDecompDepth, ctx.CurrentDepth))
+	b.WriteString(fmt.Sprintf("- Hard failure cap: %d\n", ctx.HardCap))
+	return b.String()
+}
+
+// renderDecomposition loads decomposition.md or falls back to hardcoded text.
+func renderDecomposition(wolfcastleDir string, ctx DecompositionContext) string {
+	if wolfcastleDir != "" {
+		rendered, err := ResolvePromptTemplate(wolfcastleDir, "decomposition.md", ctx)
+		if err == nil {
+			return rendered
+		}
+	}
+	// Fallback
+	var b strings.Builder
+	b.WriteString("**Decomposition required.** This task has failed too many times to continue as-is.\n")
+	b.WriteString("Break this leaf into smaller sub-tasks using the wolfcastle CLI:\n\n")
+	b.WriteString(fmt.Sprintf("1. Create child nodes: `wolfcastle project create --node %s --type leaf \"<name>\"`\n", ctx.NodeAddr))
+	b.WriteString(fmt.Sprintf("2. Add tasks to each child: `wolfcastle task add --node %s/<child-slug> \"<description>\"`\n", ctx.NodeAddr))
+	b.WriteString("3. Emit WOLFCASTLE_YIELD when decomposition is complete.\n\n")
+	b.WriteString("The parent node will automatically convert from leaf to orchestrator when the first child is created.\n")
+	return b.String()
+}
+
+// renderSummaryRequired loads summary-required.md or falls back to hardcoded text.
+func renderSummaryRequired(wolfcastleDir string) string {
+	if wolfcastleDir != "" {
+		rendered, err := ResolvePromptTemplate(wolfcastleDir, "summary-required.md", nil)
+		if err == nil {
+			return rendered
+		}
+	}
+	// Fallback
+	var b strings.Builder
+	b.WriteString("This is the last incomplete task in this node. When you complete it, ")
+	b.WriteString("include a summary of all work done in this node using:\n\n")
+	b.WriteString("`WOLFCASTLE_SUMMARY: <one-paragraph summary of what was accomplished>`\n\n")
+	b.WriteString("Emit this on its own line before WOLFCASTLE_COMPLETE.\n")
 	return b.String()
 }
 
