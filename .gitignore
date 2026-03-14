@@ -1,3 +1,6 @@
 wolfcastle
 dist/
 .DS_Store
+coverage.out
+*.coverprofile
+*.test
