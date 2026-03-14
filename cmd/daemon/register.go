@@ -12,6 +12,7 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	startCmd.Flags().String("node", "", "Scope execution to a subtree")
 	startCmd.Flags().String("worktree", "", "Run in a git worktree on the specified branch")
 	startCmd.Flags().BoolP("daemon", "d", false, "Run as background daemon")
+	startCmd.Flags().BoolP("verbose", "v", false, "Set console log level to debug")
 	startCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 
 	stopCmd := newStopCmd(app)

@@ -75,6 +75,10 @@ func ValidateStructure(cfg *Config) error {
 	if cfg.Daemon.RestartDelaySeconds < 0 {
 		errs = append(errs, fmt.Sprintf("daemon.restart_delay_seconds (%d) must be >= 0", cfg.Daemon.RestartDelaySeconds))
 	}
+	validLogLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
+	if cfg.Daemon.LogLevel != "" && !validLogLevels[cfg.Daemon.LogLevel] {
+		errs = append(errs, fmt.Sprintf("daemon.log_level %q must be one of: debug, info, warn, error", cfg.Daemon.LogLevel))
+	}
 
 	// Log retention
 	if cfg.Logs.MaxFiles <= 0 {

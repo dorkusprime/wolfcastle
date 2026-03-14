@@ -69,6 +69,7 @@ func Defaults() *Config {
 			InvocationTimeoutSeconds:   3600,
 			MaxRestarts:                3,
 			RestartDelaySeconds:        2,
+			LogLevel:                   "info",
 		},
 		Git: GitConfig{
 			AutoCommit:          true,

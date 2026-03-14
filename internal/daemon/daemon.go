@@ -45,6 +45,13 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 		return nil, err
 	}
 
+	// Apply the configured console log level (ADR-046).
+	if lvl, ok := logging.ParseLevel(cfg.Daemon.LogLevel); ok {
+		logger.ConsoleLevel = lvl
+	}
+	// Resume iteration numbering from existing log files.
+	logger.Iteration = logging.IterationFromDir(logDir)
+
 	return &Daemon{
 		Config:        cfg,
 		WolfcastleDir: wolfcastleDir,
@@ -183,10 +190,15 @@ func (d *Daemon) Run(ctx context.Context) error {
 		case IterationError:
 			time.Sleep(time.Duration(d.Config.Daemon.PollIntervalSeconds) * time.Second)
 		case IterationDidWork:
+			retOpts := []logging.RetentionOption{}
+			if d.Config.Logs.Compress {
+				retOpts = append(retOpts, logging.WithCompression())
+			}
 			logging.EnforceRetention(
 				filepath.Join(d.WolfcastleDir, "logs"),
 				d.Config.Logs.MaxFiles,
 				d.Config.Logs.MaxAgeDays,
+				retOpts...,
 			)
 			time.Sleep(time.Duration(d.Config.Daemon.PollIntervalSeconds) * time.Second)
 		}
