@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
@@ -366,6 +367,7 @@ func testDaemon(t *testing.T) *Daemon {
 		WolfcastleDir: wolfDir,
 		Resolver:      &tree.Resolver{WolfcastleDir: wolfDir, Namespace: ns},
 		Logger:        logger,
+		Clock:         clock.New(),
 		RepoDir:       tmp,
 		shutdown:      make(chan struct{}),
 	}
