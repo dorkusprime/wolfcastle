@@ -367,3 +367,302 @@ func TestValidateStructure_CatchesNegativeLogRetention(t *testing.T) {
 		t.Error("expected error for zero max_files")
 	}
 }
+
+func TestValidateStructure_CatchesNegativeOverlapThreshold(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.OverlapAdvisory.Threshold = -0.5
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for negative overlap threshold")
+	}
+	if !strings.Contains(err.Error(), "overlap_advisory.threshold") {
+		t.Errorf("expected mention of overlap_advisory.threshold in error, got: %v", err)
+	}
+}
+
+func TestValidateStructure_CatchesOverlapThresholdAboveOne(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.OverlapAdvisory.Threshold = 1.5
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for overlap threshold > 1")
+	}
+	if !strings.Contains(err.Error(), "overlap_advisory.threshold") {
+		t.Errorf("expected mention of overlap_advisory.threshold in error, got: %v", err)
+	}
+}
+
+func TestValidateStructure_AcceptsOverlapThresholdAtBoundaries(t *testing.T) {
+	t.Parallel()
+
+	// Threshold exactly 0 should be valid
+	cfg := Defaults()
+	cfg.OverlapAdvisory.Threshold = 0
+	if err := ValidateStructure(cfg); err != nil {
+		t.Errorf("threshold=0 should be valid, got: %v", err)
+	}
+
+	// Threshold exactly 1 should be valid
+	cfg2 := Defaults()
+	cfg2.OverlapAdvisory.Threshold = 1
+	if err := ValidateStructure(cfg2); err != nil {
+		t.Errorf("threshold=1 should be valid, got: %v", err)
+	}
+}
+
+func TestPipelineStage_IsEnabled_DefaultTrue(t *testing.T) {
+	t.Parallel()
+	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md"}
+	if !s.IsEnabled() {
+		t.Error("expected IsEnabled() to return true by default")
+	}
+}
+
+func TestPipelineStage_IsEnabled_ExplicitTrue(t *testing.T) {
+	t.Parallel()
+	enabled := true
+	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md", Enabled: &enabled}
+	if !s.IsEnabled() {
+		t.Error("expected IsEnabled() to return true when explicitly set true")
+	}
+}
+
+func TestPipelineStage_IsEnabled_ExplicitFalse(t *testing.T) {
+	t.Parallel()
+	enabled := false
+	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md", Enabled: &enabled}
+	if s.IsEnabled() {
+		t.Error("expected IsEnabled() to return false when explicitly set false")
+	}
+}
+
+func TestPipelineStage_ShouldSkipPromptAssembly_DefaultFalse(t *testing.T) {
+	t.Parallel()
+	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md"}
+	if s.ShouldSkipPromptAssembly() {
+		t.Error("expected ShouldSkipPromptAssembly() to return false by default")
+	}
+}
+
+func TestPipelineStage_ShouldSkipPromptAssembly_ExplicitTrue(t *testing.T) {
+	t.Parallel()
+	skip := true
+	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md", SkipPromptAssembly: &skip}
+	if !s.ShouldSkipPromptAssembly() {
+		t.Error("expected ShouldSkipPromptAssembly() to return true when explicitly set true")
+	}
+}
+
+func TestPipelineStage_ShouldSkipPromptAssembly_ExplicitFalse(t *testing.T) {
+	t.Parallel()
+	skip := false
+	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md", SkipPromptAssembly: &skip}
+	if s.ShouldSkipPromptAssembly() {
+		t.Error("expected ShouldSkipPromptAssembly() to return false when explicitly set false")
+	}
+}
+
+func TestLoad_LocalOnly_NoConfigJSON(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	localJSON := `{"failure": {"hard_cap": 999}}`
+	if err := os.WriteFile(filepath.Join(dir, "config.local.json"), []byte(localJSON), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if cfg.Failure.HardCap != 999 {
+		t.Errorf("expected hard_cap=999 from local override, got %d", cfg.Failure.HardCap)
+	}
+	// Other defaults should be preserved
+	if cfg.Failure.DecompositionThreshold != 10 {
+		t.Errorf("expected default decomposition_threshold=10, got %d", cfg.Failure.DecompositionThreshold)
+	}
+}
+
+func TestLoad_InvalidJSON_ReturnsError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte("{invalid json}"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Load(dir)
+	if err == nil {
+		t.Error("expected error for invalid JSON in config.json")
+	}
+}
+
+func TestLoad_InvalidLocalJSON_ReturnsError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	os.WriteFile(filepath.Join(dir, "config.json"), []byte("{}"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "config.local.json"), []byte("{not valid}"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Load(dir)
+	if err == nil {
+		t.Error("expected error for invalid JSON in config.local.json")
+	}
+}
+
+func TestLoad_ValidationFailure_ReturnsError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Set pipeline stages to empty array, which should fail structural validation
+	configJSON := `{"pipeline": {"stages": []}}`
+	if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte(configJSON), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Load(dir)
+	if err == nil {
+		t.Error("expected error for invalid config structure")
+	}
+	if !strings.Contains(err.Error(), "config validation failed") {
+		t.Errorf("expected validation error message, got: %v", err)
+	}
+}
+
+func TestValidateStructure_CatchesZeroMaxAgeDays(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Logs.MaxAgeDays = 0
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for zero max_age_days")
+	}
+	if !strings.Contains(err.Error(), "logs.max_age_days") {
+		t.Errorf("expected mention of logs.max_age_days, got: %v", err)
+	}
+}
+
+func TestValidateStructure_CatchesEmptyStageName(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Pipeline.Stages = []PipelineStage{
+		{Name: "", Model: "fast", PromptFile: "test.md"},
+	}
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for empty stage name")
+	}
+	if !strings.Contains(err.Error(), "empty name") {
+		t.Errorf("expected 'empty name' in error, got: %v", err)
+	}
+}
+
+func TestValidateStructure_CatchesNegativeMaxDecompositionDepth(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Failure.MaxDecompositionDepth = -1
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for negative max_decomposition_depth")
+	}
+}
+
+func TestValidateStructure_CatchesNegativeHardCap(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Failure.HardCap = -1
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for negative hard_cap")
+	}
+}
+
+func TestValidateStructure_CatchesNegativeBlockedPollInterval(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.BlockedPollIntervalSeconds = 0
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for zero blocked_poll_interval_seconds")
+	}
+}
+
+func TestValidateStructure_CatchesNegativeInvocationTimeout(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.InvocationTimeoutSeconds = 0
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for zero invocation_timeout_seconds")
+	}
+}
+
+func TestValidateStructure_CatchesNegativeMaxTurns(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.MaxTurnsPerInvocation = 0
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for zero max_turns_per_invocation")
+	}
+}
+
+func TestValidateStructure_CatchesNegativeMaxRestarts(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.MaxRestarts = -1
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for negative max_restarts")
+	}
+}
+
+func TestValidateStructure_CatchesNegativeRestartDelay(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.RestartDelaySeconds = -1
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for negative restart_delay_seconds")
+	}
+}
+
+func TestValidateStructure_PassesOnDefaults(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+
+	if err := ValidateStructure(cfg); err != nil {
+		t.Errorf("expected no error on valid defaults, got: %v", err)
+	}
+}
+
+func TestValidateStructure_CatchesUnknownStageModel(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Pipeline.Stages[0].Model = "nonexistent"
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for unknown model reference in stage")
+	}
+	if !strings.Contains(err.Error(), "unknown model") {
+		t.Errorf("expected 'unknown model' in error, got: %v", err)
+	}
+}
