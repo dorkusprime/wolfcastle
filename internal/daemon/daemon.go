@@ -118,11 +118,15 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 
 // Run executes the daemon loop.
 func (d *Daemon) Run(ctx context.Context) error {
-	// Set up signal handling
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	// Root the daemon in a cancelable signal context so SIGINT/SIGTERM
+	// cancels in-flight model invocations (ADR-024 shutdown compliance).
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	// Also close the shutdown channel for backward compatibility with
+	// stop-file and supervisor checks.
 	go func() {
-		<-sigCh
+		<-ctx.Done()
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
 
@@ -250,13 +254,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		return err
 	}
 
-	// Update root index
-	if entry, ok := idx.Nodes[nav.NodeAddress]; ok {
-		entry.State = ns.State
-		idx.Nodes[nav.NodeAddress] = entry
-		if err := state.SaveRootIndex(d.Resolver.RootIndexPath(), idx); err != nil {
-			return fmt.Errorf("saving root index after claim: %w", err)
-		}
+	// Propagate claim state to ancestors and root index (ADR-024)
+	if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
+		return fmt.Errorf("propagating state after claim: %w", err)
 	}
 
 	// Run pipeline stages
@@ -283,7 +283,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 
 		// Execute stage (and any other custom stages)
-		iterCtx := pipeline.BuildIterationContext(nav.NodeAddress, ns, nav.TaskID)
+		iterCtx := pipeline.BuildIterationContext(nav.NodeAddress, ns, nav.TaskID, d.Config)
 
 		prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, stage, iterCtx)
 		if err != nil {
@@ -334,6 +334,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			if err := state.SaveNodeState(statePath, ns); err != nil {
 				d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
 			}
+			if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
+				d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+			}
 			return nil
 		}
 		if strings.Contains(result.Stdout, "WOLFCASTLE_BLOCKED") {
@@ -341,12 +344,18 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			if err := state.SaveNodeState(statePath, ns); err != nil {
 				d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
 			}
+			if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
+				d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+			}
 			return nil
 		}
 		if strings.Contains(result.Stdout, "WOLFCASTLE_COMPLETE") {
 			fmt.Println("WOLFCASTLE_COMPLETE")
 			if err := state.SaveNodeState(statePath, ns); err != nil {
 				d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+			}
+			if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
+				d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 			}
 			return nil
 		}
@@ -364,10 +373,12 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		} else {
 			d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
 
-			if failCount == d.Config.Failure.DecompositionThreshold {
+			if failCount >= d.Config.Failure.DecompositionThreshold && d.Config.Failure.DecompositionThreshold > 0 {
 				if ns.DecompositionDepth < d.Config.Failure.MaxDecompositionDepth {
 					fmt.Printf("  Decomposition threshold reached for %s/%s (depth=%d)\n", nav.NodeAddress, nav.TaskID, ns.DecompositionDepth)
 					d.Logger.Log(map[string]any{"type": "decomposition_threshold", "task": nav.TaskID, "depth": ns.DecompositionDepth})
+					// Flag the task for decomposition — the next iteration's prompt will include guidance
+					state.SetNeedsDecomposition(ns, nav.TaskID, true)
 				} else {
 					fmt.Printf("  Auto-blocking %s/%s: decomposition threshold at max depth\n", nav.NodeAddress, nav.TaskID)
 					d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "max_decomposition_depth"})
@@ -387,6 +398,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 			if err := state.SaveNodeState(statePath, ns); err != nil {
 				d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+			}
+			if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
+				d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 			}
 		}
 	}
@@ -747,6 +761,32 @@ func dedupPipe(s string) []string {
 		}
 	}
 	return result
+}
+
+// propagateState propagates a node's state to all ancestors and updates the
+// root index. This ensures ADR-024 compliance for all daemon mutations.
+func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx *state.RootIndex) error {
+	loadNode := func(addr string) (*state.NodeState, error) {
+		a, err := tree.ParseAddress(addr)
+		if err != nil {
+			return nil, fmt.Errorf("parsing address %q: %w", addr, err)
+		}
+		return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+	}
+
+	saveNode := func(addr string, ns *state.NodeState) error {
+		a, err := tree.ParseAddress(addr)
+		if err != nil {
+			return fmt.Errorf("parsing address %q: %w", addr, err)
+		}
+		return state.SaveNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"), ns)
+	}
+
+	if err := state.Propagate(nodeAddr, nodeState, idx, loadNode, saveNode); err != nil {
+		return err
+	}
+
+	return state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 }
 
 func (d *Daemon) scopeLabel() string {

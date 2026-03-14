@@ -77,13 +77,14 @@ type ChildRef struct {
 
 // Task is a single task within a leaf node.
 type Task struct {
-	ID            string     `json:"id"`
-	Description   string     `json:"description"`
-	State         NodeStatus `json:"state"`
-	IsAudit       bool       `json:"is_audit,omitempty"`
-	BlockedReason string     `json:"blocked_reason,omitempty"`
-	FailureCount  int        `json:"failure_count"`
-	Breadcrumbs   []string   `json:"breadcrumbs,omitempty"`
+	ID                 string     `json:"id"`
+	Description        string     `json:"description"`
+	State              NodeStatus `json:"state"`
+	IsAudit            bool       `json:"is_audit,omitempty"`
+	BlockedReason      string     `json:"blocked_reason,omitempty"`
+	FailureCount       int        `json:"failure_count"`
+	NeedsDecomposition bool       `json:"needs_decomposition,omitempty"`
+	Breadcrumbs        []string   `json:"breadcrumbs,omitempty"`
 }
 
 // AuditState tracks audit information for a node.

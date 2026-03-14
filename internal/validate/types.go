@@ -1,6 +1,6 @@
 package validate
 
-// Category constants for all 17 required validation issue categories.
+// Category constants for all validation issue categories.
 const (
 	CatRootIndexDanglingRef      = "ROOTINDEX_DANGLING_REF"
 	CatRootIndexMissingEntry     = "ROOTINDEX_MISSING_ENTRY"
@@ -19,6 +19,14 @@ const (
 	CatNegativeFailureCount      = "NEGATIVE_FAILURE_COUNT"
 	CatMissingRequiredField      = "MISSING_REQUIRED_FIELD"
 	CatMalformedJSON             = "MALFORMED_JSON"
+
+	// Audit-specific categories
+	CatMissingAuditObject        = "MISSING_AUDIT_OBJECT"
+	CatInvalidAuditScope         = "INVALID_AUDIT_SCOPE"
+	CatInvalidAuditStatus        = "INVALID_AUDIT_STATUS"
+	CatInvalidAuditGap           = "INVALID_AUDIT_GAP"
+	CatInvalidAuditEscalation    = "INVALID_AUDIT_ESCALATION"
+	CatAuditStatusTaskMismatch   = "AUDIT_STATUS_TASK_MISMATCH"
 )
 
 // FixType describes the repair strategy.

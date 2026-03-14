@@ -39,7 +39,7 @@ Examples:
 		}
 
 		// Run validation
-		engine := validate.NewEngine(resolver.ProjectsDir(), validate.DefaultNodeLoader(resolver.ProjectsDir()))
+		engine := validate.NewEngine(resolver.ProjectsDir(), validate.DefaultNodeLoader(resolver.ProjectsDir()), wolfcastleDir)
 		report := engine.ValidateAll(idx)
 
 		fix, _ := cmd.Flags().GetBool("fix")

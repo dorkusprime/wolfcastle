@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -15,15 +17,22 @@ type NodeLoader func(addr string) (*state.NodeState, error)
 
 // Engine runs structural validation checks against a project tree.
 type Engine struct {
-	projectsDir string
-	loadNode    NodeLoader
+	projectsDir   string
+	wolfcastleDir string
+	loadNode      NodeLoader
 }
 
 // NewEngine creates a validation engine.
-func NewEngine(projectsDir string, loadNode NodeLoader) *Engine {
+// wolfcastleDir is optional — pass "" to skip PID-aware stale detection.
+func NewEngine(projectsDir string, loadNode NodeLoader, wolfcastleDirs ...string) *Engine {
+	var wolfcastleDir string
+	if len(wolfcastleDirs) > 0 {
+		wolfcastleDir = wolfcastleDirs[0]
+	}
 	return &Engine{
-		projectsDir: projectsDir,
-		loadNode:    loadNode,
+		projectsDir:   projectsDir,
+		wolfcastleDir: wolfcastleDir,
+		loadNode:      loadNode,
 	}
 }
 
@@ -143,6 +152,7 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 		if ns.Type == state.NodeLeaf {
 			e.checkLeafAudit(ns, addr, categories, report)
 			e.checkLeafTasks(ns, addr, categories, report, &inProgressTasks)
+			e.checkAuditState(ns, addr, categories, report)
 		}
 
 		// ORPHAN_STATE: node has a parent but parent doesn't list it as child
@@ -251,12 +261,15 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 		})
 	}
 	if e.include(CatStaleInProgress, categories) && len(inProgressTasks) == 1 {
-		report.Issues = append(report.Issues, Issue{
-			Severity:    SeverityWarning,
-			Category:    CatStaleInProgress,
-			Description: fmt.Sprintf("Task in progress (%s) — may be stale if no daemon is running", inProgressTasks[0]),
-			FixType:     FixManual,
-		})
+		// Only flag as stale if no live daemon is running for this workspace
+		if !e.isDaemonAlive() {
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityWarning,
+				Category:    CatStaleInProgress,
+				Description: fmt.Sprintf("Task in progress (%s) with no live daemon — likely stale", inProgressTasks[0]),
+				FixType:     FixManual,
+			})
+		}
 	}
 
 	report.Counts()
@@ -328,6 +341,110 @@ func (e *Engine) checkLeafTasks(ns *state.NodeState, addr string, categories map
 	}
 }
 
+func (e *Engine) checkAuditState(ns *state.NodeState, addr string, categories map[string]bool, report *Report) {
+	// INVALID_AUDIT_STATUS: audit status must be one of the valid values
+	if e.include(CatInvalidAuditStatus, categories) {
+		switch ns.Audit.Status {
+		case state.AuditPending, state.AuditInProgress, state.AuditPassed, state.AuditFailed:
+			// valid
+		default:
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityError,
+				Category:    CatInvalidAuditStatus,
+				Node:        addr,
+				Description: fmt.Sprintf("Invalid audit status: %q", ns.Audit.Status),
+				CanAutoFix:  true,
+				FixType:     FixDeterministic,
+			})
+		}
+	}
+
+	// AUDIT_STATUS_TASK_MISMATCH: verify audit status is consistent with task state
+	if e.include(CatAuditStatusTaskMismatch, categories) {
+		expected := expectedAuditStatus(ns)
+		if expected != "" && ns.Audit.Status != expected {
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityWarning,
+				Category:    CatAuditStatusTaskMismatch,
+				Node:        addr,
+				Description: fmt.Sprintf("Audit status is %q but expected %q based on task state %s", ns.Audit.Status, expected, ns.State),
+				CanAutoFix:  true,
+				FixType:     FixDeterministic,
+			})
+		}
+	}
+
+	// INVALID_AUDIT_GAP: gaps must have ID, description, and valid status
+	if e.include(CatInvalidAuditGap, categories) {
+		for _, g := range ns.Audit.Gaps {
+			if g.ID == "" || g.Description == "" {
+				report.Issues = append(report.Issues, Issue{
+					Severity:    SeverityError,
+					Category:    CatInvalidAuditGap,
+					Node:        addr,
+					Description: fmt.Sprintf("Gap missing ID or description: %q", g.ID),
+					FixType:     FixManual,
+				})
+			}
+			if g.Status != "open" && g.Status != "fixed" {
+				report.Issues = append(report.Issues, Issue{
+					Severity:    SeverityError,
+					Category:    CatInvalidAuditGap,
+					Node:        addr,
+					Description: fmt.Sprintf("Gap %s has invalid status: %q", g.ID, g.Status),
+					CanAutoFix:  true,
+					FixType:     FixDeterministic,
+				})
+			}
+			// Stale fixed metadata on open gaps
+			if g.Status == "open" && g.FixedBy != "" {
+				report.Issues = append(report.Issues, Issue{
+					Severity:    SeverityWarning,
+					Category:    CatInvalidAuditGap,
+					Node:        addr,
+					Description: fmt.Sprintf("Gap %s is open but has stale fixed_by metadata", g.ID),
+					CanAutoFix:  true,
+					FixType:     FixDeterministic,
+				})
+			}
+		}
+	}
+
+	// INVALID_AUDIT_ESCALATION: escalations must have required fields
+	if e.include(CatInvalidAuditEscalation, categories) {
+		for _, esc := range ns.Audit.Escalations {
+			if esc.ID == "" || esc.Description == "" || esc.SourceNode == "" {
+				report.Issues = append(report.Issues, Issue{
+					Severity:    SeverityError,
+					Category:    CatInvalidAuditEscalation,
+					Node:        addr,
+					Description: fmt.Sprintf("Escalation missing required field(s): %q", esc.ID),
+					FixType:     FixManual,
+				})
+			}
+		}
+	}
+}
+
+func expectedAuditStatus(ns *state.NodeState) state.AuditStatus {
+	switch ns.State {
+	case state.StatusNotStarted:
+		return state.AuditPending
+	case state.StatusInProgress:
+		return state.AuditInProgress
+	case state.StatusBlocked:
+		return state.AuditFailed
+	case state.StatusComplete:
+		for _, g := range ns.Audit.Gaps {
+			if g.Status == "open" {
+				return state.AuditFailed
+			}
+		}
+		return state.AuditPassed
+	}
+	return ""
+}
+
 func (e *Engine) checkOrphanedStateFiles(idx *state.RootIndex, report *Report) {
 	_ = filepath.Walk(e.projectsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -390,6 +507,29 @@ func (e *Engine) include(category string, filter map[string]bool) bool {
 		return true
 	}
 	return filter[category]
+}
+
+// isDaemonAlive checks if a daemon PID file exists and the process is alive.
+func (e *Engine) isDaemonAlive() bool {
+	if e.wolfcastleDir == "" {
+		return false
+	}
+	pidPath := filepath.Join(e.wolfcastleDir, "daemon.pid")
+	data, err := os.ReadFile(pidPath)
+	if err != nil {
+		return false
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return false
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	// Signal 0 checks if process exists without actually signaling it
+	err = proc.Signal(syscall.Signal(0))
+	return err == nil
 }
 
 func isValidState(s state.NodeStatus) bool {

@@ -15,66 +15,24 @@ func propagateState(nodeAddr string, nodeState state.NodeStatus) error {
 		return fmt.Errorf("loading root index: %w", err)
 	}
 
-	// Update the node's own entry in the root index
-	if entry, ok := idx.Nodes[nodeAddr]; ok {
-		entry.State = nodeState
-		idx.Nodes[nodeAddr] = entry
-	}
-
-	// Walk up through parents using PropagateUp
-	_, err = state.PropagateUp(
-		nodeAddr,
-		nodeState,
-		func(addr string) (*state.NodeState, error) {
-			a, err := tree.ParseAddress(addr)
-			if err != nil {
-				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
-			}
-			return state.LoadNodeState(resolver.NodeStatePath(a))
-		},
-		func(addr string, ns *state.NodeState) error {
-			a, err := tree.ParseAddress(addr)
-			if err != nil {
-				return fmt.Errorf("parsing address %q: %w", addr, err)
-			}
-			return state.SaveNodeState(resolver.NodeStatePath(a), ns)
-		},
-		func(addr string) string {
-			if entry, ok := idx.Nodes[addr]; ok {
-				return entry.Parent
-			}
-			return ""
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("propagating state: %w", err)
-	}
-
-	// Update root index entries for all ancestors that were touched
-	// Re-walk to capture updated states
-	current := nodeAddr
-	for {
-		entry, ok := idx.Nodes[current]
-		if !ok {
-			break
-		}
-		parentAddr := entry.Parent
-		if parentAddr == "" {
-			break
-		}
-		a, parseErr := tree.ParseAddress(parentAddr)
-		if parseErr != nil {
-			return fmt.Errorf("parsing parent address %q: %w", parentAddr, parseErr)
-		}
-		parentNS, err := state.LoadNodeState(resolver.NodeStatePath(a))
+	loadNode := func(addr string) (*state.NodeState, error) {
+		a, err := tree.ParseAddress(addr)
 		if err != nil {
-			return fmt.Errorf("loading parent state for %q: %w", parentAddr, err)
+			return nil, fmt.Errorf("parsing address %q: %w", addr, err)
 		}
-		if parentEntry, ok := idx.Nodes[parentAddr]; ok {
-			parentEntry.State = parentNS.State
-			idx.Nodes[parentAddr] = parentEntry
+		return state.LoadNodeState(resolver.NodeStatePath(a))
+	}
+
+	saveNode := func(addr string, ns *state.NodeState) error {
+		a, err := tree.ParseAddress(addr)
+		if err != nil {
+			return fmt.Errorf("parsing address %q: %w", addr, err)
 		}
-		current = parentAddr
+		return state.SaveNodeState(resolver.NodeStatePath(a), ns)
+	}
+
+	if err := state.Propagate(nodeAddr, nodeState, idx, loadNode, saveNode); err != nil {
+		return err
 	}
 
 	// Save the root index once

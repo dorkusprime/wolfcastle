@@ -234,6 +234,39 @@ func ApplyDeterministicFixes(
 			modifiedStates[statePath] = ns
 			fixes = append(fixes, FixResult{issue.Category, issue.Node, "populated missing required fields"})
 
+		case CatInvalidAuditStatus:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			ns.Audit.Status = state.AuditPending
+			modifiedStates[statePath] = ns
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "reset audit status to pending"})
+
+		case CatAuditStatusTaskMismatch:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			state.SyncAuditLifecycle(ns)
+			modifiedStates[statePath] = ns
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, fmt.Sprintf("synced audit status to %s", ns.Audit.Status)})
+
+		case CatInvalidAuditGap:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			// Clear stale fixed metadata on open gaps
+			for i := range ns.Audit.Gaps {
+				if ns.Audit.Gaps[i].Status == "open" {
+					ns.Audit.Gaps[i].FixedBy = ""
+					ns.Audit.Gaps[i].FixedAt = nil
+				}
+			}
+			modifiedStates[statePath] = ns
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "cleared stale gap metadata"})
+
 		case CatOrphanDefinition:
 			// Deterministic fix: no action needed (just a warning)
 			fixes = append(fixes, FixResult{issue.Category, issue.Node, "orphan definition detected (no auto-fix)"})

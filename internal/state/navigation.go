@@ -1,5 +1,7 @@
 package state
 
+import "sort"
+
 // NavigationResult is the output of FindNextTask.
 type NavigationResult struct {
 	NodeAddress string `json:"node_address"`
@@ -31,12 +33,13 @@ func FindNextTask(idx *RootIndex, scopeAddr string, loadNode func(addr string) (
 		if len(idx.Root) > 0 {
 			roots = idx.Root
 		} else {
-			// Fallback: find all top-level nodes (no parent)
+			// Fallback: find all top-level nodes (no parent), sorted for determinism
 			for addr, entry := range idx.Nodes {
 				if entry.Parent == "" {
 					roots = append(roots, addr)
 				}
 			}
+			sort.Strings(roots)
 		}
 	}
 

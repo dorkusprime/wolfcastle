@@ -73,7 +73,7 @@ Examples:
 		if resolver != nil {
 			idx, idxErr := resolver.LoadRootIndex()
 			if idxErr == nil {
-				engine := validate.NewEngine(resolver.ProjectsDir(), validate.DefaultNodeLoader(resolver.ProjectsDir()))
+				engine := validate.NewEngine(resolver.ProjectsDir(), validate.DefaultNodeLoader(resolver.ProjectsDir()), wolfcastleDir)
 				report := engine.ValidateStartup(idx)
 				if report.HasErrors() {
 					fmt.Printf("Startup validation found %d errors:\n", report.Errors)

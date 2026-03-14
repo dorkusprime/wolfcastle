@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
 // BuildIterationContext creates the iteration context section for the execute stage.
-func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string) string {
+// cfg may be nil for backward compatibility (no failure policy context).
+func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, cfgs ...*config.Config) string {
+	var cfg *config.Config
+	if len(cfgs) > 0 {
+		cfg = cfgs[0]
+	}
 	var b strings.Builder
 
 	b.WriteString(fmt.Sprintf("**Node:** %s\n", nodeAddr))
@@ -23,6 +29,21 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string) 
 			b.WriteString(fmt.Sprintf("**Task State:** %s\n", t.State))
 			if t.FailureCount > 0 {
 				b.WriteString(fmt.Sprintf("**Failure Count:** %d\n", t.FailureCount))
+			}
+			break
+		}
+	}
+
+	// Failure history and decomposition policy
+	for _, t := range ns.Tasks {
+		if t.ID == taskID && t.FailureCount > 0 && cfg != nil {
+			b.WriteString("\n## Failure History\n\n")
+			b.WriteString(fmt.Sprintf("This task has failed %d times.\n", t.FailureCount))
+			b.WriteString(fmt.Sprintf("- Decomposition threshold: %d\n", cfg.Failure.DecompositionThreshold))
+			b.WriteString(fmt.Sprintf("- Max decomposition depth: %d (current: %d)\n", cfg.Failure.MaxDecompositionDepth, ns.DecompositionDepth))
+			b.WriteString(fmt.Sprintf("- Hard failure cap: %d\n", cfg.Failure.HardCap))
+			if t.NeedsDecomposition {
+				b.WriteString("\n**Decomposition recommended.** Consider breaking this leaf into smaller sub-tasks.\n")
 			}
 			break
 		}

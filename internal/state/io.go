@@ -27,7 +27,7 @@ func SaveRootIndex(path string, idx *RootIndex) error {
 	return atomicWriteJSON(path, idx)
 }
 
-// LoadNodeState reads a node's state.json.
+// LoadNodeState reads a node's state.json and normalizes the audit state.
 func LoadNodeState(path string) (*NodeState, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -37,7 +37,28 @@ func LoadNodeState(path string) (*NodeState, error) {
 	if err := json.Unmarshal(data, &ns); err != nil {
 		return nil, err
 	}
+	normalizeAuditState(&ns)
 	return &ns, nil
+}
+
+// normalizeAuditState handles legacy or malformed audit state, ensuring
+// all required fields have valid defaults.
+func normalizeAuditState(ns *NodeState) {
+	// Ensure slices are non-nil for consistent JSON output
+	if ns.Audit.Breadcrumbs == nil {
+		ns.Audit.Breadcrumbs = []Breadcrumb{}
+	}
+	if ns.Audit.Gaps == nil {
+		ns.Audit.Gaps = []Gap{}
+	}
+	if ns.Audit.Escalations == nil {
+		ns.Audit.Escalations = []Escalation{}
+	}
+
+	// Default empty audit status to pending
+	if ns.Audit.Status == "" {
+		ns.Audit.Status = AuditPending
+	}
 }
 
 // SaveNodeState writes a node's state.json atomically.

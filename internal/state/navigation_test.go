@@ -240,6 +240,47 @@ func TestFindNextTask_ScopeNotFound(t *testing.T) {
 	}
 }
 
+func TestFindNextTask_DeterministicOrder(t *testing.T) {
+	t.Parallel()
+	// Create a root index with multiple top-level nodes and no Root array
+	// to force the map-iteration fallback path.
+	idx := NewRootIndex()
+	for _, name := range []string{"zz-last", "aa-first", "mm-middle"} {
+		idx.Nodes[name] = IndexEntry{
+			Name:  name,
+			Type:  NodeLeaf,
+			State: StatusNotStarted,
+		}
+	}
+
+	nodes := map[string]*NodeState{}
+	for _, name := range []string{"zz-last", "aa-first", "mm-middle"} {
+		ns := NewNodeState(name, name, NodeLeaf)
+		ns.Tasks = []Task{{ID: "task-1", Description: "work", State: StatusNotStarted}}
+		nodes[name] = ns
+	}
+
+	// Run 100 times and verify same result every time
+	var firstAddr string
+	for i := 0; i < 100; i++ {
+		result, err := FindNextTask(idx, "", makeLoadNode(nodes))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !result.Found {
+			t.Fatal("expected to find a task")
+		}
+		if i == 0 {
+			firstAddr = result.NodeAddress
+			if firstAddr != "aa-first" {
+				t.Errorf("expected aa-first (alphabetically first), got %s", firstAddr)
+			}
+		} else if result.NodeAddress != firstAddr {
+			t.Errorf("iteration %d: got %s, expected %s (non-deterministic)", i, result.NodeAddress, firstAddr)
+		}
+	}
+}
+
 func TestFindNextTask_TraversesOrchestratorChildren(t *testing.T) {
 	t.Parallel()
 	idx := NewRootIndex()

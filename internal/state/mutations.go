@@ -40,6 +40,9 @@ func TaskAdd(ns *NodeState, description string) (*Task, error) {
 	}
 	ns.Tasks = append(ns.Tasks[:insertIdx], append([]Task{task}, ns.Tasks[insertIdx:]...)...)
 
+	// Ensure audit task stays last after insertion
+	MoveAuditLast(ns)
+
 	return &task, nil
 }
 
@@ -56,6 +59,7 @@ func TaskClaim(ns *NodeState, taskID string) error {
 
 	// Update leaf state
 	ns.State = StatusInProgress
+	SyncAuditLifecycle(ns)
 	return nil
 }
 
@@ -81,6 +85,7 @@ func TaskComplete(ns *NodeState, taskID string) error {
 	if allComplete {
 		ns.State = StatusComplete
 	}
+	SyncAuditLifecycle(ns)
 	return nil
 }
 
@@ -107,6 +112,7 @@ func TaskBlock(ns *NodeState, taskID string, reason string) error {
 	if allBlockedOrComplete {
 		ns.State = StatusBlocked
 	}
+	SyncAuditLifecycle(ns)
 	return nil
 }
 
@@ -125,6 +131,7 @@ func TaskUnblock(ns *NodeState, taskID string) error {
 
 	// Leaf is no longer fully blocked
 	ns.State = StatusInProgress
+	SyncAuditLifecycle(ns)
 	return nil
 }
 
@@ -158,6 +165,32 @@ func IncrementFailure(ns *NodeState, taskID string) (int, error) {
 	}
 	t.FailureCount++
 	return t.FailureCount, nil
+}
+
+// MoveAuditLast ensures the audit task is always the last task in the list.
+// Call after any function that modifies the task list.
+func MoveAuditLast(ns *NodeState) {
+	var auditIdx int = -1
+	for i, t := range ns.Tasks {
+		if t.IsAudit {
+			auditIdx = i
+			break
+		}
+	}
+	if auditIdx < 0 || auditIdx == len(ns.Tasks)-1 {
+		return
+	}
+	audit := ns.Tasks[auditIdx]
+	ns.Tasks = append(ns.Tasks[:auditIdx], ns.Tasks[auditIdx+1:]...)
+	ns.Tasks = append(ns.Tasks, audit)
+}
+
+// SetNeedsDecomposition flags or clears the decomposition recommendation on a task.
+func SetNeedsDecomposition(ns *NodeState, taskID string, needs bool) {
+	t := findTask(ns, taskID)
+	if t != nil {
+		t.NeedsDecomposition = needs
+	}
 }
 
 func findTask(ns *NodeState, taskID string) *Task {
