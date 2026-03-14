@@ -37,11 +37,46 @@ repository:
 10. **README badge.** Build status badge in `README.md` signals project
     health to contributors.
 
+## Amendments
+
+### Codecov Integration (2026-03-14)
+
+Coverage reports are uploaded to Codecov after the test stage via
+`codecov/codecov-action@v5`. The upload runs on the `stable` Go version
+matrix entry only. A Codecov badge in the README shows current coverage.
+The `CODECOV_TOKEN` repo secret is required for uploads.
+
+### CodeQL Security Scanning (2026-03-14)
+
+A separate workflow (`.github/workflows/codeql.yml`) runs GitHub's CodeQL
+analysis for Go on every push to main, every PR to main, and weekly on
+Monday mornings. This catches security vulnerabilities through static
+analysis without requiring any project-side configuration.
+
+### Smoke and Integration Test Jobs (2026-03-14)
+
+Two additional CI jobs run alongside the main build-and-test:
+
+- **smoke-tests**: builds the binary and runs basic sanity checks (version,
+  help, init). Tagged with `//go:build smoke`.
+- **integration-tests**: builds the binary and exercises full command
+  sequences against a real `.wolfcastle/` directory. Tagged with
+  `//go:build integration`.
+
+Both run on every push, using the `stable` Go version.
+
+### Windows Cross-Compilation (2026-03-14)
+
+Added `windows/amd64` to the cross-compilation check. Platform-specific
+code uses build tags per ADR-060.
+
 ## Consequences
 
 - Every push and PR gets automated quality verification.
 - Race conditions are caught before they reach production.
 - Cross-platform builds are verified without manual testing.
+- Security vulnerabilities are caught by CodeQL before merge.
+- Coverage trends are tracked via Codecov.
 - Developers get fast feedback on breakage (target: pipeline completes in
   under 3 minutes).
-- README badge signals project health to contributors.
+- README badges signal project health to contributors.

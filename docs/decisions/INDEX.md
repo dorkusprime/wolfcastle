@@ -60,3 +60,6 @@
 | 056 | [Cobra Dependency Evaluation](056-cobra-evaluation.md) | Accepted | 2026-03-14 |
 | 057 | [All Prompts Externalized to Overridable Markdown Files](057-externalized-prompts.md) | Accepted | 2026-03-14 |
 | 058 | [Small Package Consolidation](058-small-package-consolidation.md) | Accepted | 2026-03-14 |
+| 059 | [Pre-Commit Hooks via .githooks/](059-pre-commit-hooks.md) | Accepted | 2026-03-14 |
+| 060 | [Platform-Specific Code via Build Tags](060-platform-build-tags.md) | Accepted | 2026-03-14 |
+| 061 | [MIT License](061-mit-license.md) | Accepted | 2026-03-14 |
