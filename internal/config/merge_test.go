@@ -112,6 +112,36 @@ func TestDeepMerge_NestedNullDeletion(t *testing.T) {
 	}
 }
 
+func TestDeepMerge_DoesNotMutateDst(t *testing.T) {
+	t.Parallel()
+	dst := map[string]any{
+		"a": "original",
+		"nested": map[string]any{
+			"x": "keep",
+		},
+	}
+	src := map[string]any{
+		"a": "changed",
+		"nested": map[string]any{
+			"x": "modified",
+			"y": "added",
+		},
+	}
+	_ = DeepMerge(dst, src)
+
+	// Verify original dst was not mutated
+	if dst["a"] != "original" {
+		t.Errorf("dst should not be mutated, 'a' got %v", dst["a"])
+	}
+	nested := dst["nested"].(map[string]any)
+	if nested["x"] != "keep" {
+		t.Errorf("dst nested should not be mutated, 'x' got %v", nested["x"])
+	}
+	if _, exists := nested["y"]; exists {
+		t.Error("dst nested should not have key 'y' added")
+	}
+}
+
 func TestDeepMerge_NoOverlap(t *testing.T) {
 	t.Parallel()
 	dst := map[string]any{"a": 1}

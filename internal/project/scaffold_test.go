@@ -56,6 +56,21 @@ func TestScaffold_CreatesConfigJSON(t *testing.T) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		t.Fatal("config.json is not valid JSON:", err)
 	}
+
+	// Verify populated defaults (not empty {})
+	models, ok := cfg["models"].(map[string]any)
+	if !ok || len(models) == 0 {
+		t.Error("config.json should contain default models")
+	}
+	pipeline, ok := cfg["pipeline"].(map[string]any)
+	if !ok {
+		t.Error("config.json should contain pipeline config")
+	} else if stages, ok := pipeline["stages"].([]any); !ok || len(stages) == 0 {
+		t.Error("config.json should contain default pipeline stages")
+	}
+	if _, ok := cfg["identity"]; ok {
+		t.Error("config.json should NOT contain identity (belongs in config.local.json)")
+	}
 }
 
 func TestScaffold_CreatesConfigLocalJSON(t *testing.T) {

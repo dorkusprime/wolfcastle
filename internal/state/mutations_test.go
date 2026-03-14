@@ -14,7 +14,7 @@ func TestTaskAdd_InsertsBeforeAudit(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
 		Task{ID: "task-1", Description: "first", State: StatusNotStarted},
-		Task{ID: "audit", Description: "audit task", State: StatusNotStarted},
+		Task{ID: "audit", Description: "audit task", State: StatusNotStarted, IsAudit: true},
 	)
 
 	task, err := TaskAdd(ns, "new task")
@@ -171,8 +171,8 @@ func TestTaskBlock_TransitionsInProgressToBlocked(t *testing.T) {
 	if ns.Tasks[0].State != StatusBlocked {
 		t.Errorf("expected blocked, got %s", ns.Tasks[0].State)
 	}
-	if ns.Tasks[0].BlockReason != "stuck" {
-		t.Errorf("expected reason 'stuck', got %q", ns.Tasks[0].BlockReason)
+	if ns.Tasks[0].BlockedReason != "stuck" {
+		t.Errorf("expected reason 'stuck', got %q", ns.Tasks[0].BlockedReason)
 	}
 }
 
@@ -207,7 +207,7 @@ func TestTaskBlock_BlocksNodeWhenAllNonCompleteBlocked(t *testing.T) {
 func TestTaskUnblock_TransitionsBlockedToNotStarted(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusBlocked, BlockReason: "stuck", FailureCount: 3},
+		Task{ID: "task-1", Description: "test", State: StatusBlocked, BlockedReason: "stuck", FailureCount: 3},
 	)
 	ns.State = StatusBlocked
 
@@ -217,8 +217,8 @@ func TestTaskUnblock_TransitionsBlockedToNotStarted(t *testing.T) {
 	if ns.Tasks[0].State != StatusNotStarted {
 		t.Errorf("expected not_started, got %s", ns.Tasks[0].State)
 	}
-	if ns.Tasks[0].BlockReason != "" {
-		t.Errorf("block reason should be cleared, got %q", ns.Tasks[0].BlockReason)
+	if ns.Tasks[0].BlockedReason != "" {
+		t.Errorf("block reason should be cleared, got %q", ns.Tasks[0].BlockedReason)
 	}
 }
 

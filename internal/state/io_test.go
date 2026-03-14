@@ -15,6 +15,7 @@ func TestSaveAndLoadRootIndex_Roundtrip(t *testing.T) {
 	idx.RootID = "my-project"
 	idx.RootName = "My Project"
 	idx.RootState = StatusNotStarted
+	idx.Root = []string{"leaf-a"}
 	idx.Nodes["leaf-a"] = IndexEntry{
 		Name:    "Leaf A",
 		Type:    NodeLeaf,
@@ -36,6 +37,9 @@ func TestSaveAndLoadRootIndex_Roundtrip(t *testing.T) {
 	}
 	if loaded.RootName != "My Project" {
 		t.Errorf("expected root_name 'My Project', got %q", loaded.RootName)
+	}
+	if len(loaded.Root) != 1 || loaded.Root[0] != "leaf-a" {
+		t.Errorf("expected root [leaf-a], got %v", loaded.Root)
 	}
 	if len(loaded.Nodes) != 1 {
 		t.Fatalf("expected 1 node, got %d", len(loaded.Nodes))

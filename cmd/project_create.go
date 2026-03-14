@@ -116,6 +116,13 @@ Examples:
 			}
 		}
 
+		// Update root index metadata for the first root-level project
+		if parentNode == "" && idx.RootID == "" {
+			idx.RootID = slug
+			idx.RootName = name
+			idx.RootState = state.StatusNotStarted
+		}
+
 		// Save updated root index
 		if err := state.SaveRootIndex(resolver.RootIndexPath(), idx); err != nil {
 			return fmt.Errorf("saving root index: %w", err)

@@ -33,7 +33,7 @@ func TaskAdd(ns *NodeState, description string) (*Task, error) {
 	// Insert before audit task (always last)
 	insertIdx := len(ns.Tasks)
 	for i, t := range ns.Tasks {
-		if t.ID == "audit" {
+		if t.IsAudit {
 			insertIdx = i
 			break
 		}
@@ -94,7 +94,7 @@ func TaskBlock(ns *NodeState, taskID string, reason string) error {
 		return fmt.Errorf("task %q is %s, must be in_progress to block", taskID, t.State)
 	}
 	t.State = StatusBlocked
-	t.BlockReason = reason
+	t.BlockedReason = reason
 
 	// Check if all non-complete tasks are blocked
 	allBlockedOrComplete := true
@@ -120,7 +120,7 @@ func TaskUnblock(ns *NodeState, taskID string) error {
 		return fmt.Errorf("task %q is %s, must be blocked to unblock", taskID, t.State)
 	}
 	t.State = StatusNotStarted
-	t.BlockReason = ""
+	t.BlockedReason = ""
 	t.FailureCount = 0
 
 	// Leaf is no longer fully blocked

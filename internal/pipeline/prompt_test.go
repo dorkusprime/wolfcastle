@@ -97,18 +97,21 @@ func TestAssemblePrompt_SkipPromptAssembly(t *testing.T) {
 		SkipPromptAssembly: &skip,
 	}
 
-	result, err := AssemblePrompt(dir, cfg, stage, "should be ignored")
+	result, err := AssemblePrompt(dir, cfg, stage, "task context here")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != "Expand prompt" {
-		t.Errorf("expected only stage prompt, got %q", result)
+	if !strings.Contains(result, "Expand prompt") {
+		t.Error("expected stage prompt in output")
 	}
 	if strings.Contains(result, "Rule one content") {
 		t.Error("skip_prompt_assembly should exclude rule fragments")
 	}
-	if strings.Contains(result, "should be ignored") {
-		t.Error("skip_prompt_assembly should exclude iteration context")
+	if strings.Contains(result, "Script reference") {
+		t.Error("skip_prompt_assembly should exclude script reference")
+	}
+	if !strings.Contains(result, "task context here") {
+		t.Error("skip_prompt_assembly should still include iteration context")
 	}
 }

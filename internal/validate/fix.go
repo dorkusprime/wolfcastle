@@ -1,0 +1,258 @@
+package validate
+
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tree"
+)
+
+// FixResult describes a single applied fix.
+type FixResult struct {
+	Category    string
+	Node        string
+	Description string
+}
+
+// ApplyDeterministicFixes attempts to repair all deterministic-fixable issues.
+// It stages changes in memory, writes leaf->parent->root, and re-validates.
+// Returns the list of fixes applied.
+func ApplyDeterministicFixes(
+	idx *state.RootIndex,
+	issues []Issue,
+	projectsDir string,
+	indexPath string,
+) ([]FixResult, error) {
+	var fixes []FixResult
+	modifiedStates := map[string]*state.NodeState{}
+	indexModified := false
+
+	loadOrCached := func(addr string) (*state.NodeState, string, error) {
+		a, err := tree.ParseAddress(addr)
+		if err != nil {
+			return nil, "", err
+		}
+		statePath := filepath.Join(projectsDir, filepath.Join(a.Parts...), "state.json")
+		if cached, ok := modifiedStates[statePath]; ok {
+			return cached, statePath, nil
+		}
+		ns, err := state.LoadNodeState(statePath)
+		if err != nil {
+			return nil, "", err
+		}
+		return ns, statePath, nil
+	}
+
+	for _, issue := range issues {
+		if issue.FixType != FixDeterministic || !issue.CanAutoFix {
+			continue
+		}
+
+		switch issue.Category {
+		case CatRootIndexDanglingRef:
+			delete(idx.Nodes, issue.Node)
+			// Remove from parent's children and root list
+			for addr, entry := range idx.Nodes {
+				for i, child := range entry.Children {
+					if child == issue.Node {
+						entry.Children = append(entry.Children[:i], entry.Children[i+1:]...)
+						idx.Nodes[addr] = entry
+						break
+					}
+				}
+			}
+			for i, r := range idx.Root {
+				if r == issue.Node {
+					idx.Root = append(idx.Root[:i], idx.Root[i+1:]...)
+					break
+				}
+			}
+			indexModified = true
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "removed dangling entry from index"})
+
+		case CatRootIndexMissingEntry:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			a, aErr := tree.ParseAddress(issue.Node)
+			if aErr != nil {
+				continue
+			}
+			parentAddr := ""
+			if len(a.Parts) > 1 {
+				parentAddr = strings.Join(a.Parts[:len(a.Parts)-1], "/")
+			}
+			idx.Nodes[issue.Node] = state.IndexEntry{
+				Name:               ns.Name,
+				Type:               ns.Type,
+				State:              ns.State,
+				Address:            issue.Node,
+				DecompositionDepth: ns.DecompositionDepth,
+				Parent:             parentAddr,
+			}
+			if parentAddr != "" {
+				if parentEntry, ok := idx.Nodes[parentAddr]; ok {
+					parentEntry.Children = append(parentEntry.Children, issue.Node)
+					idx.Nodes[parentAddr] = parentEntry
+				}
+			} else {
+				idx.Root = append(idx.Root, issue.Node)
+			}
+			indexModified = true
+			_ = statePath
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "added orphaned node to index"})
+
+		case CatPropagationMismatch:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			if ns.Type == state.NodeOrchestrator && len(ns.Children) > 0 {
+				ns.State = state.RecomputeState(ns.Children)
+				modifiedStates[statePath] = ns
+			}
+			// Update index to match node state
+			if entry, ok := idx.Nodes[issue.Node]; ok {
+				entry.State = ns.State
+				idx.Nodes[issue.Node] = entry
+				indexModified = true
+			}
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, fmt.Sprintf("updated state to %s", ns.State)})
+
+		case CatMissingAuditTask:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			ns.Tasks = append(ns.Tasks, state.Task{
+				ID:          "audit",
+				Description: "Audit task completion and verify acceptance criteria",
+				State:       state.StatusNotStarted,
+				IsAudit:     true,
+			})
+			modifiedStates[statePath] = ns
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "added audit task"})
+
+		case CatAuditNotLast:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			var auditTask *state.Task
+			var others []state.Task
+			for i := range ns.Tasks {
+				if ns.Tasks[i].IsAudit {
+					t := ns.Tasks[i]
+					auditTask = &t
+				} else {
+					others = append(others, ns.Tasks[i])
+				}
+			}
+			if auditTask != nil {
+				ns.Tasks = append(others, *auditTask)
+				modifiedStates[statePath] = ns
+			}
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "moved audit task to end"})
+
+		case CatInvalidStateValue:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			normalized, ok := NormalizeStateValue(string(ns.State))
+			if ok {
+				ns.State = normalized
+				modifiedStates[statePath] = ns
+				if entry, ok := idx.Nodes[issue.Node]; ok {
+					entry.State = normalized
+					idx.Nodes[issue.Node] = entry
+					indexModified = true
+				}
+				fixes = append(fixes, FixResult{issue.Category, issue.Node, fmt.Sprintf("normalized state to %s", normalized)})
+			}
+
+		case CatBlockedWithoutReason:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			for i := range ns.Tasks {
+				if ns.Tasks[i].State == state.StatusBlocked && ns.Tasks[i].BlockedReason == "" {
+					ns.Tasks[i].BlockedReason = "no reason provided (auto-fixed by doctor)"
+				}
+			}
+			modifiedStates[statePath] = ns
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "added placeholder blocked reason"})
+
+		case CatDepthMismatch:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			if entry, ok := idx.Nodes[issue.Node]; ok && entry.Parent != "" {
+				parentNS, _, parentErr := loadOrCached(entry.Parent)
+				if parentErr == nil {
+					ns.DecompositionDepth = parentNS.DecompositionDepth
+					modifiedStates[statePath] = ns
+					fixes = append(fixes, FixResult{issue.Category, issue.Node, fmt.Sprintf("set depth to %d", ns.DecompositionDepth)})
+				}
+			}
+
+		case CatNegativeFailureCount:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			for i := range ns.Tasks {
+				if ns.Tasks[i].FailureCount < 0 {
+					ns.Tasks[i].FailureCount = 0
+				}
+			}
+			modifiedStates[statePath] = ns
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "reset negative failure count to 0"})
+
+		case CatMissingRequiredField:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			if ns.ID == "" {
+				ns.ID = issue.Node
+			}
+			if ns.Name == "" {
+				ns.Name = issue.Node
+			}
+			if string(ns.Type) == "" {
+				ns.Type = state.NodeLeaf
+			}
+			if string(ns.State) == "" {
+				ns.State = state.StatusNotStarted
+			}
+			modifiedStates[statePath] = ns
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "populated missing required fields"})
+
+		case CatOrphanDefinition:
+			// Deterministic fix: no action needed (just a warning)
+			fixes = append(fixes, FixResult{issue.Category, issue.Node, "orphan definition detected (no auto-fix)"})
+		}
+	}
+
+	// Save modified state files
+	for statePath, ns := range modifiedStates {
+		if err := state.SaveNodeState(statePath, ns); err != nil {
+			return fixes, fmt.Errorf("saving %s: %w", statePath, err)
+		}
+	}
+
+	// Save root index if modified
+	if indexModified {
+		if err := state.SaveRootIndex(indexPath, idx); err != nil {
+			return fixes, fmt.Errorf("saving root index: %w", err)
+		}
+	}
+
+	return fixes, nil
+}

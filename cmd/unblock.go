@@ -97,7 +97,7 @@ func buildDiagnostic(nodeAddr, taskID string, ns *state.NodeState, task *state.T
 	b.WriteString(fmt.Sprintf("**Node:** %s\n", nodeAddr))
 	b.WriteString(fmt.Sprintf("**Task:** %s\n", taskID))
 	b.WriteString(fmt.Sprintf("**Description:** %s\n", task.Description))
-	b.WriteString(fmt.Sprintf("**Block Reason:** %s\n", task.BlockReason))
+	b.WriteString(fmt.Sprintf("**Block Reason:** %s\n", task.BlockedReason))
 	b.WriteString(fmt.Sprintf("**Failure Count:** %d\n", task.FailureCount))
 	b.WriteString(fmt.Sprintf("**Decomposition Depth:** %d\n\n", ns.DecompositionDepth))
 

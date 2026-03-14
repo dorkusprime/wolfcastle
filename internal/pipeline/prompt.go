@@ -11,12 +11,17 @@ import (
 // Assembly order: rule fragments, script reference, stage prompt, iteration context.
 func AssemblePrompt(wolfcastleDir string, cfg *config.Config, stage config.PipelineStage, iterContext string) (string, error) {
 	if stage.ShouldSkipPromptAssembly() {
-		// Lightweight stage — only its own prompt
+		// Lightweight stage — stage prompt + iteration context only
 		content, err := ResolveFragment(wolfcastleDir, "prompts/"+stage.PromptFile)
 		if err != nil {
 			return "", err
 		}
-		return content, nil
+		var sections []string
+		sections = append(sections, content)
+		if iterContext != "" {
+			sections = append(sections, "# Current Task Context\n\n"+iterContext)
+		}
+		return strings.Join(sections, "\n\n---\n\n"), nil
 	}
 
 	var sections []string

@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -66,6 +67,8 @@ func Defaults() *Config {
 			MaxIterations:              -1,
 			MaxTurnsPerInvocation:      200,
 			InvocationTimeoutSeconds:   3600,
+			MaxRestarts:                3,
+			RestartDelaySeconds:        2,
 		},
 		Git: GitConfig{
 			AutoCommit:          true,
@@ -129,6 +132,12 @@ func Load(wolfcastleDir string) (*Config, error) {
 	if err := json.Unmarshal(merged, &cfg); err != nil {
 		return nil, err
 	}
+
+	// Validate structural integrity (skip identity — handled by resolver)
+	if err := ValidateStructure(&cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
 	return &cfg, nil
 }
 

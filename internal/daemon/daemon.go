@@ -53,6 +53,69 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 	}, nil
 }
 
+// selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
+func (d *Daemon) selfHeal() error {
+	fmt.Println("Running self-healing check...")
+	idx, err := d.Resolver.LoadRootIndex()
+	if err != nil {
+		fmt.Println("No root index found — nothing to heal.")
+		return nil
+	}
+
+	var inProgress []struct{ addr, taskID string }
+	for addr, entry := range idx.Nodes {
+		if entry.Type != state.NodeLeaf {
+			continue
+		}
+		a, err := tree.ParseAddress(addr)
+		if err != nil {
+			continue
+		}
+		ns, err := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+		if err != nil {
+			continue
+		}
+		for _, t := range ns.Tasks {
+			if t.State == state.StatusInProgress {
+				inProgress = append(inProgress, struct{ addr, taskID string }{addr, t.ID})
+			}
+		}
+	}
+
+	if len(inProgress) > 1 {
+		return fmt.Errorf("state corruption: %d tasks in progress (serial execution requires at most 1)", len(inProgress))
+	}
+	if len(inProgress) == 1 {
+		fmt.Printf("Found interrupted task: %s/%s — will resume on next iteration\n",
+			inProgress[0].addr, inProgress[0].taskID)
+	} else {
+		fmt.Println("No interrupted tasks found.")
+	}
+	return nil
+}
+
+// RunWithSupervisor wraps Run with crash recovery and configurable restarts.
+func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
+	maxRestarts := d.Config.Daemon.MaxRestarts
+	delay := time.Duration(d.Config.Daemon.RestartDelaySeconds) * time.Second
+
+	for restart := 0; ; restart++ {
+		err := d.Run(ctx)
+		if err == nil || ctx.Err() != nil {
+			return err
+		}
+		if restart >= maxRestarts {
+			return fmt.Errorf("daemon exceeded max restarts (%d): %w", maxRestarts, err)
+		}
+		fmt.Printf("Daemon crashed (attempt %d/%d): %v — restarting in %v\n", restart+1, maxRestarts, err, delay)
+		time.Sleep(delay)
+
+		// Reset shutdown state for next Run() iteration
+		d.shutdown = make(chan struct{})
+		d.shutdownOnce = sync.Once{}
+	}
+}
+
 // Run executes the daemon loop.
 func (d *Daemon) Run(ctx context.Context) error {
 	// Set up signal handling
@@ -62,6 +125,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 		<-sigCh
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
+
+	// Self-healing phase (ADR-020)
+	if err := d.selfHeal(); err != nil {
+		return fmt.Errorf("self-healing failed: %w", err)
+	}
 
 	// Record starting branch
 	if d.Config.Git.VerifyBranch {
@@ -84,6 +152,14 @@ func (d *Daemon) Run(ctx context.Context) error {
 			fmt.Println("=== Wolfcastle stopped by signal ===")
 			return nil
 		default:
+		}
+
+		// Check stop file
+		stopFilePath := filepath.Join(d.WolfcastleDir, "stop")
+		if _, err := os.Stat(stopFilePath); err == nil {
+			os.Remove(stopFilePath)
+			fmt.Println("=== Wolfcastle stopped by stop file ===")
+			return nil
 		}
 
 		// Max iterations check
@@ -249,17 +325,29 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			"output_len": len(result.Stdout),
 		})
 
+		// Parse mutation markers from model output
+		d.applyModelMarkers(result.Stdout, ns, nav)
+
 		// Check for terminal markers
 		if strings.Contains(result.Stdout, "WOLFCASTLE_YIELD") {
 			fmt.Println("  Task yielded successfully")
+			if err := state.SaveNodeState(statePath, ns); err != nil {
+				d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+			}
 			return nil
 		}
 		if strings.Contains(result.Stdout, "WOLFCASTLE_BLOCKED") {
 			fmt.Printf("  Task blocked: %s/%s\n", nav.NodeAddress, nav.TaskID)
+			if err := state.SaveNodeState(statePath, ns); err != nil {
+				d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+			}
 			return nil
 		}
 		if strings.Contains(result.Stdout, "WOLFCASTLE_COMPLETE") {
 			fmt.Println("WOLFCASTLE_COMPLETE")
+			if err := state.SaveNodeState(statePath, ns); err != nil {
+				d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+			}
 			return nil
 		}
 
@@ -551,6 +639,114 @@ func (d *Daemon) runSummaryStage(ctx context.Context, nodeAddr string, statePath
 
 	fmt.Printf("  Summary generated for node %s\n", nodeAddr)
 	return nil
+}
+
+// applyModelMarkers parses WOLFCASTLE_* mutation markers from model output.
+func (d *Daemon) applyModelMarkers(output string, ns *state.NodeState, nav *state.NavigationResult) {
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(line, "WOLFCASTLE_BREADCRUMB:"):
+			text := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_BREADCRUMB:"))
+			if text != "" {
+				state.AddBreadcrumb(ns, nav.NodeAddress+"/"+nav.TaskID, text)
+				d.Logger.Log(map[string]any{"type": "marker_breadcrumb", "text": text})
+			}
+
+		case strings.HasPrefix(line, "WOLFCASTLE_GAP:"):
+			desc := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_GAP:"))
+			if desc != "" {
+				gapID := fmt.Sprintf("gap-%s-%d", ns.ID, len(ns.Audit.Gaps)+1)
+				ns.Audit.Gaps = append(ns.Audit.Gaps, state.Gap{
+					ID:          gapID,
+					Timestamp:   time.Now().UTC(),
+					Description: desc,
+					Source:      nav.NodeAddress,
+					Status:      "open",
+				})
+				d.Logger.Log(map[string]any{"type": "marker_gap", "gap_id": gapID})
+			}
+
+		case strings.HasPrefix(line, "WOLFCASTLE_FIX_GAP:"):
+			gapID := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_FIX_GAP:"))
+			for i := range ns.Audit.Gaps {
+				if ns.Audit.Gaps[i].ID == gapID && ns.Audit.Gaps[i].Status == "open" {
+					ns.Audit.Gaps[i].Status = "fixed"
+					ns.Audit.Gaps[i].FixedBy = nav.NodeAddress + "/" + nav.TaskID
+					now := time.Now().UTC()
+					ns.Audit.Gaps[i].FixedAt = &now
+					d.Logger.Log(map[string]any{"type": "marker_fix_gap", "gap_id": gapID})
+					break
+				}
+			}
+
+		case strings.HasPrefix(line, "WOLFCASTLE_SCOPE:"):
+			desc := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_SCOPE:"))
+			if desc != "" {
+				if ns.Audit.Scope == nil {
+					ns.Audit.Scope = &state.AuditScope{}
+				}
+				ns.Audit.Scope.Description = desc
+				d.Logger.Log(map[string]any{"type": "marker_scope", "description": desc})
+			}
+
+		case strings.HasPrefix(line, "WOLFCASTLE_SCOPE_FILES:"):
+			raw := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_SCOPE_FILES:"))
+			if ns.Audit.Scope == nil {
+				ns.Audit.Scope = &state.AuditScope{}
+			}
+			ns.Audit.Scope.Files = dedupPipe(raw)
+
+		case strings.HasPrefix(line, "WOLFCASTLE_SCOPE_SYSTEMS:"):
+			raw := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_SCOPE_SYSTEMS:"))
+			if ns.Audit.Scope == nil {
+				ns.Audit.Scope = &state.AuditScope{}
+			}
+			ns.Audit.Scope.Systems = dedupPipe(raw)
+
+		case strings.HasPrefix(line, "WOLFCASTLE_SCOPE_CRITERIA:"):
+			raw := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_SCOPE_CRITERIA:"))
+			if ns.Audit.Scope == nil {
+				ns.Audit.Scope = &state.AuditScope{}
+			}
+			ns.Audit.Scope.Criteria = dedupPipe(raw)
+
+		case strings.HasPrefix(line, "WOLFCASTLE_SUMMARY:"):
+			text := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_SUMMARY:"))
+			if text != "" {
+				ns.Audit.ResultSummary = text
+				d.Logger.Log(map[string]any{"type": "marker_summary", "text": text})
+			}
+
+		case strings.HasPrefix(line, "WOLFCASTLE_RESOLVE_ESCALATION:"):
+			escID := strings.TrimSpace(strings.TrimPrefix(line, "WOLFCASTLE_RESOLVE_ESCALATION:"))
+			for i := range ns.Audit.Escalations {
+				if ns.Audit.Escalations[i].ID == escID && ns.Audit.Escalations[i].Status == "open" {
+					ns.Audit.Escalations[i].Status = "resolved"
+					ns.Audit.Escalations[i].ResolvedBy = nav.NodeAddress + "/" + nav.TaskID
+					now := time.Now().UTC()
+					ns.Audit.Escalations[i].ResolvedAt = &now
+					d.Logger.Log(map[string]any{"type": "marker_resolve_escalation", "escalation_id": escID})
+					break
+				}
+			}
+		}
+	}
+}
+
+// dedupPipe splits a pipe-delimited string and deduplicates entries.
+func dedupPipe(s string) []string {
+	seen := make(map[string]bool)
+	var result []string
+	for _, part := range strings.Split(s, "|") {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" && !seen[trimmed] {
+			seen[trimmed] = true
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 func (d *Daemon) scopeLabel() string {

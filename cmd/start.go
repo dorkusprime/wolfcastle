@@ -6,8 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"syscall"
 
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/validate"
 	"github.com/spf13/cobra"
 )
 
@@ -55,12 +59,36 @@ Examples:
 			}
 		}()
 
-		// Check for stale PID
+		// Recover stale daemon state
+		recoverStaleDaemonState(wolfcastleDir)
+
+		// Check for running daemon
 		pid, err := daemon.ReadPID(wolfcastleDir)
 		if err == nil && daemon.IsProcessRunning(pid) {
 			return fmt.Errorf("Wolfcastle is already running (PID %d) — use 'wolfcastle stop' first", pid)
 		}
 		daemon.RemovePID(wolfcastleDir)
+
+		// Startup validation gate — block on error-severity issues
+		if resolver != nil {
+			idx, idxErr := resolver.LoadRootIndex()
+			if idxErr == nil {
+				engine := validate.NewEngine(resolver.ProjectsDir(), validate.DefaultNodeLoader(resolver.ProjectsDir()))
+				report := engine.ValidateStartup(idx)
+				if report.HasErrors() {
+					fmt.Printf("Startup validation found %d errors:\n", report.Errors)
+					for _, issue := range report.Issues {
+						if issue.Severity == validate.SeverityError {
+							fmt.Printf("  ERROR [%s] %s: %s\n", issue.Category, issue.Node, issue.Description)
+						}
+					}
+					return fmt.Errorf("startup blocked by validation errors — run 'wolfcastle doctor --fix' to repair")
+				}
+				if report.Warnings > 0 {
+					fmt.Printf("Startup validation: %d warnings (proceeding)\n", report.Warnings)
+				}
+			}
+		}
 
 		if background {
 			return startBackground(nodeScope, worktreeBranch)
@@ -71,7 +99,7 @@ Examples:
 			return err
 		}
 
-		return d.Run(context.Background())
+		return d.RunWithSupervisor(context.Background())
 	},
 }
 
@@ -147,6 +175,33 @@ func createWorktree(repoDir, branch string) (string, error) {
 	}
 
 	return wtDir, nil
+}
+
+func recoverStaleDaemonState(wolfcastleDir string) {
+	pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
+	data, err := os.ReadFile(pidPath)
+	if os.IsNotExist(err) {
+		return
+	}
+	if err != nil {
+		return
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		os.Remove(pidPath)
+		return
+	}
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		os.Remove(pidPath)
+		return
+	}
+	if err := process.Signal(syscall.Signal(0)); err != nil {
+		// Process is dead — clean up stale files
+		os.Remove(pidPath)
+		os.Remove(filepath.Join(wolfcastleDir, "daemon.meta.json"))
+		os.Remove(filepath.Join(wolfcastleDir, "stop"))
+	}
 }
 
 func init() {

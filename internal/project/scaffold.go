@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -48,9 +49,10 @@ func Scaffold(wolfcastleDir string) error {
 		return err
 	}
 
-	// Write default config.json
-	cfg := map[string]any{}
-	cfgData, err := json.MarshalIndent(cfg, "", "  ")
+	// Write default config.json with populated defaults (excluding identity)
+	defaults := config.Defaults()
+	defaults.Identity = nil // Identity belongs in config.local.json only
+	cfgData, err := json.MarshalIndent(defaults, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -168,6 +170,7 @@ func CreateProject(
 				ID:          "audit",
 				Description: "Verify all work in " + name + " is complete and correct",
 				State:       state.StatusNotStarted,
+				IsAudit:     true,
 			},
 		}
 	}
@@ -183,12 +186,15 @@ func CreateProject(
 	}
 	idx.Nodes[addr] = entry
 
-	// Update parent's children list
+	// Update parent's children list or root list
 	if parentAddr != "" {
 		if parent, ok := idx.Nodes[parentAddr]; ok {
 			parent.Children = append(parent.Children, addr)
 			idx.Nodes[parentAddr] = parent
 		}
+	} else {
+		// Root-level node — add to root list
+		idx.Root = append(idx.Root, addr)
 	}
 
 	return ns, addr, nil

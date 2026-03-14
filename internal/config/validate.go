@@ -2,7 +2,33 @@ package config
 
 import "fmt"
 
-// Validate checks the resolved config for consistency.
+// ValidateStructure checks config consistency without requiring identity.
+// Called automatically during Load(). For full validation including identity,
+// use Validate().
+func ValidateStructure(cfg *Config) error {
+	if len(cfg.Pipeline.Stages) == 0 {
+		return fmt.Errorf("pipeline has no stages — at least one stage is required")
+	}
+	for _, stage := range cfg.Pipeline.Stages {
+		if _, ok := cfg.Models[stage.Model]; !ok {
+			return fmt.Errorf("pipeline stage %q references unknown model %q", stage.Name, stage.Model)
+		}
+	}
+	names := make(map[string]bool)
+	for _, stage := range cfg.Pipeline.Stages {
+		if names[stage.Name] {
+			return fmt.Errorf("duplicate pipeline stage name %q", stage.Name)
+		}
+		names[stage.Name] = true
+	}
+	if cfg.Failure.HardCap < cfg.Failure.DecompositionThreshold {
+		return fmt.Errorf("failure.hard_cap (%d) must be >= failure.decomposition_threshold (%d)",
+			cfg.Failure.HardCap, cfg.Failure.DecompositionThreshold)
+	}
+	return nil
+}
+
+// Validate checks the resolved config for consistency including identity.
 func Validate(cfg *Config) error {
 	// Check pipeline has at least one stage
 	if len(cfg.Pipeline.Stages) == 0 {

@@ -25,6 +25,9 @@ the node's audit trail, result summary, and metadata.
 Examples:
   wolfcastle archive add --node my-project`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireResolver(); err != nil {
+			return err
+		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
 		if nodeAddr == "" {
 			return fmt.Errorf("--node is required — specify the completed node to archive")

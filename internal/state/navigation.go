@@ -27,10 +27,15 @@ func FindNextTask(idx *RootIndex, scopeAddr string, loadNode func(addr string) (
 		}
 		roots = []string{scopeAddr}
 	} else {
-		// Find all top-level nodes (no parent)
-		for addr, entry := range idx.Nodes {
-			if entry.Parent == "" {
-				roots = append(roots, addr)
+		// Use Root array for deterministic O(1) root discovery
+		if len(idx.Root) > 0 {
+			roots = idx.Root
+		} else {
+			// Fallback: find all top-level nodes (no parent)
+			for addr, entry := range idx.Nodes {
+				if entry.Parent == "" {
+					roots = append(roots, addr)
+				}
 			}
 		}
 	}
