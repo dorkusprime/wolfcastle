@@ -1,21 +1,23 @@
 # CLI Reference
 
-21+ commands. Every one accepts `--json` for structured output. Every one that operates on a node accepts `--node` with a slash-separated [tree address](#tree-addressing). Every one has `-h` help with dynamic content (available [scopes](audits.md#scopes), install targets, [spec](collaboration.md#specs) lists are discovered at runtime).
+Every command accepts `--json` for structured output. Every command that operates on a node accepts `--node` with a slash-separated [tree address](#tree-addressing). Every command has `-h` help with dynamic content (available [scopes](audits.md#scopes), install targets, [spec](collaboration.md#specs) lists are discovered at runtime).
 
 ## Commands
 
 | Category | Commands |
 |----------|----------|
-| **Lifecycle** | `init`, `start`, `stop`, `status`, `follow`, `update` |
-| **Task** | `task add`, `task claim`, `task complete`, `task block`, `task unblock` |
-| **Project** | `project create`, `project list` |
-| **Audit** | `audit` (codebase), `audit breadcrumb`, `audit escalate` |
-| **Navigation** | `navigate` |
-| **Diagnostics** | `doctor`, `unblock` |
-| **Documentation** | `adr create`, `spec create`, `spec link`, `spec list` |
-| **Archive** | `archive add` |
-| **Inbox** | `inbox add`, `inbox list` |
-| **Integration** | `install` |
+| **Lifecycle** | [`init`](cli/init.md), [`start`](cli/start.md), [`stop`](cli/stop.md), [`status`](cli/status.md), [`follow`](cli/follow.md), [`update`](cli/update.md), [`version`](cli/version.md) |
+| **Task** | [`task add`](cli/task-add.md), [`task claim`](cli/task-claim.md), [`task complete`](cli/task-complete.md), [`task block`](cli/task-block.md), [`task unblock`](cli/task-unblock.md) |
+| **Project** | [`project create`](cli/project-create.md) |
+| **Audit** | [`audit`](cli/audit-run.md) (codebase), [`audit breadcrumb`](cli/audit-breadcrumb.md), [`audit escalate`](cli/audit-escalate.md), [`audit pending`](cli/audit-pending.md), [`audit approve`](cli/audit-approve.md), [`audit reject`](cli/audit-reject.md), [`audit history`](cli/audit-history.md) |
+| **Navigation** | [`navigate`](cli/navigate.md) |
+| **Diagnostics** | [`doctor`](cli/doctor.md), [`unblock`](cli/unblock.md) |
+| **Documentation** | [`adr create`](cli/adr-create.md), [`spec create`](cli/spec-create.md), [`spec link`](cli/spec-link.md), [`spec list`](cli/spec-list.md) |
+| **Archive** | [`archive add`](cli/archive-add.md) |
+| **Inbox** | [`inbox add`](cli/inbox-add.md), [`inbox list`](cli/inbox-list.md), [`inbox clear`](cli/inbox-clear.md) |
+| **Integration** | [`install skill`](cli/install.md) |
+
+Each command has its own page with flags, exit codes, consequences, and cross-references. See [cli/](cli/) for the full set.
 
 ## Tree Addressing
 
@@ -29,17 +31,6 @@ wolfcastle status --node frontend/login-flow
 
 Scripts validate that the target node exists and is the correct type. You cannot add a task to an [orchestrator](how-it-works.md#the-project-tree). You cannot create a child under a leaf. The tree has rules.
 
-## The Inbox
-
-For ideas that arrive while work is underway:
-
-```
-wolfcastle inbox add "Support OAuth2 PKCE flow"
-wolfcastle inbox list
-```
-
-Items land in the inbox. The [expand pipeline stage](how-it-works.md#the-pipeline) picks them up, decomposes them into tasks, and the file stage organizes them into the [tree](how-it-works.md#the-project-tree).
-
 ## Installation
 
 Three distribution channels:
@@ -47,7 +38,7 @@ Three distribution channels:
 - **`curl` installer**: Zero dependencies. Download and run.
 - **Homebrew tap**: `brew install wolfcastle`
 - **npm wrapper**: Optional, for teams already in that ecosystem.
-- **Self-update**: `wolfcastle update` refreshes the binary and regenerates `base/`.
+- **Self-update**: [`wolfcastle update`](cli/update.md) refreshes the binary and regenerates `base/`.
 
 ### Claude Code Integration
 
@@ -55,11 +46,11 @@ Three distribution channels:
 wolfcastle install skill
 ```
 
-Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (auto-updates with `wolfcastle update`) and falls back to file copy on platforms that don't.
+Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (auto-updates with [`wolfcastle update`](cli/update.md)) and falls back to file copy on platforms that don't. See [`install skill`](cli/install.md) for details.
 
 ## Project Layout
 
-`wolfcastle init` creates the `.wolfcastle/` directory. [Configuration](configuration.md) merges across the `base/`, `custom/`, and `local/` tiers:
+[`wolfcastle init`](cli/init.md) creates the `.wolfcastle/` directory. [Configuration](configuration.md) merges across the `base/`, `custom/`, and `local/` tiers:
 
 ```
 .wolfcastle/
@@ -88,5 +79,5 @@ Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (au
 
 1. Clone the repo. You get `config.json`, `custom/`, `archive/`, and `docs/` immediately.
 2. Install Wolfcastle. `brew install wolfcastle` or the curl installer.
-3. `wolfcastle init`. Creates `config.local.json` with your [identity](configuration.md#identity). Generates `base/`.
-4. `wolfcastle start`. [The daemon](how-it-works.md#the-daemon) wakes up. Your [namespace](collaboration.md#engineer-namespacing) is created. Work begins.
+3. [`wolfcastle init`](cli/init.md). Creates `config.local.json` with your [identity](configuration.md#identity). Generates `base/`.
+4. [`wolfcastle start`](cli/start.md). [The daemon](how-it-works.md#the-daemon) wakes up. Your [namespace](collaboration.md#engineer-namespacing) is created. Work begins.
