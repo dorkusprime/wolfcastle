@@ -45,6 +45,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
+	rootCmd.AddGroup(
+		&cobra.Group{ID: "lifecycle", Title: "Lifecycle:"},
+		&cobra.Group{ID: "work", Title: "Work Management:"},
+		&cobra.Group{ID: "audit", Title: "Auditing:"},
+		&cobra.Group{ID: "docs", Title: "Documentation:"},
+		&cobra.Group{ID: "diagnostics", Title: "Diagnostics:"},
+		&cobra.Group{ID: "integration", Title: "Integration:"},
+	)
 	Register(testApp, rootCmd)
 
 	return &testEnv{

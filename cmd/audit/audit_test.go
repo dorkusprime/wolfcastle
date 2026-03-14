@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/review"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -42,9 +43,18 @@ func newTestEnv(t *testing.T) *testEnv {
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
 		Resolver:      resolver,
+		Clock:         clock.New(),
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
+	rootCmd.AddGroup(
+		&cobra.Group{ID: "lifecycle", Title: "Lifecycle:"},
+		&cobra.Group{ID: "work", Title: "Work Management:"},
+		&cobra.Group{ID: "audit", Title: "Auditing:"},
+		&cobra.Group{ID: "docs", Title: "Documentation:"},
+		&cobra.Group{ID: "diagnostics", Title: "Diagnostics:"},
+		&cobra.Group{ID: "integration", Title: "Integration:"},
+	)
 	Register(testApp, rootCmd)
 
 	return &testEnv{

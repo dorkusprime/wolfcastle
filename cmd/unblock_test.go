@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -36,8 +37,8 @@ func TestBuildDiagnostic_BasicOutput(t *testing.T) {
 
 func TestBuildDiagnostic_WithBreadcrumbs(t *testing.T) {
 	ns := state.NewNodeState("my-project", "My Project", state.NodeLeaf)
-	state.AddBreadcrumb(ns, "task-1", "tried approach A")
-	state.AddBreadcrumb(ns, "task-1", "approach A failed")
+	state.AddBreadcrumb(ns, "task-1", "tried approach A", clock.New())
+	state.AddBreadcrumb(ns, "task-1", "approach A failed", clock.New())
 
 	task := &state.Task{
 		ID:            "task-1",

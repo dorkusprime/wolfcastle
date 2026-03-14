@@ -198,4 +198,3 @@ func TestSpecList_FilterByNode(t *testing.T) {
 		t.Errorf("expected 1 linked spec, got %d", len(ns.Specs))
 	}
 }
-

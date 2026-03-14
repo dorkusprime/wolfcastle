@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -75,6 +76,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		WolfcastleDir: wcDir,
 		Cfg:           loadedCfg,
 		Resolver:      resolver,
+		Clock:         clock.New(),
 	}
 
 	// Save original cwd and switch to tmp (for init etc.)
