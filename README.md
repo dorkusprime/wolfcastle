@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/dorkusprime/wolfcastle)](https://goreportcard.com/report/github.com/dorkusprime/wolfcastle)
 [![Go Reference](https://pkg.go.dev/badge/github.com/dorkusprime/wolfcastle.svg)](https://pkg.go.dev/github.com/dorkusprime/wolfcastle)
 [![Go version](https://img.shields.io/github/go-mod/go-version/dorkusprime/wolfcastle)](https://go.dev/)
-[![License: MIT](https://img.shields.io/github/license/dorkusprime/wolfcastle)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-pre--release-blue)](https://github.com/dorkusprime/wolfcastle)
 
 ![Wolfcastle](assets/wolfcastle-alpha.png)
