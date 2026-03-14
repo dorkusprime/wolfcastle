@@ -1,3 +1,6 @@
+// Package daemon implements the lifecycle commands: start, stop, status,
+// and follow. These control the Wolfcastle daemon loop and provide
+// real-time visibility into its execution.
 package daemon
 
 import (

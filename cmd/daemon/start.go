@@ -43,8 +43,8 @@ Examples:
 				app.Cfg.Daemon.LogLevel = "debug"
 			}
 
-			if app.Resolver == nil {
-				return fmt.Errorf("identity not configured — run 'wolfcastle init' first")
+			if err := app.RequireResolver(); err != nil {
+				return err
 			}
 
 			// Find repo root (parent of .wolfcastle)
@@ -79,23 +79,21 @@ Examples:
 			daemon.RemovePID(app.WolfcastleDir)
 
 			// Startup validation gate — block on error-severity issues
-			if app.Resolver != nil {
-				idx, idxErr := app.Resolver.LoadRootIndex()
-				if idxErr == nil {
-					engine := validate.NewEngine(app.Resolver.ProjectsDir(), validate.DefaultNodeLoader(app.Resolver.ProjectsDir()), app.WolfcastleDir)
-					report := engine.ValidateStartup(idx)
-					if report.HasErrors() {
-						output.PrintHuman("Startup validation found %d errors:", report.Errors)
-						for _, issue := range report.Issues {
-							if issue.Severity == validate.SeverityError {
-								output.PrintHuman("  ERROR [%s] %s: %s", issue.Category, issue.Node, issue.Description)
-							}
+			idx, idxErr := app.Resolver.LoadRootIndex()
+			if idxErr == nil {
+				engine := validate.NewEngine(app.Resolver.ProjectsDir(), validate.DefaultNodeLoader(app.Resolver.ProjectsDir()), app.WolfcastleDir)
+				report := engine.ValidateStartup(idx)
+				if report.HasErrors() {
+					output.PrintHuman("Startup validation found %d errors:", report.Errors)
+					for _, issue := range report.Issues {
+						if issue.Severity == validate.SeverityError {
+							output.PrintHuman("  ERROR [%s] %s: %s", issue.Category, issue.Node, issue.Description)
 						}
-						return fmt.Errorf("startup blocked by validation errors — run 'wolfcastle doctor --fix' to repair")
 					}
-					if report.Warnings > 0 {
-						output.PrintHuman("Startup validation: %d warnings (proceeding)", report.Warnings)
-					}
+					return fmt.Errorf("startup blocked by validation errors — run 'wolfcastle doctor --fix' to repair")
+				}
+				if report.Warnings > 0 {
+					output.PrintHuman("Startup validation: %d warnings (proceeding)", report.Warnings)
 				}
 			}
 

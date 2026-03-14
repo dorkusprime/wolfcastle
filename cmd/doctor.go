@@ -25,8 +25,8 @@ Examples:
   wolfcastle doctor --fix
   wolfcastle doctor --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if app.Resolver == nil {
-			return fmt.Errorf("identity not configured — run 'wolfcastle init' first")
+		if err := app.RequireResolver(); err != nil {
+			return err
 		}
 
 		// Load root index

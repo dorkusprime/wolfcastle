@@ -1,3 +1,7 @@
+// Package cmd implements the Wolfcastle CLI surface. It wires together
+// all top-level commands (init, version, update, navigate, doctor, unblock,
+// install, spec, adr, archive) and delegates subcommand registration to
+// the audit, daemon, inbox, project, and task subpackages.
 package cmd
 
 import (

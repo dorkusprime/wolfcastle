@@ -1,3 +1,7 @@
+// Package task implements the task command group: add, claim, complete,
+// block, and unblock. Tasks live within leaf nodes and follow a lifecycle
+// of not_started -> in_progress -> complete (or blocked). State changes
+// propagate up through parent orchestrators.
 package task
 
 import (

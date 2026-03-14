@@ -5,12 +5,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Build-time variables injected via ldflags.
-var (
-	Version = "dev"
-	Commit  = "unknown"
-	Date    = "unknown"
-)
+// Version is the semantic version, injected at build time via ldflags.
+var Version = "dev"
+
+// Commit is the git commit hash, injected at build time via ldflags.
+var Commit = "unknown"
+
+// Date is the build timestamp, injected at build time via ldflags.
+var Date = "unknown"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",

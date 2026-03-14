@@ -1,3 +1,7 @@
+// Package audit implements the audit command group: codebase auditing with
+// discoverable scopes, staged review workflow (pending/approve/reject/history),
+// and per-node audit trail management (breadcrumb, escalate, gap, fix-gap,
+// resolve, scope, show).
 package audit
 
 import (

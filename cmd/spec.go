@@ -44,6 +44,12 @@ Examples:
 		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
 
+		if nodeAddr != "" {
+			if err := app.RequireResolver(); err != nil {
+				return err
+			}
+		}
+
 		now := app.Clock.Now()
 		timestamp := now.Format("2006-01-02T15-04Z")
 		slug := tree.ToSlug(title)
@@ -106,6 +112,9 @@ Examples:
   wolfcastle spec link 2025-01-15T10-30Z-auth-flow.md --node auth-system`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := app.RequireResolver(); err != nil {
+			return err
+		}
 		filename := args[0]
 		nodeAddr, _ := cmd.Flags().GetString("node")
 		if nodeAddr == "" {
@@ -164,6 +173,12 @@ Examples:
   wolfcastle spec list --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		nodeAddr, _ := cmd.Flags().GetString("node")
+
+		if nodeAddr != "" {
+			if err := app.RequireResolver(); err != nil {
+				return err
+			}
+		}
 
 		docsDir := filepath.Join(app.WolfcastleDir, app.Cfg.Docs.Directory, "specs")
 		entries, err := os.ReadDir(docsDir)

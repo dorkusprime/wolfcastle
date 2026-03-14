@@ -1,3 +1,6 @@
+// Package project implements the project command group. Currently
+// supports project creation with automatic leaf-to-orchestrator
+// promotion and overlap advisory.
 package project
 
 import (

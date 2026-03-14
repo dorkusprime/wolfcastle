@@ -1,3 +1,6 @@
+// Package inbox implements the inbox command group: add, list, and clear.
+// The inbox is a lightweight staging area for ideas that flow through
+// the expand/file pipeline before becoming projects in the work tree.
 package inbox
 
 import (
