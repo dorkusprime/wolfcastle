@@ -127,7 +127,7 @@ func reportValidationIssues(issues []validate.Issue) error {
 	}
 
 	if len(issues) == 0 {
-		output.PrintHuman("No issues found — project tree is healthy")
+		output.PrintHuman("No issues found. Project tree is healthy.")
 		return nil
 	}
 

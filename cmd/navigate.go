@@ -16,7 +16,7 @@ var navigateCmd = &cobra.Command{
 	Short: "Find the next actionable task via depth-first traversal",
 	Long: `Returns the next task to work on via depth-first traversal of the project tree.
 
-Does NOT claim the task — use 'wolfcastle task claim' to claim it.
+Does NOT claim the task. Use 'wolfcastle task claim' to claim it.
 Optionally scope navigation to a subtree with --node.
 
 Examples:

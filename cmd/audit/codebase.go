@@ -74,7 +74,7 @@ Examples:
 						pendingCount++
 					}
 				}
-				return fmt.Errorf("pending review batch exists with %d finding(s) — use 'audit pending' to review or 'audit reject --all' to discard", pendingCount)
+				return fmt.Errorf("pending review batch exists with %d finding(s). Use 'audit pending' to review or 'audit reject --all' to discard", pendingCount)
 			}
 
 			// Filter scopes
@@ -89,7 +89,7 @@ Examples:
 					r = strings.TrimSpace(r)
 					s, ok := scopeMap[r]
 					if !ok {
-						return fmt.Errorf("unknown scope %q — use --list to see available scopes", r)
+						return fmt.Errorf("unknown scope %q. Use --list to see available scopes", r)
 					}
 					selectedScopes = append(selectedScopes, s)
 				}
@@ -98,7 +98,7 @@ Examples:
 			}
 
 			if len(selectedScopes) == 0 {
-				return fmt.Errorf("no audit scopes found — add .md files to base/audits/, custom/audits/, or local/audits/")
+				return fmt.Errorf("no audit scopes found. Add .md files to base/audits/, custom/audits/, or local/audits/")
 			}
 
 			return runCodebaseAudit(cmd.Context(), app, selectedScopes)

@@ -13,7 +13,7 @@ func ValidateStructure(cfg *Config) error {
 
 	// Pipeline must have at least one stage
 	if len(cfg.Pipeline.Stages) == 0 {
-		errs = append(errs, "pipeline has no stages — at least one stage is required")
+		errs = append(errs, "pipeline has no stages: at least one stage is required")
 	}
 
 	// All stage model references must exist
@@ -188,7 +188,7 @@ func Validate(cfg *Config) error {
 
 	// Check identity presence
 	if cfg.Identity == nil {
-		errs = append(errs, "identity not configured — run wolfcastle init first")
+		errs = append(errs, "identity not configured. Run wolfcastle init first")
 	}
 
 	if len(errs) > 0 {

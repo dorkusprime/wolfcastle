@@ -14,7 +14,7 @@ import (
 func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	auditCmd := &cobra.Command{
 		Use:   "audit",
-		Short: "Audit commands — codebase audit, review workflow, trail management",
+		Short: "Audit commands: codebase audit, review workflow, trail management",
 		Long: `Commands for codebase auditing, staged review, and audit trail management.
 
 Run a codebase audit to generate findings, then review them at your own pace:

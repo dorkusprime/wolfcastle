@@ -74,7 +74,7 @@ Examples:
 			// Check for running daemon
 			pid, err := daemon.ReadPID(app.WolfcastleDir)
 			if err == nil && daemon.IsProcessRunning(pid) {
-				return fmt.Errorf("wolfcastle is already running (PID %d) — use 'wolfcastle stop' first", pid)
+				return fmt.Errorf("wolfcastle is already running (PID %d). Use 'wolfcastle stop' first", pid)
 			}
 			daemon.RemovePID(app.WolfcastleDir)
 
@@ -90,7 +90,7 @@ Examples:
 							output.PrintHuman("  ERROR [%s] %s: %s", issue.Category, issue.Node, issue.Description)
 						}
 					}
-					return fmt.Errorf("startup blocked by validation errors — run 'wolfcastle doctor --fix' to repair")
+					return fmt.Errorf("startup blocked by validation errors. Run 'wolfcastle doctor --fix' to repair")
 				}
 				if report.Warnings > 0 {
 					output.PrintHuman("Startup validation: %d warnings (proceeding)", report.Warnings)

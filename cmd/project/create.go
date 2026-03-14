@@ -82,7 +82,7 @@ Examples:
 						}
 					}
 					if nonAuditTasks > 0 {
-						return fmt.Errorf("cannot create child under leaf %q: it has %d existing task(s) — remove tasks before decomposing", parentNode, nonAuditTasks)
+						return fmt.Errorf("cannot create child under leaf %q: it has %d existing task(s). Remove tasks before decomposing", parentNode, nonAuditTasks)
 					}
 					parentState.Type = state.NodeOrchestrator
 					parentState.Tasks = nil // orchestrators don't have tasks

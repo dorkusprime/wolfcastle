@@ -32,7 +32,7 @@ Examples:
 			}
 			nodeFlag, _ := cmd.Flags().GetString("node")
 			if nodeFlag == "" {
-				return fmt.Errorf("--node is required — specify the task address (e.g. my-project/task-1)")
+				return fmt.Errorf("--node is required: specify the task address (e.g. my-project/task-1)")
 			}
 
 			nodeAddr, taskID, err := tree.SplitTaskAddress(nodeFlag)

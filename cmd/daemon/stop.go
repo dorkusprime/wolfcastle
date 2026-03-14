@@ -28,7 +28,7 @@ Examples:
 
 			pid, err := daemon.ReadPID(app.WolfcastleDir)
 			if err != nil {
-				return fmt.Errorf("no PID file found — is Wolfcastle running?")
+				return fmt.Errorf("no PID file found. Is Wolfcastle running?")
 			}
 
 			if !daemon.IsProcessRunning(pid) {

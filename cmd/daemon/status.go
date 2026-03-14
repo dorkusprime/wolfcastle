@@ -163,7 +163,7 @@ func showAllStatus(app *cmdutil.App) error {
 	projectsDir := filepath.Join(app.WolfcastleDir, "projects")
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
-		return fmt.Errorf("reading projects dir: %w — is this a valid Wolfcastle workspace?", err)
+		return fmt.Errorf("reading projects dir: %w. Is this a valid Wolfcastle workspace?", err)
 	}
 
 	type namespaceSummary struct {

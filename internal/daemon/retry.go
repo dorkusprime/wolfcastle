@@ -48,7 +48,7 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 			"delay_s": delay.Seconds(),
 			"error":   err.Error(),
 		})
-		output.PrintHuman("  Invocation error (attempt %d): %v — retrying in %v", attempt+1, err, delay)
+		output.PrintHuman("  Invocation error (attempt %d): %v. Retrying in %v.", attempt+1, err, delay)
 
 		select {
 		case <-ctx.Done():

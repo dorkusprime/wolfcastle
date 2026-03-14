@@ -32,11 +32,11 @@ Examples:
 			}
 			description := args[0]
 			if strings.TrimSpace(description) == "" {
-				return fmt.Errorf("escalation description cannot be empty — describe the gap")
+				return fmt.Errorf("escalation description cannot be empty. Describe the gap")
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {
-				return fmt.Errorf("--node is required — specify the source node address")
+				return fmt.Errorf("--node is required: specify the source node address")
 			}
 
 			addr, err := tree.ParseAddress(nodeAddr)

@@ -31,7 +31,7 @@ Examples:
 		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
 		if nodeAddr == "" {
-			return fmt.Errorf("--node is required — specify the completed node to archive")
+			return fmt.Errorf("--node is required: specify the completed node to archive")
 		}
 
 		addr, err := tree.ParseAddress(nodeAddr)
@@ -44,7 +44,7 @@ Examples:
 		}
 
 		if ns.State != state.StatusComplete {
-			return fmt.Errorf("node %s is %s, must be complete to archive — finish all tasks first", nodeAddr, ns.State)
+			return fmt.Errorf("node %s is %s, must be complete to archive. Finish all tasks first", nodeAddr, ns.State)
 		}
 
 		// Get current branch

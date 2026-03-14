@@ -103,23 +103,23 @@ Use this skill to interact with the Wolfcastle project orchestrator.
 
 ## Available Commands
 
-- ` + "`wolfcastle status`" + ` — Show project tree state
-- ` + "`wolfcastle navigate`" + ` — Find the next actionable task
-- ` + "`wolfcastle task add --node <path> \"description\"`" + ` — Add a task
-- ` + "`wolfcastle task claim --node <path/task-id>`" + ` — Claim a task
-- ` + "`wolfcastle task complete --node <path/task-id>`" + ` — Complete a task
-- ` + "`wolfcastle task block --node <path/task-id> \"reason\"`" + ` — Block a task
-- ` + "`wolfcastle task unblock --node <path/task-id>`" + ` — Unblock a task
-- ` + "`wolfcastle audit breadcrumb --node <path> \"text\"`" + ` — Add breadcrumb
-- ` + "`wolfcastle audit escalate --node <path> \"gap\"`" + ` — Escalate gap
-- ` + "`wolfcastle project create [--node <parent>] \"name\"`" + ` — Create project
-- ` + "`wolfcastle adr create \"title\"`" + ` — Create ADR
-- ` + "`wolfcastle spec create [--node <path>] \"title\"`" + ` — Create spec
-- ` + "`wolfcastle spec list [--node <path>]`" + ` — List specs
-- ` + "`wolfcastle inbox add \"idea\"`" + ` — Add to inbox
-- ` + "`wolfcastle archive add --node <path>`" + ` — Archive completed node
-- ` + "`wolfcastle doctor`" + ` — Check structural integrity
-- ` + "`wolfcastle follow`" + ` — Tail model output
+- ` + "`wolfcastle status`" + ` Show project tree state
+- ` + "`wolfcastle navigate`" + ` Find the next actionable task
+- ` + "`wolfcastle task add --node <path> \"description\"`" + ` Add a task
+- ` + "`wolfcastle task claim --node <path/task-id>`" + ` Claim a task
+- ` + "`wolfcastle task complete --node <path/task-id>`" + ` Complete a task
+- ` + "`wolfcastle task block --node <path/task-id> \"reason\"`" + ` Block a task
+- ` + "`wolfcastle task unblock --node <path/task-id>`" + ` Unblock a task
+- ` + "`wolfcastle audit breadcrumb --node <path> \"text\"`" + ` Add breadcrumb
+- ` + "`wolfcastle audit escalate --node <path> \"gap\"`" + ` Escalate gap
+- ` + "`wolfcastle project create [--node <parent>] \"name\"`" + ` Create project
+- ` + "`wolfcastle adr create \"title\"`" + ` Create ADR
+- ` + "`wolfcastle spec create [--node <path>] \"title\"`" + ` Create spec
+- ` + "`wolfcastle spec list [--node <path>]`" + ` List specs
+- ` + "`wolfcastle inbox add \"idea\"`" + ` Add to inbox
+- ` + "`wolfcastle archive add --node <path>`" + ` Archive completed node
+- ` + "`wolfcastle doctor`" + ` Check structural integrity
+- ` + "`wolfcastle follow`" + ` Tail model output
 
 All commands support ` + "`--json`" + ` for structured output.
 `

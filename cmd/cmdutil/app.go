@@ -48,7 +48,7 @@ func (a *App) FindWolfcastleDir() (string, error) {
 		}
 		dir = parent
 	}
-	return "", fmt.Errorf("no .wolfcastle directory found — run 'wolfcastle init' first")
+	return "", fmt.Errorf("no .wolfcastle directory found. Run 'wolfcastle init' first")
 }
 
 // LoadConfig discovers the .wolfcastle directory, loads its
@@ -79,7 +79,7 @@ func (a *App) LoadConfig() error {
 // call this early to surface a clear message.
 func (a *App) RequireResolver() error {
 	if a.Resolver == nil {
-		return fmt.Errorf("identity not configured — run 'wolfcastle init' first")
+		return fmt.Errorf("identity not configured. Run 'wolfcastle init' first")
 	}
 	return nil
 }
