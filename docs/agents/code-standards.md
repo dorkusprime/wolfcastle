@@ -43,9 +43,9 @@ Follow the [Go Style Guide](https://google.github.io/styleguide/go/) and these p
 - Table-driven tests preferred
 - Use `t.TempDir()` for filesystem tests
 - Test files live alongside source (`foo.go` → `foo_test.go`)
-- No shared test utilities yet — duplicate helpers are acceptable until a pattern stabilizes
+- Shared test helpers live in `internal/testutil/` — use these for common patterns (e.g., temp dir setup, state file creation)
 
 ### Formatting
 - Run `gofmt -w .` before every commit
 - Run `go vet ./...` — must pass cleanly
-- No linter config (`.golangci.yml`) yet — vet + gofmt is the current bar
+- Run `golangci-lint run` — configured in `.golangci.yml` per ADR-049. Linters: errcheck, ineffassign, staticcheck, gosimple, govet, unused, gofmt, misspell, nolintlint. CI enforces this as a hard gate.

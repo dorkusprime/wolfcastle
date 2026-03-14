@@ -28,15 +28,14 @@ These packages have strong unit test coverage and serve as the model for new tes
 
 | Package | Test files | Coverage area |
 |---------|-----------|---------------|
-| `internal/state` | 10 files | Mutations, navigation, propagation, I/O, audit lifecycle |
+| `internal/state` | 10+ files | Mutations, navigation, propagation, I/O, audit lifecycle, inbox I/O, review batch I/O (ADR-058) |
 | `internal/tree` | 2 files | Address parsing, resolution |
 | `internal/config` | 2 files | Loading, merging, validation |
 | `internal/pipeline` | 3 files | Prompt assembly, fragments, context building |
 | `internal/validate` | 3 files | Validation engine, auto-fix, categories |
 | `internal/archive` | 1 file | Rollup generation |
 | `internal/project` | 2 files | Scaffolding, project creation |
-| `internal/inbox` | 1 file | I/O operations |
-| `internal/review` | 1 file | Batch I/O |
+| `internal/clock` | 1 file | Time abstraction (ADR-052) |
 | `internal/logging` | 1 file | Logger operations |
 | `internal/output` | 2 files | Envelope formatting, printing |
 

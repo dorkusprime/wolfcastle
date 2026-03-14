@@ -38,11 +38,10 @@ on:
 ```yaml
 strategy:
   matrix:
-    go-version: ['1.26.x']
-    os: [ubuntu-latest, macos-latest]
+    go-version: ['1.26.x', 'stable']
 ```
 
-Test on both Linux and macOS to catch platform-specific issues (syscall behavior, signal handling, flock semantics). Windows is built but not tested — Wolfcastle's `SysProcAttr` usage requires platform-specific attention before Windows is a supported target.
+Tests run on `ubuntu-latest` only. Cross-compilation to darwin and windows is verified in a separate job without execution.
 
 ### Job: `build-and-test`
 
@@ -50,22 +49,31 @@ Steps in order:
 
 1. **Checkout** — `actions/checkout@v4`
 2. **Setup Go** — `actions/setup-go@v5` with the matrix Go version
-3. **Cache** — Go module and build cache (`~/go/pkg/mod`, `~/.cache/go-build`)
-4. **Build** — `go build ./...`
-5. **Vet** — `go vet ./...`
-6. **Format check** — `gofmt -l . | tee /tmp/gofmt.out && test ! -s /tmp/gofmt.out` (fails if any file is unformatted)
-7. **Unit tests** — `go test -race -coverprofile=coverage.out ./...`
-8. **Integration tests** — `go test -race -tags integration ./test/integration/...`
-9. **Upload coverage** — artifact upload for coverage.out (no external coverage service initially)
-10. **Cross-compile check** — Build for all target platforms (compilation only, no execution):
+3. **Build** — `go build -trimpath ./...`
+4. **Vet** — `go vet ./...`
+5. **Format check** — fails if any file is unformatted
+6. **Unit tests** — `go test -race -coverprofile=coverage.out ./...`
+7. **Upload coverage** — artifact upload for coverage.out (stable Go version only)
+
+### Job: `cross-compile`
+
+Separate job that builds for all target platforms (compilation only, no execution):
 
 ```bash
-GOOS=linux GOARCH=amd64 go build -o /dev/null ./...
-GOOS=linux GOARCH=arm64 go build -o /dev/null ./...
-GOOS=darwin GOARCH=amd64 go build -o /dev/null ./...
-GOOS=darwin GOARCH=arm64 go build -o /dev/null ./...
-GOOS=windows GOARCH=amd64 go build -o /dev/null ./...
+GOOS=linux GOARCH=amd64 go build -trimpath ./...
+GOOS=linux GOARCH=arm64 go build -trimpath ./...
+GOOS=darwin GOARCH=amd64 go build -trimpath ./...
+GOOS=darwin GOARCH=arm64 go build -trimpath ./...
+GOOS=windows GOARCH=amd64 go build -trimpath ./...
 ```
+
+### Job: `smoke-tests`
+
+Runs smoke tests with the `smoke` build tag: `go test -tags smoke -v ./test/smoke/...`
+
+### Job: `integration-tests`
+
+Runs integration tests with the `integration` build tag: `go test -tags integration -v -timeout 120s ./test/integration/...`
 
 ### Job: `lint`
 
@@ -81,10 +89,11 @@ All of the following must pass for a PR to be mergeable:
 
 | Gate | Enforcement |
 |------|-------------|
-| Build | `go build ./...` exits 0 |
+| Build | `go build -trimpath ./...` exits 0 |
 | Vet | `go vet ./...` exits 0 |
 | Format | No files returned by `gofmt -l .` |
 | Unit tests | All pass, race detector clean |
+| Smoke tests | All pass |
 | Integration tests | All pass |
 | Lint | golangci-lint exits 0 |
 | Cross-compile | All target platforms compile |
@@ -119,8 +128,8 @@ version: 2
 builds:
   - main: .
     binary: wolfcastle
-    env:
-      - CGO_ENABLED=0
+    flags:
+      - -trimpath
     goos:
       - linux
       - darwin
@@ -128,21 +137,27 @@ builds:
     goarch:
       - amd64
       - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
     ldflags:
       - -s -w
-      - -X github.com/dorkusprime/wolfcastle/cmd.version={{.Version}}
-      - -X github.com/dorkusprime/wolfcastle/cmd.commit={{.Commit}}
-      - -X github.com/dorkusprime/wolfcastle/cmd.date={{.Date}}
+      - -X github.com/dorkusprime/wolfcastle/cmd.Version={{.Version}}
+      - -X github.com/dorkusprime/wolfcastle/cmd.Commit={{.ShortCommit}}
+      - -X github.com/dorkusprime/wolfcastle/cmd.Date={{.Date}}
 
 archives:
-  - format: tar.gz
+  - formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
-    name_template: "wolfcastle_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
-  name_template: 'checksums.txt'
+  name_template: checksums.txt
+  algorithm: sha256
 
 changelog:
   sort: asc
@@ -151,6 +166,7 @@ changelog:
       - '^docs:'
       - '^test:'
       - '^ci:'
+      - '^chore:'
 ```
 
 ### Release Artifacts

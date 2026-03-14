@@ -56,3 +56,9 @@ Only one external dependency: `github.com/spf13/cobra` (which brings `pflag`). E
 - `internal/` packages can't be imported by external code, enforcing encapsulation
 - Shell completions work out of the box for node addresses via the root index
 - Single external dependency minimizes supply chain risk
+
+## Amendments
+
+**ADR-048** added `github.com/chzyer/readline` as a second external dependency for the interactive unblock session.
+
+**ADR-058** merged `internal/inbox` and `internal/review` into `internal/state`. The project layout section above reflects the original design; the current package list is: archive, clock, config, daemon, invoke, logging, output, pipeline, project, selfupdate, state, testutil, tree, validate.

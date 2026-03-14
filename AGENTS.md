@@ -6,10 +6,10 @@ Wolfcastle is a model-agnostic autonomous project orchestrator — a Go CLI that
 
 - **Language:** Go 1.26+, single module `github.com/dorkusprime/wolfcastle`
 - **Framework:** [Cobra](https://github.com/spf13/cobra) for CLI
-- **Dependencies:** Minimal — only Cobra/pflag
+- **Dependencies:** Minimal — Cobra/pflag + chzyer/readline (ADR-048)
 - **Build:** `make build` / `go build ./...`
 - **Test:** `make test` / `go test ./...`
-- **Lint:** `make lint` (runs `go vet` + `gofmt`)
+- **Lint:** `make lint` (runs `go vet` + `gofmt`), `golangci-lint run` (full lint suite per ADR-049)
 
 ## Detailed Guides
 
