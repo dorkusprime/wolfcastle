@@ -23,15 +23,15 @@ See the [Architecture Decision Records](docs/decisions/INDEX.md) and [Specificat
 
 If [Ralph](https://ghuntley.com/loop/) is the dorky kid running in circles on the playground, Wolfcastle is a grown up version of that kid but with biceps, a heroic stride, and a relentless drive to knock down every task list in sight.
 
-Two basic ways to [get work in](docs/humans/how-it-works.md#getting-work-in): Assisted and Manual
+Two ways to [get work in](docs/humans/how-it-works.md#getting-work-in):
 
-### Assisted
-You're in your coding agent, and you describe what you want. "Add OAuth2 PKCE support to the auth service." You go back and forth, refining the scope, adding constraints, specifying how you want things structured. When you're satisfied, the agent injects the work into Wolfcastle, which decomposes it into a [tree of projects and tasks](docs/humans/how-it-works.md#the-project-tree). 
+### Let your agent handle it
+You're in your coding agent, and you describe what you want. "Add OAuth2 PKCE support to the auth service." You go back and forth, refining the scope, adding constraints, specifying how you want things structured. When you're satisfied, the agent injects the work into Wolfcastle, which decomposes it into a [tree of projects and tasks](docs/humans/how-it-works.md#the-project-tree).
 
-### Manual
-Wolfcastle has an extensive, well-documented CLI. You can also interact with it directly: [`wolfcastle inbox add`](docs/humans/cli/inbox-add.md) for quick capture, [`wolfcastle project create`](docs/humans/cli/project-create.md) for structured planning, [`wolfcastle task add`](docs/humans/cli/task-add.md) for placing tasks exactly where they belong.
+### Do it yourself
+You can also drive Wolfcastle directly through the [CLI](docs/humans/cli.md): [`wolfcastle inbox add`](docs/humans/cli/inbox-add.md) for quick capture, [`wolfcastle project create`](docs/humans/cli/project-create.md) for structured planning, [`wolfcastle task add`](docs/humans/cli/task-add.md) for placing tasks exactly where they belong.
 
-### . . . and then
+### Then the daemon takes over
 [The daemon](docs/humans/how-it-works.md#the-daemon) takes over: it picks the first target, invokes your configured [model](docs/humans/configuration.md#models), validates the result, [records what happened](docs/humans/audits.md#breadcrumbs), and moves to the next. Serial execution, [depth-first](docs/humans/how-it-works.md#the-project-tree), until the tree is conquered or something gets in the way.
 
 If a task fails, Wolfcastle tries again. If it fails ten times, Wolfcastle [decomposes it](docs/humans/failure-and-recovery.md#decomposition) into smaller, weaker problems and destroys those instead. If decomposition runs out of room, the task is [blocked](docs/humans/how-it-works.md#four-states) and Wolfcastle moves on. It does not waste time on the fallen.
