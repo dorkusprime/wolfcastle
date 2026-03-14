@@ -120,3 +120,86 @@ func TestShowTreeStatus_WithNodes(t *testing.T) {
 		t.Fatalf("showTreeStatus failed: %v", err)
 	}
 }
+
+func TestShowTreeStatus_MultipleNodeStates(t *testing.T) {
+	env := newStatusTestEnv(t)
+
+	// Add another node in different states
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	idx.Nodes["my-project/child-a"] = state.IndexEntry{
+		Name:     "Child A",
+		Type:     state.NodeLeaf,
+		State:    state.StatusComplete,
+		Address:  "my-project/child-a",
+		Parent:   "my-project",
+		Children: []string{},
+	}
+	idx.Nodes["my-project/child-b"] = state.IndexEntry{
+		Name:     "Child B",
+		Type:     state.NodeLeaf,
+		State:    state.StatusBlocked,
+		Address:  "my-project/child-b",
+		Parent:   "my-project",
+		Children: []string{},
+	}
+	idx.Nodes["my-project/child-c"] = state.IndexEntry{
+		Name:     "Child C",
+		Type:     state.NodeLeaf,
+		State:    state.StatusNotStarted,
+		Address:  "my-project/child-c",
+		Parent:   "my-project",
+		Children: []string{},
+	}
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	// Create node dirs and states for children
+	for _, name := range []string{"child-a", "child-b", "child-c"} {
+		nodeDir := filepath.Join(env.ProjectsDir, "my-project", name)
+		_ = os.MkdirAll(nodeDir, 0755)
+		ns := state.NewNodeState(name, "Child", state.NodeLeaf)
+		nsData, _ := json.MarshalIndent(ns, "", "  ")
+		_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+	}
+
+	// Test human output with scope
+	if err := showTreeStatus(env.App, idx, "my-project"); err != nil {
+		t.Fatalf("showTreeStatus with multiple states and scope failed: %v", err)
+	}
+
+	// Test JSON output
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+	if err := showTreeStatus(env.App, idx, "my-project"); err != nil {
+		t.Fatalf("showTreeStatus JSON with multiple states failed: %v", err)
+	}
+}
+
+func TestShowAllStatus_WithMultipleNamespaces(t *testing.T) {
+	env := newStatusTestEnv(t)
+	// Create a second namespace
+	ns2Dir := filepath.Join(env.WolfcastleDir, "projects", "other-eng")
+	_ = os.MkdirAll(ns2Dir, 0755)
+	idx2 := state.NewRootIndex()
+	idx2.Nodes["other-proj"] = state.IndexEntry{
+		Name:    "Other Project",
+		Type:    state.NodeLeaf,
+		State:   state.StatusComplete,
+		Address: "other-proj",
+	}
+	data, _ := json.MarshalIndent(idx2, "", "  ")
+	_ = os.WriteFile(filepath.Join(ns2Dir, "state.json"), data, 0644)
+
+	err := showAllStatus(env.App)
+	if err != nil {
+		t.Fatalf("showAllStatus with multiple namespaces failed: %v", err)
+	}
+
+	// JSON mode
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+	err = showAllStatus(env.App)
+	if err != nil {
+		t.Fatalf("showAllStatus JSON with multiple namespaces failed: %v", err)
+	}
+}

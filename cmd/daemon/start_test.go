@@ -34,13 +34,51 @@ func TestStartCmd_ValidationErrors(t *testing.T) {
 
 func TestStartCmd_ValidationWarnings(t *testing.T) {
 	env := newStatusTestEnv(t)
-	// Just run start; with a valid tree it should reach the daemon creation
-	// and fail there (not panic). The validation gate should pass.
+	// Just run start; with a valid tree it should reach the daemon creation.
+	// Daemon creation creates a logger in the logs dir, then RunWithSupervisor
+	// starts the loop. We verify the start path exercises daemon.New.
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
-	// Daemon creation will likely fail in test (no real config for model),
-	// but we exercised the validation path
+	// Expected: daemon creation succeeds but RunWithSupervisor fails
+	// because the model command doesn't exist, or it runs one iteration
+	// and finds no work.
 	_ = err
+}
+
+func newValidStartEnv(t *testing.T) *testEnv {
+	t.Helper()
+	env := newStatusTestEnv(t)
+	// Add an audit task to the node so validation passes
+	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
+	ns, _ := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
+	ns.Tasks = append(ns.Tasks, state.Task{
+		ID: "audit", Description: "Audit task", State: state.StatusNotStarted, IsAudit: true,
+	})
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "logs"), 0755)
+	return env
+}
+
+func TestStartCmd_DaemonNewPath(t *testing.T) {
+	env := newValidStartEnv(t)
+
+	env.RootCmd.SetArgs([]string{"start"})
+	err := env.RootCmd.Execute()
+	// This exercises: validation gate -> daemon.New -> RunWithSupervisor
+	// RunWithSupervisor will fail quickly (no actionable tasks or model fails).
+	_ = err
+}
+
+func TestStartCmd_DaemonNewPath_Verbose(t *testing.T) {
+	env := newValidStartEnv(t)
+
+	env.RootCmd.SetArgs([]string{"start", "--verbose"})
+	err := env.RootCmd.Execute()
+	_ = err
+	if env.App.Cfg.Daemon.LogLevel != "debug" {
+		t.Error("--verbose should set log level to debug")
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -100,6 +138,54 @@ func TestShowAllStatus_MissingProjectsDir(t *testing.T) {
 // status command — node scope with nodes
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// start command - verbose flag
+// ---------------------------------------------------------------------------
+
+func TestStartCmd_VerboseFlag(t *testing.T) {
+	env := newStatusTestEnv(t)
+	env.RootCmd.SetArgs([]string{"start", "--verbose"})
+	err := env.RootCmd.Execute()
+	// Will fail at daemon creation (no model config), but exercises the verbose path
+	_ = err
+	if env.App.Cfg.Daemon.LogLevel != "debug" {
+		t.Error("--verbose should set log level to debug")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// recoverStaleDaemonState - unreadable PID file
+// ---------------------------------------------------------------------------
+
+func TestRecoverStaleDaemonState_UnreadablePidFile(t *testing.T) {
+	tmp := t.TempDir()
+	pidPath := filepath.Join(tmp, "wolfcastle.pid")
+	_ = os.WriteFile(pidPath, []byte("12345"), 0000)
+	// Should handle read error gracefully
+	recoverStaleDaemonState(tmp)
+	// Restore for cleanup
+	_ = os.Chmod(pidPath, 0644)
+}
+
+// ---------------------------------------------------------------------------
+// getDaemonStatus - with own PID (running)
+// ---------------------------------------------------------------------------
+
+func TestGetDaemonStatus_CurrentProcessJSON(t *testing.T) {
+	tmp := t.TempDir()
+	pid := os.Getpid()
+	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	status := getDaemonStatus(tmp)
+	expected := fmt.Sprintf("running (PID %d)", pid)
+	if status != expected {
+		t.Errorf("expected %q, got %q", expected, status)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// status command - various display paths
+// ---------------------------------------------------------------------------
+
 func TestStatusCmd_NodeScopeJSON(t *testing.T) {
 	env := newStatusTestEnv(t)
 	env.App.JSONOutput = true
@@ -114,6 +200,50 @@ func TestStatusCmd_NodeScopeJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 // showTreeStatus with audit data
 // ---------------------------------------------------------------------------
+
+func TestShowTreeStatus_WithAuditDataJSON(t *testing.T) {
+	env := newStatusTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
+	ns, _ := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
+	ns.Audit.Gaps = append(ns.Audit.Gaps, state.Gap{
+		ID: "gap-1", Status: state.GapOpen, Description: "missing tests",
+	})
+	ns.Audit.Escalations = append(ns.Audit.Escalations, state.Escalation{
+		ID: "esc-1", Status: state.EscalationOpen, Description: "needs review",
+	})
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	if err := showTreeStatus(env.App, idx, ""); err != nil {
+		t.Fatalf("showTreeStatus with audit data (JSON) failed: %v", err)
+	}
+}
+
+func TestShowAllStatus_EmptyNamespaces(t *testing.T) {
+	env := newTestEnv(t)
+	// Create a projects dir with a non-dir entry
+	projectsDir := filepath.Join(env.WolfcastleDir, "projects")
+	_ = os.WriteFile(filepath.Join(projectsDir, "not-a-dir.txt"), []byte("ignore"), 0644)
+
+	err := showAllStatus(env.App)
+	if err != nil {
+		t.Fatalf("showAllStatus with non-dir entry failed: %v", err)
+	}
+}
+
+func TestShowAllStatus_JSONNoNamespaces(t *testing.T) {
+	env := newTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+	err := showAllStatus(env.App)
+	if err != nil {
+		t.Fatalf("showAllStatus JSON no namespaces failed: %v", err)
+	}
+}
 
 func TestShowTreeStatus_WithAuditData(t *testing.T) {
 	env := newStatusTestEnv(t)
