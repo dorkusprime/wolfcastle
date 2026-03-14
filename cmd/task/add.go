@@ -35,7 +35,7 @@ Examples:
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {
-				return fmt.Errorf("--node is required — specify the target leaf node address")
+				return fmt.Errorf("--node is required: specify the target leaf node address")
 			}
 
 			addr, err := tree.ParseAddress(nodeAddr)

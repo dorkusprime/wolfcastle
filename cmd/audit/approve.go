@@ -42,7 +42,7 @@ Examples:
 				return err
 			}
 			if batch == nil {
-				return fmt.Errorf("no pending review batch — run 'wolfcastle audit run' first")
+				return fmt.Errorf("no pending review batch. Run 'wolfcastle audit run' first")
 			}
 
 			idx, err := app.Resolver.LoadRootIndex()
@@ -230,6 +230,6 @@ func finalizeBatchIfComplete(app *cmdutil.App, batch *state.Batch, batchPath str
 		return err
 	}
 
-	output.PrintHuman("Batch %s complete — archived to history.", batch.ID)
+	output.PrintHuman("Batch %s complete. Archived to history.", batch.ID)
 	return nil
 }

@@ -83,7 +83,7 @@ func (d *Daemon) selfHeal() error {
 	output.PrintHuman("Running self-healing check...")
 	idx, err := d.Resolver.LoadRootIndex()
 	if err != nil {
-		output.PrintHuman("No root index found — nothing to heal.")
+		output.PrintHuman("No root index found. Nothing to heal.")
 		return nil
 	}
 
@@ -111,7 +111,7 @@ func (d *Daemon) selfHeal() error {
 		return fmt.Errorf("state corruption: %d tasks in progress (serial execution requires at most 1)", len(inProgress))
 	}
 	if len(inProgress) == 1 {
-		output.PrintHuman("Found interrupted task: %s/%s — will resume on next iteration",
+		output.PrintHuman("Found interrupted task: %s/%s. Will resume on next iteration.",
 			inProgress[0].addr, inProgress[0].taskID)
 	} else {
 		output.PrintHuman("No interrupted tasks found.")
@@ -132,7 +132,7 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		if restart >= maxRestarts {
 			return fmt.Errorf("daemon exceeded max restarts (%d): %w", maxRestarts, err)
 		}
-		output.PrintHuman("Daemon crashed (attempt %d/%d): %v — restarting in %v", restart+1, maxRestarts, err, delay)
+		output.PrintHuman("Daemon crashed (attempt %d/%d): %v. Restarting in %v.", restart+1, maxRestarts, err, delay)
 		time.Sleep(delay)
 
 		// Reset daemon state for next Run() invocation.
@@ -279,7 +279,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		if navResult.Reason == "all_complete" {
 			output.PrintHuman("WOLFCASTLE_COMPLETE")
 		} else {
-			output.PrintHuman("No work: %s — sleeping %ds", navResult.Reason, d.Config.Daemon.BlockedPollIntervalSeconds)
+			output.PrintHuman("No work: %s. Sleeping %ds.", navResult.Reason, d.Config.Daemon.BlockedPollIntervalSeconds)
 		}
 		return IterationNoWork, nil
 	}

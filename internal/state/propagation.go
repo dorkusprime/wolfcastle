@@ -78,7 +78,7 @@ func PropagateUp(
 		visited[parentAddr] = true
 
 		if len(visited) > maxPropagationDepth {
-			return updated, fmt.Errorf("parent chain exceeds maximum depth (%d) — possible cycle", maxPropagationDepth)
+			return updated, fmt.Errorf("parent chain exceeds maximum depth (%d), possible cycle", maxPropagationDepth)
 		}
 
 		parent, err := loadParent(parentAddr)

@@ -121,7 +121,7 @@ Examples:
 		filename := args[0]
 		nodeAddr, _ := cmd.Flags().GetString("node")
 		if nodeAddr == "" {
-			return fmt.Errorf("--node is required — specify the target node to link the spec to")
+			return fmt.Errorf("--node is required: specify the target node to link the spec to")
 		}
 
 		// Verify spec exists

@@ -31,11 +31,11 @@ Examples:
 			}
 			reason := args[0]
 			if strings.TrimSpace(reason) == "" {
-				return fmt.Errorf("block reason cannot be empty — describe why the task is blocked")
+				return fmt.Errorf("block reason cannot be empty. Describe why the task is blocked")
 			}
 			nodeFlag, _ := cmd.Flags().GetString("node")
 			if nodeFlag == "" {
-				return fmt.Errorf("--node is required — specify the task address (e.g. my-project/task-1)")
+				return fmt.Errorf("--node is required: specify the task address (e.g. my-project/task-1)")
 			}
 
 			nodeAddr, taskID, err := tree.SplitTaskAddress(nodeFlag)
