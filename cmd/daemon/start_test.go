@@ -45,21 +45,6 @@ func TestStartCmd_ValidationWarnings(t *testing.T) {
 	_ = err
 }
 
-func newValidStartEnv(t *testing.T) *testEnv {
-	t.Helper()
-	env := newStatusTestEnv(t)
-	// Add an audit task to the node so validation passes
-	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
-	ns, _ := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
-	ns.Tasks = append(ns.Tasks, state.Task{
-		ID: "audit", Description: "Audit task", State: state.StatusNotStarted, IsAudit: true,
-	})
-	nsData, _ := json.MarshalIndent(ns, "", "  ")
-	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "logs"), 0755)
-	return env
-}
-
 // TestStartCmd_DaemonNewPath and TestStartCmd_DaemonNewPath_Verbose were
 // removed: they exercise the full daemon loop (goroutines, signal handling)
 // which triggers race detector false positives under `go test -race`.
