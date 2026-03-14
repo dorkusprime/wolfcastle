@@ -48,3 +48,20 @@ release:
     owner: dorkusprime
     name: wolfcastle
   prerelease: auto
+
+brews:
+  - name: wolfcastle
+    repository:
+      owner: dorkusprime
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/dorkusprime/wolfcastle"
+    description: "Wolfcastle takes complex work, breaks it into pieces, and sends AI models to destroy every one of them"
+    license: "MIT"
+    skip_upload: false
+    install: |
+      bin.install "wolfcastle"
+    test: |
+      system "#{bin}/wolfcastle", "version"
+    commit_msg_template: "Update wolfcastle to {{ .Tag }}"
