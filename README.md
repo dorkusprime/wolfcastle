@@ -12,7 +12,7 @@
 
 You have a goal. Wolfcastle will destroy it.
 
-Wolfcastle takes complex work, breaks it into pieces, and sends AI models to destroy every one of them. The tree goes as deep as the work demands. One task. One model. No mercy. While you do whatever it is you do.
+Wolfcastle breaks complex work into pieces and sends AI models to eliminate every one of them, as deep as the work demands. If your models can write code, Wolfcastle will put them to work. While you do whatever it is you do.
 
 ## Status
 
