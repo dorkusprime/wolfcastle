@@ -1,3 +1,20 @@
+// Package daemon implements the Wolfcastle daemon loop: finding actionable
+// tasks via tree navigation, running pipeline stages (expand, file, execute),
+// parsing model output markers, and propagating state changes to ancestor
+// nodes and the root index. The daemon supports crash recovery via a
+// supervisor wrapper, signal-driven graceful shutdown, stop-file detection,
+// and configurable iteration caps.
+//
+// File layout follows ADR-045:
+//
+//   - daemon.go    — Daemon struct, New, Run, RunWithSupervisor, RunOnce
+//   - iteration.go — per-iteration pipeline dispatch
+//   - stages.go    — inbox-specific stage handlers (expand, file)
+//   - markers.go   — WOLFCASTLE_* marker parsing and state mutation
+//   - retry.go     — invocation retry with exponential backoff
+//   - propagate.go — state propagation and inbox helpers
+//   - branch.go    — git branch detection
+//   - pid.go       — PID file operations
 package daemon
 
 import (

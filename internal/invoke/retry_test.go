@@ -417,6 +417,19 @@ func TestIsRetryableError_ContextCanceled(t *testing.T) {
 	}
 }
 
+func TestIsRetryableError_DeadlineExceeded(t *testing.T) {
+	if IsRetryableError(context.DeadlineExceeded) {
+		t.Error("context.DeadlineExceeded should not be retryable")
+	}
+}
+
+func TestIsRetryableError_WrappedContextCanceled(t *testing.T) {
+	wrapped := fmt.Errorf("operation failed: %w", context.Canceled)
+	if IsRetryableError(wrapped) {
+		t.Error("wrapped context.Canceled should not be retryable")
+	}
+}
+
 func TestRetryInvoker_ContextCancelledDuringSleep(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 

@@ -2,6 +2,7 @@ package invoke
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -83,14 +84,15 @@ func (r *RetryInvoker) Invoke(ctx context.Context, model config.ModelDef, prompt
 		}
 
 		// Wait for the backoff delay, but respect context cancellation.
+		// When using a real sleep function we check context before and after;
+		// the select with default allows the sleep to proceed when context is
+		// still active, and the post-sleep check catches mid-sleep cancellation.
 		select {
 		case <-ctx.Done():
 			return result, fmt.Errorf("invocation cancelled during retry wait: %w", ctx.Err())
 		default:
 			sleepFn(delay)
 		}
-
-		// Check context again after sleep in case it was cancelled during the wait.
 		if ctx.Err() != nil {
 			return result, fmt.Errorf("invocation cancelled during retry wait: %w", ctx.Err())
 		}
@@ -105,12 +107,12 @@ func (r *RetryInvoker) Invoke(ctx context.Context, model config.ModelDef, prompt
 
 // IsRetryableError returns true if the error represents a condition worth
 // retrying — process spawn failures, pipe errors, and similar infrastructure
-// issues. Context cancellation errors are not retryable.
+// issues. Context cancellation and deadline exceeded errors are not retryable.
 func IsRetryableError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if ctx_err := context.Canceled; err.Error() == ctx_err.Error() {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return false
 	}
 	return true

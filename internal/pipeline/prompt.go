@@ -1,3 +1,8 @@
+// Package pipeline handles prompt assembly for Wolfcastle's model invocation
+// stages. It resolves rule fragments and prompt templates through a three-tier
+// merge system (base, custom, local), builds iteration context with node state
+// and audit metadata, and assembles the final system prompt by combining rule
+// fragments, the script reference, stage-specific prompts, and task context.
 package pipeline
 
 import (
