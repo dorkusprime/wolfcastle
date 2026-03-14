@@ -13,9 +13,9 @@ Wolfcastle breaks complex work into pieces and sends AI models to eliminate ever
 [![Go Reference](https://pkg.go.dev/badge/github.com/dorkusprime/wolfcastle.svg)](https://pkg.go.dev/github.com/dorkusprime/wolfcastle)
 [![Go version](https://img.shields.io/github/go-mod/go-version/dorkusprime/wolfcastle)](https://go.dev/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-pre--release-blue)](https://github.com/dorkusprime/wolfcastle)
+[![Release](https://img.shields.io/github/v/release/dorkusprime/wolfcastle?include_prereleases)](https://github.com/dorkusprime/wolfcastle/releases)
 
-Pre-release. The architecture is locked, the implementation is complete, and the test suite covers every package above 90%. Heading toward a first tagged release.
+Pre-release. Install via Homebrew: `brew install dorkusprime/tap/wolfcastle`
 
 See the [Architecture Decision Records](docs/decisions/INDEX.md) and [Specifications](docs/specs/) for the full design.
 
@@ -41,7 +41,7 @@ Everything is deterministic except the model's output. State is [JSON on disk](d
 ## Quick Start
 
 ```bash
-brew install wolfcastle          # or: curl -sSL https://wolfcastle.dev/install | sh
+brew install dorkusprime/tap/wolfcastle
 cd your-repo
 wolfcastle init                  # creates .wolfcastle/, sets your identity
 wolfcastle start                 # the daemon wakes up. work begins.
