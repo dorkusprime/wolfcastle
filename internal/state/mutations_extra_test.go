@@ -2,6 +2,9 @@ package state
 
 import (
 	"testing"
+	"time"
+
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 )
 
 // --- TaskClaim additional coverage ---
@@ -195,8 +198,10 @@ func TestSetNeedsDecomposition_NoopForUnknownTask(t *testing.T) {
 func TestAddEscalation_CreatesOnParent(t *testing.T) {
 	t.Parallel()
 	parent := NewNodeState("orch-1", "Orchestrator", NodeOrchestrator)
+	fixed := time.Date(2026, 3, 14, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewFixed(fixed)
 
-	AddEscalation(parent, "leaf-1", "missing error handling", "gap-1")
+	AddEscalation(parent, "leaf-1", "missing error handling", "gap-1", clk)
 
 	if len(parent.Audit.Escalations) != 1 {
 		t.Fatalf("expected 1 escalation, got %d", len(parent.Audit.Escalations))
@@ -214,17 +219,18 @@ func TestAddEscalation_CreatesOnParent(t *testing.T) {
 	if esc.Status != "open" {
 		t.Errorf("expected status 'open', got %q", esc.Status)
 	}
-	if esc.Timestamp.IsZero() {
-		t.Error("expected timestamp to be set")
+	if !esc.Timestamp.Equal(fixed) {
+		t.Errorf("expected timestamp %v, got %v", fixed, esc.Timestamp)
 	}
 }
 
 func TestAddEscalation_GeneratesSequentialIDs(t *testing.T) {
 	t.Parallel()
 	parent := NewNodeState("orch-1", "Orchestrator", NodeOrchestrator)
+	clk := clock.NewFixed(time.Date(2026, 3, 14, 12, 0, 0, 0, time.UTC))
 
-	AddEscalation(parent, "leaf-1", "first issue", "")
-	AddEscalation(parent, "leaf-2", "second issue", "")
+	AddEscalation(parent, "leaf-1", "first issue", "", clk)
+	AddEscalation(parent, "leaf-2", "second issue", "", clk)
 
 	if len(parent.Audit.Escalations) != 2 {
 		t.Fatalf("expected 2 escalations, got %d", len(parent.Audit.Escalations))
@@ -291,11 +297,13 @@ func TestMoveAuditLast_NoopWhenNoAuditTask(t *testing.T) {
 func TestAddBreadcrumb_SetsTimestamp(t *testing.T) {
 	t.Parallel()
 	ns := NewNodeState("leaf-1", "Test", NodeLeaf)
+	fixed := time.Date(2026, 3, 14, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewFixed(fixed)
 
-	AddBreadcrumb(ns, "leaf-1/task-1", "did something")
+	AddBreadcrumb(ns, "leaf-1/task-1", "did something", clk)
 
-	if ns.Audit.Breadcrumbs[0].Timestamp.IsZero() {
-		t.Error("expected non-zero timestamp")
+	if !ns.Audit.Breadcrumbs[0].Timestamp.Equal(fixed) {
+		t.Errorf("expected %v, got %v", fixed, ns.Audit.Breadcrumbs[0].Timestamp)
 	}
 }
 

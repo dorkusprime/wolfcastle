@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -45,7 +44,7 @@ Examples:
 		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
 
-		now := time.Now().UTC()
+		now := app.Clock.Now()
 		timestamp := now.Format("2006-01-02T15-04Z")
 		slug := tree.ToSlug(title)
 		filename := fmt.Sprintf("%s-%s.md", timestamp, slug)

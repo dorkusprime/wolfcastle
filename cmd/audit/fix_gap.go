@@ -3,7 +3,6 @@ package audit
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -50,7 +49,7 @@ Examples:
 					}
 					ns.Audit.Gaps[i].Status = state.GapFixed
 					ns.Audit.Gaps[i].FixedBy = nodeAddr
-					now := time.Now().UTC()
+					now := app.Clock.Now()
 					ns.Audit.Gaps[i].FixedAt = &now
 					found = true
 					break

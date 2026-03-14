@@ -3,8 +3,8 @@ package archive
 import (
 	"fmt"
 	"strings"
-	"time"
 
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
@@ -16,8 +16,10 @@ type Entry struct {
 }
 
 // GenerateEntry creates an archive Markdown entry from a completed node's state.
-func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, branch string, summary string) *Entry {
-	now := time.Now().UTC()
+// An optional clock may be provided; when omitted the real system clock is used.
+func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, branch string, summary string, clocks ...clock.Clock) *Entry {
+	clk := resolveOptionalClock(clocks)
+	now := clk.Now()
 	slug := collapseHyphens(strings.ReplaceAll(nodeAddr, "/", "-"))
 	if len(slug) > 80 {
 		// Truncate at the last hyphen boundary before the limit
@@ -123,6 +125,14 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 		Filename: filename,
 		Content:  b.String(),
 	}
+}
+
+// resolveOptionalClock returns the first clock if provided, otherwise the real clock.
+func resolveOptionalClock(clocks []clock.Clock) clock.Clock {
+	if len(clocks) > 0 && clocks[0] != nil {
+		return clocks[0]
+	}
+	return clock.New()
 }
 
 // collapseHyphens replaces consecutive hyphens with a single hyphen.

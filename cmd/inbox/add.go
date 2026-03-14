@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/inbox"
@@ -39,7 +38,7 @@ Examples:
 			}
 
 			item := inbox.Item{
-				Timestamp: time.Now().UTC().Format(time.RFC3339),
+				Timestamp: app.Clock.Now().Format("2006-01-02T15:04:05Z07:00"),
 				Text:      text,
 				Status:    "new",
 			}

@@ -2,6 +2,9 @@ package state
 
 import (
 	"testing"
+	"time"
+
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 )
 
 func newLeafWithTasks(tasks ...Task) *NodeState {
@@ -288,9 +291,10 @@ func TestIncrementFailure_FailsOnMissingTask(t *testing.T) {
 func TestAddBreadcrumb_AppendsToAuditTrail(t *testing.T) {
 	t.Parallel()
 	ns := NewNodeState("leaf-1", "Test", NodeLeaf)
+	clk := clock.NewFixed(time.Date(2026, 3, 14, 12, 0, 0, 0, time.UTC))
 
-	AddBreadcrumb(ns, "leaf-1/task-1", "did something")
-	AddBreadcrumb(ns, "leaf-1/task-2", "did more")
+	AddBreadcrumb(ns, "leaf-1/task-1", "did something", clk)
+	AddBreadcrumb(ns, "leaf-1/task-2", "did more", clk)
 
 	if len(ns.Audit.Breadcrumbs) != 2 {
 		t.Fatalf("expected 2 breadcrumbs, got %d", len(ns.Audit.Breadcrumbs))
@@ -300,5 +304,8 @@ func TestAddBreadcrumb_AppendsToAuditTrail(t *testing.T) {
 	}
 	if ns.Audit.Breadcrumbs[1].Text != "did more" {
 		t.Errorf("expected text 'did more', got %s", ns.Audit.Breadcrumbs[1].Text)
+	}
+	if !ns.Audit.Breadcrumbs[0].Timestamp.Equal(clk.T) {
+		t.Errorf("expected timestamp %v, got %v", clk.T, ns.Audit.Breadcrumbs[0].Timestamp)
 	}
 }

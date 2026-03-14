@@ -54,7 +54,7 @@ Examples:
 				return fmt.Errorf("loading parent state: %w", err)
 			}
 
-			state.AddEscalation(parentState, nodeAddr, description, "")
+			state.AddEscalation(parentState, nodeAddr, description, "", app.Clock)
 
 			if err := state.SaveNodeState(parentStatePath, parentState); err != nil {
 				return err

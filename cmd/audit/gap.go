@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -51,7 +50,7 @@ Examples:
 			gapID := fmt.Sprintf("gap-%s-%d", ns.ID, len(ns.Audit.Gaps)+1)
 			ns.Audit.Gaps = append(ns.Audit.Gaps, state.Gap{
 				ID:          gapID,
-				Timestamp:   time.Now().UTC(),
+				Timestamp:   app.Clock.Now(),
 				Description: description,
 				Source:      nodeAddr,
 				Status:      state.GapOpen,
