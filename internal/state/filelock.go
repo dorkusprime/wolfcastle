@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -19,7 +18,8 @@ var ErrLockTimeout = fmt.Errorf("lock acquisition timed out — daemon is curren
 
 // FileLock provides advisory file locking scoped to an engineer namespace.
 // The lock file lives at .wolfcastle/projects/{namespace}/.lock and uses
-// flock(2) for mutual exclusion between cooperating Wolfcastle processes.
+// flock(2) on Unix for mutual exclusion between cooperating Wolfcastle
+// processes. On Windows, locking is best-effort (no-op).
 type FileLock struct {
 	path    string
 	file    *os.File
@@ -53,9 +53,8 @@ func (fl *FileLock) Acquire() error {
 	pollInterval := 50 * time.Millisecond
 
 	for {
-		err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+		err = flockExclusive(int(f.Fd()))
 		if err == nil {
-			// Lock acquired — write our PID for stale-lock detection.
 			_ = f.Truncate(0)
 			_, _ = f.Seek(0, 0)
 			_, _ = fmt.Fprintf(f, "%d\n", os.Getpid())
@@ -64,9 +63,7 @@ func (fl *FileLock) Acquire() error {
 			return nil
 		}
 
-		// Could not acquire — check for stale lock.
 		if fl.tryCleanStaleLock(f) {
-			// The stale lock was released; retry immediately.
 			continue
 		}
 
@@ -79,22 +76,19 @@ func (fl *FileLock) Acquire() error {
 }
 
 // Release drops the advisory lock and closes the file descriptor.
-// The lock file is intentionally left on disk so that concurrent processes
-// always flock the same inode — removing it would introduce a race where
-// two processes open different inodes and bypass mutual exclusion.
 // It is safe to call Release on a lock that was never acquired (no-op).
 func (fl *FileLock) Release() {
 	if fl.file == nil {
 		return
 	}
-	_ = syscall.Flock(int(fl.file.Fd()), syscall.LOCK_UN)
+	_ = flockUnlock(int(fl.file.Fd()))
 	_ = fl.file.Close()
 	fl.file = nil
 }
 
 // tryCleanStaleLock reads the PID from the lock file and checks whether that
-// process is still alive. If it is not, the lock file is removed so the next
-// acquisition attempt can succeed. Returns true if a stale lock was cleaned.
+// process is still alive. If it is not, the flock is released so the next
+// acquisition attempt can succeed.
 func (fl *FileLock) tryCleanStaleLock(f *os.File) bool {
 	_, _ = f.Seek(0, 0)
 	buf := make([]byte, 64)
@@ -108,21 +102,12 @@ func (fl *FileLock) tryCleanStaleLock(f *os.File) bool {
 		return false
 	}
 
-	// Signal 0 does not send a signal but still performs error checking —
-	// it succeeds only if the process exists and we have permission.
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		// On Unix FindProcess never fails, but guard anyway.
-		return false
-	}
-	err = proc.Signal(syscall.Signal(0))
+	err = signalProcess(pid)
 	if err == nil {
-		// Process is alive; lock is not stale.
 		return false
 	}
 
-	// Process is gone — stale lock. Release flock so we can re-acquire.
-	_ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	_ = flockUnlock(int(f.Fd()))
 	return true
 }
 

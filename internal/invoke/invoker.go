@@ -14,7 +14,6 @@ import (
 	"io"
 	"os/exec"
 	"strings"
-	"syscall"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 )
@@ -105,7 +104,7 @@ func (p *ProcessInvoker) Invoke(ctx context.Context, model config.ModelDef, prom
 	cmd.Stderr = &stderr
 
 	// Put child in its own process group for clean signal propagation.
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.SysProcAttr = processSysProcAttr()
 
 	if logWriter == nil && onLine == nil {
 		// No streaming: capture stdout directly into a buffer.

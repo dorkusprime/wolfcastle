@@ -22,12 +22,11 @@ linters:
     - funlen
     # Cognitive complexity limits are too simplistic
     - gocognit
+  settings:
+    nolintlint:
+      require-explanation: true
+      require-specific: true
 
-linters-settings:
-  nolintlint:
-    require-explanation: true
-    require-specific: true
-
-issues:
-  exclude-dirs:
+run:
+  skip-dirs:
     - vendor
