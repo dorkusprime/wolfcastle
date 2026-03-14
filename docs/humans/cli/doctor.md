@@ -14,7 +14,7 @@ Loads the root index and runs a comprehensive set of checks against the [distrib
 - Missing [audit tasks](../audits.md#the-audit-system) on leaves.
 - Missing description files.
 
-Reports findings with severity (error, warning, info), location, and a proposed fix. Then asks what you want to do: fix all, select individually, or abort.
+Reports findings with severity (error, warning, info), location, and fix type. Without `--fix`, it reports only. With `--fix`, it applies deterministic repairs and attempts model-assisted fixes for ambiguous cases.
 
 Fixes come in two categories. **Deterministic fixes** (9 of 17 issue types) are applied directly by Go code: missing index entries, stale entries, missing audit tasks, reset orphaned in-progress tasks, create missing state files. **Model-assisted fixes** (5 types) handle ambiguous cases like conflicting state or unclear resolution. These invoke a [model you configure](../configuration.md#models) to reason about the fix, with Go validating the result before applying it.
 
@@ -31,7 +31,7 @@ wolfcastle doctor --fix
 
 | Flag | Description |
 |------|-------------|
-| `--fix` | Skip confirmation and apply all fixes immediately. |
+| `--fix` | Apply deterministic and model-assisted fixes. Without this flag, doctor only reports issues. |
 | `--json` | Output as structured JSON. |
 
 ## Configuration
@@ -58,7 +58,7 @@ The model is only invoked for ambiguous fixes. Deterministic fixes never call a 
 
 ## Consequences
 
-- **Without `--fix`**: asks before changing anything.
+- **Without `--fix`**: reports issues only, changes nothing.
 - **Deterministic fixes**: mutates state files directly (missing entries, stale states, orphaned files).
 - **Model-assisted fixes**: invokes a model, then validates and applies the proposed fix.
 

@@ -58,14 +58,13 @@ The [daemon](how-it-works.md#the-daemon) runs a pipeline of stages. Each stage n
     "stages": [
       { "name": "expand",  "model": "fast", "prompt_file": "expand.md" },
       { "name": "file",    "model": "mid",  "prompt_file": "file.md" },
-      { "name": "execute", "model": "heavy", "prompt_file": "execute.md" },
-      { "name": "summary", "model": "fast", "prompt_file": "summary.md", "enabled": true }
+      { "name": "execute", "model": "heavy", "prompt_file": "execute.md" }
     ]
   }
 }
 ```
 
-Add stages. Remove stages. Reorder stages. Run a single-stage pipeline with one model that does everything. Stages can be individually enabled or disabled.
+Add stages. Remove stages. Reorder stages. Run a single-stage pipeline with one model that does everything. Stages can be individually enabled or disabled. Summaries are generated inline during execute via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage.
 
 ## Identity
 

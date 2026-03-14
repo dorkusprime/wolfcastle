@@ -1,10 +1,10 @@
-# wolfcastle audit
+# wolfcastle audit run
 
 Runs a read-only codebase audit against composable scopes. Produces a Markdown report. Does not touch your code.
 
 ## What It Does
 
-Discovers available [scopes](../audits.md#scopes) from `base/audits/`, `custom/audits/`, and `local/audits/` (all [three tiers](../configuration.md#three-tiers)). For each requested scope, invokes a model to analyze your codebase and collect findings. Saves the findings as a pending batch in `audit-review.json`.
+Discovers available [scopes](../audits.md#scopes) from `base/audits/`, `custom/audits/`, and `local/audits/` (all [three tiers](../configuration.md#three-tiers)). For each requested scope, invokes a model to analyze your codebase and collect findings. Saves the findings as a pending batch in `audit-state.json`.
 
 The audit is strictly read-only. The model reads your code and produces a report. It does not modify files, create branches, or write code.
 
@@ -13,9 +13,9 @@ Findings do not become tasks automatically. They go through an [approval gate](.
 ## Usage
 
 ```
-wolfcastle audit                              # all scopes
-wolfcastle audit --scope dry,modularity       # specific scopes
-wolfcastle audit --list                       # show available scopes
+wolfcastle audit run                              # all scopes
+wolfcastle audit run --scope dry,modularity       # specific scopes
+wolfcastle audit run --list                       # show available scopes
 ```
 
 ## Flags
@@ -35,7 +35,7 @@ wolfcastle audit --list                       # show available scopes
 
 ## Consequences
 
-- Creates or updates `audit-review.json` with pending findings.
+- Creates or updates `audit-state.json` with pending findings.
 - Model invocation costs apply.
 - No code modifications.
 

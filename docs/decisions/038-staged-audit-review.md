@@ -27,7 +27,7 @@ approve all, skip, or manual. This created several problems:
 Replace the inline interactive approval with a staged review pipeline backed
 by two durable JSON files:
 
-- **`audit-review.json`** — the current pending batch of findings. Created by
+- **`audit-state.json`** (originally named `audit-review.json`) — the current pending batch of findings. Created by
   `audit run`, consumed by `audit pending`, `audit approve`, and `audit reject`.
   Removed once all findings are decided.
 - **`audit-review-history.json`** — append-only log of completed batches with

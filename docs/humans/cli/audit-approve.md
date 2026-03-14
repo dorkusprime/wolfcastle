@@ -4,7 +4,7 @@ Approves a pending audit finding. Creates a leaf project from it.
 
 ## What It Does
 
-Loads `audit-review.json`, finds the targeted finding (or all pending findings with `--all`), creates a leaf project node from each approved finding, marks the finding as `approved` with a timestamp and node address, and updates the root index.
+Loads `audit-state.json`, finds the targeted finding (or all pending findings with `--all`), creates a leaf project node from each approved finding, marks the finding as `approved` with a timestamp and node address, and updates the root index.
 
 When all findings in a batch have been decided (approved or rejected), the batch is archived to `audit-review-history.json` (retention: 100 entries, 90 days) and the pending file is removed.
 
@@ -38,7 +38,7 @@ wolfcastle audit approve --all
 ## Consequences
 
 - Creates new project node(s) in the [tree](../how-it-works.md#the-project-tree).
-- Mutates `audit-review.json`.
+- Mutates `audit-state.json`.
 - Archives the batch when all findings are decided.
 
 ## See Also

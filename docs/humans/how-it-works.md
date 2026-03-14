@@ -87,7 +87,8 @@ The daemon runs a pipeline of stages. Each stage invokes a model with a specific
 | **expand**  | cheap      | Reads the inbox. Breaks new items into tasks.             |
 | **file**    | mid        | Organizes tasks into the correct project nodes.           |
 | **execute** | capable    | Claims a task. Does the work. Writes code. Makes commits. |
-| **summary** | cheap      | Writes a plain-language summary after audit completion.   |
+
+Summaries are generated inline during execution via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage.
 
 Stages do not pass output to each other. They read the current state of the world and act on it. The expand stage creates tasks. The execute stage finds them. No coupling. No handoffs. Just [state on disk](#distributed-state) and models that know how to read it.
 

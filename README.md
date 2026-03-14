@@ -67,7 +67,7 @@ If the daemon crashes mid-task, it [recovers on restart](docs/humans/failure-and
 
 Every leaf gets verified by an [audit task](docs/humans/audits.md#the-audit-system) that reviews [breadcrumbs](docs/humans/audits.md#breadcrumbs) (timestamped records of what each task did) against the leaf's criteria. Gaps that can't be resolved locally [escalate to the parent](docs/humans/audits.md#gap-escalation), and escalation can propagate to the root.
 
-Separately, `wolfcastle audit` is a read-only codebase analysis tool. It runs your code against [composable scopes](docs/humans/audits.md#scopes) (DRY, modularity, decomposition, etc.) and produces a Markdown report. Findings only become tasks if you [approve them](docs/humans/audits.md#the-approval-gate). [`wolfcastle doctor`](docs/humans/audits.md#wolfcastle-doctor) validates the [state tree](docs/humans/audits.md#structural-validation) itself, fixing most issue types with deterministic Go code and routing the remaining ambiguous cases to a model for reasoning.
+Separately, `wolfcastle audit run` is a read-only codebase analysis tool. It runs your code against [composable scopes](docs/humans/audits.md#scopes) (DRY, modularity, decomposition, etc.) and produces a Markdown report. Findings only become tasks if you [approve them](docs/humans/audits.md#the-approval-gate). [`wolfcastle doctor`](docs/humans/audits.md#wolfcastle-doctor) validates the [state tree](docs/humans/audits.md#structural-validation) itself, fixing most issue types with deterministic Go code and routing the remaining ambiguous cases to a model for reasoning.
 
 ## Collaboration
 
