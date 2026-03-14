@@ -38,3 +38,4 @@ Consult these topic-specific files before making changes in their domain:
 3. **Explicit error handling.** Never ignore `os.Remove()` or other cleanup errors — use `_ = os.Remove()` to mark intentional ignores.
 4. **gofmt before committing.** Run `gofmt -w .` — the CI will reject unformatted code.
 5. **Specs track implementation, not aspirations.** If you change behavior, update the corresponding spec. ADRs override specs when there's a conflict.
+6. **Never rebase main.** Use `git pull` (merge), not `git pull --rebase`. Rebasing rewrites commit SHAs, which breaks Codecov and any other service that tracks by commit hash.
