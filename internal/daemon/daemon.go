@@ -360,7 +360,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 
 		// Execute stage (and any other custom stages)
-		iterCtx := pipeline.BuildIterationContext(nav.NodeAddress, ns, nav.TaskID, d.Config)
+		iterCtx := pipeline.BuildIterationContextWithDir(d.WolfcastleDir, nav.NodeAddress, ns, nav.TaskID, d.Config)
 
 		prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, stage, iterCtx)
 		if err != nil {
@@ -502,7 +502,8 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 
 	// Build context with only new items
 	var itemsCtx strings.Builder
-	itemsCtx.WriteString("# Inbox Items to Expand\n\n")
+	expandHeader := resolveContextHeader(d.WolfcastleDir, "expand-context.md", "# Inbox Items to Expand\n")
+	itemsCtx.WriteString(expandHeader + "\n")
 	for i, item := range newItems {
 		itemsCtx.WriteString(fmt.Sprintf("### Item %d\n", i+1))
 		itemsCtx.WriteString(fmt.Sprintf("- **Timestamp:** %s\n", item.Timestamp))
@@ -607,7 +608,8 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 
 	// Build context with expanded items
 	var itemsCtx strings.Builder
-	itemsCtx.WriteString("# Expanded Inbox Items to File\n\n")
+	fileHeader := resolveContextHeader(d.WolfcastleDir, "file-context.md", "# Expanded Inbox Items to File\n")
+	itemsCtx.WriteString(fileHeader + "\n")
 	for _, idx := range expandedIndices {
 		item := inboxData.Items[idx]
 		itemsCtx.WriteString(fmt.Sprintf("---\n\n**Original:** %s\n\n", item.Text))
@@ -811,6 +813,18 @@ func (d *Daemon) scopeLabel() string {
 		return d.ScopeNode
 	}
 	return "full tree"
+}
+
+// resolveContextHeader loads a context header prompt from the three-tier
+// template system, falling back to a hardcoded default.
+func resolveContextHeader(wolfcastleDir, promptFile, fallback string) string {
+	if wolfcastleDir != "" {
+		content, err := pipeline.ResolvePromptTemplate(wolfcastleDir, promptFile, nil)
+		if err == nil {
+			return strings.TrimRight(content, "\n")
+		}
+	}
+	return strings.TrimRight(fallback, "\n")
 }
 
 // invokeWithRetry wraps invoke.InvokeStreaming with exponential backoff

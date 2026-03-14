@@ -11,6 +11,7 @@ import (
 	"github.com/chzyer/readline"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
@@ -152,11 +153,10 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		return fmt.Errorf("unblock model %q not found", app.Cfg.Unblock.Model)
 	}
 
-	// Build the unblock prompt
-	prompt := diagnostic + "\n---\n\nHelp the user understand and resolve this blocked task. " +
-		"Ask clarifying questions. Suggest potential fixes. " +
-		"When the issue is resolved, remind the user to run:\n" +
-		fmt.Sprintf("  wolfcastle task unblock --node %s\n", taskAddr)
+	// Load unblock prompt from externalized template (falls back to inline text)
+	unblockPreamble := loadUnblockPreamble()
+	prompt := diagnostic + "\n---\n\n" + unblockPreamble + "\n" +
+		fmt.Sprintf("When the issue is resolved, remind the user to run:\n  wolfcastle task unblock --node %s\n", taskAddr)
 
 	output.PrintHuman("Starting interactive unblock session...")
 	output.PrintHuman("(Type 'quit', 'exit', or Ctrl+D to end the session)")
@@ -228,6 +228,19 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	}
 
 	return nil
+}
+
+// loadUnblockPreamble loads the unblock.md prompt via the three-tier
+// resolution system, falling back to a hardcoded default.
+func loadUnblockPreamble() string {
+	if app.WolfcastleDir != "" {
+		content, err := pipeline.ResolvePromptTemplate(app.WolfcastleDir, "unblock.md", nil)
+		if err == nil {
+			return content
+		}
+	}
+	return "Help the user understand and resolve this blocked task. " +
+		"Ask clarifying questions. Suggest potential fixes."
 }
 
 func init() {
