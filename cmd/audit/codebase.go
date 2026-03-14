@@ -153,7 +153,7 @@ func discoverScopes(app *cmdutil.App) ([]auditScope, error) {
 	seen := make(map[string]bool)
 
 	// Scan tiers in reverse priority (base first, local last overwrites)
-	for _, tier := range []string{"base", "custom", "local"} {
+	for _, tier := range pipeline.Tiers {
 		dir := filepath.Join(app.WolfcastleDir, tier, "audits")
 		entries, err := os.ReadDir(dir)
 		if err != nil {
