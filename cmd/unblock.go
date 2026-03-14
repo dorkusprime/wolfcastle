@@ -1,14 +1,14 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"os"
+	"io"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/chzyer/readline"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -159,23 +159,32 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		fmt.Sprintf("  wolfcastle task unblock --node %s\n", taskAddr)
 
 	output.PrintHuman("Starting interactive unblock session...")
-	output.PrintHuman("(Type 'quit' or 'exit' to end the session)")
+	output.PrintHuman("(Type 'quit', 'exit', or Ctrl+D to end the session)")
 	output.PrintHuman("")
 
-	// Simple multi-turn: invoke model, show response, get user input, repeat.
+	// Set up readline for proper line editing, history, and terminal handling
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:      "wolfcastle> ",
+		HistoryFile: "", // In-memory only (sessions are short-lived)
+	})
+	if err != nil {
+		return fmt.Errorf("initializing readline: %w", err)
+	}
+	defer rl.Close()
+
+	// Multi-turn: invoke model, show response, get user input, repeat.
 	// Keep a sliding window of conversation history to avoid unbounded growth.
 	const maxConversationBytes = 100_000
 	repoDir := filepath.Dir(app.WolfcastleDir)
 	conversation := prompt
-	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
 		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(app.Cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
-		result, err := invoke.Invoke(invokeCtx, model, conversation, repoDir)
+		result, invokeErr := invoke.Invoke(invokeCtx, model, conversation, repoDir)
 		cancel()
 
-		if err != nil {
-			return fmt.Errorf("model invocation failed: %w", err)
+		if invokeErr != nil {
+			return fmt.Errorf("model invocation failed: %w", invokeErr)
 		}
 
 		// Display model response
@@ -183,13 +192,20 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		if result.Stderr != "" {
 			output.PrintError("%s", result.Stderr)
 		}
+		fmt.Println()
 
-		// Get user input
-		fmt.Print("\n> ")
-		if !scanner.Scan() {
+		// Get user input via readline
+		input, readErr := rl.Readline()
+		if readErr != nil {
+			if readErr == readline.ErrInterrupt {
+				continue // Ctrl+C cancels current line, not the session
+			}
+			if readErr == io.EOF {
+				break // Ctrl+D exits
+			}
 			break
 		}
-		input := strings.TrimSpace(scanner.Text())
+		input = strings.TrimSpace(input)
 
 		if input == "quit" || input == "exit" || input == "" {
 			output.PrintHuman("Session ended.")
