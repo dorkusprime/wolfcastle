@@ -36,6 +36,12 @@ Examples:
 			nodeScope, _ := cmd.Flags().GetString("node")
 			background, _ := cmd.Flags().GetBool("daemon")
 			worktreeBranch, _ := cmd.Flags().GetString("worktree")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+
+			// ADR-046: --verbose overrides daemon.log_level to debug.
+			if verbose {
+				app.Cfg.Daemon.LogLevel = "debug"
+			}
 
 			if app.Resolver == nil {
 				return fmt.Errorf("identity not configured — run 'wolfcastle init' first")
