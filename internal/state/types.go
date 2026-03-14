@@ -1,40 +1,56 @@
+// Package state manages the persistent tree state for Wolfcastle projects.
+// It provides types, I/O, mutations, navigation, and propagation logic for
+// the distributed per-node state files described in ADR-024. Inbox and review
+// batch types are co-located here per ADR-058.
 package state
 
 import "time"
 
-// NodeStatus represents the four valid states for nodes and tasks.
+// NodeStatus represents the four valid lifecycle states for nodes and tasks.
 type NodeStatus string
 
 const (
+	// StatusNotStarted means no work has begun on this node or task.
 	StatusNotStarted NodeStatus = "not_started"
+	// StatusInProgress means work is actively underway.
 	StatusInProgress NodeStatus = "in_progress"
-	StatusComplete   NodeStatus = "complete"
-	StatusBlocked    NodeStatus = "blocked"
+	// StatusComplete means all work has been finished and verified.
+	StatusComplete NodeStatus = "complete"
+	// StatusBlocked means forward progress is prevented by an external dependency or failure.
+	StatusBlocked NodeStatus = "blocked"
 )
 
 // AuditStatus represents the audit lifecycle states.
 type AuditStatus string
 
 const (
-	AuditPending    AuditStatus = "pending"
+	// AuditPending means the audit has not yet started.
+	AuditPending AuditStatus = "pending"
+	// AuditInProgress means the audit is actively running.
 	AuditInProgress AuditStatus = "in_progress"
-	AuditPassed     AuditStatus = "passed"
-	AuditFailed     AuditStatus = "failed"
+	// AuditPassed means the audit completed with no open gaps.
+	AuditPassed AuditStatus = "passed"
+	// AuditFailed means the audit found unresolved gaps or the node is blocked.
+	AuditFailed AuditStatus = "failed"
 )
 
 // GapStatus represents the lifecycle states of an audit gap.
-type GapStatus = string
+type GapStatus string
 
 const (
-	GapOpen  GapStatus = "open"
+	// GapOpen indicates the gap has not yet been addressed.
+	GapOpen GapStatus = "open"
+	// GapFixed indicates the gap has been resolved.
 	GapFixed GapStatus = "fixed"
 )
 
 // EscalationStatus represents the lifecycle states of an escalation.
-type EscalationStatus = string
+type EscalationStatus string
 
 const (
-	EscalationOpen     EscalationStatus = "open"
+	// EscalationOpen indicates the escalation is unresolved.
+	EscalationOpen EscalationStatus = "open"
+	// EscalationResolved indicates the escalation has been addressed.
 	EscalationResolved EscalationStatus = "resolved"
 )
 
@@ -42,8 +58,10 @@ const (
 type NodeType string
 
 const (
+	// NodeOrchestrator is a parent node whose state derives from its children.
 	NodeOrchestrator NodeType = "orchestrator"
-	NodeLeaf         NodeType = "leaf"
+	// NodeLeaf is a terminal node containing tasks.
+	NodeLeaf NodeType = "leaf"
 )
 
 // RootIndex is the centralized tree index at the engineer namespace root.
@@ -136,7 +154,7 @@ type Gap struct {
 	Timestamp   time.Time  `json:"timestamp"`
 	Description string     `json:"description"`
 	Source      string     `json:"source"`
-	Status      string     `json:"status"` // "open" or "fixed"
+	Status      GapStatus  `json:"status"`
 	FixedBy     string     `json:"fixed_by,omitempty"`
 	FixedAt     *time.Time `json:"fixed_at,omitempty"`
 }
@@ -148,7 +166,7 @@ type Escalation struct {
 	Description string     `json:"description"`
 	SourceNode  string     `json:"source_node"`
 	SourceGapID string     `json:"source_gap_id,omitempty"`
-	Status      string     `json:"status"` // "open" or "resolved"
+	Status      EscalationStatus `json:"status"`
 	ResolvedBy  string     `json:"resolved_by,omitempty"`
 	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
 }

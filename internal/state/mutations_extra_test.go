@@ -216,7 +216,7 @@ func TestAddEscalation_CreatesOnParent(t *testing.T) {
 	if esc.SourceGapID != "gap-1" {
 		t.Errorf("expected source_gap_id 'gap-1', got %q", esc.SourceGapID)
 	}
-	if esc.Status != "open" {
+	if esc.Status != EscalationOpen {
 		t.Errorf("expected status 'open', got %q", esc.Status)
 	}
 	if !esc.Timestamp.Equal(fixed) {

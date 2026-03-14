@@ -47,7 +47,7 @@ func TestSyncAuditLifecycle_CompleteWithOpenGapsBlocksTask(t *testing.T) {
 		{ID: "audit", State: StatusInProgress, IsAudit: true},
 	}
 	ns.Audit.Gaps = []Gap{
-		{ID: "gap-1", Status: "open", Description: "missing test"},
+		{ID: "gap-1", Status: GapOpen, Description: "missing test"},
 	}
 	SyncAuditLifecycle(ns)
 	if ns.Audit.Status != AuditFailed {
@@ -81,7 +81,7 @@ func TestSyncAuditLifecycle_FixingLastGapAllowsCompletion(t *testing.T) {
 	ns := NewNodeState("test", "Test", NodeLeaf)
 	ns.State = StatusComplete
 	ns.Audit.Gaps = []Gap{
-		{ID: "gap-1", Status: "fixed", Description: "was missing test"},
+		{ID: "gap-1", Status: GapFixed, Description: "was missing test"},
 	}
 	SyncAuditLifecycle(ns)
 	if ns.Audit.Status != AuditPassed {

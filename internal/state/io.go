@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -10,11 +11,11 @@ import (
 func LoadRootIndex(path string) (*RootIndex, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading root index: %w", err)
 	}
 	var idx RootIndex
 	if err := json.Unmarshal(data, &idx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing root index: %w", err)
 	}
 	if idx.Nodes == nil {
 		idx.Nodes = make(map[string]IndexEntry)
@@ -31,11 +32,11 @@ func SaveRootIndex(path string, idx *RootIndex) error {
 func LoadNodeState(path string) (*NodeState, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading node state: %w", err)
 	}
 	var ns NodeState
 	if err := json.Unmarshal(data, &ns); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing node state: %w", err)
 	}
 	normalizeAuditState(&ns)
 	return &ns, nil
@@ -70,29 +71,32 @@ func SaveNodeState(path string, ns *NodeState) error {
 func atomicWriteJSON(path string, v any) error {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshaling state: %w", err)
 	}
 	data = append(data, '\n')
 
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
+		return fmt.Errorf("creating state directory: %w", err)
 	}
 
 	tmp, err := os.CreateTemp(dir, ".wolfcastle-tmp-*")
 	if err != nil {
-		return err
+		return fmt.Errorf("creating temp file: %w", err)
 	}
 	tmpName := tmp.Name()
 
 	if _, err := tmp.Write(data); err != nil {
 		tmp.Close()
-		_ = os.Remove(tmpName) // best-effort cleanup
-		return err
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("writing temp file: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
-		_ = os.Remove(tmpName) // best-effort cleanup
-		return err
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("closing temp file: %w", err)
 	}
-	return os.Rename(tmpName, path)
+	if err := os.Rename(tmpName, path); err != nil {
+		return fmt.Errorf("renaming temp file to %s: %w", filepath.Base(path), err)
+	}
+	return nil
 }

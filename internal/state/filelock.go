@@ -13,7 +13,8 @@ import (
 // DefaultLockTimeout is the default duration to wait when acquiring a lock.
 const DefaultLockTimeout = 5 * time.Second
 
-// ErrLockTimeout is returned when lock acquisition exceeds the timeout.
+// ErrLockTimeout is returned when lock acquisition exceeds the configured timeout,
+// typically because the daemon is mid-iteration.
 var ErrLockTimeout = fmt.Errorf("lock acquisition timed out — daemon is currently processing, try again shortly")
 
 // FileLock provides advisory file locking scoped to an engineer namespace.

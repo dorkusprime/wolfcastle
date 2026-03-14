@@ -89,12 +89,18 @@ func TestLoadInbox_ReadError(t *testing.T) {
 	}
 }
 
-func TestSaveInbox_WriteError(t *testing.T) {
+func TestSaveInbox_CreatesDirectories(t *testing.T) {
 	t.Parallel()
-	path := filepath.Join(t.TempDir(), "no", "such", "dir", "inbox.json")
+	dir := t.TempDir()
+	path := filepath.Join(dir, "nested", "deep", "inbox.json")
+
 	f := &InboxFile{Items: []InboxItem{{Text: "x"}}}
-	if err := SaveInbox(path, f); err == nil {
-		t.Error("expected error writing to nonexistent directory")
+	if err := SaveInbox(path, f); err != nil {
+		t.Fatalf("expected SaveInbox to create directories, got error: %v", err)
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("file should exist: %v", err)
 	}
 }
 
