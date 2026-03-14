@@ -2,7 +2,7 @@
 
 ## Three Tiers
 
-Configuration merges across three tiers. Each tier overrides the one below it.
+Configuration merges across three tiers. Each tier overrides the one above it.
 
 | Tier | Location | Ownership | Git Status |
 |------|----------|-----------|------------|
