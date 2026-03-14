@@ -43,3 +43,19 @@
 | 039 | [Clean Daemon Iteration Boundary](039-daemon-iteration-boundary.md) | Accepted | 2026-03-14 |
 | 040 | [Daemon Artifact Cleanup in Doctor](040-daemon-artifact-cleanup.md) | Accepted | 2026-03-14 |
 | 041 | [Algorithmic Overlap Detection](041-algorithmic-overlap-detection.md) | Accepted | 2026-03-14 |
+| 042 | [State File Locking](042-state-file-locking.md) | Accepted | 2026-03-14 |
+| 043 | [CI/CD Pipeline and Quality Gates](043-ci-cd-pipeline.md) | Accepted | 2026-03-14 |
+| 044 | [Test Strategy — Unit, Integration, and Smoke](044-test-strategy.md) | Accepted | 2026-03-14 |
+| 045 | [Daemon Package Decomposition](045-daemon-package-decomposition.md) | Accepted | 2026-03-14 |
+| 046 | [Structured Log Levels](046-structured-log-levels.md) | Accepted | 2026-03-14 |
+| 047 | [Release Automation via GoReleaser](047-release-automation.md) | Accepted | 2026-03-14 |
+| 048 | [Interactive Session UX](048-interactive-session-ux.md) | Accepted | 2026-03-14 |
+| 049 | [Lint Policy via golangci-lint](049-lint-policy.md) | Accepted | 2026-03-14 |
+| 050 | [Integration Test Harness via CLI Dispatch](050-integration-test-harness.md) | Accepted | 2026-03-14 |
+| 051 | [Multi-Pass Doctor with Fix Verification](051-multi-pass-doctor.md) | Accepted | 2026-03-14 |
+| 052 | [Time Injection for Deterministic Testing](052-time-injection.md) | Accepted | 2026-03-14 |
+| 053 | [Centralized Configuration Defaults](053-centralized-config-defaults.md) | Accepted | 2026-03-14 |
+| 054 | [Callback-Based Marker Parsing](054-callback-marker-parsing.md) | Accepted | 2026-03-14 |
+| 055 | [Property-Based Propagation Tests](055-property-based-propagation-tests.md) | Accepted | 2026-03-14 |
+| 056 | [Cobra Dependency Evaluation](056-cobra-evaluation.md) | Accepted | 2026-03-14 |
+| 057 | [All Prompts Externalized to Overridable Markdown Files](057-externalized-prompts.md) | Accepted | 2026-03-14 |
