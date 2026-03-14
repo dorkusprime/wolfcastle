@@ -27,7 +27,9 @@ func NewLogger(logDir string) (*Logger, error) {
 }
 
 // StartIteration creates a new log file for the current iteration.
+// Closes any previously open file before starting a new one.
 func (l *Logger) StartIteration() error {
+	l.Close() // prevent file handle leak if called without Close()
 	l.Iteration++
 	filename := fmt.Sprintf("%04d-%s.jsonl", l.Iteration, time.Now().UTC().Format("20060102T15-04Z"))
 	path := filepath.Join(l.LogDir, filename)

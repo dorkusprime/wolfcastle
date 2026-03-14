@@ -104,8 +104,8 @@ func TestFindNextTask_AllBlocked(t *testing.T) {
 	if result.Found {
 		t.Error("expected not found when all nodes are blocked")
 	}
-	if result.Reason != "all_complete" {
-		t.Errorf("expected 'all_complete', got %q", result.Reason)
+	if result.Reason != "all_blocked" {
+		t.Errorf("expected 'all_blocked', got %q", result.Reason)
 	}
 }
 

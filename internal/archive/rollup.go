@@ -18,8 +18,17 @@ type Entry struct {
 // GenerateEntry creates an archive Markdown entry from a completed node's state.
 func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, branch string, summary string) *Entry {
 	now := time.Now().UTC()
-	slug := strings.ReplaceAll(nodeAddr, "/", "-")
-	filename := fmt.Sprintf("%s-%s-complete.md", now.Format("2006-01-02T15-04Z"), slug)
+	slug := collapseHyphens(strings.ReplaceAll(nodeAddr, "/", "-"))
+	if len(slug) > 80 {
+		// Truncate at the last hyphen boundary before the limit
+		cut := strings.LastIndex(slug[:80], "-")
+		if cut > 0 {
+			slug = slug[:cut]
+		} else {
+			slug = slug[:80]
+		}
+	}
+	filename := fmt.Sprintf("%s-%s.md", now.Format("2006-01-02T15-04Z"), slug)
 
 	var b strings.Builder
 
@@ -97,7 +106,11 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 	b.WriteString("| Field | Value |\n")
 	b.WriteString("|-------|-------|\n")
 	b.WriteString(fmt.Sprintf("| Node | %s |\n", nodeAddr))
-	b.WriteString(fmt.Sprintf("| Completed | %s |\n", now.Format("2006-01-02T15:04Z")))
+	completedAt := now.Format("2006-01-02T15:04Z")
+	if ns.Audit.CompletedAt != nil {
+		completedAt = ns.Audit.CompletedAt.Format("2006-01-02T15:04Z")
+	}
+	b.WriteString(fmt.Sprintf("| Completed | %s |\n", completedAt))
 	b.WriteString(fmt.Sprintf("| Archived | %s |\n", now.Format("2006-01-02T15:04Z")))
 	if cfg.Identity != nil {
 		b.WriteString(fmt.Sprintf("| Engineer | %s-%s |\n", cfg.Identity.User, cfg.Identity.Machine))
@@ -110,4 +123,18 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 		Filename: filename,
 		Content:  b.String(),
 	}
+}
+
+// collapseHyphens replaces consecutive hyphens with a single hyphen.
+func collapseHyphens(s string) string {
+	var b strings.Builder
+	prev := byte(0)
+	for i := 0; i < len(s); i++ {
+		if s[i] == '-' && prev == '-' {
+			continue
+		}
+		b.WriteByte(s[i])
+		prev = s[i]
+	}
+	return b.String()
 }

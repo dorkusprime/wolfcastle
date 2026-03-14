@@ -30,8 +30,10 @@ func SyncAuditLifecycle(ns *NodeState) {
 	case StatusComplete:
 		if hasOpenGaps(ns) {
 			ns.Audit.Status = AuditFailed
-			// Block the audit task to prevent premature completion
+			// Revert: a node cannot be complete with open gaps.
+			// Block the audit task and revert node to in_progress.
 			blockAuditTask(ns)
+			ns.State = StatusInProgress
 		} else {
 			ns.Audit.Status = AuditPassed
 			if ns.Audit.CompletedAt == nil {
@@ -55,10 +57,11 @@ func hasOpenGaps(ns *NodeState) bool {
 	return false
 }
 
-// blockAuditTask blocks the audit task (if in_progress) when open gaps exist.
+// blockAuditTask blocks the audit task when open gaps exist.
+// Handles any current state (in_progress, complete, not_started).
 func blockAuditTask(ns *NodeState) {
 	for i := range ns.Tasks {
-		if ns.Tasks[i].IsAudit && ns.Tasks[i].State == StatusInProgress {
+		if ns.Tasks[i].IsAudit && ns.Tasks[i].State != StatusBlocked {
 			ns.Tasks[i].State = StatusBlocked
 			ns.Tasks[i].BlockedReason = "open gaps must be resolved before audit can pass"
 			break

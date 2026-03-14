@@ -369,8 +369,8 @@ func TestIsLastIncompleteTask_EmptyTaskList(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 
-	if !isLastIncompleteTask(ns, "nonexistent") {
-		t.Error("empty task list should return true (vacuously)")
+	if isLastIncompleteTask(ns, "nonexistent") {
+		t.Error("empty task list should return false for nonexistent task")
 	}
 }
 
@@ -430,6 +430,7 @@ func TestBuildIterationContext_NoSpecs(t *testing.T) {
 func TestBuildIterationContext_NoAuditScope(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
+	ns.Audit.Scope = nil // explicitly nil out to test absence
 
 	result := BuildIterationContext("project/auth", ns, "task-1")
 

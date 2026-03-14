@@ -305,14 +305,14 @@ func TestValidateStructure_CatchesNegativeDaemonTimings(t *testing.T) {
 	}
 }
 
-func TestValidateStructure_CatchesNegativeFailureValues(t *testing.T) {
+func TestValidateStructure_CatchesInvalidFailureValues(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
-	cfg.Failure.DecompositionThreshold = -1
+	cfg.Failure.DecompositionThreshold = 0
 
 	err := ValidateStructure(cfg)
 	if err == nil {
-		t.Error("expected error for negative decomposition threshold")
+		t.Error("expected error for zero decomposition threshold (minimum is 1)")
 	}
 }
 
@@ -578,14 +578,14 @@ func TestValidateStructure_CatchesNegativeMaxDecompositionDepth(t *testing.T) {
 	}
 }
 
-func TestValidateStructure_CatchesNegativeHardCap(t *testing.T) {
+func TestValidateStructure_CatchesInvalidHardCap(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
-	cfg.Failure.HardCap = -1
+	cfg.Failure.HardCap = 0
 
 	err := ValidateStructure(cfg)
 	if err == nil {
-		t.Error("expected error for negative hard_cap")
+		t.Error("expected error for zero hard_cap (minimum is 1)")
 	}
 }
 
@@ -600,14 +600,14 @@ func TestValidateStructure_CatchesNegativeBlockedPollInterval(t *testing.T) {
 	}
 }
 
-func TestValidateStructure_CatchesNegativeInvocationTimeout(t *testing.T) {
+func TestValidateStructure_CatchesInvocationTimeoutBelowMinimum(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
-	cfg.Daemon.InvocationTimeoutSeconds = 0
+	cfg.Daemon.InvocationTimeoutSeconds = 30
 
 	err := ValidateStructure(cfg)
 	if err == nil {
-		t.Error("expected error for zero invocation_timeout_seconds")
+		t.Error("expected error for invocation_timeout_seconds below 60")
 	}
 }
 

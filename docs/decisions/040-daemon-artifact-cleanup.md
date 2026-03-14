@@ -14,7 +14,7 @@ applies deterministic fixes via `--fix`.
 However, when the daemon crashes or is killed without cleanup, operational
 artifacts are left behind:
 
-1. **Stale PID file** (`daemon.pid`) — points to a dead process or a
+1. **Stale PID file** (`wolfcastle.pid`) — points to a dead process or a
    recycled PID belonging to something else. The next `wolfcastle start`
    may refuse to start or behave unpredictably.
 2. **Stale stop file** (`stop`) — left behind if `wolfcastle stop` was

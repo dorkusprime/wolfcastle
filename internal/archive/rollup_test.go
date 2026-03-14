@@ -21,8 +21,8 @@ func TestGenerateEntry_ProducesValidMarkdown(t *testing.T) {
 	if entry == nil {
 		t.Fatal("expected non-nil entry")
 	}
-	if !strings.HasSuffix(entry.Filename, "-complete.md") {
-		t.Errorf("expected filename ending in -complete.md, got %q", entry.Filename)
+	if !strings.HasSuffix(entry.Filename, ".md") || strings.Contains(entry.Filename, "-complete") {
+		t.Errorf("expected filename ending in .md without -complete suffix, got %q", entry.Filename)
 	}
 	if !strings.Contains(entry.Content, "# Archive: project/auth") {
 		t.Error("expected archive header")
@@ -341,7 +341,7 @@ func TestGenerateEntry_FilenameSlugifiesAddress(t *testing.T) {
 
 	entry := GenerateEntry("project/module/deep", ns, cfg, "main", "")
 
-	if !strings.Contains(entry.Filename, "project-module-deep-complete.md") {
+	if !strings.Contains(entry.Filename, "project-module-deep.md") {
 		t.Errorf("expected slugified filename, got %q", entry.Filename)
 	}
 }

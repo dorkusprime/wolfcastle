@@ -75,12 +75,17 @@ func InvokeStreaming(ctx context.Context, model config.ModelDef, prompt string, 
 
 	var captured bytes.Buffer
 	scanner := bufio.NewScanner(stdoutPipe)
+	// Increase buffer to 1MB to handle large model output lines (base64, minified JSON)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
 		captured.WriteString(line)
 		captured.WriteByte('\n')
 		// Write to the log writer; ignore errors to avoid blocking the process
 		_, _ = fmt.Fprintln(logWriter, line)
+	}
+	if scanErr := scanner.Err(); scanErr != nil {
+		return nil, fmt.Errorf("reading stdout: %w", scanErr)
 	}
 
 	err = cmd.Wait()

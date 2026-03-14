@@ -197,13 +197,13 @@ Daemon artifacts are operational files that can be left behind when the daemon c
 
 #### STALE_PID_FILE
 
-**Description**: A `daemon.pid` file exists in the `.wolfcastle/` directory but the referenced process is not alive. This typically occurs after a daemon crash or forced kill.
+**Description**: A `wolfcastle.pid` file exists in the `.wolfcastle/` directory but the referenced process is not alive. This typically occurs after a daemon crash or forced kill.
 
-**Detection**: Read the PID from `daemon.pid`, check if the process is alive via signal 0. If the process is not alive (or the PID file can't be parsed), report the issue.
+**Detection**: Read the PID from `wolfcastle.pid`, check if the process is alive via signal 0. If the process is not alive (or the PID file can't be parsed), report the issue.
 
 **Severity**: Warning
 
-**Example**: `daemon.pid` contains `12345` but process 12345 is not running. The next `wolfcastle start` may refuse to start.
+**Example**: `wolfcastle.pid` contains `12345` but process 12345 is not running. The next `wolfcastle start` may refuse to start.
 
 #### STALE_STOP_FILE
 

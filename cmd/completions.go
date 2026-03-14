@@ -112,4 +112,16 @@ func init() {
 	taskBlockCmd.RegisterFlagCompletionFunc("node", completeTaskAddresses)
 	taskUnblockCmd.RegisterFlagCompletionFunc("node", completeTaskAddresses)
 	unblockCmd.RegisterFlagCompletionFunc("node", completeTaskAddresses)
+
+	// Audit subcommand node completions
+	auditShowCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
+	auditGapCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
+	auditFixGapCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
+	auditBreadcrumbCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
+	auditEscalateCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
+	auditResolveCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
+	auditScopeCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
+	auditApproveCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
+	auditRejectCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
+	archiveAddCmd.RegisterFlagCompletionFunc("node", completeNodeAddresses)
 }

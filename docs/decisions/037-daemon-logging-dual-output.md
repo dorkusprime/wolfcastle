@@ -4,6 +4,10 @@
 
 Accepted
 
+## Date
+
+2026-03-13
+
 ## Context
 
 The daemon produces two kinds of output:

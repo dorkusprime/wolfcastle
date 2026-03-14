@@ -141,6 +141,19 @@ func TestResolveAllFragments_RespectsExcludeList(t *testing.T) {
 	}
 }
 
+func TestResolveAllFragments_ErrorsOnMissingInclude(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupTiers(t, dir)
+
+	os.WriteFile(filepath.Join(dir, "base", "rules", "a.md"), []byte("a"), 0644)
+
+	_, err := ResolveAllFragments(dir, "rules", []string{"a.md", "missing.md"}, nil)
+	if err == nil {
+		t.Error("expected error for missing include entry")
+	}
+}
+
 func TestResolveAllFragments_RespectsIncludeListOrdering(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()

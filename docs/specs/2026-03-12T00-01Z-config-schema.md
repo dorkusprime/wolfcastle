@@ -387,6 +387,18 @@ Arrays are **not** deep-merged. An array in `config.local.json` replaces the ent
           "minimum": 60,
           "default": 3600,
           "description": "Maximum wall-clock time in seconds for a single model invocation. If exceeded, the child process is killed and the invocation is treated as an invocation failure (retried with backoff per the retries config). Default is 3600 (1 hour)."
+        },
+        "max_restarts": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 3,
+          "description": "Maximum number of automatic restarts the supervisor will attempt when the daemon crashes. Set to 0 to disable automatic restarts."
+        },
+        "restart_delay_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 2,
+          "description": "Delay in seconds between automatic restart attempts."
         }
       },
       "default": {
@@ -394,7 +406,9 @@ Arrays are **not** deep-merged. An array in `config.local.json` replaces the ent
         "blocked_poll_interval_seconds": 60,
         "max_iterations": -1,
         "max_turns_per_invocation": 200,
-        "invocation_timeout_seconds": 3600
+        "invocation_timeout_seconds": 3600,
+        "max_restarts": 3,
+        "restart_delay_seconds": 2
       }
     },
 
@@ -556,6 +570,8 @@ All fields are optional. Omitted fields use the defaults specified above. A comp
 | `daemon.max_iterations` | `-1` (unlimited) |
 | `daemon.max_turns_per_invocation` | `200` |
 | `daemon.invocation_timeout_seconds` | `3600` (1 hour) |
+| `daemon.max_restarts` | `3` |
+| `daemon.restart_delay_seconds` | `2` |
 | `git.auto_commit` | `true` |
 | `git.commit_message_format` | `"wolfcastle: {action} [{node}]"` |
 | `git.verify_branch` | `true` |

@@ -41,15 +41,15 @@ func ValidateStructure(cfg *Config) error {
 		}
 	}
 
-	// Failure thresholds
-	if cfg.Failure.DecompositionThreshold < 0 {
-		errs = append(errs, fmt.Sprintf("failure.decomposition_threshold (%d) must be >= 0", cfg.Failure.DecompositionThreshold))
+	// Failure thresholds (spec: decomposition_threshold min 1, hard_cap min 1)
+	if cfg.Failure.DecompositionThreshold < 1 {
+		errs = append(errs, fmt.Sprintf("failure.decomposition_threshold (%d) must be >= 1", cfg.Failure.DecompositionThreshold))
 	}
 	if cfg.Failure.MaxDecompositionDepth < 0 {
 		errs = append(errs, fmt.Sprintf("failure.max_decomposition_depth (%d) must be >= 0", cfg.Failure.MaxDecompositionDepth))
 	}
-	if cfg.Failure.HardCap < 0 {
-		errs = append(errs, fmt.Sprintf("failure.hard_cap (%d) must be >= 0", cfg.Failure.HardCap))
+	if cfg.Failure.HardCap < 1 {
+		errs = append(errs, fmt.Sprintf("failure.hard_cap (%d) must be >= 1", cfg.Failure.HardCap))
 	}
 	if cfg.Failure.HardCap > 0 && cfg.Failure.HardCap < cfg.Failure.DecompositionThreshold {
 		errs = append(errs, fmt.Sprintf("failure.hard_cap (%d) must be >= failure.decomposition_threshold (%d)",
@@ -63,8 +63,8 @@ func ValidateStructure(cfg *Config) error {
 	if cfg.Daemon.BlockedPollIntervalSeconds <= 0 {
 		errs = append(errs, fmt.Sprintf("daemon.blocked_poll_interval_seconds (%d) must be > 0", cfg.Daemon.BlockedPollIntervalSeconds))
 	}
-	if cfg.Daemon.InvocationTimeoutSeconds <= 0 {
-		errs = append(errs, fmt.Sprintf("daemon.invocation_timeout_seconds (%d) must be > 0", cfg.Daemon.InvocationTimeoutSeconds))
+	if cfg.Daemon.InvocationTimeoutSeconds < 60 {
+		errs = append(errs, fmt.Sprintf("daemon.invocation_timeout_seconds (%d) must be >= 60", cfg.Daemon.InvocationTimeoutSeconds))
 	}
 	if cfg.Daemon.MaxTurnsPerInvocation <= 0 {
 		errs = append(errs, fmt.Sprintf("daemon.max_turns_per_invocation (%d) must be > 0", cfg.Daemon.MaxTurnsPerInvocation))
@@ -82,6 +82,24 @@ func ValidateStructure(cfg *Config) error {
 	}
 	if cfg.Logs.MaxAgeDays <= 0 {
 		errs = append(errs, fmt.Sprintf("logs.max_age_days (%d) must be > 0", cfg.Logs.MaxAgeDays))
+	}
+
+	// Retries constraints
+	if cfg.Retries.InitialDelaySeconds < 1 {
+		errs = append(errs, fmt.Sprintf("retries.initial_delay_seconds (%d) must be >= 1", cfg.Retries.InitialDelaySeconds))
+	}
+	if cfg.Retries.MaxDelaySeconds < 1 {
+		errs = append(errs, fmt.Sprintf("retries.max_delay_seconds (%d) must be >= 1", cfg.Retries.MaxDelaySeconds))
+	}
+	if cfg.Retries.MaxRetries < -1 {
+		errs = append(errs, fmt.Sprintf("retries.max_retries (%d) must be >= -1", cfg.Retries.MaxRetries))
+	}
+
+	// Validation command timeouts
+	for i, cmd := range cfg.Validation.Commands {
+		if cmd.TimeoutSeconds < 1 {
+			errs = append(errs, fmt.Sprintf("validation.commands[%d].timeout_seconds (%d) must be >= 1", i, cmd.TimeoutSeconds))
+		}
 	}
 
 	// Overlap advisory threshold must be in [0, 1]
@@ -111,30 +129,42 @@ func Validate(cfg *Config) error {
 
 	var errs []string
 
-	// Check summary model reference (only when enabled)
+	// Check summary model and prompt_file (only when enabled)
 	if cfg.Summary.Enabled {
 		if _, ok := cfg.Models[cfg.Summary.Model]; !ok {
 			errs = append(errs, fmt.Sprintf("summary references unknown model %q", cfg.Summary.Model))
 		}
+		if cfg.Summary.PromptFile == "" {
+			errs = append(errs, "summary.prompt_file must not be empty")
+		}
 	}
 
-	// Check doctor model reference
+	// Check doctor model and prompt_file
 	if _, ok := cfg.Models[cfg.Doctor.Model]; !ok {
 		errs = append(errs, fmt.Sprintf("doctor references unknown model %q", cfg.Doctor.Model))
 	}
+	if cfg.Doctor.PromptFile == "" {
+		errs = append(errs, "doctor.prompt_file must not be empty")
+	}
 
-	// Check unblock model reference
+	// Check unblock model and prompt_file
 	if _, ok := cfg.Models[cfg.Unblock.Model]; !ok {
 		errs = append(errs, fmt.Sprintf("unblock references unknown model %q", cfg.Unblock.Model))
+	}
+	if cfg.Unblock.PromptFile == "" {
+		errs = append(errs, "unblock.prompt_file must not be empty")
 	}
 
 	// Overlap advisory model is optional — algorithmic detection (ADR-041)
 	// does not require a model. The model field is retained for potential
 	// future hybrid use but is not validated.
 
-	// Check audit model reference
+	// Check audit model and prompt_file
 	if _, ok := cfg.Models[cfg.Audit.Model]; !ok {
 		errs = append(errs, fmt.Sprintf("audit references unknown model %q", cfg.Audit.Model))
+	}
+	if cfg.Audit.PromptFile == "" {
+		errs = append(errs, "audit.prompt_file must not be empty")
 	}
 
 	// Check identity presence

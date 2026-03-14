@@ -31,7 +31,7 @@ Examples:
   wolfcastle start --worktree feature-branch`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		nodeScope, _ := cmd.Flags().GetString("node")
-		background, _ := cmd.Flags().GetBool("d")
+		background, _ := cmd.Flags().GetBool("daemon")
 		worktreeBranch, _ := cmd.Flags().GetString("worktree")
 
 		if resolver == nil {
@@ -207,6 +207,6 @@ func recoverStaleDaemonState(wolfcastleDir string) {
 func init() {
 	startCmd.Flags().String("node", "", "Scope execution to a subtree")
 	startCmd.Flags().String("worktree", "", "Run in a git worktree on the specified branch")
-	startCmd.Flags().BoolP("d", "d", false, "Run as background daemon")
+	startCmd.Flags().BoolP("daemon", "d", false, "Run as background daemon")
 	rootCmd.AddCommand(startCmd)
 }

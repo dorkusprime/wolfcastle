@@ -21,22 +21,22 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, 
 	b.WriteString(fmt.Sprintf("**Node Type:** %s\n", ns.Type))
 	b.WriteString(fmt.Sprintf("**Node State:** %s\n\n", ns.State))
 
-	// Find the target task
+	// Find the target task and emit context (single pass)
+	var taskFound bool
 	for _, t := range ns.Tasks {
-		if t.ID == taskID {
-			b.WriteString(fmt.Sprintf("**Task:** %s/%s\n", nodeAddr, t.ID))
-			b.WriteString(fmt.Sprintf("**Description:** %s\n", t.Description))
-			b.WriteString(fmt.Sprintf("**Task State:** %s\n", t.State))
-			if t.FailureCount > 0 {
-				b.WriteString(fmt.Sprintf("**Failure Count:** %d\n", t.FailureCount))
-			}
-			break
+		if t.ID != taskID {
+			continue
 		}
-	}
+		taskFound = true
+		b.WriteString(fmt.Sprintf("**Task:** %s/%s\n", nodeAddr, t.ID))
+		b.WriteString(fmt.Sprintf("**Description:** %s\n", t.Description))
+		b.WriteString(fmt.Sprintf("**Task State:** %s\n", t.State))
+		if t.FailureCount > 0 {
+			b.WriteString(fmt.Sprintf("**Failure Count:** %d\n", t.FailureCount))
+		}
 
-	// Failure history and decomposition policy
-	for _, t := range ns.Tasks {
-		if t.ID == taskID && t.FailureCount > 0 && cfg != nil {
+		// Failure history and decomposition policy
+		if t.FailureCount > 0 && cfg != nil {
 			b.WriteString("\n## Failure History\n\n")
 			b.WriteString(fmt.Sprintf("This task has failed %d times.\n", t.FailureCount))
 			b.WriteString(fmt.Sprintf("- Decomposition threshold: %d\n", cfg.Failure.DecompositionThreshold))
@@ -50,8 +50,8 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, 
 				b.WriteString("3. Emit WOLFCASTLE_YIELD when decomposition is complete.\n\n")
 				b.WriteString("The parent node will automatically convert from leaf to orchestrator when the first child is created.\n")
 			}
-			break
 		}
+		break
 	}
 
 	// Audit breadcrumbs (recent)
@@ -82,7 +82,7 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, 
 
 	// Summary guidance — when this is the last incomplete task in the node,
 	// instruct the model to include a summary marker with WOLFCASTLE_COMPLETE.
-	if isLastIncompleteTask(ns, taskID) {
+	if taskFound && isLastIncompleteTask(ns, taskID) {
 		b.WriteString("\n## Summary Required\n\n")
 		b.WriteString("This is the last incomplete task in this node. When you complete it, ")
 		b.WriteString("include a summary of all work done in this node using:\n\n")
@@ -94,15 +94,17 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, 
 }
 
 // isLastIncompleteTask returns true if taskID is the only non-complete task
-// remaining in the node (excluding itself).
+// remaining in the node (excluding itself). Returns false if taskID is not found.
 func isLastIncompleteTask(ns *state.NodeState, taskID string) bool {
+	found := false
 	for _, t := range ns.Tasks {
 		if t.ID == taskID {
+			found = true
 			continue
 		}
 		if t.State != state.StatusComplete {
 			return false
 		}
 	}
-	return true
+	return found
 }

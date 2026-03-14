@@ -229,11 +229,11 @@ func TestAddEscalation_GeneratesSequentialIDs(t *testing.T) {
 	if len(parent.Audit.Escalations) != 2 {
 		t.Fatalf("expected 2 escalations, got %d", len(parent.Audit.Escalations))
 	}
-	if parent.Audit.Escalations[0].ID != "escalation-orch-1-1" {
-		t.Errorf("expected id 'escalation-orch-1-1', got %q", parent.Audit.Escalations[0].ID)
+	if parent.Audit.Escalations[0].ID != "escalation-leaf-1-1" {
+		t.Errorf("expected id 'escalation-leaf-1-1', got %q", parent.Audit.Escalations[0].ID)
 	}
-	if parent.Audit.Escalations[1].ID != "escalation-orch-1-2" {
-		t.Errorf("expected id 'escalation-orch-1-2', got %q", parent.Audit.Escalations[1].ID)
+	if parent.Audit.Escalations[1].ID != "escalation-leaf-2-2" {
+		t.Errorf("expected id 'escalation-leaf-2-2', got %q", parent.Audit.Escalations[1].ID)
 	}
 }
 

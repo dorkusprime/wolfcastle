@@ -46,7 +46,7 @@ Examples:
 		case "orchestrator":
 			nt = state.NodeOrchestrator
 		default:
-			nt = state.NodeLeaf // default to leaf
+			return fmt.Errorf("invalid node type %q: must be 'leaf' or 'orchestrator'", nodeType)
 		}
 
 		// Load root index
@@ -71,6 +71,16 @@ Examples:
 				parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
 				if err != nil {
 					return fmt.Errorf("loading parent state for promotion: %w", err)
+				}
+				// Only auto-promote if the leaf has no tasks (per tree-addressing spec)
+				nonAuditTasks := 0
+				for _, t := range parentState.Tasks {
+					if !t.IsAudit {
+						nonAuditTasks++
+					}
+				}
+				if nonAuditTasks > 0 {
+					return fmt.Errorf("cannot create child under leaf %q: it has %d existing task(s) — remove tasks before decomposing", parentNode, nonAuditTasks)
 				}
 				parentState.Type = state.NodeOrchestrator
 				parentState.Tasks = nil // orchestrators don't have tasks
@@ -101,19 +111,16 @@ Examples:
 			return fmt.Errorf("saving node state: %w", err)
 		}
 
-		// Write project description Markdown
+		// Write project description Markdown (in the node's own directory)
 		if parentNode != "" {
-			parentParsed, err := tree.ParseAddress(parentNode)
-			if err != nil {
-				return fmt.Errorf("invalid parent address: %w", err)
-			}
-			parentDir := filepath.Join(resolver.ProjectsDir(), filepath.Join(parentParsed.Parts...))
-			descPath := filepath.Join(parentDir, slug+".md")
+			descPath := filepath.Join(nodeDir, slug+".md")
 			if err := os.WriteFile(descPath, []byte("# "+name+"\n\nProject description goes here.\n"), 0644); err != nil {
 				return fmt.Errorf("writing project description: %w", err)
 			}
 
 			// Update parent node state to include child ref
+			parentParsed2, _ := tree.ParseAddress(parentNode)
+			parentDir := filepath.Join(resolver.ProjectsDir(), filepath.Join(parentParsed2.Parts...))
 			parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
 			if err == nil {
 				parentState.Children = append(parentState.Children, state.ChildRef{
@@ -126,7 +133,7 @@ Examples:
 				}
 			}
 		} else {
-			descPath := filepath.Join(resolver.ProjectsDir(), slug+".md")
+			descPath := filepath.Join(nodeDir, slug+".md")
 			if err := os.WriteFile(descPath, []byte("# "+name+"\n\nProject description goes here.\n"), 0644); err != nil {
 				return fmt.Errorf("writing project description: %w", err)
 			}

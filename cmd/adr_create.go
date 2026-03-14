@@ -34,6 +34,10 @@ Examples:
 		useStdin, _ := cmd.Flags().GetBool("stdin")
 		bodyFile, _ := cmd.Flags().GetString("file")
 
+		if useStdin && bodyFile != "" {
+			return fmt.Errorf("--stdin and --file are mutually exclusive")
+		}
+
 		// Build filename
 		now := time.Now().UTC()
 		timestamp := now.Format("2006-01-02T15-04Z")

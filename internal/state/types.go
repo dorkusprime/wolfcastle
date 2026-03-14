@@ -81,7 +81,7 @@ type Task struct {
 	Description        string     `json:"description"`
 	State              NodeStatus `json:"state"`
 	IsAudit            bool       `json:"is_audit,omitempty"`
-	BlockedReason      string     `json:"blocked_reason,omitempty"`
+	BlockedReason      string     `json:"block_reason,omitempty"`
 	FailureCount       int        `json:"failure_count"`
 	NeedsDecomposition bool       `json:"needs_decomposition,omitempty"`
 	Breadcrumbs        []string   `json:"breadcrumbs,omitempty"`
@@ -154,7 +154,12 @@ func NewNodeState(id, name string, nodeType NodeType) *NodeState {
 		Type:    nodeType,
 		State:   StatusNotStarted,
 		Audit: AuditState{
-			Status:      AuditPending,
+			Status: AuditPending,
+			Scope: &AuditScope{
+				Files:    []string{},
+				Systems:  []string{},
+				Criteria: []string{},
+			},
 			Breadcrumbs: []Breadcrumb{},
 			Gaps:        []Gap{},
 			Escalations: []Escalation{},

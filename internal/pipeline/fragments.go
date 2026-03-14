@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -17,8 +18,11 @@ func ResolveFragment(wolfcastleDir, filename string) (string, error) {
 		if err == nil {
 			return string(data), nil
 		}
+		if !os.IsNotExist(err) {
+			return "", fmt.Errorf("reading %s from tier %s: %w", filename, tier, err)
+		}
 	}
-	return "", os.ErrNotExist
+	return "", fmt.Errorf("fragment %q not found in any tier (local, custom, base)", filename)
 }
 
 // ResolveAllFragments finds all rule fragments across all tiers.
@@ -64,11 +68,14 @@ func ResolveAllFragments(wolfcastleDir string, subdir string, include, exclude [
 		}
 		path, ok := files[name]
 		if !ok {
+			if len(include) > 0 {
+				return nil, fmt.Errorf("fragment %q specified in include list not found in any tier", name)
+			}
 			continue
 		}
 		data, err := os.ReadFile(path)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("reading fragment %q: %w", name, err)
 		}
 		contents = append(contents, string(data))
 	}

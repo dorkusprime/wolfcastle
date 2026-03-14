@@ -137,7 +137,7 @@ func showTreeStatus(idx *state.RootIndex, scope string) error {
 
 // getDaemonStatus checks the PID file and reports daemon status.
 func getDaemonStatus() string {
-	pidPath := filepath.Join(wolfcastleDir, "daemon.pid")
+	pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
 	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		return "stopped"

@@ -145,8 +145,17 @@ func AddBreadcrumb(ns *NodeState, taskAddr string, text string) {
 }
 
 // AddEscalation adds an escalation to a parent node.
+// The ID uses the child (source) slug per spec: escalation-{child-slug}-{sequential}.
 func AddEscalation(parent *NodeState, sourceNode string, description string, sourceGapID string) {
-	id := fmt.Sprintf("escalation-%s-%d", parent.ID, len(parent.Audit.Escalations)+1)
+	// Extract child slug from the source node address (last segment)
+	childSlug := sourceNode
+	for i := len(sourceNode) - 1; i >= 0; i-- {
+		if sourceNode[i] == '/' {
+			childSlug = sourceNode[i+1:]
+			break
+		}
+	}
+	id := fmt.Sprintf("escalation-%s-%d", childSlug, len(parent.Audit.Escalations)+1)
 	parent.Audit.Escalations = append(parent.Audit.Escalations, Escalation{
 		ID:          id,
 		Timestamp:   time.Now().UTC(),

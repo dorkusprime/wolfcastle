@@ -123,7 +123,7 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 		if e.include(CatPropagationMismatch, categories) {
 			if ns.State != entry.State {
 				report.Issues = append(report.Issues, Issue{
-					Severity:    SeverityWarning,
+					Severity:    SeverityError,
 					Category:    CatPropagationMismatch,
 					Node:        addr,
 					Description: fmt.Sprintf("Index says %s but node state says %s", entry.State, ns.State),
@@ -152,8 +152,10 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 		if ns.Type == state.NodeLeaf {
 			e.checkLeafAudit(ns, addr, categories, report)
 			e.checkLeafTasks(ns, addr, categories, report, &inProgressTasks)
-			e.checkAuditState(ns, addr, categories, report)
 		}
+
+		// Audit state checks apply to both leaf and orchestrator nodes
+		e.checkAuditState(ns, addr, categories, report)
 
 		// ORPHAN_STATE: node has a parent but parent doesn't list it as child
 		if e.include(CatOrphanState, categories) && entry.Parent != "" {
@@ -260,13 +262,13 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 			FixType:     FixModelAssisted,
 		})
 	}
-	if e.include(CatStaleInProgress, categories) && len(inProgressTasks) == 1 {
-		// Only flag as stale if no live daemon is running for this workspace
+	if e.include(CatStaleInProgress, categories) && len(inProgressTasks) > 0 {
+		// Flag as stale if no live daemon is running for this workspace
 		if !e.isDaemonAlive() {
 			report.Issues = append(report.Issues, Issue{
 				Severity:    SeverityWarning,
 				Category:    CatStaleInProgress,
-				Description: fmt.Sprintf("Task in progress (%s) with no live daemon — likely stale", inProgressTasks[0]),
+				Description: fmt.Sprintf("Task(s) in progress (%s) with no live daemon — likely stale", strings.Join(inProgressTasks, ", ")),
 				FixType:     FixManual,
 			})
 		}
@@ -275,7 +277,7 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 	// Daemon artifact checks
 	if e.include(CatStalePIDFile, categories) {
 		if e.wolfcastleDir != "" && !e.isDaemonAlive() {
-			pidPath := filepath.Join(e.wolfcastleDir, "daemon.pid")
+			pidPath := filepath.Join(e.wolfcastleDir, "wolfcastle.pid")
 			if _, err := os.Stat(pidPath); err == nil {
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityWarning,
@@ -537,8 +539,8 @@ func (e *Engine) checkOrphanedDefinitions(idx *state.RootIndex, report *Report) 
 				Category:    CatOrphanDefinition,
 				Node:        addr,
 				Description: fmt.Sprintf("Definition file %s has no corresponding node", info.Name()),
-				CanAutoFix:  true,
-				FixType:     FixDeterministic,
+				CanAutoFix:  false,
+				FixType:     FixManual,
 			})
 		}
 		return nil
@@ -557,7 +559,7 @@ func (e *Engine) isDaemonAlive() bool {
 	if e.wolfcastleDir == "" {
 		return false
 	}
-	pidPath := filepath.Join(e.wolfcastleDir, "daemon.pid")
+	pidPath := filepath.Join(e.wolfcastleDir, "wolfcastle.pid")
 	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		return false

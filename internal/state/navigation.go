@@ -54,7 +54,15 @@ func FindNextTask(idx *RootIndex, scopeAddr string, loadNode func(addr string) (
 		}
 	}
 
-	return &NavigationResult{Reason: "all_complete"}, nil
+	// Determine whether tree is all complete or has blocked nodes
+	reason := "all_complete"
+	for _, entry := range idx.Nodes {
+		if entry.State == StatusBlocked {
+			reason = "all_blocked"
+			break
+		}
+	}
+	return &NavigationResult{Reason: reason}, nil
 }
 
 func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, error)) (*NavigationResult, error) {

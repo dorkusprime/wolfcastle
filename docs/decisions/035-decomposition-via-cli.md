@@ -4,6 +4,10 @@
 
 Accepted
 
+## Date
+
+2026-03-13
+
 ## Context
 
 When a task's failure count reaches the decomposition threshold and the node's decomposition depth is below the maximum, the system needs to break the failing leaf into smaller subtasks. Three approaches were considered:

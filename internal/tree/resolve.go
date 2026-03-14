@@ -49,11 +49,12 @@ func (r *Resolver) NodeStatePath(addr Address) string {
 }
 
 // NodeDefPath returns the path to a node's definition Markdown file.
+// The definition file lives inside the node's own directory, named after the slug.
 func (r *Resolver) NodeDefPath(addr Address) string {
 	if addr.IsRoot() {
 		return ""
 	}
-	return filepath.Join(r.NodeDir(addr.Parent()), addr.Leaf()+".md")
+	return filepath.Join(r.NodeDir(addr), addr.Leaf()+".md")
 }
 
 // TaskDocPath returns the path to a task's companion Markdown file.

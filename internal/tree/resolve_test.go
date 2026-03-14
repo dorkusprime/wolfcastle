@@ -230,8 +230,8 @@ func TestResolver_NodeDefPath(t *testing.T) {
 		want string
 	}{
 		{"root returns empty", Address{}, ""},
-		{"single segment", MustParse("proj"), filepath.Join("/w", "projects", "ns", "proj.md")},
-		{"nested", MustParse("proj/child"), filepath.Join("/w", "projects", "ns", "proj", "child.md")},
+		{"single segment", MustParse("proj"), filepath.Join("/w", "projects", "ns", "proj", "proj.md")},
+		{"nested", MustParse("proj/child"), filepath.Join("/w", "projects", "ns", "proj", "child", "child.md")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
