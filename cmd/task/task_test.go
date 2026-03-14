@@ -336,6 +336,69 @@ func TestTaskUnblock_MissingNode(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// task complete with validation
+// ---------------------------------------------------------------------------
+
+func TestTaskComplete_WithValidation(t *testing.T) {
+	env := newTestEnv(t)
+	createLeafNode(t, env, "my-project", "My Project")
+
+	// Add a validation command that succeeds
+	env.App.Cfg.Validation.Commands = []config.ValidationCommand{
+		{Name: "true check", Run: "true", TimeoutSeconds: 5},
+	}
+
+	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "validated task"})
+	env.RootCmd.Execute()
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.Execute()
+
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("task complete with validation failed: %v", err)
+	}
+}
+
+func TestTaskComplete_ValidationFails(t *testing.T) {
+	env := newTestEnv(t)
+	createLeafNode(t, env, "my-project", "My Project")
+
+	// Add a validation command that fails
+	env.App.Cfg.Validation.Commands = []config.ValidationCommand{
+		{Name: "fail check", Run: "false", TimeoutSeconds: 5},
+	}
+
+	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "validated task"})
+	env.RootCmd.Execute()
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.Execute()
+
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error when validation fails")
+	}
+}
+
+func TestTaskComplete_InvalidAddress(t *testing.T) {
+	env := newTestEnv(t)
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "single-part"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error for non-task address")
+	}
+}
+
+func TestTaskComplete_NonexistentNode(t *testing.T) {
+	env := newTestEnv(t)
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "nonexistent/task-1"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error for nonexistent node")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Full lifecycle: add -> claim -> complete
 // ---------------------------------------------------------------------------
 

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -251,5 +252,343 @@ func TestStopCmd_NoPidFile(t *testing.T) {
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when no PID file exists")
+	}
+}
+
+func TestStopCmd_StalePid(t *testing.T) {
+	env := newTestEnv(t)
+	os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	env.RootCmd.SetArgs([]string{"stop"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error for stale PID")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// showHistoricalLines
+// ---------------------------------------------------------------------------
+
+func TestShowHistoricalLines_ValidLog(t *testing.T) {
+	tmp := t.TempDir()
+	logFile := filepath.Join(tmp, "test.ndjson")
+	lines := `{"type":"stage_start","stage":"expand","node":"n","task":"t"}
+{"type":"assistant","text":"Hello"}
+{"type":"stage_complete","stage":"expand","exit_code":0}
+`
+	os.WriteFile(logFile, []byte(lines), 0644)
+
+	// Reset offsets
+	delete(fileOffsets, logFile)
+
+	// Should not panic, should set offset
+	showHistoricalLines(logFile, 2)
+
+	offset := getOffset(logFile)
+	if offset == 0 {
+		t.Error("expected offset to be set after showing historical lines")
+	}
+}
+
+func TestShowHistoricalLines_NonexistentFile(t *testing.T) {
+	// Should not panic on missing file
+	showHistoricalLines("/tmp/nonexistent-log-file-xyz.ndjson", 10)
+}
+
+func TestShowHistoricalLines_MoreLinesThanAvailable(t *testing.T) {
+	tmp := t.TempDir()
+	logFile := filepath.Join(tmp, "short.ndjson")
+	os.WriteFile(logFile, []byte(`{"type":"assistant","text":"only one"}`+"\n"), 0644)
+	delete(fileOffsets, logFile)
+
+	showHistoricalLines(logFile, 100) // Asking for 100 lines when only 1 exists
+}
+
+// ---------------------------------------------------------------------------
+// tailFileStreaming
+// ---------------------------------------------------------------------------
+
+func TestTailFileStreaming_NoNewData(t *testing.T) {
+	tmp := t.TempDir()
+	logFile := filepath.Join(tmp, "tail.ndjson")
+	content := `{"type":"assistant","text":"Hello"}` + "\n"
+	os.WriteFile(logFile, []byte(content), 0644)
+
+	info, _ := os.Stat(logFile)
+	setOffset(logFile, info.Size())
+
+	err := tailFileStreaming(logFile)
+	if err != nil {
+		t.Fatalf("tailFileStreaming failed: %v", err)
+	}
+}
+
+func TestTailFileStreaming_WithNewData(t *testing.T) {
+	tmp := t.TempDir()
+	logFile := filepath.Join(tmp, "tail2.ndjson")
+	content := `{"type":"assistant","text":"first"}` + "\n"
+	os.WriteFile(logFile, []byte(content), 0644)
+
+	setOffset(logFile, 0) // Start from beginning
+
+	err := tailFileStreaming(logFile)
+	if err != nil {
+		t.Fatalf("tailFileStreaming failed: %v", err)
+	}
+
+	offset := getOffset(logFile)
+	if offset == 0 {
+		t.Error("offset should have advanced after reading new data")
+	}
+}
+
+func TestTailFileStreaming_FileNotFound(t *testing.T) {
+	err := tailFileStreaming("/tmp/nonexistent-tail-xyz.ndjson")
+	if err == nil {
+		t.Error("expected error for nonexistent file")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// formatAndPrintLogLine edge cases
+// ---------------------------------------------------------------------------
+
+func TestFormatAndPrintLogLine_StageStartNoNode(t *testing.T) {
+	// Stage start without node/task
+	formatAndPrintLogLine(`{"type":"stage_start","stage":"expand"}`)
+}
+
+func TestFormatAndPrintLogLine_AssistantWithNewline(t *testing.T) {
+	formatAndPrintLogLine(`{"type":"assistant","text":"line\n"}`)
+}
+
+func TestFormatAndPrintLogLine_UnknownType(t *testing.T) {
+	// Unknown type should be silently ignored
+	formatAndPrintLogLine(`{"type":"unknown_event","data":"stuff"}`)
+}
+
+// ---------------------------------------------------------------------------
+// status command JSON output
+// ---------------------------------------------------------------------------
+
+func TestStatusCmd_JSONOutput(t *testing.T) {
+	env := newStatusTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	env.RootCmd.SetArgs([]string{"status"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("status --json failed: %v", err)
+	}
+}
+
+func TestShowAllStatus_JSONOutput(t *testing.T) {
+	env := newTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	err := showAllStatus(env.App)
+	if err != nil {
+		t.Fatalf("showAllStatus JSON failed: %v", err)
+	}
+}
+
+func TestShowAllStatus_WithNamespace(t *testing.T) {
+	env := newStatusTestEnv(t)
+	// The projects dir already has a namespace with a state.json
+	err := showAllStatus(env.App)
+	if err != nil {
+		t.Fatalf("showAllStatus with namespace failed: %v", err)
+	}
+}
+
+func TestShowTreeStatus_JSONOutput(t *testing.T) {
+	env := newStatusTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	err := showTreeStatus(env.App, idx, "")
+	if err != nil {
+		t.Fatalf("showTreeStatus JSON failed: %v", err)
+	}
+}
+
+func TestShowTreeStatus_WithScope(t *testing.T) {
+	env := newStatusTestEnv(t)
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	err := showTreeStatus(env.App, idx, "my-project")
+	if err != nil {
+		t.Fatalf("showTreeStatus with scope failed: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// isInSubtree edge cases
+// ---------------------------------------------------------------------------
+
+func TestIsInSubtree_MissingNode(t *testing.T) {
+	idx := &state.RootIndex{
+		Nodes: map[string]state.IndexEntry{},
+	}
+	if isInSubtree(idx, "missing", "auth") {
+		t.Error("missing node should return false")
+	}
+}
+
+func TestIsInSubtree_DeepChild(t *testing.T) {
+	idx := &state.RootIndex{
+		Nodes: map[string]state.IndexEntry{
+			"root":             {Address: "root"},
+			"root/mid":         {Address: "root/mid", Parent: "root"},
+			"root/mid/deep":    {Address: "root/mid/deep", Parent: "root/mid"},
+		},
+	}
+	if !isInSubtree(idx, "root/mid/deep", "root") {
+		t.Error("deep child should be in subtree of root")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Register command
+// ---------------------------------------------------------------------------
+
+func TestRegister_AllCommandsPresent(t *testing.T) {
+	env := newTestEnv(t)
+	cmds := env.RootCmd.Commands()
+	names := make(map[string]bool)
+	for _, c := range cmds {
+		names[c.Name()] = true
+	}
+	for _, expected := range []string{"start", "stop", "follow", "status"} {
+		if !names[expected] {
+			t.Errorf("expected command %q to be registered", expected)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// getDaemonStatus with running process (self PID)
+// ---------------------------------------------------------------------------
+
+func TestGetDaemonStatus_RunningProcess(t *testing.T) {
+	tmp := t.TempDir()
+	pid := os.Getpid()
+	os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	status := getDaemonStatus(tmp)
+	if status == "stopped" {
+		t.Error("expected running status for own PID")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// recoverStaleDaemonState edge cases
+// ---------------------------------------------------------------------------
+
+func TestRecoverStaleDaemonState_RunningProcess(t *testing.T) {
+	tmp := t.TempDir()
+	// Use our own PID (which is running)
+	pid := os.Getpid()
+	os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+
+	recoverStaleDaemonState(tmp)
+
+	// PID file should still exist since process is running
+	if _, err := os.Stat(filepath.Join(tmp, "wolfcastle.pid")); os.IsNotExist(err) {
+		t.Error("PID file should not be removed for a running process")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// start command edge cases
+// ---------------------------------------------------------------------------
+
+func TestStartCmd_NoResolver(t *testing.T) {
+	env := newTestEnv(t)
+	env.App.Resolver = nil
+	env.RootCmd.SetArgs([]string{"start"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error when resolver is nil")
+	}
+}
+
+func TestStartCmd_AlreadyRunning(t *testing.T) {
+	env := newTestEnv(t)
+	// Write our own PID as the running daemon
+	pid := os.Getpid()
+	os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+
+	env.RootCmd.SetArgs([]string{"start"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error when daemon is already running")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// showAllStatus with data
+// ---------------------------------------------------------------------------
+
+func TestShowAllStatus_JSONWithNamespace(t *testing.T) {
+	env := newStatusTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	err := showAllStatus(env.App)
+	if err != nil {
+		t.Fatalf("showAllStatus JSON with namespace failed: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// stop command JSON output
+// ---------------------------------------------------------------------------
+
+func TestStopCmd_StalePidJSON(t *testing.T) {
+	env := newTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	env.RootCmd.SetArgs([]string{"stop"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error for stale PID")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// showHistoricalLines edge cases
+// ---------------------------------------------------------------------------
+
+func TestShowHistoricalLines_EmptyFile(t *testing.T) {
+	tmp := t.TempDir()
+	logFile := filepath.Join(tmp, "empty.ndjson")
+	os.WriteFile(logFile, []byte(""), 0644)
+	delete(fileOffsets, logFile)
+	showHistoricalLines(logFile, 10)
+}
+
+// ---------------------------------------------------------------------------
+// status command with --all flag
+// ---------------------------------------------------------------------------
+
+func TestStatusCmd_AllFlag(t *testing.T) {
+	env := newStatusTestEnv(t)
+	env.RootCmd.SetArgs([]string{"status", "--all"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("status --all failed: %v", err)
+	}
+}
+
+func TestStatusCmd_AllFlagJSON(t *testing.T) {
+	env := newStatusTestEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	env.RootCmd.SetArgs([]string{"status", "--all"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("status --all --json failed: %v", err)
 	}
 }

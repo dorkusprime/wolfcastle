@@ -74,3 +74,39 @@ func TestNavigate_WithScope(t *testing.T) {
 		t.Fatalf("navigate --node failed: %v", err)
 	}
 }
+
+func TestNavigate_JSONOutput(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+	app.JSONOutput = true
+	defer func() { app.JSONOutput = false }()
+
+	rootCmd.SetArgs([]string{"navigate", "--json"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("navigate --json failed: %v", err)
+	}
+}
+
+func TestNavigate_JSONWithTask(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+	app.JSONOutput = true
+	defer func() { app.JSONOutput = false }()
+	env.createLeafNode(t, "my-project", "My Project")
+
+	parsed, _ := tree.ParseAddress("my-project")
+	ns := env.loadNodeState(t, "my-project")
+	state.TaskAdd(ns, "implement API")
+	state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+
+	rootCmd.SetArgs([]string{"navigate", "--json"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("navigate --json with task failed: %v", err)
+	}
+}

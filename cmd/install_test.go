@@ -70,3 +70,51 @@ func TestEnsureSkillSource(t *testing.T) {
 		t.Error("calling ensureSkillSource twice should not change file")
 	}
 }
+
+func TestCopyDir_EmptySource(t *testing.T) {
+	src := filepath.Join(t.TempDir(), "empty-src")
+	dst := filepath.Join(t.TempDir(), "empty-dst")
+	os.MkdirAll(src, 0755)
+
+	if err := copyDir(src, dst); err != nil {
+		t.Fatalf("copyDir empty failed: %v", err)
+	}
+
+	entries, _ := os.ReadDir(dst)
+	if len(entries) != 0 {
+		t.Errorf("expected empty destination, got %d entries", len(entries))
+	}
+}
+
+func TestCopyDir_NonexistentSource(t *testing.T) {
+	dst := filepath.Join(t.TempDir(), "dst")
+	err := copyDir("/tmp/nonexistent-source-xyz", dst)
+	if err == nil {
+		t.Error("expected error for nonexistent source")
+	}
+}
+
+func TestInstallSkillCmd_Success(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+
+	// Create the base/skills source directory
+	sourceDir := filepath.Join(env.WolfcastleDir, "base", "skills")
+	os.MkdirAll(sourceDir, 0755)
+	os.WriteFile(filepath.Join(sourceDir, "wolfcastle.md"), []byte("# Test Skill\n"), 0644)
+
+	rootCmd.SetArgs([]string{"install", "skill"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("install skill failed: %v", err)
+	}
+
+	// Verify the skill was installed
+	repoDir := filepath.Dir(env.WolfcastleDir)
+	skillDir := filepath.Join(repoDir, ".claude", "wolfcastle")
+	if _, err := os.Stat(skillDir); os.IsNotExist(err) {
+		t.Error("skill directory should exist after install")
+	}
+}
