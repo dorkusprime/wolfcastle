@@ -1,4 +1,4 @@
-package inbox
+package state
 
 import (
 	"os"
@@ -7,27 +7,27 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Load
+// LoadInbox
 // ---------------------------------------------------------------------------
 
-func TestLoad_NonExistentFile(t *testing.T) {
+func TestLoadInbox_NonExistentFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "no-such-inbox.json")
 
-	f, err := Load(path)
+	f, err := LoadInbox(path)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 	if f == nil {
-		t.Fatal("expected non-nil File")
+		t.Fatal("expected non-nil InboxFile")
 	}
 	if len(f.Items) != 0 {
 		t.Errorf("expected empty items, got %d", len(f.Items))
 	}
 }
 
-func TestLoad_ValidFile(t *testing.T) {
+func TestLoadInbox_ValidFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "inbox.json")
@@ -42,7 +42,7 @@ func TestLoad_ValidFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f, err := Load(path)
+	f, err := LoadInbox(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestLoad_ValidFile(t *testing.T) {
 	}
 }
 
-func TestLoad_MalformedJSON(t *testing.T) {
+func TestLoadInbox_MalformedJSON(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "bad.json")
@@ -69,47 +69,47 @@ func TestLoad_MalformedJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := Load(path)
+	_, err := LoadInbox(path)
 	if err == nil {
 		t.Error("expected error for malformed JSON")
 	}
 }
 
 // ---------------------------------------------------------------------------
-// Save
+// SaveInbox
 // ---------------------------------------------------------------------------
 
-func TestLoad_ReadError(t *testing.T) {
+func TestLoadInbox_ReadError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	// Reading a directory triggers a non-NotExist read error.
-	_, err := Load(dir)
+	_, err := LoadInbox(dir)
 	if err == nil {
 		t.Error("expected error when reading a directory")
 	}
 }
 
-func TestSave_WriteError(t *testing.T) {
+func TestSaveInbox_WriteError(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join(t.TempDir(), "no", "such", "dir", "inbox.json")
-	f := &File{Items: []Item{{Text: "x"}}}
-	if err := Save(path, f); err == nil {
+	f := &InboxFile{Items: []InboxItem{{Text: "x"}}}
+	if err := SaveInbox(path, f); err == nil {
 		t.Error("expected error writing to nonexistent directory")
 	}
 }
 
-func TestSave_WritesValidJSONWithTrailingNewline(t *testing.T) {
+func TestSaveInbox_WritesValidJSONWithTrailingNewline(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "inbox.json")
 
-	f := &File{
-		Items: []Item{
+	f := &InboxFile{
+		Items: []InboxItem{
 			{Timestamp: "2025-06-01T10:00:00Z", Text: "hello", Status: "new"},
 		},
 	}
 
-	if err := Save(path, f); err != nil {
+	if err := SaveInbox(path, f); err != nil {
 		t.Fatal(err)
 	}
 
@@ -125,23 +125,23 @@ func TestSave_WritesValidJSONWithTrailingNewline(t *testing.T) {
 	}
 }
 
-func TestSave_Roundtrip(t *testing.T) {
+func TestSaveInbox_Roundtrip(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "inbox.json")
 
-	original := &File{
-		Items: []Item{
+	original := &InboxFile{
+		Items: []InboxItem{
 			{Timestamp: "2025-06-01T10:00:00Z", Text: "item one", Status: "new"},
 			{Timestamp: "2025-06-02T11:00:00Z", Text: "item two", Status: "read", Expanded: "expanded text"},
 		},
 	}
 
-	if err := Save(path, original); err != nil {
+	if err := SaveInbox(path, original); err != nil {
 		t.Fatal(err)
 	}
 
-	loaded, err := Load(path)
+	loaded, err := LoadInbox(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

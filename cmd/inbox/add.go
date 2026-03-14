@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -32,19 +32,19 @@ Examples:
 
 			inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
 
-			inboxData, err := inbox.Load(inboxPath)
+			inboxData, err := state.LoadInbox(inboxPath)
 			if err != nil {
 				return err
 			}
 
-			item := inbox.Item{
+			item := state.InboxItem{
 				Timestamp: app.Clock.Now().Format("2006-01-02T15:04:05Z07:00"),
 				Text:      text,
 				Status:    "new",
 			}
 			inboxData.Items = append(inboxData.Items, item)
 
-			if err := inbox.Save(inboxPath, inboxData); err != nil {
+			if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 				return fmt.Errorf("writing inbox: %w", err)
 			}
 

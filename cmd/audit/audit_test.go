@@ -9,7 +9,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/review"
+
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
@@ -473,15 +473,15 @@ func TestPending_NoBatch(t *testing.T) {
 func TestPending_WithBatch(t *testing.T) {
 	env := newTestEnv(t)
 
-	batch := &review.Batch{
+	batch := &state.Batch{
 		ID:     "audit-test",
-		Status: review.BatchPending,
-		Findings: []review.Finding{
-			{ID: "finding-1", Title: "Test Finding", Status: review.FindingPending},
+		Status: state.BatchPending,
+		Findings: []state.Finding{
+			{ID: "finding-1", Title: "Test Finding", Status: state.FindingPending},
 		},
 	}
-	batchPath := filepath.Join(env.WolfcastleDir, "audit-review.json")
-	review.SaveBatch(batchPath, batch)
+	batchPath := filepath.Join(env.WolfcastleDir, "audit-state.json")
+	state.SaveBatch(batchPath, batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "pending"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -505,16 +505,16 @@ func TestHistory_Empty(t *testing.T) {
 func TestReject_SingleFinding(t *testing.T) {
 	env := newTestEnv(t)
 
-	batch := &review.Batch{
+	batch := &state.Batch{
 		ID:     "audit-test",
-		Status: review.BatchPending,
+		Status: state.BatchPending,
 		Scopes: []string{"test"},
-		Findings: []review.Finding{
-			{ID: "finding-1", Title: "Test Finding", Status: review.FindingPending},
+		Findings: []state.Finding{
+			{ID: "finding-1", Title: "Test Finding", Status: state.FindingPending},
 		},
 	}
-	batchPath := filepath.Join(env.WolfcastleDir, "audit-review.json")
-	review.SaveBatch(batchPath, batch)
+	batchPath := filepath.Join(env.WolfcastleDir, "audit-state.json")
+	state.SaveBatch(batchPath, batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "reject", "finding-1"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -541,14 +541,14 @@ func TestReject_NoBatch(t *testing.T) {
 func TestReject_NoArgs(t *testing.T) {
 	env := newTestEnv(t)
 
-	batch := &review.Batch{
+	batch := &state.Batch{
 		ID:     "audit-test",
-		Status: review.BatchPending,
-		Findings: []review.Finding{
-			{ID: "finding-1", Title: "Test", Status: review.FindingPending},
+		Status: state.BatchPending,
+		Findings: []state.Finding{
+			{ID: "finding-1", Title: "Test", Status: state.FindingPending},
 		},
 	}
-	review.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-review.json"), batch)
+	state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "reject"})
 	err := env.RootCmd.Execute()
@@ -560,17 +560,17 @@ func TestReject_NoArgs(t *testing.T) {
 func TestReject_All(t *testing.T) {
 	env := newTestEnv(t)
 
-	batch := &review.Batch{
+	batch := &state.Batch{
 		ID:     "audit-test",
-		Status: review.BatchPending,
+		Status: state.BatchPending,
 		Scopes: []string{"test"},
-		Findings: []review.Finding{
-			{ID: "finding-1", Title: "Finding One", Status: review.FindingPending},
-			{ID: "finding-2", Title: "Finding Two", Status: review.FindingPending},
+		Findings: []state.Finding{
+			{ID: "finding-1", Title: "Finding One", Status: state.FindingPending},
+			{ID: "finding-2", Title: "Finding Two", Status: state.FindingPending},
 		},
 	}
-	batchPath := filepath.Join(env.WolfcastleDir, "audit-review.json")
-	review.SaveBatch(batchPath, batch)
+	batchPath := filepath.Join(env.WolfcastleDir, "audit-state.json")
+	state.SaveBatch(batchPath, batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "reject", "--all"})
 	if err := env.RootCmd.Execute(); err != nil {

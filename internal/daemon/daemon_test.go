@@ -11,7 +11,6 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -185,8 +184,8 @@ func TestCheckInboxState_EmptyInbox(t *testing.T) {
 	dir := t.TempDir()
 	inboxPath := filepath.Join(dir, "inbox.json")
 
-	inboxData := &inbox.File{Items: []inbox.Item{}}
-	if err := inbox.Save(inboxPath, inboxData); err != nil {
+	inboxData := &state.InboxFile{Items: []state.InboxItem{}}
+	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		t.Fatal(err)
 	}
 
@@ -202,13 +201,13 @@ func TestCheckInboxState_NewItemsOnly(t *testing.T) {
 	dir := t.TempDir()
 	inboxPath := filepath.Join(dir, "inbox.json")
 
-	inboxData := &inbox.File{
-		Items: []inbox.Item{
+	inboxData := &state.InboxFile{
+		Items: []state.InboxItem{
 			{Timestamp: "2026-03-14T00:00:00Z", Text: "new thing", Status: "new"},
 			{Timestamp: "2026-03-14T00:01:00Z", Text: "filed thing", Status: "filed"},
 		},
 	}
-	if err := inbox.Save(inboxPath, inboxData); err != nil {
+	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		t.Fatal(err)
 	}
 
@@ -227,12 +226,12 @@ func TestCheckInboxState_ExpandedItemsOnly(t *testing.T) {
 	dir := t.TempDir()
 	inboxPath := filepath.Join(dir, "inbox.json")
 
-	inboxData := &inbox.File{
-		Items: []inbox.Item{
+	inboxData := &state.InboxFile{
+		Items: []state.InboxItem{
 			{Timestamp: "2026-03-14T00:00:00Z", Text: "expanded thing", Status: "expanded", Expanded: "details"},
 		},
 	}
-	if err := inbox.Save(inboxPath, inboxData); err != nil {
+	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		t.Fatal(err)
 	}
 
@@ -251,13 +250,13 @@ func TestCheckInboxState_BothNewAndExpanded(t *testing.T) {
 	dir := t.TempDir()
 	inboxPath := filepath.Join(dir, "inbox.json")
 
-	inboxData := &inbox.File{
-		Items: []inbox.Item{
+	inboxData := &state.InboxFile{
+		Items: []state.InboxItem{
 			{Timestamp: "2026-03-14T00:00:00Z", Text: "new thing", Status: "new"},
 			{Timestamp: "2026-03-14T00:01:00Z", Text: "expanded thing", Status: "expanded"},
 		},
 	}
-	if err := inbox.Save(inboxPath, inboxData); err != nil {
+	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		t.Fatal(err)
 	}
 
@@ -276,13 +275,13 @@ func TestCheckInboxState_AllFiled(t *testing.T) {
 	dir := t.TempDir()
 	inboxPath := filepath.Join(dir, "inbox.json")
 
-	inboxData := &inbox.File{
-		Items: []inbox.Item{
+	inboxData := &state.InboxFile{
+		Items: []state.InboxItem{
 			{Timestamp: "2026-03-14T00:00:00Z", Text: "filed thing", Status: "filed"},
 			{Timestamp: "2026-03-14T00:01:00Z", Text: "also filed", Status: "filed"},
 		},
 	}
-	if err := inbox.Save(inboxPath, inboxData); err != nil {
+	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		t.Fatal(err)
 	}
 
@@ -971,7 +970,7 @@ func TestRunIteration_PendingFilingSkipsExecute(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &inbox.File{Items: []inbox.Item{
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "expanded", Text: "awaiting filing", Expanded: "details"},
 	}})
 
@@ -1041,7 +1040,7 @@ func TestRunExpandStage_WithNewItems(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "expand.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &inbox.File{Items: []inbox.Item{
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "add feature X", Timestamp: "2024-01-01T00:00:00Z"},
 	}})
 
@@ -1050,7 +1049,7 @@ func TestRunExpandStage_WithNewItems(t *testing.T) {
 		t.Fatalf("expand stage error: %v", err)
 	}
 
-	inboxData, _ := inbox.Load(inboxPath)
+	inboxData, _ := state.LoadInbox(inboxPath)
 	if inboxData.Items[0].Status != "expanded" {
 		t.Errorf("expected 'expanded', got %q", inboxData.Items[0].Status)
 	}
@@ -1062,7 +1061,7 @@ func TestRunExpandStage_NoNewItems(t *testing.T) {
 	defer d.Logger.Close()
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &inbox.File{Items: []inbox.Item{
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "filed", Text: "already done"},
 	}})
 
@@ -1078,7 +1077,7 @@ func TestRunExpandStage_ModelNotFound(t *testing.T) {
 	defer d.Logger.Close()
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &inbox.File{Items: []inbox.Item{
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item"},
 	}})
 
@@ -1098,7 +1097,7 @@ func TestRunExpandStage_MoreItemsThanSections(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "expand.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &inbox.File{Items: []inbox.Item{
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item 1", Timestamp: "2024-01-01T00:00:00Z"},
 		{Status: "new", Text: "item 2", Timestamp: "2024-01-01T00:01:00Z"},
 	}})
@@ -1108,7 +1107,7 @@ func TestRunExpandStage_MoreItemsThanSections(t *testing.T) {
 		t.Fatalf("expand stage error: %v", err)
 	}
 
-	inboxData, _ := inbox.Load(inboxPath)
+	inboxData, _ := state.LoadInbox(inboxPath)
 	// Both should be marked expanded even if model returned fewer sections
 	for i, item := range inboxData.Items {
 		if item.Status != "expanded" {
@@ -1139,7 +1138,7 @@ func TestRunFileStage_WithExpandedItems(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "file.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &inbox.File{Items: []inbox.Item{
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "expanded", Text: "feature X", Expanded: "## Details\nexpanded"},
 	}})
 
@@ -1148,7 +1147,7 @@ func TestRunFileStage_WithExpandedItems(t *testing.T) {
 		t.Fatalf("file stage error: %v", err)
 	}
 
-	inboxData, _ := inbox.Load(inboxPath)
+	inboxData, _ := state.LoadInbox(inboxPath)
 	if inboxData.Items[0].Status != "filed" {
 		t.Errorf("expected 'filed', got %q", inboxData.Items[0].Status)
 	}
@@ -1160,7 +1159,7 @@ func TestRunFileStage_NoExpandedItems(t *testing.T) {
 	defer d.Logger.Close()
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &inbox.File{Items: []inbox.Item{
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "not expanded yet"},
 	}})
 
@@ -1176,7 +1175,7 @@ func TestRunFileStage_ModelNotFound(t *testing.T) {
 	defer d.Logger.Close()
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &inbox.File{Items: []inbox.Item{
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "expanded", Text: "item", Expanded: "details"},
 	}})
 
@@ -1193,7 +1192,7 @@ func TestRunFileStage_ExpandedItemWithEmptyExpanded(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "file.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &inbox.File{Items: []inbox.Item{
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "expanded", Text: "feature with empty expansion", Expanded: ""},
 	}})
 
@@ -1202,7 +1201,7 @@ func TestRunFileStage_ExpandedItemWithEmptyExpanded(t *testing.T) {
 		t.Fatalf("file stage error: %v", err)
 	}
 
-	inboxData, _ := inbox.Load(inboxPath)
+	inboxData, _ := state.LoadInbox(inboxPath)
 	if inboxData.Items[0].Status != "filed" {
 		t.Errorf("expected 'filed', got %q", inboxData.Items[0].Status)
 	}

@@ -8,20 +8,20 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
 func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage) error {
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	inboxData, err := inbox.Load(inboxPath)
+	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
 		return nil // No inbox file = nothing to expand
 	}
 
 	// Filter to only "new" status items
-	var newItems []inbox.Item
+	var newItems []state.InboxItem
 	var newIndices []int
 	for i, item := range inboxData.Items {
 		if item.Status == "new" {
@@ -84,7 +84,7 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		}
 	}
 
-	if err := inbox.Save(inboxPath, inboxData); err != nil {
+	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		return fmt.Errorf("saving inbox after expand: %w", err)
 	}
 
@@ -123,7 +123,7 @@ func parseExpandedSections(output string) []string {
 
 func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) error {
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	inboxData, err := inbox.Load(inboxPath)
+	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
 		return nil
 	}
@@ -185,7 +185,7 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 		inboxData.Items[idx].Status = "filed"
 	}
 
-	if err := inbox.Save(inboxPath, inboxData); err != nil {
+	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		return fmt.Errorf("saving inbox after file stage: %w", err)
 	}
 

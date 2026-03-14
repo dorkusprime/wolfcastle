@@ -12,7 +12,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
-	"github.com/dorkusprime/wolfcastle/internal/review"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -22,9 +22,9 @@ func newCodebaseCmd(app *cmdutil.App) (*cobra.Command, *cobra.Command) {
 	runCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run a codebase audit with discoverable scopes",
-		Long: `Runs a model-driven codebase audit and saves findings for review.
+		Long: `Runs a model-driven codebase audit and saves findings for state.
 
-Findings are saved as a pending batch in audit-review.json. Use
+Findings are saved as a pending batch in audit-state.json. Use
 'audit pending' to view them, 'audit approve' and 'audit reject'
 to act on individual findings, and 'audit history' to see past decisions.
 
@@ -63,15 +63,15 @@ Examples:
 			}
 
 			// Check for existing pending batch
-			batchPath := filepath.Join(app.WolfcastleDir, "audit-review.json")
-			existing, err := review.LoadBatch(batchPath)
+			batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+			existing, err := state.LoadBatch(batchPath)
 			if err != nil {
 				return err
 			}
-			if existing != nil && existing.Status == review.BatchPending {
+			if existing != nil && existing.Status == state.BatchPending {
 				pendingCount := 0
 				for _, f := range existing.Findings {
-					if f.Status == review.FindingPending {
+					if f.Status == state.FindingPending {
 						pendingCount++
 					}
 				}
@@ -253,18 +253,18 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 
 	// Build the batch
 	now := app.Clock.Now()
-	batch := &review.Batch{
+	batch := &state.Batch{
 		ID:        fmt.Sprintf("audit-%s", now.Format("20060102T150405Z")),
 		Timestamp: now,
 		Scopes:    scopeIDs(scopes),
-		Status:    review.BatchPending,
+		Status:    state.BatchPending,
 		Findings:  findings,
 		RawOutput: result.Stdout,
 	}
 
 	// Save the batch
-	batchPath := filepath.Join(app.WolfcastleDir, "audit-review.json")
-	if err := review.SaveBatch(batchPath, batch); err != nil {
+	batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+	if err := state.SaveBatch(batchPath, batch); err != nil {
 		return err
 	}
 
@@ -275,7 +275,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 			"scopes":        batch.Scopes,
 		}))
 	} else {
-		output.PrintHuman("\nSaved %d finding(s) for review.", len(findings))
+		output.PrintHuman("\nSaved %d finding(s) for state.", len(findings))
 		for i, f := range findings {
 			output.PrintHuman("  %d. %s", i+1, f.Title)
 		}
@@ -288,8 +288,8 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 }
 
 // parseFindings extracts structured findings from model output.
-func parseFindings(rawOutput string) []review.Finding {
-	var findings []review.Finding
+func parseFindings(rawOutput string) []state.Finding {
+	var findings []state.Finding
 	lines := strings.Split(rawOutput, "\n")
 	findingNum := 0
 
@@ -301,11 +301,11 @@ func parseFindings(rawOutput string) []review.Finding {
 			return
 		}
 		findingNum++
-		findings = append(findings, review.Finding{
+		findings = append(findings, state.Finding{
 			ID:          fmt.Sprintf("finding-%d", findingNum),
 			Title:       currentTitle,
 			Description: strings.TrimSpace(currentDesc.String()),
-			Status:      review.FindingPending,
+			Status:      state.FindingPending,
 		})
 		currentTitle = ""
 		currentDesc.Reset()

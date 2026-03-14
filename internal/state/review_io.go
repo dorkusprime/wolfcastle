@@ -1,4 +1,4 @@
-package review
+package state
 
 import (
 	"encoding/json"
@@ -95,10 +95,4 @@ func EnforceRetention(h *History, maxEntries int, maxAgeDays int, clocks ...cloc
 	}
 }
 
-// resolveOptionalClock returns the first clock if provided, otherwise the real clock.
-func resolveOptionalClock(clocks []clock.Clock) clock.Clock {
-	if len(clocks) > 0 && clocks[0] != nil {
-		return clocks[0]
-	}
-	return clock.New()
-}
+// resolveOptionalClock is defined in audit_lifecycle.go and shared here.

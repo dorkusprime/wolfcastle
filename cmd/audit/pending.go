@@ -6,7 +6,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
-	"github.com/dorkusprime/wolfcastle/internal/review"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -21,8 +21,8 @@ Examples:
   wolfcastle audit pending
   wolfcastle audit pending --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			batchPath := filepath.Join(app.WolfcastleDir, "audit-review.json")
-			batch, err := review.LoadBatch(batchPath)
+			batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+			batch, err := state.LoadBatch(batchPath)
 			if err != nil {
 				return err
 			}
@@ -37,9 +37,9 @@ Examples:
 				return nil
 			}
 
-			var pending []review.Finding
+			var pending []state.Finding
 			for _, f := range batch.Findings {
-				if f.Status == review.FindingPending {
+				if f.Status == state.FindingPending {
 					pending = append(pending, f)
 				}
 			}

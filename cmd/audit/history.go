@@ -5,7 +5,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
-	"github.com/dorkusprime/wolfcastle/internal/review"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +21,7 @@ Examples:
   wolfcastle audit history --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			historyPath := filepath.Join(app.WolfcastleDir, "audit-review-history.json")
-			history, err := review.LoadHistory(historyPath)
+			history, err := state.LoadHistory(historyPath)
 			if err != nil {
 				return err
 			}
@@ -49,9 +49,9 @@ Examples:
 				rejected := 0
 				for _, d := range entry.Decisions {
 					switch d.Action {
-					case string(review.FindingApproved):
+					case string(state.FindingApproved):
 						approved++
-					case string(review.FindingRejected):
+					case string(state.FindingRejected):
 						rejected++
 					}
 				}
@@ -60,7 +60,7 @@ Examples:
 				for _, d := range entry.Decisions {
 					marker := "+"
 					extra := ""
-					if d.Action == string(review.FindingRejected) {
+					if d.Action == string(state.FindingRejected) {
 						marker = "-"
 					}
 					if d.CreatedNode != "" {

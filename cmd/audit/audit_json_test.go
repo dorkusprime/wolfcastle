@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dorkusprime/wolfcastle/internal/review"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
 func TestBreadcrumb_JSONOutput(t *testing.T) {
@@ -89,15 +89,15 @@ func TestPending_JSONOutput_WithBatch(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	batch := &review.Batch{
+	batch := &state.Batch{
 		ID:     "test",
-		Status: review.BatchPending,
+		Status: state.BatchPending,
 		Scopes: []string{"security"},
-		Findings: []review.Finding{
-			{ID: "f-1", Title: "Finding", Status: review.FindingPending, Description: "details"},
+		Findings: []state.Finding{
+			{ID: "f-1", Title: "Finding", Status: state.FindingPending, Description: "details"},
 		},
 	}
-	review.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-review.json"), batch)
+	state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "pending"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -119,15 +119,15 @@ func TestHistory_JSONOutput(t *testing.T) {
 func TestReject_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
 
-	batch := &review.Batch{
+	batch := &state.Batch{
 		ID:     "test",
-		Status: review.BatchPending,
+		Status: state.BatchPending,
 		Scopes: []string{"test"},
-		Findings: []review.Finding{
-			{ID: "f-1", Title: "Finding", Status: review.FindingPending},
+		Findings: []state.Finding{
+			{ID: "f-1", Title: "Finding", Status: state.FindingPending},
 		},
 	}
-	review.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-review.json"), batch)
+	state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
@@ -235,15 +235,15 @@ func TestAuditList_JSONOutput(t *testing.T) {
 func TestPending_AllReviewed(t *testing.T) {
 	env := newTestEnv(t)
 
-	batch := &review.Batch{
+	batch := &state.Batch{
 		ID:     "test",
-		Status: review.BatchPending,
+		Status: state.BatchPending,
 		Scopes: []string{"test"},
-		Findings: []review.Finding{
-			{ID: "f-1", Title: "Finding", Status: review.FindingApproved},
+		Findings: []state.Finding{
+			{ID: "f-1", Title: "Finding", Status: state.FindingApproved},
 		},
 	}
-	review.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-review.json"), batch)
+	state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "pending"})
 	if err := env.RootCmd.Execute(); err != nil {

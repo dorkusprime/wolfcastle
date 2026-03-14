@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -39,7 +38,7 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 // and expanded items (needing filing). Returns false, false if the inbox
 // file doesn't exist or can't be read.
 func (d *Daemon) checkInboxState(inboxPath string) (hasNew, hasExpanded bool) {
-	inboxData, err := inbox.Load(inboxPath)
+	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
 		return false, false
 	}

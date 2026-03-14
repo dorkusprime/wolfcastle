@@ -8,7 +8,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/project"
-	"github.com/dorkusprime/wolfcastle/internal/review"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
@@ -37,8 +36,8 @@ Examples:
 				return fmt.Errorf("provide a finding ID or use --all")
 			}
 
-			batchPath := filepath.Join(app.WolfcastleDir, "audit-review.json")
-			batch, err := review.LoadBatch(batchPath)
+			batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+			batch, err := state.LoadBatch(batchPath)
 			if err != nil {
 				return err
 			}
@@ -52,11 +51,11 @@ Examples:
 			}
 
 			now := app.Clock.Now()
-			var approved []review.Decision
+			var approved []state.Decision
 
 			for i := range batch.Findings {
 				f := &batch.Findings[i]
-				if f.Status != review.FindingPending {
+				if f.Status != state.FindingPending {
 					continue
 				}
 				if !allFlag && (len(args) == 0 || args[0] != f.ID) {
@@ -75,13 +74,13 @@ Examples:
 
 				// If the project already exists, mark approved without creating
 				if _, exists := idx.Nodes[slug]; exists {
-					f.Status = review.FindingApproved
+					f.Status = state.FindingApproved
 					f.DecidedAt = &now
 					f.CreatedNode = slug
-					approved = append(approved, review.Decision{
+					approved = append(approved, state.Decision{
 						FindingID:   f.ID,
 						Title:       f.Title,
-						Action:      string(review.FindingApproved),
+						Action:      string(state.FindingApproved),
 						Timestamp:   now,
 						CreatedNode: slug,
 					})
@@ -123,14 +122,14 @@ Examples:
 					output.PrintHuman("  Warning: could not write description for %s: %v", f.ID, writeErr)
 				}
 
-				f.Status = review.FindingApproved
+				f.Status = state.FindingApproved
 				f.DecidedAt = &now
 				f.CreatedNode = addr
 
-				approved = append(approved, review.Decision{
+				approved = append(approved, state.Decision{
 					FindingID:   f.ID,
 					Title:       f.Title,
-					Action:      string(review.FindingApproved),
+					Action:      string(state.FindingApproved),
 					Timestamp:   now,
 					CreatedNode: addr,
 				})
@@ -147,7 +146,7 @@ Examples:
 
 			// Save batch first — if this fails, no index changes are persisted,
 			// so the batch remains the source of truth for what's been decided.
-			if err := review.SaveBatch(batchPath, batch); err != nil {
+			if err := state.SaveBatch(batchPath, batch); err != nil {
 				return err
 			}
 
@@ -180,20 +179,20 @@ Examples:
 
 // finalizeBatchIfComplete archives the batch to history and removes the
 // pending file when all findings have been decided.
-func finalizeBatchIfComplete(app *cmdutil.App, batch *review.Batch, batchPath string) error {
+func finalizeBatchIfComplete(app *cmdutil.App, batch *state.Batch, batchPath string) error {
 	for _, f := range batch.Findings {
-		if f.Status == review.FindingPending {
+		if f.Status == state.FindingPending {
 			return nil // Still has undecided findings
 		}
 	}
 
 	// Mark batch as completed
-	batch.Status = review.BatchCompleted
+	batch.Status = state.BatchCompleted
 
 	// Build history entry
-	var decisions []review.Decision
+	var decisions []state.Decision
 	for _, f := range batch.Findings {
-		d := review.Decision{
+		d := state.Decision{
 			FindingID: f.ID,
 			Title:     f.Title,
 			Action:    string(f.Status),
@@ -207,7 +206,7 @@ func finalizeBatchIfComplete(app *cmdutil.App, batch *review.Batch, batchPath st
 		decisions = append(decisions, d)
 	}
 
-	entry := review.HistoryEntry{
+	entry := state.HistoryEntry{
 		BatchID:     batch.ID,
 		CompletedAt: app.Clock.Now(),
 		Scopes:      batch.Scopes,
@@ -216,18 +215,18 @@ func finalizeBatchIfComplete(app *cmdutil.App, batch *review.Batch, batchPath st
 
 	// Load, append, enforce retention, and save history
 	historyPath := filepath.Join(filepath.Dir(batchPath), "audit-review-history.json")
-	history, err := review.LoadHistory(historyPath)
+	history, err := state.LoadHistory(historyPath)
 	if err != nil {
 		return err
 	}
 	history.Entries = append(history.Entries, entry)
-	review.EnforceRetention(history, 100, 90)
-	if err := review.SaveHistory(historyPath, history); err != nil {
+	state.EnforceRetention(history, 100, 90)
+	if err := state.SaveHistory(historyPath, history); err != nil {
 		return err
 	}
 
 	// Remove the pending batch file
-	if err := review.RemoveBatch(batchPath); err != nil {
+	if err := state.RemoveBatch(batchPath); err != nil {
 		return err
 	}
 

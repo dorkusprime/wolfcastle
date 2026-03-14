@@ -6,7 +6,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
-	"github.com/dorkusprime/wolfcastle/internal/review"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -29,8 +29,8 @@ Examples:
 				return fmt.Errorf("provide a finding ID or use --all")
 			}
 
-			batchPath := filepath.Join(app.WolfcastleDir, "audit-review.json")
-			batch, err := review.LoadBatch(batchPath)
+			batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+			batch, err := state.LoadBatch(batchPath)
 			if err != nil {
 				return err
 			}
@@ -39,24 +39,24 @@ Examples:
 			}
 
 			now := app.Clock.Now()
-			var rejected []review.Decision
+			var rejected []state.Decision
 
 			for i := range batch.Findings {
 				f := &batch.Findings[i]
-				if f.Status != review.FindingPending {
+				if f.Status != state.FindingPending {
 					continue
 				}
 				if !allFlag && (len(args) == 0 || args[0] != f.ID) {
 					continue
 				}
 
-				f.Status = review.FindingRejected
+				f.Status = state.FindingRejected
 				f.DecidedAt = &now
 
-				rejected = append(rejected, review.Decision{
+				rejected = append(rejected, state.Decision{
 					FindingID: f.ID,
 					Title:     f.Title,
-					Action:    string(review.FindingRejected),
+					Action:    string(state.FindingRejected),
 					Timestamp: now,
 				})
 
@@ -73,7 +73,7 @@ Examples:
 			}
 
 			// Save updated batch
-			if err := review.SaveBatch(batchPath, batch); err != nil {
+			if err := state.SaveBatch(batchPath, batch); err != nil {
 				return err
 			}
 

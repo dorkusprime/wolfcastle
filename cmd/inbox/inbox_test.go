@@ -9,7 +9,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	inboxpkg "github.com/dorkusprime/wolfcastle/internal/inbox"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
@@ -66,10 +65,10 @@ func newTestEnv(t *testing.T) *testEnv {
 	}
 }
 
-func loadInbox(t *testing.T, env *testEnv) *inboxpkg.File {
+func loadInbox(t *testing.T, env *testEnv) *state.InboxFile {
 	t.Helper()
 	inboxPath := filepath.Join(env.ProjectsDir, "inbox.json")
-	f, err := inboxpkg.Load(inboxPath)
+	f, err := state.LoadInbox(inboxPath)
 	if err != nil {
 		t.Fatalf("loading inbox: %v", err)
 	}
@@ -179,13 +178,13 @@ func TestInboxClear_ClearsFiledOnly(t *testing.T) {
 
 	// Manually set one item to "filed"
 	inboxPath := filepath.Join(env.ProjectsDir, "inbox.json")
-	f, _ := inboxpkg.Load(inboxPath)
-	f.Items = append(f.Items, inboxpkg.Item{
+	f, _ := state.LoadInbox(inboxPath)
+	f.Items = append(f.Items, state.InboxItem{
 		Timestamp: "2025-01-01T00:00:00Z",
 		Text:      "filed idea",
 		Status:    "filed",
 	})
-	inboxpkg.Save(inboxPath, f)
+	state.SaveInbox(inboxPath, f)
 
 	env.RootCmd.SetArgs([]string{"inbox", "clear"})
 	if err := env.RootCmd.Execute(); err != nil {
