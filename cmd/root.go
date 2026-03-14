@@ -50,6 +50,30 @@ func init() {
 // It handles top-level error formatting (JSON or human-readable) and
 // exits with code 1 on any command failure.
 func Execute() {
+	// Command groups for organized help output (ADR-030)
+	rootCmd.AddGroup(
+		&cobra.Group{ID: "lifecycle", Title: "Lifecycle:"},
+		&cobra.Group{ID: "work", Title: "Work Management:"},
+		&cobra.Group{ID: "audit", Title: "Auditing:"},
+		&cobra.Group{ID: "docs", Title: "Documentation:"},
+		&cobra.Group{ID: "diagnostics", Title: "Diagnostics:"},
+		&cobra.Group{ID: "integration", Title: "Integration:"},
+	)
+
+	// Assign groups to commands
+	initCmd.GroupID = "lifecycle"
+	versionCmd.GroupID = "lifecycle"
+	updateCmd.GroupID = "lifecycle"
+	navigateCmd.GroupID = "work"
+	doctorCmd.GroupID = "diagnostics"
+	unblockCmd.GroupID = "diagnostics"
+	installCmd.GroupID = "integration"
+	specCreateCmd.GroupID = "docs"
+	specLinkCmd.GroupID = "docs"
+	specListCmd.GroupID = "docs"
+	adrCreateCmd.GroupID = "docs"
+	archiveAddCmd.GroupID = "work"
+
 	audit.Register(app, rootCmd)
 	daemon.Register(app, rootCmd)
 	inbox.Register(app, rootCmd)

@@ -25,6 +25,10 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	statusCmd.Flags().String("node", "", "Show status for a specific subtree")
 	statusCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 
+	startCmd.GroupID = "lifecycle"
+	stopCmd.GroupID = "lifecycle"
+	followCmd.GroupID = "lifecycle"
+	statusCmd.GroupID = "lifecycle"
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(followCmd)

@@ -70,5 +70,6 @@ Breadcrumbs and escalations manage the per-node audit trail:
 	auditCmd.AddCommand(runCmd)
 	auditCmd.AddCommand(listCmd)
 
+	auditCmd.GroupID = "audit"
 	rootCmd.AddCommand(auditCmd)
 }

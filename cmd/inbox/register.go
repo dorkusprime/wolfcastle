@@ -26,5 +26,6 @@ Examples:
 	inboxCmd.AddCommand(newListCmd(app))
 	inboxCmd.AddCommand(newClearCmd(app))
 
+	inboxCmd.GroupID = "work"
 	rootCmd.AddCommand(inboxCmd)
 }

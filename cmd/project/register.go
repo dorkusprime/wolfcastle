@@ -26,5 +26,6 @@ Examples:
 	createCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 	projectCmd.AddCommand(createCmd)
 
+	projectCmd.GroupID = "work"
 	rootCmd.AddCommand(projectCmd)
 }

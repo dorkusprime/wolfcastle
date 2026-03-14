@@ -41,5 +41,6 @@ Examples:
 	unblockCmd.RegisterFlagCompletionFunc("node", completeFn)
 
 	taskCmd.AddCommand(addCmd, claimCmd, completeCmd, blockCmd, unblockCmd)
+	taskCmd.GroupID = "work"
 	rootCmd.AddCommand(taskCmd)
 }
