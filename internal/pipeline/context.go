@@ -39,9 +39,9 @@ func BuildIterationContextWithDir(wolfcastleDir string, nodeAddr string, ns *sta
 	}
 	var b strings.Builder
 
-	b.WriteString(fmt.Sprintf("**Node:** %s\n", nodeAddr))
-	b.WriteString(fmt.Sprintf("**Node Type:** %s\n", ns.Type))
-	b.WriteString(fmt.Sprintf("**Node State:** %s\n\n", ns.State))
+	fmt.Fprintf(&b, "**Node:** %s\n", nodeAddr)
+	fmt.Fprintf(&b, "**Node Type:** %s\n", ns.Type)
+	fmt.Fprintf(&b, "**Node State:** %s\n\n", ns.State)
 
 	// Find the target task and emit context (single pass)
 	var taskFound bool
@@ -50,11 +50,11 @@ func BuildIterationContextWithDir(wolfcastleDir string, nodeAddr string, ns *sta
 			continue
 		}
 		taskFound = true
-		b.WriteString(fmt.Sprintf("**Task:** %s/%s\n", nodeAddr, t.ID))
-		b.WriteString(fmt.Sprintf("**Description:** %s\n", t.Description))
-		b.WriteString(fmt.Sprintf("**Task State:** %s\n", t.State))
+		fmt.Fprintf(&b, "**Task:** %s/%s\n", nodeAddr, t.ID)
+		fmt.Fprintf(&b, "**Description:** %s\n", t.Description)
+		fmt.Fprintf(&b, "**Task State:** %s\n", t.State)
 		if t.FailureCount > 0 {
-			b.WriteString(fmt.Sprintf("**Failure Count:** %d\n", t.FailureCount))
+			fmt.Fprintf(&b, "**Failure Count:** %d\n", t.FailureCount)
 		}
 
 		// Failure history and decomposition policy
@@ -86,7 +86,7 @@ func BuildIterationContextWithDir(wolfcastleDir string, nodeAddr string, ns *sta
 			start = len(ns.Audit.Breadcrumbs) - 10
 		}
 		for _, bc := range ns.Audit.Breadcrumbs[start:] {
-			b.WriteString(fmt.Sprintf("- [%s] %s: %s\n", bc.Timestamp.Format("2006-01-02T15:04Z"), bc.Task, bc.Text))
+			fmt.Fprintf(&b, "- [%s] %s: %s\n", bc.Timestamp.Format("2006-01-02T15:04Z"), bc.Task, bc.Text)
 		}
 	}
 
@@ -100,7 +100,7 @@ func BuildIterationContextWithDir(wolfcastleDir string, nodeAddr string, ns *sta
 	if len(ns.Specs) > 0 {
 		b.WriteString("\n## Linked Specs\n\n")
 		for _, s := range ns.Specs {
-			b.WriteString(fmt.Sprintf("- %s\n", s))
+			fmt.Fprintf(&b, "- %s\n", s)
 		}
 	}
 
@@ -127,10 +127,10 @@ func renderFailureHeader(wolfcastleDir string, ctx FailureHeaderContext) string 
 	// Fallback
 	var b strings.Builder
 	b.WriteString("## Failure History\n\n")
-	b.WriteString(fmt.Sprintf("This task has failed %d times.\n", ctx.FailureCount))
-	b.WriteString(fmt.Sprintf("- Decomposition threshold: %d\n", ctx.DecompThreshold))
-	b.WriteString(fmt.Sprintf("- Max decomposition depth: %d (current: %d)\n", ctx.MaxDecompDepth, ctx.CurrentDepth))
-	b.WriteString(fmt.Sprintf("- Hard failure cap: %d\n", ctx.HardCap))
+	fmt.Fprintf(&b, "This task has failed %d times.\n", ctx.FailureCount)
+	fmt.Fprintf(&b, "- Decomposition threshold: %d\n", ctx.DecompThreshold)
+	fmt.Fprintf(&b, "- Max decomposition depth: %d (current: %d)\n", ctx.MaxDecompDepth, ctx.CurrentDepth)
+	fmt.Fprintf(&b, "- Hard failure cap: %d\n", ctx.HardCap)
 	return b.String()
 }
 
@@ -146,8 +146,8 @@ func renderDecomposition(wolfcastleDir string, ctx DecompositionContext) string 
 	var b strings.Builder
 	b.WriteString("**Decomposition required.** This task has failed too many times to continue as-is.\n")
 	b.WriteString("Break this leaf into smaller sub-tasks using the wolfcastle CLI:\n\n")
-	b.WriteString(fmt.Sprintf("1. Create child nodes: `wolfcastle project create --node %s --type leaf \"<name>\"`\n", ctx.NodeAddr))
-	b.WriteString(fmt.Sprintf("2. Add tasks to each child: `wolfcastle task add --node %s/<child-slug> \"<description>\"`\n", ctx.NodeAddr))
+	fmt.Fprintf(&b, "1. Create child nodes: `wolfcastle project create --node %s --type leaf \"<name>\"`\n", ctx.NodeAddr)
+	fmt.Fprintf(&b, "2. Add tasks to each child: `wolfcastle task add --node %s/<child-slug> \"<description>\"`\n", ctx.NodeAddr)
 	b.WriteString("3. Emit WOLFCASTLE_YIELD when decomposition is complete.\n\n")
 	b.WriteString("The parent node will automatically convert from leaf to orchestrator when the first child is created.\n")
 	return b.String()

@@ -73,7 +73,7 @@ func TestADRCreate_WithFile(t *testing.T) {
 
 	// Create body file
 	bodyFile := filepath.Join(env.RootDir, "body.md")
-	os.WriteFile(bodyFile, []byte("## Custom Context\nThis is the context.\n"), 0644)
+	_ = os.WriteFile(bodyFile, []byte("## Custom Context\nThis is the context.\n"), 0644)
 
 	rootCmd.SetArgs([]string{"adr", "create", "--file", bodyFile, "Custom ADR"})
 	if err := rootCmd.Execute(); err != nil {

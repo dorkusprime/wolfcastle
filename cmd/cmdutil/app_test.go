@@ -33,7 +33,7 @@ func TestTokenize_StripsPunctuation(t *testing.T) {
 	tokens := tokenize("hello, world! foo-bar")
 	for _, tok := range tokens {
 		for _, r := range tok {
-			if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')) {
+			if (r < 'a' || r > 'z') && (r < '0' || r > '9') {
 				t.Errorf("token %q contains non-alphanumeric rune %q", tok, r)
 			}
 		}
@@ -204,8 +204,8 @@ func TestFindWolfcastleDir_Found(t *testing.T) {
 	}
 
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
-	os.Chdir(sub)
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(sub)
 
 	app := &App{}
 	found, err := app.FindWolfcastleDir()
@@ -223,8 +223,8 @@ func TestFindWolfcastleDir_Found(t *testing.T) {
 func TestFindWolfcastleDir_NotFound(t *testing.T) {
 	tmp := t.TempDir()
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
-	os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
 
 	app := &App{}
 	_, err := app.FindWolfcastleDir()
@@ -336,7 +336,7 @@ func TestCompareNamespace_SkipsEmptyFiles(t *testing.T) {
 
 func TestCompareNamespace_RecursesSubdirs(t *testing.T) {
 	sub := filepath.Join(t.TempDir(), "sub")
-	os.MkdirAll(sub, 0755)
+	_ = os.MkdirAll(sub, 0755)
 	if err := os.WriteFile(filepath.Join(sub, "nested.md"), []byte("database migration schema"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -359,32 +359,32 @@ func TestCompareNamespace_RecursesSubdirs(t *testing.T) {
 func TestLoadConfig_Success(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	os.MkdirAll(wcDir, 0755)
+	_ = os.MkdirAll(wcDir, 0755)
 
 	// Use Defaults() to get a valid config, then marshal
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "tester", Machine: "box"}
 	cfgData, _ := json.MarshalIndent(cfg, "", "  ")
-	os.WriteFile(filepath.Join(wcDir, "config.json"), cfgData, 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), cfgData, 0644)
 
 	localJSON := `{"identity": {"user": "tester", "machine": "box"}}`
-	os.WriteFile(filepath.Join(wcDir, "config.local.json"), []byte(localJSON), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "config.local.json"), []byte(localJSON), 0644)
 
 	// Create projects dir for namespace
 	ns := "tester-box"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	// Write a root index so the resolver can init
-	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
 
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	// cd into a subdirectory so FindWolfcastleDir walks up
 	sub := filepath.Join(tmp, "deep", "nested")
-	os.MkdirAll(sub, 0755)
-	os.Chdir(sub)
+	_ = os.MkdirAll(sub, 0755)
+	_ = os.Chdir(sub)
 
 	a := &App{}
 	err := a.LoadConfig()
@@ -405,8 +405,8 @@ func TestLoadConfig_Success(t *testing.T) {
 func TestLoadConfig_NoWolfcastleDir(t *testing.T) {
 	tmp := t.TempDir()
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
-	os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
 
 	a := &App{}
 	err := a.LoadConfig()
@@ -424,7 +424,7 @@ func TestPropagateState_SimpleLeaf(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	// Create root index with a single leaf node
 	idxJSON := `{
@@ -440,11 +440,11 @@ func TestPropagateState_SimpleLeaf(t *testing.T) {
 			}
 		}
 	}`
-	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	// Create node state
 	nodeDir := filepath.Join(projDir, "my-node")
-	os.MkdirAll(nodeDir, 0755)
+	_ = os.MkdirAll(nodeDir, 0755)
 	nodeJSON := `{
 		"id": "my-node",
 		"name": "My Node",
@@ -453,7 +453,7 @@ func TestPropagateState_SimpleLeaf(t *testing.T) {
 		"tasks": [],
 		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
 	}`
-	os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	a := &App{
@@ -503,7 +503,7 @@ func TestCheckOverlap_EmptyProject(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
-	os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
 
 	a := &App{
 		WolfcastleDir: wcDir,
@@ -520,12 +520,12 @@ func TestCheckOverlap_FindsMatch(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
-	os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
 
 	// Create another engineer's namespace with similar project
 	otherDir := filepath.Join(wcDir, "projects", "alice-dev")
-	os.MkdirAll(otherDir, 0755)
-	os.WriteFile(filepath.Join(otherDir, "database-migration.md"),
+	_ = os.MkdirAll(otherDir, 0755)
+	_ = os.WriteFile(filepath.Join(otherDir, "database-migration.md"),
 		[]byte("database migration schema upgrade postgresql"), 0644)
 
 	a := &App{
@@ -572,10 +572,10 @@ func TestCompleteNodeAddresses_WithResolver(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	idxJSON := `{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"not_started","address":"my-node","children":[]}}}`
-	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	a := &App{
 		WolfcastleDir: wcDir,
@@ -603,10 +603,10 @@ func TestLoadRootIndexForCompletion_AlreadyLoaded(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	idxJSON := `{"nodes":{}}`
-	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	a := &App{
 		WolfcastleDir: wcDir,
@@ -636,8 +636,8 @@ func TestResolverForCompletion_AlreadyLoaded(t *testing.T) {
 func TestResolverForCompletion_NilResolverNoConfig(t *testing.T) {
 	tmp := t.TempDir()
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
-	os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
 
 	a := &App{}
 	_, err := resolverForCompletion(a)
@@ -651,15 +651,15 @@ func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	// Create a root index with a leaf node
 	idxJSON := `{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"in_progress","address":"my-node","children":[]}}}`
-	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	// Create node state with a task
 	nodeDir := filepath.Join(projDir, "my-node")
-	os.MkdirAll(nodeDir, 0755)
+	_ = os.MkdirAll(nodeDir, 0755)
 	nodeJSON := `{
 		"id": "my-node",
 		"name": "My Node",
@@ -668,7 +668,7 @@ func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
 		"tasks": [{"id":"task-1","description":"do work","state":"not_started"}],
 		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
 	}`
-	os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
 
 	a := &App{
 		WolfcastleDir: wcDir,
@@ -700,7 +700,7 @@ func TestPropagateState_WithParentChild(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	// Create root index with orchestrator + child leaf
 	idxJSON := `{
@@ -724,11 +724,11 @@ func TestPropagateState_WithParentChild(t *testing.T) {
 			}
 		}
 	}`
-	os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	// Create parent node state
 	parentDir := filepath.Join(projDir, "parent")
-	os.MkdirAll(parentDir, 0755)
+	_ = os.MkdirAll(parentDir, 0755)
 	parentJSON := `{
 		"id": "parent",
 		"name": "Parent",
@@ -737,11 +737,11 @@ func TestPropagateState_WithParentChild(t *testing.T) {
 		"children": [{"id": "child", "address": "parent/child", "state": "not_started"}],
 		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
 	}`
-	os.WriteFile(filepath.Join(parentDir, "state.json"), []byte(parentJSON), 0644)
+	_ = os.WriteFile(filepath.Join(parentDir, "state.json"), []byte(parentJSON), 0644)
 
 	// Create child node state
 	childDir := filepath.Join(projDir, "parent", "child")
-	os.MkdirAll(childDir, 0755)
+	_ = os.MkdirAll(childDir, 0755)
 	childJSON := `{
 		"id": "child",
 		"name": "Child",
@@ -750,7 +750,7 @@ func TestPropagateState_WithParentChild(t *testing.T) {
 		"tasks": [],
 		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
 	}`
-	os.WriteFile(filepath.Join(childDir, "state.json"), []byte(childJSON), 0644)
+	_ = os.WriteFile(filepath.Join(childDir, "state.json"), []byte(childJSON), 0644)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	a := &App{
@@ -769,7 +769,7 @@ func TestPropagateState_NoRootIndex(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	// No state.json exists, so LoadRootIndex will fail
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}

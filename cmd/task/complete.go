@@ -101,6 +101,6 @@ Examples:
 	}
 
 	cmd.Flags().String("node", "", "Task address: node-path/task-id (required)")
-	cmd.MarkFlagRequired("node")
+	_ = cmd.MarkFlagRequired("node")
 	return cmd
 }

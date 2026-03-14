@@ -75,6 +75,6 @@ Examples:
 	}
 
 	cmd.Flags().String("node", "", "Target leaf node address (required)")
-	cmd.MarkFlagRequired("node")
+	_ = cmd.MarkFlagRequired("node")
 	return cmd
 }

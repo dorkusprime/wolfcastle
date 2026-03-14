@@ -226,7 +226,7 @@ func TestReScaffold_RefreshesIdentity(t *testing.T) {
 		"extra_key": "should_be_preserved",
 	}
 	data, _ := json.MarshalIndent(localCfg, "", "  ")
-	os.WriteFile(localPath, data, 0644)
+	_ = os.WriteFile(localPath, data, 0644)
 
 	// ReScaffold should refresh identity but preserve extra keys
 	if err := ReScaffold(dir); err != nil {
@@ -235,17 +235,13 @@ func TestReScaffold_RefreshesIdentity(t *testing.T) {
 
 	newData, _ := os.ReadFile(localPath)
 	var result map[string]any
-	json.Unmarshal(newData, &result)
+	_ = json.Unmarshal(newData, &result)
 
 	if _, ok := result["extra_key"]; !ok {
 		t.Error("ReScaffold should preserve extra keys in config.local.json")
 	}
 	identity, _ := result["identity"].(map[string]any)
-	if identity["user"] == "old-user" {
-		// Identity should be refreshed from system, so it should change
-		// (unless running as "old-user" which is unlikely)
-		// We just check the key exists
-	}
+	// Identity should be refreshed from system; we just verify the key exists.
 	if _, ok := identity["user"]; !ok {
 		t.Error("ReScaffold should maintain identity.user")
 	}
@@ -261,7 +257,7 @@ func TestReScaffold_HandlesCorruptLocalConfig(t *testing.T) {
 
 	// Write invalid JSON to config.local.json
 	localPath := filepath.Join(dir, "config.local.json")
-	os.WriteFile(localPath, []byte("not json"), 0644)
+	_ = os.WriteFile(localPath, []byte("not json"), 0644)
 
 	err := ReScaffold(dir)
 	if err == nil {
@@ -278,7 +274,7 @@ func TestReScaffold_HandlesMissingLocalConfig(t *testing.T) {
 	}
 
 	// Remove config.local.json
-	os.Remove(filepath.Join(dir, "config.local.json"))
+	_ = os.Remove(filepath.Join(dir, "config.local.json"))
 
 	// ReScaffold should create it
 	if err := ReScaffold(dir); err != nil {
@@ -315,9 +311,9 @@ func containsHelper(s, substr string) bool {
 func TestWriteBasePrompts_CreatesPromptFiles(t *testing.T) {
 	t.Parallel()
 	dir := filepath.Join(t.TempDir(), ".wolfcastle")
-	os.MkdirAll(filepath.Join(dir, "base", "prompts"), 0755)
-	os.MkdirAll(filepath.Join(dir, "base", "rules"), 0755)
-	os.MkdirAll(filepath.Join(dir, "base", "audits"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "base", "prompts"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "base", "rules"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "base", "audits"), 0755)
 
 	if err := WriteBasePrompts(dir); err != nil {
 		t.Fatal(err)

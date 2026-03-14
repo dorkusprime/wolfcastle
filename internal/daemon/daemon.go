@@ -188,7 +188,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	}
 
 	d.iteration = 0
-	d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
+	_ = d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
 	output.PrintHuman("=== Wolfcastle starting (scope=%s) ===", d.scopeLabel())
 
 	for {
@@ -209,7 +209,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 			if d.Config.Logs.Compress {
 				retOpts = append(retOpts, logging.WithCompression())
 			}
-			logging.EnforceRetention(
+			_ = logging.EnforceRetention(
 				filepath.Join(d.WolfcastleDir, "logs"),
 				d.Config.Logs.MaxFiles,
 				d.Config.Logs.MaxAgeDays,
@@ -227,7 +227,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// Check shutdown signal
 	select {
 	case <-d.shutdown:
-		d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "signal"})
+		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "signal"})
 		output.PrintHuman("=== Wolfcastle stopped by signal ===")
 		return IterationStop, nil
 	default:
@@ -237,7 +237,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	stopFilePath := filepath.Join(d.WolfcastleDir, "stop")
 	if _, err := os.Stat(stopFilePath); err == nil {
 		_ = os.Remove(stopFilePath)
-		d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
+		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
 		output.PrintHuman("=== Wolfcastle stopped by stop file ===")
 		return IterationStop, nil
 	}
@@ -245,7 +245,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// Max iterations check
 	maxIter := d.Config.Daemon.MaxIterations
 	if maxIter > 0 && d.iteration >= maxIter {
-		d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration})
+		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration})
 		output.PrintHuman("=== Wolfcastle hit iteration cap (%d) ===", maxIter)
 		return IterationStop, nil
 	}
@@ -288,7 +288,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration, navResult.NodeAddress, navResult.TaskID)
 
 	// Start iteration log
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 
 	// Run pipeline stages
 	err = d.runIteration(ctx, navResult, idx)

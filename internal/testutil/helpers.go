@@ -124,7 +124,7 @@ func SetupTree(t *testing.T) (wolfcastleDir, namespace string, idx *state.RootIn
 		{ID: "child-b", Address: "root-project/child-b", State: state.StatusNotStarted},
 	}
 	rootDir := filepath.Join(projectsDir, "root-project")
-	os.MkdirAll(rootDir, 0755)
+	_ = os.MkdirAll(rootDir, 0755)
 	WriteJSON(t, filepath.Join(rootDir, "state.json"), rootNode)
 
 	// Child A (leaf)
@@ -143,7 +143,7 @@ func SetupTree(t *testing.T) (wolfcastleDir, namespace string, idx *state.RootIn
 		{ID: "audit", Description: "Verify work", State: state.StatusNotStarted, IsAudit: true},
 	}
 	childADir := filepath.Join(projectsDir, "root-project", "child-a")
-	os.MkdirAll(childADir, 0755)
+	_ = os.MkdirAll(childADir, 0755)
 	WriteJSON(t, filepath.Join(childADir, "state.json"), childA)
 
 	// Child B (leaf)
@@ -162,7 +162,7 @@ func SetupTree(t *testing.T) (wolfcastleDir, namespace string, idx *state.RootIn
 		{ID: "audit", Description: "Verify work", State: state.StatusNotStarted, IsAudit: true},
 	}
 	childBDir := filepath.Join(projectsDir, "root-project", "child-b")
-	os.MkdirAll(childBDir, 0755)
+	_ = os.MkdirAll(childBDir, 0755)
 	WriteJSON(t, filepath.Join(childBDir, "state.json"), childB)
 
 	// Save root index

@@ -39,7 +39,7 @@ func Print(r Response) {
 
 // PrintHuman writes a human-readable message to stdout.
 func PrintHuman(format string, args ...any) {
-	fmt.Fprintf(os.Stdout, format+"\n", args...)
+	_, _ = fmt.Fprintf(os.Stdout, format+"\n", args...)
 }
 
 // PrintError writes an error message to stderr.

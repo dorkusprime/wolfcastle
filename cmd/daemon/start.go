@@ -74,7 +74,7 @@ Examples:
 			// Check for running daemon
 			pid, err := daemon.ReadPID(app.WolfcastleDir)
 			if err == nil && daemon.IsProcessRunning(pid) {
-				return fmt.Errorf("Wolfcastle is already running (PID %d) — use 'wolfcastle stop' first", pid)
+				return fmt.Errorf("wolfcastle is already running (PID %d) — use 'wolfcastle stop' first", pid)
 			}
 			daemon.RemovePID(app.WolfcastleDir)
 
@@ -148,7 +148,7 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch string) error {
 	output.PrintHuman("  Use 'wolfcastle stop' to stop")
 
 	// Detach
-	proc.Process.Release()
+	_ = proc.Process.Release()
 	return nil
 }
 

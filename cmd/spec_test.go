@@ -91,9 +91,9 @@ func TestSpecList_WithSpecs(t *testing.T) {
 
 	// Create some specs
 	rootCmd.SetArgs([]string{"spec", "create", "First Spec"})
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 	rootCmd.SetArgs([]string{"spec", "create", "Second Spec"})
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 
 	rootCmd.SetArgs([]string{"spec", "list"})
 	if err := rootCmd.Execute(); err != nil {
@@ -112,7 +112,7 @@ func TestSpecLink_Success(t *testing.T) {
 	// Create spec file manually (avoids Cobra flag state pollution from specCreateCmd)
 	specsDir := filepath.Join(env.WolfcastleDir, "docs", "specs")
 	filename := "2025-01-01T00-00Z-test-spec.md"
-	os.WriteFile(filepath.Join(specsDir, filename), []byte("# Test Spec\n"), 0644)
+	_ = os.WriteFile(filepath.Join(specsDir, filename), []byte("# Test Spec\n"), 0644)
 
 	rootCmd.SetArgs([]string{"spec", "link", "--node", "my-project", filename})
 	if err := rootCmd.Execute(); err != nil {
@@ -136,11 +136,11 @@ func TestSpecLink_Duplicate(t *testing.T) {
 	// Create spec file manually
 	specsDir := filepath.Join(env.WolfcastleDir, "docs", "specs")
 	filename := "2025-01-01T00-00Z-dup-test.md"
-	os.WriteFile(filepath.Join(specsDir, filename), []byte("# Dup Test\n"), 0644)
+	_ = os.WriteFile(filepath.Join(specsDir, filename), []byte("# Dup Test\n"), 0644)
 
 	// Link once
 	rootCmd.SetArgs([]string{"spec", "link", "--node", "my-project", filename})
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 
 	// Link again (duplicate)
 	rootCmd.SetArgs([]string{"spec", "link", "--node", "my-project", filename})
@@ -206,7 +206,7 @@ func TestSpecList_FilterByNode(t *testing.T) {
 
 	// Create and link a spec (with --node)
 	rootCmd.SetArgs([]string{"spec", "create", "--node", "my-project", "Linked Spec"})
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 
 	// Create another spec not linked (explicitly no --node)
 	// Note: spec create's --node flag defaults to "" so we just don't set it.
@@ -215,7 +215,7 @@ func TestSpecList_FilterByNode(t *testing.T) {
 
 	// Create an unlinked spec file manually to avoid flag pollution
 	specsDir := filepath.Join(env.WolfcastleDir, "docs", "specs")
-	os.WriteFile(filepath.Join(specsDir, "2025-01-01T00-00Z-unlinked.md"), []byte("# Unlinked\n"), 0644)
+	_ = os.WriteFile(filepath.Join(specsDir, "2025-01-01T00-00Z-unlinked.md"), []byte("# Unlinked\n"), 0644)
 
 	// List filtered by node - should show only the linked spec
 	rootCmd.SetArgs([]string{"spec", "list", "--node", "my-project"})

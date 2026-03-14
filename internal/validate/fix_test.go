@@ -37,16 +37,6 @@ func saveIndex(t *testing.T, dir string, idx *state.RootIndex) string {
 	return p
 }
 
-// findIssue returns the first issue with the given category, or nil.
-func findIssue(issues []Issue, category string) *Issue {
-	for i := range issues {
-		if issues[i].Category == category {
-			return &issues[i]
-		}
-	}
-	return nil
-}
-
 // findFix returns the first fix with the given category, or nil.
 func findFix(fixes []FixResult, category string) *FixResult {
 	for i := range fixes {
@@ -775,7 +765,7 @@ func TestFix_StalePIDFile(t *testing.T) {
 
 	// Create a stale PID file
 	pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
-	os.WriteFile(pidPath, []byte("99999999"), 0644)
+	_ = os.WriteFile(pidPath, []byte("99999999"), 0644)
 
 	issues := []Issue{{
 		Severity: SeverityWarning, Category: CatStalePIDFile,
@@ -826,7 +816,7 @@ func TestFix_StaleStopFile(t *testing.T) {
 	idxPath := saveIndex(t, dir, idx)
 
 	stopPath := filepath.Join(wolfcastleDir, "stop")
-	os.WriteFile(stopPath, []byte(""), 0644)
+	_ = os.WriteFile(stopPath, []byte(""), 0644)
 
 	issues := []Issue{{
 		Severity: SeverityWarning, Category: CatStaleStopFile,
@@ -898,7 +888,7 @@ func TestDetect_StalePIDFile(t *testing.T) {
 
 	// Create PID file with a dead PID
 	pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
-	os.WriteFile(pidPath, []byte("99999999"), 0644)
+	_ = os.WriteFile(pidPath, []byte("99999999"), 0644)
 
 	engine := NewEngine(dir, DefaultNodeLoader(dir), wolfcastleDir)
 	report := engine.ValidateAll(idx)
@@ -940,7 +930,7 @@ func TestDetect_StaleStopFile(t *testing.T) {
 	idx := state.NewRootIndex()
 
 	stopPath := filepath.Join(wolfcastleDir, "stop")
-	os.WriteFile(stopPath, []byte(""), 0644)
+	_ = os.WriteFile(stopPath, []byte(""), 0644)
 
 	engine := NewEngine(dir, DefaultNodeLoader(dir), wolfcastleDir)
 	report := engine.ValidateAll(idx)
@@ -979,7 +969,7 @@ func TestIsDaemonAlive_NoPIDFile(t *testing.T) {
 func TestIsDaemonAlive_EmptyPIDFile(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
-	os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte(""), 0644)
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte(""), 0644)
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
 	if engine.isDaemonAlive() {
 		t.Error("expected false for empty PID file")
@@ -989,7 +979,7 @@ func TestIsDaemonAlive_EmptyPIDFile(t *testing.T) {
 func TestIsDaemonAlive_NonNumericPID(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
-	os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte("not-a-number"), 0644)
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte("not-a-number"), 0644)
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
 	if engine.isDaemonAlive() {
 		t.Error("expected false for non-numeric PID")
@@ -1000,7 +990,7 @@ func TestIsDaemonAlive_DeadProcess(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
 	// Use a very large PID unlikely to be alive
-	os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
 	if engine.isDaemonAlive() {
 		t.Error("expected false for dead process")
@@ -1011,7 +1001,7 @@ func TestIsDaemonAlive_LiveProcess(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
 	// Use our own PID — we know we're alive
-	os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"),
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"),
 		[]byte(fmt.Sprintf("%d", os.Getpid())), 0644)
 
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
@@ -1029,8 +1019,8 @@ func TestDetect_OrphanDefinition(t *testing.T) {
 
 	// Create a directory with a .md file but no node in index
 	orphanDir := filepath.Join(dir, "orphan-def")
-	os.MkdirAll(orphanDir, 0755)
-	os.WriteFile(filepath.Join(orphanDir, "definition.md"), []byte("# Orphan"), 0644)
+	_ = os.MkdirAll(orphanDir, 0755)
+	_ = os.WriteFile(filepath.Join(orphanDir, "definition.md"), []byte("# Orphan"), 0644)
 
 	engine := NewEngine(dir, DefaultNodeLoader(dir))
 	report := engine.ValidateAll(idx)
@@ -1439,7 +1429,7 @@ func TestDetect_OrphanDefinition_RootMdIgnored(t *testing.T) {
 	idx := state.NewRootIndex()
 
 	// .md in root dir should be ignored (addr == ".")
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("root readme"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "README.md"), []byte("root readme"), 0644)
 
 	engine := NewEngine(dir, DefaultNodeLoader(dir))
 	report := engine.ValidateAll(idx)

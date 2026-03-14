@@ -126,7 +126,7 @@ func (d *Daemon) applyModelMarkers(modelOutput string, ns *state.NodeState, nav 
 	ParseMarkers(modelOutput, MarkerCallbacks{
 		OnBreadcrumb: func(text string) {
 			state.AddBreadcrumb(ns, nav.NodeAddress+"/"+nav.TaskID, text, d.Clock)
-			d.Logger.Log(map[string]any{"type": "marker_breadcrumb", "text": text})
+			_ = d.Logger.Log(map[string]any{"type": "marker_breadcrumb", "text": text})
 		},
 		OnGap: func(desc string) {
 			gapID := fmt.Sprintf("gap-%s-%d", ns.ID, len(ns.Audit.Gaps)+1)
@@ -137,7 +137,7 @@ func (d *Daemon) applyModelMarkers(modelOutput string, ns *state.NodeState, nav 
 				Source:      nav.NodeAddress,
 				Status:      state.GapOpen,
 			})
-			d.Logger.Log(map[string]any{"type": "marker_gap", "gap_id": gapID})
+			_ = d.Logger.Log(map[string]any{"type": "marker_gap", "gap_id": gapID})
 		},
 		OnFixGap: func(gapID string) {
 			for i := range ns.Audit.Gaps {
@@ -146,7 +146,7 @@ func (d *Daemon) applyModelMarkers(modelOutput string, ns *state.NodeState, nav 
 					ns.Audit.Gaps[i].FixedBy = nav.NodeAddress + "/" + nav.TaskID
 					now := d.Clock.Now()
 					ns.Audit.Gaps[i].FixedAt = &now
-					d.Logger.Log(map[string]any{"type": "marker_fix_gap", "gap_id": gapID})
+					_ = d.Logger.Log(map[string]any{"type": "marker_fix_gap", "gap_id": gapID})
 					break
 				}
 			}
@@ -156,7 +156,7 @@ func (d *Daemon) applyModelMarkers(modelOutput string, ns *state.NodeState, nav 
 				ns.Audit.Scope = &state.AuditScope{}
 			}
 			ns.Audit.Scope.Description = desc
-			d.Logger.Log(map[string]any{"type": "marker_scope", "description": desc})
+			_ = d.Logger.Log(map[string]any{"type": "marker_scope", "description": desc})
 		},
 		OnScopeFiles: func(raw string) {
 			if ns.Audit.Scope == nil {
@@ -178,7 +178,7 @@ func (d *Daemon) applyModelMarkers(modelOutput string, ns *state.NodeState, nav 
 		},
 		OnSummary: func(text string) {
 			ns.Audit.ResultSummary = text
-			d.Logger.Log(map[string]any{"type": "marker_summary", "text": text})
+			_ = d.Logger.Log(map[string]any{"type": "marker_summary", "text": text})
 		},
 		OnResolveEsc: func(escID string) {
 			for i := range ns.Audit.Escalations {
@@ -187,7 +187,7 @@ func (d *Daemon) applyModelMarkers(modelOutput string, ns *state.NodeState, nav 
 					ns.Audit.Escalations[i].ResolvedBy = nav.NodeAddress + "/" + nav.TaskID
 					now := d.Clock.Now()
 					ns.Audit.Escalations[i].ResolvedAt = &now
-					d.Logger.Log(map[string]any{"type": "marker_resolve_escalation", "escalation_id": escID})
+					_ = d.Logger.Log(map[string]any{"type": "marker_resolve_escalation", "escalation_id": escID})
 					break
 				}
 			}

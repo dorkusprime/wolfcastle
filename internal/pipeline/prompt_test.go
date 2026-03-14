@@ -14,16 +14,16 @@ func setupPromptDir(t *testing.T, dir string) {
 	setupTiers(t, dir)
 
 	// Write a rule fragment
-	os.WriteFile(filepath.Join(dir, "base", "rules", "rule1.md"), []byte("Rule one content"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "rule1.md"), []byte("Rule one content"), 0644)
 
 	// Write script reference
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "script-reference.md"), []byte("Script reference"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "script-reference.md"), []byte("Script reference"), 0644)
 
 	// Write stage prompt
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "execute.md"), []byte("Execute prompt"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "execute.md"), []byte("Execute prompt"), 0644)
 
 	// Write a lightweight stage prompt
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "expand.md"), []byte("Expand prompt"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "expand.md"), []byte("Expand prompt"), 0644)
 }
 
 func TestAssemblePrompt_IncludesRuleFragments(t *testing.T) {

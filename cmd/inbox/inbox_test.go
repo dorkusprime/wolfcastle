@@ -25,18 +25,18 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	os.MkdirAll(wcDir, 0755)
+	_ = os.MkdirAll(wcDir, 0755)
 
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	idx := state.NewRootIndex()
 	data, _ := json.MarshalIndent(idx, "", "  ")
-	os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	testApp := &cmdutil.App{
@@ -155,9 +155,9 @@ func TestInboxList_WithItems(t *testing.T) {
 	env := newTestEnv(t)
 
 	env.RootCmd.SetArgs([]string{"inbox", "add", "first idea"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 	env.RootCmd.SetArgs([]string{"inbox", "add", "second idea"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"inbox", "list"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -174,7 +174,7 @@ func TestInboxClear_ClearsFiledOnly(t *testing.T) {
 
 	// Add items
 	env.RootCmd.SetArgs([]string{"inbox", "add", "new idea"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	// Manually set one item to "filed"
 	inboxPath := filepath.Join(env.ProjectsDir, "inbox.json")
@@ -184,7 +184,7 @@ func TestInboxClear_ClearsFiledOnly(t *testing.T) {
 		Text:      "filed idea",
 		Status:    "filed",
 	})
-	state.SaveInbox(inboxPath, f)
+	_ = state.SaveInbox(inboxPath, f)
 
 	env.RootCmd.SetArgs([]string{"inbox", "clear"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -205,9 +205,9 @@ func TestInboxClear_All(t *testing.T) {
 	env := newTestEnv(t)
 
 	env.RootCmd.SetArgs([]string{"inbox", "add", "idea one"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 	env.RootCmd.SetArgs([]string{"inbox", "add", "idea two"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"inbox", "clear", "--all"})
 	if err := env.RootCmd.Execute(); err != nil {

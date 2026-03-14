@@ -16,7 +16,7 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	startCmd.Flags().String("worktree", "", "Run in a git worktree on the specified branch")
 	startCmd.Flags().BoolP("daemon", "d", false, "Run as background daemon")
 	startCmd.Flags().BoolP("verbose", "v", false, "Set console log level to debug")
-	startCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
+	_ = startCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 
 	stopCmd := newStopCmd(app)
 	stopCmd.Flags().Bool("force", false, "Force kill (SIGKILL) instead of graceful stop")
@@ -27,7 +27,7 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	statusCmd := newStatusCmd(app)
 	statusCmd.Flags().Bool("all", false, "Show status across all engineers")
 	statusCmd.Flags().String("node", "", "Show status for a specific subtree")
-	statusCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
+	_ = statusCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 
 	startCmd.GroupID = "lifecycle"
 	stopCmd.GroupID = "lifecycle"

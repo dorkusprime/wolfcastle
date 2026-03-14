@@ -81,7 +81,7 @@ Examples:
 	}
 
 	cmd.Flags().String("node", "", "Target node address (required)")
-	cmd.MarkFlagRequired("node")
+	_ = cmd.MarkFlagRequired("node")
 	cmd.Flags().String("description", "", "Audit scope description")
 	cmd.Flags().String("files", "", "Pipe-delimited list of files to audit")
 	cmd.Flags().String("systems", "", "Pipe-delimited list of systems to audit")

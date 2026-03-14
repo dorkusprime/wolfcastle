@@ -25,18 +25,18 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	os.MkdirAll(wcDir, 0755)
+	_ = os.MkdirAll(wcDir, 0755)
 
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	idx := state.NewRootIndex()
 	data, _ := json.MarshalIndent(idx, "", "  ")
-	os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	testApp := &cmdutil.App{
@@ -78,7 +78,7 @@ func TestGetDaemonStatus_NoPidFile(t *testing.T) {
 
 func TestGetDaemonStatus_MalformedPid(t *testing.T) {
 	tmp := t.TempDir()
-	os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("not-a-number"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("not-a-number"), 0644)
 	status := getDaemonStatus(tmp)
 	if status != "unknown (malformed PID file)" {
 		t.Errorf("expected malformed PID message, got %q", status)
@@ -88,7 +88,7 @@ func TestGetDaemonStatus_MalformedPid(t *testing.T) {
 func TestGetDaemonStatus_StalePid(t *testing.T) {
 	tmp := t.TempDir()
 	// Use PID 1 (which exists but won't be our daemon), or a very large PID
-	os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("99999999"), 0644)
 	status := getDaemonStatus(tmp)
 	if status == "" {
 		t.Error("status should not be empty")
@@ -147,7 +147,7 @@ func TestRecoverStaleDaemonState_NoPidFile(t *testing.T) {
 
 func TestRecoverStaleDaemonState_MalformedPid(t *testing.T) {
 	tmp := t.TempDir()
-	os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("garbage"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("garbage"), 0644)
 	recoverStaleDaemonState(tmp)
 
 	// PID file should be removed
@@ -159,9 +159,9 @@ func TestRecoverStaleDaemonState_MalformedPid(t *testing.T) {
 func TestRecoverStaleDaemonState_DeadProcess(t *testing.T) {
 	tmp := t.TempDir()
 	// Use a very large PID that almost certainly doesn't exist
-	os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("99999999"), 0644)
-	os.WriteFile(filepath.Join(tmp, "daemon.meta.json"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(tmp, "stop"), []byte(""), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "daemon.meta.json"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "stop"), []byte(""), 0644)
 
 	recoverStaleDaemonState(tmp)
 
@@ -257,7 +257,7 @@ func TestStopCmd_NoPidFile(t *testing.T) {
 
 func TestStopCmd_StalePid(t *testing.T) {
 	env := newTestEnv(t)
-	os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
 	if err == nil {
@@ -276,7 +276,7 @@ func TestShowHistoricalLines_ValidLog(t *testing.T) {
 {"type":"assistant","text":"Hello"}
 {"type":"stage_complete","stage":"expand","exit_code":0}
 `
-	os.WriteFile(logFile, []byte(lines), 0644)
+	_ = os.WriteFile(logFile, []byte(lines), 0644)
 
 	// Reset offsets
 	delete(fileOffsets, logFile)
@@ -298,7 +298,7 @@ func TestShowHistoricalLines_NonexistentFile(t *testing.T) {
 func TestShowHistoricalLines_MoreLinesThanAvailable(t *testing.T) {
 	tmp := t.TempDir()
 	logFile := filepath.Join(tmp, "short.ndjson")
-	os.WriteFile(logFile, []byte(`{"type":"assistant","text":"only one"}`+"\n"), 0644)
+	_ = os.WriteFile(logFile, []byte(`{"type":"assistant","text":"only one"}`+"\n"), 0644)
 	delete(fileOffsets, logFile)
 
 	showHistoricalLines(logFile, 100) // Asking for 100 lines when only 1 exists
@@ -312,7 +312,7 @@ func TestTailFileStreaming_NoNewData(t *testing.T) {
 	tmp := t.TempDir()
 	logFile := filepath.Join(tmp, "tail.ndjson")
 	content := `{"type":"assistant","text":"Hello"}` + "\n"
-	os.WriteFile(logFile, []byte(content), 0644)
+	_ = os.WriteFile(logFile, []byte(content), 0644)
 
 	info, _ := os.Stat(logFile)
 	setOffset(logFile, info.Size())
@@ -327,7 +327,7 @@ func TestTailFileStreaming_WithNewData(t *testing.T) {
 	tmp := t.TempDir()
 	logFile := filepath.Join(tmp, "tail2.ndjson")
 	content := `{"type":"assistant","text":"first"}` + "\n"
-	os.WriteFile(logFile, []byte(content), 0644)
+	_ = os.WriteFile(logFile, []byte(content), 0644)
 
 	setOffset(logFile, 0) // Start from beginning
 
@@ -474,7 +474,7 @@ func TestRegister_AllCommandsPresent(t *testing.T) {
 func TestGetDaemonStatus_RunningProcess(t *testing.T) {
 	tmp := t.TempDir()
 	pid := os.Getpid()
-	os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 	status := getDaemonStatus(tmp)
 	if status == "stopped" {
 		t.Error("expected running status for own PID")
@@ -489,7 +489,7 @@ func TestRecoverStaleDaemonState_RunningProcess(t *testing.T) {
 	tmp := t.TempDir()
 	// Use our own PID (which is running)
 	pid := os.Getpid()
-	os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	recoverStaleDaemonState(tmp)
 
@@ -517,7 +517,7 @@ func TestStartCmd_AlreadyRunning(t *testing.T) {
 	env := newTestEnv(t)
 	// Write our own PID as the running daemon
 	pid := os.Getpid()
-	os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
@@ -550,7 +550,7 @@ func TestStopCmd_StalePidJSON(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
 	if err == nil {
@@ -565,7 +565,7 @@ func TestStopCmd_StalePidJSON(t *testing.T) {
 func TestShowHistoricalLines_EmptyFile(t *testing.T) {
 	tmp := t.TempDir()
 	logFile := filepath.Join(tmp, "empty.ndjson")
-	os.WriteFile(logFile, []byte(""), 0644)
+	_ = os.WriteFile(logFile, []byte(""), 0644)
 	delete(fileOffsets, logFile)
 	showHistoricalLines(logFile, 10)
 }

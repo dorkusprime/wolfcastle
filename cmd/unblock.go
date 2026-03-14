@@ -96,18 +96,18 @@ func buildDiagnostic(nodeAddr, taskID string, ns *state.NodeState, task *state.T
 	var b strings.Builder
 
 	b.WriteString("# Unblock Diagnostic\n\n")
-	b.WriteString(fmt.Sprintf("**Node:** %s\n", nodeAddr))
-	b.WriteString(fmt.Sprintf("**Task:** %s\n", taskID))
-	b.WriteString(fmt.Sprintf("**Description:** %s\n", task.Description))
-	b.WriteString(fmt.Sprintf("**Block Reason:** %s\n", task.BlockedReason))
-	b.WriteString(fmt.Sprintf("**Failure Count:** %d\n", task.FailureCount))
-	b.WriteString(fmt.Sprintf("**Decomposition Depth:** %d\n\n", ns.DecompositionDepth))
+	fmt.Fprintf(&b, "**Node:** %s\n", nodeAddr)
+	fmt.Fprintf(&b, "**Task:** %s\n", taskID)
+	fmt.Fprintf(&b, "**Description:** %s\n", task.Description)
+	fmt.Fprintf(&b, "**Block Reason:** %s\n", task.BlockedReason)
+	fmt.Fprintf(&b, "**Failure Count:** %d\n", task.FailureCount)
+	fmt.Fprintf(&b, "**Decomposition Depth:** %d\n\n", ns.DecompositionDepth)
 
 	// Task breadcrumbs
 	if len(task.Breadcrumbs) > 0 {
 		b.WriteString("## Task Breadcrumbs\n\n")
 		for _, bc := range task.Breadcrumbs {
-			b.WriteString(fmt.Sprintf("- %s\n", bc))
+			fmt.Fprintf(&b, "- %s\n", bc)
 		}
 		b.WriteString("\n")
 	}
@@ -116,8 +116,8 @@ func buildDiagnostic(nodeAddr, taskID string, ns *state.NodeState, task *state.T
 	if len(ns.Audit.Breadcrumbs) > 0 {
 		b.WriteString("## Audit Trail\n\n")
 		for _, bc := range ns.Audit.Breadcrumbs {
-			b.WriteString(fmt.Sprintf("- [%s] %s: %s\n",
-				bc.Timestamp.Format("2006-01-02T15:04Z"), bc.Task, bc.Text))
+			fmt.Fprintf(&b, "- [%s] %s: %s\n",
+				bc.Timestamp.Format("2006-01-02T15:04Z"), bc.Task, bc.Text)
 		}
 		b.WriteString("\n")
 	}
@@ -139,7 +139,7 @@ func buildDiagnostic(nodeAddr, taskID string, ns *state.NodeState, task *state.T
 	if len(ns.Specs) > 0 {
 		b.WriteString("## Linked Specs\n\n")
 		for _, s := range ns.Specs {
-			b.WriteString(fmt.Sprintf("- %s\n", s))
+			fmt.Fprintf(&b, "- %s\n", s)
 		}
 		b.WriteString("\n")
 	}
@@ -170,7 +170,7 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	if err != nil {
 		return fmt.Errorf("initializing readline: %w", err)
 	}
-	defer rl.Close()
+	defer func() { _ = rl.Close() }()
 
 	// Multi-turn: invoke model, show response, get user input, repeat.
 	// Keep a sliding window of conversation history to avoid unbounded growth.
@@ -245,7 +245,7 @@ func loadUnblockPreamble() string {
 
 func init() {
 	unblockCmd.Flags().String("node", "", "Blocked task address (required)")
-	unblockCmd.MarkFlagRequired("node")
+	_ = unblockCmd.MarkFlagRequired("node")
 	unblockCmd.Flags().Bool("agent", false, "Output diagnostic context for an interactive agent")
 	rootCmd.AddCommand(unblockCmd)
 }

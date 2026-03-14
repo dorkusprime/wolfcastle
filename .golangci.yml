@@ -1,27 +1,18 @@
 version: "2"
 
+formatters:
+  enable:
+    - gofmt
+
 linters:
   enable:
     - errcheck
     - ineffassign
     - staticcheck
-    - gosimple
     - govet
     - unused
-    - gofmt
     - misspell
     - nolintlint
-  disable:
-    # Too opinionated, generates noise
-    - gocritic
-    # Line length limits are counterproductive for Go
-    - lll
-    # Whitespace linting is too aggressive
-    - wsl
-    # Function length limits are context-dependent
-    - funlen
-    # Cognitive complexity limits are too simplistic
-    - gocognit
   settings:
     nolintlint:
       require-explanation: true

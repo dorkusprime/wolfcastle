@@ -447,9 +447,9 @@ func TestBuildIterationContextWithDir_UsesExternalDecomp(t *testing.T) {
 	setupTiers(t, dir)
 
 	// Write a custom decomposition prompt
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "decomposition.md"),
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "decomposition.md"),
 		[]byte("CUSTOM: decompose {{.NodeAddr}} now"), 0644)
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "context-headers.md"),
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "context-headers.md"),
 		[]byte("## Failure History\n\nFailed {{.FailureCount}} times. Threshold: {{.DecompThreshold}}"), 0644)
 
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
@@ -485,7 +485,7 @@ func TestBuildIterationContextWithDir_UsesExternalSummary(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "summary-required.md"),
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "summary-required.md"),
 		[]byte("CUSTOM SUMMARY: emit WOLFCASTLE_SUMMARY before WOLFCASTLE_COMPLETE"), 0644)
 
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)

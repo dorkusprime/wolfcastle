@@ -34,7 +34,7 @@ func TestNavigate_FindsTask(t *testing.T) {
 	parsed, _ := tree.ParseAddress("my-project")
 	ns := env.loadNodeState(t, "my-project")
 	task, _ := state.TaskAdd(ns, "implement API")
-	state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
 
 	rootCmd.SetArgs([]string{"navigate"})
 	if err := rootCmd.Execute(); err != nil {
@@ -49,8 +49,8 @@ func TestNavigate_NoInit(t *testing.T) {
 
 	tmp := t.TempDir()
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
-	os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
 
 	app = &cmdutil.App{}
 
@@ -102,8 +102,8 @@ func TestNavigate_JSONWithTask(t *testing.T) {
 
 	parsed, _ := tree.ParseAddress("my-project")
 	ns := env.loadNodeState(t, "my-project")
-	state.TaskAdd(ns, "implement API")
-	state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_, _ = state.TaskAdd(ns, "implement API")
+	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
 
 	rootCmd.SetArgs([]string{"navigate", "--json"})
 	if err := rootCmd.Execute(); err != nil {

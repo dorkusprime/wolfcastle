@@ -72,7 +72,7 @@ func showHistoricalLines(path string, n int) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Read all lines, then take the last n
 	var allLines []string
@@ -101,7 +101,7 @@ func tailFileStreaming(path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Seek to where we last left off by checking current file size
 	// We use a static map to track offsets across calls

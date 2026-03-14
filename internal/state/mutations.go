@@ -180,7 +180,7 @@ func IncrementFailure(ns *NodeState, taskID string) (int, error) {
 // MoveAuditLast ensures the audit task is always the last task in the list.
 // Call after any function that modifies the task list.
 func MoveAuditLast(ns *NodeState) {
-	var auditIdx int = -1
+	var auditIdx = -1
 	for i, t := range ns.Tasks {
 		if t.IsAudit {
 			auditIdx = i

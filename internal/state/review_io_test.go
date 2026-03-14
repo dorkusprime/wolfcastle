@@ -519,7 +519,7 @@ func TestEnforceRetention_EmptyHistory(t *testing.T) {
 
 	EnforceRetention(h, 5, 30)
 
-	if h.Entries != nil && len(h.Entries) != 0 {
+	if len(h.Entries) != 0 {
 		t.Errorf("expected empty entries, got %d", len(h.Entries))
 	}
 }

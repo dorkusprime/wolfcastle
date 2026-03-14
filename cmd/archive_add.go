@@ -81,6 +81,6 @@ Examples:
 
 func init() {
 	archiveAddCmd.Flags().String("node", "", "Node address to archive (required)")
-	archiveAddCmd.MarkFlagRequired("node")
+	_ = archiveAddCmd.MarkFlagRequired("node")
 	archiveCmd.AddCommand(archiveAddCmd)
 }

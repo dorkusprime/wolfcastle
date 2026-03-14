@@ -32,39 +32,39 @@ Breadcrumbs and escalations manage the per-node audit trail:
 	completeNode := cmdutil.CompleteNodeAddresses(app)
 
 	showCmd := newShowCmd(app)
-	showCmd.RegisterFlagCompletionFunc("node", completeNode)
+	_ = showCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(showCmd)
 
 	gapCmd := newGapCmd(app)
-	gapCmd.RegisterFlagCompletionFunc("node", completeNode)
+	_ = gapCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(gapCmd)
 
 	fixGapCmd := newFixGapCmd(app)
-	fixGapCmd.RegisterFlagCompletionFunc("node", completeNode)
+	_ = fixGapCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(fixGapCmd)
 
 	breadcrumbCmd := newBreadcrumbCmd(app)
-	breadcrumbCmd.RegisterFlagCompletionFunc("node", completeNode)
+	_ = breadcrumbCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(breadcrumbCmd)
 
 	escalateCmd := newEscalateCmd(app)
-	escalateCmd.RegisterFlagCompletionFunc("node", completeNode)
+	_ = escalateCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(escalateCmd)
 
 	resolveCmd := newResolveCmd(app)
-	resolveCmd.RegisterFlagCompletionFunc("node", completeNode)
+	_ = resolveCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(resolveCmd)
 
 	scopeCmd := newScopeCmd(app)
-	scopeCmd.RegisterFlagCompletionFunc("node", completeNode)
+	_ = scopeCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(scopeCmd)
 
 	approveCmd := newApproveCmd(app)
-	approveCmd.RegisterFlagCompletionFunc("node", completeNode)
+	_ = approveCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(approveCmd)
 
 	rejectCmd := newRejectCmd(app)
-	rejectCmd.RegisterFlagCompletionFunc("node", completeNode)
+	_ = rejectCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(rejectCmd)
 
 	auditCmd.AddCommand(newPendingCmd(app))

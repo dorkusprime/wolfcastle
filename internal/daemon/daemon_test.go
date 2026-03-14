@@ -413,8 +413,8 @@ func writePromptFile(t *testing.T, wolfDir, filename string) {
 	t.Helper()
 	// Prompt resolution checks local/ first, then custom/, then base/
 	dir := filepath.Join(wolfDir, "base", "prompts")
-	os.MkdirAll(dir, 0755)
-	os.WriteFile(filepath.Join(dir, filename), []byte("test prompt"), 0644)
+	_ = os.MkdirAll(dir, 0755)
+	_ = os.WriteFile(filepath.Join(dir, filename), []byte("test prompt"), 0644)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -424,7 +424,7 @@ func writePromptFile(t *testing.T, wolfDir, filename string) {
 func TestNew(t *testing.T) {
 	tmp := t.TempDir()
 	wolfDir := filepath.Join(tmp, ".wolfcastle")
-	os.MkdirAll(wolfDir, 0755)
+	_ = os.MkdirAll(wolfDir, 0755)
 
 	cfg := testConfig()
 	resolver := &tree.Resolver{WolfcastleDir: wolfDir, Namespace: "test"}
@@ -534,7 +534,7 @@ func TestSelfHeal_SkipsOrchestrators(t *testing.T) {
 
 func TestRunOnce_ShutdownSignal(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	close(d.shutdown)
@@ -549,11 +549,11 @@ func TestRunOnce_ShutdownSignal(t *testing.T) {
 
 func TestRunOnce_StopFile(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	stopPath := filepath.Join(d.WolfcastleDir, "stop")
-	os.WriteFile(stopPath, []byte("stop"), 0644)
+	_ = os.WriteFile(stopPath, []byte("stop"), 0644)
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -571,7 +571,7 @@ func TestRunOnce_MaxIterations(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Daemon.MaxIterations = 5
 	d.iteration = 5
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	result, err := d.RunOnce(context.Background())
@@ -587,7 +587,7 @@ func TestRunOnce_BranchChange(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = true
 	d.branch = "feature-that-does-not-exist-xyz"
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	// Init a git repo in the temp dir so currentBranch works
@@ -599,7 +599,7 @@ func TestRunOnce_BranchChange(t *testing.T) {
 
 func TestRunOnce_NoWork_AllComplete(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -609,7 +609,7 @@ func TestRunOnce_NoWork_AllComplete(t *testing.T) {
 	entry := idx.Nodes["my-node"]
 	entry.State = state.StatusComplete
 	idx.Nodes["my-node"] = entry
-	state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
+	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -622,7 +622,7 @@ func TestRunOnce_NoWork_AllComplete(t *testing.T) {
 
 func TestRunOnce_NoWork_AllBlocked(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -632,7 +632,7 @@ func TestRunOnce_NoWork_AllBlocked(t *testing.T) {
 	entry := idx.Nodes["my-node"]
 	entry.State = state.StatusBlocked
 	idx.Nodes["my-node"] = entry
-	state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
+	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -645,7 +645,7 @@ func TestRunOnce_NoWork_AllBlocked(t *testing.T) {
 
 func TestRunOnce_WorkFound(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -667,7 +667,7 @@ func TestRunOnce_WorkFound(t *testing.T) {
 
 func TestRunOnce_IterationError(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	// Point to a model that does not exist
@@ -695,7 +695,7 @@ func TestRunOnce_IterationError(t *testing.T) {
 
 func TestRunIteration_ClaimTask(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -732,7 +732,7 @@ func TestRunIteration_TerminalMarkers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			d := testDaemon(t)
 			d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{tt.output}}
-			d.Logger.StartIteration()
+			_ = d.Logger.StartIteration()
 			defer d.Logger.Close()
 
 			setupLeafNode(t, d, "my-node", []state.Task{
@@ -752,7 +752,7 @@ func TestRunIteration_TerminalMarkers(t *testing.T) {
 func TestRunIteration_NoTerminalMarker_IncrFailure(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"just some text"}}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -785,7 +785,7 @@ func TestRunIteration_DecompositionThreshold(t *testing.T) {
 	d.Config.Failure.DecompositionThreshold = 2
 	d.Config.Failure.MaxDecompositionDepth = 5
 	d.Config.Failure.HardCap = 0 // disabled
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -795,7 +795,7 @@ func TestRunIteration_DecompositionThreshold(t *testing.T) {
 
 	idx, _ := d.Resolver.LoadRootIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
-	d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), nav, idx)
 
 	addr, _ := tree.ParseAddress("my-node")
 	ns, _ := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json"))
@@ -819,7 +819,7 @@ func TestRunIteration_DecompAtMaxDepth_AutoBlocks(t *testing.T) {
 	d.Config.Failure.DecompositionThreshold = 2
 	d.Config.Failure.MaxDecompositionDepth = 1
 	d.Config.Failure.HardCap = 0
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	projDir := d.Resolver.ProjectsDir()
@@ -839,7 +839,7 @@ func TestRunIteration_DecompAtMaxDepth_AutoBlocks(t *testing.T) {
 
 	idx2, _ := d.Resolver.LoadRootIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
-	d.runIteration(context.Background(), nav, idx2)
+	_ = d.runIteration(context.Background(), nav, idx2)
 
 	addr, _ := tree.ParseAddress("my-node")
 	ns2, _ := state.LoadNodeState(filepath.Join(projDir, filepath.Join(addr.Parts...), "state.json"))
@@ -862,7 +862,7 @@ func TestRunIteration_HardCap_AutoBlocks(t *testing.T) {
 	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"no marker"}}
 	d.Config.Failure.HardCap = 2
 	d.Config.Failure.DecompositionThreshold = 0
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -872,7 +872,7 @@ func TestRunIteration_HardCap_AutoBlocks(t *testing.T) {
 
 	idx, _ := d.Resolver.LoadRootIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
-	d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), nav, idx)
 
 	addr, _ := tree.ParseAddress("my-node")
 	ns, _ := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json"))
@@ -895,7 +895,7 @@ func TestRunIteration_ModelNotFound(t *testing.T) {
 	d.Config.Pipeline.Stages = []config.PipelineStage{
 		{Name: "execute", Model: "nonexistent", PromptFile: "execute.md"},
 	}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -917,7 +917,7 @@ func TestRunIteration_DisabledStageSkipped(t *testing.T) {
 	d.Config.Pipeline.Stages = []config.PipelineStage{
 		{Name: "execute", Model: "echo", PromptFile: "execute.md", Enabled: &f},
 	}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -939,7 +939,7 @@ func TestRunIteration_ExpandFileStageSkipWhenNoInbox(t *testing.T) {
 		{Name: "file", Model: "echo", PromptFile: "file.md"},
 		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
 	}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -961,7 +961,7 @@ func TestRunIteration_PendingFilingSkipsExecute(t *testing.T) {
 	d.Config.Pipeline.Stages = []config.PipelineStage{
 		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
 	}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -976,7 +976,7 @@ func TestRunIteration_PendingFilingSkipsExecute(t *testing.T) {
 
 	idx, _ := d.Resolver.LoadRootIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
-	d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), nav, idx)
 
 	// The execute stage should have been skipped, so no terminal marker processed
 }
@@ -984,7 +984,7 @@ func TestRunIteration_PendingFilingSkipsExecute(t *testing.T) {
 func TestRunIteration_InvocationTimeout(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Daemon.InvocationTimeoutSeconds = 1
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -1002,7 +1002,7 @@ func TestRunIteration_InvocationTimeout(t *testing.T) {
 func TestRunIteration_ZeroInvocationTimeout(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Daemon.InvocationTimeoutSeconds = 0 // no timeout
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
@@ -1023,7 +1023,7 @@ func TestRunIteration_ZeroInvocationTimeout(t *testing.T) {
 
 func TestRunExpandStage_NoInbox(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	stage := config.PipelineStage{Name: "expand", Model: "echo", PromptFile: "expand.md"}
@@ -1035,7 +1035,7 @@ func TestRunExpandStage_NoInbox(t *testing.T) {
 func TestRunExpandStage_WithNewItems(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Models["echo"] = config.ModelDef{Command: "printf", Args: []string{"## Item 1\\nExpanded text"}}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "expand.md")
 
@@ -1057,7 +1057,7 @@ func TestRunExpandStage_WithNewItems(t *testing.T) {
 
 func TestRunExpandStage_NoNewItems(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
@@ -1073,7 +1073,7 @@ func TestRunExpandStage_NoNewItems(t *testing.T) {
 
 func TestRunExpandStage_ModelNotFound(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
@@ -1092,7 +1092,7 @@ func TestRunExpandStage_MoreItemsThanSections(t *testing.T) {
 	d := testDaemon(t)
 	// Model returns only one section but we have two items
 	d.Config.Models["echo"] = config.ModelDef{Command: "printf", Args: []string{"## Item 1\\nOnly one section"}}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "expand.md")
 
@@ -1122,7 +1122,7 @@ func TestRunExpandStage_MoreItemsThanSections(t *testing.T) {
 
 func TestRunFileStage_NoInbox(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	stage := config.PipelineStage{Name: "file", Model: "echo", PromptFile: "file.md"}
@@ -1133,7 +1133,7 @@ func TestRunFileStage_NoInbox(t *testing.T) {
 
 func TestRunFileStage_WithExpandedItems(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "file.md")
 
@@ -1155,7 +1155,7 @@ func TestRunFileStage_WithExpandedItems(t *testing.T) {
 
 func TestRunFileStage_NoExpandedItems(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
@@ -1171,7 +1171,7 @@ func TestRunFileStage_NoExpandedItems(t *testing.T) {
 
 func TestRunFileStage_ModelNotFound(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
@@ -1187,7 +1187,7 @@ func TestRunFileStage_ModelNotFound(t *testing.T) {
 
 func TestRunFileStage_ExpandedItemWithEmptyExpanded(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "file.md")
 
@@ -1213,7 +1213,7 @@ func TestRunFileStage_ExpandedItemWithEmptyExpanded(t *testing.T) {
 
 func TestApplyModelMarkers_Breadcrumb(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1233,7 +1233,7 @@ func TestApplyModelMarkers_Breadcrumb(t *testing.T) {
 
 func TestApplyModelMarkers_BreadcrumbEmpty(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1246,7 +1246,7 @@ func TestApplyModelMarkers_BreadcrumbEmpty(t *testing.T) {
 
 func TestApplyModelMarkers_Gap(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1269,7 +1269,7 @@ func TestApplyModelMarkers_Gap(t *testing.T) {
 
 func TestApplyModelMarkers_GapEmpty(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1282,7 +1282,7 @@ func TestApplyModelMarkers_GapEmpty(t *testing.T) {
 
 func TestApplyModelMarkers_FixGap(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1305,7 +1305,7 @@ func TestApplyModelMarkers_FixGap(t *testing.T) {
 
 func TestApplyModelMarkers_FixGap_WrongID(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1322,7 +1322,7 @@ func TestApplyModelMarkers_FixGap_WrongID(t *testing.T) {
 
 func TestApplyModelMarkers_FixGap_AlreadyFixed(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1338,7 +1338,7 @@ func TestApplyModelMarkers_FixGap_AlreadyFixed(t *testing.T) {
 
 func TestApplyModelMarkers_Scope(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1356,7 +1356,7 @@ func TestApplyModelMarkers_Scope(t *testing.T) {
 
 func TestApplyModelMarkers_ScopeEmpty(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1371,7 +1371,7 @@ func TestApplyModelMarkers_ScopeEmpty(t *testing.T) {
 
 func TestApplyModelMarkers_ScopeFiles(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1389,7 +1389,7 @@ func TestApplyModelMarkers_ScopeFiles(t *testing.T) {
 
 func TestApplyModelMarkers_ScopeSystems(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1404,7 +1404,7 @@ func TestApplyModelMarkers_ScopeSystems(t *testing.T) {
 
 func TestApplyModelMarkers_ScopeCriteria(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1419,7 +1419,7 @@ func TestApplyModelMarkers_ScopeCriteria(t *testing.T) {
 
 func TestApplyModelMarkers_Summary(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1433,7 +1433,7 @@ func TestApplyModelMarkers_Summary(t *testing.T) {
 
 func TestApplyModelMarkers_SummaryEmpty(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1446,7 +1446,7 @@ func TestApplyModelMarkers_SummaryEmpty(t *testing.T) {
 
 func TestApplyModelMarkers_ResolveEscalation(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1469,7 +1469,7 @@ func TestApplyModelMarkers_ResolveEscalation(t *testing.T) {
 
 func TestApplyModelMarkers_ResolveEscalation_AlreadyResolved(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1485,7 +1485,7 @@ func TestApplyModelMarkers_ResolveEscalation_AlreadyResolved(t *testing.T) {
 
 func TestApplyModelMarkers_MultipleMarkers(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ns := state.NewNodeState("n1", "Node 1", state.NodeLeaf)
@@ -1520,7 +1520,7 @@ func TestApplyModelMarkers_MultipleMarkers(t *testing.T) {
 
 func TestInvokeWithRetry_SuccessFirstTry(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	model := config.ModelDef{Command: "echo", Args: []string{"hello"}}
@@ -1536,7 +1536,7 @@ func TestInvokeWithRetry_SuccessFirstTry(t *testing.T) {
 func TestInvokeWithRetry_MaxRetriesExceeded(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Retries = config.RetriesConfig{InitialDelaySeconds: 0, MaxDelaySeconds: 0, MaxRetries: 1}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	model := config.ModelDef{Command: "nonexistent-command-xyz", Args: []string{}}
@@ -1549,7 +1549,7 @@ func TestInvokeWithRetry_MaxRetriesExceeded(t *testing.T) {
 func TestInvokeWithRetry_ContextCancelled(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Retries = config.RetriesConfig{InitialDelaySeconds: 0, MaxDelaySeconds: 1, MaxRetries: 10}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1565,12 +1565,12 @@ func TestInvokeWithRetry_ContextCancelled(t *testing.T) {
 func TestInvokeWithRetry_BackoffCaps(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Retries = config.RetriesConfig{InitialDelaySeconds: 0, MaxDelaySeconds: 0, MaxRetries: 2}
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	model := config.ModelDef{Command: "nonexistent-cmd-backoff", Args: []string{}}
 	start := time.Now()
-	d.invokeWithRetry(context.Background(), model, "", d.RepoDir, nil, "test")
+	_, _ = d.invokeWithRetry(context.Background(), model, "", d.RepoDir, nil, "test")
 	elapsed := time.Since(start)
 	// With 0s delays and 2 retries, should finish very quickly
 	if elapsed > 5*time.Second {
@@ -1580,7 +1580,7 @@ func TestInvokeWithRetry_BackoffCaps(t *testing.T) {
 
 func TestInvokeWithRetry_NilLogWriter(t *testing.T) {
 	d := testDaemon(t)
-	d.Logger.StartIteration()
+	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
 	model := config.ModelDef{Command: "echo", Args: []string{"hello"}}
@@ -1610,7 +1610,7 @@ func TestRunWithSupervisor_SuccessfulRun(t *testing.T) {
 	entry := idx.Nodes["my-node"]
 	entry.State = state.StatusComplete
 	idx.Nodes["my-node"] = entry
-	state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
+	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

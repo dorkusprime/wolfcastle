@@ -153,9 +153,9 @@ func (l *Logger) writeConsole(record map[string]any, level Level) {
 	}
 
 	if stage != "" {
-		fmt.Fprintf(l.Console, "[%s] %s: %s\n", prefix, stage, msg)
+		_, _ = fmt.Fprintf(l.Console, "[%s] %s: %s\n", prefix, stage, msg)
 	} else {
-		fmt.Fprintf(l.Console, "[%s] %s\n", prefix, msg)
+		_, _ = fmt.Fprintf(l.Console, "[%s] %s\n", prefix, msg)
 	}
 }
 
@@ -189,7 +189,7 @@ func (w *assistantLogWriter) Write(p []byte) (int, error) {
 // Close closes the current iteration's log file.
 func (l *Logger) Close() {
 	if l.file != nil {
-		l.file.Close()
+		_ = l.file.Close()
 		l.file = nil
 	}
 }
@@ -331,7 +331,7 @@ func compressFile(src string) error {
 	if err != nil {
 		return err
 	}
-	defer in.Close()
+	defer func() { _ = in.Close() }()
 
 	dst := src + ".gz"
 	out, err := os.Create(dst)
@@ -341,21 +341,21 @@ func compressFile(src string) error {
 
 	gz := gzip.NewWriter(out)
 	if _, err := io.Copy(gz, in); err != nil {
-		gz.Close()
-		out.Close()
-		os.Remove(dst)
+		_ = gz.Close()
+		_ = out.Close()
+		_ = os.Remove(dst)
 		return err
 	}
 	if err := gz.Close(); err != nil {
-		out.Close()
-		os.Remove(dst)
+		_ = out.Close()
+		_ = os.Remove(dst)
 		return err
 	}
 	if err := out.Close(); err != nil {
-		os.Remove(dst)
+		_ = os.Remove(dst)
 		return err
 	}
-	in.Close()
+	_ = in.Close()
 	return os.Remove(src)
 }
 

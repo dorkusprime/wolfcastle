@@ -66,8 +66,8 @@ func TestDoctorCmd_NoInit(t *testing.T) {
 
 	tmp := t.TempDir() // no .wolfcastle in this dir
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
-	os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
 
 	app = &cmdutil.App{}
 

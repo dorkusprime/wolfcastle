@@ -105,8 +105,8 @@ func TestUnblockCmd_TaskNotBlocked(t *testing.T) {
 	// Add a task (not_started, not blocked)
 	parsed, _ := tree.ParseAddress("my-project")
 	ns := env.loadNodeState(t, "my-project")
-	state.TaskAdd(ns, "do work")
-	state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_, _ = state.TaskAdd(ns, "do work")
+	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
 
 	rootCmd.SetArgs([]string{"unblock", "--node", "my-project/task-1"})
 	err := rootCmd.Execute()
@@ -141,10 +141,10 @@ func TestUnblockCmd_AgentMode(t *testing.T) {
 	// Create a blocked task
 	parsed, _ := tree.ParseAddress("my-project")
 	ns := env.loadNodeState(t, "my-project")
-	state.TaskAdd(ns, "do work")
-	state.TaskClaim(ns, "task-1")
-	state.TaskBlock(ns, "task-1", "stuck on something")
-	state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_, _ = state.TaskAdd(ns, "do work")
+	_ = state.TaskClaim(ns, "task-1")
+	_ = state.TaskBlock(ns, "task-1", "stuck on something")
+	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
 
 	rootCmd.SetArgs([]string{"unblock", "--agent", "--node", "my-project/task-1"})
 	if err := rootCmd.Execute(); err != nil {

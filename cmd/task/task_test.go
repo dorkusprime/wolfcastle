@@ -24,14 +24,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	os.MkdirAll(wcDir, 0755)
+	_ = os.MkdirAll(wcDir, 0755)
 
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	idx := state.NewRootIndex()
 	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
@@ -68,7 +68,7 @@ func saveJSON(t *testing.T, path string, v any) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	os.MkdirAll(filepath.Dir(path), 0755)
+	_ = os.MkdirAll(filepath.Dir(path), 0755)
 	if err := os.WriteFile(path, data, 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func createLeafNode(t *testing.T, env *testEnv, addr, name string) {
 	t.Helper()
 	parsed, _ := tree.ParseAddress(addr)
 	nodeDir := filepath.Join(env.ProjectsDir, filepath.Join(parsed.Parts...))
-	os.MkdirAll(nodeDir, 0755)
+	_ = os.MkdirAll(nodeDir, 0755)
 
 	ns := state.NewNodeState(parsed.Leaf(), name, state.NodeLeaf)
 	ns.Tasks = []state.Task{
@@ -94,7 +94,7 @@ func createLeafNode(t *testing.T, env *testEnv, addr, name string) {
 		Address:  addr,
 		Children: []string{},
 	}
-	state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
+	_ = state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
 }
 
 func loadNodeState(t *testing.T, env *testEnv, addr string) *state.NodeState {
@@ -202,7 +202,7 @@ func TestTaskClaim_Success(t *testing.T) {
 
 	// Add a task first
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "do something"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	// Claim it
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
@@ -237,10 +237,10 @@ func TestTaskComplete_Success(t *testing.T) {
 	createLeafNode(t, env, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "do work"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -262,10 +262,10 @@ func TestTaskBlock_Success(t *testing.T) {
 	createLeafNode(t, env, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work item"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-1", "waiting on API"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -286,9 +286,9 @@ func TestTaskBlock_EmptyReason(t *testing.T) {
 	createLeafNode(t, env, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-1", "   "})
 	err := env.RootCmd.Execute()
@@ -306,11 +306,11 @@ func TestTaskUnblock_Success(t *testing.T) {
 	createLeafNode(t, env, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-1", "stuck"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-1"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -349,9 +349,9 @@ func TestTaskComplete_WithValidation(t *testing.T) {
 	}
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "validated task"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -369,9 +369,9 @@ func TestTaskComplete_ValidationFails(t *testing.T) {
 	}
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "validated task"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
 	err := env.RootCmd.Execute()

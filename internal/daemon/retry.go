@@ -32,7 +32,7 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 
 		// Check whether we've exhausted our retry budget (-1 = unlimited).
 		if rc.MaxRetries >= 0 && attempt >= rc.MaxRetries {
-			d.Logger.Log(map[string]any{
+			_ = d.Logger.Log(map[string]any{
 				"type":     "retry_exhausted",
 				"stage":    stageName,
 				"attempts": attempt + 1,
@@ -41,7 +41,7 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 			return result, err
 		}
 
-		d.Logger.Log(map[string]any{
+		_ = d.Logger.Log(map[string]any{
 			"type":    "retry",
 			"stage":   stageName,
 			"attempt": attempt + 1,

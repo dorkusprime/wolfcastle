@@ -30,7 +30,7 @@ func TestInboxList_JSONOutput_WithItems(t *testing.T) {
 	env := newTestEnv(t)
 
 	env.RootCmd.SetArgs([]string{"inbox", "add", "idea one"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
@@ -45,7 +45,7 @@ func TestInboxClear_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
 
 	env.RootCmd.SetArgs([]string{"inbox", "add", "idea"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()

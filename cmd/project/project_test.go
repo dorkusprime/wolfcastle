@@ -24,7 +24,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	os.MkdirAll(wcDir, 0755)
+	_ = os.MkdirAll(wcDir, 0755)
 
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
@@ -32,11 +32,11 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	idx := state.NewRootIndex()
 	data, _ := json.MarshalIndent(idx, "", "  ")
-	os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	testApp := &cmdutil.App{
@@ -137,7 +137,7 @@ func TestProjectCreate_ChildProject(t *testing.T) {
 
 	// Create parent orchestrator
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "orchestrator", "auth-system"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	// Create child leaf
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "--node", "auth-system", "login-flow"})
@@ -174,7 +174,7 @@ func TestProjectCreate_DuplicateName(t *testing.T) {
 	env := newTestEnv(t)
 
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "auth-system"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "auth-system"})
 	err := env.RootCmd.Execute()
@@ -214,7 +214,7 @@ func TestProjectCreate_ParentNotFound(t *testing.T) {
 func TestProjectCreate_DescriptionFile(t *testing.T) {
 	env := newTestEnv(t)
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "my-project"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	descPath := filepath.Join(env.ProjectsDir, "my-project", "my-project.md")
 	data, err := os.ReadFile(descPath)
@@ -229,7 +229,7 @@ func TestProjectCreate_DescriptionFile(t *testing.T) {
 func TestProjectCreate_SetsRootMetadata(t *testing.T) {
 	env := newTestEnv(t)
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "first-project"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
 	if idx.RootID != "first-project" {
@@ -279,13 +279,13 @@ func TestProjectCreate_AutoPromoteBlockedByTasks(t *testing.T) {
 
 	// Create leaf project and add a non-audit task
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "tasked-leaf"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	// Add a task manually
 	statePath := filepath.Join(env.ProjectsDir, "tasked-leaf", "state.json")
 	ns, _ := state.LoadNodeState(statePath)
-	state.TaskAdd(ns, "some work")
-	state.SaveNodeState(statePath, ns)
+	_, _ = state.TaskAdd(ns, "some work")
+	_ = state.SaveNodeState(statePath, ns)
 
 	// Trying to add child should fail because parent has tasks
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "--node", "tasked-leaf", "child"})

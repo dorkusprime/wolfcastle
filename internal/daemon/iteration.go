@@ -53,11 +53,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		switch stage.Name {
 		case "expand":
 			if !hasNewItems {
-				d.Logger.Log(map[string]any{"type": "stage_skip", "stage": "expand", "reason": "no_new_inbox_items"})
+				_ = d.Logger.Log(map[string]any{"type": "stage_skip", "stage": "expand", "reason": "no_new_inbox_items"})
 				continue
 			}
 			if err := d.runExpandStage(ctx, stage); err != nil {
-				d.Logger.Log(map[string]any{"type": "stage_error", "stage": "expand", "error": err.Error()})
+				_ = d.Logger.Log(map[string]any{"type": "stage_error", "stage": "expand", "error": err.Error()})
 				// Non-fatal: expand failure doesn't block execution
 				output.PrintHuman("  Expand stage error (non-fatal): %v", err)
 			}
@@ -67,11 +67,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		case "file":
 			if !hasExpandedItems {
-				d.Logger.Log(map[string]any{"type": "stage_skip", "stage": "file", "reason": "no_expanded_inbox_items"})
+				_ = d.Logger.Log(map[string]any{"type": "stage_skip", "stage": "file", "reason": "no_expanded_inbox_items"})
 				continue
 			}
 			if err := d.runFileStage(ctx, stage); err != nil {
-				d.Logger.Log(map[string]any{"type": "stage_error", "stage": "file", "error": err.Error()})
+				_ = d.Logger.Log(map[string]any{"type": "stage_error", "stage": "file", "error": err.Error()})
 				output.PrintHuman("  File stage error (non-fatal): %v", err)
 			}
 			continue
@@ -80,7 +80,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		// Skip execute stage if there are expanded items awaiting filing —
 		// prioritize filing over execution to avoid working on a stale tree.
 		if hasExpandedItems {
-			d.Logger.Log(map[string]any{"type": "stage_skip", "stage": stage.Name, "reason": "pending_filing"})
+			_ = d.Logger.Log(map[string]any{"type": "stage_skip", "stage": stage.Name, "reason": "pending_filing"})
 			output.PrintHuman("  Skipping %s stage: expanded items await filing", stage.Name)
 			continue
 		}
@@ -104,7 +104,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
 		}
 
-		d.Logger.Log(map[string]any{
+		_ = d.Logger.Log(map[string]any{
 			"type":  "stage_start",
 			"stage": stage.Name,
 			"model": stage.Model,
@@ -117,11 +117,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			cancel()
 		}
 		if err != nil {
-			d.Logger.Log(map[string]any{"type": "stage_error", "stage": stage.Name, "error": err.Error()})
+			_ = d.Logger.Log(map[string]any{"type": "stage_error", "stage": stage.Name, "error": err.Error()})
 			return err
 		}
 
-		d.Logger.Log(map[string]any{
+		_ = d.Logger.Log(map[string]any{
 			"type":       "stage_complete",
 			"stage":      stage.Name,
 			"exit_code":  result.ExitCode,
@@ -137,28 +137,28 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		// Persist marker mutations immediately — ensures durability even if
 		// the stage errors before reaching a terminal marker (Item 6)
 		if err := state.SaveNodeState(statePath, ns); err != nil {
-			d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+			_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
 		}
 		if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-			d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 		}
 
 		// Check for terminal markers
 		if strings.Contains(result.Stdout, "WOLFCASTLE_YIELD") {
-			d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_YIELD"})
+			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_YIELD"})
 			return nil
 		}
 		if strings.Contains(result.Stdout, "WOLFCASTLE_BLOCKED") {
-			d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
+			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
 			return nil
 		}
 		if strings.Contains(result.Stdout, "WOLFCASTLE_COMPLETE") {
-			d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_COMPLETE"})
+			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_COMPLETE"})
 			return nil
 		}
 
 		// No terminal marker — increment failure count
-		d.Logger.Log(map[string]any{
+		_ = d.Logger.Log(map[string]any{
 			"type":  "no_terminal_marker",
 			"empty": result.Stdout == "",
 			"task":  nav.TaskID,
@@ -166,34 +166,34 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		failCount, err := state.IncrementFailure(ns, nav.TaskID)
 		if err != nil {
-			d.Logger.Log(map[string]any{"type": "failure_increment_error", "error": err.Error()})
+			_ = d.Logger.Log(map[string]any{"type": "failure_increment_error", "error": err.Error()})
 		} else {
-			d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
+			_ = d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
 
 			if failCount >= d.Config.Failure.DecompositionThreshold && d.Config.Failure.DecompositionThreshold > 0 {
 				if ns.DecompositionDepth < d.Config.Failure.MaxDecompositionDepth {
-					d.Logger.Log(map[string]any{"type": "decomposition_threshold", "task": nav.TaskID, "depth": ns.DecompositionDepth})
+					_ = d.Logger.Log(map[string]any{"type": "decomposition_threshold", "task": nav.TaskID, "depth": ns.DecompositionDepth})
 					state.SetNeedsDecomposition(ns, nav.TaskID, true)
 				} else {
-					d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "max_decomposition_depth"})
+					_ = d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "max_decomposition_depth"})
 					if blockErr := state.TaskBlock(ns, nav.TaskID, "auto-blocked: decomposition threshold reached at max depth"); blockErr != nil {
-						d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
+						_ = d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
 					}
 				}
 			}
 
 			if failCount >= d.Config.Failure.HardCap && d.Config.Failure.HardCap > 0 {
-				d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "hard_cap", "count": failCount})
+				_ = d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "hard_cap", "count": failCount})
 				if blockErr := state.TaskBlock(ns, nav.TaskID, fmt.Sprintf("auto-blocked: failure hard cap reached (%d)", failCount)); blockErr != nil {
-					d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
+					_ = d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
 				}
 			}
 
 			if err := state.SaveNodeState(statePath, ns); err != nil {
-				d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+				_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
 			}
 			if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-				d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+				_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 			}
 		}
 	}

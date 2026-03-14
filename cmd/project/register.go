@@ -26,7 +26,7 @@ Examples:
 	}
 
 	createCmd := newCreateCmd(app)
-	createCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
+	_ = createCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 	projectCmd.AddCommand(createCmd)
 
 	projectCmd.GroupID = "work"

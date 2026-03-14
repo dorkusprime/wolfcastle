@@ -61,9 +61,9 @@ Examples:
 
 		// Build ADR content
 		var content strings.Builder
-		content.WriteString(fmt.Sprintf("# %s\n\n", title))
+		fmt.Fprintf(&content, "# %s\n\n", title)
 		content.WriteString("## Status\nAccepted\n\n")
-		content.WriteString(fmt.Sprintf("## Date\n%s\n\n", now.Format("2006-01-02")))
+		fmt.Fprintf(&content, "## Date\n%s\n\n", now.Format("2006-01-02"))
 
 		if body != "" {
 			content.WriteString(body)

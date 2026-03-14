@@ -11,12 +11,12 @@ func TestCopyDir(t *testing.T) {
 	src := filepath.Join(t.TempDir(), "src")
 	dst := filepath.Join(t.TempDir(), "dst")
 
-	os.MkdirAll(src, 0755)
-	os.WriteFile(filepath.Join(src, "file1.txt"), []byte("hello"), 0644)
+	_ = os.MkdirAll(src, 0755)
+	_ = os.WriteFile(filepath.Join(src, "file1.txt"), []byte("hello"), 0644)
 
 	sub := filepath.Join(src, "sub")
-	os.MkdirAll(sub, 0755)
-	os.WriteFile(filepath.Join(sub, "file2.txt"), []byte("world"), 0644)
+	_ = os.MkdirAll(sub, 0755)
+	_ = os.WriteFile(filepath.Join(sub, "file2.txt"), []byte("world"), 0644)
 
 	if err := copyDir(src, dst); err != nil {
 		t.Fatalf("copyDir failed: %v", err)
@@ -64,7 +64,7 @@ func TestEnsureSkillSource(t *testing.T) {
 
 	// Calling again should not overwrite
 	data1, _ := os.ReadFile(skillFile)
-	ensureSkillSource(dir)
+	_ = ensureSkillSource(dir)
 	data2, _ := os.ReadFile(skillFile)
 	if string(data1) != string(data2) {
 		t.Error("calling ensureSkillSource twice should not change file")
@@ -74,7 +74,7 @@ func TestEnsureSkillSource(t *testing.T) {
 func TestCopyDir_EmptySource(t *testing.T) {
 	src := filepath.Join(t.TempDir(), "empty-src")
 	dst := filepath.Join(t.TempDir(), "empty-dst")
-	os.MkdirAll(src, 0755)
+	_ = os.MkdirAll(src, 0755)
 
 	if err := copyDir(src, dst); err != nil {
 		t.Fatalf("copyDir empty failed: %v", err)
@@ -103,8 +103,8 @@ func TestInstallSkillCmd_Success(t *testing.T) {
 
 	// Create the base/skills source directory
 	sourceDir := filepath.Join(env.WolfcastleDir, "base", "skills")
-	os.MkdirAll(sourceDir, 0755)
-	os.WriteFile(filepath.Join(sourceDir, "wolfcastle.md"), []byte("# Test Skill\n"), 0644)
+	_ = os.MkdirAll(sourceDir, 0755)
+	_ = os.WriteFile(filepath.Join(sourceDir, "wolfcastle.md"), []byte("# Test Skill\n"), 0644)
 
 	rootCmd.SetArgs([]string{"install", "skill"})
 	if err := rootCmd.Execute(); err != nil {

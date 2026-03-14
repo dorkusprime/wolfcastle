@@ -17,14 +17,14 @@ func newStatusTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	os.MkdirAll(wcDir, 0755)
+	_ = os.MkdirAll(wcDir, 0755)
 
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	// Create root index with some nodes
 	idx := state.NewRootIndex()
@@ -42,15 +42,15 @@ func newStatusTestEnv(t *testing.T) *testEnv {
 
 	// Create node dir and state
 	nodeDir := filepath.Join(projDir, "my-project")
-	os.MkdirAll(nodeDir, 0755)
+	_ = os.MkdirAll(nodeDir, 0755)
 
 	ns2 := state.NewNodeState("my-project", "My Project", state.NodeLeaf)
 	ns2.State = state.StatusInProgress
 	nsData, _ := json.MarshalIndent(ns2, "", "  ")
-	os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	idxData, _ := json.MarshalIndent(idx, "", "  ")
-	os.WriteFile(filepath.Join(projDir, "state.json"), idxData, 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), idxData, 0644)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	testApp := &cmdutil.App{

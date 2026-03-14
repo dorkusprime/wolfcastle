@@ -243,7 +243,7 @@ Examples:
 func init() {
 	specCreateCmd.Flags().String("node", "", "Link spec to this node")
 	specLinkCmd.Flags().String("node", "", "Target node address (required)")
-	specLinkCmd.MarkFlagRequired("node")
+	_ = specLinkCmd.MarkFlagRequired("node")
 	specListCmd.Flags().String("node", "", "Filter specs by linked node")
 
 	specCmd.AddCommand(specCreateCmd)

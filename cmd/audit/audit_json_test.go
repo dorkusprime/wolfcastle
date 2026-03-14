@@ -97,7 +97,7 @@ func TestPending_JSONOutput_WithBatch(t *testing.T) {
 			{ID: "f-1", Title: "Finding", Status: state.FindingPending, Description: "details"},
 		},
 	}
-	state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
+	_ = state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "pending"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -127,7 +127,7 @@ func TestReject_JSONOutput(t *testing.T) {
 			{ID: "f-1", Title: "Finding", Status: state.FindingPending},
 		},
 	}
-	state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
+	_ = state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
@@ -143,7 +143,7 @@ func TestFixGap_JSONOutput(t *testing.T) {
 	createLeafNode(t, env, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "test gap"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	ns := loadNodeState(t, env, "my-project")
 	gapID := ns.Audit.Gaps[0].ID
@@ -162,7 +162,7 @@ func TestResolve_JSONOutput(t *testing.T) {
 	createOrchestratorWithChild(t, env, "auth", "auth/login")
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "issue"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	parentNs := loadNodeState(t, env, "auth")
 	escID := parentNs.Audit.Escalations[0].ID
@@ -212,8 +212,8 @@ func TestAuditList_WithScopes(t *testing.T) {
 	env := newTestEnv(t)
 
 	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
-	os.MkdirAll(baseAudits, 0755)
-	os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("Check security"), 0644)
+	_ = os.MkdirAll(baseAudits, 0755)
+	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("Check security"), 0644)
 
 	env.RootCmd.SetArgs([]string{"audit", "list"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -243,7 +243,7 @@ func TestPending_AllReviewed(t *testing.T) {
 			{ID: "f-1", Title: "Finding", Status: state.FindingApproved},
 		},
 	}
-	state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
+	_ = state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "pending"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -257,15 +257,15 @@ func TestShow_WithBreadcrumbsGapsEscalations(t *testing.T) {
 
 	// Add breadcrumb to child
 	env.RootCmd.SetArgs([]string{"audit", "breadcrumb", "--node", "auth/login", "made progress"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	// Add gap to child
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "auth/login", "missing tests"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	// Escalate from child
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "need input"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	// Show parent (has escalation)
 	env.RootCmd.SetArgs([]string{"audit", "show", "--node", "auth"})

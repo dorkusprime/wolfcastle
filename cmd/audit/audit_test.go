@@ -26,14 +26,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	os.MkdirAll(wcDir, 0755)
+	_ = os.MkdirAll(wcDir, 0755)
 
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
 	ns := "test-dev"
 	projDir := filepath.Join(wcDir, "projects", ns)
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 
 	idx := state.NewRootIndex()
 	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
@@ -68,15 +68,15 @@ func newTestEnv(t *testing.T) *testEnv {
 func saveJSON(t *testing.T, path string, v any) {
 	t.Helper()
 	data, _ := json.MarshalIndent(v, "", "  ")
-	os.MkdirAll(filepath.Dir(path), 0755)
-	os.WriteFile(path, data, 0644)
+	_ = os.MkdirAll(filepath.Dir(path), 0755)
+	_ = os.WriteFile(path, data, 0644)
 }
 
 func createLeafNode(t *testing.T, env *testEnv, addr, name string) {
 	t.Helper()
 	parsed, _ := tree.ParseAddress(addr)
 	nodeDir := filepath.Join(env.ProjectsDir, filepath.Join(parsed.Parts...))
-	os.MkdirAll(nodeDir, 0755)
+	_ = os.MkdirAll(nodeDir, 0755)
 
 	ns := state.NewNodeState(parsed.Leaf(), name, state.NodeLeaf)
 	ns.Tasks = []state.Task{
@@ -92,7 +92,7 @@ func createLeafNode(t *testing.T, env *testEnv, addr, name string) {
 		Address:  addr,
 		Children: []string{},
 	}
-	state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
+	_ = state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
 }
 
 func createOrchestratorWithChild(t *testing.T, env *testEnv, parentAddr, childAddr string) {
@@ -100,7 +100,7 @@ func createOrchestratorWithChild(t *testing.T, env *testEnv, parentAddr, childAd
 	// Create parent
 	parentParsed, _ := tree.ParseAddress(parentAddr)
 	parentDir := filepath.Join(env.ProjectsDir, filepath.Join(parentParsed.Parts...))
-	os.MkdirAll(parentDir, 0755)
+	_ = os.MkdirAll(parentDir, 0755)
 
 	parentNs := state.NewNodeState(parentParsed.Leaf(), parentAddr, state.NodeOrchestrator)
 	saveJSON(t, filepath.Join(parentDir, "state.json"), parentNs)
@@ -117,7 +117,7 @@ func createOrchestratorWithChild(t *testing.T, env *testEnv, parentAddr, childAd
 	// Create child
 	childParsed, _ := tree.ParseAddress(childAddr)
 	childDir := filepath.Join(env.ProjectsDir, filepath.Join(childParsed.Parts...))
-	os.MkdirAll(childDir, 0755)
+	_ = os.MkdirAll(childDir, 0755)
 
 	childNs := state.NewNodeState(childParsed.Leaf(), childAddr, state.NodeLeaf)
 	saveJSON(t, filepath.Join(childDir, "state.json"), childNs)
@@ -131,7 +131,7 @@ func createOrchestratorWithChild(t *testing.T, env *testEnv, parentAddr, childAd
 		Children: []string{},
 	}
 
-	state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
+	_ = state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
 }
 
 func loadNodeState(t *testing.T, env *testEnv, addr string) *state.NodeState {
@@ -280,7 +280,7 @@ func TestFixGap_Success(t *testing.T) {
 
 	// Add a gap first
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "some gap"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	ns := loadNodeState(t, env, "my-project")
 	gapID := ns.Audit.Gaps[0].ID
@@ -312,14 +312,14 @@ func TestFixGap_AlreadyFixed(t *testing.T) {
 	createLeafNode(t, env, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "a gap"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	ns := loadNodeState(t, env, "my-project")
 	gapID := ns.Audit.Gaps[0].ID
 
 	// Fix it
 	env.RootCmd.SetArgs([]string{"audit", "fix-gap", "--node", "my-project", gapID})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	// Try to fix again
 	env.RootCmd.SetArgs([]string{"audit", "fix-gap", "--node", "my-project", gapID})
@@ -339,7 +339,7 @@ func TestResolve_Success(t *testing.T) {
 
 	// Add escalation
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "some issue"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	parentNs := loadNodeState(t, env, "auth")
 	escID := parentNs.Audit.Escalations[0].ID
@@ -371,13 +371,13 @@ func TestResolve_AlreadyResolved(t *testing.T) {
 	createOrchestratorWithChild(t, env, "auth", "auth/login")
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "issue"})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	parentNs := loadNodeState(t, env, "auth")
 	escID := parentNs.Audit.Escalations[0].ID
 
 	env.RootCmd.SetArgs([]string{"audit", "resolve", "--node", "auth", escID})
-	env.RootCmd.Execute()
+	_ = env.RootCmd.Execute()
 
 	env.RootCmd.SetArgs([]string{"audit", "resolve", "--node", "auth", escID})
 	err := env.RootCmd.Execute()
@@ -481,7 +481,7 @@ func TestPending_WithBatch(t *testing.T) {
 		},
 	}
 	batchPath := filepath.Join(env.WolfcastleDir, "audit-state.json")
-	state.SaveBatch(batchPath, batch)
+	_ = state.SaveBatch(batchPath, batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "pending"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -514,7 +514,7 @@ func TestReject_SingleFinding(t *testing.T) {
 		},
 	}
 	batchPath := filepath.Join(env.WolfcastleDir, "audit-state.json")
-	state.SaveBatch(batchPath, batch)
+	_ = state.SaveBatch(batchPath, batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "reject", "finding-1"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -548,7 +548,7 @@ func TestReject_NoArgs(t *testing.T) {
 			{ID: "finding-1", Title: "Test", Status: state.FindingPending},
 		},
 	}
-	state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
+	_ = state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "reject"})
 	err := env.RootCmd.Execute()
@@ -570,7 +570,7 @@ func TestReject_All(t *testing.T) {
 		},
 	}
 	batchPath := filepath.Join(env.WolfcastleDir, "audit-state.json")
-	state.SaveBatch(batchPath, batch)
+	_ = state.SaveBatch(batchPath, batch)
 
 	env.RootCmd.SetArgs([]string{"audit", "reject", "--all"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -645,9 +645,9 @@ func TestDiscoverScopes_FindsScopes(t *testing.T) {
 
 	// Create audit scope files
 	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
-	os.MkdirAll(baseAudits, 0755)
-	os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("# Security\nCheck for vulnerabilities"), 0644)
-	os.WriteFile(filepath.Join(baseAudits, "performance.md"), []byte("# Performance\nCheck for bottlenecks"), 0644)
+	_ = os.MkdirAll(baseAudits, 0755)
+	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("# Security\nCheck for vulnerabilities"), 0644)
+	_ = os.WriteFile(filepath.Join(baseAudits, "performance.md"), []byte("# Performance\nCheck for bottlenecks"), 0644)
 
 	scopes, err := discoverScopes(env.App)
 	if err != nil {
@@ -663,12 +663,12 @@ func TestDiscoverScopes_TierOverride(t *testing.T) {
 
 	// Base and custom with same name
 	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
-	os.MkdirAll(baseAudits, 0755)
-	os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("base security"), 0644)
+	_ = os.MkdirAll(baseAudits, 0755)
+	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("base security"), 0644)
 
 	customAudits := filepath.Join(env.WolfcastleDir, "custom", "audits")
-	os.MkdirAll(customAudits, 0755)
-	os.WriteFile(filepath.Join(customAudits, "security.md"), []byte("custom security"), 0644)
+	_ = os.MkdirAll(customAudits, 0755)
+	_ = os.WriteFile(filepath.Join(customAudits, "security.md"), []byte("custom security"), 0644)
 
 	scopes, err := discoverScopes(env.App)
 	if err != nil {

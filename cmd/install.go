@@ -46,7 +46,7 @@ Falls back to copying on Windows.`,
 		}
 
 		// Remove existing skill dir/symlink
-		os.RemoveAll(skillDir)
+		_ = os.RemoveAll(skillDir)
 
 		// Try symlink first (works on macOS, Linux)
 		if canSymlink() {

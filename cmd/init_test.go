@@ -9,8 +9,8 @@ import (
 func TestInitCmd_NewProject(t *testing.T) {
 	tmp := t.TempDir()
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
-	os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
 
 	oldApp := app
 	defer func() { app = oldApp }()
@@ -37,11 +37,11 @@ func TestInitCmd_NewProject(t *testing.T) {
 func TestInitCmd_AlreadyInitialized(t *testing.T) {
 	tmp := t.TempDir()
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
-	os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
 
 	// Pre-create .wolfcastle
-	os.MkdirAll(filepath.Join(tmp, ".wolfcastle"), 0755)
+	_ = os.MkdirAll(filepath.Join(tmp, ".wolfcastle"), 0755)
 
 	oldApp := app
 	defer func() { app = oldApp }()
@@ -56,12 +56,12 @@ func TestInitCmd_AlreadyInitialized(t *testing.T) {
 func TestInitCmd_ForceReinit(t *testing.T) {
 	tmp := t.TempDir()
 	origDir, _ := os.Getwd()
-	defer os.Chdir(origDir)
-	os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
 
 	// First init
 	rootCmd.SetArgs([]string{"init"})
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 
 	// Force reinit
 	rootCmd.SetArgs([]string{"init", "--force"})

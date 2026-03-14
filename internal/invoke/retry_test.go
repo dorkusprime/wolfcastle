@@ -355,7 +355,7 @@ func TestRetryInvoker_LoggerReceivesDelays(t *testing.T) {
 	ri := NewRetryInvoker(inner, cfg, logger)
 	ri.SleepFunc = noSleep
 
-	ri.Invoke(context.Background(), config.ModelDef{}, "", "", nil, nil)
+	_, _ = ri.Invoke(context.Background(), config.ModelDef{}, "", "", nil, nil)
 
 	if len(logger.retries) != 3 {
 		t.Fatalf("got %d retries, want 3", len(logger.retries))

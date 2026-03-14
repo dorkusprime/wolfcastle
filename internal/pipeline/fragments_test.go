@@ -41,8 +41,8 @@ func TestResolveFragment_CustomReplacesBase(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "test.md"), []byte("base"), 0644)
-	os.WriteFile(filepath.Join(dir, "custom", "prompts", "test.md"), []byte("custom"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "test.md"), []byte("base"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "custom", "prompts", "test.md"), []byte("custom"), 0644)
 
 	got, err := ResolveFragment(dir, "prompts/test.md")
 	if err != nil {
@@ -58,9 +58,9 @@ func TestResolveFragment_LocalReplacesBoth(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "test.md"), []byte("base"), 0644)
-	os.WriteFile(filepath.Join(dir, "custom", "prompts", "test.md"), []byte("custom"), 0644)
-	os.WriteFile(filepath.Join(dir, "local", "prompts", "test.md"), []byte("local"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "test.md"), []byte("base"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "custom", "prompts", "test.md"), []byte("custom"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "local", "prompts", "test.md"), []byte("local"), 0644)
 
 	got, err := ResolveFragment(dir, "prompts/test.md")
 	if err != nil {
@@ -88,12 +88,12 @@ func TestResolveAllFragments_DiscoversMergesAcrossTiers(t *testing.T) {
 	setupTiers(t, dir)
 
 	// base has a.md and b.md
-	os.WriteFile(filepath.Join(dir, "base", "rules", "a.md"), []byte("base-a"), 0644)
-	os.WriteFile(filepath.Join(dir, "base", "rules", "b.md"), []byte("base-b"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "a.md"), []byte("base-a"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "b.md"), []byte("base-b"), 0644)
 
 	// custom overrides a.md, adds c.md
-	os.WriteFile(filepath.Join(dir, "custom", "rules", "a.md"), []byte("custom-a"), 0644)
-	os.WriteFile(filepath.Join(dir, "custom", "rules", "c.md"), []byte("custom-c"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "custom", "rules", "a.md"), []byte("custom-a"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "custom", "rules", "c.md"), []byte("custom-c"), 0644)
 
 	contents, err := ResolveAllFragments(dir, "rules", nil, nil)
 	if err != nil {
@@ -121,9 +121,9 @@ func TestResolveAllFragments_RespectsExcludeList(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "rules", "a.md"), []byte("a"), 0644)
-	os.WriteFile(filepath.Join(dir, "base", "rules", "b.md"), []byte("b"), 0644)
-	os.WriteFile(filepath.Join(dir, "base", "rules", "c.md"), []byte("c"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "a.md"), []byte("a"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "b.md"), []byte("b"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "c.md"), []byte("c"), 0644)
 
 	contents, err := ResolveAllFragments(dir, "rules", nil, []string{"b.md"})
 	if err != nil {
@@ -146,7 +146,7 @@ func TestResolveAllFragments_ErrorsOnMissingInclude(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "rules", "a.md"), []byte("a"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "a.md"), []byte("a"), 0644)
 
 	_, err := ResolveAllFragments(dir, "rules", []string{"a.md", "missing.md"}, nil)
 	if err == nil {
@@ -159,9 +159,9 @@ func TestResolveAllFragments_RespectsIncludeListOrdering(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "rules", "a.md"), []byte("a"), 0644)
-	os.WriteFile(filepath.Join(dir, "base", "rules", "b.md"), []byte("b"), 0644)
-	os.WriteFile(filepath.Join(dir, "base", "rules", "c.md"), []byte("c"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "a.md"), []byte("a"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "b.md"), []byte("b"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "c.md"), []byte("c"), 0644)
 
 	// Include list specifies order: c, a (skipping b)
 	contents, err := ResolveAllFragments(dir, "rules", []string{"c.md", "a.md"}, nil)
@@ -187,7 +187,7 @@ func TestResolvePromptTemplate_PlainString(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "hello.md"), []byte("Hello, world!"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "hello.md"), []byte("Hello, world!"), 0644)
 
 	got, err := ResolvePromptTemplate(dir, "hello.md", nil)
 	if err != nil {
@@ -203,7 +203,7 @@ func TestResolvePromptTemplate_WithTemplateVars(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "greet.md"),
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "greet.md"),
 		[]byte("Hello, {{.Name}}! You are {{.Age}} years old."), 0644)
 
 	ctx := struct {
@@ -226,8 +226,8 @@ func TestResolvePromptTemplate_CustomOverridesBase(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "msg.md"), []byte("base: {{.Val}}"), 0644)
-	os.WriteFile(filepath.Join(dir, "custom", "prompts", "msg.md"), []byte("custom: {{.Val}}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "msg.md"), []byte("base: {{.Val}}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "custom", "prompts", "msg.md"), []byte("custom: {{.Val}}"), 0644)
 
 	got, err := ResolvePromptTemplate(dir, "msg.md", struct{ Val string }{"test"})
 	if err != nil {
@@ -243,9 +243,9 @@ func TestResolvePromptTemplate_LocalOverridesAll(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "msg.md"), []byte("base"), 0644)
-	os.WriteFile(filepath.Join(dir, "custom", "prompts", "msg.md"), []byte("custom"), 0644)
-	os.WriteFile(filepath.Join(dir, "local", "prompts", "msg.md"), []byte("local"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "msg.md"), []byte("base"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "custom", "prompts", "msg.md"), []byte("custom"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "local", "prompts", "msg.md"), []byte("local"), 0644)
 
 	got, err := ResolvePromptTemplate(dir, "msg.md", nil)
 	if err != nil {
@@ -272,7 +272,7 @@ func TestResolvePromptTemplate_ErrorOnBadTemplate(t *testing.T) {
 	dir := t.TempDir()
 	setupTiers(t, dir)
 
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "bad.md"), []byte("{{.Foo"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "bad.md"), []byte("{{.Foo"), 0644)
 
 	_, err := ResolvePromptTemplate(dir, "bad.md", struct{ Foo string }{"x"})
 	if err == nil {
@@ -286,7 +286,7 @@ func TestResolvePromptTemplate_DecompositionTemplate(t *testing.T) {
 	setupTiers(t, dir)
 
 	tmpl := "Break {{.NodeAddr}} into sub-tasks."
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "decomposition.md"), []byte(tmpl), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "decomposition.md"), []byte(tmpl), 0644)
 
 	ctx := DecompositionContext{NodeAddr: "project/auth"}
 	got, err := ResolvePromptTemplate(dir, "decomposition.md", ctx)
@@ -304,7 +304,7 @@ func TestResolvePromptTemplate_ContextHeadersTemplate(t *testing.T) {
 	setupTiers(t, dir)
 
 	tmpl := "Failed {{.FailureCount}} times. Threshold: {{.DecompThreshold}}"
-	os.WriteFile(filepath.Join(dir, "base", "prompts", "context-headers.md"), []byte(tmpl), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "context-headers.md"), []byte(tmpl), 0644)
 
 	ctx := FailureHeaderContext{
 		FailureCount:    5,

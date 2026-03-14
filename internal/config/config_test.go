@@ -507,7 +507,7 @@ func TestLoad_InvalidLocalJSON_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "config.json"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "config.json"), []byte("{}"), 0644)
 	if err := os.WriteFile(filepath.Join(dir, "config.local.json"), []byte("{not valid}"), 0644); err != nil {
 		t.Fatal(err)
 	}

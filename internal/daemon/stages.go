@@ -43,9 +43,9 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 	expandHeader := resolveContextHeader(d.WolfcastleDir, "expand-context.md", "# Inbox Items to Expand\n")
 	itemsCtx.WriteString(expandHeader + "\n")
 	for i, item := range newItems {
-		itemsCtx.WriteString(fmt.Sprintf("### Item %d\n", i+1))
-		itemsCtx.WriteString(fmt.Sprintf("- **Timestamp:** %s\n", item.Timestamp))
-		itemsCtx.WriteString(fmt.Sprintf("- **Text:** %s\n\n", item.Text))
+		fmt.Fprintf(&itemsCtx, "### Item %d\n", i+1)
+		fmt.Fprintf(&itemsCtx, "- **Timestamp:** %s\n", item.Timestamp)
+		fmt.Fprintf(&itemsCtx, "- **Text:** %s\n\n", item.Text)
 	}
 
 	prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, stage, itemsCtx.String())
@@ -53,7 +53,7 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		return err
 	}
 
-	d.Logger.Log(map[string]any{"type": "stage_start", "stage": "expand", "new_items": len(newItems)})
+	_ = d.Logger.Log(map[string]any{"type": "stage_start", "stage": "expand", "new_items": len(newItems)})
 
 	invokeCtx := ctx
 	if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
@@ -67,7 +67,7 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		return err
 	}
 
-	d.Logger.Log(map[string]any{
+	_ = d.Logger.Log(map[string]any{
 		"type":       "stage_complete",
 		"stage":      "expand",
 		"exit_code":  result.ExitCode,
@@ -154,7 +154,7 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 	itemsCtx.WriteString(fileHeader + "\n")
 	for _, idx := range expandedIndices {
 		item := inboxData.Items[idx]
-		itemsCtx.WriteString(fmt.Sprintf("---\n\n**Original:** %s\n\n", item.Text))
+		fmt.Fprintf(&itemsCtx, "---\n\n**Original:** %s\n\n", item.Text)
 		if item.Expanded != "" {
 			itemsCtx.WriteString(item.Expanded)
 			itemsCtx.WriteString("\n\n")
@@ -166,7 +166,7 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 		return err
 	}
 
-	d.Logger.Log(map[string]any{"type": "stage_start", "stage": "file", "expanded_items": len(expandedIndices)})
+	_ = d.Logger.Log(map[string]any{"type": "stage_start", "stage": "file", "expanded_items": len(expandedIndices)})
 
 	invokeCtx := ctx
 	if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
@@ -181,7 +181,7 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 		return err
 	}
 
-	d.Logger.Log(map[string]any{
+	_ = d.Logger.Log(map[string]any{
 		"type":       "stage_complete",
 		"stage":      "file",
 		"exit_code":  result.ExitCode,

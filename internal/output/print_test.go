@@ -19,12 +19,12 @@ func TestPrint_WritesJSONToStdout(t *testing.T) {
 	resp := Ok("test-print", map[string]string{"key": "value"})
 	Print(resp)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = origStdout
 
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
-	r.Close()
+	_ = r.Close()
 	output := string(buf[:n])
 
 	var decoded map[string]any
@@ -57,12 +57,12 @@ func TestPrint_ErrorResponse(t *testing.T) {
 	resp := Err("fail", 1, "broken")
 	Print(resp)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = origStdout
 
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
-	r.Close()
+	_ = r.Close()
 	output := string(buf[:n])
 
 	var decoded map[string]any
@@ -91,12 +91,12 @@ func TestPrint_IndentedOutput(t *testing.T) {
 	resp := Ok("indent-test", nil)
 	Print(resp)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = origStdout
 
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
-	r.Close()
+	_ = r.Close()
 	output := string(buf[:n])
 
 	// Verify the output is indented (contains newlines and spaces)
@@ -118,12 +118,12 @@ func TestPrintHuman_WritesFormattedOutput(t *testing.T) {
 
 	PrintHuman("Hello, %s! Count: %d", "world", 42)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = origStdout
 
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
-	r.Close()
+	_ = r.Close()
 	output := string(buf[:n])
 
 	expected := "Hello, world! Count: 42\n"
@@ -142,12 +142,12 @@ func TestPrintHuman_NoArgs(t *testing.T) {
 
 	PrintHuman("simple message")
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = origStdout
 
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
-	r.Close()
+	_ = r.Close()
 	output := string(buf[:n])
 
 	expected := "simple message\n"
@@ -166,12 +166,12 @@ func TestPrintError_WritesToStderr(t *testing.T) {
 
 	PrintError("something failed: %s", "reason")
 
-	w.Close()
+	_ = w.Close()
 	os.Stderr = origStderr
 
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
-	r.Close()
+	_ = r.Close()
 	output := string(buf[:n])
 
 	expected := "Error: something failed: reason\n"
@@ -190,12 +190,12 @@ func TestPrintError_NoArgs(t *testing.T) {
 
 	PrintError("simple error")
 
-	w.Close()
+	_ = w.Close()
 	os.Stderr = origStderr
 
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
-	r.Close()
+	_ = r.Close()
 	output := string(buf[:n])
 
 	expected := "Error: simple error\n"
@@ -215,12 +215,12 @@ func TestPrint_NilData(t *testing.T) {
 	resp := Ok("nil-data", nil)
 	Print(resp)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = origStdout
 
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
-	r.Close()
+	_ = r.Close()
 	output := string(buf[:n])
 
 	var decoded map[string]any

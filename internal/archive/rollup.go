@@ -37,7 +37,7 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 
 	var b strings.Builder
 
-	b.WriteString(fmt.Sprintf("# Archive: %s\n\n", nodeAddr))
+	fmt.Fprintf(&b, "# Archive: %s\n\n", nodeAddr)
 
 	// Summary (if provided)
 	if summary != "" {
@@ -50,7 +50,7 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 	b.WriteString("## Breadcrumbs\n\n")
 	if len(ns.Audit.Breadcrumbs) > 0 {
 		for _, bc := range ns.Audit.Breadcrumbs {
-			b.WriteString(fmt.Sprintf("- **%s** [%s]: %s\n", bc.Task, bc.Timestamp.Format("2006-01-02T15:04Z"), bc.Text))
+			fmt.Fprintf(&b, "- **%s** [%s]: %s\n", bc.Task, bc.Timestamp.Format("2006-01-02T15:04Z"), bc.Text)
 		}
 	} else {
 		b.WriteString("No breadcrumbs recorded.\n")
@@ -59,7 +59,7 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 
 	// Audit
 	b.WriteString("## Audit\n\n")
-	b.WriteString(fmt.Sprintf("**Status:** %s\n\n", ns.Audit.Status))
+	fmt.Fprintf(&b, "**Status:** %s\n\n", ns.Audit.Status)
 
 	if ns.Audit.Scope != nil {
 		b.WriteString("### Scope\n\n")
@@ -67,7 +67,7 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 		if len(ns.Audit.Scope.Criteria) > 0 {
 			b.WriteString("**Criteria:**\n")
 			for _, c := range ns.Audit.Scope.Criteria {
-				b.WriteString(fmt.Sprintf("- [x] %s\n", c))
+				fmt.Fprintf(&b, "- [x] %s\n", c)
 			}
 			b.WriteString("\n")
 		}
@@ -80,9 +80,9 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 			if g.Status == state.GapFixed {
 				status = "FIXED"
 			}
-			b.WriteString(fmt.Sprintf("- [%s] %s", status, g.Description))
+			fmt.Fprintf(&b, "- [%s] %s", status, g.Description)
 			if g.FixedBy != "" {
-				b.WriteString(fmt.Sprintf(" (fixed by %s)", g.FixedBy))
+				fmt.Fprintf(&b, " (fixed by %s)", g.FixedBy)
 			}
 			b.WriteString("\n")
 		}
@@ -96,7 +96,7 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 			if e.Status == state.EscalationResolved {
 				status = "RESOLVED"
 			}
-			b.WriteString(fmt.Sprintf("- [%s] %s (from %s)\n", status, e.Description, e.SourceNode))
+			fmt.Fprintf(&b, "- [%s] %s (from %s)\n", status, e.Description, e.SourceNode)
 		}
 		b.WriteString("\n")
 	}
@@ -110,18 +110,18 @@ func GenerateEntry(nodeAddr string, ns *state.NodeState, cfg *config.Config, bra
 	b.WriteString("## Metadata\n\n")
 	b.WriteString("| Field | Value |\n")
 	b.WriteString("|-------|-------|\n")
-	b.WriteString(fmt.Sprintf("| Node | %s |\n", nodeAddr))
+	fmt.Fprintf(&b, "| Node | %s |\n", nodeAddr)
 	completedAt := now.Format("2006-01-02T15:04Z")
 	if ns.Audit.CompletedAt != nil {
 		completedAt = ns.Audit.CompletedAt.Format("2006-01-02T15:04Z")
 	}
-	b.WriteString(fmt.Sprintf("| Completed | %s |\n", completedAt))
-	b.WriteString(fmt.Sprintf("| Archived | %s |\n", now.Format("2006-01-02T15:04Z")))
+	fmt.Fprintf(&b, "| Completed | %s |\n", completedAt)
+	fmt.Fprintf(&b, "| Archived | %s |\n", now.Format("2006-01-02T15:04Z"))
 	if cfg.Identity != nil {
-		b.WriteString(fmt.Sprintf("| Engineer | %s-%s |\n", cfg.Identity.User, cfg.Identity.Machine))
+		fmt.Fprintf(&b, "| Engineer | %s-%s |\n", cfg.Identity.User, cfg.Identity.Machine)
 	}
 	if branch != "" {
-		b.WriteString(fmt.Sprintf("| Branch | %s |\n", branch))
+		fmt.Fprintf(&b, "| Branch | %s |\n", branch)
 	}
 
 	return &Entry{

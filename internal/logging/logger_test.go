@@ -146,12 +146,12 @@ func TestStartIteration_IncrementsCounter(t *testing.T) {
 	}
 	defer logger.Close()
 
-	logger.StartIteration()
+	_ = logger.StartIteration()
 	if logger.Iteration != 1 {
 		t.Errorf("expected iteration=1, got %d", logger.Iteration)
 	}
 
-	logger.StartIteration()
+	_ = logger.StartIteration()
 	if logger.Iteration != 2 {
 		t.Errorf("expected iteration=2, got %d", logger.Iteration)
 	}
@@ -167,11 +167,11 @@ func TestStartIteration_ClosesPreviousFile(t *testing.T) {
 	}
 	defer logger.Close()
 
-	logger.StartIteration()
-	logger.Log(map[string]any{"msg": "first"})
+	_ = logger.StartIteration()
+	_ = logger.Log(map[string]any{"msg": "first"})
 
-	logger.StartIteration()
-	logger.Log(map[string]any{"msg": "second"})
+	_ = logger.StartIteration()
+	_ = logger.Log(map[string]any{"msg": "second"})
 
 	logger.Close()
 
@@ -199,8 +199,8 @@ func TestLog_WritesNDJSONRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logger.Log(map[string]any{"type": "test", "message": "hello"})
-	logger.Log(map[string]any{"type": "test", "message": "world"}, LevelWarn)
+	_ = logger.Log(map[string]any{"type": "test", "message": "hello"})
+	_ = logger.Log(map[string]any{"type": "test", "message": "world"}, LevelWarn)
 	logger.Close()
 
 	entries, _ := os.ReadDir(dir)
@@ -215,8 +215,8 @@ func TestLog_WritesNDJSONRecords(t *testing.T) {
 	}
 
 	var r1, r2 map[string]any
-	json.Unmarshal([]byte(lines[0]), &r1)
-	json.Unmarshal([]byte(lines[1]), &r2)
+	_ = json.Unmarshal([]byte(lines[0]), &r1)
+	_ = json.Unmarshal([]byte(lines[1]), &r2)
 
 	if r1["message"] != "hello" {
 		t.Errorf("expected msg=hello, got %v", r1["message"])
@@ -256,14 +256,14 @@ func TestLog_DefaultLevelIsInfo(t *testing.T) {
 	logger.Console = nil
 	defer logger.Close()
 
-	logger.StartIteration()
-	logger.Log(map[string]any{"message": "test"})
+	_ = logger.StartIteration()
+	_ = logger.Log(map[string]any{"message": "test"})
 	logger.Close()
 
 	entries, _ := os.ReadDir(dir)
 	data, _ := os.ReadFile(filepath.Join(dir, entries[0].Name()))
 	var record map[string]any
-	json.Unmarshal([]byte(strings.TrimSpace(string(data))), &record)
+	_ = json.Unmarshal([]byte(strings.TrimSpace(string(data))), &record)
 
 	if record["level"] != "info" {
 		t.Errorf("expected level=info, got %v", record["level"])
@@ -285,25 +285,25 @@ func TestLog_ConsoleOutputAboveThreshold(t *testing.T) {
 	logger.ConsoleLevel = LevelWarn
 	defer logger.Close()
 
-	logger.StartIteration()
+	_ = logger.StartIteration()
 
 	// Debug and info should be suppressed
-	logger.Log(map[string]any{"message": "debug-msg"}, LevelDebug)
-	logger.Log(map[string]any{"message": "info-msg"}, LevelInfo)
+	_ = logger.Log(map[string]any{"message": "debug-msg"}, LevelDebug)
+	_ = logger.Log(map[string]any{"message": "info-msg"}, LevelInfo)
 
 	if buf.Len() > 0 {
 		t.Errorf("expected no console output for sub-threshold levels, got: %s", buf.String())
 	}
 
 	// Warn should appear
-	logger.Log(map[string]any{"message": "warn-msg"}, LevelWarn)
+	_ = logger.Log(map[string]any{"message": "warn-msg"}, LevelWarn)
 	if !strings.Contains(buf.String(), "warn-msg") {
 		t.Errorf("expected warn-msg on console, got: %s", buf.String())
 	}
 
 	buf.Reset()
 	// Error should also appear
-	logger.Log(map[string]any{"message": "error-msg"}, LevelError)
+	_ = logger.Log(map[string]any{"message": "error-msg"}, LevelError)
 	if !strings.Contains(buf.String(), "error-msg") {
 		t.Errorf("expected error-msg on console, got: %s", buf.String())
 	}
@@ -322,8 +322,8 @@ func TestLog_ConsoleOutputIncludesStage(t *testing.T) {
 	logger.ConsoleLevel = LevelDebug
 	defer logger.Close()
 
-	logger.StartIteration()
-	logger.Log(map[string]any{"message": "starting", "stage": "expand"})
+	_ = logger.StartIteration()
+	_ = logger.Log(map[string]any{"message": "starting", "stage": "expand"})
 
 	output := buf.String()
 	if !strings.Contains(output, "expand") {
@@ -344,7 +344,7 @@ func TestLog_ConsoleNil_NoOutput(t *testing.T) {
 	logger.Console = nil
 	defer logger.Close()
 
-	logger.StartIteration()
+	_ = logger.StartIteration()
 	// Should not panic even with nil console
 	if err := logger.Log(map[string]any{"message": "test"}, LevelError); err != nil {
 		t.Fatal(err)
@@ -364,8 +364,8 @@ func TestLog_ConsoleFallsBackToType(t *testing.T) {
 	logger.ConsoleLevel = LevelDebug
 	defer logger.Close()
 
-	logger.StartIteration()
-	logger.Log(map[string]any{"type": "daemon_start"})
+	_ = logger.StartIteration()
+	_ = logger.Log(map[string]any{"type": "daemon_start"})
 
 	if !strings.Contains(buf.String(), "daemon_start") {
 		t.Errorf("expected type field as fallback, got: %s", buf.String())
@@ -385,7 +385,7 @@ func TestAssistantWriter_WritesAtDebugLevel(t *testing.T) {
 	logger.Console = nil
 	defer logger.Close()
 
-	logger.StartIteration()
+	_ = logger.StartIteration()
 	w := logger.AssistantWriter()
 	if w == nil {
 		t.Fatal("expected non-nil writer")
@@ -405,7 +405,7 @@ func TestAssistantWriter_WritesAtDebugLevel(t *testing.T) {
 	data, _ := os.ReadFile(filepath.Join(dir, entries[0].Name()))
 
 	var record map[string]any
-	json.Unmarshal([]byte(strings.TrimSpace(string(data))), &record)
+	_ = json.Unmarshal([]byte(strings.TrimSpace(string(data))), &record)
 
 	if record["type"] != "assistant" {
 		t.Errorf("expected type=assistant, got %v", record["type"])
@@ -444,9 +444,9 @@ func TestAssistantWriter_ConsoleSuppressedAtInfoLevel(t *testing.T) {
 	logger.ConsoleLevel = LevelInfo
 	defer logger.Close()
 
-	logger.StartIteration()
+	_ = logger.StartIteration()
 	w := logger.AssistantWriter()
-	w.Write([]byte("model output"))
+	_, _ = w.Write([]byte("model output"))
 
 	if buf.Len() > 0 {
 		t.Errorf("expected assistant output suppressed at info level, got: %s", buf.String())
@@ -489,7 +489,7 @@ func TestCurrentLogPath_ReturnsPathDuringIteration(t *testing.T) {
 	}
 	defer logger.Close()
 
-	logger.StartIteration()
+	_ = logger.StartIteration()
 	path := logger.CurrentLogPath()
 	if path == "" {
 		t.Fatal("expected non-empty path")
@@ -505,9 +505,9 @@ func TestLatestLogFile_ReturnsMostRecent(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(dir, "0003-20260103T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0003-20260103T00-00Z.jsonl"), []byte("{}"), 0644)
 
 	latest, err := LatestLogFile(dir)
 	if err != nil {
@@ -522,8 +522,8 @@ func TestLatestLogFile_ConsidersGzFiles(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl.gz"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl.gz"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte("{}"), 0644)
 
 	latest, err := LatestLogFile(dir)
 	if err != nil {
@@ -538,9 +538,9 @@ func TestLatestLogFile_IgnoresNonJSONLFiles(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("text"), 0644)
-	os.WriteFile(filepath.Join(dir, "readme.md"), []byte("md"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("text"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "readme.md"), []byte("md"), 0644)
 
 	latest, err := LatestLogFile(dir)
 	if err != nil {
@@ -562,7 +562,7 @@ func TestLatestLogFile_ErrorsOnEmptyDirectory(t *testing.T) {
 func TestLatestLogFile_ErrorsWhenOnlyNonJSONLFiles(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("text"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("text"), 0644)
 
 	_, err := LatestLogFile(dir)
 	if err == nil {
@@ -586,7 +586,7 @@ func TestEnforceRetention_DeletesOldFilesByCount(t *testing.T) {
 
 	for i := 1; i <= 5; i++ {
 		name := filepath.Join(dir, fmt.Sprintf("%04d-20260101T00-00Z.jsonl", i))
-		os.WriteFile(name, []byte("{}"), 0644)
+		_ = os.WriteFile(name, []byte("{}"), 0644)
 	}
 
 	if err := EnforceRetention(dir, 2, 365); err != nil {
@@ -604,12 +604,12 @@ func TestEnforceRetention_DeletesOldFilesByAge(t *testing.T) {
 	dir := t.TempDir()
 
 	oldFile := filepath.Join(dir, "0001-20260101T00-00Z.jsonl")
-	os.WriteFile(oldFile, []byte("{}"), 0644)
+	_ = os.WriteFile(oldFile, []byte("{}"), 0644)
 	oldTime := time.Now().AddDate(0, 0, -60)
-	os.Chtimes(oldFile, oldTime, oldTime)
+	_ = os.Chtimes(oldFile, oldTime, oldTime)
 
 	newFile := filepath.Join(dir, "0002-20260301T00-00Z.jsonl")
-	os.WriteFile(newFile, []byte("{}"), 0644)
+	_ = os.WriteFile(newFile, []byte("{}"), 0644)
 
 	if err := EnforceRetention(dir, 100, 30); err != nil {
 		t.Fatal(err)
@@ -626,7 +626,7 @@ func TestEnforceRetention_MaxFilesZero_DeletesAll(t *testing.T) {
 	dir := t.TempDir()
 
 	for i := 1; i <= 3; i++ {
-		os.WriteFile(filepath.Join(dir, fmt.Sprintf("%04d-20260101T00-00Z.jsonl", i)), []byte("{}"), 0644)
+		_ = os.WriteFile(filepath.Join(dir, fmt.Sprintf("%04d-20260101T00-00Z.jsonl", i)), []byte("{}"), 0644)
 	}
 
 	if err := EnforceRetention(dir, 0, 365); err != nil {
@@ -644,9 +644,9 @@ func TestEnforceRetention_MaxAgeDaysZero_DeletesAllByAge(t *testing.T) {
 
 	for i := 1; i <= 3; i++ {
 		name := filepath.Join(dir, fmt.Sprintf("%04d-20260101T00-00Z.jsonl", i))
-		os.WriteFile(name, []byte("{}"), 0644)
+		_ = os.WriteFile(name, []byte("{}"), 0644)
 		old := time.Now().Add(-time.Second)
-		os.Chtimes(name, old, old)
+		_ = os.Chtimes(name, old, old)
 	}
 
 	if err := EnforceRetention(dir, 100, 0); err != nil {
@@ -662,8 +662,8 @@ func TestEnforceRetention_IgnoresDirectories(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
-	os.MkdirAll(filepath.Join(dir, "subdir"), 0755)
+	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.MkdirAll(filepath.Join(dir, "subdir"), 0755)
 
 	if err := EnforceRetention(dir, 100, 365); err != nil {
 		t.Fatal(err)
@@ -684,7 +684,7 @@ func TestEnforceRetention_CountsGzFiles(t *testing.T) {
 		if i <= 3 {
 			suffix = ".jsonl.gz"
 		}
-		os.WriteFile(filepath.Join(dir, fmt.Sprintf("%04d-20260101T00-00Z%s", i, suffix)), []byte("{}"), 0644)
+		_ = os.WriteFile(filepath.Join(dir, fmt.Sprintf("%04d-20260101T00-00Z%s", i, suffix)), []byte("{}"), 0644)
 	}
 
 	if err := EnforceRetention(dir, 3, 365); err != nil {
@@ -711,9 +711,9 @@ func TestEnforceRetention_WithCompression(t *testing.T) {
 	dir := t.TempDir()
 
 	content := `{"message":"first"}` + "\n"
-	os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte(content), 0644)
-	os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte(content), 0644)
-	os.WriteFile(filepath.Join(dir, "0003-20260103T00-00Z.jsonl"), []byte(content), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte(content), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte(content), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0003-20260103T00-00Z.jsonl"), []byte(content), 0644)
 
 	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
 		t.Fatal(err)
@@ -743,13 +743,13 @@ func TestEnforceRetention_WithCompression(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer gz.Close()
+	defer func() { _ = gz.Close() }()
 
 	decompressed, err := io.ReadAll(gz)
 	if err != nil {
@@ -764,7 +764,7 @@ func TestEnforceRetention_WithCompression_SingleFile_NotCompressed(t *testing.T)
 	t.Parallel()
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
 
 	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
 		t.Fatal(err)
@@ -784,7 +784,7 @@ func TestCompressFile(t *testing.T) {
 	dir := t.TempDir()
 	src := filepath.Join(dir, "test.jsonl")
 	content := "line1\nline2\n"
-	os.WriteFile(src, []byte(content), 0644)
+	_ = os.WriteFile(src, []byte(content), 0644)
 
 	if err := compressFile(src); err != nil {
 		t.Fatal(err)
@@ -800,13 +800,13 @@ func TestCompressFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer gz.Close()
+	defer func() { _ = gz.Close() }()
 
 	r, err := gzip.NewReader(gz)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	decompressed, _ := io.ReadAll(r)
 	if string(decompressed) != content {
@@ -835,9 +835,9 @@ func TestIterationFromDir_FindsHighest(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "0003-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(dir, "0007-20260102T00-00Z.jsonl"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(dir, "0005-20260103T00-00Z.jsonl.gz"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0003-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0007-20260102T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0005-20260103T00-00Z.jsonl.gz"), []byte("{}"), 0644)
 
 	if got := IterationFromDir(dir); got != 7 {
 		t.Errorf("expected 7, got %d", got)
@@ -848,8 +848,8 @@ func TestIterationFromDir_IgnoresNonLogFiles(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "0003-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("text"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "0003-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("text"), 0644)
 
 	if got := IterationFromDir(dir); got != 3 {
 		t.Errorf("expected 3, got %d", got)
@@ -869,14 +869,14 @@ func TestWatchForNewFiles_DetectsNewFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	currentPath := filepath.Join(dir, "0001-20260101T00-00Z.jsonl")
-	os.WriteFile(currentPath, []byte("{}"), 0644)
+	_ = os.WriteFile(currentPath, []byte("{}"), 0644)
 
 	done := make(chan struct{})
 
 	// Write the new file after a tiny delay
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte("{}"), 0644)
+		_ = os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte("{}"), 0644)
 	}()
 
 	result := WatchForNewFiles(dir, currentPath, done, 20*time.Millisecond)
@@ -889,7 +889,7 @@ func TestWatchForNewFiles_StopsOnDone(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	currentPath := filepath.Join(dir, "0001-20260101T00-00Z.jsonl")
-	os.WriteFile(currentPath, []byte("{}"), 0644)
+	_ = os.WriteFile(currentPath, []byte("{}"), 0644)
 
 	done := make(chan struct{})
 	go func() {
@@ -920,7 +920,7 @@ func TestMultipleIterations_CreateSeparateFiles(t *testing.T) {
 		if err := logger.StartIteration(); err != nil {
 			t.Fatal(err)
 		}
-		logger.Log(map[string]any{"iter": i})
+		_ = logger.Log(map[string]any{"iter": i})
 	}
 	logger.Close()
 
@@ -968,10 +968,10 @@ func TestFullLifecycle(t *testing.T) {
 	logger.ConsoleLevel = LevelInfo
 
 	// Iteration 1
-	logger.StartIteration()
-	logger.Log(map[string]any{"message": "daemon starting", "type": "daemon_start"}, LevelInfo)
-	logger.Log(map[string]any{"message": "skip details", "stage": "expand"}, LevelDebug)
-	logger.Log(map[string]any{"message": "stage done", "stage": "execute"}, LevelInfo)
+	_ = logger.StartIteration()
+	_ = logger.Log(map[string]any{"message": "daemon starting", "type": "daemon_start"}, LevelInfo)
+	_ = logger.Log(map[string]any{"message": "skip details", "stage": "expand"}, LevelDebug)
+	_ = logger.Log(map[string]any{"message": "stage done", "stage": "execute"}, LevelInfo)
 	logger.Close()
 
 	// Verify NDJSON has all 3 records
@@ -994,8 +994,8 @@ func TestFullLifecycle(t *testing.T) {
 	}
 
 	// Iteration 2
-	logger.StartIteration()
-	logger.Log(map[string]any{"message": "warn event"}, LevelWarn)
+	_ = logger.StartIteration()
+	_ = logger.Log(map[string]any{"message": "warn event"}, LevelWarn)
 	logger.Close()
 
 	if logger.Iteration != 2 {
@@ -1024,7 +1024,7 @@ func TestNewLogger_ErrorOnInvalidPath(t *testing.T) {
 	// Use a path that can't be created (file exists where dir should be)
 	dir := t.TempDir()
 	blocker := filepath.Join(dir, "blocker")
-	os.WriteFile(blocker, []byte("x"), 0644)
+	_ = os.WriteFile(blocker, []byte("x"), 0644)
 
 	_, err := NewLogger(filepath.Join(blocker, "logs"))
 	if err == nil {
@@ -1042,7 +1042,7 @@ func TestLog_MarshalError(t *testing.T) {
 	logger.Console = nil
 	defer logger.Close()
 
-	logger.StartIteration()
+	_ = logger.StartIteration()
 
 	// A channel value can't be marshalled to JSON
 	err = logger.Log(map[string]any{"bad": make(chan int)})
@@ -1060,11 +1060,11 @@ func TestAssistantWriter_WriteError(t *testing.T) {
 	}
 	logger.Console = nil
 
-	logger.StartIteration()
+	_ = logger.StartIteration()
 	w := logger.AssistantWriter()
 
 	// Close the file to force write errors
-	logger.file.Close()
+	_ = logger.file.Close()
 
 	n, err := w.Write([]byte("should fail"))
 	if err == nil {
@@ -1081,15 +1081,15 @@ func TestCompressFile_ReadOnlyDst(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	src := filepath.Join(dir, "test.jsonl")
-	os.WriteFile(src, []byte("data"), 0644)
+	_ = os.WriteFile(src, []byte("data"), 0644)
 
 	// Create a read-only directory where .gz can't be written
 	roDir := filepath.Join(dir, "readonly")
-	os.MkdirAll(roDir, 0755)
+	_ = os.MkdirAll(roDir, 0755)
 	roSrc := filepath.Join(roDir, "test.jsonl")
-	os.WriteFile(roSrc, []byte("data"), 0644)
-	os.Chmod(roDir, 0555)
-	defer os.Chmod(roDir, 0755) // cleanup
+	_ = os.WriteFile(roSrc, []byte("data"), 0644)
+	_ = os.Chmod(roDir, 0555)
+	defer func() { _ = os.Chmod(roDir, 0755) }() // cleanup
 
 	err := compressFile(roSrc)
 	if err == nil {
