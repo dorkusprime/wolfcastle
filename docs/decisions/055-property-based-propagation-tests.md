@@ -27,6 +27,43 @@ Add property-based tests using Go's `testing/quick` package (stdlib, no external
 
 5. **Depth consistency** — `DecompositionDepth` of every child equals its parent's depth + 1.
 
+6. **Cycle resilience** — A corrupted parent pointer that creates a cycle in the parent chain must not cause an infinite loop. The propagation system must detect cycles via the existing `maxPropagationDepth` guard and visited-set (in `internal/state/propagation.go`) and return an error rather than hanging. This is a concrete safety property — without it, a single corrupted `parent` field in the root index could hang the daemon indefinitely.
+
+### Cycle Resilience Test
+
+In addition to the randomized property tests, a dedicated unit test verifies cycle detection under corruption:
+
+```go
+func TestPropagationDetectsCycle(t *testing.T) {
+    // Build a simple tree: root → parent → child
+    idx := state.NewRootIndex()
+    idx.Nodes["parent"] = state.IndexEntry{Name: "parent", Type: state.NodeOrchestrator, State: state.StatusNotStarted, Address: "parent", Children: []string{"child"}}
+    idx.Nodes["child"] = state.IndexEntry{Name: "child", Type: state.NodeLeaf, State: state.StatusComplete, Address: "child", Parent: "parent"}
+
+    // Corrupt: make parent's parent point to child, creating a cycle
+    entry := idx.Nodes["parent"]
+    entry.Parent = "child"
+    idx.Nodes["parent"] = entry
+
+    nodes := map[string]*state.NodeState{
+        "parent": state.NewNodeState("parent", "parent", state.NodeOrchestrator),
+        "child":  state.NewNodeState("child", "child", state.NodeLeaf),
+    }
+    nodes["child"].State = state.StatusComplete
+
+    load := func(addr string) (*state.NodeState, error) { return nodes[addr], nil }
+    save := func(addr string, ns *state.NodeState) error { nodes[addr] = ns; return nil }
+
+    // Propagate must return an error, not hang
+    err := state.Propagate("child", state.StatusComplete, idx, load, save)
+    if err == nil {
+        t.Fatal("expected error from cyclic parent chain, got nil")
+    }
+}
+```
+
+This test exercises the `maxPropagationDepth` and visited-set guards that prevent infinite loops from corrupted state — a safety property that must hold even when the tree's structural invariants have been violated.
+
 ### Test Structure
 
 ```go

@@ -40,6 +40,42 @@ Replace the raw scanner loop with the `github.com/chzyer/readline` library
    - It's only imported by cmd/unblock.go — not pulled into the core
      library.
 
+### Dependency Risk
+
+ADR-056 deliberately evaluated and retained Cobra as the sole external
+dependency, concluding that its features justify the cost for a 47+ command
+CLI. Adding readline makes it the second external dependency for an
+autonomous tool — a threshold worth acknowledging explicitly.
+
+Mitigating factors:
+
+- readline is imported only by `cmd/unblock.go`. It is not pulled into the
+  daemon, the state layer, or any core library package. A `go build` of a
+  hypothetical headless Wolfcastle (daemon-only, no interactive commands)
+  would not include readline at all.
+- readline has no transitive dependencies (pure Go, no CGO), so it adds
+  exactly one entry to `go.sum`, not a dependency tree.
+- The interactive unblock session is an optional feature — the agent tier
+  (Tier 3, `--agent` flag) provides the same diagnostic context without
+  readline.
+
+**Fallback alternative:** If the dependency budget is exceeded, fall back
+to `bufio.Scanner` with basic line editing via raw terminal mode —
+approximately 150 lines of hand-rolled code using `golang.org/x/term`
+(which is a golang.org/x module, not a third-party dependency). This
+provides backspace handling and basic line editing without full readline
+capabilities (no history, no Ctrl-A/E, no reverse search).
+
+**Review trigger** (matching ADR-056's pattern): Re-evaluate the readline
+dependency if any of these conditions become true:
+
+- A CVE is filed against `github.com/chzyer/readline`
+- The interactive unblock feature is rarely used in practice (measured by
+  whether any user reports or telemetry indicate it's exercised)
+- The total external dependency count exceeds 3
+- A Go stdlib or golang.org/x package gains readline-equivalent
+  functionality
+
 ## Consequences
 
 - Interactive sessions feel like a real REPL, not a raw pipe.
