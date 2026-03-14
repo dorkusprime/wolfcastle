@@ -20,6 +20,8 @@ jobs:
         go-version: ["1.26.x", "stable"]
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
 
       - uses: actions/setup-go@v6
         with:
@@ -39,10 +41,12 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.go-version == 'stable'
-        run: |
-          curl -Os https://cli.codecov.io/latest/linux/codecov
-          chmod +x codecov
-          ./codecov upload-process -t ${{ secrets.CODECOV_TOKEN }} -f coverage.out -F unittests --git-service github -v
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          verbose: true
 
   lint:
     runs-on: ubuntu-latest
