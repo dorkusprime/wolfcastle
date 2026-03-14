@@ -79,5 +79,6 @@ Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (au
 
 1. Clone the repo. You get `config.json`, `custom/`, `archive/`, and `docs/` immediately.
 2. Install Wolfcastle. `brew install wolfcastle` or the curl installer.
-3. [`wolfcastle init`](cli/init.md). Creates `config.local.json` with your [identity](configuration.md#identity). Generates `base/`.
-4. [`wolfcastle start`](cli/start.md). [The daemon](how-it-works.md#the-daemon) wakes up. Your [namespace](collaboration.md#engineer-namespacing) is created. Work begins.
+3. `git config core.hooksPath .githooks` to activate the pre-commit hook (fmt, vet, build, lint).
+4. [`wolfcastle init`](cli/init.md). Creates `config.local.json` with your [identity](configuration.md#identity). Generates `base/`.
+5. [`wolfcastle start`](cli/start.md). [The daemon](how-it-works.md#the-daemon) wakes up. Your [namespace](collaboration.md#engineer-namespacing) is created. Work begins.
