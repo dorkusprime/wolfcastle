@@ -85,7 +85,7 @@ type Logger struct {
 // NewLogger creates a logger for the given log directory.
 func NewLogger(logDir string) (*Logger, error) {
 	if err := os.MkdirAll(logDir, 0755); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating log directory: %w", err)
 	}
 	return &Logger{
 		LogDir:       logDir,
@@ -104,7 +104,10 @@ func (l *Logger) StartIteration() error {
 
 	var err error
 	l.file, err = os.Create(path)
-	return err
+	if err != nil {
+		return fmt.Errorf("creating log file %s: %w", filename, err)
+	}
+	return nil
 }
 
 // Log writes a structured record to the current iteration's log file.
@@ -124,10 +127,10 @@ func (l *Logger) Log(record map[string]any, levels ...Level) error {
 	record["level"] = level.String()
 	data, err := json.Marshal(record)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshaling log record: %w", err)
 	}
 	if _, err := l.file.Write(append(data, '\n')); err != nil {
-		return err
+		return fmt.Errorf("writing log record: %w", err)
 	}
 
 	// Mirror to console if the level meets the threshold (ADR-037).
@@ -206,7 +209,7 @@ func (l *Logger) CurrentLogPath() string {
 func LatestLogFile(logDir string) (string, error) {
 	entries, err := os.ReadDir(logDir)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("reading log directory: %w", err)
 	}
 	var logs []string
 	for _, e := range entries {
@@ -236,7 +239,7 @@ func EnforceRetention(logDir string, maxFiles int, maxAgeDays int, opts ...Reten
 
 	entries, err := os.ReadDir(logDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("reading log directory for retention: %w", err)
 	}
 	var logs []os.DirEntry
 	for _, e := range entries {

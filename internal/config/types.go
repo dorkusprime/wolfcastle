@@ -57,54 +57,64 @@ func (s PipelineStage) ShouldSkipPromptAssembly() bool {
 	return *s.SkipPromptAssembly
 }
 
+// LogsConfig controls NDJSON log retention (ADR-012).
 type LogsConfig struct {
 	MaxFiles   int  `json:"max_files"`
 	MaxAgeDays int  `json:"max_age_days"`
 	Compress   bool `json:"compress"`
 }
 
+// RetriesConfig controls retry behavior for failed model invocations.
 type RetriesConfig struct {
 	InitialDelaySeconds int `json:"initial_delay_seconds"`
 	MaxDelaySeconds     int `json:"max_delay_seconds"`
 	MaxRetries          int `json:"max_retries"`
 }
 
+// FailureConfig controls decomposition thresholds and hard failure caps.
 type FailureConfig struct {
 	DecompositionThreshold int `json:"decomposition_threshold"`
 	MaxDecompositionDepth  int `json:"max_decomposition_depth"`
 	HardCap                int `json:"hard_cap"`
 }
 
+// IdentityConfig identifies the engineer and machine running Wolfcastle.
 type IdentityConfig struct {
 	User    string `json:"user"`
 	Machine string `json:"machine"`
 }
 
+// SummaryConfig controls the optional post-completion summary stage (ADR-016).
 type SummaryConfig struct {
 	Enabled    bool   `json:"enabled"`
 	Model      string `json:"model"`
 	PromptFile string `json:"prompt_file"`
 }
 
+// DocsConfig controls the documentation output directory.
 type DocsConfig struct {
 	Directory string `json:"directory"`
 }
 
+// ValidationConfig defines user-specified validation commands run after task completion.
 type ValidationConfig struct {
 	Commands []ValidationCommand `json:"commands"`
 }
 
+// ValidationCommand is a single shell command used for post-task validation.
 type ValidationCommand struct {
 	Name           string `json:"name"`
 	Run            string `json:"run"`
 	TimeoutSeconds int    `json:"timeout_seconds"`
 }
 
+// PromptsConfig controls prompt fragment inclusion and exclusion.
 type PromptsConfig struct {
 	Fragments        []string `json:"fragments"`
 	ExcludeFragments []string `json:"exclude_fragments"`
 }
 
+// DaemonConfig controls the daemon's polling, timeout, and restart behavior.
 type DaemonConfig struct {
 	PollIntervalSeconds        int    `json:"poll_interval_seconds"`
 	BlockedPollIntervalSeconds int    `json:"blocked_poll_interval_seconds"`
@@ -116,28 +126,33 @@ type DaemonConfig struct {
 	LogLevel                   string `json:"log_level"`
 }
 
+// GitConfig controls automatic commit behavior and branch verification.
 type GitConfig struct {
 	AutoCommit          bool   `json:"auto_commit"`
 	CommitMessageFormat string `json:"commit_message_format"`
 	VerifyBranch        bool   `json:"verify_branch"`
 }
 
+// DoctorConfig configures the structural validation and repair command (ADR-025).
 type DoctorConfig struct {
 	Model      string `json:"model"`
 	PromptFile string `json:"prompt_file"`
 }
 
+// OverlapConfig configures the overlap advisory system (ADR-027, ADR-041).
 type OverlapConfig struct {
 	Enabled   bool    `json:"enabled"`
 	Model     string  `json:"model"`
 	Threshold float64 `json:"threshold"`
 }
 
+// UnblockConfig configures the unblock workflow (ADR-028).
 type UnblockConfig struct {
 	Model      string `json:"model"`
 	PromptFile string `json:"prompt_file"`
 }
 
+// AuditCommandConfig configures the codebase audit command (ADR-029).
 type AuditCommandConfig struct {
 	Model      string `json:"model"`
 	PromptFile string `json:"prompt_file"`

@@ -1,3 +1,5 @@
+// Package project handles project scaffolding (wolfcastle init), base
+// template management, and project creation within the node tree.
 package project
 
 import (
@@ -28,7 +30,7 @@ func Scaffold(wolfcastleDir string) error {
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(filepath.Join(wolfcastleDir, d), 0755); err != nil {
-			return err
+			return fmt.Errorf("creating directory %s: %w", d, err)
 		}
 	}
 
@@ -46,7 +48,7 @@ func Scaffold(wolfcastleDir string) error {
 !docs/**
 `
 	if err := os.WriteFile(filepath.Join(wolfcastleDir, ".gitignore"), []byte(gitignore), 0644); err != nil {
-		return err
+		return fmt.Errorf("writing .gitignore: %w", err)
 	}
 
 	// Write default config.json with populated defaults (excluding identity)
@@ -54,11 +56,11 @@ func Scaffold(wolfcastleDir string) error {
 	defaults.Identity = nil // Identity belongs in config.local.json only
 	cfgData, err := json.MarshalIndent(defaults, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshaling default config: %w", err)
 	}
 	cfgData = append(cfgData, '\n')
 	if err := os.WriteFile(filepath.Join(wolfcastleDir, "config.json"), cfgData, 0644); err != nil {
-		return err
+		return fmt.Errorf("writing config.json: %w", err)
 	}
 
 	// Write config.local.json with identity
@@ -68,38 +70,39 @@ func Scaffold(wolfcastleDir string) error {
 	}
 	localData, err := json.MarshalIndent(localCfg, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshaling local config: %w", err)
 	}
 	localData = append(localData, '\n')
 	if err := os.WriteFile(filepath.Join(wolfcastleDir, "config.local.json"), localData, 0644); err != nil {
-		return err
+		return fmt.Errorf("writing config.local.json: %w", err)
 	}
 
 	// Create engineer namespace directory with empty root index
 	ns := identity["user"].(string) + "-" + identity["machine"].(string)
 	nsDir := filepath.Join(wolfcastleDir, "projects", ns)
 	if err := os.MkdirAll(nsDir, 0755); err != nil {
-		return err
+		return fmt.Errorf("creating namespace directory: %w", err)
 	}
 
 	idx := state.NewRootIndex()
 	idxData, err := json.MarshalIndent(idx, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshaling root index: %w", err)
 	}
 	idxData = append(idxData, '\n')
 	if err := os.WriteFile(filepath.Join(nsDir, "state.json"), idxData, 0644); err != nil {
-		return err
+		return fmt.Errorf("writing root index: %w", err)
 	}
 
 	// Write base prompt files
 	if err := WriteBasePrompts(wolfcastleDir); err != nil {
-		return err
+		return fmt.Errorf("writing base prompts: %w", err)
 	}
 
 	return nil
 }
 
+// detectIdentity reads the current username and hostname from the system.
 func detectIdentity() map[string]any {
 	user := "unknown"
 	machine := "unknown"
@@ -121,6 +124,7 @@ func detectIdentity() map[string]any {
 	}
 }
 
+// WriteBasePrompts extracts embedded prompt templates into the base/ directory.
 func WriteBasePrompts(wolfcastleDir string) error {
 	return fs.WalkDir(Templates, "templates", func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
@@ -154,7 +158,7 @@ func ReScaffold(wolfcastleDir string) error {
 	}
 	for _, d := range baseDirs {
 		if err := os.MkdirAll(filepath.Join(wolfcastleDir, d), 0755); err != nil {
-			return err
+			return fmt.Errorf("creating %s: %w", d, err)
 		}
 	}
 	if err := WriteBasePrompts(wolfcastleDir); err != nil {
@@ -167,18 +171,18 @@ func ReScaffold(wolfcastleDir string) error {
 
 	if data, err := os.ReadFile(localPath); err == nil {
 		if err := json.Unmarshal(data, &localCfg); err != nil {
-			return fmt.Errorf("config.local.json exists but is not valid JSON")
+			return fmt.Errorf("config.local.json is not valid JSON: %w", err)
 		}
 	}
 
 	localCfg["identity"] = detectIdentity()
 	localData, err := json.MarshalIndent(localCfg, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshaling local config: %w", err)
 	}
 	localData = append(localData, '\n')
 	if err := os.WriteFile(localPath, localData, 0644); err != nil {
-		return err
+		return fmt.Errorf("writing config.local.json: %w", err)
 	}
 
 	return nil

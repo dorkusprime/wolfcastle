@@ -1,3 +1,7 @@
+// Package validate implements structural validation and deterministic repair
+// for the Wolfcastle project tree. The validation engine checks 20+ categories
+// of structural invariants, and the fix system applies multi-pass deterministic
+// repairs with verification (ADR-025, ADR-051).
 package validate
 
 // Category constants for all validation issue categories.

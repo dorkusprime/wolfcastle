@@ -30,6 +30,8 @@ func DeepMerge(dst, src map[string]any) map[string]any {
 	return result
 }
 
+// cloneMap returns a shallow-value deep copy of in, recursively cloning
+// nested maps and slices so the result shares no mutable state with in.
 func cloneMap(in map[string]any) map[string]any {
 	if in == nil {
 		return make(map[string]any)
@@ -41,6 +43,7 @@ func cloneMap(in map[string]any) map[string]any {
 	return out
 }
 
+// cloneValue recursively copies maps and slices, returning scalars as-is.
 func cloneValue(v any) any {
 	switch typed := v.(type) {
 	case map[string]any:
