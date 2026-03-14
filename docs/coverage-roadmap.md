@@ -1,10 +1,10 @@
 # Coverage Roadmap: Path to 100%
 
-Current state: **91.6% local (`go tool cover`), 88.66% Codecov (line + partial branch)**
+Current state: **94.2% local (`go tool cover`), estimated ~90%+ Codecov (line + partial branch)**
 
-Codecov's lower number comes from counting partial branches (e.g., `if err != nil` where the error never fires) as uncovered. To reach 90% on Codecov, we need ~94% on `go tool cover`. To reach 100% on Codecov, we need architectural changes.
+Codecov's lower number comes from counting partial branches (e.g., `if err != nil` where the error never fires) as uncovered. To reach 100% on Codecov, we need architectural changes.
 
-Total uncovered: ~395 statements across cmd/ and internal/.
+Total uncovered: ~230 statements across cmd/ and internal/.
 
 ---
 
@@ -148,7 +148,7 @@ These cannot be unit tested by any reasonable means.
 | `cmd/daemon/start.go` startBackground | ~22 | Forks a child process via os.Executable |
 | `cmd/daemon/start.go` createWorktree | ~14 | Runs `git worktree add` |
 | `cmd/daemon/start.go` cleanupWorktree | ~6 | Runs `git worktree remove` |
-| `internal/selfupdate/updater.go` Apply (stub) | ~3 | Dead code by design (stub never reaches update path) |
+| `internal/selfupdate/updater.go` Apply (stub) | ~3 | Dead code by design (stub never reaches update path). This puts the package at 75%, below the 85% per-package threshold, but it's accepted: the uncovered lines are the error-return and post-download paths that only execute when a real update backend replaces the stub. |
 | Various `os.FindProcess` error guards | ~5 | Never fails on Unix |
 | Various `json.Marshal` on known types | ~3 | Never fails with serializable structs |
 | `embed.FS.ReadFile` error guard | ~1 | Compiled-in files never fail to read |
@@ -162,30 +162,20 @@ Accept these as the coverage ceiling. At 77 lines out of ~3600 total, they repre
 
 ## Blocking Issue
 
-`internal/logging` has a duplicate test function (`TestCompressFile_EmptyFile` in both `logger_coverage_test.go` and `logger_errorpath_test.go`). This causes a build failure when running coverage for the logging package. Must be fixed before any logging coverage improvements.
+~~Resolved.~~ The duplicate `TestCompressFile_EmptyFile` was renamed to `TestCompressFile_EmptyFile_ErrorPath` in `logger_errorpath_test.go`. No blocking issues remain.
 
 ---
 
 ## Priority Order (by Codecov impact)
 
 ### Phase 1: Fix blocking issue + Category A quick wins
-**Estimated gain: +3-4% on Codecov (88.6% to ~92%)**
-- Fix logging duplicate test function
-- Write all Category A tests (~111 lines, no production code changes)
-- Time: 2-3 hours of focused test writing
+**Status: Complete.** Logging duplicate fixed, Category A tests written. Gained ~3% local coverage.
 
 ### Phase 2: Interface extraction for Invoker
-**Estimated gain: +1.5% on Codecov (~92% to ~93.5%)**
-- Add `Invoker` field to `App`
-- Update `runCodebaseAudit` and `TryModelAssistedFix` to accept it
-- Write tests with mock invoker (~60 lines unlocked)
-- Time: 1-2 hours
+**Status: Complete.** `Invoker` field added to `App`, `runCodebaseAudit` and `TryModelAssistedFix` accept it, mock invoker tests written.
 
 ### Phase 3: Filesystem error path tests
-**Estimated gain: +2-3% on Codecov (~93.5% to ~96%)**
-- Create `withReadOnlyDir` helper
-- Write chmod-based error path tests for all Category B items (~122 lines)
-- Time: 2-3 hours
+**Status: Complete.** chmod-based error path tests written across all major Category B items (state/io, logging, scaffold, validate/fix, daemon/stages, audit, project, task, inbox).
 
 ### Phase 4: Daemon refactoring
 **Estimated gain: +0.5% on Codecov (~96% to ~96.5%)**
