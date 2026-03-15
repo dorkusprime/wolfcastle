@@ -17,6 +17,12 @@ import (
 // enabled pipeline stage in order, applies model output markers, persists
 // state mutations, and handles failure escalation (decomposition, auto-block).
 func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, idx *state.RootIndex) error {
+	// Check inbox state before claiming. If expanded items are pending
+	// filing, the execute stage will be skipped, so we must not claim
+	// the task (otherwise it's stuck in_progress with no work done).
+	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	hasNewItems, hasExpandedItems := d.checkInboxState(inboxPath)
+
 	// Claim the task
 	addr, err := tree.ParseAddress(nav.NodeAddress)
 	if err != nil {
@@ -28,21 +34,19 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		return fmt.Errorf("loading node state for %s: %w", nav.NodeAddress, err)
 	}
 
-	if err := state.TaskClaim(ns, nav.TaskID); err != nil {
-		return fmt.Errorf("claiming task %s: %w", nav.TaskID, err)
+	// Only claim when execute will actually run. If filing takes
+	// priority, run expand/file stages without claiming.
+	if !hasExpandedItems {
+		if err := state.TaskClaim(ns, nav.TaskID); err != nil {
+			return fmt.Errorf("claiming task %s: %w", nav.TaskID, err)
+		}
+		if err := state.SaveNodeState(statePath, ns); err != nil {
+			return fmt.Errorf("saving node state after claim: %w", err)
+		}
+		if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
+			return fmt.Errorf("propagating state after claim: %w", err)
+		}
 	}
-	if err := state.SaveNodeState(statePath, ns); err != nil {
-		return fmt.Errorf("saving node state after claim: %w", err)
-	}
-
-	// Propagate claim state to ancestors and root index (ADR-024)
-	if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-		return fmt.Errorf("propagating state after claim: %w", err)
-	}
-
-	// Check inbox state once for stage-skip decisions (ADR-039)
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	hasNewItems, hasExpandedItems := d.checkInboxState(inboxPath)
 
 	// Run pipeline stages
 	for _, stage := range d.Config.Pipeline.Stages {
