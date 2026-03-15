@@ -10,7 +10,7 @@ Does the code do what it claims to do?
 - [ ] State propagation: every parent's state is derivable from its children. Verify with property-based tests.
 - [ ] Failure escalation thresholds (decomposition at 10, hard cap at 50, max depth 5) are enforced and configurable.
 - [ ] Audit task invariant: every leaf has an audit task as its last item. No path can delete or reorder it.
-- [ ] Marker parsing: every WOLFCASTLE_* marker is handled. No marker is silently dropped.
+- [ ] Marker parsing: every WOLFCASTLE\_\* marker is handled. No marker is silently dropped.
 - [ ] Config merge semantics: deep merge for objects, full replacement for arrays, null deletion. Verify with edge cases.
 - [ ] Navigation: depth-first traversal visits nodes in the correct order. Self-healing picks up interrupted tasks.
 - [ ] Branch verification: the daemon refuses to commit if the branch changed underneath it.
@@ -76,7 +76,22 @@ Is everything documented and accurate?
 - [ ] No broken markdown links. Anchor links (`#section-name`) point to real headings.
 - [ ] Package path references are current (e.g., no references to `internal/inbox` or `internal/review` which were merged into `internal/state`).
 
-## 7. Voice and Copy
+## 7. Single Source of Truth
+
+Is every piece of information defined in exactly one place?
+
+- [ ] Constants and magic numbers are defined once, not duplicated across files. Search for hardcoded values (thresholds, status strings, tier names) that should reference a shared constant or variable.
+- [ ] The tier resolution order (`base`, `custom`, `local`) is defined in `pipeline.Tiers` and referenced everywhere, not redefined as inline string slices.
+- [ ] Config defaults live in `config.Defaults()` only. No scattered default values in command handlers, daemon code, or init logic.
+- [ ] State status values use typed constants (`state.StatusNotStarted`, `state.GapOpen`, etc.), never raw string literals in production code.
+- [ ] Error messages for the same condition are identical wherever they appear. No "not initialized" in one place and "run wolfcastle init first" in another for the same error.
+- [ ] The command count, ADR count, and package count in documentation match reality. Search for hardcoded numbers in README, AGENTS.md, docs/README.md, and specs.
+- [ ] Documentation doesn't restate what code already expresses. If a doc describes a function's behavior, verify it matches the implementation and isn't a stale copy.
+- [ ] The `docs/humans/cli/` command pages match the Cobra command definitions (flags, args, help text). No manual documentation that drifts from the code.
+- [ ] Go doc comments on exported symbols are the SSOT for API documentation. No separate docs that restate them.
+- [ ] The VOICE.md guide is the single authority on style. No contradictory style guidance elsewhere.
+
+## 8. Voice and Copy
 
 Does the writing sound like Wolfcastle?
 
@@ -85,7 +100,7 @@ Does the writing sound like Wolfcastle?
 - [ ] Short sentences. Confidence. Violence as metaphor. Machines are simple; humans are the weird part.
 - [ ] Technical accuracy is never sacrificed for personality. The voice dresses the facts, it doesn't replace them.
 
-## 8. Testing
+## 9. Testing
 
 Is the test suite trustworthy?
 
@@ -100,7 +115,7 @@ Is the test suite trustworthy?
 - [ ] Property-based propagation tests verify invariants with random tree mutations.
 - [ ] Coverage is above 90% on Codecov. Gaps are justified (os.Exit, readline, process forking).
 
-## 9. CI/CD and Infrastructure
+## 10. CI/CD and Infrastructure
 
 Does the build pipeline catch problems?
 
@@ -113,7 +128,7 @@ Does the build pipeline catch problems?
 - [ ] Integration and smoke tests run in CI with correct build tags.
 - [ ] Dependencies are minimal and current. `go mod tidy` produces no changes.
 
-## 10. Cross-Platform
+## 11. Cross-Platform
 
 Does the code compile and run on all targets?
 
@@ -125,7 +140,7 @@ Does the code compile and run on all targets?
 - [ ] Platform-specific code (`filelock_unix.go`, `filelock_windows.go`, `procattr_unix.go`, `procattr_windows.go`) provides equivalent behavior or documented degradation.
 - [ ] Permission-based tests skip on Windows with `runtime.GOOS == "windows"`.
 
-## 11. Code Coverage
+## 12. Code Coverage
 
 Is the test suite comprehensive enough to trust?
 
@@ -140,7 +155,7 @@ Is the test suite comprehensive enough to trust?
 - [ ] Category E gaps (inherently untestable: os.Exit, readline, process forking) are documented and accepted.
 - [ ] Every new function added since the last audit has test coverage.
 
-## 12. Usability
+## 13. Usability
 
 Is it pleasant to use?
 
@@ -159,10 +174,10 @@ For a full automated audit, use subagents scoped by area:
 ```
 # One agent per section, or group related sections:
 Agent 1: Sections 1-3 (correctness, Go practices, error handling)
-Agent 2: Sections 4-5 (security, architecture)
-Agent 3: Sections 6-7 (documentation, voice)
-Agent 4: Sections 8-11 (testing, CI, cross-platform, coverage)
-Agent 5: Section 12 (usability)
+Agent 2: Sections 4-6 (security, architecture, documentation)
+Agent 3: Sections 7-8 (SSOT, voice)
+Agent 4: Sections 9-12 (testing, CI, cross-platform, coverage)
+Agent 5: Section 13 (usability)
 ```
 
 Each agent should read the relevant source files, check every item, and fix issues directly. Commit fixes with concise messages describing what was found and corrected.
