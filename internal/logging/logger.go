@@ -78,6 +78,7 @@ type Logger struct {
 	Iteration    int
 	ConsoleLevel Level
 	Console      io.Writer // nil disables console output
+	TraceID      string    // set by StartIterationWithPrefix, included in every log record
 
 	file *os.File
 }
@@ -95,10 +96,20 @@ func NewLogger(logDir string) (*Logger, error) {
 }
 
 // StartIteration creates a new log file for the current iteration.
-// Closes any previously open file before starting a new one.
+// Closes any previously open file before starting a new one. Sets
+// the trace ID to "iter-NNNN".
 func (l *Logger) StartIteration() error {
+	return l.StartIterationWithPrefix("iter")
+}
+
+// StartIterationWithPrefix creates a new log file and sets the trace
+// ID to "{prefix}-{iteration}". Use "exec" for the execute loop and
+// "intake" for the inbox goroutine so log records from concurrent
+// goroutines are distinguishable.
+func (l *Logger) StartIterationWithPrefix(prefix string) error {
 	l.Close() // prevent file handle leak if called without Close()
 	l.Iteration++
+	l.TraceID = fmt.Sprintf("%s-%04d", prefix, l.Iteration)
 	filename := fmt.Sprintf("%04d-%s.jsonl", l.Iteration, nowFunc().UTC().Format("20060102T15-04Z"))
 	path := filepath.Join(l.LogDir, filename)
 
@@ -125,6 +136,9 @@ func (l *Logger) Log(record map[string]any, levels ...Level) error {
 
 	record["timestamp"] = nowFunc().UTC().Format(time.RFC3339)
 	record["level"] = level.String()
+	if l.TraceID != "" {
+		record["trace"] = l.TraceID
+	}
 	data, err := json.Marshal(record)
 	if err != nil {
 		return fmt.Errorf("marshaling log record: %w", err)

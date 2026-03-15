@@ -1097,6 +1097,93 @@ func TestCompressFile_ReadOnlyDst(t *testing.T) {
 	}
 }
 
+// ── Trace ID Tests ────────────────────────────────────────────────
+
+func TestStartIterationWithPrefix_SetsTraceID(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger.Close()
+
+	_ = logger.StartIterationWithPrefix("exec")
+	if logger.TraceID != "exec-0001" {
+		t.Errorf("TraceID = %q, want exec-0001", logger.TraceID)
+	}
+
+	_ = logger.StartIterationWithPrefix("intake")
+	if logger.TraceID != "intake-0002" {
+		t.Errorf("TraceID = %q, want intake-0002", logger.TraceID)
+	}
+}
+
+func TestStartIteration_SetsDefaultTracePrefix(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger.Close()
+
+	_ = logger.StartIteration()
+	if logger.TraceID != "iter-0001" {
+		t.Errorf("TraceID = %q, want iter-0001", logger.TraceID)
+	}
+}
+
+func TestLog_IncludesTraceID(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+
+	_ = logger.StartIterationWithPrefix("exec")
+	_ = logger.Log(map[string]any{"type": "test"})
+
+	path := logger.CurrentLogPath()
+	data, _ := os.ReadFile(path)
+	var record map[string]any
+	_ = json.Unmarshal(bytes.TrimSpace(data), &record)
+
+	trace, ok := record["trace"].(string)
+	if !ok || trace != "exec-0001" {
+		t.Errorf("trace = %q, want exec-0001", trace)
+	}
+}
+
+func TestLog_OmitsTraceWhenEmpty(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	logger.TraceID = ""
+	defer logger.Close()
+
+	// Manually set up a file without going through StartIteration
+	// to test that empty TraceID is omitted
+	_ = logger.StartIteration()
+	logger.TraceID = "" // clear it after StartIteration sets it
+	_ = logger.Log(map[string]any{"type": "test"})
+
+	path := logger.CurrentLogPath()
+	data, _ := os.ReadFile(path)
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	lastLine := lines[len(lines)-1]
+	if strings.Contains(lastLine, `"trace"`) {
+		t.Error("expected no trace field when TraceID is empty")
+	}
+}
+
 // ── Helper ────────────────────────────────────────────────────────
 
 func countLogFiles(dir string) int {
