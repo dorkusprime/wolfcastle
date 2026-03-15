@@ -13,6 +13,43 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
+// processInboxIfNeeded runs the expand and file stages if there are
+// inbox items to process. This runs before navigation so that inbox
+// items can create projects and tasks that navigation then finds.
+func (d *Daemon) processInboxIfNeeded(ctx context.Context) {
+	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	hasNew, hasExpanded := d.checkInboxState(inboxPath)
+
+	if !hasNew && !hasExpanded {
+		return
+	}
+
+	// Find the expand and file stages in the pipeline
+	for _, stage := range d.Config.Pipeline.Stages {
+		if !stage.IsEnabled() {
+			continue
+		}
+		switch stage.Name {
+		case "expand":
+			if !hasNew {
+				continue
+			}
+			if err := d.runExpandStage(ctx, stage); err != nil {
+				output.PrintHuman("  Expand stage error (non-fatal): %v", err)
+			}
+			// Re-check after expand
+			hasNew, hasExpanded = d.checkInboxState(inboxPath)
+		case "file":
+			if !hasExpanded {
+				continue
+			}
+			if err := d.runFileStage(ctx, stage); err != nil {
+				output.PrintHuman("  File stage error (non-fatal): %v", err)
+			}
+		}
+	}
+}
+
 func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage) error {
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	inboxData, err := state.LoadInbox(inboxPath)

@@ -266,6 +266,12 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		}
 	}
 
+	// Process inbox before navigation. Expand and file stages create
+	// new tasks from inbox items, so they must run before FindNextTask
+	// to avoid the chicken-and-egg problem (inbox has items but tree
+	// is empty, so navigation finds nothing, so stages never run).
+	d.processInboxIfNeeded(ctx)
+
 	// Navigate to find work
 	idx, err := d.Resolver.LoadRootIndex()
 	if err != nil {
