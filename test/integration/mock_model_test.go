@@ -45,7 +45,7 @@ type MockBehavior struct {
 
 	// Whether to call wolfcastle task block (simulating model calling
 	// CLI directly). Requires a reason string.
-	CallTaskBlock bool
+	CallTaskBlock   bool
 	TaskBlockReason string
 
 	// Strings that must appear in the prompt (stdin). Failures are written
