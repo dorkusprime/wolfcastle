@@ -35,8 +35,17 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	}
 
 	// Only claim when execute will actually run. If filing takes
-	// priority, run expand/file stages without claiming.
-	if !hasExpandedItems {
+	// priority, run expand/file stages without claiming. If the task
+	// is already in_progress (resumption after YIELD or crash recovery),
+	// skip the claim.
+	alreadyInProgress := false
+	for _, t := range ns.Tasks {
+		if t.ID == nav.TaskID && t.State == state.StatusInProgress {
+			alreadyInProgress = true
+			break
+		}
+	}
+	if !hasExpandedItems && !alreadyInProgress {
 		if err := state.TaskClaim(ns, nav.TaskID); err != nil {
 			return fmt.Errorf("claiming task %s: %w", nav.TaskID, err)
 		}
@@ -163,7 +172,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 		if strings.Contains(result.Stdout, "WOLFCASTLE_COMPLETE") {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_COMPLETE"})
-			if completeErr := state.TaskComplete(ns, nav.TaskID); completeErr == nil {
+			if completeErr := state.TaskComplete(ns, nav.TaskID); completeErr != nil {
+				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": completeErr.Error()})
+			} else {
 				_ = state.SaveNodeState(statePath, ns)
 				_ = d.propagateState(nav.NodeAddress, ns.State, idx)
 			}
@@ -213,3 +224,4 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 	return nil
 }
+
