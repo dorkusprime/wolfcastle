@@ -23,8 +23,9 @@ import (
 var app = &cmdutil.App{Clock: clock.New(), Invoker: invoke.NewProcessInvoker()}
 
 var rootCmd = &cobra.Command{
-	Use:   "wolfcastle",
-	Short: "Wolfcastle takes complex work, breaks it into pieces, and sends AI models to destroy every one of them",
+	Use:     "wolfcastle",
+	Version: Version + " (" + Commit + ", " + Date + ")",
+	Short:   "Wolfcastle takes complex work, breaks it into pieces, and sends AI models to destroy every one of them",
 	Long: `Wolfcastle takes complex work, breaks it into pieces, and sends AI
 models to destroy every one of them.
 
