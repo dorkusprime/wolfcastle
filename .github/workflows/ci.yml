@@ -41,12 +41,16 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.go-version == 'stable'
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.out
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
-          verbose: true
+        run: |
+          curl -Os https://cli.codecov.io/latest/linux/codecov
+          chmod +x codecov
+          ./codecov --verbose upload-process \
+            --fail-on-error \
+            -t ${{ secrets.CODECOV_TOKEN }} \
+            -n "ci-${{ github.run_id }}" \
+            -F unittests \
+            -f coverage.out \
+            --git-service github
 
   lint:
     runs-on: ubuntu-latest
