@@ -27,7 +27,7 @@ RunWithSupervisor
 - **Serial execution.** Only one task is in_progress at a time (ADR-014).
 - **All state mutations are persisted immediately** after marker parsing (iteration.go, after `applyModelMarkers`).
 - **Propagation after every state change.** `propagateState()` walks ancestors and updates root index.
-- **Summary is inline (ADR-036).** No separate summary stage — the executing model emits `WOLFCASTLE_SUMMARY:` alongside `WOLFCASTLE_COMPLETE`.
+- **Summary is inline (ADR-036).** No separate summary stage. The executing model emits `WOLFCASTLE_SUMMARY:` alongside `WOLFCASTLE_COMPLETE`.
 
 ## Pipeline Stages
 
@@ -64,8 +64,8 @@ The model communicates state mutations via `WOLFCASTLE_*` prefixed lines in stdo
 
 `internal/invoke` handles subprocess execution:
 
-- `Invoke()` — buffered capture, returns `Result{Stdout, Stderr, ExitCode}`
-- `InvokeStreaming()` — streams stdout to a log writer while capturing
+- `Invoke()`: buffered capture, returns `Result{Stdout, Stderr, ExitCode}`
+- `InvokeStreaming()`: streams stdout to a log writer while capturing
 - Child processes run in their own process group (`Setpgid: true`) for clean signal propagation
 - Scanner buffer is 1MB to handle large model output lines
 
@@ -77,5 +77,5 @@ The model communicates state mutations via `WOLFCASTLE_*` prefixed lines in stdo
 
 ## Concurrency Notes
 
-- The `sync.Once` in Daemon is reset between supervisor restarts — this is safe because all goroutines from the previous `Run()` have exited before reset occurs. The reset is documented in code.
-- `d.branch` is written in `Run()` and read in `RunOnce()` — safe because `RunOnce` is only called from within `Run`'s serial loop.
+- The `sync.Once` in Daemon is reset between supervisor restarts. This is safe because all goroutines from the previous `Run()` have exited before reset occurs. The reset is documented in code.
+- `d.branch` is written in `Run()` and read in `RunOnce()`. Safe because `RunOnce` is only called from within `Run`'s serial loop.
