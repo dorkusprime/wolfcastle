@@ -2,6 +2,11 @@
 
 A structured, repeatable audit for the Wolfcastle codebase. Work through each section in order. Fix issues as you find them.
 
+### Developer Comment
+
+Agents: Ignore this section.
+Humans: To use this as a skill in Claude Code, create a symlink to this file from `.claude/skills/audit/SKILL.md` and restart Claude.
+
 ## 1. Correctness
 
 Does the code do what it claims to do?
