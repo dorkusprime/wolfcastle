@@ -108,39 +108,6 @@ func catAFindRepoRoot() string {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// iteration.go — pending-filing skip path (unique node name)
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestRunIteration_PendingFilingSkipsExecuteStage(t *testing.T) {
-	t.Parallel()
-	d := testDaemon(t)
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
-	}
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-
-	setupLeafNode(t, d, "pending-skip-node", []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
-	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
-
-	// Create inbox with expanded items — triggers pending-filing skip
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "expanded item", Expanded: "details", Timestamp: "2026-03-14T00:00:00Z"},
-	}})
-
-	idx, _ := d.Resolver.LoadRootIndex()
-	nav := &state.NavigationResult{NodeAddress: "pending-skip-node", TaskID: "task-1", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
-
-	if err != nil {
-		t.Errorf("expected nil error when execute skipped due to pending filing, got: %v", err)
-	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // iteration.go — invoke error return path
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -468,23 +435,23 @@ func TestInvokeWithRetry_CancelDuringBackoff(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// stages.go — model not found in expand stage (with prompt file present)
+// stages.go — model not found in intake stage (with prompt file present)
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestRunExpandStage_MissingModelWithPrompt(t *testing.T) {
+func TestRunIntakeStage_MissingModelWithPrompt(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "expand.md")
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "expand", Model: "absent-model-x", PromptFile: "expand.md"}
-	err := d.runExpandStage(context.Background(), stage)
+	stage := config.PipelineStage{Name: "intake", Model: "absent-model-x", PromptFile: "intake.md"}
+	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Fatal("expected error for nonexistent model")
 	}
@@ -494,86 +461,35 @@ func TestRunExpandStage_MissingModelWithPrompt(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// stages.go — model not found in file stage (with prompt file present)
+// stages.go — invoke error in intake stage
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestRunFileStage_MissingModelWithPrompt(t *testing.T) {
-	t.Parallel()
-	d := testDaemon(t)
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "file.md")
-
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "item", Expanded: "details", Timestamp: "2026-03-14T00:00:00Z"},
-	}})
-
-	stage := config.PipelineStage{Name: "file", Model: "absent-model-y", PromptFile: "file.md"}
-	err := d.runFileStage(context.Background(), stage)
-	if err == nil {
-		t.Fatal("expected error for nonexistent model in file stage")
-	}
-	if !strings.Contains(err.Error(), "not found") {
-		t.Errorf("expected 'not found' in error, got: %v", err)
-	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// stages.go — invoke error in expand stage
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestRunExpandStage_BrokenCommand(t *testing.T) {
+func TestRunIntakeStage_BrokenCommand(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Models["broken"] = config.ModelDef{Command: "/nonexistent/binary", Args: []string{}}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "expand.md")
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "expand", Model: "broken", PromptFile: "expand.md"}
-	err := d.runExpandStage(context.Background(), stage)
+	stage := config.PipelineStage{Name: "intake", Model: "broken", PromptFile: "intake.md"}
+	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
-		t.Fatal("expected invoke error in expand stage")
+		t.Fatal("expected invoke error in intake stage")
 	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// stages.go — invoke error in file stage
+// stages.go — prompt assembly error in intake stage
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestRunFileStage_BrokenCommand(t *testing.T) {
-	t.Parallel()
-	d := testDaemon(t)
-	d.Config.Models["broken"] = config.ModelDef{Command: "/nonexistent/binary", Args: []string{}}
-	d.Config.Retries.MaxRetries = 0
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "file.md")
-
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "item", Expanded: "details", Timestamp: "2026-03-14T00:00:00Z"},
-	}})
-
-	stage := config.PipelineStage{Name: "file", Model: "broken", PromptFile: "file.md"}
-	err := d.runFileStage(context.Background(), stage)
-	if err == nil {
-		t.Fatal("expected invoke error in file stage")
-	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// stages.go — prompt assembly error in file stage
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestRunFileStage_MissingPromptFile(t *testing.T) {
+func TestRunIntakeStage_MissingPromptFile(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
@@ -581,12 +497,12 @@ func TestRunFileStage_MissingPromptFile(t *testing.T) {
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "item", Expanded: "details", Timestamp: "2026-03-14T00:00:00Z"},
+		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "file", Model: "echo", PromptFile: "nonexistent-prompt.md"}
-	err := d.runFileStage(context.Background(), stage)
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "nonexistent-prompt.md"}
+	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
-		t.Fatal("expected prompt assembly error in file stage")
+		t.Fatal("expected prompt assembly error in intake stage")
 	}
 }

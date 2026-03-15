@@ -14,7 +14,7 @@ func newClearCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clear",
 		Short: "Clear filed items from the inbox",
-		Long: `Removes items with status 'filed' or 'expanded' from the inbox.
+		Long: `Removes items with status 'filed' from the inbox.
 Items with status 'new' are kept unless --all is specified.
 
 Examples:

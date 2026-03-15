@@ -190,7 +190,7 @@ Wolfcastle injects dynamic context at the end of the assembled prompt. This incl
 - The current node's tree address.
 - The current node's state (task list, statuses, breadcrumbs, audit state).
 - Failure history for the current node (failure count, decomposition depth), so the model is aware of prior attempts.
-- The inbox contents (for stages that process the inbox, e.g. `expand`).
+- The inbox contents (for stages that process the inbox, e.g. `intake`).
 
 The iteration context is always injected regardless of `skip_prompt_assembly`.
 
@@ -248,8 +248,7 @@ The model's **meaningful output** is not its stdout text but its **side effects*
 
 | Stage | Expected Input State | Expected Side Effects |
 |-------|---------------------|----------------------|
-| `expand` | Inbox has unprocessed items | Creates/updates tasks in the project tree via `wolfcastle task add` and `wolfcastle project create`. May reorganize existing work. |
-| `file` | Tasks exist in the tree, some may lack proper scoping or placement | Refines task descriptions, moves tasks to appropriate nodes, ensures audit scopes are defined. |
+| `intake` | Inbox has items with status "new" | Reads inbox items, calls `wolfcastle project create` and `wolfcastle task add` directly to create projects and tasks in the tree. Runs in a parallel goroutine (ADR-064). |
 | `execute` | A navigable task exists in `not_started` or `in_progress` state | Claims a task, does the work (writes code, runs tests, etc.), writes breadcrumbs, marks tasks complete or blocked. May create subtasks. |
 | (summary) | N/A — inline | Per ADR-036, summaries are emitted inline by the executing model via `WOLFCASTLE_SUMMARY:` marker, not as a separate stage invocation. |
 
@@ -267,27 +266,23 @@ Stages can be conditional in two ways:
 
 1. **Static opt-out via `enabled: false`** -- the stage is always skipped. Configured at init time and does not change during execution. Useful for permanently removing a stage (e.g., disabling `expand` for projects that don't use an inbox).
 
-2. **Dynamic skipping by the daemon** -- Wolfcastle may skip a stage when its preconditions are not met. The daemon checks inbox state once per iteration, then evaluates stage-specific preconditions before each invocation:
+2. **Dynamic skipping by the daemon** -- The intake stage runs in a parallel goroutine (ADR-064) and is automatically skipped in the main iteration pipeline. The intake goroutine checks for new inbox items independently.
 
 | Stage | Skip Condition | Log Reason |
 |-------|---------------|------------|
-| `expand` | No inbox items with status `"new"`. | `no_new_inbox_items` |
-| `file` | No inbox items with status `"expanded"`. | `no_expanded_inbox_items` |
-| `execute` (and other custom stages) | Expanded items exist but have not been filed — filing takes priority over execution to avoid working on a stale tree. | `pending_filing` |
+| `intake` | Always skipped in main loop (runs in parallel goroutine). In the goroutine, skipped when no inbox items have status `"new"`. | N/A |
+| `execute` (and other custom stages) | No actionable task found by navigation. | N/A |
 | (summary) | N/A — summary is generated inline by the executing model per ADR-036, not as a separate stage. | N/A |
 
-When a stage is skipped, Wolfcastle emits a `stage_skip` log record with the stage name and reason, then proceeds to the next stage. After `expand` completes, inbox state is re-checked so that the `file` stage sees freshly expanded items.
-
-The filing-priority rule ensures the tree is up to date before execution begins. Without it, the execute stage could work on tasks derived from stale inbox state while expanded items await filing.
+When a stage is skipped, Wolfcastle emits a `stage_skip` log record with the stage name and reason, then proceeds to the next stage.
 
 ### Dependency Model
 
-Stages do not declare explicit dependencies on each other. Instead, the ordering in the array combined with the shared filesystem and state creates an implicit dependency chain:
-- `expand` creates tasks that `file` organizes.
-- `file` organizes tasks that `execute` picks up.
+Stages do not declare explicit dependencies on each other. Instead, the shared filesystem and state creates an implicit dependency chain:
+- `intake` creates projects and tasks that `execute` picks up.
 - `execute` completes work that `summary` summarizes.
 
-Because stages communicate through side effects (not direct output passing), a user can remove or reorder stages as long as the resulting state flow makes sense. For example, removing `expand` and `file` is valid if the user manually populates the task tree -- `execute` will still find tasks to work on.
+Because stages communicate through side effects (not direct output passing), a user can remove or reorder stages as long as the resulting state flow makes sense. For example, removing `intake` is valid if the user manually populates the task tree -- `execute` will still find tasks to work on.
 
 ---
 
@@ -297,7 +292,7 @@ The default pipeline ships with Wolfcastle and is written into `config.json` by 
 
 ### Full Default Configuration
 
-The default `pipeline.stages` array contains three stages. The summary stage is controlled separately via the `summary` config key (see Section 7) and is not a pipeline stage — it runs conditionally based on `summary.enabled` after a node completes its audit.
+The default `pipeline.stages` array contains two stages (ADR-064). The summary stage is controlled separately via the `summary` config key (see Section 7) and is not a pipeline stage — it runs conditionally based on `summary.enabled` after a node completes its audit.
 
 ```json
 {
@@ -318,14 +313,9 @@ The default `pipeline.stages` array contains three stages. The summary stage is 
   "pipeline": {
     "stages": [
       {
-        "name": "expand",
-        "model": "fast",
-        "prompt_file": "expand.md"
-      },
-      {
-        "name": "file",
+        "name": "intake",
         "model": "mid",
-        "prompt_file": "file.md"
+        "prompt_file": "intake.md"
       },
       {
         "name": "execute",
@@ -344,17 +334,11 @@ The default `pipeline.stages` array contains three stages. The summary stage is 
 
 ### Stage Descriptions
 
-**expand** (model: fast)
-- Reads the inbox file and existing project tree.
-- Breaks down inbox items into concrete tasks.
-- Creates projects and tasks via `wolfcastle project create` and `wolfcastle task add`.
-- Uses the cheapest model tier because this is organizational work, not implementation.
-
-**file** (model: mid)
-- Reviews tasks created by `expand` (or manually by the user).
-- Ensures tasks are properly scoped, placed in the correct project nodes, and have clear acceptance criteria.
-- Defines audit scopes for each node.
-- Uses a mid-tier model because filing requires judgment about task structure and scope.
+**intake** (model: mid)
+- Reads raw inbox items and the existing project tree.
+- Creates projects and tasks directly via `wolfcastle project create` and `wolfcastle task add`.
+- Runs in a parallel goroutine, independent of the main execution loop (ADR-064).
+- Uses a mid-tier model because structuring work requires judgment about task scope and organization.
 
 **execute** (model: heavy)
 - Navigates to the next actionable task via `wolfcastle navigate`.
@@ -492,9 +476,9 @@ The daemon loop is the top-level control flow that drives pipeline execution. Ea
 
 ### One Iteration, All Stages
 
-A single iteration runs through **all enabled stages** in order. This means one iteration might expand the inbox, file new tasks, and execute a task. The next iteration does the same: checks for new inbox items, re-evaluates filing, picks up the next task.
+A single iteration runs through **all enabled stages** in order, skipping the intake stage which runs in its own parallel goroutine (ADR-064). The main loop focuses on finding and executing tasks.
 
-This contrasts with a design where each iteration runs only one stage. Running all stages per iteration keeps the pipeline moving forward without requiring multiple iterations to propagate work from inbox to execution.
+Inbox processing happens concurrently. The intake goroutine creates projects and tasks in the background, and the next iteration of the main loop picks them up through navigation.
 
 ### Navigation Within Execute
 
@@ -505,8 +489,6 @@ If the task completes within the stage invocation, the daemon does **not** re-in
 ### Idle Behavior
 
 When the daemon completes an iteration and finds no actionable work:
-- No inbox items to expand.
-- No tasks to file.
 - No tasks in `not_started` or `in_progress` state.
 - No nodes awaiting summary.
 
@@ -551,7 +533,7 @@ Per ADR-020, `wolfcastle stop` sends a graceful shutdown signal. The daemon:
 
 ## Appendix: Minimal Custom Pipeline Example
 
-A simplified pipeline that skips inbox processing and filing, going straight to execution:
+A simplified pipeline that skips inbox processing, going straight to execution:
 
 ```json
 {
@@ -576,7 +558,7 @@ A simplified pipeline that skips inbox processing and filing, going straight to 
 }
 ```
 
-This is valid. The user manually populates the task tree and Wolfcastle only executes. No expand, no file, no summary.
+This is valid. The user manually populates the task tree and Wolfcastle only executes. No intake, no summary.
 
 ---
 
@@ -586,19 +568,14 @@ This is valid. The user manually populates the task tree and Wolfcastle only exe
 wolfcastle start
        |
        v
-  [Iteration N]
-       |
-       +---> Branch check (ADR-015)
-       |
-       +---> expand stage
-       |        |-- inbox empty? --> skip
-       |        |-- else --> invoke fast model with expand.md prompt
-       |
-       +---> file stage
-       |        |-- nothing to file? --> skip
-       |        |-- else --> invoke mid model with file.md prompt
-       |
-       +---> execute stage
+  [Start inbox goroutine]  ─────────────────────────────────────┐
+       |                                                         |
+       v                                              [Inbox Goroutine]
+  [Iteration N]                                          |
+       |                                        poll inbox.json
+       +---> Branch check (ADR-015)               |-- no new items? --> sleep, poll again
+       |                                          |-- new items --> invoke mid model
+       +---> execute stage                                         with intake.md
        |        |-- no actionable task? --> skip
        |        |-- else --> navigate, invoke heavy model with execute.md prompt
        |        |        |

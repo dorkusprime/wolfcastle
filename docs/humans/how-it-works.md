@@ -6,7 +6,7 @@ The most common path: you tell your coding agent what you want done. "Add OAuth2
 
 When you want direct control, the CLI has you covered:
 
-**The inbox** is for quick capture. `wolfcastle inbox add "support OAuth2 PKCE"` drops an item into a queue. The daemon's [expand stage](#the-pipeline) picks it up on its next iteration, uses a model to decompose it into tasks, and the file stage organizes those tasks into the right place in the tree. You throw an idea at Wolfcastle. It figures out the rest. ([More on the inbox.](cli.md#the-inbox))
+**The inbox** is for quick capture. `wolfcastle inbox add "support OAuth2 PKCE"` drops an item into a queue. The daemon's [intake stage](#the-pipeline) picks it up in a background goroutine, uses a model to create projects and tasks directly in the tree. You throw an idea at Wolfcastle. It figures out the rest. ([More on the inbox.](cli.md#the-inbox))
 
 **Project creation** is for structured planning. `wolfcastle project create --node backend/auth` creates an orchestrator or leaf node at a specific point in the tree. You define the shape of the work; the daemon fills in the tasks, or you add them manually.
 
@@ -84,13 +84,14 @@ The daemon runs a pipeline of stages. Each stage invokes a model with a specific
 
 | Stage       | Model Tier | Mission                                                   |
 | ----------- | ---------- | --------------------------------------------------------- |
-| **expand**  | cheap      | Reads the inbox. Breaks new items into tasks.             |
-| **file**    | mid        | Organizes tasks into the correct project nodes.           |
+| **intake**  | mid        | Reads the inbox. Creates projects and tasks directly.     |
 | **execute** | capable    | Claims a task. Does the work. Writes code. Makes commits. |
+
+The intake stage runs in a parallel background goroutine (ADR-064), polling for new inbox items independently of the main execution loop. The execute stage runs in the main loop.
 
 Summaries are generated inline during execution via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage.
 
-Stages do not pass output to each other. They read the current state of the world and act on it. The expand stage creates tasks. The execute stage finds them. No coupling. No handoffs. Just [state on disk](#distributed-state) and models that know how to read it.
+Stages do not pass output to each other. They read the current state of the world and act on it. The intake stage creates projects and tasks. The execute stage finds them. No coupling. No handoffs. Just [state on disk](#distributed-state) and models that know how to read it.
 
 ### Seven-Phase Execution
 

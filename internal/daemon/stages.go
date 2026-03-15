@@ -13,54 +13,76 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-// processInboxIfNeeded runs the expand and file stages if there are
-// inbox items to process. This runs before navigation so that inbox
-// items can create projects and tasks that navigation then finds.
-func (d *Daemon) processInboxIfNeeded(ctx context.Context) {
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
-
-	if !hasNew && !hasExpanded {
-		return
+// runInboxLoop is the parallel goroutine that watches for new inbox items
+// and runs the intake stage. It polls inbox.json at the configured interval
+// and processes any items with status "new".
+func (d *Daemon) runInboxLoop(ctx context.Context) {
+	pollInterval := time.Duration(d.Config.Daemon.InboxPollIntervalSeconds) * time.Second
+	if pollInterval <= 0 {
+		pollInterval = time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds) * time.Second
+	}
+	if pollInterval <= 0 {
+		pollInterval = 5 * time.Second
 	}
 
-	// Start a log iteration so expand/file stages can write logs
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
+	inboxCounter := 0
 
-	output.PrintHuman("Processing inbox items...")
-
-	// Find the expand and file stages in the pipeline
-	for _, stage := range d.Config.Pipeline.Stages {
-		if !stage.IsEnabled() {
-			continue
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
-		switch stage.Name {
-		case "expand":
-			if !hasNew {
-				continue
+
+		inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+		hasNew := d.checkInboxForNew(inboxPath)
+
+		if hasNew {
+			inboxCounter++
+			output.PrintHuman("inbox-%04d: Processing inbox items...", inboxCounter)
+
+			// Find the intake stage in the pipeline
+			for _, stage := range d.Config.Pipeline.Stages {
+				if stage.Name == "intake" && stage.IsEnabled() {
+					_ = d.Logger.StartIteration()
+					if err := d.runIntakeStage(ctx, stage); err != nil {
+						output.PrintHuman("  Intake stage error (non-fatal): %v", err)
+					}
+					d.Logger.Close()
+					break
+				}
 			}
-			if err := d.runExpandStage(ctx, stage); err != nil {
-				output.PrintHuman("  Expand stage error (non-fatal): %v", err)
-			}
-			// Re-check after expand
-			hasNew, hasExpanded = d.checkInboxState(inboxPath)
-		case "file":
-			if !hasExpanded {
-				continue
-			}
-			if err := d.runFileStage(ctx, stage); err != nil {
-				output.PrintHuman("  File stage error (non-fatal): %v", err)
-			}
+		}
+
+		if !sleepWithContext(ctx, pollInterval) {
+			return
 		}
 	}
 }
 
-func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage) error {
+// checkInboxForNew returns whether the inbox has items with status "new".
+func (d *Daemon) checkInboxForNew(inboxPath string) bool {
+	inboxData, err := state.LoadInbox(inboxPath)
+	if err != nil {
+		return false
+	}
+	for _, item := range inboxData.Items {
+		if item.Status == "new" {
+			return true
+		}
+	}
+	return false
+}
+
+// runIntakeStage processes inbox items by invoking a model that calls
+// wolfcastle CLI commands directly to create projects and tasks. Items
+// that are successfully processed (i.e., the model completes without
+// error) are marked as "filed". Items that fail remain "new" for retry.
+func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage) error {
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
-		return nil // No inbox file = nothing to expand
+		return nil // No inbox file = nothing to process
 	}
 
 	// Filter to only "new" status items
@@ -81,10 +103,10 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		return fmt.Errorf("model %q not found", stage.Model)
 	}
 
-	// Build context with only new items
+	// Build context with inbox items
 	var itemsCtx strings.Builder
-	expandHeader := resolveContextHeader(d.WolfcastleDir, "expand-context.md", "# Inbox Items to Expand\n")
-	itemsCtx.WriteString(expandHeader + "\n")
+	intakeHeader := resolveContextHeader(d.WolfcastleDir, "intake-context.md", "# Inbox Items to Process\n")
+	itemsCtx.WriteString(intakeHeader + "\n")
 	for i, item := range newItems {
 		fmt.Fprintf(&itemsCtx, "### Item %d\n", i+1)
 		fmt.Fprintf(&itemsCtx, "- **Timestamp:** %s\n", item.Timestamp)
@@ -96,7 +118,7 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		return err
 	}
 
-	_ = d.Logger.Log(map[string]any{"type": "stage_start", "stage": "expand", "new_items": len(newItems)})
+	_ = d.Logger.Log(map[string]any{"type": "stage_start", "stage": "intake", "new_items": len(newItems)})
 
 	invokeCtx := ctx
 	if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
@@ -105,152 +127,33 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		defer cancel()
 	}
 
-	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "expand")
+	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "intake")
 	if err != nil {
 		return err
 	}
 
 	_ = d.Logger.Log(map[string]any{
 		"type":       "stage_complete",
-		"stage":      "expand",
-		"exit_code":  result.ExitCode,
-		"output_len": len(result.Stdout),
-	})
-
-	// Only process results if the model succeeded.
-	if result.ExitCode != 0 {
-		output.PrintHuman("  Expand stage failed (exit %d). Items remain new for retry.", result.ExitCode)
-		return nil
-	}
-
-	// Parse model output: split on ## headings as item boundaries
-	sections := parseExpandedSections(result.Stdout)
-
-	// Match sections to new items (by position)
-	for i, idx := range newIndices {
-		inboxData.Items[idx].Status = "expanded"
-		if i < len(sections) {
-			inboxData.Items[idx].Expanded = strings.TrimSpace(sections[i])
-		} else {
-			inboxData.Items[idx].Expanded = ""
-		}
-	}
-
-	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
-		return fmt.Errorf("saving inbox after expand: %w", err)
-	}
-
-	output.PrintHuman("  Expand stage: %d items expanded", len(newItems))
-	return nil
-}
-
-// parseExpandedSections splits model output on ## headings and returns
-// the content of each section (heading included).
-func parseExpandedSections(output string) []string {
-	lines := strings.Split(output, "\n")
-	var sections []string
-	var current strings.Builder
-	inSection := false
-
-	for _, line := range lines {
-		if strings.HasPrefix(line, "## ") {
-			if inSection {
-				sections = append(sections, current.String())
-				current.Reset()
-			}
-			inSection = true
-		}
-		if inSection {
-			if current.Len() > 0 {
-				current.WriteString("\n")
-			}
-			current.WriteString(line)
-		}
-	}
-	if inSection && current.Len() > 0 {
-		sections = append(sections, current.String())
-	}
-	return sections
-}
-
-func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) error {
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	inboxData, err := state.LoadInbox(inboxPath)
-	if err != nil {
-		return nil
-	}
-
-	// Filter to only "expanded" status items
-	var expandedIndices []int
-	for i, item := range inboxData.Items {
-		if item.Status == "expanded" {
-			expandedIndices = append(expandedIndices, i)
-		}
-	}
-	if len(expandedIndices) == 0 {
-		return nil
-	}
-
-	model, ok := d.Config.Models[stage.Model]
-	if !ok {
-		return fmt.Errorf("model %q not found", stage.Model)
-	}
-
-	// Build context with expanded items
-	var itemsCtx strings.Builder
-	fileHeader := resolveContextHeader(d.WolfcastleDir, "file-context.md", "# Expanded Inbox Items to File\n")
-	itemsCtx.WriteString(fileHeader + "\n")
-	for _, idx := range expandedIndices {
-		item := inboxData.Items[idx]
-		fmt.Fprintf(&itemsCtx, "---\n\n**Original:** %s\n\n", item.Text)
-		if item.Expanded != "" {
-			itemsCtx.WriteString(item.Expanded)
-			itemsCtx.WriteString("\n\n")
-		}
-	}
-
-	prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, stage, itemsCtx.String())
-	if err != nil {
-		return err
-	}
-
-	_ = d.Logger.Log(map[string]any{"type": "stage_start", "stage": "file", "expanded_items": len(expandedIndices)})
-
-	invokeCtx := ctx
-	if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
-		var cancel context.CancelFunc
-		invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
-		defer cancel()
-	}
-
-	// The model executes wolfcastle commands directly via tool calls
-	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "file")
-	if err != nil {
-		return err
-	}
-
-	_ = d.Logger.Log(map[string]any{
-		"type":       "stage_complete",
-		"stage":      "file",
+		"stage":      "intake",
 		"exit_code":  result.ExitCode,
 		"output_len": len(result.Stdout),
 	})
 
 	// Only mark items as filed if the model succeeded.
 	if result.ExitCode != 0 {
-		output.PrintHuman("  File stage failed (exit %d). Items remain expanded for retry.", result.ExitCode)
+		output.PrintHuman("  Intake stage failed (exit %d). Items remain new for retry.", result.ExitCode)
 		return nil
 	}
-	for _, idx := range expandedIndices {
+
+	for _, idx := range newIndices {
 		inboxData.Items[idx].Status = "filed"
 	}
-	output.PrintHuman("  File stage: %d items filed", len(expandedIndices))
 
 	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
-		return fmt.Errorf("saving inbox after file stage: %w", err)
+		return fmt.Errorf("saving inbox after intake: %w", err)
 	}
 
-	output.PrintHuman("  File stage: %d items filed", len(expandedIndices))
+	output.PrintHuman("  Intake stage: %d items filed", len(newItems))
 	return nil
 }
 

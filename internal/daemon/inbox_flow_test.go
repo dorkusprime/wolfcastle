@@ -6,36 +6,32 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-// TestProcessInboxIfNeeded_CreatesTasksBeforeNavigation verifies that
-// inbox items are processed (expand + file) before navigation, so
-// that new tasks appear in the tree for the daemon to find.
-func TestProcessInboxIfNeeded_CreatesTasksBeforeNavigation(t *testing.T) {
+// TestRunIntakeStage_ProcessesNewItems verifies that the intake stage
+// reads new inbox items, invokes the model, and marks them as "filed".
+func TestRunIntakeStage_ProcessesNewItems(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = false
-	d.Config.Daemon.MaxIterations = 3
 	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
 
-	// Add expand and file stages to the pipeline
 	mockModel := config.ModelDef{
 		Command: "sh",
-		Args:    []string{"-c", `cat > /dev/null; printf '## Build a Feature\n\n**Scope:** Build the feature\n\n**Suggested Tasks:**\n1. Implement it\n'`},
+		Args:    []string{"-c", `cat > /dev/null; echo "WOLFCASTLE_INTAKE_COMPLETE"`},
 	}
-	d.Config.Models["fast"] = mockModel
 	d.Config.Models["mid"] = mockModel
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "expand", Model: "fast", PromptFile: "expand.md"},
-		{Name: "file", Model: "mid", PromptFile: "file.md"},
+		{Name: "intake", Model: "mid", PromptFile: "intake.md"},
 		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
 	}
 
-	writePromptFile(t, d.WolfcastleDir, "expand.md")
-	writePromptFile(t, d.WolfcastleDir, "file.md")
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	// Write an inbox with a "new" item
 	projDir := d.Resolver.ProjectsDir()
@@ -47,10 +43,13 @@ func TestProcessInboxIfNeeded_CreatesTasksBeforeNavigation(t *testing.T) {
 	data, _ := json.MarshalIndent(inboxData, "", "  ")
 	_ = os.WriteFile(filepath.Join(projDir, "inbox.json"), data, 0644)
 
-	// Run processInboxIfNeeded
-	d.processInboxIfNeeded(context.Background())
+	// Run the intake stage directly
+	stage := config.PipelineStage{Name: "intake", Model: "mid", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("intake stage error: %v", err)
+	}
 
-	// Check that inbox items were processed (status changed from "new")
+	// Check that inbox items were processed (status changed to "filed")
 	updatedInbox, err := state.LoadInbox(filepath.Join(projDir, "inbox.json"))
 	if err != nil {
 		t.Fatalf("loading inbox after processing: %v", err)
@@ -58,25 +57,33 @@ func TestProcessInboxIfNeeded_CreatesTasksBeforeNavigation(t *testing.T) {
 	if len(updatedInbox.Items) == 0 {
 		t.Fatal("inbox should still have items")
 	}
-	if updatedInbox.Items[0].Status == "new" {
-		t.Error("inbox item should no longer be 'new' after expand stage")
+	if updatedInbox.Items[0].Status != "filed" {
+		t.Errorf("inbox item should be 'filed' after intake stage, got %q", updatedInbox.Items[0].Status)
 	}
 }
 
-// TestProcessInboxIfNeeded_SkipsWhenEmpty verifies that processInboxIfNeeded
-// is a no-op when the inbox is empty or doesn't exist.
-func TestProcessInboxIfNeeded_SkipsWhenEmpty(t *testing.T) {
+// TestRunIntakeStage_SkipsWhenEmpty verifies that the intake stage
+// is a no-op when the inbox has no new items.
+func TestRunIntakeStage_SkipsWhenEmpty(t *testing.T) {
 	d := testDaemon(t)
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	// No inbox file exists
-	d.processInboxIfNeeded(context.Background())
-	// Should not panic or error
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
 
-// TestProcessInboxIfNeeded_SkipsWhenAllFiled verifies that already-filed
+// TestRunIntakeStage_SkipsWhenAllFiled verifies that already-filed
 // items don't trigger re-processing.
-func TestProcessInboxIfNeeded_SkipsWhenAllFiled(t *testing.T) {
+func TestRunIntakeStage_SkipsWhenAllFiled(t *testing.T) {
 	d := testDaemon(t)
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	projDir := d.Resolver.ProjectsDir()
 	inboxData := state.InboxFile{
@@ -87,6 +94,59 @@ func TestProcessInboxIfNeeded_SkipsWhenAllFiled(t *testing.T) {
 	data, _ := json.MarshalIndent(inboxData, "", "  ")
 	_ = os.WriteFile(filepath.Join(projDir, "inbox.json"), data, 0644)
 
-	d.processInboxIfNeeded(context.Background())
-	// Should not invoke any models (no new or expanded items)
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// TestRunInboxLoop_ProcessesItemFromGoroutine verifies the parallel
+// inbox goroutine picks up new items and processes them.
+func TestRunInboxLoop_ProcessesItemFromGoroutine(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Daemon.InboxPollIntervalSeconds = 1
+	d.Config.Models["mid"] = config.ModelDef{
+		Command: "sh",
+		Args:    []string{"-c", `cat > /dev/null; echo "done"`},
+	}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "intake", Model: "mid", PromptFile: "intake.md"},
+		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+	}
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Start the inbox loop in a goroutine
+	go d.runInboxLoop(ctx)
+
+	// Add an inbox item from this goroutine
+	projDir := d.Resolver.ProjectsDir()
+	inboxPath := filepath.Join(projDir, "inbox.json")
+	inboxData := state.InboxFile{
+		Items: []state.InboxItem{
+			{Text: "async idea", Status: "new", Timestamp: clock.New().Now().Format("2006-01-02T15:04:05Z")},
+		},
+	}
+	data, _ := json.MarshalIndent(inboxData, "", "  ")
+	_ = os.WriteFile(inboxPath, data, 0644)
+
+	// Wait for the goroutine to process it
+	deadline := time.After(10 * time.Second)
+	for {
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for inbox item to be processed")
+		default:
+		}
+
+		updated, err := state.LoadInbox(inboxPath)
+		if err == nil && len(updated.Items) > 0 && updated.Items[0].Status == "filed" {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	cancel()
 }

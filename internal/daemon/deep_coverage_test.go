@@ -109,8 +109,8 @@ func TestPropagateState_FourLevelHierarchy(t *testing.T) {
 
 func TestCheckInboxState_NoFile(t *testing.T) {
 	d := testDaemon(t)
-	hasNew, hasExpanded := d.checkInboxState("/nonexistent/inbox.json")
-	if hasNew || hasExpanded {
+	hasNew := d.checkInboxState("/nonexistent/inbox.json")
+	if hasNew {
 		t.Error("should return false for nonexistent inbox")
 	}
 }
@@ -120,9 +120,9 @@ func TestCheckInboxState_EmptyItems(t *testing.T) {
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{}})
 
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
-	if hasNew || hasExpanded {
-		t.Error("empty inbox should have no new or expanded items")
+	hasNew := d.checkInboxState(inboxPath)
+	if hasNew {
+		t.Error("empty inbox should have no new items")
 	}
 }
 
@@ -131,16 +131,12 @@ func TestCheckInboxState_MixedItems(t *testing.T) {
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item1"},
-		{Status: "expanded", Text: "item2", Expanded: "details"},
 		{Status: "filed", Text: "item3"},
 	}})
 
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
+	hasNew := d.checkInboxState(inboxPath)
 	if !hasNew {
 		t.Error("should detect new items")
-	}
-	if !hasExpanded {
-		t.Error("should detect expanded items")
 	}
 }
 
@@ -151,9 +147,9 @@ func TestCheckInboxState_OnlyFiled(t *testing.T) {
 		{Status: "filed", Text: "item1"},
 	}})
 
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
-	if hasNew || hasExpanded {
-		t.Error("filed items should not count as new or expanded")
+	hasNew := d.checkInboxState(inboxPath)
+	if hasNew {
+		t.Error("filed items should not count as new")
 	}
 }
 

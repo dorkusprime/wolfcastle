@@ -35,7 +35,7 @@ func TestLoadInbox_ValidFile(t *testing.T) {
 	content := `{
   "items": [
     {"timestamp": "2025-06-01T10:00:00Z", "text": "first item", "status": "new"},
-    {"timestamp": "2025-06-02T10:00:00Z", "text": "second item", "status": "read", "expanded": "details here"}
+    {"timestamp": "2025-06-02T10:00:00Z", "text": "second item", "status": "filed"}
   ]
 }`
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
@@ -55,8 +55,8 @@ func TestLoadInbox_ValidFile(t *testing.T) {
 	if f.Items[0].Status != "new" {
 		t.Errorf("expected status 'new', got %q", f.Items[0].Status)
 	}
-	if f.Items[1].Expanded != "details here" {
-		t.Errorf("expected expanded 'details here', got %q", f.Items[1].Expanded)
+	if f.Items[1].Status != "filed" {
+		t.Errorf("expected status 'filed', got %q", f.Items[1].Status)
 	}
 }
 
@@ -139,7 +139,7 @@ func TestSaveInbox_Roundtrip(t *testing.T) {
 	original := &InboxFile{
 		Items: []InboxItem{
 			{Timestamp: "2025-06-01T10:00:00Z", Text: "item one", Status: "new"},
-			{Timestamp: "2025-06-02T11:00:00Z", Text: "item two", Status: "read", Expanded: "expanded text"},
+			{Timestamp: "2025-06-02T11:00:00Z", Text: "item two", Status: "filed"},
 		},
 	}
 
@@ -160,10 +160,7 @@ func TestSaveInbox_Roundtrip(t *testing.T) {
 	if loaded.Items[0].Timestamp != "2025-06-01T10:00:00Z" {
 		t.Errorf("expected timestamp '2025-06-01T10:00:00Z', got %q", loaded.Items[0].Timestamp)
 	}
-	if loaded.Items[1].Expanded != "expanded text" {
-		t.Errorf("expected expanded 'expanded text', got %q", loaded.Items[1].Expanded)
-	}
-	if loaded.Items[1].Status != "read" {
-		t.Errorf("expected status 'read', got %q", loaded.Items[1].Status)
+	if loaded.Items[1].Status != "filed" {
+		t.Errorf("expected status 'filed', got %q", loaded.Items[1].Status)
 	}
 }
