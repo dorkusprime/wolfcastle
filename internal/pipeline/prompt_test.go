@@ -167,9 +167,9 @@ func TestAssemblePrompt_ExecuteStageContainsTerminalMarkers(t *testing.T) {
 		t.Error("execute prompt should not contain intake-specific instructions")
 	}
 
-	// Execute prompt must NOT contain commands outside its AllowedCommands
+	// Execute prompt must NOT contain commands outside its AllowedCommands.
+	// Note: project create IS allowed (needed for decomposition).
 	forbidden := []string{
-		"### wolfcastle project create",
 		"### wolfcastle task claim",
 		"### wolfcastle task complete",
 		"### wolfcastle navigate",

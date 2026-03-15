@@ -49,6 +49,7 @@ type Daemon struct {
 	Resolver      *tree.Resolver
 	ScopeNode     string
 	Logger        *logging.Logger
+	InboxLogger   *logging.Logger // separate logger for the inbox goroutine
 	RepoDir       string
 	Clock         clock.Clock
 
@@ -74,12 +75,27 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 	// Resume iteration numbering from existing log files.
 	logger.Iteration = logging.IterationFromDir(logDir)
 
+	// Create a separate logger for the inbox goroutine so it doesn't
+	// race with the execute loop's logger on file handles and counters.
+	inboxLogger, err := logging.NewLogger(logDir)
+	if err != nil {
+		return nil, err
+	}
+	if lvl, ok := logging.ParseLevel(cfg.Daemon.LogLevel); ok {
+		inboxLogger.ConsoleLevel = lvl
+	}
+	// Offset inbox iterations by 10000 to avoid filename collisions
+	// with the execute loop. Both write to the same directory but
+	// their iteration numbers never overlap.
+	inboxLogger.Iteration = 10000 + logging.IterationFromDir(logDir)
+
 	return &Daemon{
 		Config:        cfg,
 		WolfcastleDir: wolfcastleDir,
 		Resolver:      resolver,
 		ScopeNode:     scopeNode,
 		Logger:        logger,
+		InboxLogger:   inboxLogger,
 		RepoDir:       repoDir,
 		Clock:         clock.New(),
 		shutdown:      make(chan struct{}),

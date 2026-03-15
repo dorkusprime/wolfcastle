@@ -216,14 +216,21 @@ func testDaemon(t *testing.T) *Daemon {
 		t.Fatal(err)
 	}
 
+	inboxLogger, err := logging.NewLogger(logDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	return &Daemon{
 		Config:        testConfig(),
 		WolfcastleDir: wolfDir,
 		Resolver:      &tree.Resolver{WolfcastleDir: wolfDir, Namespace: ns},
 		Logger:        logger,
+		InboxLogger:   inboxLogger,
 		Clock:         clock.New(),
 		RepoDir:       tmp,
 		shutdown:      make(chan struct{}),
+		workAvailable: make(chan struct{}, 1),
 	}
 }
 

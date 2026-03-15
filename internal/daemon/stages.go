@@ -117,11 +117,11 @@ func (d *Daemon) processInbox(ctx context.Context, counter int) {
 
 	for _, stage := range d.Config.Pipeline.Stages {
 		if stage.Name == "intake" && stage.IsEnabled() {
-			_ = d.Logger.StartIterationWithPrefix("intake")
+			_ = d.InboxLogger.StartIterationWithPrefix("intake")
 			if err := d.runIntakeStage(ctx, stage); err != nil {
 				output.PrintHuman("  Intake stage error (non-fatal): %v", err)
 			}
-			d.Logger.Close()
+			d.InboxLogger.Close()
 			break
 		}
 	}
@@ -185,7 +185,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		return err
 	}
 
-	_ = d.Logger.Log(map[string]any{"type": "stage_start", "stage": "intake", "new_items": len(newItems)})
+	_ = d.InboxLogger.Log(map[string]any{"type": "stage_start", "stage": "intake", "new_items": len(newItems)})
 
 	invokeCtx := ctx
 	if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
@@ -194,12 +194,12 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		defer cancel()
 	}
 
-	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "intake")
+	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.InboxLogger.AssistantWriter(), "intake")
 	if err != nil {
 		return err
 	}
 
-	_ = d.Logger.Log(map[string]any{
+	_ = d.InboxLogger.Log(map[string]any{
 		"type":       "stage_complete",
 		"stage":      "intake",
 		"exit_code":  result.ExitCode,
