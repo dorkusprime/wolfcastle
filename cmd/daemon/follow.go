@@ -253,10 +253,10 @@ func formatAssistantText(raw string) string {
 		Subtype string `json:"subtype"`
 		Message struct {
 			Content []struct {
-				Type    string `json:"type"`
-				Text    string `json:"text"`
-				Name    string `json:"name"`
-				Input   any    `json:"input"`
+				Type  string `json:"type"`
+				Text  string `json:"text"`
+				Name  string `json:"name"`
+				Input any    `json:"input"`
 			} `json:"content"`
 		} `json:"message"`
 		Result string `json:"result"`

@@ -91,8 +91,8 @@ func TestRunInboxWithPolling_ProcessesInbox(t *testing.T) {
 	if err != nil {
 		t.Fatalf("loading inbox: %v", err)
 	}
-	if len(updatedInbox.Items) > 0 && updatedInbox.Items[0].Status == "filed" {
-		// Success — intake ran and filed the item
+	if len(updatedInbox.Items) > 0 && updatedInbox.Items[0].Status != "filed" {
+		t.Logf("item status after polling: %s (may not have completed a full cycle)", updatedInbox.Items[0].Status)
 	}
 }
 

@@ -27,8 +27,8 @@ type Spinner struct {
 }
 
 const (
-	spinnerWidth = 20       // total characters inside the brackets
-	projectile   = ">>──▶"  // the moving round
+	spinnerWidth = 20      // total characters inside the brackets
+	projectile   = ">>──▶" // the moving round
 	frameDelay   = 80 * time.Millisecond
 )
 
