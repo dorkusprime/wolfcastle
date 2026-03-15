@@ -296,47 +296,34 @@ Error types are defined in a new `internal/errors` package to avoid circular imp
 
 ## 9. Implementation Phases
 
-### Phase 1: Foundation
+### Phase 1: Foundation (complete)
 
-Independent changes, no architectural risk.
+- Custom error types in `internal/errors/` (ADR-065): ConfigError, StateError, InvocationError, NavigationError
+- Daemon halts on StateError, retries on InvocationError
+- Templates already embedded via go:embed (ADR-033)
 
-- Custom error types (`internal/errors/`)
-- Embed skill template (move hardcoded string to `embed.FS`)
-- ADRs for both
+### Phase 2: Communication infrastructure (complete)
 
-**Estimated effort:** Small. No behavioral changes.
+- `workAvailable` channel (buffered cap 1) on Daemon struct
+- Execute loop idle sleep selects on channel, context, and timer
+- Inbox goroutine signals workAvailable after successful intake
+- Trace IDs in Logger: StartIterationWithPrefix("exec"/"intake") produces "exec-0042", "intake-0007"
+- Every log record includes a `trace` field when set
 
-### Phase 2: Communication infrastructure
+### Phase 3: Real-time I/O (complete)
 
-Design the channel topology and trace ID system.
+- fsnotify dependency (github.com/fsnotify/fsnotify v1.9.0)
+- Inbox watcher uses fsnotify with polling fallback when unavailable
+- Stop file polling remains via os.Stat (fsnotify for stop file deferred; the existing check is cheap and reliable)
+- ProcessInvoker already streams stdout via StdoutPipe + bufio.Scanner with real-time marker detection
+- Streaming is unified with marker detection in the scanner goroutine
 
-- Add `workAvailable` channel to Daemon struct
-- Update execute loop idle sleep to select on channel
-- Add trace ID to logger and context
-- ADR for channel architecture
-
-**Estimated effort:** Medium. Changes the daemon's control flow.
-
-### Phase 3: Real-time I/O
-
-Build on the channel infrastructure.
-
-- Add fsnotify dependency
-- Implement inbox file watcher with polling fallback
-- Replace stop file polling with fsnotify
-- Implement io.Pipe streaming in ProcessInvoker
-- Unify streaming with marker detection
-
-**Estimated effort:** Large. New dependency, new goroutine lifecycle, changes to invocation pipeline.
-
-### Phase 4: Optimization
+### Phase 4: Optimization (deferred)
 
 Only after profiling shows need.
 
 - sync.Pool for JSON encode/decode buffers
 - Benchmark daemon iteration overhead
-
-**Estimated effort:** Small, but only worthwhile with data.
 
 ---
 
