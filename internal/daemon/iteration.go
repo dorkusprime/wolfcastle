@@ -147,17 +147,26 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 		}
 
-		// Check for terminal markers
+		// Check for terminal markers and transition task state
 		if strings.Contains(result.Stdout, "WOLFCASTLE_YIELD") {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_YIELD"})
+			// Yield: task stays in_progress for resumption on next iteration
 			return nil
 		}
 		if strings.Contains(result.Stdout, "WOLFCASTLE_BLOCKED") {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
+			if blockErr := state.TaskBlock(ns, nav.TaskID, "blocked by model"); blockErr == nil {
+				_ = state.SaveNodeState(statePath, ns)
+				_ = d.propagateState(nav.NodeAddress, ns.State, idx)
+			}
 			return nil
 		}
 		if strings.Contains(result.Stdout, "WOLFCASTLE_COMPLETE") {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_COMPLETE"})
+			if completeErr := state.TaskComplete(ns, nav.TaskID); completeErr == nil {
+				_ = state.SaveNodeState(statePath, ns)
+				_ = d.propagateState(nav.NodeAddress, ns.State, idx)
+			}
 			return nil
 		}
 

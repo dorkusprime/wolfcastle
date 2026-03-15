@@ -712,8 +712,8 @@ func TestRunIteration_ClaimTask(t *testing.T) {
 	addr, _ := tree.ParseAddress("my-node")
 	ns, _ := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json"))
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" && task.State != state.StatusInProgress {
-			t.Errorf("task should be in_progress after claim, got %s", task.State)
+		if task.ID == "task-1" && task.State != state.StatusComplete {
+			t.Errorf("task should be complete after WOLFCASTLE_COMPLETE marker, got %s", task.State)
 		}
 	}
 }
