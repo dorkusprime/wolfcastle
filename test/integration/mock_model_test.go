@@ -19,12 +19,13 @@ type MockBehavior struct {
 	// Files to create (path relative to working dir -> content).
 	CreateFiles map[string]string
 
-	// Whether to emit a WOLFCASTLE_BREADCRUMB marker in stdout.
-	// The daemon's ParseMarkers picks these up and applies them to state.
+	// Whether to call wolfcastle audit breadcrumb via CLI to record a
+	// breadcrumb on the node. The daemon reloads state from disk after
+	// invocation, so CLI-driven mutations are preserved.
 	WriteBreadcrumb bool
 	BreadcrumbText  string
 
-	// Whether to emit a WOLFCASTLE_GAP marker in stdout.
+	// Whether to call wolfcastle audit gap via CLI to record a gap on the node.
 	WriteGap bool
 	GapText  string
 
@@ -159,30 +160,27 @@ func createRealisticMock(t *testing.T, dir string, name string, cfg MockModelCon
 			fmt.Fprintf(&block, "  \"$BINARY_PATH\" task block --node \"${NODE_ADDR}/task-0001\" '%s' 2>/dev/null || true\n", escaped)
 		}
 
-		// Stream-json output with embedded markers.
-		// The daemon's ParseMarkers scans raw stdout lines for
-		// WOLFCASTLE_BREADCRUMB:, WOLFCASTLE_GAP:, etc. These must
-		// appear as raw text lines (not JSON-wrapped) for the daemon
-		// to pick them up.
+		// Audit mutations via CLI calls. The daemon reloads state from
+		// disk after invocation returns, so CLI writes are preserved.
 
-		// Breadcrumb marker in stdout
+		// Breadcrumb via CLI
 		if beh.WriteBreadcrumb {
 			bcText := beh.BreadcrumbText
 			if bcText == "" {
 				bcText = fmt.Sprintf("breadcrumb from invocation %d", i+1)
 			}
 			escaped := strings.ReplaceAll(bcText, "'", "'\\''")
-			fmt.Fprintf(&block, "  printf 'WOLFCASTLE_BREADCRUMB: %s\\n'\n", escaped)
+			fmt.Fprintf(&block, "  \"$BINARY_PATH\" audit breadcrumb --node \"$NODE_ADDR\" '%s' 2>/dev/null || true\n", escaped)
 		}
 
-		// Gap marker in stdout
+		// Gap via CLI
 		if beh.WriteGap {
 			gapText := beh.GapText
 			if gapText == "" {
 				gapText = fmt.Sprintf("gap from invocation %d", i+1)
 			}
 			escaped := strings.ReplaceAll(gapText, "'", "'\\''")
-			fmt.Fprintf(&block, "  printf 'WOLFCASTLE_GAP: %s\\n'\n", escaped)
+			fmt.Fprintf(&block, "  \"$BINARY_PATH\" audit gap --node \"$NODE_ADDR\" '%s' 2>/dev/null || true\n", escaped)
 		}
 
 		// Terminal marker (emitted as both raw line and JSON envelope)

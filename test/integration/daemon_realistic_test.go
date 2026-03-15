@@ -203,9 +203,8 @@ func TestDaemon_ModelCallsCLI(t *testing.T) {
 	dir := t.TempDir()
 	run(t, dir, "init")
 
-	// Use stdout markers for breadcrumbs and gaps, which is how the daemon
-	// integrates model output into state. The daemon's ParseMarkers picks
-	// up WOLFCASTLE_BREADCRUMB: and WOLFCASTLE_GAP: lines from stdout.
+	// Use CLI calls for breadcrumbs and gaps. The daemon reloads state
+	// from disk after invocation, preserving CLI-driven mutations.
 	scriptPath, _ := createRealisticMock(t, dir, "cli-calls", MockModelConfig{
 		Behaviors: []MockBehavior{
 			{

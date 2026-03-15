@@ -59,6 +59,10 @@ Breadcrumbs and escalations manage the per-node audit trail:
 	_ = scopeCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(scopeCmd)
 
+	summaryCmd := newSummaryCmd(app)
+	_ = summaryCmd.RegisterFlagCompletionFunc("node", completeNode)
+	auditCmd.AddCommand(summaryCmd)
+
 	approveCmd := newApproveCmd(app)
 	_ = approveCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(approveCmd)

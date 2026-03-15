@@ -304,8 +304,8 @@ func TestBuildIterationContext_SummaryRequired_LastIncompleteTask(t *testing.T) 
 	if !strings.Contains(result, "## Summary Required") {
 		t.Error("expected summary required section when last incomplete task")
 	}
-	if !strings.Contains(result, "WOLFCASTLE_SUMMARY") {
-		t.Error("expected summary marker instruction")
+	if !strings.Contains(result, "audit summary") {
+		t.Error("expected audit summary CLI instruction")
 	}
 	if !strings.Contains(result, "WOLFCASTLE_COMPLETE") {
 		t.Error("expected complete marker instruction")
@@ -513,7 +513,7 @@ func TestBuildIterationContextWithDir_FallbackWhenNoDir(t *testing.T) {
 	if !strings.Contains(result, "## Summary Required") {
 		t.Error("expected fallback summary section")
 	}
-	if !strings.Contains(result, "WOLFCASTLE_SUMMARY") {
-		t.Error("expected fallback summary marker instruction")
+	if !strings.Contains(result, "audit summary") {
+		t.Error("expected fallback audit summary CLI instruction")
 	}
 }

@@ -144,7 +144,7 @@ func TestDaemon_BlockedWithReasonText(t *testing.T) {
 	// The daemon calls TaskBlock with reason "blocked by model". The
 	// WOLFCASTLE_BLOCKED marker in scanTerminalMarker does not pass through
 	// custom reason text from the model output (the colon-delimited form
-	// is only parsed by ParseMarkers callbacks, not by scanTerminalMarker).
+	// is not parsed by scanTerminalMarker).
 	// So we verify the task is blocked and the BlockedReason field is set
 	// to the daemon's default reason string.
 	scriptPath := createMockModel(t, dir, "blocked-reason", "blocked")

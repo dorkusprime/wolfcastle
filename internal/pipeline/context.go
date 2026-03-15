@@ -189,9 +189,9 @@ func renderSummaryRequired(wolfcastleDir string) string {
 	// Fallback
 	var b strings.Builder
 	b.WriteString("This is the last incomplete task in this node. When you complete it, ")
-	b.WriteString("include a summary of all work done in this node using:\n\n")
-	b.WriteString("`WOLFCASTLE_SUMMARY: <one-paragraph summary of what was accomplished>`\n\n")
-	b.WriteString("Emit this on its own line before WOLFCASTLE_COMPLETE.\n")
+	b.WriteString("include a summary of all work done in this node:\n\n")
+	b.WriteString("`wolfcastle audit summary --node <your-node> \"one-paragraph summary of what was accomplished\"`\n\n")
+	b.WriteString("Run this command before emitting WOLFCASTLE_COMPLETE.\n")
 	return b.String()
 }
 

@@ -15,8 +15,8 @@ import (
 )
 
 // runIteration executes a single daemon iteration: claims the task, runs each
-// enabled pipeline stage in order, applies model output markers, persists
-// state mutations, and handles failure escalation (decomposition, auto-block).
+// enabled pipeline stage in order, reloads state from disk (to pick up CLI
+// mutations), handles terminal markers, and manages failure escalation.
 func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, idx *state.RootIndex) error {
 	// Claim the task
 	addr, err := tree.ParseAddress(nav.NodeAddress)
@@ -107,19 +107,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			"output_len": len(result.Stdout),
 		})
 
-		// Parse mutation markers from model output
-		d.applyModelMarkers(result.Stdout, ns, nav)
-
-		// Sync audit lifecycle after marker mutations (Item 2)
-		state.SyncAuditLifecycle(ns)
-
-		// Persist marker mutations immediately — ensures durability even if
-		// the stage errors before reaching a terminal marker (Item 6)
-		if err := state.SaveNodeState(statePath, ns); err != nil {
-			_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
-		}
-		if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+		// Reload state from disk — CLI commands invoked by the model may
+		// have mutated state.json during execution (breadcrumbs, gaps, scope, etc.)
+		ns, err = state.LoadNodeState(statePath)
+		if err != nil {
+			_ = d.Logger.Log(map[string]any{"type": "reload_error", "error": err.Error()})
 		}
 
 		// Check for terminal markers and transition task state.

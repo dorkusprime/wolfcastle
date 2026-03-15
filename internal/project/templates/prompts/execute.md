@@ -22,11 +22,31 @@ Write a breadcrumb describing what you did:
 wolfcastle audit breadcrumb --node <your-node> "description of changes"
 ```
 
+If you discover an audit gap (something missing or wrong that needs attention), record it:
+```
+wolfcastle audit gap --node <your-node> "description of the gap"
+```
+
+If you fix a previously recorded gap, mark it resolved:
+```
+wolfcastle audit fix-gap --node <your-node> <gap-id>
+```
+
+If scope needs recording (what this node covers), set it:
+```
+wolfcastle audit scope --node <your-node> --description "what this node audits"
+```
+
 ### F. Commit
 Commit your changes with a clear message.
 
 ### G. Signal completion
-When the task is fully done, output WOLFCASTLE_COMPLETE on its own line. This marks the task as complete.
+When the task is fully done, set a summary if this is the last task in the node:
+```
+wolfcastle audit summary --node <your-node> "one-paragraph summary of what was accomplished"
+```
+
+Then output WOLFCASTLE_COMPLETE on its own line. This marks the task as complete.
 
 If you made progress but the task needs more work in a follow-up iteration, output WOLFCASTLE_YIELD on its own line instead. The daemon will re-invoke you on the next iteration with the task still in progress.
 

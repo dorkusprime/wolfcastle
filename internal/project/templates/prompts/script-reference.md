@@ -151,6 +151,95 @@ wolfcastle audit escalate "description of the gap" --node <source-node-address>
 wolfcastle audit escalate "API contract is inconsistent with frontend expectations" --node my-project/api
 ```
 
+### wolfcastle audit gap
+
+Record an audit gap on a node. Gaps represent issues found during work that need resolution.
+
+```
+wolfcastle audit gap "description of the gap" --node <node-address>
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--node` | Yes | Target node address |
+
+**Example:**
+```
+wolfcastle audit gap "missing error handling in auth module" --node my-project/auth
+```
+
+### wolfcastle audit fix-gap
+
+Mark an audit gap as fixed.
+
+```
+wolfcastle audit fix-gap <gap-id> --node <node-address>
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--node` | Yes | Target node address |
+
+**Example:**
+```
+wolfcastle audit fix-gap gap-my-project-1 --node my-project
+```
+
+### wolfcastle audit scope
+
+Set structured audit scope on a node.
+
+```
+wolfcastle audit scope --node <node-address> --description "text" [--files "a.go|b.go"] [--systems "auth|db"] [--criteria "tests pass|lint clean"]
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--node` | Yes | Target node address |
+| `--description` | No | Audit scope description |
+| `--files` | No | Pipe-delimited list of files |
+| `--systems` | No | Pipe-delimited list of systems |
+| `--criteria` | No | Pipe-delimited acceptance criteria |
+
+**Example:**
+```
+wolfcastle audit scope --node my-project --description "Verify auth module" --files "auth.go|login.go"
+```
+
+### wolfcastle audit summary
+
+Set the result summary on a node's audit record. Call this before WOLFCASTLE_COMPLETE on the last task of a node.
+
+```
+wolfcastle audit summary "one-paragraph summary" --node <node-address>
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--node` | Yes | Target node address |
+
+**Example:**
+```
+wolfcastle audit summary "Implemented JWT auth with full test coverage" --node my-project/auth
+```
+
+### wolfcastle audit resolve-escalation
+
+Resolve an open escalation on a node.
+
+```
+wolfcastle audit resolve <escalation-id> --node <node-address>
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--node` | Yes | Target node address |
+
+**Example:**
+```
+wolfcastle audit resolve escalation-my-project-1 --node my-project
+```
+
 ## Audit Review Commands
 
 Review findings from `wolfcastle audit run`. Findings are saved as a pending batch; use these commands to approve or reject them individually.

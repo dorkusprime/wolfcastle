@@ -106,7 +106,7 @@ func TestDaemon_ModelDeletesFiles(t *testing.T) {
 	}
 }
 
-// Test 20: Model emits a WOLFCASTLE_BREADCRUMB: marker; verify breadcrumb in state.
+// Test 20: Model calls wolfcastle audit breadcrumb via CLI; verify breadcrumb in state.
 func TestDaemon_ModelCallsBreadcrumb(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
@@ -141,7 +141,7 @@ func TestDaemon_ModelCallsBreadcrumb(t *testing.T) {
 	}
 }
 
-// Test 21: Model emits a WOLFCASTLE_GAP: marker; verify gap in state.
+// Test 21: Model calls wolfcastle audit gap via CLI; verify gap in state.
 func TestDaemon_ModelCallsGap(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
@@ -176,12 +176,12 @@ func TestDaemon_ModelCallsGap(t *testing.T) {
 	}
 }
 
-// Test 22: Model emits a WOLFCASTLE_GAP: marker on a child node; verify
+// Test 22: Model calls wolfcastle audit gap via CLI on a child node; verify
 // escalation can be recorded on the parent orchestrator via CLI.
 //
 // The daemon itself does not auto-escalate gaps; escalation is a separate
-// CLI operation. This test verifies the full flow: child emits a gap, then
-// the mock script calls `wolfcastle audit escalate` to push it to the parent.
+// CLI operation. This test verifies the full flow: child records a gap via
+// CLI, then calls `wolfcastle audit escalate` to push it to the parent.
 func TestDaemon_ModelCallsEscalate(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
@@ -366,15 +366,14 @@ func TestDaemon_ModelCreatesFilesThenFails(t *testing.T) {
 	t.Error("task-1 not found in node state")
 }
 
-// Test 26: Model emits two WOLFCASTLE_BREADCRUMB: lines in a single
+// Test 26: Model calls wolfcastle audit breadcrumb twice via CLI in a single
 // invocation; verify both are recorded.
 func TestDaemon_ModelCallsBreadcrumbMultipleTimes(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
-	// createRealisticMock only supports a single breadcrumb per behavior,
-	// so we use ExtraCommands to emit a second breadcrumb line.
+	// Use ExtraCommands to issue a second breadcrumb CLI call.
 	scriptPath, _ := createRealisticMock(t, dir, "multi-breadcrumb", MockModelConfig{
 		Behaviors: []MockBehavior{
 			{
@@ -382,7 +381,7 @@ func TestDaemon_ModelCallsBreadcrumbMultipleTimes(t *testing.T) {
 				WriteBreadcrumb: true,
 				BreadcrumbText:  "first breadcrumb",
 				ExtraCommands: []string{
-					"printf 'WOLFCASTLE_BREADCRUMB: second breadcrumb\\n'",
+					"\"$BINARY_PATH\" audit breadcrumb --node \"$NODE_ADDR\" 'second breadcrumb' 2>/dev/null || true",
 				},
 			},
 		},
