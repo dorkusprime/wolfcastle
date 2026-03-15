@@ -9,9 +9,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
 // TestProcessInboxIfNeeded_CreatesTasksBeforeNavigation verifies that
@@ -91,26 +89,4 @@ func TestProcessInboxIfNeeded_SkipsWhenAllFiled(t *testing.T) {
 
 	d.processInboxIfNeeded(context.Background())
 	// Should not invoke any models (no new or expanded items)
-}
-
-func testDaemonWithLogger(t *testing.T) *Daemon {
-	t.Helper()
-	d := testDaemon(t)
-	logDir := filepath.Join(d.WolfcastleDir, "logs")
-	_ = os.MkdirAll(logDir, 0755)
-	logger, err := logging.NewLogger(logDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	d.Logger = logger
-	return d
-}
-
-// Ensure testDaemon is available (it's in daemon_test.go)
-var _ = func() *Daemon {
-	return &Daemon{
-		Config:   &config.Config{},
-		Resolver: &tree.Resolver{},
-		Clock:    clock.New(),
-	}
 }
