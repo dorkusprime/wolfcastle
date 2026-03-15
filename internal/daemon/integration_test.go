@@ -715,3 +715,94 @@ echo "WOLFCASTLE_COMPLETE"
 		t.Errorf("expected complete after recovery, got %s", nsAfter.Tasks[0].State)
 	}
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 7. Deliverable verification
+// ═══════════════════════════════════════════════════════════════════════════
+
+// TestIntegration_MissingDeliverable_RejectsComplete verifies that when a task
+// declares deliverables and the model emits WOLFCASTLE_COMPLETE without creating
+// the files, the completion is rejected and the failure count increments.
+func TestIntegration_MissingDeliverable_RejectsComplete(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Failure.HardCap = 100
+	d.Config.Failure.DecompositionThreshold = 100
+
+	setupLeafNode(t, d, "deliv-node", []state.Task{
+		{
+			ID:           "task-0001",
+			Description:  "task with deliverables",
+			State:        state.StatusNotStarted,
+			Deliverables: []string{"docs/output.md"},
+		},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	})
+
+	// Model says COMPLETE but does not create the deliverable file
+	d.Config.Models["echo"] = config.ModelDef{
+		Command: "echo",
+		Args:    []string{"WOLFCASTLE_COMPLETE"},
+	}
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	_ = d.Logger.StartIteration()
+	_, err := d.RunOnce(context.Background())
+	d.Logger.Close()
+	if err != nil {
+		t.Fatalf("iteration error: %v", err)
+	}
+
+	projDir := d.Resolver.ProjectsDir()
+	ns, _ := state.LoadNodeState(filepath.Join(projDir, "deliv-node", "state.json"))
+
+	// Task should NOT be complete (deliverable missing)
+	if ns.Tasks[0].State == state.StatusComplete {
+		t.Error("task should not be complete when deliverables are missing")
+	}
+	if ns.Tasks[0].FailureCount != 1 {
+		t.Errorf("expected failure count 1, got %d", ns.Tasks[0].FailureCount)
+	}
+}
+
+// TestIntegration_DeliverableExists_AcceptsComplete verifies that when a task
+// declares deliverables and they all exist on disk, WOLFCASTLE_COMPLETE is accepted.
+func TestIntegration_DeliverableExists_AcceptsComplete(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+
+	setupLeafNode(t, d, "deliv-ok-node", []state.Task{
+		{
+			ID:           "task-0001",
+			Description:  "task with deliverables",
+			State:        state.StatusNotStarted,
+			Deliverables: []string{"docs/output.md"},
+		},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	})
+
+	// Create the deliverable file in the repo dir before the model runs
+	docsDir := filepath.Join(d.RepoDir, "docs")
+	_ = os.MkdirAll(docsDir, 0755)
+	_ = os.WriteFile(filepath.Join(docsDir, "output.md"), []byte("deliverable content"), 0644)
+
+	d.Config.Models["echo"] = config.ModelDef{
+		Command: "echo",
+		Args:    []string{"WOLFCASTLE_COMPLETE"},
+	}
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	_ = d.Logger.StartIteration()
+	_, err := d.RunOnce(context.Background())
+	d.Logger.Close()
+	if err != nil {
+		t.Fatalf("iteration error: %v", err)
+	}
+
+	projDir := d.Resolver.ProjectsDir()
+	ns, _ := state.LoadNodeState(filepath.Join(projDir, "deliv-ok-node", "state.json"))
+
+	if ns.Tasks[0].State != state.StatusComplete {
+		t.Errorf("expected complete when deliverables exist, got %s", ns.Tasks[0].State)
+	}
+}

@@ -23,10 +23,12 @@ wolfcastle project create "Parent Project" --type orchestrator --description "Wh
 
 ### Add a task to a leaf node
 ```
-wolfcastle task add "Task title" --node <node-address> [--body "detailed description"]
+wolfcastle task add "Task title" --node <node-address> [--body "detailed description"] [--deliverable "path/to/output.md"]
 ```
 
 Use `--body` when a task needs more context than the title alone provides. For simple, self-explanatory tasks, the title is sufficient.
+
+When adding tasks, specify deliverables using the --deliverable flag for any task that should produce a file. Every task that creates, modifies, or generates a file should declare it as a deliverable.
 
 Refer to the script-reference.md section above for the full command reference.
 

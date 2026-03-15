@@ -77,6 +77,12 @@ func buildIterationContext(wolfcastleDir string, nodeDir string, nodeAddr string
 			}
 		}
 
+		if len(t.Deliverables) > 0 {
+			fmt.Fprintf(&b, "**Deliverables:**\n")
+			for _, d := range t.Deliverables {
+				fmt.Fprintf(&b, "- `%s`\n", d)
+			}
+		}
 		fmt.Fprintf(&b, "**Task State:** %s\n", t.State)
 		if t.FailureCount > 0 {
 			fmt.Fprintf(&b, "**Failure Count:** %d\n", t.FailureCount)

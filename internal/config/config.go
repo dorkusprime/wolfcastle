@@ -40,7 +40,7 @@ func Defaults() *Config {
 					Name:            "execute",
 					Model:           "heavy",
 					PromptFile:      "execute.md",
-					AllowedCommands: []string{"project create", "task add", "task block", "audit breadcrumb", "audit escalate", "audit gap", "audit fix-gap", "audit scope", "audit summary", "audit resolve-escalation", "status", "spec list"},
+					AllowedCommands: []string{"project create", "task add", "task block", "task deliverable", "audit breadcrumb", "audit escalate", "audit gap", "audit fix-gap", "audit scope", "audit summary", "audit resolve-escalation", "status", "spec list"},
 				},
 			},
 		},

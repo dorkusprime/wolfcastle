@@ -40,6 +40,7 @@ Examples:
 			}
 			body, _ := cmd.Flags().GetString("body")
 			useStdin, _ := cmd.Flags().GetBool("stdin")
+			deliverables, _ := cmd.Flags().GetStringSlice("deliverable")
 
 			if useStdin {
 				data, err := io.ReadAll(os.Stdin)
@@ -66,6 +67,9 @@ Examples:
 				for i := range ns.Tasks {
 					if ns.Tasks[i].ID == task.ID {
 						ns.Tasks[i].Title = title
+						if len(deliverables) > 0 {
+							ns.Tasks[i].Deliverables = deliverables
+						}
 						break
 					}
 				}
@@ -79,12 +83,16 @@ Examples:
 
 			taskAddr := nodeAddr + "/" + task.ID
 			if app.JSONOutput {
-				output.Print(output.Ok("task_add", map[string]string{
+				result := map[string]any{
 					"address":     taskAddr,
 					"task_id":     task.ID,
 					"description": title,
 					"state":       string(task.State),
-				}))
+				}
+				if len(deliverables) > 0 {
+					result["deliverables"] = deliverables
+				}
+				output.Print(output.Ok("task_add", result))
 			} else {
 				output.PrintHuman("Added task %s: %s", taskAddr, title)
 			}
@@ -95,6 +103,7 @@ Examples:
 	cmd.Flags().String("node", "", "Target leaf node address (required)")
 	cmd.Flags().String("body", "", "Detailed task description/body")
 	cmd.Flags().Bool("stdin", false, "Read task body from stdin")
+	cmd.Flags().StringSlice("deliverable", nil, "Expected output file (repeatable)")
 	_ = cmd.MarkFlagRequired("node")
 	return cmd
 }

@@ -15,7 +15,7 @@ Manage tasks on leaf nodes. Tasks follow the lifecycle: not_started -> in_progre
 Add a new task to a leaf node.
 
 ```
-wolfcastle task add "task title" --node <node-address> [--body "detailed description"] [--stdin]
+wolfcastle task add "task title" --node <node-address> [--body "detailed description"] [--stdin] [--deliverable "path/to/file"]
 ```
 
 | Flag | Required | Description |
@@ -23,12 +23,31 @@ wolfcastle task add "task title" --node <node-address> [--body "detailed descrip
 | `--node` | Yes | Target leaf node address |
 | `--body` | No | Detailed task description/body text |
 | `--stdin` | No | Read task body from stdin |
+| `--deliverable` | No | Expected output file (repeatable) |
 
 **Examples:**
 ```
 wolfcastle task add "Implement user authentication middleware" --node my-project/auth
 wolfcastle task add "Add rate limiting" --node my-project/auth --body "Implement token-bucket rate limiting at 100 req/s per user."
+wolfcastle task add "Research POS systems" --node pizza-docs --deliverable "docs/pos-research.md" --deliverable "docs/comparison-table.md"
 echo "Detailed spec..." | wolfcastle task add "Add caching layer" --node my-project/auth --stdin
+```
+
+### wolfcastle task deliverable
+
+Append a deliverable to an existing task. The daemon verifies all deliverables exist before accepting WOLFCASTLE_COMPLETE.
+
+```
+wolfcastle task deliverable "path/to/file.md" --node <node-address/task-id>
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--node` | Yes | Task address: node-path/task-id |
+
+**Example:**
+```
+wolfcastle task deliverable "docs/api-spec.md" --node my-project/auth/task-1
 ```
 
 ### wolfcastle task claim

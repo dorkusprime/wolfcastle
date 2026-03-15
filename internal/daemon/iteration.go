@@ -9,6 +9,7 @@ import (
 	"time"
 
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
+	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -141,6 +142,19 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
 			}
 			return nil
+		}
+		if marker == "WOLFCASTLE_COMPLETE" {
+			// Verify deliverables exist before accepting completion
+			missing := checkDeliverables(d.RepoDir, ns, nav.TaskID)
+			if len(missing) > 0 {
+				_ = d.Logger.Log(map[string]any{
+					"type":    "deliverable_missing",
+					"task":    nav.TaskID,
+					"missing": missing,
+				})
+				output.PrintHuman("  Deliverables missing: %v. Failing task.", missing)
+				marker = "" // clear so we fall through to the failure path
+			}
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_COMPLETE"})

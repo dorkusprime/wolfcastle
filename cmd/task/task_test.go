@@ -441,3 +441,144 @@ func TestTaskLifecycle_FullFlow(t *testing.T) {
 		t.Errorf("node should be complete when all tasks done, got %s", ns.State)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// task add --deliverable
+// ---------------------------------------------------------------------------
+
+func TestTaskAdd_WithDeliverables(t *testing.T) {
+	env := newTestEnv(t)
+	createLeafNode(t, env, "my-project", "My Project")
+
+	env.RootCmd.SetArgs([]string{
+		"task", "add", "--node", "my-project",
+		"--deliverable", "docs/report.md",
+		"--deliverable", "docs/summary.md",
+		"research something",
+	})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("task add with deliverables failed: %v", err)
+	}
+
+	ns := loadNodeState(t, env, "my-project")
+	found := false
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			found = true
+			if len(task.Deliverables) != 2 {
+				t.Fatalf("expected 2 deliverables, got %d", len(task.Deliverables))
+			}
+			if task.Deliverables[0] != "docs/report.md" {
+				t.Errorf("expected docs/report.md, got %s", task.Deliverables[0])
+			}
+			if task.Deliverables[1] != "docs/summary.md" {
+				t.Errorf("expected docs/summary.md, got %s", task.Deliverables[1])
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("task-0001 not found")
+	}
+}
+
+func TestTaskAdd_NoDeliverables(t *testing.T) {
+	env := newTestEnv(t)
+	createLeafNode(t, env, "my-project", "My Project")
+
+	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "plain task"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("task add failed: %v", err)
+	}
+
+	ns := loadNodeState(t, env, "my-project")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if len(task.Deliverables) != 0 {
+				t.Errorf("expected no deliverables, got %v", task.Deliverables)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+// ---------------------------------------------------------------------------
+// task deliverable
+// ---------------------------------------------------------------------------
+
+func TestTaskDeliverable_Success(t *testing.T) {
+	env := newTestEnv(t)
+	createLeafNode(t, env, "my-project", "My Project")
+
+	// Add a task
+	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "do work"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+
+	// Append a deliverable
+	env.RootCmd.SetArgs([]string{"task", "deliverable", "docs/output.md", "--node", "my-project/task-0001"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("deliverable: %v", err)
+	}
+
+	ns := loadNodeState(t, env, "my-project")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if len(task.Deliverables) != 1 || task.Deliverables[0] != "docs/output.md" {
+				t.Errorf("expected [docs/output.md], got %v", task.Deliverables)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+func TestTaskDeliverable_NoDuplicates(t *testing.T) {
+	env := newTestEnv(t)
+	createLeafNode(t, env, "my-project", "My Project")
+
+	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "do work"})
+	_ = env.RootCmd.Execute()
+
+	// Add same deliverable twice
+	for i := 0; i < 2; i++ {
+		env.RootCmd.SetArgs([]string{"task", "deliverable", "docs/output.md", "--node", "my-project/task-0001"})
+		if err := env.RootCmd.Execute(); err != nil {
+			t.Fatalf("deliverable %d: %v", i, err)
+		}
+	}
+
+	ns := loadNodeState(t, env, "my-project")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if len(task.Deliverables) != 1 {
+				t.Errorf("expected 1 deliverable (deduped), got %d", len(task.Deliverables))
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+func TestTaskDeliverable_TaskNotFound(t *testing.T) {
+	env := newTestEnv(t)
+	createLeafNode(t, env, "my-project", "My Project")
+
+	env.RootCmd.SetArgs([]string{"task", "deliverable", "docs/output.md", "--node", "my-project/task-9999"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error for nonexistent task")
+	}
+}
+
+func TestTaskDeliverable_MissingNode(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.RootCmd.SetArgs([]string{"task", "deliverable", "docs/output.md"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Error("expected error when --node not provided")
+	}
+}
