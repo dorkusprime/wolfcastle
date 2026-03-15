@@ -32,11 +32,15 @@ Examples:
 			lines, _ := cmd.Flags().GetInt("lines")
 			var currentFile string
 			historicalShown := false
+			waitMessageShown := false
 
 			for {
 				latestPath, err := logging.LatestLogFile(logDir)
 				if err != nil {
-					output.PrintError("Waiting for logs...")
+					if !waitMessageShown {
+						output.PrintHuman("Waiting for daemon to write logs...")
+						waitMessageShown = true
+					}
 					time.Sleep(2 * time.Second)
 					continue
 				}
