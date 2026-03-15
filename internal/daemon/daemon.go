@@ -203,9 +203,13 @@ func (d *Daemon) Run(ctx context.Context) error {
 		case IterationStop:
 			return nil
 		case IterationNoWork:
-			time.Sleep(time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds) * time.Second)
+			if !sleepWithContext(ctx, time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds)*time.Second) {
+				return nil
+			}
 		case IterationError:
-			time.Sleep(time.Duration(d.Config.Daemon.PollIntervalSeconds) * time.Second)
+			if !sleepWithContext(ctx, time.Duration(d.Config.Daemon.PollIntervalSeconds)*time.Second) {
+				return nil
+			}
 		case IterationDidWork:
 			retOpts := []logging.RetentionOption{}
 			if d.Config.Logs.Compress {
@@ -304,6 +308,18 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	}
 
 	return IterationDidWork, nil
+}
+
+// sleepWithContext sleeps for the given duration but returns immediately
+// if the context is cancelled. Returns true if the full sleep completed,
+// false if interrupted by context cancellation.
+func sleepWithContext(ctx context.Context, d time.Duration) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-time.After(d):
+		return true
+	}
 }
 
 func (d *Daemon) scopeLabel() string {
