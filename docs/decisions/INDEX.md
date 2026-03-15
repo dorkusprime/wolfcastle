@@ -68,3 +68,5 @@
 | 064 | [Consolidated Intake Stage and Parallel Inbox Processing](064-intake-stage-and-parallel-inbox.md) | Accepted | 2026-03-14 |
 | 065 | [Typed Error Categories](065-typed-errors.md) | Accepted | 2026-03-14 |
 | 066 | [Scoped Script References per Pipeline Stage](066-scoped-script-references.md) | Accepted | 2026-03-15 |
+| 067 | [Terminal Markers Only via CLI Audit](067-terminal-markers-only-cli-audit.md) | Accepted | 2026-03-15 |
+| 068 | [Unified StateStore for File-Backed State](068-unified-state-store.md) | Accepted | 2026-03-15 |
