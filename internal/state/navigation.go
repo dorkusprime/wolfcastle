@@ -100,13 +100,26 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 
 // findActionableTask loads a node's state and returns the first actionable task.
 // It prefers in_progress tasks (self-healing) over not_started ones.
+// Audit tasks are deferred until all non-audit tasks are complete.
 func findActionableTask(addr string, loadNode func(addr string) (*NodeState, error)) (*NavigationResult, error) {
 	ns, err := loadNode(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return in_progress tasks first (self-healing: resume after crash)
+	// Check whether all non-audit tasks are complete. The audit task
+	// should only run after all real work is done.
+	allNonAuditComplete := true
+	for _, task := range ns.Tasks {
+		if !task.IsAudit && task.State != StatusComplete {
+			allNonAuditComplete = false
+			break
+		}
+	}
+
+	// Return in_progress tasks first (self-healing: resume after crash).
+	// Audit tasks are included here because if one is already in_progress,
+	// it was legitimately claimed and should be resumed.
 	for _, task := range ns.Tasks {
 		if task.State == StatusInProgress {
 			return &NavigationResult{
@@ -117,9 +130,12 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 			}, nil
 		}
 	}
-	// Then not_started tasks
+	// Then not_started tasks, deferring audit tasks until all others are done.
 	for _, task := range ns.Tasks {
 		if task.State == StatusNotStarted {
+			if task.IsAudit && !allNonAuditComplete {
+				continue
+			}
 			return &NavigationResult{
 				NodeAddress: addr,
 				TaskID:      task.ID,

@@ -161,6 +161,93 @@ func TestFindNextTask_LeafWithAllBlockedTasks(t *testing.T) {
 	}
 }
 
+func TestFindNextTask_AuditDeferredUntilNonAuditComplete(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["leaf-a"] = IndexEntry{
+		Name:  "Leaf A",
+		Type:  NodeLeaf,
+		State: StatusInProgress,
+	}
+
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "task-1", Description: "real work", State: StatusNotStarted},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+	}
+
+	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Found {
+		t.Fatal("expected to find work")
+	}
+	if result.TaskID != "task-1" {
+		t.Errorf("expected task-1, got %s (audit should be deferred)", result.TaskID)
+	}
+}
+
+func TestFindNextTask_AuditEligibleWhenNonAuditComplete(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["leaf-a"] = IndexEntry{
+		Name:  "Leaf A",
+		Type:  NodeLeaf,
+		State: StatusInProgress,
+	}
+
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "task-1", Description: "real work", State: StatusComplete},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+	}
+
+	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Found {
+		t.Fatal("expected to find audit task")
+	}
+	if result.TaskID != "audit" {
+		t.Errorf("expected audit, got %s", result.TaskID)
+	}
+}
+
+func TestFindNextTask_AuditOnlyNode_NoNonAuditTasks(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["leaf-a"] = IndexEntry{
+		Name:  "Leaf A",
+		Type:  NodeLeaf,
+		State: StatusInProgress,
+	}
+
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+	}
+
+	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// All non-audit tasks are vacuously complete, so audit is eligible
+	if !result.Found {
+		t.Fatal("expected to find audit task when it's the only task")
+	}
+	if result.TaskID != "audit" {
+		t.Errorf("expected audit, got %s", result.TaskID)
+	}
+}
+
 func TestFindNextTask_LoadNodeError(t *testing.T) {
 	t.Parallel()
 	idx := NewRootIndex()
