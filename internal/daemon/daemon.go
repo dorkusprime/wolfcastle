@@ -251,13 +251,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 			}
 			spinner.Stop()
 		case IterationError:
-			spinner := output.NewSpinner()
-			spinner.Start()
 			if !sleepWithContext(ctx, time.Duration(d.Config.Daemon.PollIntervalSeconds)*time.Second) {
-				spinner.Stop()
 				return nil
 			}
-			spinner.Stop()
 		case IterationDidWork:
 			retOpts := []logging.RetentionOption{}
 			if d.Config.Logs.Compress {

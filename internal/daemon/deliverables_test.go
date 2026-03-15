@@ -116,3 +116,102 @@ func TestCheckDeliverables_TaskNotFound(t *testing.T) {
 		t.Errorf("expected no missing for nonexistent task, got %v", missing)
 	}
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Glob pattern deliverables
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestCheckDeliverables_GlobMatch(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "helloworld-2026-01-01.txt"), []byte("content"), 0644)
+
+	ns := &state.NodeState{
+		Tasks: []state.Task{
+			{
+				ID:           "task-0001",
+				Deliverables: []string{"helloworld-*.txt"},
+			},
+		},
+	}
+	missing := checkDeliverables(dir, ns, "task-0001")
+	if len(missing) != 0 {
+		t.Errorf("glob should match existing file, got missing: %v", missing)
+	}
+}
+
+func TestCheckDeliverables_GlobNoMatch(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	ns := &state.NodeState{
+		Tasks: []state.Task{
+			{
+				ID:           "task-0001",
+				Deliverables: []string{"helloworld-*.txt"},
+			},
+		},
+	}
+	missing := checkDeliverables(dir, ns, "task-0001")
+	if len(missing) != 1 {
+		t.Errorf("glob with no matches should be missing, got: %v", missing)
+	}
+}
+
+func TestCheckDeliverables_GlobMatchesEmptyFile(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "report-v1.md"), []byte(""), 0644)
+
+	ns := &state.NodeState{
+		Tasks: []state.Task{
+			{
+				ID:           "task-0001",
+				Deliverables: []string{"report-*.md"},
+			},
+		},
+	}
+	missing := checkDeliverables(dir, ns, "task-0001")
+	if len(missing) != 1 {
+		t.Errorf("glob matching only empty files should be missing, got: %v", missing)
+	}
+}
+
+func TestCheckDeliverables_GlobWithLiteralMix(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "output-2026.csv"), []byte("data"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "summary.md"), []byte("summary"), 0644)
+
+	ns := &state.NodeState{
+		Tasks: []state.Task{
+			{
+				ID:           "task-0001",
+				Deliverables: []string{"output-*.csv", "summary.md"},
+			},
+		},
+	}
+	missing := checkDeliverables(dir, ns, "task-0001")
+	if len(missing) != 0 {
+		t.Errorf("both glob and literal should pass, got missing: %v", missing)
+	}
+}
+
+func TestIsGlob(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		path string
+		want bool
+	}{
+		{"hello.txt", false},
+		{"docs/report.md", false},
+		{"helloworld-*.txt", true},
+		{"output-?.csv", true},
+		{"data[0-9].json", true},
+	}
+	for _, tc := range cases {
+		if got := isGlob(tc.path); got != tc.want {
+			t.Errorf("isGlob(%q) = %v, want %v", tc.path, got, tc.want)
+		}
+	}
+}
