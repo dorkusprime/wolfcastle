@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
+
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -15,9 +17,71 @@ import (
 )
 
 // runInboxLoop is the parallel goroutine that watches for new inbox items
-// and runs the intake stage. It polls inbox.json at the configured interval
-// and processes any items with status "new".
+// and runs the intake stage. It tries fsnotify first for instant reaction
+// to file changes, falling back to polling if the watcher can't be created.
 func (d *Daemon) runInboxLoop(ctx context.Context) {
+	projDir := d.Resolver.ProjectsDir()
+
+	// Try fsnotify first. Watch the projects directory because
+	// inbox.json might not exist yet when the daemon starts.
+	watcher, err := fsnotify.NewWatcher()
+	if err == nil {
+		defer func() { _ = watcher.Close() }()
+		if addErr := watcher.Add(projDir); addErr == nil {
+			output.PrintHuman("Inbox watcher: using fsnotify on %s", projDir)
+			d.runInboxWithFsnotify(ctx, watcher)
+			return
+		}
+		_ = watcher.Close()
+	}
+
+	// Fallback: polling
+	output.PrintHuman("Inbox watcher: fsnotify unavailable, using polling")
+	d.runInboxWithPolling(ctx)
+}
+
+// runInboxWithFsnotify watches for inbox.json changes via fsnotify and
+// runs the intake stage when new items appear.
+func (d *Daemon) runInboxWithFsnotify(ctx context.Context, watcher *fsnotify.Watcher) {
+	inboxCounter := 0
+	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+
+	// Check once at startup in case items were added while the daemon was down.
+	if d.checkInboxForNew(inboxPath) {
+		inboxCounter++
+		d.processInbox(ctx, inboxCounter)
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			// Only react to writes/creates on inbox.json
+			if filepath.Base(event.Name) != "inbox.json" {
+				continue
+			}
+			if event.Op&(fsnotify.Write|fsnotify.Create) == 0 {
+				continue
+			}
+			if d.checkInboxForNew(inboxPath) {
+				inboxCounter++
+				d.processInbox(ctx, inboxCounter)
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			output.PrintHuman("Inbox watcher error: %v", err)
+		}
+	}
+}
+
+// runInboxWithPolling is the fallback when fsnotify is unavailable.
+func (d *Daemon) runInboxWithPolling(ctx context.Context) {
 	pollInterval := time.Duration(d.Config.Daemon.InboxPollIntervalSeconds) * time.Second
 	if pollInterval <= 0 {
 		pollInterval = time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds) * time.Second
@@ -27,6 +91,7 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 	}
 
 	inboxCounter := 0
+	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 
 	for {
 		select {
@@ -35,28 +100,29 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 		default:
 		}
 
-		inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-		hasNew := d.checkInboxForNew(inboxPath)
-
-		if hasNew {
+		if d.checkInboxForNew(inboxPath) {
 			inboxCounter++
-			output.PrintHuman("inbox-%04d: Processing inbox items...", inboxCounter)
-
-			// Find the intake stage in the pipeline
-			for _, stage := range d.Config.Pipeline.Stages {
-				if stage.Name == "intake" && stage.IsEnabled() {
-					_ = d.Logger.StartIterationWithPrefix("intake")
-					if err := d.runIntakeStage(ctx, stage); err != nil {
-						output.PrintHuman("  Intake stage error (non-fatal): %v", err)
-					}
-					d.Logger.Close()
-					break
-				}
-			}
+			d.processInbox(ctx, inboxCounter)
 		}
 
 		if !sleepWithContext(ctx, pollInterval) {
 			return
+		}
+	}
+}
+
+// processInbox runs the intake stage for pending inbox items.
+func (d *Daemon) processInbox(ctx context.Context, counter int) {
+	output.PrintHuman("inbox-%04d: Processing inbox items...", counter)
+
+	for _, stage := range d.Config.Pipeline.Stages {
+		if stage.Name == "intake" && stage.IsEnabled() {
+			_ = d.Logger.StartIterationWithPrefix("intake")
+			if err := d.runIntakeStage(ctx, stage); err != nil {
+				output.PrintHuman("  Intake stage error (non-fatal): %v", err)
+			}
+			d.Logger.Close()
+			break
 		}
 	}
 }

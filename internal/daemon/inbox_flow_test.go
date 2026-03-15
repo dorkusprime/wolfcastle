@@ -100,6 +100,59 @@ func TestRunIntakeStage_SkipsWhenAllFiled(t *testing.T) {
 	}
 }
 
+// TestRunInboxWithFsnotify_ReactsToFileChange verifies that the fsnotify
+// watcher detects inbox.json writes and processes new items.
+func TestRunInboxWithFsnotify_ReactsToFileChange(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Models["mid"] = config.ModelDef{
+		Command: "sh",
+		Args:    []string{"-c", `cat > /dev/null; echo "done"`},
+	}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "intake", Model: "mid", PromptFile: "intake.md"},
+		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+	}
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Use the full runInboxLoop which tries fsnotify first
+	go d.runInboxLoop(ctx)
+
+	// Give the watcher a moment to initialize
+	time.Sleep(100 * time.Millisecond)
+
+	// Write an inbox item; fsnotify should detect the write
+	projDir := d.Resolver.ProjectsDir()
+	inboxPath := filepath.Join(projDir, "inbox.json")
+	inboxData := state.InboxFile{
+		Items: []state.InboxItem{
+			{Text: "fsnotify test", Status: "new", Timestamp: clock.New().Now().Format("2006-01-02T15:04:05Z")},
+		},
+	}
+	data, _ := json.MarshalIndent(inboxData, "", "  ")
+	_ = os.WriteFile(inboxPath, data, 0644)
+
+	// Wait for processing
+	deadline := time.After(10 * time.Second)
+	for {
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for fsnotify to process inbox")
+		default:
+		}
+
+		updated, err := state.LoadInbox(inboxPath)
+		if err == nil && len(updated.Items) > 0 && updated.Items[0].Status == "filed" {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	cancel()
+}
+
 // TestRunInboxLoop_ProcessesItemFromGoroutine verifies the parallel
 // inbox goroutine picks up new items and processes them.
 func TestRunInboxLoop_ProcessesItemFromGoroutine(t *testing.T) {
