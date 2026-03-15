@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 )
@@ -38,7 +39,7 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 				"attempts": attempt + 1,
 				"error":    err.Error(),
 			})
-			return result, err
+			return result, werrors.Invocation(err)
 		}
 
 		_ = d.Logger.Log(map[string]any{

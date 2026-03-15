@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -44,7 +45,7 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 			// Find the intake stage in the pipeline
 			for _, stage := range d.Config.Pipeline.Stages {
 				if stage.Name == "intake" && stage.IsEnabled() {
-					_ = d.Logger.StartIteration()
+					_ = d.Logger.StartIterationWithPrefix("intake")
 					if err := d.runIntakeStage(ctx, stage); err != nil {
 						output.PrintHuman("  Intake stage error (non-fatal): %v", err)
 					}
@@ -100,7 +101,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 
 	model, ok := d.Config.Models[stage.Model]
 	if !ok {
-		return fmt.Errorf("model %q not found", stage.Model)
+		return werrors.Config(fmt.Errorf("model %q not found", stage.Model))
 	}
 
 	// Build context with inbox items
@@ -154,6 +155,15 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 	}
 
 	output.PrintHuman("  Intake stage: %d items filed", len(newItems))
+
+	// Signal the execute loop that new work may be available.
+	// Non-blocking: if the channel already has a signal, the loop
+	// will find the work on its next navigation pass.
+	select {
+	case d.workAvailable <- struct{}{}:
+	default:
+	}
+
 	return nil
 }
 

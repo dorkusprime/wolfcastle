@@ -25,6 +25,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -34,6 +35,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -50,10 +52,11 @@ type Daemon struct {
 	RepoDir       string
 	Clock         clock.Clock
 
-	shutdown     chan struct{}
-	shutdownOnce sync.Once
-	branch       string
-	iteration    int
+	shutdown      chan struct{}
+	shutdownOnce  sync.Once
+	workAvailable chan struct{}
+	branch        string
+	iteration     int
 }
 
 // New creates a new daemon.
@@ -80,6 +83,7 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 		RepoDir:       repoDir,
 		Clock:         clock.New(),
 		shutdown:      make(chan struct{}),
+		workAvailable: make(chan struct{}, 1),
 	}, nil
 }
 
@@ -113,7 +117,7 @@ func (d *Daemon) selfHeal() error {
 	}
 
 	if len(inProgress) > 1 {
-		return fmt.Errorf("state corruption: %d tasks in progress (serial execution requires at most 1)", len(inProgress))
+		return werrors.State(fmt.Errorf("state corruption: %d tasks in progress (serial execution requires at most 1)", len(inProgress)))
 	}
 	if len(inProgress) == 1 {
 		output.PrintHuman("Found interrupted task: %s/%s. Will resume on next iteration.",
@@ -146,6 +150,7 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		// terminates when ctx.Done() closes, and Run() has returned.
 		d.shutdown = make(chan struct{})
 		d.shutdownOnce = sync.Once{}
+		d.workAvailable = make(chan struct{}, 1)
 		d.iteration = 0
 	}
 }
@@ -212,8 +217,15 @@ func (d *Daemon) Run(ctx context.Context) error {
 		case IterationStop:
 			return nil
 		case IterationNoWork:
-			if !sleepWithContext(ctx, time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds)*time.Second) {
+			// Select on workAvailable so the inbox goroutine can wake us
+			// immediately when new tasks are created (ADR-064).
+			select {
+			case <-ctx.Done():
 				return nil
+			case <-d.workAvailable:
+				// New work arrived from inbox goroutine
+			case <-time.After(time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds) * time.Second):
+				// Poll timeout
 			}
 		case IterationError:
 			if !sleepWithContext(ctx, time.Duration(d.Config.Daemon.PollIntervalSeconds)*time.Second) {
@@ -279,7 +291,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// goroutine (ADR-064), so the main loop only handles execution.
 	idx, err := d.Resolver.LoadRootIndex()
 	if err != nil {
-		return IterationStop, fmt.Errorf("loading root index: %w", err)
+		return IterationStop, werrors.Navigation(fmt.Errorf("loading root index: %w", err))
 	}
 
 	navResult, err := state.FindNextTask(idx, d.ScopeNode, func(addr string) (*state.NodeState, error) {
@@ -290,7 +302,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
 	})
 	if err != nil {
-		return IterationStop, fmt.Errorf("navigation failed: %w", err)
+		return IterationStop, werrors.Navigation(fmt.Errorf("navigation failed: %w", err))
 	}
 
 	if !navResult.Found {
@@ -305,8 +317,8 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	d.iteration++
 	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration, navResult.NodeAddress, navResult.TaskID)
 
-	// Start iteration log
-	_ = d.Logger.StartIteration()
+	// Start iteration log with "exec" trace prefix
+	_ = d.Logger.StartIterationWithPrefix("exec")
 
 	// Run pipeline stages
 	err = d.runIteration(ctx, navResult, idx)
@@ -314,6 +326,13 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 
 	if err != nil {
 		output.PrintHuman("Iteration error: %v", err)
+
+		// State corruption is fatal: continuing risks further damage.
+		var stateErr *werrors.StateError
+		if errors.As(err, &stateErr) {
+			return IterationStop, fmt.Errorf("fatal state error: %w", err)
+		}
+
 		return IterationError, nil
 	}
 

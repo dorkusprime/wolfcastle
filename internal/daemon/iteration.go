@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -20,12 +21,12 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	// Claim the task
 	addr, err := tree.ParseAddress(nav.NodeAddress)
 	if err != nil {
-		return fmt.Errorf("parsing node address %q: %w", nav.NodeAddress, err)
+		return werrors.Navigation(fmt.Errorf("parsing node address %q: %w", nav.NodeAddress, err))
 	}
 	statePath := filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
 	ns, err := state.LoadNodeState(statePath)
 	if err != nil {
-		return fmt.Errorf("loading node state for %s: %w", nav.NodeAddress, err)
+		return werrors.State(fmt.Errorf("loading node state for %s: %w", nav.NodeAddress, err))
 	}
 
 	// Skip the claim if the task is already in_progress (resumption
@@ -39,13 +40,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	}
 	if !alreadyInProgress {
 		if err := state.TaskClaim(ns, nav.TaskID); err != nil {
-			return fmt.Errorf("claiming task %s: %w", nav.TaskID, err)
+			return werrors.State(fmt.Errorf("claiming task %s: %w", nav.TaskID, err))
 		}
 		if err := state.SaveNodeState(statePath, ns); err != nil {
-			return fmt.Errorf("saving node state after claim: %w", err)
+			return werrors.State(fmt.Errorf("saving node state after claim: %w", err))
 		}
 		if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-			return fmt.Errorf("propagating state after claim: %w", err)
+			return werrors.State(fmt.Errorf("propagating state after claim: %w", err))
 		}
 	}
 
@@ -67,12 +68,12 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, stage, iterCtx)
 		if err != nil {
-			return fmt.Errorf("assembling prompt for stage %s: %w", stage.Name, err)
+			return werrors.Config(fmt.Errorf("assembling prompt for stage %s: %w", stage.Name, err))
 		}
 
 		model, ok := d.Config.Models[stage.Model]
 		if !ok {
-			return fmt.Errorf("model %q not found for stage %s", stage.Model, stage.Name)
+			return werrors.Config(fmt.Errorf("model %q not found for stage %s", stage.Model, stage.Name))
 		}
 
 		invokeCtx := ctx
