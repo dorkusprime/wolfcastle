@@ -25,8 +25,8 @@ func TestFindNextTask_EmptyTree(t *testing.T) {
 	if result.Found {
 		t.Error("expected not found for empty tree")
 	}
-	if result.Reason != "all_complete" {
-		t.Errorf("expected reason 'all_complete', got %q", result.Reason)
+	if result.Reason != "empty_tree" {
+		t.Errorf("expected reason 'empty_tree', got %q", result.Reason)
 	}
 }
 

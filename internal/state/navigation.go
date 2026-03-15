@@ -54,7 +54,10 @@ func FindNextTask(idx *RootIndex, scopeAddr string, loadNode func(addr string) (
 		}
 	}
 
-	// Determine whether tree is all complete or has blocked nodes
+	// Determine why no work was found
+	if len(idx.Nodes) == 0 {
+		return &NavigationResult{Reason: "empty_tree"}, nil
+	}
 	reason := "all_complete"
 	for _, entry := range idx.Nodes {
 		if entry.State == StatusBlocked {

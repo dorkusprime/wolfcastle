@@ -127,11 +127,18 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch string) error {
 	}
 
 	proc := exec.Command(execPath, cmdArgs...)
-	proc.Stdout = nil
-	proc.Stderr = nil
 	proc.Stdin = nil
-	// Detach from parent process group
 	proc.Dir = filepath.Dir(wolfcastleDir)
+
+	// Redirect stdout/stderr to a daemon log file so startup errors
+	// aren't silently lost.
+	daemonLog := filepath.Join(wolfcastleDir, "daemon.log")
+	logFile, err := os.OpenFile(daemonLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("creating daemon log: %w", err)
+	}
+	proc.Stdout = logFile
+	proc.Stderr = logFile
 
 	if err := proc.Start(); err != nil {
 		return fmt.Errorf("starting background process: %w", err)
