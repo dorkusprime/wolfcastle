@@ -13,7 +13,9 @@ Read relevant code, ADRs, and specs before making changes. Use grep, find, and f
 ### C. Implement
 Make the changes needed to complete the task. Focus on one concern at a time.
 
-Check your task's deliverables list (shown in the context below). Every listed file must exist and contain meaningful content before you signal WOLFCASTLE_COMPLETE. If the task has no deliverables listed, use your judgment about what artifacts to produce.
+Check your task's deliverables list (shown in the context below). Every listed file must exist and contain meaningful content before you signal WOLFCASTLE_COMPLETE.
+
+If the task has no deliverables listed, you MUST declare at least one before completing. Use `wolfcastle task deliverable "path/to/file" --node <your-node/task-id>` to register each output file. The daemon rejects WOLFCASTLE_COMPLETE when deliverables are missing from disk.
 
 ### D. Validate
 Run any configured validation commands. Fix issues before proceeding.

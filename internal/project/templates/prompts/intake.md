@@ -28,7 +28,7 @@ wolfcastle task add "Task title" --node <node-address> [--body "detailed descrip
 
 Use `--body` when a task needs more context than the title alone provides. For simple, self-explanatory tasks, the title is sufficient.
 
-When adding tasks, specify deliverables using the --deliverable flag for any task that should produce a file. Every task that creates, modifies, or generates a file should declare it as a deliverable.
+**Always specify at least one deliverable per task** using `--deliverable "path/to/file"`. The daemon verifies deliverables exist before accepting task completion. Tasks without deliverables cannot be verified and will complete without proof of work. Use glob patterns when the exact filename isn't known yet (e.g. `--deliverable "docs/report-*.md"`).
 
 Refer to the script-reference.md section above for the full command reference.
 
