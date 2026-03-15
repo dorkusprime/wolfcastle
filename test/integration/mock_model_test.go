@@ -43,6 +43,11 @@ type MockBehavior struct {
 	// CLI directly).
 	CallTaskComplete bool
 
+	// Whether to call wolfcastle task block (simulating model calling
+	// CLI directly). Requires a reason string.
+	CallTaskBlock bool
+	TaskBlockReason string
+
 	// Strings that must appear in the prompt (stdin). Failures are written
 	// to an assertion file that the test can inspect.
 	ExpectInPrompt []string
@@ -138,6 +143,20 @@ func createRealisticMock(t *testing.T, dir string, name string, cfg MockModelCon
 			}
 			escaped := strings.ReplaceAll(text, "'", "'\\''")
 			fmt.Fprintf(&block, "  \"$BINARY_PATH\" audit gap --node \"$NODE_ADDR\" '%s' 2>/dev/null || true\n", escaped)
+		}
+
+		// CLI calls for task state changes
+		if beh.CallTaskComplete {
+			// task complete --node <node-addr/task-1>
+			fmt.Fprintf(&block, "  \"$BINARY_PATH\" task complete --node \"${NODE_ADDR}/task-1\" 2>/dev/null || true\n")
+		}
+		if beh.CallTaskBlock {
+			reason := beh.TaskBlockReason
+			if reason == "" {
+				reason = "blocked by model"
+			}
+			escaped := strings.ReplaceAll(reason, "'", "'\\''")
+			fmt.Fprintf(&block, "  \"$BINARY_PATH\" task block --node \"${NODE_ADDR}/task-1\" '%s' 2>/dev/null || true\n", escaped)
 		}
 
 		// Stream-json output with embedded markers.
