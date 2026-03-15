@@ -239,12 +239,10 @@ func TestFindNextTask_AuditOnlyNode_NoNonAuditTasks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// All non-audit tasks are vacuously complete, so audit is eligible
-	if !result.Found {
-		t.Fatal("expected to find audit task when it's the only task")
-	}
-	if result.TaskID != "audit" {
-		t.Errorf("expected audit, got %s", result.TaskID)
+	// A node with only an audit task and no real tasks is not ready.
+	// The intake model hasn't finished adding tasks yet.
+	if result.Found {
+		t.Error("expected not found: audit-only node is not ready for execution")
 	}
 }
 

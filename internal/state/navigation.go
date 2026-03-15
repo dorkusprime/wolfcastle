@@ -109,12 +109,23 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 
 	// Check whether all non-audit tasks are complete. The audit task
 	// should only run after all real work is done.
-	allNonAuditComplete := true
+	nonAuditCount := 0
+	nonAuditComplete := 0
 	for _, task := range ns.Tasks {
-		if !task.IsAudit && task.State != StatusComplete {
-			allNonAuditComplete = false
-			break
+		if !task.IsAudit {
+			nonAuditCount++
+			if task.State == StatusComplete {
+				nonAuditComplete++
+			}
 		}
+	}
+	// A leaf node with zero non-audit tasks is not ready for execution.
+	// This happens when project create auto-generates the audit task
+	// but the intake model hasn't added real tasks yet. Orchestrators
+	// legitimately have only audit tasks (real work is in child nodes).
+	allNonAuditComplete := nonAuditComplete == nonAuditCount
+	if ns.Type == NodeLeaf && nonAuditCount == 0 {
+		allNonAuditComplete = false
 	}
 
 	// Return in_progress tasks first (self-healing: resume after crash).
