@@ -7,6 +7,7 @@
 Wolfcastle breaks complex work into pieces and sends AI models to eliminate every one of them, as deep as the work demands. If your models can write code, Wolfcastle will put them to work. While you do whatever it is you do.
 
 ## Status
+
 [![CI](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/dorkusprime/wolfcastle/branch/main/graph/badge.svg)](https://codecov.io/gh/dorkusprime/wolfcastle)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dorkusprime/wolfcastle)](https://goreportcard.com/report/github.com/dorkusprime/wolfcastle)
@@ -15,7 +16,9 @@ Wolfcastle breaks complex work into pieces and sends AI models to eliminate ever
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/dorkusprime/wolfcastle?include_prereleases)](https://github.com/dorkusprime/wolfcastle/releases)
 
-Pre-release. Install via Homebrew: `brew install dorkusprime/tap/wolfcastle`
+Pre-release. Probably broken. Then fixed. Then broken again. On repeat until release.
+
+Install via Homebrew if you're feeling brave: `brew install dorkusprime/tap/wolfcastle`
 
 See the [Architecture Decision Records](docs/decisions/INDEX.md) and [Specifications](docs/specs/) for the full design.
 
@@ -26,12 +29,15 @@ If [Ralph](https://ghuntley.com/loop/) is the dorky kid running in circles on th
 Two ways to [get work in](docs/humans/how-it-works.md#getting-work-in):
 
 ### Let your agent handle it
+
 You're in your coding agent, and you describe what you want. "Add OAuth2 PKCE support to the auth service." You go back and forth, refining the scope, adding constraints, specifying how you want things structured. When you're satisfied, the agent injects the work into Wolfcastle, which decomposes it into a [tree of projects and tasks](docs/humans/how-it-works.md#the-project-tree).
 
 ### Do it yourself
+
 You can also drive Wolfcastle directly through the [CLI](docs/humans/cli.md): [`wolfcastle inbox add`](docs/humans/cli/inbox-add.md) for quick capture, [`wolfcastle project create`](docs/humans/cli/project-create.md) for structured planning, [`wolfcastle task add`](docs/humans/cli/task-add.md) for placing tasks exactly where they belong.
 
 ### Then the daemon takes over
+
 [The daemon](docs/humans/how-it-works.md#the-daemon) takes over: it picks the first target, invokes your configured [model](docs/humans/configuration.md#models), validates the result, [records what happened](docs/humans/audits.md#breadcrumbs), and moves to the next. Serial execution, [depth-first](docs/humans/how-it-works.md#the-project-tree), until the tree is conquered or something gets in the way.
 
 If a task fails, Wolfcastle tries again. If it fails ten times, Wolfcastle [decomposes it](docs/humans/failure-and-recovery.md#decomposition) into smaller, weaker problems and destroys those instead. If decomposition runs out of room, the task is [blocked](docs/humans/how-it-works.md#four-states) and Wolfcastle moves on. It does not waste time on the fallen.
