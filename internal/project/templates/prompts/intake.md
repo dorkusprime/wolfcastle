@@ -8,17 +8,17 @@ Use `--json` for all wolfcastle commands to get structured output.
 
 ### Create a project (leaf node with tasks)
 ```
-wolfcastle project create "Project Name" --type leaf
+wolfcastle project create "Project Name" --type leaf --description "What this project does and why"
 ```
 
 ### Create a project under a parent (sub-project)
 ```
-wolfcastle project create "Sub-Project Name" --node <parent-address> --type leaf
+wolfcastle project create "Sub-Project Name" --node <parent-address> --type leaf --description "Scope of this sub-project"
 ```
 
 ### Create an orchestrator (parent that holds child projects)
 ```
-wolfcastle project create "Parent Project" --type orchestrator
+wolfcastle project create "Parent Project" --type orchestrator --description "What this orchestrator coordinates"
 ```
 
 ### Add a task to a leaf node
@@ -34,7 +34,7 @@ For each inbox item provided below:
 
 1. **Understand the item:** Read the raw idea and determine its scope and structure.
 2. **Determine structure:** If the item is simple, create a single leaf project. If it has multiple distinct areas, create an orchestrator with leaf children.
-3. **Create the project:** Use `wolfcastle project create` with an appropriate name and type.
+3. **Create the project:** Use `wolfcastle project create` with an appropriate name, type, and `--description` that captures what the project will accomplish.
 4. **Add tasks:** Use `wolfcastle task add` to add concrete, actionable tasks. Every leaf node automatically gets an audit task, so do not add one manually.
 5. **Use descriptive names:** Project names should be clear and descriptive. Slugs are auto-generated from names.
 

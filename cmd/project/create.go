@@ -33,6 +33,7 @@ Examples:
 			name := args[0]
 			parentNode, _ := cmd.Flags().GetString("node")
 			nodeType, _ := cmd.Flags().GetString("type")
+			description, _ := cmd.Flags().GetString("description")
 
 			// Validate slug from name
 			slug := tree.ToSlug(name)
@@ -135,8 +136,12 @@ Examples:
 					}
 				}
 			} else {
+				descBody := description
+				if descBody == "" {
+					descBody = "Project description goes here."
+				}
 				descPath := filepath.Join(nodeDir, slug+".md")
-				if err := os.WriteFile(descPath, []byte("# "+name+"\n\nProject description goes here.\n"), 0644); err != nil {
+				if err := os.WriteFile(descPath, []byte("# "+name+"\n\n"+descBody+"\n"), 0644); err != nil {
 					return fmt.Errorf("writing project description: %w", err)
 				}
 			}
@@ -165,7 +170,11 @@ Examples:
 
 			// Run overlap advisory if enabled (ADR-027)
 			if app.Cfg != nil && app.Cfg.OverlapAdvisory.Enabled {
-				app.CheckOverlap(name, "# "+name+"\n\nProject description goes here.")
+				overlapDesc := description
+				if overlapDesc == "" {
+					overlapDesc = name
+				}
+				app.CheckOverlap(name, "# "+name+"\n\n"+overlapDesc)
 			}
 
 			return nil
@@ -174,6 +183,7 @@ Examples:
 
 	cmd.Flags().String("node", "", "Parent node address (omit for root-level)")
 	cmd.Flags().String("type", "leaf", "Node type: leaf or orchestrator")
+	cmd.Flags().String("description", "", "Project description (written to the project .md file)")
 
 	return cmd
 }

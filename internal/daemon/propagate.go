@@ -8,9 +8,25 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
-// propagateState propagates a node's state to all ancestors and updates the
-// root index. This ensures ADR-024 compliance for all daemon mutations.
+// propagateState re-reads the root index from disk, propagates a node's
+// state to all ancestors, and saves. Re-reading prevents the daemon from
+// clobbering new nodes that CLI commands (called by the intake model)
+// added during the iteration.
 func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx *state.RootIndex) error {
+	// Re-read the index from disk to pick up any concurrent modifications
+	// (e.g., the intake model creating new projects via wolfcastle CLI).
+	freshIdx, err := d.Resolver.LoadRootIndex()
+	if err != nil {
+		// Fall back to the in-memory copy if the file can't be read.
+		freshIdx = idx
+	}
+
+	// Update the node's state in the fresh index.
+	if entry, ok := freshIdx.Nodes[nodeAddr]; ok {
+		entry.State = nodeState
+		freshIdx.Nodes[nodeAddr] = entry
+	}
+
 	loadNode := func(addr string) (*state.NodeState, error) {
 		a, err := tree.ParseAddress(addr)
 		if err != nil {
@@ -27,11 +43,15 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 		return state.SaveNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"), ns)
 	}
 
-	if err := state.Propagate(nodeAddr, nodeState, idx, loadNode, saveNode); err != nil {
+	if err := state.Propagate(nodeAddr, nodeState, freshIdx, loadNode, saveNode); err != nil {
 		return err
 	}
 
-	return state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
+	// Copy propagated state back to the caller's index so subsequent
+	// operations in the same iteration see the updated state.
+	*idx = *freshIdx
+
+	return state.SaveRootIndex(d.Resolver.RootIndexPath(), freshIdx)
 }
 
 // checkInboxState returns whether the inbox has new items (needing intake).

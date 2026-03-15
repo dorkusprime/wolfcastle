@@ -154,11 +154,9 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 
 	// Filter to only "new" status items
 	var newItems []state.InboxItem
-	var newIndices []int
-	for i, item := range inboxData.Items {
+	for _, item := range inboxData.Items {
 		if item.Status == "new" {
 			newItems = append(newItems, item)
-			newIndices = append(newIndices, i)
 		}
 	}
 	if len(newItems) == 0 {
@@ -212,11 +210,21 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		return nil
 	}
 
-	for _, idx := range newIndices {
-		inboxData.Items[idx].Status = "filed"
+	// Mark processed items as filed under a lock. We re-read the inbox
+	// because new items may have been added while the model was running.
+	// We match by timestamp+text to find the items we processed.
+	processedSet := make(map[string]bool)
+	for _, item := range newItems {
+		processedSet[item.Timestamp+"|"+item.Text] = true
 	}
-
-	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
+	if err := state.InboxMutate(inboxPath, func(f *state.InboxFile) error {
+		for i, item := range f.Items {
+			if item.Status == "new" && processedSet[item.Timestamp+"|"+item.Text] {
+				f.Items[i].Status = "filed"
+			}
+		}
+		return nil
+	}); err != nil {
 		return fmt.Errorf("saving inbox after intake: %w", err)
 	}
 

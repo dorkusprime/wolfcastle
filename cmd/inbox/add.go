@@ -32,19 +32,13 @@ Examples:
 
 			inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
 
-			inboxData, err := state.LoadInbox(inboxPath)
-			if err != nil {
-				return err
-			}
-
 			item := state.InboxItem{
 				Timestamp: app.Clock.Now().Format("2006-01-02T15:04:05Z07:00"),
 				Text:      text,
 				Status:    "new",
 			}
-			inboxData.Items = append(inboxData.Items, item)
 
-			if err := state.SaveInbox(inboxPath, inboxData); err != nil {
+			if err := state.InboxAppend(inboxPath, item); err != nil {
 				return fmt.Errorf("writing inbox: %w", err)
 			}
 

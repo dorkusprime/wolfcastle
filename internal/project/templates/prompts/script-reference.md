@@ -89,19 +89,20 @@ Create and organize project nodes in the work tree.
 Create a new project or sub-project node.
 
 ```
-wolfcastle project create "Project Name" [--node <parent-address>] [--type <leaf|orchestrator>]
+wolfcastle project create "Project Name" [--node <parent-address>] [--type <leaf|orchestrator>] [--description "what the project does"]
 ```
 
 | Flag | Required | Description |
 |------|----------|-------------|
 | `--node` | No | Parent node address (omit for root-level project) |
 | `--type` | No | Node type: `leaf` (default) or `orchestrator` |
+| `--description` | No | Project description (written to the project .md file) |
 
 Leaf nodes hold tasks. Orchestrator nodes hold child projects.
 
 **Examples:**
 ```
-wolfcastle project create "Authentication Module"
+wolfcastle project create "Authentication Module" --description "Implement JWT-based auth middleware"
 wolfcastle project create "OAuth Provider" --node auth-module --type leaf
 wolfcastle project create "API Gateway" --type orchestrator
 ```
