@@ -81,14 +81,16 @@ func (s *Spinner) run() {
 	ticker := time.NewTicker(frameDelay)
 	defer ticker.Stop()
 
-	// Render first frame immediately.
+	// The spinner lives on its own line so other output doesn't collide.
+	fmt.Fprint(os.Stdout, "\n")
 	fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
 	pos = (pos + 1) % spinnerWidth
 
 	for {
 		select {
 		case <-s.stop:
-			fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+2))
+			// Clear spinner line, move cursor up, clear that line too.
+			fmt.Fprintf(os.Stdout, "\r%s\r\033[A\033[2K", strings.Repeat(" ", spinnerWidth+1))
 			return
 		case <-ticker.C:
 			fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
