@@ -236,7 +236,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 //
 // Returns the marker name or empty string if none found.
 func scanTerminalMarker(output string) string {
+	// Scan all lines and collect all matched markers, then return
+	// the highest-priority one. Priority: COMPLETE > BLOCKED > YIELD.
+	// This prevents an early YIELD (from prompt echo or an intermediate
+	// model message) from shadowing a later COMPLETE.
+	found := map[string]bool{}
 	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
+
 	for _, line := range strings.Split(output, "\n") {
 		trimmed := strings.TrimSpace(line)
 
@@ -246,18 +252,23 @@ func scanTerminalMarker(output string) string {
 			text = trimmed
 		}
 
-		// Check extracted text (or raw line) for markers
 		for _, m := range markers {
-			// Scan sub-lines within the text (model may emit multi-line text in one JSON envelope)
 			for _, subline := range strings.Split(text, "\n") {
 				sub := strings.TrimSpace(subline)
 				if sub == m {
-					return m
+					found[m] = true
 				}
 				if strings.HasSuffix(sub, m) && (len(sub) == len(m) || sub[len(sub)-len(m)-1] == ' ') {
-					return m
+					found[m] = true
 				}
 			}
+		}
+	}
+
+	// Return highest priority
+	for _, m := range markers {
+		if found[m] {
+			return m
 		}
 	}
 	return ""
