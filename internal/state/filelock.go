@@ -15,7 +15,7 @@ const DefaultLockTimeout = 5 * time.Second
 
 // ErrLockTimeout is returned when lock acquisition exceeds the configured timeout,
 // typically because the daemon is mid-iteration.
-var ErrLockTimeout = errors.New("lock acquisition timed out — daemon is currently processing, try again shortly")
+var ErrLockTimeout = errors.New("lock acquisition timed out: daemon is currently processing, try again shortly")
 
 // FileLock provides advisory file locking scoped to an engineer namespace.
 // The lock file lives at .wolfcastle/projects/{namespace}/.lock and uses
