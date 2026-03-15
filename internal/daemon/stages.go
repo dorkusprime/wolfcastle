@@ -117,7 +117,13 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		"output_len": len(result.Stdout),
 	})
 
-	// Parse model output — split on ## headings as item boundaries
+	// Only process results if the model succeeded.
+	if result.ExitCode != 0 {
+		output.PrintHuman("  Expand stage failed (exit %d). Items remain new for retry.", result.ExitCode)
+		return nil
+	}
+
+	// Parse model output: split on ## headings as item boundaries
 	sections := parseExpandedSections(result.Stdout)
 
 	// Match sections to new items (by position)
@@ -126,7 +132,6 @@ func (d *Daemon) runExpandStage(ctx context.Context, stage config.PipelineStage)
 		if i < len(sections) {
 			inboxData.Items[idx].Expanded = strings.TrimSpace(sections[i])
 		} else {
-			// If the model returned fewer sections than items, still mark expanded
 			inboxData.Items[idx].Expanded = ""
 		}
 	}
@@ -231,7 +236,11 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 		"output_len": len(result.Stdout),
 	})
 
-	// Mark expanded items as filed.
+	// Only mark items as filed if the model succeeded.
+	if result.ExitCode != 0 {
+		output.PrintHuman("  File stage failed (exit %d). Items remain expanded for retry.", result.ExitCode)
+		return nil
+	}
 	for _, idx := range expandedIndices {
 		inboxData.Items[idx].Status = "filed"
 	}
