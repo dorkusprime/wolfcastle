@@ -67,3 +67,4 @@
 | 063 | [Three-Tier Configuration](063-config-three-tier.md) | Accepted | 2026-03-14 |
 | 064 | [Consolidated Intake Stage and Parallel Inbox Processing](064-intake-stage-and-parallel-inbox.md) | Accepted | 2026-03-14 |
 | 065 | [Typed Error Categories](065-typed-errors.md) | Accepted | 2026-03-14 |
+| 066 | [Scoped Script References per Pipeline Stage](066-scoped-script-references.md) | Accepted | 2026-03-15 |

@@ -140,7 +140,7 @@ func TestAssemblePrompt_ExecuteStageContainsTerminalMarkers(t *testing.T) {
 	setupEmbeddedPrompts(t, dir)
 
 	cfg := config.Defaults()
-	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "execute.md"}
+	stage := cfg.Pipeline.Stages[1] // execute with AllowedCommands
 
 	result, err := AssemblePrompt(dir, cfg, stage, "task context")
 	if err != nil {
@@ -163,11 +163,24 @@ func TestAssemblePrompt_ExecuteStageContainsTerminalMarkers(t *testing.T) {
 	if strings.Contains(result, "WOLFCASTLE_INTAKE_COMPLETE") {
 		t.Error("execute prompt should not contain WOLFCASTLE_INTAKE_COMPLETE")
 	}
-	// The script reference includes all commands (including project create)
-	// as documentation, but the execute stage prompt itself should not
-	// instruct the model to create projects.
 	if strings.Contains(result, "STOP after creating projects") {
 		t.Error("execute prompt should not contain intake-specific instructions")
+	}
+
+	// Execute prompt must NOT contain commands outside its AllowedCommands
+	forbidden := []string{
+		"### wolfcastle project create",
+		"### wolfcastle task claim",
+		"### wolfcastle task complete",
+		"### wolfcastle navigate",
+		"### wolfcastle inbox add",
+		"### wolfcastle archive add",
+		"### wolfcastle adr create",
+	}
+	for _, s := range forbidden {
+		if strings.Contains(result, s) {
+			t.Errorf("execute prompt should not contain %q", s)
+		}
 	}
 }
 
@@ -177,7 +190,7 @@ func TestAssemblePrompt_IntakeStageContainsProjectCreation(t *testing.T) {
 	setupEmbeddedPrompts(t, dir)
 
 	cfg := config.Defaults()
-	stage := config.PipelineStage{Name: "intake", Model: "mid", PromptFile: "intake.md"}
+	stage := cfg.Pipeline.Stages[0] // intake with AllowedCommands
 
 	result, err := AssemblePrompt(dir, cfg, stage, "inbox context")
 	if err != nil {
@@ -202,6 +215,23 @@ func TestAssemblePrompt_IntakeStageContainsProjectCreation(t *testing.T) {
 	}
 	if strings.Contains(result, "WOLFCASTLE_YIELD") {
 		t.Error("intake prompt should not contain WOLFCASTLE_YIELD")
+	}
+
+	// Intake prompt must NOT contain commands outside its AllowedCommands
+	forbidden := []string{
+		"### wolfcastle task claim",
+		"### wolfcastle task complete",
+		"### wolfcastle task block",
+		"### wolfcastle audit breadcrumb",
+		"### wolfcastle navigate",
+		"### wolfcastle inbox add",
+		"### wolfcastle archive add",
+		"### wolfcastle adr create",
+	}
+	for _, s := range forbidden {
+		if strings.Contains(result, s) {
+			t.Errorf("intake prompt should not contain %q", s)
+		}
 	}
 }
 

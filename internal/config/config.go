@@ -30,8 +30,18 @@ func Defaults() *Config {
 		},
 		Pipeline: PipelineConfig{
 			Stages: []PipelineStage{
-				{Name: "intake", Model: "mid", PromptFile: "intake.md"},
-				{Name: "execute", Model: "heavy", PromptFile: "execute.md"},
+				{
+					Name:            "intake",
+					Model:           "mid",
+					PromptFile:      "intake.md",
+					AllowedCommands: []string{"project create", "task add"},
+				},
+				{
+					Name:            "execute",
+					Model:           "heavy",
+					PromptFile:      "execute.md",
+					AllowedCommands: []string{"task add", "task block", "audit breadcrumb", "audit escalate", "status", "spec list"},
+				},
 			},
 		},
 		Logs: LogsConfig{

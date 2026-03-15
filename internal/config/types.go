@@ -34,11 +34,12 @@ type PipelineConfig struct {
 
 // PipelineStage defines a single pipeline stage.
 type PipelineStage struct {
-	Name               string `json:"name"`
-	Model              string `json:"model"`
-	PromptFile         string `json:"prompt_file"`
-	Enabled            *bool  `json:"enabled,omitempty"`
-	SkipPromptAssembly *bool  `json:"skip_prompt_assembly,omitempty"`
+	Name               string   `json:"name"`
+	Model              string   `json:"model"`
+	PromptFile         string   `json:"prompt_file"`
+	Enabled            *bool    `json:"enabled,omitempty"`
+	SkipPromptAssembly *bool    `json:"skip_prompt_assembly,omitempty"`
+	AllowedCommands    []string `json:"allowed_commands,omitempty"`
 }
 
 // IsEnabled returns whether the stage is enabled (default true).

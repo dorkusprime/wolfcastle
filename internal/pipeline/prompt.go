@@ -40,10 +40,15 @@ func AssemblePrompt(wolfcastleDir string, cfg *config.Config, stage config.Pipel
 		sections = append(sections, "# Project Rules\n\n"+strings.Join(fragments, "\n\n"))
 	}
 
-	// 2. Script reference
+	// 2. Script reference (filtered by stage's AllowedCommands)
 	scriptRef, err := ResolveFragment(wolfcastleDir, "prompts/script-reference.md")
 	if err == nil {
-		sections = append(sections, scriptRef)
+		if len(stage.AllowedCommands) > 0 {
+			scriptRef = FilterScriptReference(scriptRef, stage.AllowedCommands)
+		}
+		if scriptRef != "" {
+			sections = append(sections, scriptRef)
+		}
 	}
 
 	// 3. Stage prompt
