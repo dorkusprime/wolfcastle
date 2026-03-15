@@ -56,6 +56,28 @@ If you made progress but the task needs more work in a follow-up iteration, outp
 
 If the task cannot be completed, call `wolfcastle task block --node <your-node/task-id> "reason"` and output WOLFCASTLE_BLOCKED on its own line.
 
+### H. Pre-block downstream tasks (when applicable)
+
+If your research or analysis reveals that subsequent tasks in this node should NOT proceed (e.g., a technology doesn't exist, requirements are infeasible, a dependency is unavailable), you can pre-block those tasks before they start:
+
+```
+wolfcastle task block --node <your-node/other-task-id> "reason this task should not proceed"
+```
+
+This prevents the daemon from starting tasks that would waste time on impossible work. The human sees the block reason in status output and can decide what to do.
+
+Only do this when you have concrete evidence that the downstream task cannot succeed. Do not pre-block tasks speculatively.
+
+### I. Create follow-up tasks (when applicable)
+
+If your task is a discovery or spec-writing task, you may need to create follow-up tasks based on your findings:
+
+```
+wolfcastle task add "Follow-up task title" --node <your-node> --deliverable "path/to/output" --body "details"
+```
+
+Create implementation tasks only when you have enough information to make them specific and actionable. Each task should have a clear deliverable and enough context in its body for the next agent to work without guessing.
+
 This is a hard stop. Do not continue after emitting a terminal marker.
 
 ## Rules
@@ -63,3 +85,4 @@ This is a hard stop. Do not continue after emitting a terminal marker.
 - Commit before signaling completion.
 - Never edit state.json files directly.
 - Always emit exactly one terminal marker: WOLFCASTLE_COMPLETE, WOLFCASTLE_YIELD, or WOLFCASTLE_BLOCKED.
+- Never invent structure for technologies you haven't verified. If discovery reveals something doesn't exist, pre-block downstream tasks and explain why.

@@ -90,14 +90,16 @@ func TaskComplete(ns *NodeState, taskID string) error {
 	return nil
 }
 
-// TaskBlock transitions a task from in_progress to blocked.
+// TaskBlock transitions a task to blocked. Accepts both in_progress
+// and not_started as source states. Blocking a not_started task is a
+// pre-block: "don't even start this, here's why."
 func TaskBlock(ns *NodeState, taskID string, reason string) error {
 	t := findTask(ns, taskID)
 	if t == nil {
 		return fmt.Errorf("task %q not found", taskID)
 	}
-	if t.State != StatusInProgress {
-		return fmt.Errorf("task %q is %s, must be in_progress to block", taskID, t.State)
+	if t.State != StatusInProgress && t.State != StatusNotStarted {
+		return fmt.Errorf("task %q is %s, must be in_progress or not_started to block", taskID, t.State)
 	}
 	t.State = StatusBlocked
 	t.BlockedReason = reason

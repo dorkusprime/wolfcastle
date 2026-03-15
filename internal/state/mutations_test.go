@@ -179,15 +179,33 @@ func TestTaskBlock_TransitionsInProgressToBlocked(t *testing.T) {
 	}
 }
 
-func TestTaskBlock_FailsOnNotStarted(t *testing.T) {
+func TestTaskBlock_PreBlocksNotStartedTask(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
 		Task{ID: "task-0001", Description: "test", State: StatusNotStarted},
 	)
 
+	err := TaskBlock(ns, "task-0001", "framework does not exist")
+	if err != nil {
+		t.Fatalf("pre-blocking a not_started task should succeed: %v", err)
+	}
+	if ns.Tasks[0].State != StatusBlocked {
+		t.Errorf("expected blocked, got %s", ns.Tasks[0].State)
+	}
+	if ns.Tasks[0].BlockedReason != "framework does not exist" {
+		t.Errorf("expected reason preserved, got %q", ns.Tasks[0].BlockedReason)
+	}
+}
+
+func TestTaskBlock_FailsOnComplete(t *testing.T) {
+	t.Parallel()
+	ns := newLeafWithTasks(
+		Task{ID: "task-0001", Description: "test", State: StatusComplete},
+	)
+
 	err := TaskBlock(ns, "task-0001", "reason")
 	if err == nil {
-		t.Error("expected error when blocking not_started task")
+		t.Error("expected error when blocking complete task")
 	}
 }
 

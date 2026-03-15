@@ -145,18 +145,18 @@ func TestTaskComplete_NotInProgress(t *testing.T) {
 	}
 }
 
-func TestTaskBlock_NotInProgress(t *testing.T) {
+func TestTaskBlock_PreBlockNotStarted(t *testing.T) {
 	env := newTestEnv(t)
 	createLeafNode(t, env, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
 
-	// Try blocking without claiming
-	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "reason"})
+	// Pre-blocking a not_started task should succeed
+	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "framework does not exist"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Error("expected error when blocking not_started task")
+	if err != nil {
+		t.Errorf("pre-blocking a not_started task should succeed: %v", err)
 	}
 }
 
