@@ -216,87 +216,72 @@ No changes to the execute stage's `AllowedCommands`, script reference filtering,
 
 ---
 
-## Default Behavioral Prompts
+## Default Classes
 
-Each default class ships a `.md` file in `base/prompts/classes/`. These are starting points; users customize them in `custom/prompts/classes/` or `local/prompts/classes/`.
+The default class set ships with Wolfcastle and covers the languages and disciplines most users will encounter. These are not stubs. Most users will never configure their own classes, so the defaults must be production-quality: deep, language-specific, and informed by each ecosystem's actual conventions and tooling.
 
-### classes/go-coding.md
+### Language classes
 
-```markdown
-You are working on a Go codebase. Follow Go conventions:
-- Run `go fmt` before committing. Run `go vet` to catch issues.
-- Test what you build. Table-driven tests for multiple cases.
-- Errors are lowercase, wrapped with %w where callers inspect the chain.
-- Use `_ =` for intentionally discarded errors.
-- Package names are short, lowercase, no underscores.
-- Check that your code compiles before signaling completion.
-```
+Based on the TIOBE Index, Stack Overflow surveys, and GitHub language statistics, the following programming languages warrant dedicated classes. Each prompt must include language-specific guidance on: idiomatic style, error handling patterns, testing conventions, build/compile/lint commands, package management, common pitfalls, and the verification steps to run before signaling completion.
 
-### classes/typescript-coding.md
+| Class key | Language | Notes |
+|-----------|----------|-------|
+| `python` | Python | Type hints, virtual environments, pytest, ruff/black, PEP 8 |
+| `javascript` | JavaScript | ESM vs CJS, Node vs browser, eslint, testing frameworks |
+| `typescript` | TypeScript | tsconfig strictness, type-only imports, declaration files |
+| `java` | Java | Maven/Gradle, JUnit, checked exceptions, Spring conventions |
+| `csharp` | C# | .NET SDK, NuGet, xUnit/NUnit, nullable reference types |
+| `go` | Go | gofmt, go vet, table-driven tests, error wrapping |
+| `rust` | Rust | cargo clippy, ownership/borrowing guidance, Result/Option patterns |
+| `cpp` | C++ | CMake, clang-tidy, RAII, smart pointers, UB avoidance |
+| `c` | C | Makefile conventions, valgrind, buffer safety, POSIX portability |
+| `ruby` | Ruby | Bundler, RSpec/minitest, Rubocop, Rails conventions when applicable |
+| `php` | PHP | Composer, PHPUnit, PSR standards, Laravel/Symfony awareness |
+| `swift` | Swift | Xcode/SPM, XCTest, optionals, protocol-oriented patterns |
+| `kotlin` | Kotlin | Gradle, JUnit/kotest, null safety, coroutine conventions |
+| `scala` | Scala | sbt, ScalaTest, functional patterns, implicits guidance |
+| `shell` | Shell/Bash | shellcheck, POSIX compatibility, quoting rules, set -euo pipefail |
+| `sql` | SQL | Dialect awareness (Postgres, MySQL, SQLite), migration patterns, injection prevention |
+| `r` | R | tidyverse conventions, testthat, roxygen2, CRAN packaging |
+| `lua` | Lua | LuaRocks, busted, metatables, embedding considerations |
+| `elixir` | Elixir | mix, ExUnit, OTP patterns, pattern matching, pipe operator |
+| `haskell` | Haskell | cabal/stack, HSpec, monadic patterns, type-driven development |
+| `dart` | Dart | pub, flutter test, null safety, widget patterns |
 
-```markdown
-You are working on a TypeScript codebase. Follow project conventions:
-- Check for a tsconfig.json and respect its strictness settings.
-- Run the project's lint and type-check commands before committing.
-- Prefer typed interfaces over `any`. Use generics where they reduce duplication.
-- Test what you build. Check for an existing test framework (jest, vitest, etc.) and match its patterns.
-- Check that the project compiles cleanly before signaling completion.
-```
+### Non-language classes
 
-### classes/architecture.md
+| Class key | Discipline | Notes |
+|-----------|------------|-------|
+| `architecture` | System design | ADRs, dependency analysis, failure modes, decomposition |
+| `research` | Information gathering | Source citation, accuracy over speed, structured output |
+| `writing` | Documentation and prose | Reader-first, concrete examples, scannable structure |
+| `design` | UI/UX design | User goals, interaction sequences, edge states |
+| `devops` | Infrastructure and CI/CD | Dockerfile, GitHub Actions, Terraform, deployment safety |
+| `data` | Data engineering and analysis | Schemas, pipelines, validation, visualization |
+| `security` | Security review and hardening | OWASP awareness, threat modeling, dependency auditing |
+| `testing` | Test suite creation | Coverage strategy, fixture design, flaky test prevention |
+| `audit` | Verification of completed work | Read-only review, gap recording, no fixes |
 
-```markdown
-You are making architectural decisions. Think in systems, not files:
-- Identify the components affected and their interfaces.
-- Consider failure modes, not just the happy path.
-- Document decisions as ADRs when they change how the system works.
-- Prefer reversible decisions. When a choice is hard to undo, say so explicitly.
-- Decompose into smaller pieces if the scope exceeds what one task should carry.
-```
+### Prompt authoring process
 
-### classes/research.md
+The behavioral prompts are the product. They must be authored with the same care as a style guide or engineering handbook. The implementation process should use subagents to research and draft each prompt:
 
-```markdown
-You are gathering and synthesizing information. Accuracy matters more than speed:
-- Cite sources. Name the document, URL, or dataset you drew from.
-- Distinguish established fact from estimate from opinion.
-- When sources disagree, present the range rather than picking a winner.
-- Structure findings for a reader who wasn't in the room. Headings, tables, comparisons.
-- Deliverables should stand alone as reference material.
-```
+**For each language class:**
+1. Research the language's official style guide (PEP 8, Effective Go, Rust API Guidelines, etc.)
+2. Research the ecosystem's standard toolchain: formatter, linter, test runner, package manager, build system
+3. Research common pitfalls and anti-patterns specific to the language
+4. Research the language's error handling idiom (exceptions, Result types, error returns, etc.)
+5. Research testing conventions (unit test frameworks, assertion styles, mocking patterns)
+6. Draft a prompt that covers: style, error handling, testing, tooling commands, validation steps, and language-specific traps to avoid
+7. The prompt should be 40-80 lines: comprehensive enough to shape behavior meaningfully, short enough that it doesn't dominate the context window
 
-### classes/writing.md
+**For each non-language class:**
+1. Research best practices in the discipline (e.g., for "research": academic citation standards, fact-checking methodology, synthesis techniques)
+2. Research common failure modes when LLMs attempt this kind of work (e.g., for "writing": tendency toward vague summaries; for "research": hallucinated citations)
+3. Draft a prompt that addresses both the positive guidance and the known failure modes
+4. Target 30-60 lines per prompt
 
-```markdown
-You are producing written documentation. Clarity is the priority:
-- Write for the reader who will encounter this document cold, six months from now.
-- Lead with what the reader needs to know, not the process you followed.
-- Use concrete examples. Abstract descriptions without examples are incomplete.
-- Keep paragraphs short. Use headings to create scannable structure.
-- Match the project's existing voice and formatting conventions.
-```
-
-### classes/design.md
-
-```markdown
-You are designing user-facing systems. Think from the user's perspective:
-- Start with the user's goal, then work backward to the interface.
-- Describe interactions as sequences: what the user does, what the system responds.
-- Consider edge cases: empty states, error states, overloaded states.
-- When proposing visual structure, describe layout and hierarchy, not pixel values.
-- Validate designs against the project's existing patterns for consistency.
-```
-
-### classes/audit.md
-
-```markdown
-You are verifying completed work, not creating new work:
-- Read every file the preceding tasks produced. Check for completeness.
-- Verify deliverables exist and contain what the task description promised.
-- Run tests, linters, and build commands. Report what passes and what fails.
-- If you find gaps, record them with `wolfcastle audit gap`. Do not fix them yourself.
-- Your job is the report, not the repair. Summarize findings honestly.
-```
+**Quality bar:** Each prompt should read like it was written by a senior practitioner of that language or discipline. A Go developer reading the Go class prompt should nod, not wince. A technical writer reading the writing class prompt should recognize their own standards reflected back.
 
 ---
 
