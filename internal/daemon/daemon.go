@@ -238,18 +238,26 @@ func (d *Daemon) Run(ctx context.Context) error {
 		case IterationNoWork:
 			// Select on workAvailable so the inbox goroutine can wake us
 			// immediately when new tasks are created (ADR-064).
+			spinner := output.NewSpinner()
+			spinner.Start()
 			select {
 			case <-ctx.Done():
+				spinner.Stop()
 				return nil
 			case <-d.workAvailable:
 				// New work arrived from inbox goroutine
 			case <-time.After(time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds) * time.Second):
 				// Poll timeout
 			}
+			spinner.Stop()
 		case IterationError:
+			spinner := output.NewSpinner()
+			spinner.Start()
 			if !sleepWithContext(ctx, time.Duration(d.Config.Daemon.PollIntervalSeconds)*time.Second) {
+				spinner.Stop()
 				return nil
 			}
+			spinner.Stop()
 		case IterationDidWork:
 			retOpts := []logging.RetentionOption{}
 			if d.Config.Logs.Compress {
