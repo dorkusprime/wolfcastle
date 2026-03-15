@@ -30,6 +30,15 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logDir := filepath.Join(app.WolfcastleDir, "logs")
 			lines, _ := cmd.Flags().GetInt("lines")
+			levelFilter, _ := cmd.Flags().GetString("level")
+			minLevel := logging.LevelInfo
+			if levelFilter != "" {
+				if parsed, ok := logging.ParseLevel(levelFilter); ok {
+					minLevel = parsed
+				} else {
+					return fmt.Errorf("unknown log level %q (use debug, info, warn, error)", levelFilter)
+				}
+			}
 			var currentFile string
 			historicalShown := false
 			waitMessageShown := false
@@ -52,14 +61,14 @@ Examples:
 						fmt.Printf("--- Following: %s ---\n\n", filepath.Base(latestPath))
 						// Show historical lines from the initial log file
 						if lines > 0 && !historicalShown {
-							showHistoricalLines(latestPath, lines)
+							showHistoricalLines(latestPath, lines, minLevel)
 							historicalShown = true
 						}
 					}
 					currentFile = latestPath
 				}
 
-				if err := tailFileStreaming(currentFile); err != nil {
+				if err := tailFileStreaming(currentFile, minLevel); err != nil {
 					return err
 				}
 				// After EOF, poll for new data or new files
@@ -71,7 +80,7 @@ Examples:
 
 // showHistoricalLines reads the last N NDJSON lines from a log file and
 // formats them for display, giving the user context before live streaming begins.
-func showHistoricalLines(path string, n int) {
+func showHistoricalLines(path string, n int, minLevel logging.Level) {
 	f, err := os.Open(path)
 	if err != nil {
 		return
@@ -91,7 +100,7 @@ func showHistoricalLines(path string, n int) {
 	}
 
 	for _, line := range allLines[start:] {
-		formatAndPrintLogLine(line)
+		formatAndPrintLogLine(line, minLevel)
 	}
 
 	// Set the offset so tailFileStreaming doesn't re-print what we just showed
@@ -100,7 +109,7 @@ func showHistoricalLines(path string, n int) {
 	}
 }
 
-func tailFileStreaming(path string) error {
+func tailFileStreaming(path string, minLevel logging.Level) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -127,7 +136,7 @@ func tailFileStreaming(path string) error {
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		formatAndPrintLogLine(scanner.Text())
+		formatAndPrintLogLine(scanner.Text(), minLevel)
 	}
 
 	// Update the offset to the current file size. We re-stat because
@@ -142,11 +151,18 @@ func tailFileStreaming(path string) error {
 }
 
 // formatAndPrintLogLine parses a single NDJSON line and prints it in
-// human-readable form.
-func formatAndPrintLogLine(line string) {
+// human-readable form. Lines below minLevel are silently dropped.
+func formatAndPrintLogLine(line string, minLevel logging.Level) {
 	var record map[string]any
 	if err := json.Unmarshal([]byte(line), &record); err != nil {
 		return
+	}
+
+	// Filter by log level
+	if lvlStr, ok := record["level"].(string); ok {
+		if lvl, ok := logging.ParseLevel(lvlStr); ok && lvl < minLevel {
+			return
+		}
 	}
 
 	typ, _ := record["type"].(string)
@@ -170,7 +186,6 @@ func formatAndPrintLogLine(line string) {
 		fmt.Printf("[%s] Error: %s\n", stage, errMsg)
 	case "assistant":
 		if content, ok := record["text"].(string); ok {
-			// Print without extra newline if content already has one
 			if strings.HasSuffix(content, "\n") {
 				fmt.Print(content)
 			} else {

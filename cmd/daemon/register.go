@@ -23,6 +23,7 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 
 	followCmd := newFollowCmd(app)
 	followCmd.Flags().Int("lines", 20, "Number of historical lines to show before streaming")
+	followCmd.Flags().StringP("level", "l", "", "Minimum log level to display (debug, info, warn, error)")
 
 	statusCmd := newStatusCmd(app)
 	statusCmd.Flags().Bool("all", false, "Show status across all engineers")
