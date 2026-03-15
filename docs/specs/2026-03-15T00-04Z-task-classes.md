@@ -43,54 +43,48 @@ Classes are defined as an object in the config, keyed by class name. Object keys
 {
   "task_classes": {
     "go-coding": {
-      "prompt_file": "class-go-coding.md",
       "description": "Writing or modifying Go source code"
     },
     "typescript-coding": {
-      "prompt_file": "class-typescript-coding.md",
       "description": "Writing or modifying TypeScript/JavaScript source code"
     },
     "architecture": {
-      "prompt_file": "class-architecture.md",
       "description": "System design, ADRs, decomposition, dependency analysis",
       "model": "heavy"
     },
     "research": {
-      "prompt_file": "class-research.md",
       "description": "Information gathering, comparison, analysis",
       "model": "light"
     },
     "writing": {
-      "prompt_file": "class-writing.md",
       "description": "Documentation, specs, guides, prose",
       "model": "light"
     },
     "design": {
-      "prompt_file": "class-design.md",
       "description": "UI/UX design, wireframes, interaction patterns"
     },
     "audit": {
-      "prompt_file": "class-audit.md",
       "description": "Verification and review of completed work"
     }
   }
 }
 ```
 
+The behavioral prompt file is derived from the class key: `classes/<key>.md`, resolved through the three-tier system. No `prompt_file` field needed.
+
 ### Field definitions
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `prompt_file` | Yes | Behavioral prompt file, resolved via the three-tier system (`base/prompts/`, `custom/prompts/`, `local/prompts/`) |
 | `description` | Yes | One-line description shown to the intake model so it can classify accurately |
 | `model` | No | Model key override. If set, this class uses a different model than the execute stage default. Must reference a key in the top-level `models` map. |
 
 ### Validation
 
 At daemon startup, the config loader validates:
-1. Every class has a non-empty `prompt_file` and `description`.
+1. Every class has a non-empty `description`.
 2. If `model` is set, it references a valid key in `config.models`.
-3. The `prompt_file` resolves to an existing file in at least one tier.
+3. The prompt file `classes/<key>.md` resolves to an existing file in at least one tier.
 
 Unknown classes on tasks (e.g., from a hallucinating intake model) are caught at `task add` time: the CLI rejects `--class` values not present in the config's `task_classes` map.
 
@@ -142,7 +136,7 @@ The assembled system prompt gains a new section between the script reference and
 ---
 
 # Task Class: Go Coding
-[contents of class-go-coding.md]
+[contents of classes/go-coding.md]
 
 ---
 
@@ -159,13 +153,13 @@ The class section is inserted only when the task has a class and a matching conf
 
 ### Prompt file resolution
 
-Class prompt files follow the same three-tier resolution as all other prompts:
+Class prompt files live in a `classes/` subdirectory and follow the same three-tier resolution as all other prompts. For a class named `go-coding`:
 
-1. `local/prompts/class-go-coding.md` (highest priority)
-2. `custom/prompts/class-go-coding.md`
-3. `base/prompts/class-go-coding.md` (ships with Wolfcastle)
+1. `local/prompts/classes/go-coding.md` (highest priority)
+2. `custom/prompts/classes/go-coding.md`
+3. `base/prompts/classes/go-coding.md` (ships with Wolfcastle)
 
-Users override a built-in class's behavior by placing a file with the same name in `custom/` or `local/`.
+Users override a built-in class's behavior by placing a file with the same name in `custom/` or `local/`. Adding a new class means adding an entry in the config and dropping a `.md` file in the appropriate tier.
 
 ---
 
@@ -211,7 +205,7 @@ In `runIteration`, after claiming the task, the daemon looks up the task's class
 2. If class is empty and task.IsAudit, set class = "audit"
 3. Look up class in config.TaskClasses
 4. If found:
-   a. Resolve the behavioral prompt file
+   a. Resolve classes/<key>.md via three-tier system
    b. If model override is set, use that model for invocation
    c. Pass the behavioral prompt to AssemblePrompt as the class section
 5. If not found (empty class or missing config entry):
@@ -224,9 +218,9 @@ No changes to the execute stage's `AllowedCommands`, script reference filtering,
 
 ## Default Behavioral Prompts
 
-Each default class ships a `.md` file in `base/prompts/`. These are starting points; users customize them in `custom/` or `local/`.
+Each default class ships a `.md` file in `base/prompts/classes/`. These are starting points; users customize them in `custom/prompts/classes/` or `local/prompts/classes/`.
 
-### class-go-coding.md
+### classes/go-coding.md
 
 ```markdown
 You are working on a Go codebase. Follow Go conventions:
@@ -238,7 +232,7 @@ You are working on a Go codebase. Follow Go conventions:
 - Check that your code compiles before signaling completion.
 ```
 
-### class-typescript-coding.md
+### classes/typescript-coding.md
 
 ```markdown
 You are working on a TypeScript codebase. Follow project conventions:
@@ -249,7 +243,7 @@ You are working on a TypeScript codebase. Follow project conventions:
 - Check that the project compiles cleanly before signaling completion.
 ```
 
-### class-architecture.md
+### classes/architecture.md
 
 ```markdown
 You are making architectural decisions. Think in systems, not files:
@@ -260,7 +254,7 @@ You are making architectural decisions. Think in systems, not files:
 - Decompose into smaller pieces if the scope exceeds what one task should carry.
 ```
 
-### class-research.md
+### classes/research.md
 
 ```markdown
 You are gathering and synthesizing information. Accuracy matters more than speed:
@@ -271,7 +265,7 @@ You are gathering and synthesizing information. Accuracy matters more than speed
 - Deliverables should stand alone as reference material.
 ```
 
-### class-writing.md
+### classes/writing.md
 
 ```markdown
 You are producing written documentation. Clarity is the priority:
@@ -282,7 +276,7 @@ You are producing written documentation. Clarity is the priority:
 - Match the project's existing voice and formatting conventions.
 ```
 
-### class-design.md
+### classes/design.md
 
 ```markdown
 You are designing user-facing systems. Think from the user's perspective:
@@ -293,7 +287,7 @@ You are designing user-facing systems. Think from the user's perspective:
 - Validate designs against the project's existing patterns for consistency.
 ```
 
-### class-audit.md
+### classes/audit.md
 
 ```markdown
 You are verifying completed work, not creating new work:
