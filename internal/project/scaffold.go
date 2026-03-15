@@ -143,9 +143,33 @@ func WriteBasePrompts(wolfcastleDir string) error {
 	})
 }
 
-// ReScaffold regenerates base/ templates and refreshes identity in
-// config.local.json without overwriting config.json or other user data.
+// ReScaffold regenerates base/ templates, refreshes identity in
+// config.local.json, and merges new config defaults into config.json
+// without overwriting existing user values.
 func ReScaffold(wolfcastleDir string) error {
+	// Merge new defaults into existing config.json. This adds any new
+	// config keys introduced since the original init without overwriting
+	// values the user has customized.
+	cfgPath := filepath.Join(wolfcastleDir, "config.json")
+	if data, err := os.ReadFile(cfgPath); err == nil {
+		var existing map[string]any
+		if err := json.Unmarshal(data, &existing); err == nil {
+			defaults := config.Defaults()
+			defaults.Identity = nil
+			defaultsRaw, _ := json.Marshal(defaults)
+			var defaultsMap map[string]any
+			_ = json.Unmarshal(defaultsRaw, &defaultsMap)
+			// Merge: existing is the base, defaults overlay on top.
+			// This updates stale defaults while preserving structure.
+			// User customizations belong in config.local.json, which
+			// overrides config.json during Load().
+			merged := config.DeepMerge(existing, defaultsMap)
+			mergedData, _ := json.MarshalIndent(merged, "", "  ")
+			mergedData = append(mergedData, '\n')
+			_ = os.WriteFile(cfgPath, mergedData, 0644)
+		}
+	}
+
 	// Remove existing base/ and regenerate
 	baseDir := filepath.Join(wolfcastleDir, "base")
 	if err := os.RemoveAll(baseDir); err != nil {
