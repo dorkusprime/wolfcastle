@@ -83,6 +83,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		WolfcastleDir: wcDir,
 		Cfg:           loadedCfg,
 		Resolver:      resolver,
+		Store:         state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout),
 		Clock:         clock.New(),
 	}
 

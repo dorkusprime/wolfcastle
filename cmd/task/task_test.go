@@ -41,6 +41,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
 		Resolver:      resolver,
+		Store:         state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout),
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}

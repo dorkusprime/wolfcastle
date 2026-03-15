@@ -58,28 +58,23 @@ Examples:
 				return fmt.Errorf("invalid node address: %w", err)
 			}
 			nsPath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...))
-			statePath := filepath.Join(nsPath, "state.json")
 
-			ns, err := state.LoadNodeState(statePath)
-			if err != nil {
-				return fmt.Errorf("loading node state: %w", err)
-			}
-
-			task, err := state.TaskAdd(ns, title)
-			if err != nil {
-				return err
-			}
-			task.Title = title
-
-			// Update the task in the node state with the title
-			for i := range ns.Tasks {
-				if ns.Tasks[i].ID == task.ID {
-					ns.Tasks[i].Title = title
-					break
+			var task *state.Task
+			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+				var addErr error
+				task, addErr = state.TaskAdd(ns, title)
+				if addErr != nil {
+					return addErr
 				}
-			}
-
-			if err := state.SaveNodeState(statePath, ns); err != nil {
+				task.Title = title
+				for i := range ns.Tasks {
+					if ns.Tasks[i].ID == task.ID {
+						ns.Tasks[i].Title = title
+						break
+					}
+				}
+				return nil
+			}); err != nil {
 				return err
 			}
 

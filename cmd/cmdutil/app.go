@@ -24,6 +24,7 @@ type App struct {
 	WolfcastleDir string
 	Cfg           *config.Config
 	Resolver      *tree.Resolver
+	Store         *state.StateStore
 	Clock         clock.Clock
 	Invoker       invoke.Invoker
 	JSONOutput    bool
@@ -70,6 +71,8 @@ func (a *App) LoadConfig() error {
 	if err != nil {
 		// Not fatal for all commands
 		a.Resolver = nil
+	} else {
+		a.Store = state.NewStateStore(a.Resolver.ProjectsDir(), state.DefaultLockTimeout)
 	}
 	return nil
 }

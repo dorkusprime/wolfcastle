@@ -52,75 +52,80 @@ Examples:
 				return fmt.Errorf("invalid node type %q: must be 'leaf' or 'orchestrator'", nodeType)
 			}
 
-			// Load root index
-			idx, err := app.Resolver.LoadRootIndex()
-			if err != nil {
-				return fmt.Errorf("loading root index: %w", err)
-			}
-
-			// Validate parent exists if specified; auto-promote leaf → orchestrator
-			if parentNode != "" {
-				parentEntry, ok := idx.Nodes[parentNode]
-				if !ok {
-					return fmt.Errorf("parent node %q not found", parentNode)
+			// All state mutations happen under a single lock hold to
+			// prevent races with the daemon or other CLI commands.
+			var addr string
+			if err := app.Store.WithLock(func() error {
+				// Load root index (raw, we hold the lock)
+				idx, err := state.LoadRootIndex(app.Resolver.RootIndexPath())
+				if err != nil {
+					if !os.IsNotExist(err) {
+						return fmt.Errorf("loading root index: %w", err)
+					}
+					idx = state.NewRootIndex()
 				}
-				if parentEntry.Type == state.NodeLeaf {
-					// Auto-promote: convert leaf parent to orchestrator (decomposition)
-					parentParsed, err := tree.ParseAddress(parentNode)
-					if err != nil {
-						return fmt.Errorf("invalid parent address: %w", err)
+
+				// Validate parent exists if specified; auto-promote leaf → orchestrator
+				if parentNode != "" {
+					parentEntry, ok := idx.Nodes[parentNode]
+					if !ok {
+						return fmt.Errorf("parent node %q not found", parentNode)
 					}
-					parentDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(parentParsed.Parts...))
-					parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
-					if err != nil {
-						return fmt.Errorf("loading parent state for promotion: %w", err)
-					}
-					// Only auto-promote if the leaf has no tasks (per tree-addressing spec)
-					nonAuditTasks := 0
-					for _, t := range parentState.Tasks {
-						if !t.IsAudit {
-							nonAuditTasks++
+					if parentEntry.Type == state.NodeLeaf {
+						parentParsed, err := tree.ParseAddress(parentNode)
+						if err != nil {
+							return fmt.Errorf("invalid parent address: %w", err)
 						}
+						parentDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(parentParsed.Parts...))
+						parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
+						if err != nil {
+							return fmt.Errorf("loading parent state for promotion: %w", err)
+						}
+						nonAuditTasks := 0
+						for _, t := range parentState.Tasks {
+							if !t.IsAudit {
+								nonAuditTasks++
+							}
+						}
+						if nonAuditTasks > 0 {
+							return fmt.Errorf("cannot create child under leaf %q: it has %d existing task(s). Remove tasks before decomposing", parentNode, nonAuditTasks)
+						}
+						parentState.Type = state.NodeOrchestrator
+						parentState.Tasks = nil
+						if err := state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentState); err != nil {
+							return fmt.Errorf("saving promoted parent state: %w", err)
+						}
+						parentEntry.Type = state.NodeOrchestrator
+						idx.Nodes[parentNode] = parentEntry
 					}
-					if nonAuditTasks > 0 {
-						return fmt.Errorf("cannot create child under leaf %q: it has %d existing task(s). Remove tasks before decomposing", parentNode, nonAuditTasks)
-					}
-					parentState.Type = state.NodeOrchestrator
-					parentState.Tasks = nil // orchestrators don't have tasks
-					if err := state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentState); err != nil {
-						return fmt.Errorf("saving promoted parent state: %w", err)
-					}
-					parentEntry.Type = state.NodeOrchestrator
-					idx.Nodes[parentNode] = parentEntry
 				}
-			}
 
-			// Create the project
-			ns, addr, err := project.CreateProject(idx, parentNode, slug, name, nt)
-			if err != nil {
-				return err
-			}
+				// Create the project
+				ns, createdAddr, err := project.CreateProject(idx, parentNode, slug, name, nt)
+				if err != nil {
+					return err
+				}
+				addr = createdAddr
 
-			// Write node state
-			addrParsed, err := tree.ParseAddress(addr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-			nodeDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addrParsed.Parts...))
-			if err := os.MkdirAll(nodeDir, 0755); err != nil {
-				return fmt.Errorf("creating node directory: %w", err)
-			}
-			if err := state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns); err != nil {
-				return fmt.Errorf("saving node state: %w", err)
-			}
+				// Write node state (raw save, no nested lock)
+				addrParsed, err := tree.ParseAddress(addr)
+				if err != nil {
+					return fmt.Errorf("invalid node address: %w", err)
+				}
+				nodeDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addrParsed.Parts...))
+				if err := os.MkdirAll(nodeDir, 0755); err != nil {
+					return fmt.Errorf("creating node directory: %w", err)
+				}
+				if err := state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns); err != nil {
+					return fmt.Errorf("saving node state: %w", err)
+				}
 
-			// Write audit.md for leaf nodes from embedded template
-			if nt == state.NodeLeaf {
-				project.WriteAuditTaskMD(nodeDir)
-			}
+				// Write audit.md for leaf nodes from embedded template
+				if nt == state.NodeLeaf {
+					project.WriteAuditTaskMD(nodeDir)
+				}
 
-			// Write project description Markdown (in the node's own directory)
-			if parentNode != "" {
+				// Write project description Markdown
 				descBody := description
 				if descBody == "" {
 					descBody = "Project description goes here."
@@ -131,40 +136,32 @@ Examples:
 				}
 
 				// Update parent node state to include child ref
-				parentParsed2, _ := tree.ParseAddress(parentNode)
-				parentDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(parentParsed2.Parts...))
-				parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
-				if err == nil {
-					parentState.Children = append(parentState.Children, state.ChildRef{
-						ID:      slug,
-						Address: addr,
-						State:   state.StatusNotStarted,
-					})
-					if err := state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentState); err != nil {
-						return fmt.Errorf("saving parent state: %w", err)
+				if parentNode != "" {
+					parentParsed2, _ := tree.ParseAddress(parentNode)
+					parentDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(parentParsed2.Parts...))
+					parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
+					if err == nil {
+						parentState.Children = append(parentState.Children, state.ChildRef{
+							ID:      slug,
+							Address: addr,
+							State:   state.StatusNotStarted,
+						})
+						if err := state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentState); err != nil {
+							return fmt.Errorf("saving parent state: %w", err)
+						}
 					}
 				}
-			} else {
-				descBody := description
-				if descBody == "" {
-					descBody = "Project description goes here."
-				}
-				descPath := filepath.Join(nodeDir, slug+".md")
-				if err := os.WriteFile(descPath, []byte("# "+name+"\n\n"+descBody+"\n"), 0644); err != nil {
-					return fmt.Errorf("writing project description: %w", err)
-				}
-			}
 
-			// Update root index metadata for the first root-level project
-			if parentNode == "" && idx.RootID == "" {
-				idx.RootID = slug
-				idx.RootName = name
-				idx.RootState = state.StatusNotStarted
-			}
+				// Update root index metadata for the first root-level project
+				if parentNode == "" && idx.RootID == "" {
+					idx.RootID = slug
+					idx.RootName = name
+					idx.RootState = state.StatusNotStarted
+				}
 
-			// Save updated root index
-			if err := state.SaveRootIndex(app.Resolver.RootIndexPath(), idx); err != nil {
-				return fmt.Errorf("saving root index: %w", err)
+				return state.SaveRootIndex(app.Resolver.RootIndexPath(), idx)
+			}); err != nil {
+				return err
 			}
 
 			if app.JSONOutput {

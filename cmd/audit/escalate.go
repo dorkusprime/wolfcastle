@@ -2,7 +2,6 @@ package audit
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -48,15 +47,10 @@ Examples:
 				return fmt.Errorf("cannot escalate from a root-level node (no parent)")
 			}
 
-			parentStatePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(parentAddr.Parts...), "state.json")
-			parentState, err := state.LoadNodeState(parentStatePath)
-			if err != nil {
-				return fmt.Errorf("loading parent state: %w", err)
-			}
-
-			state.AddEscalation(parentState, nodeAddr, description, "", app.Clock)
-
-			if err := state.SaveNodeState(parentStatePath, parentState); err != nil {
+			if err := app.Store.MutateNode(parentAddr.String(), func(parentState *state.NodeState) error {
+				state.AddEscalation(parentState, nodeAddr, description, "", app.Clock)
+				return nil
+			}); err != nil {
 				return err
 			}
 

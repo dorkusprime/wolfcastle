@@ -2,13 +2,11 @@ package audit
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -39,40 +37,31 @@ Examples:
 				return fmt.Errorf("at least one scope field is required (--description, --files, --systems, --criteria)")
 			}
 
-			addr, err := tree.ParseAddress(nodeAddr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-			statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-
-			ns, err := state.LoadNodeState(statePath)
-			if err != nil {
-				return fmt.Errorf("loading node state: %w", err)
-			}
-
-			if ns.Audit.Scope == nil {
-				ns.Audit.Scope = &state.AuditScope{}
-			}
-
-			if description != "" {
-				ns.Audit.Scope.Description = description
-			}
-			if files != "" {
-				ns.Audit.Scope.Files = dedup(splitPipe(files))
-			}
-			if systems != "" {
-				ns.Audit.Scope.Systems = dedup(splitPipe(systems))
-			}
-			if criteria != "" {
-				ns.Audit.Scope.Criteria = dedup(splitPipe(criteria))
-			}
-
-			if err := state.SaveNodeState(statePath, ns); err != nil {
+			var scope *state.AuditScope
+			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+				if ns.Audit.Scope == nil {
+					ns.Audit.Scope = &state.AuditScope{}
+				}
+				if description != "" {
+					ns.Audit.Scope.Description = description
+				}
+				if files != "" {
+					ns.Audit.Scope.Files = dedup(splitPipe(files))
+				}
+				if systems != "" {
+					ns.Audit.Scope.Systems = dedup(splitPipe(systems))
+				}
+				if criteria != "" {
+					ns.Audit.Scope.Criteria = dedup(splitPipe(criteria))
+				}
+				scope = ns.Audit.Scope
+				return nil
+			}); err != nil {
 				return err
 			}
 
 			if app.JSONOutput {
-				output.Print(output.Ok("audit_scope", ns.Audit.Scope))
+				output.Print(output.Ok("audit_scope", scope))
 			} else {
 				output.PrintHuman("Audit scope updated for %s", nodeAddr)
 			}

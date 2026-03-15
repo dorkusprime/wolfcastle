@@ -8,50 +8,54 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
-// propagateState re-reads the root index from disk, propagates a node's
-// state to all ancestors, and saves. Re-reading prevents the daemon from
-// clobbering new nodes that CLI commands (called by the intake model)
-// added during the iteration.
+// propagateState locks the namespace, re-reads the root index from disk,
+// propagates a node's state to all ancestors, and saves everything
+// atomically. Re-reading prevents the daemon from clobbering new nodes
+// that CLI commands (called by the intake model) added during iteration.
+// All reads and writes happen inside a single lock hold, so the
+// load/save callbacks use raw I/O (no nested locking).
 func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx *state.RootIndex) error {
-	// Re-read the index from disk to pick up any concurrent modifications
-	// (e.g., the intake model creating new projects via wolfcastle CLI).
-	freshIdx, err := d.Resolver.LoadRootIndex()
-	if err != nil {
-		// Fall back to the in-memory copy if the file can't be read.
-		freshIdx = idx
-	}
-
-	// Update the node's state in the fresh index.
-	if entry, ok := freshIdx.Nodes[nodeAddr]; ok {
-		entry.State = nodeState
-		freshIdx.Nodes[nodeAddr] = entry
-	}
-
-	loadNode := func(addr string) (*state.NodeState, error) {
-		a, err := tree.ParseAddress(addr)
+	return d.Store.WithLock(func() error {
+		// Re-read the index from disk to pick up concurrent modifications.
+		freshIdx, err := state.LoadRootIndex(d.Resolver.RootIndexPath())
 		if err != nil {
-			return nil, fmt.Errorf("parsing address %q: %w", addr, err)
+			// Fall back to the in-memory copy if the file can't be read.
+			freshIdx = idx
 		}
-		return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
-	}
 
-	saveNode := func(addr string, ns *state.NodeState) error {
-		a, err := tree.ParseAddress(addr)
-		if err != nil {
-			return fmt.Errorf("parsing address %q: %w", addr, err)
+		// Update the node's state in the fresh index.
+		if entry, ok := freshIdx.Nodes[nodeAddr]; ok {
+			entry.State = nodeState
+			freshIdx.Nodes[nodeAddr] = entry
 		}
-		return state.SaveNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"), ns)
-	}
 
-	if err := state.Propagate(nodeAddr, nodeState, freshIdx, loadNode, saveNode); err != nil {
-		return err
-	}
+		loadNode := func(addr string) (*state.NodeState, error) {
+			a, err := tree.ParseAddress(addr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
+			}
+			return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+		}
 
-	// Copy propagated state back to the caller's index so subsequent
-	// operations in the same iteration see the updated state.
-	*idx = *freshIdx
+		// Raw SaveNodeState (no lock) since we already hold the namespace lock.
+		saveNode := func(addr string, ns *state.NodeState) error {
+			a, err := tree.ParseAddress(addr)
+			if err != nil {
+				return fmt.Errorf("parsing address %q: %w", addr, err)
+			}
+			return state.SaveNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"), ns)
+		}
 
-	return state.SaveRootIndex(d.Resolver.RootIndexPath(), freshIdx)
+		if err := state.Propagate(nodeAddr, nodeState, freshIdx, loadNode, saveNode); err != nil {
+			return err
+		}
+
+		// Copy propagated state back to the caller's index so subsequent
+		// operations in the same iteration see the updated state.
+		*idx = *freshIdx
+
+		return state.SaveRootIndex(d.Resolver.RootIndexPath(), freshIdx)
+	})
 }
 
 // checkInboxState returns whether the inbox has new items (needing intake).

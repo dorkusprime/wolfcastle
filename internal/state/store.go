@@ -1,0 +1,181 @@
+package state
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+// StateStore provides coordinated read and mutation access to the three
+// kinds of state files in a Wolfcastle engineer namespace: per-node state,
+// the root index, and the inbox. Reads are lock-free (atomic writes
+// guarantee complete reads). Mutations acquire an advisory file lock,
+// re-read the file, apply a caller-supplied callback, and write atomically.
+type StateStore struct {
+	dir     string        // namespace/projects directory
+	timeout time.Duration // lock acquisition timeout
+}
+
+// NewStateStore creates a StateStore rooted at the given namespace directory
+// (e.g., .wolfcastle/projects/wild-macbook-pro). The timeout governs how
+// long lock acquisition will block before giving up.
+func NewStateStore(namespaceDir string, timeout time.Duration) *StateStore {
+	return &StateStore{
+		dir:     namespaceDir,
+		timeout: timeout,
+	}
+}
+
+// Dir returns the namespace directory backing this store.
+func (s *StateStore) Dir() string {
+	return s.dir
+}
+
+// Timeout returns the lock timeout for this store.
+func (s *StateStore) Timeout() time.Duration {
+	return s.timeout
+}
+
+// ── Read operations ─────────────────────────────────────────────────────
+// No lock required: atomic writes guarantee a complete file on disk.
+
+// ReadNode loads a node's state from disk. Returns a default NodeState
+// if the file does not exist.
+func (s *StateStore) ReadNode(addr string) (*NodeState, error) {
+	p, err := s.nodePath(addr)
+	if err != nil {
+		return nil, err
+	}
+	ns, err := LoadNodeState(p)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return newDefaultNodeState(), nil
+		}
+		return nil, err
+	}
+	return ns, nil
+}
+
+func newDefaultNodeState() *NodeState {
+	return &NodeState{Version: 1, Audit: AuditState{
+		Status:      AuditPending,
+		Breadcrumbs: []Breadcrumb{},
+		Gaps:        []Gap{},
+		Escalations: []Escalation{},
+	}}
+}
+
+// ReadIndex loads the root index from disk. Returns a fresh empty index
+// if the file does not exist.
+func (s *StateStore) ReadIndex() (*RootIndex, error) {
+	idx, err := LoadRootIndex(s.indexPath())
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return NewRootIndex(), nil
+		}
+		return nil, err
+	}
+	return idx, nil
+}
+
+// ReadInbox loads the inbox from disk. Returns an empty InboxFile if the
+// file does not exist.
+func (s *StateStore) ReadInbox() (*InboxFile, error) {
+	return LoadInbox(s.inboxPath())
+}
+
+// ── Mutation operations ─────────────────────────────────────────────────
+// Each acquires the namespace lock, reads the current value, calls the
+// callback, and writes the result back atomically.
+
+// MutateNode locks the namespace, loads the node state, applies fn, and
+// saves the result. Returns an error if the node state file does not
+// exist (callers should create the file first for new nodes).
+// If fn returns an error the write is skipped and the error propagated.
+func (s *StateStore) MutateNode(addr string, fn func(*NodeState) error) error {
+	p, err := s.nodePath(addr)
+	if err != nil {
+		return err
+	}
+	lock := NewFileLock(s.dir, s.timeout)
+	return lock.WithLock(func() error {
+		ns, err := LoadNodeState(p)
+		if err != nil {
+			return err
+		}
+		if err := fn(ns); err != nil {
+			return err
+		}
+		return SaveNodeState(p, ns)
+	})
+}
+
+// MutateIndex locks the namespace, loads the root index (or an empty
+// default), applies fn, and saves the result.
+func (s *StateStore) MutateIndex(fn func(*RootIndex) error) error {
+	lock := NewFileLock(s.dir, s.timeout)
+	return lock.WithLock(func() error {
+		idx, err := LoadRootIndex(s.indexPath())
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				idx = NewRootIndex()
+			} else {
+				return err
+			}
+		}
+		if err := fn(idx); err != nil {
+			return err
+		}
+		return SaveRootIndex(s.indexPath(), idx)
+	})
+}
+
+// MutateInbox locks the namespace, loads the inbox (or an empty default),
+// applies fn, and saves the result.
+func (s *StateStore) MutateInbox(fn func(*InboxFile) error) error {
+	lock := NewFileLock(s.dir, s.timeout)
+	return lock.WithLock(func() error {
+		f, err := LoadInbox(s.inboxPath())
+		if err != nil {
+			return err
+		}
+		if err := fn(f); err != nil {
+			return err
+		}
+		return SaveInbox(s.inboxPath(), f)
+	})
+}
+
+// WithLock acquires the namespace lock and runs fn with exclusive access.
+// Use this for complex multi-file operations (e.g., propagation that
+// touches both the index and multiple node state files).
+func (s *StateStore) WithLock(fn func() error) error {
+	lock := NewFileLock(s.dir, s.timeout)
+	return lock.WithLock(fn)
+}
+
+// ── Path helpers ────────────────────────────────────────────────────────
+
+func (s *StateStore) nodePath(addr string) (string, error) {
+	if addr == "" {
+		return "", fmt.Errorf("node address cannot be empty")
+	}
+	parts := strings.Split(addr, "/")
+	for _, p := range parts {
+		if p == "" || strings.ContainsAny(p, " \t\n") {
+			return "", fmt.Errorf("invalid address segment %q in %q", p, addr)
+		}
+	}
+	return filepath.Join(s.dir, filepath.Join(parts...), "state.json"), nil
+}
+
+func (s *StateStore) indexPath() string {
+	return filepath.Join(s.dir, "state.json")
+}
+
+func (s *StateStore) inboxPath() string {
+	return filepath.Join(s.dir, "inbox.json")
+}

@@ -162,10 +162,12 @@ func testDaemon(t *testing.T) *Daemon {
 		t.Fatal(err)
 	}
 
+	resolver := &tree.Resolver{WolfcastleDir: wolfDir, Namespace: ns}
 	return &Daemon{
 		Config:        testConfig(),
 		WolfcastleDir: wolfDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wolfDir, Namespace: ns},
+		Resolver:      resolver,
+		Store:         state.NewStateStore(resolver.ProjectsDir(), 5*time.Second),
 		Logger:        logger,
 		InboxLogger:   inboxLogger,
 		Clock:         clock.New(),

@@ -23,8 +23,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	if err != nil {
 		return werrors.Navigation(fmt.Errorf("parsing node address %q: %w", nav.NodeAddress, err))
 	}
-	statePath := filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-	ns, err := state.LoadNodeState(statePath)
+	ns, err := d.Store.ReadNode(nav.NodeAddress)
 	if err != nil {
 		return werrors.State(fmt.Errorf("loading node state for %s: %w", nav.NodeAddress, err))
 	}
@@ -39,11 +38,15 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 	}
 	if !alreadyInProgress {
-		if err := state.TaskClaim(ns, nav.TaskID); err != nil {
+		if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+			return state.TaskClaim(ns, nav.TaskID)
+		}); err != nil {
 			return werrors.State(fmt.Errorf("claiming task %s: %w", nav.TaskID, err))
 		}
-		if err := state.SaveNodeState(statePath, ns); err != nil {
-			return werrors.State(fmt.Errorf("saving node state after claim: %w", err))
+		// Re-read after mutation to get updated state for propagation
+		ns, err = d.Store.ReadNode(nav.NodeAddress)
+		if err != nil {
+			return werrors.State(fmt.Errorf("reloading node state after claim: %w", err))
 		}
 		if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
 			return werrors.State(fmt.Errorf("propagating state after claim: %w", err))
@@ -109,7 +112,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		// Reload state from disk — CLI commands invoked by the model may
 		// have mutated state.json during execution (breadcrumbs, gaps, scope, etc.)
-		ns, err = state.LoadNodeState(statePath)
+		ns, err = d.Store.ReadNode(nav.NodeAddress)
 		if err != nil {
 			_ = d.Logger.Log(map[string]any{"type": "reload_error", "error": err.Error()})
 		}
@@ -124,23 +127,31 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 		if marker == "WOLFCASTLE_BLOCKED" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
-			if blockErr := state.TaskBlock(ns, nav.TaskID, "blocked by model"); blockErr == nil {
-				if err := state.SaveNodeState(statePath, ns); err != nil {
-					_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+				return state.TaskBlock(ns, nav.TaskID, "blocked by model")
+			}); err == nil {
+				// Re-read for propagation
+				if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+					ns = updated
 				}
 				if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
 					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 				}
+			} else {
+				_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
 			}
 			return nil
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_COMPLETE"})
-			if completeErr := state.TaskComplete(ns, nav.TaskID); completeErr != nil {
-				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": completeErr.Error()})
+			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+				return state.TaskComplete(ns, nav.TaskID)
+			}); err != nil {
+				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 			} else {
-				if err := state.SaveNodeState(statePath, ns); err != nil {
-					_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+				// Re-read for propagation
+				if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+					ns = updated
 				}
 				if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
 					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
@@ -156,11 +167,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			"task":  nav.TaskID,
 		})
 
-		failCount, err := state.IncrementFailure(ns, nav.TaskID)
-		if err != nil {
-			_ = d.Logger.Log(map[string]any{"type": "failure_increment_error", "error": err.Error()})
-		} else {
-			_ = d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
+		var failCount int
+		mutErr := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+			var err error
+			failCount, err = state.IncrementFailure(ns, nav.TaskID)
+			if err != nil {
+				return err
+			}
 
 			if failCount >= d.Config.Failure.DecompositionThreshold && d.Config.Failure.DecompositionThreshold > 0 {
 				if ns.DecompositionDepth < d.Config.Failure.MaxDecompositionDepth {
@@ -181,8 +194,16 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				}
 			}
 
-			if err := state.SaveNodeState(statePath, ns); err != nil {
-				_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+			return nil
+		})
+		if mutErr != nil {
+			_ = d.Logger.Log(map[string]any{"type": "failure_increment_error", "error": mutErr.Error()})
+		} else {
+			_ = d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
+
+			// Re-read for propagation
+			if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+				ns = updated
 			}
 			if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})

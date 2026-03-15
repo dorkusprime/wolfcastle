@@ -2,12 +2,10 @@ package audit
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -30,37 +28,21 @@ Examples:
 				return fmt.Errorf("--node is required")
 			}
 
-			addr, err := tree.ParseAddress(nodeAddr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-			statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-
-			ns, err := state.LoadNodeState(statePath)
-			if err != nil {
-				return fmt.Errorf("loading node state: %w", err)
-			}
-
-			found := false
-			for i := range ns.Audit.Escalations {
-				if ns.Audit.Escalations[i].ID == escalationID {
-					if ns.Audit.Escalations[i].Status == state.EscalationResolved {
-						return fmt.Errorf("escalation %s is already resolved", escalationID)
+			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+				for i := range ns.Audit.Escalations {
+					if ns.Audit.Escalations[i].ID == escalationID {
+						if ns.Audit.Escalations[i].Status == state.EscalationResolved {
+							return fmt.Errorf("escalation %s is already resolved", escalationID)
+						}
+						ns.Audit.Escalations[i].Status = state.EscalationResolved
+						ns.Audit.Escalations[i].ResolvedBy = nodeAddr
+						now := app.Clock.Now()
+						ns.Audit.Escalations[i].ResolvedAt = &now
+						return nil
 					}
-					ns.Audit.Escalations[i].Status = state.EscalationResolved
-					ns.Audit.Escalations[i].ResolvedBy = nodeAddr
-					now := app.Clock.Now()
-					ns.Audit.Escalations[i].ResolvedAt = &now
-					found = true
-					break
 				}
-			}
-
-			if !found {
 				return fmt.Errorf("escalation %s not found in %s", escalationID, nodeAddr)
-			}
-
-			if err := state.SaveNodeState(statePath, ns); err != nil {
+			}); err != nil {
 				return err
 			}
 

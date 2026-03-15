@@ -2,13 +2,11 @@ package audit
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -38,20 +36,10 @@ Examples:
 				return fmt.Errorf("--node is required: specify the target node address")
 			}
 
-			addr, err := tree.ParseAddress(nodeAddr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-			statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-
-			ns, err := state.LoadNodeState(statePath)
-			if err != nil {
-				return fmt.Errorf("loading node state: %w", err)
-			}
-
-			state.AddBreadcrumb(ns, nodeAddr, text, app.Clock)
-
-			if err := state.SaveNodeState(statePath, ns); err != nil {
+			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+				state.AddBreadcrumb(ns, nodeAddr, text, app.Clock)
+				return nil
+			}); err != nil {
 				return err
 			}
 

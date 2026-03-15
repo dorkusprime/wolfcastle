@@ -2,12 +2,10 @@ package audit
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -30,37 +28,21 @@ Examples:
 				return fmt.Errorf("--node is required")
 			}
 
-			addr, err := tree.ParseAddress(nodeAddr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-			statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-
-			ns, err := state.LoadNodeState(statePath)
-			if err != nil {
-				return fmt.Errorf("loading node state: %w", err)
-			}
-
-			found := false
-			for i := range ns.Audit.Gaps {
-				if ns.Audit.Gaps[i].ID == gapID {
-					if ns.Audit.Gaps[i].Status == state.GapFixed {
-						return fmt.Errorf("gap %s is already fixed", gapID)
+			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+				for i := range ns.Audit.Gaps {
+					if ns.Audit.Gaps[i].ID == gapID {
+						if ns.Audit.Gaps[i].Status == state.GapFixed {
+							return fmt.Errorf("gap %s is already fixed", gapID)
+						}
+						ns.Audit.Gaps[i].Status = state.GapFixed
+						ns.Audit.Gaps[i].FixedBy = nodeAddr
+						now := app.Clock.Now()
+						ns.Audit.Gaps[i].FixedAt = &now
+						return nil
 					}
-					ns.Audit.Gaps[i].Status = state.GapFixed
-					ns.Audit.Gaps[i].FixedBy = nodeAddr
-					now := app.Clock.Now()
-					ns.Audit.Gaps[i].FixedAt = &now
-					found = true
-					break
 				}
-			}
-
-			if !found {
 				return fmt.Errorf("gap %s not found in %s", gapID, nodeAddr)
-			}
-
-			if err := state.SaveNodeState(statePath, ns); err != nil {
+			}); err != nil {
 				return err
 			}
 

@@ -47,6 +47,7 @@ type Daemon struct {
 	Config        *config.Config
 	WolfcastleDir string
 	Resolver      *tree.Resolver
+	Store         *state.StateStore
 	ScopeNode     string
 	Logger        *logging.Logger
 	InboxLogger   *logging.Logger // separate logger for the inbox goroutine
@@ -94,6 +95,7 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 		Config:        cfg,
 		WolfcastleDir: wolfcastleDir,
 		Resolver:      resolver,
+		Store:         state.NewStateStore(resolver.ProjectsDir(), 5*time.Second),
 		ScopeNode:     scopeNode,
 		Logger:        logger,
 		InboxLogger:   inboxLogger,
@@ -306,7 +308,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 
 	// Navigate to find work. Inbox processing runs in a parallel
 	// goroutine (ADR-064), so the main loop only handles execution.
-	idx, err := d.Resolver.LoadRootIndex()
+	idx, err := d.Store.ReadIndex()
 	if err != nil {
 		return IterationStop, werrors.Navigation(fmt.Errorf("loading root index: %w", err))
 	}

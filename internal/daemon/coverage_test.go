@@ -84,13 +84,14 @@ func TestRunOnce_NoRootIndex(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	// No root index file => should return a fatal error
+	// No root index file => StateStore returns empty default index,
+	// navigation finds no work, result is IterationNoWork (not fatal).
 	result, err := d.RunOnce(context.Background())
-	if err == nil {
-		t.Fatal("expected error when root index is missing")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if result != IterationStop {
-		t.Errorf("expected IterationStop, got %d", result)
+	if result != IterationNoWork {
+		t.Errorf("expected IterationNoWork, got %d", result)
 	}
 }
 
