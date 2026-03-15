@@ -24,7 +24,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
@@ -161,11 +160,9 @@ const (
 
 // Run executes the daemon loop.
 func (d *Daemon) Run(ctx context.Context) error {
-	// Root the daemon in a cancelable signal context so SIGINT/SIGTERM/SIGTSTP
-	// cancels in-flight model invocations (ADR-024 shutdown compliance).
-	// SIGTSTP (Ctrl+Z) is caught so foreground mode exits cleanly instead of
-	// suspending to a stopped background process.
-	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
+	// Root the daemon in a cancelable signal context so shutdown signals
+	// cancel in-flight model invocations (ADR-024 shutdown compliance).
+	ctx, cancel := signal.NotifyContext(ctx, shutdownSignals...)
 	defer cancel()
 
 	// Also close the shutdown channel for backward compatibility with
