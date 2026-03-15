@@ -226,35 +226,56 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// independently of the main execution loop.
 	go d.runInboxLoop(ctx)
 
+	var idleSpinner *output.Spinner
 	for {
 		result, err := d.RunOnce(ctx)
 		if err != nil {
+			if idleSpinner != nil {
+				idleSpinner.Stop()
+			}
 			return err
 		}
 
 		switch result {
 		case IterationStop:
+			if idleSpinner != nil {
+				idleSpinner.Stop()
+			}
 			return nil
 		case IterationNoWork:
-			// Select on workAvailable so the inbox goroutine can wake us
-			// immediately when new tasks are created (ADR-064).
-			spinner := output.NewSpinner()
-			spinner.Start()
+			// Start spinner on first idle cycle; keep it running
+			// across poll timeouts to avoid a visible jitter every
+			// BlockedPollIntervalSeconds.
+			if idleSpinner == nil {
+				idleSpinner = output.NewSpinner()
+				idleSpinner.Start()
+			}
 			select {
 			case <-ctx.Done():
-				spinner.Stop()
+				idleSpinner.Stop()
 				return nil
 			case <-d.workAvailable:
 				// New work arrived from inbox goroutine
 			case <-time.After(time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds) * time.Second):
-				// Poll timeout
+				// Poll timeout — loop back to RunOnce, spinner stays alive
+				continue
 			}
-			spinner.Stop()
+			// Leaving idle state: stop and discard spinner
+			idleSpinner.Stop()
+			idleSpinner = nil
 		case IterationError:
+			if idleSpinner != nil {
+				idleSpinner.Stop()
+				idleSpinner = nil
+			}
 			if !sleepWithContext(ctx, time.Duration(d.Config.Daemon.PollIntervalSeconds)*time.Second) {
 				return nil
 			}
 		case IterationDidWork:
+			if idleSpinner != nil {
+				idleSpinner.Stop()
+				idleSpinner = nil
+			}
 			retOpts := []logging.RetentionOption{}
 			if d.Config.Logs.Compress {
 				retOpts = append(retOpts, logging.WithCompression())
