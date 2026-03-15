@@ -11,6 +11,9 @@ import (
 // Spinner renders a repeating projectile animation on a single line.
 // The round travels left-to-right across a fixed-width track, then
 // wraps back to the start. Call Stop() to clear the line and halt.
+//
+// While a spinner is active, PrintHuman clears the animation before
+// writing so messages never collide with the spinner frame.
 type Spinner struct {
 	mu      sync.Mutex
 	stop    chan struct{}
@@ -22,6 +25,12 @@ const (
 	spinnerWidth = 20       // total characters inside the brackets
 	projectile   = ">>──▶"  // the moving round
 	frameDelay   = 80 * time.Millisecond
+)
+
+// Global coordination: PrintHuman checks this before writing.
+var (
+	activeMu      sync.Mutex
+	activeSpinner *Spinner
 )
 
 // NewSpinner creates a spinner but does not start it.
@@ -48,6 +57,10 @@ func (s *Spinner) Start() {
 		return
 	}
 
+	activeMu.Lock()
+	activeSpinner = s
+	activeMu.Unlock()
+
 	go s.run()
 }
 
@@ -57,7 +70,7 @@ func (s *Spinner) Stop() {
 	s.mu.Lock()
 	if !s.started {
 		s.mu.Unlock()
-		close(s.done) // unblock any waiter
+		close(s.done)
 		return
 	}
 	s.mu.Unlock()
@@ -67,6 +80,19 @@ func (s *Spinner) Stop() {
 	default:
 	}
 	<-s.done
+
+	activeMu.Lock()
+	if activeSpinner == s {
+		activeSpinner = nil
+	}
+	activeMu.Unlock()
+}
+
+// clearForMessage is called by PrintHuman to temporarily erase the
+// spinner line so the message prints cleanly. The spinner's next
+// tick redraws itself automatically.
+func (s *Spinner) clearForMessage() {
+	fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+1))
 }
 
 func (s *Spinner) run() {
@@ -81,16 +107,15 @@ func (s *Spinner) run() {
 	ticker := time.NewTicker(frameDelay)
 	defer ticker.Stop()
 
-	// The spinner lives on its own line so other output doesn't collide.
-	fmt.Fprint(os.Stdout, "\n")
+	// Render first frame immediately.
 	fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
 	pos = (pos + 1) % spinnerWidth
 
 	for {
 		select {
 		case <-s.stop:
-			// Clear spinner line, move cursor up, clear that line too.
-			fmt.Fprintf(os.Stdout, "\r%s\r\033[A\033[2K", strings.Repeat(" ", spinnerWidth+1))
+			// Erase the spinner line.
+			fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+1))
 			return
 		case <-ticker.C:
 			fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
@@ -99,7 +124,7 @@ func (s *Spinner) run() {
 	}
 }
 
-// renderFrame builds one animation frame: [───▶           ─]
+// renderFrame builds one animation frame.
 // The projectile wraps smoothly when it reaches the right edge.
 func renderFrame(pos, projLen int) string {
 	track := make([]rune, spinnerWidth)

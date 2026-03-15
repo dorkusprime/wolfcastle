@@ -38,7 +38,15 @@ func Print(r Response) {
 }
 
 // PrintHuman writes a human-readable message to stdout.
+// If a spinner is active, clears the spinner line first so the
+// message prints cleanly. The spinner redraws on its next tick.
 func PrintHuman(format string, args ...any) {
+	activeMu.Lock()
+	s := activeSpinner
+	activeMu.Unlock()
+	if s != nil {
+		s.clearForMessage()
+	}
 	_, _ = fmt.Fprintf(os.Stdout, format+"\n", args...)
 }
 
