@@ -63,3 +63,4 @@
 | 059 | [Pre-Commit Hooks via .githooks/](059-pre-commit-hooks.md) | Accepted | 2026-03-14 |
 | 060 | [Platform-Specific Code via Build Tags](060-platform-build-tags.md) | Accepted | 2026-03-14 |
 | 061 | [MIT License](061-mit-license.md) | Accepted | 2026-03-14 |
+| 062 | [Realistic Model Mocks for Integration Testing](062-realistic-model-mocks.md) | Accepted | 2026-03-14 |

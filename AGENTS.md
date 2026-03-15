@@ -24,6 +24,7 @@ Consult these topic-specific files before making changes in their domain:
 | [State & Types](docs/agents/state-and-types.md) | Modifying state files, types, or propagation logic |
 | [Documentation](docs/agents/documentation.md) | Writing specs, ADRs, or updating existing docs |
 | [Voice](docs/agents/VOICE.md) | Writing user-facing copy, error messages, README text, or any prose that represents Wolfcastle's personality |
+| [Testing](docs/agents/testing.md) | Writing or debugging daemon integration tests, mock model configuration |
 | [Audit](docs/agents/AUDIT.md) | Running a comprehensive codebase audit (correctness, style, security, docs, coverage, usability) |
 
 ## Design References

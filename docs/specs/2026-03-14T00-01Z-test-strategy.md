@@ -7,6 +7,7 @@ This spec defines the three-tier test strategy for Wolfcastle, covering unit tes
 - ADR-044: Test Strategy — Unit, Integration, and Smoke
 - ADR-032: Go Project Structure and Cobra CLI Framework
 - ADR-043: CI/CD Pipeline and Quality Gates
+- ADR-062: Realistic Model Mocks for Integration Testing
 
 ---
 
@@ -249,7 +250,76 @@ Packages below 80% have justified reasons: `cmd/daemon` (46%) requires real proc
 
 ---
 
-## 6. Test Conventions
+## 6. Mock Model System (ADR-062)
+
+The daemon integration tests use configurable shell scripts to simulate real model behavior. Rather than trivial "emit a marker and exit" stubs, these mocks participate in the full daemon-model contract: reading the assembled prompt from stdin, performing side effects, and emitting terminal markers in Claude Code's stream-json envelope format.
+
+### Mock Infrastructure Layers
+
+**Layer 1: `internal/daemon/` integration tests.** These construct a `Daemon` struct directly via `testDaemon(t)`, set a model definition pointing at a shell script, and call `RunOnce()`. The `setupLeafNode()` helper creates a node with tasks, and `writePromptFile()` creates a minimal prompt so assembly succeeds. This layer tests the daemon's internal iteration logic without subprocess overhead.
+
+**Layer 2: `test/integration/` tests.** These exercise the full CLI path via helper functions that generate shell scripts at runtime:
+
+| Helper | Behavior |
+|--------|----------|
+| `createMockModel(t, dir, name, behavior)` | Creates a named script with one of five behaviors: `complete`, `yield`, `blocked`, `no-marker`, `create-file` |
+| `createCounterMock(t, dir, yieldCount)` | Creates a script that yields `yieldCount` times then completes; returns the script path and counter file path |
+| `createNoMarkerStopAfterMock(t, dir, stopAfter)` | Creates a script that emits no terminal marker, placing the daemon stop file after `stopAfter` invocations |
+| `configureMockModels(t, dir, scriptPath)` | Overwrites `config.json` to point all three model tiers (fast, mid, heavy) at the given script |
+
+### Script Generation at Runtime
+
+Mock scripts are generated as shell files in `.wolfcastle/mock-scripts/` within the test's temp directory. Each script follows the same structure:
+
+1. Read stdin to `/dev/null` (consuming the prompt the daemon pipes in)
+2. Optionally perform side effects (file creation, counter increment)
+3. Emit one or more JSON lines in stream-json format
+4. Optionally create the daemon stop file (`.wolfcastle/stop`)
+
+Scripts that need to validate prompt content read stdin into a variable instead of discarding it, then use `grep -q` to check for expected strings and write results to an assertion file.
+
+### Assertion File Pattern
+
+Since the daemon consumes the mock's stdout, tests cannot inspect it directly. Instead, mocks write structured data to sidecar assertion files:
+
+```sh
+PROMPT=$(cat)
+RESULTS=""
+echo "$PROMPT" | grep -q "my-node" && RESULTS="${RESULTS}HAS_NODE\n"
+echo "$PROMPT" | grep -q "task description" && RESULTS="${RESULTS}HAS_DESC\n"
+printf "%b" "$RESULTS" > /path/to/assertions.txt
+echo "WOLFCASTLE_COMPLETE"
+```
+
+The test reads the assertion file after the daemon exits and checks for expected markers:
+
+```go
+data, _ := os.ReadFile(assertFile)
+if !strings.Contains(string(data), "HAS_NODE") {
+    t.Error("prompt did not contain node address")
+}
+```
+
+### Counter-Based Multi-Invocation
+
+For scenarios that require multiple daemon iterations (yield-then-complete, failure escalation), mocks use a counter file:
+
+1. The script reads a counter from a file on disk (initialized to `0` by the test setup)
+2. Increments and writes back the new value
+3. Chooses behavior based on the count: yield if below threshold, complete if at threshold
+
+This eliminates timing dependencies. The daemon runs at full speed; mock behavior is purely a function of invocation count.
+
+### Relationship to Test Tiers
+
+The mock model system spans Tier 1 and Tier 2:
+
+- **Tier 1 (unit-level):** `internal/daemon/integration_test.go` uses `testDaemon()` with inline shell commands or generated scripts. These tests verify marker parsing, state transitions, prompt echo rejection, and failure escalation at the `RunOnce()` level.
+- **Tier 2 (integration):** `test/integration/daemon_test.go` uses the mock helper functions with `wolfcastle start`. These tests verify the full daemon lifecycle: claiming tasks, iterating, stopping on completion or cap, and persisting state through the CLI layer.
+
+---
+
+## 7. Test Conventions
 
 - **Table-driven tests** for functions with multiple input/output cases
 - **`t.TempDir()`** for all filesystem tests (auto-cleanup)
