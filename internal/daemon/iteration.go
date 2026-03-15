@@ -156,13 +156,15 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 		}
 
-		// Check for terminal markers and transition task state
-		if strings.Contains(result.Stdout, "WOLFCASTLE_YIELD") {
+		// Check for terminal markers and transition task state.
+		// Use line-by-line scanning to avoid false matches against
+		// prompt instructions echoed in the model's JSON stream.
+		marker := scanTerminalMarker(result.Stdout)
+		if marker == "WOLFCASTLE_YIELD" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_YIELD"})
-			// Yield: task stays in_progress for resumption on next iteration
 			return nil
 		}
-		if strings.Contains(result.Stdout, "WOLFCASTLE_BLOCKED") {
+		if marker == "WOLFCASTLE_BLOCKED" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
 			if blockErr := state.TaskBlock(ns, nav.TaskID, "blocked by model"); blockErr == nil {
 				_ = state.SaveNodeState(statePath, ns)
@@ -170,7 +172,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 			return nil
 		}
-		if strings.Contains(result.Stdout, "WOLFCASTLE_COMPLETE") {
+		if marker == "WOLFCASTLE_COMPLETE" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_COMPLETE"})
 			if completeErr := state.TaskComplete(ns, nav.TaskID); completeErr != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": completeErr.Error()})
@@ -223,5 +225,32 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	}
 
 	return nil
+}
+
+// scanTerminalMarker scans model output line-by-line for terminal markers.
+// A line matches only if it contains the marker as a standalone token,
+// not embedded inside a larger word or JSON key. This prevents false
+// positives from prompt instructions echoed in Claude Code's JSON stream.
+// Returns the marker name or empty string if none found.
+func scanTerminalMarker(output string) string {
+	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
+	for _, line := range strings.Split(output, "\n") {
+		trimmed := strings.TrimSpace(line)
+		for _, m := range markers {
+			// Match if the trimmed line IS the marker, or if the marker
+			// appears as the last token on the line (model might prefix
+			// it with text). Reject matches inside JSON strings where
+			// the marker is surrounded by quotes or other content that
+			// indicates it's part of prompt echo, not a real emission.
+			if trimmed == m {
+				return m
+			}
+			// Also match "WOLFCASTLE_COMPLETE" at end of line after whitespace
+			if strings.HasSuffix(trimmed, m) && (len(trimmed) == len(m) || trimmed[len(trimmed)-len(m)-1] == ' ') {
+				return m
+			}
+		}
+	}
+	return ""
 }
 
