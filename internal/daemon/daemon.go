@@ -12,11 +12,11 @@
 // File layout follows ADR-045:
 //
 //   - daemon.go    — Daemon struct, New, Run, RunWithSupervisor, RunOnce
-//   - iteration.go — per-iteration pipeline dispatch
-//   - stages.go    — intake stage handler, parallel inbox goroutine
-//   - markers.go   — WOLFCASTLE_* marker parsing and state mutation
-//   - retry.go     — invocation retry with exponential backoff
-//   - propagate.go — state propagation and inbox helpers
+//   - iteration.go   — per-iteration pipeline dispatch, terminal marker scanning
+//   - stages.go      — intake stage handler, parallel inbox goroutine
+//   - deliverables.go — deliverable file verification
+//   - retry.go       — invocation retry with exponential backoff
+//   - propagate.go   — state propagation via StateStore
 //   - branch.go          — git branch detection
 //   - pid.go             — PID file operations
 //   - signals_unix.go    — shutdown signals (Unix)
