@@ -14,6 +14,7 @@ import (
 )
 
 func TestCLI_InitIdempotent(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -31,6 +32,7 @@ func TestCLI_InitIdempotent(t *testing.T) {
 }
 
 func TestCLI_ProjectHierarchy(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -72,6 +74,7 @@ func TestCLI_ProjectHierarchy(t *testing.T) {
 }
 
 func TestCLI_TaskLifecycle(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "lifecycle-proj")
@@ -121,6 +124,7 @@ func TestCLI_TaskLifecycle(t *testing.T) {
 }
 
 func TestCLI_TaskBlockUnblock(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "block-proj")
@@ -159,6 +163,7 @@ func TestCLI_TaskBlockUnblock(t *testing.T) {
 }
 
 func TestCLI_InboxLifecycle(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -189,6 +194,7 @@ func TestCLI_InboxLifecycle(t *testing.T) {
 }
 
 func TestCLI_SpecManagement(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "spec-proj")
@@ -213,6 +219,7 @@ func TestCLI_SpecManagement(t *testing.T) {
 }
 
 func TestCLI_ADRCreation(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -255,6 +262,7 @@ func TestCLI_ADRCreation(t *testing.T) {
 }
 
 func TestCLI_DoctorFindsIssues(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "doctor-test")
@@ -272,6 +280,7 @@ func TestCLI_DoctorFindsIssues(t *testing.T) {
 }
 
 func TestCLI_DoctorFixes(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "doctor-fix-test")
@@ -298,6 +307,7 @@ func TestCLI_DoctorFixes(t *testing.T) {
 }
 
 func TestCLI_NavigateFindsWork(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "nav-proj")
@@ -313,6 +323,7 @@ func TestCLI_NavigateFindsWork(t *testing.T) {
 }
 
 func TestCLI_NavigateDepthFirst(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -332,6 +343,7 @@ func TestCLI_NavigateDepthFirst(t *testing.T) {
 }
 
 func TestCLI_StatusOutput(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -357,6 +369,7 @@ func TestCLI_StatusOutput(t *testing.T) {
 }
 
 func TestCLI_JSONOutputConsistency(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -383,6 +396,7 @@ func TestCLI_JSONOutputConsistency(t *testing.T) {
 }
 
 func TestCLI_ArchiveAdd(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "archive-proj")
@@ -418,6 +432,7 @@ func TestCLI_ArchiveAdd(t *testing.T) {
 }
 
 func TestCLI_OverlapAdvisory(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -439,6 +454,7 @@ func TestCLI_OverlapAdvisory(t *testing.T) {
 
 // Verify that the JSON envelope from runJSON has the standard structure.
 func TestCLI_JSONEnvelopeStructure(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 

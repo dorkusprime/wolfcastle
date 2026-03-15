@@ -24,6 +24,7 @@ import (
 // --- Test 3: YieldThreeThenComplete ---
 
 func TestDaemon_YieldThreeThenComplete(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -63,6 +64,7 @@ func TestDaemon_YieldThreeThenComplete(t *testing.T) {
 // --- Test 4: YieldThenBlocked ---
 
 func TestDaemon_YieldThenBlocked(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -95,6 +97,7 @@ func TestDaemon_YieldThenBlocked(t *testing.T) {
 // --- Test 5: YieldThenNoMarker ---
 
 func TestDaemon_YieldThenNoMarker(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -134,6 +137,7 @@ func TestDaemon_YieldThenNoMarker(t *testing.T) {
 // --- Test 7: BlockedWithReasonText ---
 
 func TestDaemon_BlockedWithReasonText(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -170,6 +174,7 @@ func TestDaemon_BlockedWithReasonText(t *testing.T) {
 // --- Test 9: NoMarkerPastDecompositionThreshold ---
 
 func TestDaemon_NoMarkerPastDecompositionThreshold(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -208,6 +213,7 @@ func TestDaemon_NoMarkerPastDecompositionThreshold(t *testing.T) {
 // --- Test 11: MultipleMarkersInOneOutput_CompleteWins ---
 
 func TestDaemon_MultipleMarkersInOneOutput_CompleteWins(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -254,6 +260,7 @@ touch "%s"
 // --- Test 12: MarkerInPromptEcho_Rejected ---
 
 func TestDaemon_MarkerInPromptEcho_Rejected(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -312,6 +319,7 @@ touch "%s"
 // --- Test 13: MarkerInJSONEnvelope ---
 
 func TestDaemon_MarkerInJSONEnvelope(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -356,6 +364,7 @@ func TestDaemon_MarkerInJSONEnvelope(t *testing.T) {
 // --- Test 14: MarkerInResultField ---
 
 func TestDaemon_MarkerInResultField(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -401,6 +410,7 @@ func TestDaemon_MarkerInResultField(t *testing.T) {
 // --- Test 15: MarkerInTextField ---
 
 func TestDaemon_MarkerInTextField(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -450,6 +460,7 @@ func TestDaemon_MarkerInTextField(t *testing.T) {
 // --- Test 16: MarkerInMessageContent ---
 
 func TestDaemon_MarkerInMessageContent(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 

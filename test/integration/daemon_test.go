@@ -13,6 +13,7 @@ import (
 )
 
 func TestDaemon_SimpleComplete(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -41,6 +42,7 @@ func TestDaemon_SimpleComplete(t *testing.T) {
 }
 
 func TestDaemon_YieldThenComplete(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -75,6 +77,7 @@ func TestDaemon_YieldThenComplete(t *testing.T) {
 }
 
 func TestDaemon_Blocked(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -100,6 +103,7 @@ func TestDaemon_Blocked(t *testing.T) {
 }
 
 func TestDaemon_FailureEscalation(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -132,6 +136,7 @@ func TestDaemon_FailureEscalation(t *testing.T) {
 }
 
 func TestDaemon_HardCapAutoBlock(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -165,6 +170,7 @@ func TestDaemon_HardCapAutoBlock(t *testing.T) {
 }
 
 func TestDaemon_FileCreation(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -184,6 +190,7 @@ func TestDaemon_FileCreation(t *testing.T) {
 }
 
 func TestDaemon_EmptyTree(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -207,6 +214,7 @@ func TestDaemon_EmptyTree(t *testing.T) {
 }
 
 func TestDaemon_SelfHealing(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -242,6 +250,7 @@ func TestDaemon_SelfHealing(t *testing.T) {
 }
 
 func TestDaemon_MaxIterations(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 

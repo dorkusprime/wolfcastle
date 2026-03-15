@@ -10,6 +10,7 @@ import (
 )
 
 func TestProjectLifecycle(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 
 	// Initialize
@@ -56,6 +57,7 @@ func TestProjectLifecycle(t *testing.T) {
 }
 
 func TestProjectLifecycleJSON(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 
 	run(t, dir, "init")
@@ -78,6 +80,7 @@ func TestProjectLifecycleJSON(t *testing.T) {
 }
 
 func TestInboxLifecycle(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -108,6 +111,7 @@ func TestInboxLifecycle(t *testing.T) {
 }
 
 func TestAuditBreadcrumbAndEscalation(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -142,6 +146,7 @@ func TestAuditBreadcrumbAndEscalation(t *testing.T) {
 }
 
 func TestSpecLifecycle(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -178,6 +183,7 @@ func TestSpecLifecycle(t *testing.T) {
 }
 
 func TestDoctorFixesMissingAuditTask(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "doctor-test")
@@ -224,6 +230,7 @@ func TestDoctorFixesMissingAuditTask(t *testing.T) {
 }
 
 func TestInitAlreadyInitialized(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 
 	// First init
@@ -237,6 +244,7 @@ func TestInitAlreadyInitialized(t *testing.T) {
 }
 
 func TestTaskClaimBeforeCreate(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -245,6 +253,7 @@ func TestTaskClaimBeforeCreate(t *testing.T) {
 }
 
 func TestProjectCreateDuplicate(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "dup-project")

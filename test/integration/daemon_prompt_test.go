@@ -11,6 +11,7 @@ import (
 
 // Test 29: The prompt piped to the model's stdin contains the task description.
 func TestDaemon_PromptContainsTaskDescription(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -40,6 +41,7 @@ func TestDaemon_PromptContainsTaskDescription(t *testing.T) {
 
 // Test 30: The prompt contains the node address so the model knows where it's working.
 func TestDaemon_PromptContainsNodeAddress(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -69,6 +71,7 @@ func TestDaemon_PromptContainsNodeAddress(t *testing.T) {
 
 // Test 31: After a failure, the prompt contains failure context (failure_count or iteration text).
 func TestDaemon_PromptContainsIterationContext(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -105,6 +108,7 @@ func TestDaemon_PromptContainsIterationContext(t *testing.T) {
 
 // Test 32: A rule fragment placed in base/rules/ appears in the prompt.
 func TestDaemon_PromptContainsBaseTierRules(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -142,6 +146,7 @@ func TestDaemon_PromptContainsBaseTierRules(t *testing.T) {
 
 // Test 33: A rule in custom/rules/ overrides a same-named file in base/rules/.
 func TestDaemon_PromptContainsCustomTierOverride(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -206,6 +211,7 @@ func TestDaemon_PromptContainsCustomTierOverride(t *testing.T) {
 
 // Test 34: A rule in local/rules/ overrides same-named files in custom/rules/ and base/rules/.
 func TestDaemon_PromptContainsLocalTierOverride(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -273,6 +279,7 @@ func TestDaemon_PromptContainsLocalTierOverride(t *testing.T) {
 
 // Test 35: The prompt contains the script reference section (wolfcastle commands).
 func TestDaemon_PromptContainsScriptReference(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -303,6 +310,7 @@ func TestDaemon_PromptContainsScriptReference(t *testing.T) {
 // Test 36: After a YIELD, the second invocation's prompt contains updated context
 // (the breadcrumb from the first invocation).
 func TestDaemon_PromptChangesBetweenIterations(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 

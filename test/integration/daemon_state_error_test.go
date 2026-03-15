@@ -19,6 +19,7 @@ import (
 
 // Test 37: Clean YIELD then COMPLETE across two iterations.
 func TestDaemon_CleanYieldComplete_TwoIterations(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -54,6 +55,7 @@ func TestDaemon_CleanYieldComplete_TwoIterations(t *testing.T) {
 
 // Test 38: YIELD five times, then COMPLETE on the sixth invocation.
 func TestDaemon_YieldFiveThenComplete(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -85,6 +87,7 @@ func TestDaemon_YieldFiveThenComplete(t *testing.T) {
 
 // Test 39: Each iteration creates a different file, all present after completion.
 func TestDaemon_YieldWithDifferentFilesEachIteration(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -122,6 +125,7 @@ func TestDaemon_YieldWithDifferentFilesEachIteration(t *testing.T) {
 
 // Test 40: Breadcrumb text differs across iterations; both are recorded.
 func TestDaemon_BreadcrumbDiffersAcrossIterations(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -162,6 +166,7 @@ func TestDaemon_BreadcrumbDiffersAcrossIterations(t *testing.T) {
 
 // Test 41: First invocation fails (no marker), second completes. Failure count is recorded.
 func TestDaemon_FailureThenComplete(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -197,6 +202,7 @@ func TestDaemon_FailureThenComplete(t *testing.T) {
 
 // Test 42: Alternating failures and yields, eventually completing.
 func TestDaemon_AlternatingFailuresAndYields(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -237,6 +243,7 @@ func TestDaemon_AlternatingFailuresAndYields(t *testing.T) {
 // call wolfcastle project create, which is tested in isolation. Here we verify
 // the needs_decomposition flag is set by the daemon.
 func TestDaemon_DecompositionCreatesChildren(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -273,6 +280,7 @@ func TestDaemon_DecompositionCreatesChildren(t *testing.T) {
 
 // Test 44: A freshly created task starts in not_started state.
 func TestDaemon_TaskStartsNotStarted(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -293,6 +301,7 @@ func TestDaemon_TaskStartsNotStarted(t *testing.T) {
 
 // Test 45: A task left in_progress (crash) is picked up by the daemon on restart.
 func TestDaemon_TaskStartsInProgress_CrashRecovery(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -328,6 +337,7 @@ func TestDaemon_TaskStartsInProgress_CrashRecovery(t *testing.T) {
 
 // Test 46: A blocked task must be unblocked before the daemon will work on it.
 func TestDaemon_TaskStartsBlocked_ThenUnblocked(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -368,6 +378,7 @@ func TestDaemon_TaskStartsBlocked_ThenUnblocked(t *testing.T) {
 
 // Test 47: Multiple tasks on a single leaf are processed sequentially.
 func TestDaemon_MultipleTasksInOneLeaf(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -409,6 +420,7 @@ func TestDaemon_MultipleTasksInOneLeaf(t *testing.T) {
 
 // Test 48: Multiple leaf nodes under a parent orchestrator are all completed.
 func TestDaemon_MultipleLeavesUnderOrchestrator(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -452,6 +464,7 @@ func TestDaemon_MultipleLeavesUnderOrchestrator(t *testing.T) {
 // that leaf-level audit tasks (is_audit=true) do run correctly after the leaf's
 // regular tasks finish.
 func TestDaemon_AuditTaskExecutesAfterAllComplete(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -499,6 +512,7 @@ func TestDaemon_AuditTaskExecutesAfterAllComplete(t *testing.T) {
 
 // Test 50: Model command not found causes a daemon error, not a panic.
 func TestDaemon_ModelCommandNotFound(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -527,6 +541,7 @@ func TestDaemon_ModelCommandNotFound(t *testing.T) {
 // Test 51: Model exits with non-zero exit code. Daemon treats it as a failure
 // (no terminal marker), increments failure count, and continues.
 func TestDaemon_ModelExitsNonZero(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -565,6 +580,7 @@ func TestDaemon_ModelExitsNonZero(t *testing.T) {
 
 // Test 52: Model produces empty stdout. Treated as no-marker failure.
 func TestDaemon_ModelProducesEmptyStdout(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -623,6 +639,7 @@ fi
 
 // Test 53: Model produces ~1MB of output. The daemon handles it without crashing.
 func TestDaemon_ModelProducesHugeStdout(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -687,6 +704,7 @@ touch "%s"
 // timeout; the second completes normally.
 // This test takes ~62s due to the minimum allowed timeout being 60s.
 func TestDaemon_ModelTimesOut(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skipping timeout test in short mode (takes ~60s)")
 	}
@@ -759,6 +777,7 @@ fi
 // Test 55: Model writes to stderr. The daemon should not crash and the task
 // should still complete based on stdout markers.
 func TestDaemon_ModelWritesToStderr(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 

@@ -12,6 +12,7 @@ import (
 
 // Test 17: Model creates a file during execution.
 func TestDaemon_ModelCreatesFiles(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -41,6 +42,7 @@ func TestDaemon_ModelCreatesFiles(t *testing.T) {
 
 // Test 18: Model modifies an existing file.
 func TestDaemon_ModelModifiesExistingFiles(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -75,6 +77,7 @@ func TestDaemon_ModelModifiesExistingFiles(t *testing.T) {
 
 // Test 19: Model deletes an existing file.
 func TestDaemon_ModelDeletesFiles(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -105,6 +108,7 @@ func TestDaemon_ModelDeletesFiles(t *testing.T) {
 
 // Test 20: Model emits a WOLFCASTLE_BREADCRUMB: marker; verify breadcrumb in state.
 func TestDaemon_ModelCallsBreadcrumb(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -139,6 +143,7 @@ func TestDaemon_ModelCallsBreadcrumb(t *testing.T) {
 
 // Test 21: Model emits a WOLFCASTLE_GAP: marker; verify gap in state.
 func TestDaemon_ModelCallsGap(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -178,6 +183,7 @@ func TestDaemon_ModelCallsGap(t *testing.T) {
 // CLI operation. This test verifies the full flow: child emits a gap, then
 // the mock script calls `wolfcastle audit escalate` to push it to the parent.
 func TestDaemon_ModelCallsEscalate(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -238,6 +244,7 @@ func TestDaemon_ModelCallsEscalate(t *testing.T) {
 // task ends up complete regardless, because the daemon also processes the
 // WOLFCASTLE_COMPLETE marker and transitions the task.
 func TestDaemon_ModelCallsTaskComplete(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -275,6 +282,7 @@ func TestDaemon_ModelCallsTaskComplete(t *testing.T) {
 // will transition the task to blocked. The CLI call may be overwritten,
 // but the end state should be blocked.
 func TestDaemon_ModelCallsTaskBlock(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -310,6 +318,7 @@ func TestDaemon_ModelCallsTaskBlock(t *testing.T) {
 // The file should persist on disk, but the task remains in_progress
 // because the daemon treats a missing marker as a failed invocation.
 func TestDaemon_ModelCreatesFilesThenFails(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -360,6 +369,7 @@ func TestDaemon_ModelCreatesFilesThenFails(t *testing.T) {
 // Test 26: Model emits two WOLFCASTLE_BREADCRUMB: lines in a single
 // invocation; verify both are recorded.
 func TestDaemon_ModelCallsBreadcrumbMultipleTimes(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -405,6 +415,7 @@ func TestDaemon_ModelCallsBreadcrumbMultipleTimes(t *testing.T) {
 // WOLFCASTLE_COMPLETE marker (double completion signal). The daemon should
 // handle this without error.
 func TestDaemon_ModelCallsTaskCompleteAndEmitsComplete(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -444,6 +455,7 @@ func TestDaemon_ModelCallsTaskCompleteAndEmitsComplete(t *testing.T) {
 // WOLFCASTLE_BLOCKED marker (double block signal). The daemon should
 // handle this without error.
 func TestDaemon_ModelCallsTaskBlockAndEmitsBlocked(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 

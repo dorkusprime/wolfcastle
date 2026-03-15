@@ -11,6 +11,7 @@ import (
 )
 
 func TestConfig_ThreeTierMerge(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -32,6 +33,7 @@ func TestConfig_ThreeTierMerge(t *testing.T) {
 }
 
 func TestConfig_NullDeletion(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -53,6 +55,7 @@ func TestConfig_NullDeletion(t *testing.T) {
 }
 
 func TestConfig_PromptOverride(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -81,6 +84,7 @@ func TestConfig_PromptOverride(t *testing.T) {
 }
 
 func TestConfig_ModelDefinition(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 

@@ -11,6 +11,7 @@ import (
 )
 
 func TestDaemon_RealisticComplete(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -74,6 +75,7 @@ func TestDaemon_RealisticComplete(t *testing.T) {
 }
 
 func TestDaemon_RealisticYieldResume(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -128,6 +130,7 @@ func TestDaemon_RealisticYieldResume(t *testing.T) {
 }
 
 func TestDaemon_PromptContainsTaskInfo(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -157,6 +160,7 @@ func TestDaemon_PromptContainsTaskInfo(t *testing.T) {
 }
 
 func TestDaemon_PromptContainsRuleFragments(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -195,6 +199,7 @@ func TestDaemon_PromptContainsRuleFragments(t *testing.T) {
 }
 
 func TestDaemon_ModelCallsCLI(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
@@ -252,6 +257,7 @@ func TestDaemon_ModelCallsCLI(t *testing.T) {
 }
 
 func TestDaemon_PartialFailure(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	run(t, dir, "init")
 
