@@ -3,6 +3,7 @@ package validate
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -10,6 +11,9 @@ import (
 
 func TestCheckOrphanedStateFiles_UnreadableDir(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0000 has no effect on Windows")
+	}
 	dir := t.TempDir()
 	idx := state.NewRootIndex()
 
@@ -28,6 +32,9 @@ func TestCheckOrphanedStateFiles_UnreadableDir(t *testing.T) {
 
 func TestCheckOrphanedDefinitions_UnreadableDir(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0000 has no effect on Windows")
+	}
 	dir := t.TempDir()
 	idx := state.NewRootIndex()
 

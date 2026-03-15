@@ -3,11 +3,15 @@ package pipeline
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
 func TestResolveFragment_UnreadableFile(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0000 has no effect on Windows")
+	}
 	dir := t.TempDir()
 
 	// Create a file in the base tier that can't be read

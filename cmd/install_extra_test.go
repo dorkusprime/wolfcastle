@@ -3,10 +3,14 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
 func TestCopyDir_UnreadableFileInSubdir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0000 has no effect on Windows")
+	}
 	src := filepath.Join(t.TempDir(), "src")
 	dst := filepath.Join(t.TempDir(), "dst")
 
@@ -24,6 +28,9 @@ func TestCopyDir_UnreadableFileInSubdir(t *testing.T) {
 }
 
 func TestCopyDir_ReadOnlyDestination(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0000 has no effect on Windows")
+	}
 	src := filepath.Join(t.TempDir(), "src")
 	_ = os.MkdirAll(src, 0755)
 	_ = os.WriteFile(filepath.Join(src, "file.txt"), []byte("data"), 0644)

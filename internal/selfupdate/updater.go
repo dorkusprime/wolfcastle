@@ -33,9 +33,14 @@ func NewUpdater(currentVersion string) Updater {
 
 type stubUpdater struct {
 	version string
+	// checkFn overrides Check behavior for testing. Nil means use default.
+	checkFn func() (*Result, error)
 }
 
 func (s *stubUpdater) Check() (*Result, error) {
+	if s.checkFn != nil {
+		return s.checkFn()
+	}
 	return &Result{
 		CurrentVersion: s.version,
 		LatestVersion:  s.version,
