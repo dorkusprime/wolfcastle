@@ -1,8 +1,10 @@
 package state
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 )
 
@@ -162,5 +164,136 @@ func TestSaveInbox_Roundtrip(t *testing.T) {
 	}
 	if loaded.Items[1].Status != "filed" {
 		t.Errorf("expected status 'filed', got %q", loaded.Items[1].Status)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Bug #3: Inbox locking prevents write races
+// ---------------------------------------------------------------------------
+
+// TestInboxAppend_ConcurrentAppends fires 10 goroutines, each appending a
+// unique item via InboxAppend. The file lock should serialize them so no
+// items are lost.
+func TestInboxAppend_ConcurrentAppends(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "inbox.json")
+
+	const n = 10
+	var wg sync.WaitGroup
+	wg.Add(n)
+
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			defer wg.Done()
+			item := InboxItem{
+				Timestamp: fmt.Sprintf("2026-03-15T00:%02d:00Z", i),
+				Text:      fmt.Sprintf("item-%d", i),
+				Status:    "new",
+			}
+			if err := InboxAppend(path, item); err != nil {
+				t.Errorf("InboxAppend goroutine %d: %v", i, err)
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	f, err := LoadInbox(path)
+	if err != nil {
+		t.Fatalf("loading inbox after concurrent appends: %v", err)
+	}
+	if len(f.Items) != n {
+		t.Errorf("expected %d items, got %d (items were lost to a race)", n, len(f.Items))
+	}
+
+	// Verify all items are present (order may vary).
+	seen := map[string]bool{}
+	for _, item := range f.Items {
+		seen[item.Text] = true
+	}
+	for i := 0; i < n; i++ {
+		key := fmt.Sprintf("item-%d", i)
+		if !seen[key] {
+			t.Errorf("missing item %q", key)
+		}
+	}
+}
+
+// TestInboxMutate_ConcurrentWithAppend verifies that InboxMutate (marking
+// items as filed) doesn't lose items added concurrently by InboxAppend.
+func TestInboxMutate_ConcurrentWithAppend(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "inbox.json")
+
+	// Seed the inbox with 5 items to be filed.
+	seed := &InboxFile{}
+	for i := 0; i < 5; i++ {
+		seed.Items = append(seed.Items, InboxItem{
+			Timestamp: fmt.Sprintf("2026-03-15T00:%02d:00Z", i),
+			Text:      fmt.Sprintf("seed-%d", i),
+			Status:    "new",
+		})
+	}
+	if err := SaveInbox(path, seed); err != nil {
+		t.Fatal(err)
+	}
+
+	const appendCount = 10
+	var wg sync.WaitGroup
+	wg.Add(appendCount + 1)
+
+	// One goroutine mutates: marks all existing "new" items as "filed".
+	go func() {
+		defer wg.Done()
+		if err := InboxMutate(path, func(f *InboxFile) error {
+			for i := range f.Items {
+				if f.Items[i].Status == "new" {
+					f.Items[i].Status = "filed"
+				}
+			}
+			return nil
+		}); err != nil {
+			t.Errorf("InboxMutate: %v", err)
+		}
+	}()
+
+	// Meanwhile, 10 goroutines append new items.
+	for i := 0; i < appendCount; i++ {
+		go func(i int) {
+			defer wg.Done()
+			item := InboxItem{
+				Timestamp: fmt.Sprintf("2026-03-15T01:%02d:00Z", i),
+				Text:      fmt.Sprintf("concurrent-%d", i),
+				Status:    "new",
+			}
+			if err := InboxAppend(path, item); err != nil {
+				t.Errorf("InboxAppend goroutine %d: %v", i, err)
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	f, err := LoadInbox(path)
+	if err != nil {
+		t.Fatalf("loading inbox: %v", err)
+	}
+
+	// We should have all 5 seed items plus all 10 appended items.
+	expectedTotal := 5 + appendCount
+	if len(f.Items) != expectedTotal {
+		t.Errorf("expected %d total items, got %d (items lost to a race)", expectedTotal, len(f.Items))
+	}
+
+	// Verify all concurrently appended items are present.
+	seen := map[string]bool{}
+	for _, item := range f.Items {
+		seen[item.Text] = true
+	}
+	for i := 0; i < appendCount; i++ {
+		key := fmt.Sprintf("concurrent-%d", i)
+		if !seen[key] {
+			t.Errorf("missing concurrently appended item %q", key)
+		}
 	}
 }
