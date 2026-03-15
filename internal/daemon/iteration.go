@@ -40,7 +40,18 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	}
 	if !alreadyInProgress {
 		if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
-			return state.TaskClaim(ns, nav.TaskID)
+			if err := state.TaskClaim(ns, nav.TaskID); err != nil {
+				return err
+			}
+			// Snapshot deliverable hashes at claim time so we can
+			// detect whether the model actually changed anything.
+			for i, t := range ns.Tasks {
+				if t.ID == nav.TaskID {
+					ns.Tasks[i].BaselineHashes = snapshotDeliverables(d.RepoDir, t.Deliverables)
+					break
+				}
+			}
+			return nil
 		}); err != nil {
 			return werrors.State(fmt.Errorf("claiming task %s: %w", nav.TaskID, err))
 		}
@@ -144,7 +155,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			return nil
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {
-			// Verify deliverables exist before accepting completion
+			// Re-read state from disk since the model may have added
+			// deliverables via CLI during execution.
+			if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+				ns = updated
+			}
+
+			// Verify deliverables exist before accepting completion.
 			missing := checkDeliverables(d.RepoDir, ns, nav.TaskID)
 			if len(missing) > 0 {
 				_ = d.Logger.Log(map[string]any{
@@ -154,6 +171,17 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				})
 				output.PrintHuman("  Deliverables missing: %v. Failing task.", missing)
 				marker = "" // clear so we fall through to the failure path
+			}
+		}
+		if marker == "WOLFCASTLE_COMPLETE" {
+			// Verify the model actually changed at least one deliverable.
+			if !checkDeliverablesChanged(d.RepoDir, ns, nav.TaskID) {
+				_ = d.Logger.Log(map[string]any{
+					"type": "deliverable_unchanged",
+					"task": nav.TaskID,
+				})
+				output.PrintHuman("  Deliverables unchanged since claim. Failing task.")
+				marker = ""
 			}
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {

@@ -1,6 +1,9 @@
 package daemon
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,6 +37,84 @@ func checkDeliverables(repoDir string, ns *state.NodeState, taskID string) []str
 		}
 	}
 	return missing
+}
+
+// checkDeliverablesChanged verifies that at least one deliverable has
+// changed since the baseline snapshot was taken at claim time. Returns
+// true if work was done (any file is new, modified, or the baseline
+// was empty). Tasks with no deliverables or no baseline always pass.
+func checkDeliverablesChanged(repoDir string, ns *state.NodeState, taskID string) bool {
+	for _, t := range ns.Tasks {
+		if t.ID != taskID {
+			continue
+		}
+		if len(t.Deliverables) == 0 || len(t.BaselineHashes) == 0 {
+			return true // nothing to compare against
+		}
+		for _, d := range t.Deliverables {
+			if isGlob(d) {
+				// For globs, check if any match has a different hash
+				matches, _ := filepath.Glob(filepath.Join(repoDir, d))
+				for _, m := range matches {
+					rel, _ := filepath.Rel(repoDir, m)
+					current := hashFile(m)
+					baseline, existed := t.BaselineHashes[rel]
+					if !existed || current != baseline {
+						return true
+					}
+				}
+			} else {
+				current := hashFile(filepath.Join(repoDir, d))
+				baseline, existed := t.BaselineHashes[d]
+				if !existed || current != baseline {
+					return true
+				}
+			}
+		}
+		return false // everything matches baseline exactly
+	}
+	return true // task not found, don't block
+}
+
+// snapshotDeliverables computes SHA-256 hashes for all deliverable files
+// that currently exist on disk. Missing files get the sentinel "missing".
+// The result is stored in Task.BaselineHashes at claim time.
+func snapshotDeliverables(repoDir string, deliverables []string) map[string]string {
+	if len(deliverables) == 0 {
+		return nil
+	}
+	hashes := make(map[string]string)
+	for _, d := range deliverables {
+		path := filepath.Join(repoDir, d)
+		if isGlob(d) {
+			matches, _ := filepath.Glob(path)
+			for _, m := range matches {
+				rel, _ := filepath.Rel(repoDir, m)
+				hashes[rel] = hashFile(m)
+			}
+			if len(matches) == 0 {
+				hashes[d] = "missing"
+			}
+		} else {
+			hashes[d] = hashFile(path)
+		}
+	}
+	return hashes
+}
+
+// hashFile returns the hex-encoded SHA-256 of a file, or "missing" if
+// the file doesn't exist or can't be read.
+func hashFile(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return "missing"
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "missing"
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // isGlob reports whether the path contains glob metacharacters.

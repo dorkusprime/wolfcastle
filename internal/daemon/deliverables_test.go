@@ -197,6 +197,128 @@ func TestCheckDeliverables_GlobWithLiteralMix(t *testing.T) {
 	}
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// snapshotDeliverables + checkDeliverablesChanged
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestSnapshotDeliverables_MissingFiles(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	hashes := snapshotDeliverables(dir, []string{"nonexistent.txt"})
+	if hashes["nonexistent.txt"] != "missing" {
+		t.Errorf("expected 'missing', got %q", hashes["nonexistent.txt"])
+	}
+}
+
+func TestSnapshotDeliverables_ExistingFile(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "output.md"), []byte("hello"), 0644)
+	hashes := snapshotDeliverables(dir, []string{"output.md"})
+	if hashes["output.md"] == "missing" || hashes["output.md"] == "" {
+		t.Error("expected a real hash for existing file")
+	}
+}
+
+func TestSnapshotDeliverables_GlobPattern(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "report-2026.md"), []byte("data"), 0644)
+	hashes := snapshotDeliverables(dir, []string{"report-*.md"})
+	if _, ok := hashes["report-2026.md"]; !ok {
+		t.Error("glob should expand to matched filename in hash map")
+	}
+}
+
+func TestSnapshotDeliverables_Empty(t *testing.T) {
+	t.Parallel()
+	hashes := snapshotDeliverables("/tmp", nil)
+	if hashes != nil {
+		t.Error("nil deliverables should return nil hashes")
+	}
+}
+
+func TestCheckDeliverablesChanged_NewFile(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	ns := &state.NodeState{
+		Tasks: []state.Task{{
+			ID:             "task-0001",
+			Deliverables:   []string{"output.txt"},
+			BaselineHashes: map[string]string{"output.txt": "missing"},
+		}},
+	}
+	// Create the file after baseline
+	_ = os.WriteFile(filepath.Join(dir, "output.txt"), []byte("new content"), 0644)
+
+	if !checkDeliverablesChanged(dir, ns, "task-0001") {
+		t.Error("new file should count as changed")
+	}
+}
+
+func TestCheckDeliverablesChanged_ModifiedFile(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "output.txt"), []byte("original"), 0644)
+	baseline := snapshotDeliverables(dir, []string{"output.txt"})
+
+	// Modify the file
+	_ = os.WriteFile(filepath.Join(dir, "output.txt"), []byte("modified"), 0644)
+
+	ns := &state.NodeState{
+		Tasks: []state.Task{{
+			ID:             "task-0001",
+			Deliverables:   []string{"output.txt"},
+			BaselineHashes: baseline,
+		}},
+	}
+	if !checkDeliverablesChanged(dir, ns, "task-0001") {
+		t.Error("modified file should count as changed")
+	}
+}
+
+func TestCheckDeliverablesChanged_Unchanged(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "output.txt"), []byte("same"), 0644)
+	baseline := snapshotDeliverables(dir, []string{"output.txt"})
+
+	ns := &state.NodeState{
+		Tasks: []state.Task{{
+			ID:             "task-0001",
+			Deliverables:   []string{"output.txt"},
+			BaselineHashes: baseline,
+		}},
+	}
+	if checkDeliverablesChanged(dir, ns, "task-0001") {
+		t.Error("unchanged file should not count as changed")
+	}
+}
+
+func TestCheckDeliverablesChanged_NoBaseline(t *testing.T) {
+	t.Parallel()
+	ns := &state.NodeState{
+		Tasks: []state.Task{{
+			ID:           "task-0001",
+			Deliverables: []string{"output.txt"},
+		}},
+	}
+	// No baseline = always passes (backward compatible)
+	if !checkDeliverablesChanged("/tmp", ns, "task-0001") {
+		t.Error("no baseline should always pass")
+	}
+}
+
+func TestCheckDeliverablesChanged_NoDeliverables(t *testing.T) {
+	t.Parallel()
+	ns := &state.NodeState{
+		Tasks: []state.Task{{ID: "task-0001"}},
+	}
+	if !checkDeliverablesChanged("/tmp", ns, "task-0001") {
+		t.Error("no deliverables should always pass")
+	}
+}
+
 func TestIsGlob(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

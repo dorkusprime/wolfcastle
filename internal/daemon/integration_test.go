@@ -781,14 +781,13 @@ func TestIntegration_DeliverableExists_AcceptsComplete(t *testing.T) {
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
-	// Create the deliverable file in the repo dir before the model runs
+	// Use a shell command that creates the deliverable *during* execution,
+	// then outputs WOLFCASTLE_COMPLETE. This ensures the file is new
+	// relative to the baseline snapshot taken at claim time.
 	docsDir := filepath.Join(d.RepoDir, "docs")
-	_ = os.MkdirAll(docsDir, 0755)
-	_ = os.WriteFile(filepath.Join(docsDir, "output.md"), []byte("deliverable content"), 0644)
-
 	d.Config.Models["echo"] = config.ModelDef{
-		Command: "echo",
-		Args:    []string{"WOLFCASTLE_COMPLETE"},
+		Command: "sh",
+		Args:    []string{"-c", "mkdir -p " + docsDir + " && echo content > " + filepath.Join(docsDir, "output.md") + " && echo WOLFCASTLE_COMPLETE"},
 	}
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 

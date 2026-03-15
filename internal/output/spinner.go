@@ -137,9 +137,9 @@ func (s *Spinner) resumeAfterMessage() {
 func (s *Spinner) run() {
 	defer close(s.done)
 
-	// Hide cursor while animating to prevent flicker.
-	fmt.Fprint(os.Stdout, "\033[?25l")
-	defer fmt.Fprint(os.Stdout, "\033[?25h")
+	// No cursor hide/show — if the process is killed mid-animation,
+	// hidden cursor persists in the terminal. The pause/resume system
+	// handles flicker prevention instead.
 
 	projLen := len([]rune(projectile))
 	pos := 0
