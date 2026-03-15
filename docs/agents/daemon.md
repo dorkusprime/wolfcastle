@@ -25,7 +25,7 @@ RunWithSupervisor
 ## Key Invariants
 
 - **Serial execution.** Only one task is in_progress at a time (ADR-014).
-- **All state mutations are persisted immediately** after marker parsing (line ~394).
+- **All state mutations are persisted immediately** after marker parsing (iteration.go, after `applyModelMarkers`).
 - **Propagation after every state change.** `propagateState()` walks ancestors and updates root index.
 - **Summary is inline (ADR-036).** No separate summary stage — the executing model emits `WOLFCASTLE_SUMMARY:` alongside `WOLFCASTLE_COMPLETE`.
 
