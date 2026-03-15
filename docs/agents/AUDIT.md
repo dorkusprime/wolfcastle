@@ -78,18 +78,19 @@ Is everything documented and accurate?
 
 ## 7. Single Source of Truth
 
-Is every piece of information defined in exactly one place?
+Is every value, behavior, and decision defined in exactly one place in the code?
 
-- [ ] Constants and magic numbers are defined once, not duplicated across files. Search for hardcoded values (thresholds, status strings, tier names) that should reference a shared constant or variable.
-- [ ] The tier resolution order (`base`, `custom`, `local`) is defined in `pipeline.Tiers` and referenced everywhere, not redefined as inline string slices.
-- [ ] Config defaults live in `config.Defaults()` only. No scattered default values in command handlers, daemon code, or init logic.
-- [ ] State status values use typed constants (`state.StatusNotStarted`, `state.GapOpen`, etc.), never raw string literals in production code.
-- [ ] Error messages for the same condition are identical wherever they appear. No "not initialized" in one place and "run wolfcastle init first" in another for the same error.
-- [ ] The command count, ADR count, and package count in documentation match reality. Search for hardcoded numbers in README, AGENTS.md, docs/README.md, and specs.
-- [ ] Documentation doesn't restate what code already expresses. If a doc describes a function's behavior, verify it matches the implementation and isn't a stale copy.
-- [ ] The `docs/humans/cli/` command pages match the Cobra command definitions (flags, args, help text). No manual documentation that drifts from the code.
-- [ ] Go doc comments on exported symbols are the SSOT for API documentation. No separate docs that restate them.
-- [ ] The VOICE.md guide is the single authority on style. No contradictory style guidance elsewhere.
+- [ ] State status values use typed constants (`state.StatusNotStarted`, `state.GapOpen`, etc.), never raw string literals. `grep -rn '"not_started"\|"in_progress"\|"complete"\|"blocked"' --include='*.go' internal/ cmd/` should find zero matches outside of test files and JSON tags.
+- [ ] Audit status values use typed constants (`state.AuditPending`, etc.), not strings.
+- [ ] The tier resolution order is defined once in `pipeline.Tiers`. No other file defines `[]string{"base", "custom", "local"}` or equivalent.
+- [ ] Config defaults are centralized in `config.Defaults()`. No hardcoded defaults in command handlers, daemon init, or scaffold code that could drift from `Defaults()`.
+- [ ] Validation categories (`CatRootIndexDanglingRef`, etc.) are defined once in `validate/types.go`. No string literals like `"ROOTINDEX_DANGLING_REF"` elsewhere.
+- [ ] The shutdown signals list is defined once per platform (`signals_unix.go`, `signals_windows.go`). No other code constructs its own signal list.
+- [ ] Marker names (`WOLFCASTLE_COMPLETE`, etc.) are matched by `scanTerminalMarker` and `ParseMarkers`. Verify these two parsers agree on what constitutes a match for each marker type.
+- [ ] The seven-phase execution protocol is defined in one prompt file (`execute.md`). No other prompt file or Go code embeds a competing definition of the phases.
+- [ ] Error messages for the same condition are consistent. `RequireResolver()` should return the same message everywhere it's called, not variant phrasings.
+- [ ] The `Invoker` interface is the single contract for model invocation. No code calls `exec.Command` directly for model processes outside of `ProcessInvoker`.
+- [ ] File paths (`.wolfcastle/wolfcastle.pid`, `.wolfcastle/stop`, `inbox.json`, `state.json`) are constructed from shared helpers or constants, not hardcoded strings scattered across packages.
 
 ## 8. Voice and Copy
 
