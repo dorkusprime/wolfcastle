@@ -53,11 +53,12 @@ type Daemon struct {
 	RepoDir       string
 	Clock         clock.Clock
 
-	shutdown      chan struct{}
-	shutdownOnce  sync.Once
-	workAvailable chan struct{}
-	branch        string
-	iteration     int
+	shutdown        chan struct{}
+	shutdownOnce    sync.Once
+	workAvailable   chan struct{}
+	branch          string
+	iteration       int
+	completePrinted bool
 }
 
 // New creates a new daemon.
@@ -322,13 +323,18 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	}
 
 	if !navResult.Found {
-		if navResult.Reason == "all_complete" {
+		if navResult.Reason == "all_complete" && !d.completePrinted {
 			output.PrintHuman("WOLFCASTLE_COMPLETE")
-		} else {
-			output.PrintHuman("No work: %s. Sleeping %ds.", navResult.Reason, d.Config.Daemon.BlockedPollIntervalSeconds)
+			d.completePrinted = true
+		} else if navResult.Reason != "all_complete" {
+			output.PrintHuman("No work: %s.", navResult.Reason)
+			d.completePrinted = false // reset if tree is no longer all-complete
 		}
 		return IterationNoWork, nil
 	}
+
+	// Tree has work again; reset the complete flag.
+	d.completePrinted = false
 
 	d.iteration++
 	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration, navResult.NodeAddress, navResult.TaskID)
