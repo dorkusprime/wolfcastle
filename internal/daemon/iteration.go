@@ -230,9 +230,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 // scanTerminalMarker scans model output line-by-line for terminal markers.
 // It handles two formats:
-// 1. Raw text: marker appears as a standalone line or at the end of a line
-// 2. JSON stream (Claude Code --output-format stream-json): marker appears
-//    inside the "text" field of a {"type":"assistant","text":"..."} envelope
+//  1. Raw text: marker appears as a standalone line or at the end of a line
+//  2. JSON stream (Claude Code --output-format stream-json): marker appears
+//     inside the "text" field of a {"type":"assistant","text":"..."} envelope
 //
 // Returns the marker name or empty string if none found.
 func scanTerminalMarker(output string) string {
@@ -320,4 +320,3 @@ func extractAssistantText(line string) string {
 	}
 	return ""
 }
-
