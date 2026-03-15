@@ -208,9 +208,9 @@ func TestDaemon_AlternatingFailuresAndYields(t *testing.T) {
 
 	scriptPath, _ := createRealisticMock(t, dir, "alt-fail-yield", MockModelConfig{
 		Behaviors: []MockBehavior{
-			{Marker: ""},                   // fail
-			{Marker: "WOLFCASTLE_YIELD"},   // yield
-			{Marker: ""},                   // fail
+			{Marker: ""},                    // fail
+			{Marker: "WOLFCASTLE_YIELD"},    // yield
+			{Marker: ""},                    // fail
 			{Marker: "WOLFCASTLE_COMPLETE"}, // done
 		},
 	})

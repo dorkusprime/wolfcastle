@@ -168,8 +168,12 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		if marker == "WOLFCASTLE_BLOCKED" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
 			if blockErr := state.TaskBlock(ns, nav.TaskID, "blocked by model"); blockErr == nil {
-				_ = state.SaveNodeState(statePath, ns)
-				_ = d.propagateState(nav.NodeAddress, ns.State, idx)
+				if err := state.SaveNodeState(statePath, ns); err != nil {
+					_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+				}
+				if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
+					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+				}
 			}
 			return nil
 		}
@@ -178,8 +182,12 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			if completeErr := state.TaskComplete(ns, nav.TaskID); completeErr != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": completeErr.Error()})
 			} else {
-				_ = state.SaveNodeState(statePath, ns)
-				_ = d.propagateState(nav.NodeAddress, ns.State, idx)
+				if err := state.SaveNodeState(statePath, ns); err != nil {
+					_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+				}
+				if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
+					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+				}
 			}
 			return nil
 		}
