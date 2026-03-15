@@ -24,6 +24,12 @@ func (d *Daemon) processInboxIfNeeded(ctx context.Context) {
 		return
 	}
 
+	// Start a log iteration so expand/file stages can write logs
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	output.PrintHuman("Processing inbox items...")
+
 	// Find the expand and file stages in the pipeline
 	for _, stage := range d.Config.Pipeline.Stages {
 		if !stage.IsEnabled() {
@@ -225,10 +231,11 @@ func (d *Daemon) runFileStage(ctx context.Context, stage config.PipelineStage) e
 		"output_len": len(result.Stdout),
 	})
 
-	// Mark all expanded items as filed
+	// Mark expanded items as filed.
 	for _, idx := range expandedIndices {
 		inboxData.Items[idx].Status = "filed"
 	}
+	output.PrintHuman("  File stage: %d items filed", len(expandedIndices))
 
 	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
 		return fmt.Errorf("saving inbox after file stage: %w", err)
