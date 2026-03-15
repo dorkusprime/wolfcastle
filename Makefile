@@ -8,7 +8,9 @@ GOFLAGS := -trimpath
 .PHONY: build test install clean lint fmt vet
 
 build:
-	go build $(GOFLAGS) $(LDFLAGS) -o $(BINARY) .
+	@echo "Building wolfcastle $(VERSION) ($(COMMIT))..."
+	@go build $(GOFLAGS) $(LDFLAGS) -o $(BINARY) .
+	@echo "Built ./$(BINARY)"
 
 test:
 	go test ./...
@@ -17,7 +19,9 @@ test-verbose:
 	go test -v ./...
 
 install:
-	go install $(GOFLAGS) $(LDFLAGS) .
+	@echo "Installing wolfcastle $(VERSION) ($(COMMIT))..."
+	@go install $(GOFLAGS) $(LDFLAGS) .
+	@echo "Installed to $$(go env GOPATH)/bin/wolfcastle"
 
 clean:
 	rm -f $(BINARY)
