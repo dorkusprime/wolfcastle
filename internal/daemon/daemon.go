@@ -54,10 +54,10 @@ type Daemon struct {
 	RepoDir       string
 	Clock         clock.Clock
 
-	shutdown        chan struct{}
-	shutdownOnce    sync.Once
-	workAvailable   chan struct{}
-	branch          string
+	shutdown      chan struct{}
+	shutdownOnce  sync.Once
+	workAvailable chan struct{}
+	branch        string
 	iteration     int
 	lastNoWorkMsg string // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
 }

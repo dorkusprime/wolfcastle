@@ -12,6 +12,13 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
+// RecoveredNode tracks a node that was recovered from malformed JSON,
+// along with the steps taken and any data loss.
+type RecoveredNode struct {
+	Address string
+	Report  *RecoveryReport
+}
+
 // NodeLoader loads a node's state given its tree address.
 type NodeLoader func(addr string) (*state.NodeState, error)
 
@@ -44,6 +51,42 @@ func DefaultNodeLoader(projectsDir string) NodeLoader {
 			return nil, err
 		}
 		return state.LoadNodeState(filepath.Join(projectsDir, filepath.Join(a.Parts...), "state.json"))
+	}
+}
+
+// RecoveringNodeLoader returns a NodeLoader that falls back to JSON recovery
+// when normal parsing fails. The onRecover callback is invoked for each
+// recovered node so callers can track which nodes needed repair and what
+// was lost. Pass nil for onRecover if you only care about the data.
+func RecoveringNodeLoader(projectsDir string, onRecover func(addr string, report *RecoveryReport)) NodeLoader {
+	return func(addr string) (*state.NodeState, error) {
+		a, err := tree.ParseAddress(addr)
+		if err != nil {
+			return nil, err
+		}
+		statePath := filepath.Join(projectsDir, filepath.Join(a.Parts...), "state.json")
+
+		// Try normal load first.
+		ns, loadErr := state.LoadNodeState(statePath)
+		if loadErr == nil {
+			return ns, nil
+		}
+
+		// Normal load failed; attempt recovery from raw bytes.
+		data, readErr := os.ReadFile(statePath)
+		if readErr != nil {
+			return nil, loadErr // return original error if we can't even read the file
+		}
+
+		recovered, report, recoverErr := RecoverNodeState(data)
+		if recoverErr != nil {
+			return nil, fmt.Errorf("%v (recovery also failed: %v)", loadErr, recoverErr)
+		}
+
+		if onRecover != nil {
+			onRecover(addr, report)
+		}
+		return recovered, nil
 	}
 }
 

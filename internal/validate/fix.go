@@ -38,8 +38,9 @@ func FixWithVerification(
 	var allFixes []FixResult
 
 	for pass := 1; pass <= maxFixPasses; pass++ {
-		// Reload index from disk (prior pass may have modified it)
-		idx, err := state.LoadRootIndex(indexPath)
+		// Reload index from disk (prior pass may have modified it).
+		// Fall back to recovery if the index is malformed.
+		idx, err := loadOrRecoverRootIndex(indexPath)
 		if err != nil {
 			return allFixes, nil, fmt.Errorf("loading root index on pass %d: %w", pass, err)
 		}
@@ -67,7 +68,7 @@ func FixWithVerification(
 	}
 
 	// Final validation-only pass
-	idx, err := state.LoadRootIndex(indexPath)
+	idx, err := loadOrRecoverRootIndex(indexPath)
 	if err != nil {
 		return allFixes, nil, fmt.Errorf("loading root index for final validation: %w", err)
 	}
@@ -105,11 +106,21 @@ func ApplyDeterministicFixes(
 		if cached, ok := modifiedStates[statePath]; ok {
 			return cached, statePath, nil
 		}
-		ns, err := state.LoadNodeState(statePath)
-		if err != nil {
-			return nil, "", err
+		ns, loadErr := state.LoadNodeState(statePath)
+		if loadErr == nil {
+			return ns, statePath, nil
 		}
-		return ns, statePath, nil
+		// Fall back to recovery.
+		data, readErr := os.ReadFile(statePath)
+		if readErr != nil {
+			return nil, "", loadErr
+		}
+		recovered, _, recoverErr := RecoverNodeState(data)
+		if recoverErr != nil {
+			return nil, "", loadErr
+		}
+		modifiedStates[statePath] = recovered
+		return recovered, statePath, nil
 	}
 
 	for _, issue := range issues {
@@ -118,6 +129,18 @@ func ApplyDeterministicFixes(
 		}
 
 		switch issue.Category {
+		case CatMalformedJSON:
+			if issue.Node == "" {
+				continue // root index recovery is handled separately
+			}
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			// Mark as modified so it gets written back as clean JSON.
+			modifiedStates[statePath] = ns
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "rewrote recovered node state as valid JSON"})
+
 		case CatRootIndexDanglingRef:
 			delete(idx.Nodes, issue.Node)
 			// Remove from parent's children and root list
@@ -385,4 +408,30 @@ func ApplyDeterministicFixes(
 	}
 
 	return fixes, postFixWarnings, nil
+}
+
+// loadOrRecoverRootIndex loads a root index, falling back to JSON recovery
+// if standard parsing fails.
+func loadOrRecoverRootIndex(indexPath string) (*state.RootIndex, error) {
+	idx, err := state.LoadRootIndex(indexPath)
+	if err == nil {
+		return idx, nil
+	}
+
+	data, readErr := os.ReadFile(indexPath)
+	if readErr != nil {
+		return nil, err // return original parse error
+	}
+
+	recovered, _, recoverErr := RecoverRootIndex(data)
+	if recoverErr != nil {
+		return nil, fmt.Errorf("%v (recovery also failed: %v)", err, recoverErr)
+	}
+
+	// Write the recovered index so subsequent passes work cleanly.
+	if writeErr := state.SaveRootIndex(indexPath, recovered); writeErr != nil {
+		return nil, fmt.Errorf("writing recovered index: %w", writeErr)
+	}
+
+	return recovered, nil
 }
