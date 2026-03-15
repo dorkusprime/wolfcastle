@@ -325,11 +325,16 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	}
 
 	if !navResult.Found {
-		msg := navResult.Reason
-		if msg == "all_complete" {
+		var msg string
+		switch navResult.Reason {
+		case "all_complete":
 			msg = "WOLFCASTLE_COMPLETE"
-		} else {
-			msg = "No targets: " + msg + "."
+		case "empty_tree":
+			msg = "Nothing to destroy. Feed the inbox."
+		case "all_blocked":
+			msg = "Blocked on all fronts. Human intervention required."
+		default:
+			msg = "Standing by. (" + navResult.Reason + ")"
 		}
 		// Print the message once per unique reason. Suppress repeats.
 		if msg != d.lastNoWorkMsg {

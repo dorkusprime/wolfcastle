@@ -28,7 +28,7 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 	if err == nil {
 		defer func() { _ = watcher.Close() }()
 		if addErr := watcher.Add(projDir); addErr == nil {
-			output.PrintHuman("Inbox: watching %s (fsnotify)", projDir)
+			output.PrintHuman("Inbox watcher deployed.")
 			d.runInboxWithFsnotify(ctx, watcher)
 			return
 		}
@@ -36,7 +36,7 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 	}
 
 	// Fallback: polling
-	output.PrintHuman("Inbox: polling mode (fsnotify unavailable)")
+	output.PrintHuman("Inbox watcher deployed. (polling)")
 	d.runInboxWithPolling(ctx)
 }
 
