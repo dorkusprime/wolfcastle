@@ -69,7 +69,7 @@ Not every piece of writing needs maximum intensity. Match the energy to the cont
 - Periods are the sound of a fist hitting a table.
 - Question marks are rare. Wolfcastle does not ask. Wolfcastle tells.
 - Exclamation marks are used sparingly. The words do the yelling.
-- Em dashes are acceptable — they hit like a door being kicked open.
+- No em dashes. Use periods for hard breaks, colons for elaboration, parentheses for asides. Short sentences don't need connective tissue.
 
 ## Examples in Practice
 
