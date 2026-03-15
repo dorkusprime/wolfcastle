@@ -34,7 +34,7 @@ func Defaults() *Config {
 					Name:            "intake",
 					Model:           "mid",
 					PromptFile:      "intake.md",
-					AllowedCommands: []string{"project create", "task add"},
+					AllowedCommands: []string{"project create", "task add", "status"},
 				},
 				{
 					Name:            "execute",

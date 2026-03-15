@@ -170,6 +170,23 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 
 	// Build context with inbox items
 	var itemsCtx strings.Builder
+
+	// Include current tree state so the model can file work under existing projects
+	idx, err := d.Store.ReadIndex()
+	if err == nil && len(idx.Nodes) > 0 {
+		itemsCtx.WriteString("# Existing Project Tree\n\n")
+		itemsCtx.WriteString("These projects already exist. File new work under existing projects when appropriate rather than creating duplicates.\n\n")
+		for addr, entry := range idx.Nodes {
+			fmt.Fprintf(&itemsCtx, "- **%s** (%s, %s)\n", entry.Name, entry.Type, entry.State)
+			if entry.Parent != "" {
+				fmt.Fprintf(&itemsCtx, "  Address: %s (child of %s)\n", addr, entry.Parent)
+			} else {
+				fmt.Fprintf(&itemsCtx, "  Address: %s\n", addr)
+			}
+		}
+		itemsCtx.WriteString("\n")
+	}
+
 	intakeHeader := resolveContextHeader(d.WolfcastleDir, "intake-context.md", "# Inbox Items to Process\n")
 	itemsCtx.WriteString(intakeHeader + "\n")
 	for i, item := range newItems {
