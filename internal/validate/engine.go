@@ -296,7 +296,7 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityWarning,
 					Category:    CatStaleStopFile,
-					Description: "Stop file exists but no daemon is running — would block next start",
+					Description: "Stop file exists but no daemon is running. Would block next start",
 					CanAutoFix:  true,
 					FixType:     FixDeterministic,
 				})

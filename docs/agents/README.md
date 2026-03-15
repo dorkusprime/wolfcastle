@@ -20,4 +20,6 @@ The root-level [AGENTS.md](../../AGENTS.md) provides quick orientation (language
 
 **[Voice](VOICE.md)** defines how Wolfcastle talks. Read this when writing user-facing copy, error messages, README text, or any prose that represents the product's personality.
 
-**[Audit](AUDIT.md)** is a 12-section structured checklist for comprehensive codebase audits. Covers correctness, Go best practices, error handling, security, architecture, documentation, voice, testing, CI/CD, cross-platform, code coverage, and usability. Read this when running a full audit or reviewing a major change.
+**[Testing](testing.md)** covers integration testing, mock model configuration, multi-iteration scenarios, and prompt validation patterns. Read this when writing or debugging daemon tests, especially Layer 1 (internal/daemon) and Layer 2 (test/integration) integration tests.
+
+**[Audit](AUDIT.md)** is a 12-section structured checklist for codebase audits. Covers correctness, Go best practices, error handling, security, architecture, documentation, voice, testing, CI/CD, cross-platform, code coverage, and usability. Read this when running a full audit or reviewing a major change.

@@ -13,8 +13,10 @@
 //   - markers.go   — WOLFCASTLE_* marker parsing and state mutation
 //   - retry.go     — invocation retry with exponential backoff
 //   - propagate.go — state propagation and inbox helpers
-//   - branch.go    — git branch detection
-//   - pid.go       — PID file operations
+//   - branch.go          — git branch detection
+//   - pid.go             — PID file operations
+//   - signals_unix.go    — shutdown signals (Unix)
+//   - signals_windows.go — shutdown signals (Windows)
 package daemon
 
 import (

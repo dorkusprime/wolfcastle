@@ -4,7 +4,7 @@
 
 ```
 wolfcastle/
-├── main.go                  # Minimal — calls cmd.Execute()
+├── main.go                  # Minimal: calls cmd.Execute()
 ├── cmd/                     # CLI command layer (Cobra)
 │   ├── root.go              # Root command, PersistentPreRunE for config loading
 │   ├── cmdutil/             # Shared App context, completions, overlap detection
@@ -13,7 +13,7 @@ wolfcastle/
 │   ├── inbox/               # add, list, clear
 │   ├── project/             # create
 │   └── task/                # add, claim, complete, block, unblock
-├── internal/                # Core logic — not importable outside the module
+├── internal/                # Core logic (not importable outside the module)
 │   ├── archive/             # Archive entry rollup (Markdown generation)
 │   ├── clock/               # Time abstraction for deterministic testing (ADR-052)
 │   ├── config/              # Config loading, merging, validation, types
@@ -29,9 +29,9 @@ wolfcastle/
 │   ├── tree/                # Tree addressing, slug generation, resolver
 │   └── validate/            # Structural validation engine and auto-fix
 ├── docs/
-│   ├── decisions/           # ADRs (001–061)
+│   ├── decisions/           # ADRs (001-062)
 │   ├── specs/               # Implementation specs (timestamped)
-│   └── agents/              # This directory — agent guidance
+│   └── agents/              # This directory (agent guidance)
 └── Makefile
 ```
 
@@ -60,7 +60,7 @@ User input → cmd/ → internal/ → filesystem (.wolfcastle/)
 
 ## Package Dependencies
 
-Dependencies flow strictly downward — `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
+Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
 - `daemon` → `config`, `invoke`, `logging`, `output`, `pipeline`, `state`, `tree`
 - `pipeline` → `config`, `state`

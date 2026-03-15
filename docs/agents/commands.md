@@ -36,7 +36,7 @@ When adding a new command:
 
 ## Flag Conventions
 
-- Required flags: use `cmd.MarkFlagRequired("name")` — Cobra enforces this
+- Required flags: use `cmd.MarkFlagRequired("name")`. Cobra enforces this
 - `--node`: tree address (node path or node/task-id), validated via `tree.ParseAddress()`
 - `--all`: batch operations (approve all, reject all)
 - `--json`: global flag on root, available everywhere via `app.JSONOutput`

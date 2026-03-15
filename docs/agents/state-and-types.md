@@ -59,10 +59,10 @@ Always use typed constants from `internal/state/types.go`:
 
 All mutations go through functions in `internal/state/mutations.go`:
 
-- `TaskClaim(ns, taskID)` — not_started → in_progress
-- `TaskComplete(ns, taskID)` — in_progress → complete
-- `TaskBlock(ns, taskID, reason)` — → blocked
-- `TaskUnblock(ns, taskID)` — blocked → not_started
+- `TaskClaim(ns, taskID)`: not_started → in_progress
+- `TaskComplete(ns, taskID)`: in_progress → complete
+- `TaskBlock(ns, taskID, reason)`: → blocked
+- `TaskUnblock(ns, taskID)`: blocked → not_started
 - `AddBreadcrumb(ns, task, text)`
 - `AddEscalation(ns, id, desc, source, gapID)`
 - `IncrementFailure(ns, taskID)`
