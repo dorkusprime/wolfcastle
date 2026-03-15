@@ -182,7 +182,7 @@ func TestCLI_InboxLifecycle(t *testing.T) {
 
 	// Clear all
 	out = run(t, dir, "inbox", "clear", "--all")
-	if !strings.Contains(out, "Cleared") {
+	if !strings.Contains(out, "Eliminated") {
 		t.Errorf("inbox clear output unexpected: %s", out)
 	}
 

@@ -15,7 +15,7 @@ func TestProjectLifecycle(t *testing.T) {
 
 	// Initialize
 	out := run(t, dir, "init")
-	if !strings.Contains(out, "Initialized") {
+	if !strings.Contains(out, "deployed") {
 		t.Fatalf("init output unexpected: %s", out)
 	}
 
@@ -99,7 +99,7 @@ func TestInboxLifecycle(t *testing.T) {
 
 	// Clear with --all
 	out = run(t, dir, "inbox", "clear", "--all")
-	if !strings.Contains(out, "Cleared 2 items") {
+	if !strings.Contains(out, "Eliminated 2 items") {
 		t.Errorf("inbox clear output unexpected: %s", out)
 	}
 

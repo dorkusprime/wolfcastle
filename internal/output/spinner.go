@@ -121,7 +121,7 @@ func (s *Spinner) Stop() {
 // and suppress redraws until the message is written.
 func (s *Spinner) clearForMessage() {
 	s.paused.Store(true)
-	fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+1))
+	_, _ = fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+1))
 }
 
 // resumeAfterMessage is called by PrintHuman after writing the message.
@@ -147,20 +147,20 @@ func (s *Spinner) run() {
 	defer ticker.Stop()
 
 	// Render first frame immediately.
-	fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
+	_, _ = fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
 	pos = (pos + 1) % spinnerWidth
 
 	for {
 		select {
 		case <-s.stop:
 			// Erase the spinner line.
-			fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+1))
+			_, _ = fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+1))
 			return
 		case <-ticker.C:
 			if s.paused.Load() {
 				continue
 			}
-			fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
+			_, _ = fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
 			pos = (pos + 1) % spinnerWidth
 		}
 	}

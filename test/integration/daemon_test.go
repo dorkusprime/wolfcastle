@@ -140,10 +140,11 @@ func TestDaemon_HardCapAutoBlock(t *testing.T) {
 	dir := t.TempDir()
 	run(t, dir, "init")
 
-	// Use a no-marker mock that creates the stop file after 4 invocations.
-	// With hard_cap=2: task-1 blocks after 2 failures, audit task blocks
-	// after 2 more, totaling 4 invocations.
-	scriptPath := createNoMarkerStopAfterMock(t, dir, 4)
+	// Use a no-marker mock that creates the stop file after 2 invocations.
+	// With hard_cap=2: task-1 blocks after 2 failures. The audit task
+	// won't run while a non-audit task is blocked (not complete), so
+	// we only need 2 invocations before creating the stop file.
+	scriptPath := createNoMarkerStopAfterMock(t, dir, 2)
 	configureMockModels(t, dir, scriptPath)
 
 	// decomposition_threshold must be <= hard_cap per validation rules.
@@ -265,7 +266,7 @@ func TestDaemon_MaxIterations(t *testing.T) {
 	setMaxIterations(t, dir, 3)
 	out := run(t, dir, "start")
 
-	if !strings.Contains(out, "iteration cap") {
+	if !strings.Contains(out, "Iteration cap") {
 		t.Errorf("expected daemon to stop at iteration cap, got: %s", out)
 	}
 }
