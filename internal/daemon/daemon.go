@@ -58,8 +58,8 @@ type Daemon struct {
 	shutdownOnce    sync.Once
 	workAvailable   chan struct{}
 	branch          string
-	iteration       int
-	completePrinted bool
+	iteration     int
+	lastNoWorkMsg string // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
 }
 
 // New creates a new daemon.
@@ -325,18 +325,22 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	}
 
 	if !navResult.Found {
-		if navResult.Reason == "all_complete" && !d.completePrinted {
-			output.PrintHuman("WOLFCASTLE_COMPLETE")
-			d.completePrinted = true
-		} else if navResult.Reason != "all_complete" {
-			output.PrintHuman("No targets: %s.", navResult.Reason)
-			d.completePrinted = false // reset if tree is no longer all-complete
+		msg := navResult.Reason
+		if msg == "all_complete" {
+			msg = "WOLFCASTLE_COMPLETE"
+		} else {
+			msg = "No targets: " + msg + "."
+		}
+		// Print the message once per unique reason. Suppress repeats.
+		if msg != d.lastNoWorkMsg {
+			output.PrintHuman(msg)
+			d.lastNoWorkMsg = msg
 		}
 		return IterationNoWork, nil
 	}
 
-	// Tree has work again; reset the complete flag.
-	d.completePrinted = false
+	// Tree has work again; reset the dedup so next idle prints fresh.
+	d.lastNoWorkMsg = ""
 
 	d.iteration++
 	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration, navResult.NodeAddress, navResult.TaskID)

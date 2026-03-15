@@ -225,7 +225,7 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 	_, w, _ := os.Pipe()
 	os.Stdout = w
 
-	// First call: prints WOLFCASTLE_COMPLETE, sets completePrinted.
+	// First call: prints WOLFCASTLE_COMPLETE, sets lastNoWorkMsg.
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
 		os.Stdout = origStdout
@@ -235,9 +235,9 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 		os.Stdout = origStdout
 		t.Fatalf("iteration 1: expected NoWork, got %v", result)
 	}
-	if !d.completePrinted {
+	if d.lastNoWorkMsg != "WOLFCASTLE_COMPLETE" {
 		os.Stdout = origStdout
-		t.Fatal("expected completePrinted to be true after all-complete")
+		t.Fatalf("expected lastNoWorkMsg to be WOLFCASTLE_COMPLETE, got %q", d.lastNoWorkMsg)
 	}
 
 	// Now add new work to the tree.
@@ -264,7 +264,7 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 	}
 	writeJSON(t, filepath.Join(projDir, "new-node", "state.json"), nsNew)
 
-	// Second call: finds work, so completePrinted should reset.
+	// Second call: finds work, so lastNoWorkMsg should reset.
 	_ = d.Logger.StartIteration()
 	result2, err := d.RunOnce(context.Background())
 	d.Logger.Close()
@@ -277,8 +277,8 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 	if result2 != IterationDidWork {
 		t.Fatalf("iteration 2: expected DidWork, got %v", result2)
 	}
-	if d.completePrinted {
-		t.Error("completePrinted should have been reset when new work appeared")
+	if d.lastNoWorkMsg != "" {
+		t.Errorf("lastNoWorkMsg should have been reset when new work appeared, got %q", d.lastNoWorkMsg)
 	}
 }
 
