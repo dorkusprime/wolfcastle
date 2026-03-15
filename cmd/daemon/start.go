@@ -106,6 +106,12 @@ Examples:
 				return err
 			}
 
+			// Write PID file for foreground mode too, so `wolfcastle status`
+			// can detect a running daemon regardless of how it was started.
+			pidFile := filepath.Join(app.WolfcastleDir, "wolfcastle.pid")
+			_ = os.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644)
+			defer func() { _ = os.Remove(pidFile) }()
+
 			return d.RunWithSupervisor(context.Background())
 		},
 	}

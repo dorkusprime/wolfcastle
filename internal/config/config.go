@@ -66,7 +66,7 @@ func Defaults() *Config {
 		},
 		Daemon: DaemonConfig{
 			PollIntervalSeconds:        5,
-			BlockedPollIntervalSeconds: 60,
+			BlockedPollIntervalSeconds: 5,
 			MaxIterations:              -1,
 			MaxTurnsPerInvocation:      200,
 			InvocationTimeoutSeconds:   3600,
