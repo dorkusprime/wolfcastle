@@ -13,11 +13,9 @@ import (
 func newBreadcrumbCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "breadcrumb [text]",
-		Short: "Add a breadcrumb to a node's audit trail",
-		Long: `Records a timestamped breadcrumb note on a node's audit trail.
-
-Breadcrumbs provide a narrative log of progress, decisions, and observations
-that persists across daemon iterations.
+		Short: "Drop a marker on the audit trail",
+		Long: `Records a timestamped note on a node's audit trail. Progress,
+decisions, observations. Persists across daemon iterations.
 
 Examples:
   wolfcastle audit breadcrumb --node my-project "refactored auth module"
@@ -29,7 +27,7 @@ Examples:
 			}
 			text := args[0]
 			if strings.TrimSpace(text) == "" {
-				return fmt.Errorf("breadcrumb text cannot be empty")
+				return fmt.Errorf("breadcrumb text cannot be empty. Say something")
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {

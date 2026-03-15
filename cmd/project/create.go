@@ -16,10 +16,10 @@ import (
 func newCreateCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create [name]",
-		Short: "Create a new project or sub-project",
-		Long: `Creates a new project node in the work tree.
-Without --node, creates a root-level project.
-With --node, creates a child under the specified parent.
+		Short: "Designate a new target",
+		Long: `Creates a project node in the work tree. Without --node, it lands at
+the root. With --node, it nests under a parent. Leaf nodes hold tasks.
+Orchestrators command their children.
 
 Examples:
   wolfcastle project create "auth-system"
@@ -49,7 +49,7 @@ Examples:
 			case "orchestrator":
 				nt = state.NodeOrchestrator
 			default:
-				return fmt.Errorf("invalid node type %q: must be 'leaf' or 'orchestrator'", nodeType)
+				return fmt.Errorf("unknown node type %q: pick 'leaf' or 'orchestrator'", nodeType)
 			}
 
 			// All state mutations happen under a single lock hold to
@@ -69,7 +69,7 @@ Examples:
 				if parentNode != "" {
 					parentEntry, ok := idx.Nodes[parentNode]
 					if !ok {
-						return fmt.Errorf("parent node %q not found", parentNode)
+						return fmt.Errorf("parent node %q not found. Check your address", parentNode)
 					}
 					if parentEntry.Type == state.NodeLeaf {
 						parentParsed, err := tree.ParseAddress(parentNode)

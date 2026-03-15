@@ -25,15 +25,16 @@ var app = &cmdutil.App{Clock: clock.New(), Invoker: invoke.NewProcessInvoker()}
 var rootCmd = &cobra.Command{
 	Use:     "wolfcastle",
 	Version: Version + " (" + Commit + ", " + Date + ")",
-	Short:   "Wolfcastle takes complex work, breaks it into pieces, and sends AI models to destroy every one of them",
-	Long: `Wolfcastle takes complex work, breaks it into pieces, and sends AI
-models to destroy every one of them.
+	Short:   "Wolfcastle crushes your project backlog so you don't have to",
+	Long: `You give Wolfcastle a goal. It breaks that goal into pieces. Then it
+breaks those pieces. Then it does the work while you go do whatever it
+is you do when you're not supervising software.
 
 Quick start:
-  wolfcastle init                          Initialize a project
-  wolfcastle project create "my-feature"   Create a root project
+  wolfcastle init                          Claim a directory
+  wolfcastle project create "my-feature"   Name your target
   wolfcastle task add --node my-feature "implement API"
-  wolfcastle start                         Run the daemon
+  wolfcastle start                         Unleash the daemon
 
 Use "wolfcastle [command] --help" for more information about a command.
 All commands support --json for machine-readable output.`,

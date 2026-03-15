@@ -13,11 +13,9 @@ import (
 // navigateCmd finds the next actionable task via depth-first traversal.
 var navigateCmd = &cobra.Command{
 	Use:   "navigate",
-	Short: "Find the next actionable task via depth-first traversal",
-	Long: `Returns the next task to work on via depth-first traversal of the project tree.
-
-Does NOT claim the task. Use 'wolfcastle task claim' to claim it.
-Optionally scope navigation to a subtree with --node.
+	Short: "Acquire the next target",
+	Long: `Searches the project tree depth-first and returns the next task to
+eliminate. Does not claim it. Use 'wolfcastle task claim' for that.
 
 Examples:
   wolfcastle navigate
@@ -49,10 +47,10 @@ Examples:
 			output.Print(output.Ok("navigate", result))
 		} else {
 			if result.Found {
-				output.PrintHuman("Next task: %s/%s", result.NodeAddress, result.TaskID)
+				output.PrintHuman("Target acquired: %s/%s", result.NodeAddress, result.TaskID)
 				output.PrintHuman("  %s", result.Description)
 			} else {
-				output.PrintHuman("No actionable tasks: %s", result.Reason)
+				output.PrintHuman("No targets: %s", result.Reason)
 			}
 		}
 		return nil

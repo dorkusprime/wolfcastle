@@ -13,12 +13,10 @@ import (
 func newRejectCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "reject <finding-id | --all>",
-		Short: "Reject an audit finding (no project will be created)",
-		Long: `Rejects a pending audit finding, recording the decision without
-creating any project. Use --all to reject every remaining finding.
-
-When all findings have been decided, the batch is archived to history
-and the pending file is removed.
+		Short: "Dismiss a finding",
+		Long: `Rejects a pending finding. No project created. Use --all to reject
+everything remaining. When all findings are decided, the batch
+archives to history.
 
 Examples:
   wolfcastle audit reject finding-3
@@ -35,7 +33,7 @@ Examples:
 				return err
 			}
 			if batch == nil {
-				return fmt.Errorf("no pending review batch. Run 'wolfcastle audit run' first")
+				return fmt.Errorf("no pending batch. Run 'wolfcastle audit run' first")
 			}
 
 			now := app.Clock.Now()

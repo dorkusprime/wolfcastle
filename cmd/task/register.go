@@ -14,11 +14,10 @@ import (
 func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	taskCmd := &cobra.Command{
 		Use:   "task",
-		Short: "Manage tasks within leaf nodes",
-		Long: `Add, claim, complete, block, and unblock tasks within leaf project nodes.
-
-Tasks follow a lifecycle: not_started -> in_progress -> complete (or blocked).
-Each leaf node must have an audit task as its final task.
+		Short: "Command the task lifecycle",
+		Long: `Tasks are the smallest unit of destruction. Add them, claim them,
+complete them, block them, unblock them. They obey or they don't.
+Either way, Wolfcastle keeps moving.
 
 Examples:
   wolfcastle task add --node my-project "implement the API endpoint"

@@ -16,12 +16,10 @@ import (
 func newApproveCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "approve <finding-id | --all>",
-		Short: "Approve an audit finding and create a project for it",
-		Long: `Approves a pending audit finding, creating a leaf project in the work tree.
-Use --all to approve every remaining pending finding in the batch.
-
-When all findings have been decided, the batch is archived to history
-and the pending file is removed.
+		Short: "Approve a finding, create a project for it",
+		Long: `Approves a finding and creates a leaf project to address it. Use --all
+to approve everything pending. When all findings are decided, the
+batch archives to history.
 
 Examples:
   wolfcastle audit approve finding-1
@@ -42,7 +40,7 @@ Examples:
 				return err
 			}
 			if batch == nil {
-				return fmt.Errorf("no pending review batch. Run 'wolfcastle audit run' first")
+				return fmt.Errorf("no pending batch. Run 'wolfcastle audit run' first")
 			}
 
 			idx, err := app.Resolver.LoadRootIndex()

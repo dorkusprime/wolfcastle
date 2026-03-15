@@ -13,8 +13,8 @@ import (
 // installCmd is the parent command for integration installs.
 var installCmd = &cobra.Command{
 	Use:   "install [target]",
-	Short: "Install integrations",
-	Long: `Install integrations with external tools. Currently supports: skill.
+	Short: "Deploy integrations",
+	Long: `Installs integrations with external tools. Currently: skill.
 
 Examples:
   wolfcastle install skill`,
@@ -23,12 +23,10 @@ Examples:
 // installSkillCmd installs the Claude Code skill for Wolfcastle interaction.
 var installSkillCmd = &cobra.Command{
 	Use:   "skill",
-	Short: "Install Claude Code skill for Wolfcastle interaction",
-	Long: `Creates a Claude Code skill in .claude/wolfcastle/ that enables
-Claude Code users to interact with Wolfcastle natively from their session.
-
-Uses symlinks where supported (macOS, Linux) for automatic updates.
-Falls back to copying on Windows.`,
+	Short: "Deploy the Claude Code skill",
+	Long: `Creates a Claude Code skill in .claude/wolfcastle/ for native
+interaction from a Claude Code session. Symlinks where possible,
+copies on Windows.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repoDir := filepath.Dir(app.WolfcastleDir)
 		claudeDir := filepath.Join(repoDir, ".claude")
@@ -63,9 +61,9 @@ Falls back to copying on Windows.`,
 					"target": skillDir,
 				}))
 			} else {
-				output.PrintHuman("Installed Wolfcastle skill via symlink")
+				output.PrintHuman("Skill deployed via symlink")
 				output.PrintHuman("  %s → %s", skillDir, sourceDir)
-				output.PrintHuman("  Updates automatically with 'wolfcastle update'")
+				output.PrintHuman("  Auto-updates with 'wolfcastle update'")
 			}
 			return nil
 		}
@@ -81,9 +79,9 @@ Falls back to copying on Windows.`,
 				"target": skillDir,
 			}))
 		} else {
-			output.PrintHuman("Installed Wolfcastle skill via copy")
+			output.PrintHuman("Skill deployed via copy")
 			output.PrintHuman("  %s", skillDir)
-			output.PrintHuman("  Re-run 'wolfcastle install skill' after updates")
+			output.PrintHuman("  Re-run 'wolfcastle install skill' after upgrades")
 		}
 		return nil
 	},

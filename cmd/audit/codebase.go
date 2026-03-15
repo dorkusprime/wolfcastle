@@ -20,15 +20,12 @@ import (
 func newCodebaseCmd(app *cmdutil.App) (*cobra.Command, *cobra.Command) {
 	runCmd := &cobra.Command{
 		Use:   "run",
-		Short: "Run a codebase audit with discoverable scopes",
-		Long: `Runs a model-driven codebase audit and saves findings for state.
+		Short: "Execute a codebase audit",
+		Long: `Runs a model-driven codebase audit. Findings land in a pending batch.
+Review them with 'audit pending', approve or reject individually.
 
-Findings are saved as a pending batch in audit-state.json. Use
-'audit pending' to view them, 'audit approve' and 'audit reject'
-to act on individual findings, and 'audit history' to see past decisions.
-
-Scopes are discovered from base/audits/, custom/audits/, and local/audits/.
-Use --list to see available scopes, or --scope to run specific ones.
+Scopes come from base/audits/, custom/audits/, and local/audits/.
+Use --list to see what's available.
 
 Examples:
   wolfcastle audit run
@@ -74,7 +71,7 @@ Examples:
 						pendingCount++
 					}
 				}
-				return fmt.Errorf("pending review batch exists with %d finding(s). Use 'audit pending' to review or 'audit reject --all' to discard", pendingCount)
+				return fmt.Errorf("pending batch exists (%d finding(s)). Review with 'audit pending' or discard with 'audit reject --all'", pendingCount)
 			}
 
 			// Filter scopes
@@ -110,8 +107,8 @@ Examples:
 
 	listCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List available audit scopes",
-		Long: `Lists audit scopes discovered from base/audits/, custom/audits/, and local/audits/.
+		Short: "Show available audit scopes",
+		Long: `Lists audit scopes from base/audits/, custom/audits/, and local/audits/.
 
 Examples:
   wolfcastle audit list
@@ -127,7 +124,7 @@ Examples:
 				}))
 			} else {
 				if len(scopes) == 0 {
-					output.PrintHuman("No audit scopes found")
+					output.PrintHuman("No audit scopes found. Add .md files to base/audits/.")
 				} else {
 					output.PrintHuman("Available audit scopes:")
 					for _, s := range scopes {
@@ -226,7 +223,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 
 	prompt := strings.Join(promptParts, "\n\n---\n\n")
 
-	output.PrintHuman("Running audit with %d scope(s): %s", len(scopes), strings.Join(scopeIDs(scopes), ", "))
+	output.PrintHuman("Auditing %d scope(s): %s", len(scopes), strings.Join(scopeIDs(scopes), ", "))
 
 	repoDir := filepath.Dir(app.WolfcastleDir)
 	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(app.Cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
@@ -245,7 +242,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 	findings := parseFindings(result.Stdout)
 
 	if len(findings) == 0 {
-		output.PrintHuman("No findings parsed from audit output.")
+		output.PrintHuman("No findings extracted from audit output.")
 		output.PrintHuman("\nRaw output:\n%s", result.Stdout)
 		return nil
 	}
@@ -274,7 +271,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 			"scopes":        batch.Scopes,
 		}))
 	} else {
-		output.PrintHuman("\nSaved %d finding(s) for state.", len(findings))
+		output.PrintHuman("\n%d finding(s) saved.", len(findings))
 		for i, f := range findings {
 			output.PrintHuman("  %d. %s", i+1, f.Title)
 		}

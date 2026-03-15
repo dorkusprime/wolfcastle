@@ -13,8 +13,8 @@ import (
 func newListCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "List all items in the inbox",
-		Long: `Lists all items in the inbox with their status and timestamp.
+		Short: "Show what's in the inbox",
+		Long: `Lists every inbox item with its status and timestamp.
 
 Examples:
   wolfcastle inbox list
@@ -37,7 +37,7 @@ Examples:
 				}))
 			} else {
 				if len(inboxData.Items) == 0 {
-					output.PrintHuman("Inbox is empty")
+					output.PrintHuman("Inbox is empty. Nothing to triage.")
 				} else {
 					for i, item := range inboxData.Items {
 						output.PrintHuman("  %d. [%s] %s (%s)", i+1, item.Status, item.Text, item.Timestamp)

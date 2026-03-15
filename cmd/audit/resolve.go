@@ -12,8 +12,8 @@ import (
 func newResolveCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "resolve [escalation-id]",
-		Short: "Resolve an audit escalation",
-		Long: `Marks an open escalation as resolved, recording who resolved it and when.
+		Short: "Close an escalation",
+		Long: `Marks an open escalation as resolved. Records who and when.
 
 Examples:
   wolfcastle audit resolve --node my-project escalation-my-project-1`,

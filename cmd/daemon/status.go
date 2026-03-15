@@ -18,11 +18,10 @@ import (
 func newStatusCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
-		Short: "Show current state of the project tree",
-		Long: `Displays a summary of node states in the project tree.
-
-Use --node to scope the status to a specific subtree.
-Use --all to show status across all engineers' namespaces.
+		Short: "Survey the battlefield",
+		Long: `Shows node states across the project tree. How many targets remain.
+How many have fallen. Use --node to scope to a subtree, --all to
+see every engineer's namespace.
 
 Examples:
   wolfcastle status
@@ -112,7 +111,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 			"open_escalations":  openEscalations,
 		}))
 	} else {
-		output.PrintHuman("Wolfcastle Status")
+		output.PrintHuman("Battlefield Report")
 		output.PrintHuman("")
 		output.PrintHuman("  Nodes")
 		output.PrintHuman("    Total:        %d", total)
@@ -163,7 +162,7 @@ func showAllStatus(app *cmdutil.App) error {
 	projectsDir := filepath.Join(app.WolfcastleDir, "projects")
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
-		return fmt.Errorf("reading projects dir: %w. Is this a valid Wolfcastle workspace?", err)
+		return fmt.Errorf("reading projects dir: %w", err)
 	}
 
 	type namespaceSummary struct {
@@ -207,7 +206,7 @@ func showAllStatus(app *cmdutil.App) error {
 		}))
 	} else {
 		if len(summaries) == 0 {
-			output.PrintHuman("No engineer namespaces found in projects/")
+			output.PrintHuman("No namespaces found. The battlefield is empty.")
 		} else {
 			for _, s := range summaries {
 				output.PrintHuman("[%s] %d nodes: %d complete, %d in-progress, %d blocked",

@@ -15,9 +15,9 @@ import (
 func newShowCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "show",
-		Short: "Show the full audit state for a node",
-		Long: `Displays the complete audit record including scope, breadcrumbs, gaps,
-escalations, status, and result summary.
+		Short: "Display a node's full audit record",
+		Long: `Shows scope, breadcrumbs, gaps, escalations, status, and result
+summary for a single node.
 
 Examples:
   wolfcastle audit show --node my-project

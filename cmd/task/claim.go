@@ -14,10 +14,9 @@ import (
 func newClaimCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "claim",
-		Short: "Claim a task (transition from not_started to in_progress)",
-		Long: `Claims a task, transitioning it from not_started to in_progress.
-
-Use 'wolfcastle navigate' to find the next claimable task, then claim it.
+		Short: "Claim a task and begin the assault",
+		Long: `Transitions a task from not_started to in_progress. The target is yours.
+Use 'wolfcastle navigate' to find the next one worth claiming.
 
 Examples:
   wolfcastle task claim --node my-project/task-1`,
@@ -67,7 +66,7 @@ Examples:
 					"state":   string(state.StatusInProgress),
 				}))
 			} else {
-				output.PrintHuman("Claimed task %s", nodeFlag)
+				output.PrintHuman("Claimed %s", nodeFlag)
 			}
 			return nil
 		},

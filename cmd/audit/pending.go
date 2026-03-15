@@ -13,9 +13,8 @@ import (
 func newPendingCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "pending",
-		Short: "Show pending audit findings awaiting review",
-		Long: `Displays the current batch of audit findings that have not yet been
-approved or rejected. If no pending batch exists, reports that.
+		Short: "Show findings awaiting judgment",
+		Long: `Displays audit findings that have not yet been approved or rejected.
 
 Examples:
   wolfcastle audit pending
@@ -32,7 +31,7 @@ Examples:
 						"pending": 0,
 					}))
 				} else {
-					output.PrintHuman("No pending audit review batch.")
+					output.PrintHuman("No pending findings. Run 'wolfcastle audit run' to generate some.")
 				}
 				return nil
 			}
@@ -54,11 +53,11 @@ Examples:
 				}))
 			} else {
 				if len(pending) == 0 {
-					output.PrintHuman("All findings in batch %s have been reviewed.", batch.ID)
-					output.PrintHuman("Run 'audit approve' or 'audit reject' on the last finding to archive the batch.")
+					output.PrintHuman("All findings in batch %s decided.", batch.ID)
+					output.PrintHuman("Approve or reject the last finding to archive the batch.")
 					return nil
 				}
-				output.PrintHuman("Pending audit findings (batch %s, %d scope(s)):\n", batch.ID, len(batch.Scopes))
+				output.PrintHuman("Pending findings (batch %s, %d scope(s)):\n", batch.ID, len(batch.Scopes))
 				for _, f := range pending {
 					output.PrintHuman("  [%s] %s", f.ID, f.Title)
 					if f.Description != "" {

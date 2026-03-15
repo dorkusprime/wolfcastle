@@ -14,10 +14,9 @@ import (
 func newUnblockCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unblock",
-		Short: "Unblock a task (transition from blocked to not_started, reset failure counter)",
-		Long: `Resets a blocked task back to not_started and clears its failure counter.
-
-This is the simple (Tier 1) unblock. For model-assisted debugging, use
+		Short: "Free a blocked task",
+		Long: `Resets a blocked task to not_started. Failure counter goes to zero.
+This is the simple reset. For model-assisted diagnosis, use
 'wolfcastle unblock --node <task>' instead.
 
 Examples:
@@ -67,7 +66,7 @@ Examples:
 					"state":   string(state.StatusNotStarted),
 				}))
 			} else {
-				output.PrintHuman("Unblocked task %s (reset to not_started, failure counter cleared)", nodeFlag)
+				output.PrintHuman("Unblocked %s. Counter reset. Ready for another round.", nodeFlag)
 			}
 			return nil
 		},

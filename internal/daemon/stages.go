@@ -28,7 +28,7 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 	if err == nil {
 		defer func() { _ = watcher.Close() }()
 		if addErr := watcher.Add(projDir); addErr == nil {
-			output.PrintHuman("Inbox watcher: using fsnotify on %s", projDir)
+			output.PrintHuman("Inbox: watching %s (fsnotify)", projDir)
 			d.runInboxWithFsnotify(ctx, watcher)
 			return
 		}
@@ -36,7 +36,7 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 	}
 
 	// Fallback: polling
-	output.PrintHuman("Inbox watcher: fsnotify unavailable, using polling")
+	output.PrintHuman("Inbox: polling mode (fsnotify unavailable)")
 	d.runInboxWithPolling(ctx)
 }
 
@@ -113,7 +113,7 @@ func (d *Daemon) runInboxWithPolling(ctx context.Context) {
 
 // processInbox runs the intake stage for pending inbox items.
 func (d *Daemon) processInbox(ctx context.Context, counter int) {
-	output.PrintHuman("inbox-%04d: Processing inbox items...", counter)
+	output.PrintHuman("inbox-%04d: Processing...", counter)
 
 	for _, stage := range d.Config.Pipeline.Stages {
 		if stage.Name == "intake" && stage.IsEnabled() {
@@ -206,7 +206,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 
 	// Only mark items as filed if the model succeeded.
 	if result.ExitCode != 0 {
-		output.PrintHuman("  Intake stage failed (exit %d). Items remain new for retry.", result.ExitCode)
+		output.PrintHuman("  Intake failed (exit %d). Items queued for retry.", result.ExitCode)
 		return nil
 	}
 
@@ -228,7 +228,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		return fmt.Errorf("saving inbox after intake: %w", err)
 	}
 
-	output.PrintHuman("  Intake stage: %d items filed", len(newItems))
+	output.PrintHuman("  Intake: %d items filed", len(newItems))
 
 	// Signal the execute loop that new work may be available.
 	// Non-blocking: if the channel already has a signal, the loop

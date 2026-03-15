@@ -17,11 +17,10 @@ import (
 // archiveAddCmd generates an archive entry for a completed node.
 var archiveAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Generate an archive entry for a completed node",
-	Long: `Generates a Markdown archive entry for a completed project node.
-
-The node must be in the 'complete' state. The archive entry includes
-the node's audit trail, result summary, and metadata.
+	Short: "Archive a completed node",
+	Long: `Generates a Markdown archive entry for a completed node. The node
+must be in the 'complete' state. Includes audit trail, results,
+and metadata.
 
 Examples:
   wolfcastle archive add --node my-project`,
@@ -44,7 +43,7 @@ Examples:
 		}
 
 		if ns.State != state.StatusComplete {
-			return fmt.Errorf("node %s is %s, must be complete to archive. Finish all tasks first", nodeAddr, ns.State)
+			return fmt.Errorf("node %s is %s, not complete. Finish the job first", nodeAddr, ns.State)
 		}
 
 		// Get current branch

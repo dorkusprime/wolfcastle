@@ -13,11 +13,10 @@ import (
 func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	projectCmd := &cobra.Command{
 		Use:   "project",
-		Short: "Manage projects in the work tree",
-		Long: `Create and manage project nodes in the Wolfcastle work tree.
-
-Projects can be root-level or nested under a parent orchestrator node.
-Each project has a type (leaf or orchestrator) and tracks its own state.
+		Short: "Organize targets in the work tree",
+		Long: `Projects are the targets Wolfcastle destroys. Root-level or nested,
+leaf or orchestrator. Each one tracks its own state and reports
+to its parent.
 
 Examples:
   wolfcastle project create "auth-system"

@@ -108,10 +108,10 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 
 // selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
 func (d *Daemon) selfHeal() error {
-	output.PrintHuman("Running self-healing check...")
+	output.PrintHuman("Scanning for casualties...")
 	idx, err := d.Resolver.LoadRootIndex()
 	if err != nil {
-		output.PrintHuman("No root index found. Nothing to heal.")
+		output.PrintHuman("No root index. Nothing to recover.")
 		return nil
 	}
 
@@ -139,10 +139,10 @@ func (d *Daemon) selfHeal() error {
 		return werrors.State(fmt.Errorf("state corruption: %d tasks in progress (serial execution requires at most 1)", len(inProgress)))
 	}
 	if len(inProgress) == 1 {
-		output.PrintHuman("Found interrupted task: %s/%s. Will resume on next iteration.",
+		output.PrintHuman("Interrupted task found: %s/%s. Resuming next iteration.",
 			inProgress[0].addr, inProgress[0].taskID)
 	} else {
-		output.PrintHuman("No interrupted tasks found.")
+		output.PrintHuman("All clear. No interrupted tasks.")
 	}
 	return nil
 }
@@ -160,7 +160,7 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		if restart >= maxRestarts {
 			return fmt.Errorf("daemon exceeded max restarts (%d): %w", maxRestarts, err)
 		}
-		output.PrintHuman("Daemon crashed (attempt %d/%d): %v. Restarting in %v.", restart+1, maxRestarts, err, delay)
+		output.PrintHuman("Crash (attempt %d/%d): %v. Restarting in %v.", restart+1, maxRestarts, err, delay)
 		time.Sleep(delay)
 
 		// Reset daemon state for next Run() invocation.
@@ -212,14 +212,14 @@ func (d *Daemon) Run(ctx context.Context) error {
 		var err error
 		d.branch, err = currentBranch(d.RepoDir)
 		if err != nil {
-			output.PrintHuman("Not a git repository. Branch verification disabled.")
+			output.PrintHuman("Not a git repository. Branch verification off.")
 			d.Config.Git.VerifyBranch = false
 		}
 	}
 
 	d.iteration = 0
 	_ = d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
-	output.PrintHuman("=== Wolfcastle starting (scope=%s) ===", d.scopeLabel())
+	output.PrintHuman("=== Wolfcastle engaged (scope=%s) ===", d.scopeLabel())
 
 	// Start the parallel inbox processing goroutine (ADR-064).
 	// It watches for new inbox items and runs the intake stage
@@ -276,7 +276,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	select {
 	case <-d.shutdown:
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "signal"})
-		output.PrintHuman("=== Wolfcastle stopped by signal ===")
+		output.PrintHuman("=== Wolfcastle standing down (signal) ===")
 		return IterationStop, nil
 	default:
 	}
@@ -286,7 +286,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	if _, err := os.Stat(stopFilePath); err == nil {
 		_ = os.Remove(stopFilePath)
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
-		output.PrintHuman("=== Wolfcastle stopped by stop file ===")
+		output.PrintHuman("=== Wolfcastle standing down (stop file) ===")
 		return IterationStop, nil
 	}
 
@@ -294,7 +294,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	maxIter := d.Config.Daemon.MaxIterations
 	if maxIter > 0 && d.iteration >= maxIter {
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration})
-		output.PrintHuman("=== Wolfcastle hit iteration cap (%d) ===", maxIter)
+		output.PrintHuman("=== Iteration cap reached (%d) ===", maxIter)
 		return IterationStop, nil
 	}
 
@@ -329,7 +329,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 			output.PrintHuman("WOLFCASTLE_COMPLETE")
 			d.completePrinted = true
 		} else if navResult.Reason != "all_complete" {
-			output.PrintHuman("No work: %s.", navResult.Reason)
+			output.PrintHuman("No targets: %s.", navResult.Reason)
 			d.completePrinted = false // reset if tree is no longer all-complete
 		}
 		return IterationNoWork, nil

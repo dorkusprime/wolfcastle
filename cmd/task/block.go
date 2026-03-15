@@ -15,11 +15,9 @@ import (
 func newBlockCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "block [reason]",
-		Short: "Block a task (transition from in_progress to blocked)",
-		Long: `Marks a task as blocked with a reason. The task must currently be in_progress.
-
-Blocking a task propagates state changes up through parent orchestrators.
-Use 'wolfcastle task unblock' or 'wolfcastle unblock' to resolve the block.
+		Short: "Block a task with a reason",
+		Long: `Something stopped the advance. Record why. The task must be in_progress.
+State propagates upward. Use 'wolfcastle task unblock' to resume.
 
 Examples:
   wolfcastle task block --node my-project/task-1 "waiting on upstream API"
@@ -31,7 +29,7 @@ Examples:
 			}
 			reason := args[0]
 			if strings.TrimSpace(reason) == "" {
-				return fmt.Errorf("block reason cannot be empty. Describe why the task is blocked")
+				return fmt.Errorf("block reason cannot be empty. State why")
 			}
 			nodeFlag, _ := cmd.Flags().GetString("node")
 			if nodeFlag == "" {

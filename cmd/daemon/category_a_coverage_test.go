@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/dorkusprime/wolfcastle/internal/logging"
 )
 
 // ---------------------------------------------------------------------------
@@ -88,7 +90,7 @@ func TestShowHistoricalLines_ThenNewFile(t *testing.T) {
 
 	// Show historical lines from first file
 	delete(fileOffsets, logFile1)
-	showHistoricalLines(logFile1, 10)
+	showHistoricalLines(logFile1, 10, logging.LevelDebug)
 
 	// Create second log file (simulates new iteration)
 	logFile2 := filepath.Join(tmp, "002-second.jsonl")
@@ -96,7 +98,7 @@ func TestShowHistoricalLines_ThenNewFile(t *testing.T) {
 
 	// Tail the second file from the beginning
 	delete(fileOffsets, logFile2)
-	err := tailFileStreaming(logFile2)
+	err := tailFileStreaming(logFile2, logging.LevelDebug)
 	if err != nil {
 		t.Fatalf("tailFileStreaming second file failed: %v", err)
 	}

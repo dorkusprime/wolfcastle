@@ -14,12 +14,10 @@ import (
 func newEscalateCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "escalate [gap description]",
-		Short: "Escalate a gap to the parent node's audit",
-		Long: `Records an escalation on the parent orchestrator's audit trail.
-
-Use this when a leaf node encounters a gap that its parent needs to address,
-such as missing requirements, unclear scope, or cross-cutting concerns.
-The source node must not be a root-level node (it must have a parent).
+		Short: "Escalate a gap to the parent node",
+		Long: `Pushes a gap up to the parent orchestrator. The parent needs to
+deal with it. Missing requirements, unclear scope, cross-cutting
+concerns. Root-level nodes cannot escalate (no parent).
 
 Examples:
   wolfcastle audit escalate --node auth/login "missing error handling spec"
@@ -31,7 +29,7 @@ Examples:
 			}
 			description := args[0]
 			if strings.TrimSpace(description) == "" {
-				return fmt.Errorf("escalation description cannot be empty. Describe the gap")
+				return fmt.Errorf("escalation description cannot be empty. Describe the problem")
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {
@@ -44,7 +42,7 @@ Examples:
 			}
 			parentAddr := addr.Parent()
 			if parentAddr.IsRoot() {
-				return fmt.Errorf("cannot escalate from a root-level node (no parent)")
+				return fmt.Errorf("root-level node has no parent to escalate to")
 			}
 
 			if err := app.Store.MutateNode(parentAddr.String(), func(parentState *state.NodeState) error {

@@ -14,11 +14,9 @@ import (
 func newStopCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "stop",
-		Short: "Stop the Wolfcastle daemon",
-		Long: `Sends a stop signal to the running Wolfcastle daemon.
-
-By default, sends SIGTERM for a graceful shutdown. Use --force to send
-SIGKILL if the daemon is not responding.
+		Short: "Stand down",
+		Long: `Sends a stop signal to the running daemon. Graceful by default.
+Use --force if it refuses to listen.
 
 Examples:
   wolfcastle stop
@@ -28,7 +26,7 @@ Examples:
 
 			pid, err := daemon.ReadPID(app.WolfcastleDir)
 			if err != nil {
-				return fmt.Errorf("no PID file found. Is Wolfcastle running?")
+				return fmt.Errorf("no PID file. Nothing to stop")
 			}
 
 			if !daemon.IsProcessRunning(pid) {
@@ -57,9 +55,9 @@ Examples:
 				}))
 			} else {
 				if force {
-					output.PrintHuman("Force-killed Wolfcastle (PID %d)", pid)
+					output.PrintHuman("Terminated with prejudice (PID %d)", pid)
 				} else {
-					output.PrintHuman("Sent stop signal to Wolfcastle (PID %d)", pid)
+					output.PrintHuman("Stand-down signal sent (PID %d)", pid)
 				}
 			}
 			return nil

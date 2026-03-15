@@ -15,11 +15,9 @@ import (
 // adrCreateCmd creates a new timestamped ADR Markdown file.
 var adrCreateCmd = &cobra.Command{
 	Use:   "create [title]",
-	Short: "Create a new architecture decision record",
-	Long: `Creates a timestamped ADR Markdown file in docs/decisions/.
-
-The body can be provided via --stdin or --file. Without either, a
-template with Context/Decision/Consequences sections is generated.
+	Short: "File a new decision record",
+	Long: `Creates a timestamped ADR in docs/decisions/. Provide the body via
+--stdin or --file, or get a template with Context/Decision/Consequences.
 
 Examples:
   wolfcastle adr create "Use JWT for authentication"
@@ -29,7 +27,7 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title := args[0]
 		if strings.TrimSpace(title) == "" {
-			return fmt.Errorf("ADR title cannot be empty")
+			return fmt.Errorf("ADR title cannot be empty. Name the decision")
 		}
 		useStdin, _ := cmd.Flags().GetBool("stdin")
 		bodyFile, _ := cmd.Flags().GetString("file")

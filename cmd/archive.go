@@ -5,11 +5,9 @@ import "github.com/spf13/cobra"
 // archiveCmd is the parent command for archive management.
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
-	Short: "Manage the archive of completed work",
-	Long: `Generate and manage archive entries for completed project nodes.
-
-Archive entries capture the final state, audit trail, and results for
-completed work, providing a persistent record of what was done.
+	Short: "Preserve the record of conquered targets",
+	Long: `Archive entries capture the final state, audit trail, and results of
+completed nodes. The permanent record of what fell and how.
 
 Examples:
   wolfcastle archive add --node my-project`,

@@ -14,17 +14,17 @@ import (
 func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	auditCmd := &cobra.Command{
 		Use:   "audit",
-		Short: "Audit commands: codebase audit, review workflow, trail management",
-		Long: `Commands for codebase auditing, staged review, and audit trail management.
+		Short: "Inspect, review, and track audit trails",
+		Long: `Codebase auditing, staged review, and trail management.
 
-Run a codebase audit to generate findings, then review them at your own pace:
-  wolfcastle audit run --scope security    # generate findings
-  wolfcastle audit pending                 # see what needs review
-  wolfcastle audit approve finding-1       # create project from finding
-  wolfcastle audit reject finding-2        # dismiss a finding
-  wolfcastle audit history                 # see past decisions
+Run an audit to generate findings, then decide their fate:
+  wolfcastle audit run --scope security    # scan for weaknesses
+  wolfcastle audit pending                 # see what awaits judgment
+  wolfcastle audit approve finding-1       # promote to project
+  wolfcastle audit reject finding-2        # dismiss
+  wolfcastle audit history                 # review past decisions
 
-Breadcrumbs and escalations manage the per-node audit trail:
+Breadcrumbs and escalations track the per-node audit trail:
   wolfcastle audit breadcrumb --node my-project "refactored auth module"
   wolfcastle audit escalate --node my-project/login "missing error handling spec"`,
 	}

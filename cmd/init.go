@@ -13,11 +13,9 @@ import (
 // initCmd scaffolds the .wolfcastle directory in the current working directory.
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a Wolfcastle project in the current directory",
-	Long: `Creates the .wolfcastle/ directory with default configuration, base prompts,
-and engineer identity in the current working directory.
-
-This is typically the first command you run in a new repository.
+	Short: "Claim a directory for Wolfcastle",
+	Long: `Creates .wolfcastle/ with default config, base prompts, and identity.
+This is where it begins.
 
 Examples:
   cd my-repo && wolfcastle init
@@ -39,10 +37,10 @@ Examples:
 					output.Print(output.Ok("init", map[string]string{
 						"path":    wcDir,
 						"status":  "already_initialized",
-						"message": "Wolfcastle already initialized in .wolfcastle/. Use --force to reinitialize.",
+						"message": "Already initialized. Use --force to reinitialize.",
 					}))
 				} else {
-					output.PrintHuman("Wolfcastle already initialized in %s. Use --force to reinitialize.", wcDir)
+					output.PrintHuman("Already initialized in %s. Use --force to reinitialize.", wcDir)
 				}
 				return nil
 			}
@@ -58,7 +56,7 @@ Examples:
 					"status": "reinitialized",
 				}))
 			} else {
-				output.PrintHuman("Reinitialized Wolfcastle project in %s", wcDir)
+				output.PrintHuman("Reinitialized in %s", wcDir)
 			}
 			return nil
 		}
@@ -72,13 +70,13 @@ Examples:
 				"path": wcDir,
 			}))
 		} else {
-			output.PrintHuman("Initialized Wolfcastle in %s", wcDir)
-			output.PrintHuman("  base/config.json     default configuration (regenerated)")
+			output.PrintHuman("Wolfcastle deployed in %s", wcDir)
+			output.PrintHuman("  base/config.json     defaults (regenerated on update)")
 			output.PrintHuman("  custom/config.json   team overrides (committed)")
 			output.PrintHuman("  local/config.json    your identity (gitignored)")
-			output.PrintHuman("  base/                default prompts and rules")
+			output.PrintHuman("  base/                prompts and rules")
 			output.PrintHuman("")
-			output.PrintHuman("Next: create a project with 'wolfcastle project create \"name\"'")
+			output.PrintHuman("Next: wolfcastle project create \"target-name\"")
 		}
 		return nil
 	},

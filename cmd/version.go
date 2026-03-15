@@ -17,7 +17,7 @@ var Date = "unknown"
 // versionCmd prints the binary's version, commit, and build date.
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the Wolfcastle version",
+	Short: "Show the current version",
 	Run: func(cmd *cobra.Command, args []string) {
 		if app.JSONOutput {
 			output.Print(output.Ok("version", map[string]string{

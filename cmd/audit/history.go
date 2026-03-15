@@ -12,9 +12,8 @@ import (
 func newHistoryCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "history",
-		Short: "Show past audit review decisions",
-		Long: `Displays the history of completed audit review batches with their
-decisions. Most recent batches are shown first.
+		Short: "Review past audit decisions",
+		Long: `Shows completed audit batches and their verdicts. Most recent first.
 
 Examples:
   wolfcastle audit history
@@ -35,7 +34,7 @@ Examples:
 			}
 
 			if len(history.Entries) == 0 {
-				output.PrintHuman("No audit review history.")
+				output.PrintHuman("No audit history on record.")
 				return nil
 			}
 

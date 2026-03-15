@@ -12,11 +12,9 @@ import (
 func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	inboxCmd := &cobra.Command{
 		Use:   "inbox",
-		Short: "Manage the inbox for new work items",
-		Long: `Capture, list, and clear quick ideas and work items in the inbox.
-
-The inbox is a lightweight staging area for ideas that haven't been
-triaged into projects yet.
+		Short: "Capture and triage incoming work",
+		Long: `The inbox holds raw ideas before they become targets. Throw things in,
+review them later, clear the wreckage when you're done.
 
 Examples:
   wolfcastle inbox add "refactor the auth middleware"

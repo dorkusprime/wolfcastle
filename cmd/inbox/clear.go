@@ -13,9 +13,9 @@ import (
 func newClearCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clear",
-		Short: "Clear filed items from the inbox",
-		Long: `Removes items with status 'filed' from the inbox.
-Items with status 'new' are kept unless --all is specified.
+		Short: "Purge the inbox",
+		Long: `Removes filed items from the inbox. New items survive unless you
+use --all to wipe everything.
 
 Examples:
   wolfcastle inbox clear
@@ -58,7 +58,7 @@ Examples:
 					"remaining": len(inboxData.Items),
 				}))
 			} else {
-				output.PrintHuman("Cleared %d items from inbox (%d remaining)", removedCount, len(inboxData.Items))
+				output.PrintHuman("Eliminated %d items (%d remain)", removedCount, len(inboxData.Items))
 			}
 			return nil
 		},

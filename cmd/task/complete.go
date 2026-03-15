@@ -17,12 +17,10 @@ import (
 func newCompleteCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "complete",
-		Short: "Complete a task (transition from in_progress to complete)",
-		Long: `Marks a task as complete, transitioning it from in_progress to complete.
-
-If validation commands are configured, they run before the completion is saved.
-When all tasks in a leaf node are complete, the node itself becomes complete
-and the state change propagates up through parent orchestrators.
+		Short: "Mark a task as destroyed",
+		Long: `Transitions a task from in_progress to complete. Validation commands
+run first if configured. When every task in a leaf is done, the
+node falls and the victory propagates upward.
 
 Examples:
   wolfcastle task complete --node my-project/task-1`,
@@ -91,9 +89,9 @@ Examples:
 					"node_state": string(ns.State),
 				}))
 			} else {
-				output.PrintHuman("Completed task %s", nodeFlag)
+				output.PrintHuman("Destroyed %s", nodeFlag)
 				if ns.State == state.StatusComplete {
-					output.PrintHuman("Node %s is now complete", nodeAddr)
+					output.PrintHuman("Node %s eliminated", nodeAddr)
 				}
 			}
 			return nil

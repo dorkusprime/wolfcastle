@@ -20,14 +20,14 @@ import (
 // unblockCmd provides model-assisted unblocking and agent context dumps.
 var unblockCmd = &cobra.Command{
 	Use:   "unblock",
-	Short: "Interactive model-assisted unblock, or agent context dump",
-	Long: `Model-assisted unblock with three tiers:
+	Short: "Call in reinforcements for a blocked task",
+	Long: `Three escalation tiers:
 
-Tier 1 (simple flip): wolfcastle task unblock --node <path>
+Tier 1 (reset):       wolfcastle task unblock --node <path>
 Tier 2 (interactive): wolfcastle unblock --node <path>
-  Starts a multi-turn interactive chat with a model, pre-loaded with block context.
+  Opens a chat session with a model. Block context pre-loaded.
 Tier 3 (agent dump):  wolfcastle unblock --agent --node <path>
-  Outputs rich diagnostic context for an already-running interactive agent.
+  Dumps diagnostic context for an already-running agent.
 
 Examples:
   wolfcastle unblock --node my-project/task-1
@@ -159,8 +159,7 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	prompt := diagnostic + "\n---\n\n" + unblockPreamble + "\n" +
 		fmt.Sprintf("When the issue is resolved, remind the user to run:\n  wolfcastle task unblock --node %s\n", taskAddr)
 
-	output.PrintHuman("Starting interactive unblock session...")
-	output.PrintHuman("(Type 'quit', 'exit', or Ctrl+D to end the session)")
+	output.PrintHuman("Engaging unblock session. Type 'quit', 'exit', or Ctrl+D to disengage.")
 	output.PrintHuman("")
 
 	// Set up readline for proper line editing, history, and terminal handling
@@ -209,8 +208,8 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		input = strings.TrimSpace(input)
 
 		if input == "quit" || input == "exit" || input == "" {
-			output.PrintHuman("Session ended.")
-			output.PrintHuman("\nWhen ready, run: wolfcastle task unblock --node %s", taskAddr)
+			output.PrintHuman("Session closed.")
+			output.PrintHuman("\nWhen ready: wolfcastle task unblock --node %s", taskAddr)
 			break
 		}
 

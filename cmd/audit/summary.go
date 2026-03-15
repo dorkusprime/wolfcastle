@@ -13,9 +13,9 @@ import (
 func newSummaryCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "summary [text]",
-		Short: "Set the result summary on a node's audit record",
-		Long: `Sets a one-paragraph result summary on a node's audit trail. This should
-be called before signaling WOLFCASTLE_COMPLETE on the final task of a node.
+		Short: "Record the final result summary",
+		Long: `Sets a result summary on a node's audit record. Call this before
+signaling WOLFCASTLE_COMPLETE on the final task.
 
 Examples:
   wolfcastle audit summary --node my-project "Implemented JWT auth with full test coverage"
@@ -27,7 +27,7 @@ Examples:
 			}
 			text := args[0]
 			if strings.TrimSpace(text) == "" {
-				return fmt.Errorf("summary text cannot be empty")
+				return fmt.Errorf("summary text cannot be empty. State the outcome")
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {

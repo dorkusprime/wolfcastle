@@ -11,6 +11,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
@@ -201,12 +202,12 @@ func TestStatusCmd_NoResolver(t *testing.T) {
 func TestFormatAndPrintLogLine_StageStart(t *testing.T) {
 	line := `{"type":"stage_start","stage":"execute","node":"my-project","task":"task-0001"}`
 	// Should not panic
-	formatAndPrintLogLine(line)
+	formatAndPrintLogLine(line, logging.LevelDebug)
 }
 
 func TestFormatAndPrintLogLine_InvalidJSON(t *testing.T) {
 	// Should not panic on invalid JSON
-	formatAndPrintLogLine("not json")
+	formatAndPrintLogLine("not json", logging.LevelDebug)
 }
 
 func TestFormatAndPrintLogLine_AllTypes(t *testing.T) {
@@ -219,7 +220,7 @@ func TestFormatAndPrintLogLine_AllTypes(t *testing.T) {
 		`{"type":"auto_block","task":"task-0001","reason":"too many failures"}`,
 	}
 	for _, line := range lines {
-		formatAndPrintLogLine(line)
+		formatAndPrintLogLine(line, logging.LevelDebug)
 	}
 }
 
@@ -423,7 +424,7 @@ func TestShowHistoricalLines_ValidLog(t *testing.T) {
 	delete(fileOffsets, logFile)
 
 	// Should not panic, should set offset
-	showHistoricalLines(logFile, 2)
+	showHistoricalLines(logFile, 2, logging.LevelDebug)
 
 	offset := getOffset(logFile)
 	if offset == 0 {
@@ -433,7 +434,7 @@ func TestShowHistoricalLines_ValidLog(t *testing.T) {
 
 func TestShowHistoricalLines_NonexistentFile(t *testing.T) {
 	// Should not panic on missing file
-	showHistoricalLines("/tmp/nonexistent-log-file-xyz.ndjson", 10)
+	showHistoricalLines("/tmp/nonexistent-log-file-xyz.ndjson", 10, logging.LevelDebug)
 }
 
 func TestShowHistoricalLines_MoreLinesThanAvailable(t *testing.T) {
@@ -442,7 +443,7 @@ func TestShowHistoricalLines_MoreLinesThanAvailable(t *testing.T) {
 	_ = os.WriteFile(logFile, []byte(`{"type":"assistant","text":"only one"}`+"\n"), 0644)
 	delete(fileOffsets, logFile)
 
-	showHistoricalLines(logFile, 100) // Asking for 100 lines when only 1 exists
+	showHistoricalLines(logFile, 100, logging.LevelDebug) // Asking for 100 lines when only 1 exists
 }
 
 // ---------------------------------------------------------------------------
@@ -458,7 +459,7 @@ func TestTailFileStreaming_NoNewData(t *testing.T) {
 	info, _ := os.Stat(logFile)
 	setOffset(logFile, info.Size())
 
-	err := tailFileStreaming(logFile)
+	err := tailFileStreaming(logFile, logging.LevelDebug)
 	if err != nil {
 		t.Fatalf("tailFileStreaming failed: %v", err)
 	}
@@ -472,7 +473,7 @@ func TestTailFileStreaming_WithNewData(t *testing.T) {
 
 	setOffset(logFile, 0) // Start from beginning
 
-	err := tailFileStreaming(logFile)
+	err := tailFileStreaming(logFile, logging.LevelDebug)
 	if err != nil {
 		t.Fatalf("tailFileStreaming failed: %v", err)
 	}
@@ -484,7 +485,7 @@ func TestTailFileStreaming_WithNewData(t *testing.T) {
 }
 
 func TestTailFileStreaming_FileNotFound(t *testing.T) {
-	err := tailFileStreaming("/tmp/nonexistent-tail-xyz.ndjson")
+	err := tailFileStreaming("/tmp/nonexistent-tail-xyz.ndjson", logging.LevelDebug)
 	if err == nil {
 		t.Error("expected error for nonexistent file")
 	}
@@ -496,16 +497,16 @@ func TestTailFileStreaming_FileNotFound(t *testing.T) {
 
 func TestFormatAndPrintLogLine_StageStartNoNode(t *testing.T) {
 	// Stage start without node/task
-	formatAndPrintLogLine(`{"type":"stage_start","stage":"expand"}`)
+	formatAndPrintLogLine(`{"type":"stage_start","stage":"expand"}`, logging.LevelDebug)
 }
 
 func TestFormatAndPrintLogLine_AssistantWithNewline(t *testing.T) {
-	formatAndPrintLogLine(`{"type":"assistant","text":"line\n"}`)
+	formatAndPrintLogLine(`{"type":"assistant","text":"line\n"}`, logging.LevelDebug)
 }
 
 func TestFormatAndPrintLogLine_UnknownType(t *testing.T) {
 	// Unknown type should be silently ignored
-	formatAndPrintLogLine(`{"type":"unknown_event","data":"stuff"}`)
+	formatAndPrintLogLine(`{"type":"unknown_event","data":"stuff"}`, logging.LevelDebug)
 }
 
 // ---------------------------------------------------------------------------
@@ -708,7 +709,7 @@ func TestShowHistoricalLines_EmptyFile(t *testing.T) {
 	logFile := filepath.Join(tmp, "empty.ndjson")
 	_ = os.WriteFile(logFile, []byte(""), 0644)
 	delete(fileOffsets, logFile)
-	showHistoricalLines(logFile, 10)
+	showHistoricalLines(logFile, 10, logging.LevelDebug)
 }
 
 // ---------------------------------------------------------------------------

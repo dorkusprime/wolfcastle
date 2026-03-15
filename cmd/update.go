@@ -12,9 +12,9 @@ import (
 // updateCmd checks for binary updates and regenerates base/ prompts.
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Update Wolfcastle binary and regenerate base/",
-	Long: `Checks for a new Wolfcastle version and regenerates the base/ directory.
-Does not touch custom/, local/, or any state files.
+	Short: "Upgrade the binary and refresh base/",
+	Long: `Checks for a newer version and regenerates the base/ directory.
+custom/, local/, and state files are not touched.
 
 Examples:
   wolfcastle update`,
@@ -23,11 +23,11 @@ Examples:
 		updater := selfupdate.NewUpdater(Version)
 		result, err := updater.Apply()
 		if err != nil {
-			output.PrintHuman("Update check failed: %v (continuing with base/ regeneration)", err)
+			output.PrintHuman("Update check failed: %v. Regenerating base/ anyway.", err)
 		} else if result.Updated {
-			output.PrintHuman("Updated Wolfcastle: %s -> %s", result.CurrentVersion, result.LatestVersion)
+			output.PrintHuman("Upgraded: %s -> %s", result.CurrentVersion, result.LatestVersion)
 		} else if result.AlreadyCurrent {
-			output.PrintHuman("Wolfcastle %s is already the latest version", result.CurrentVersion)
+			output.PrintHuman("Already running %s. No upgrade needed.", result.CurrentVersion)
 		}
 
 		// Regenerate base/ prompts and rules
@@ -41,7 +41,7 @@ Examples:
 				"version": Version,
 			}))
 		} else {
-			output.PrintHuman("Regenerated base/ prompts and rules in %s", app.WolfcastleDir)
+			output.PrintHuman("base/ regenerated in %s", app.WolfcastleDir)
 		}
 		return nil
 	},

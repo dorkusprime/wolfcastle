@@ -18,11 +18,9 @@ import (
 func newFollowCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "follow",
-		Short: "Tail the latest iteration's model output in real time",
-		Long: `Streams the daemon's model output in real time, similar to 'tail -f'.
-
-Automatically follows new log files as the daemon starts new iterations.
-Press Ctrl+C to stop following.
+		Short: "Watch the daemon work",
+		Long: `Streams model output in real time. Follows new iterations automatically.
+Ctrl+C to disengage.
 
 Examples:
   wolfcastle follow
@@ -47,7 +45,7 @@ Examples:
 				latestPath, err := logging.LatestLogFile(logDir)
 				if err != nil {
 					if !waitMessageShown {
-						output.PrintHuman("Waiting for daemon to write logs...")
+						output.PrintHuman("Waiting for the daemon to produce output...")
 						waitMessageShown = true
 					}
 					time.Sleep(2 * time.Second)

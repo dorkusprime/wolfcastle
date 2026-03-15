@@ -13,9 +13,9 @@ import (
 func newGapCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gap [description]",
-		Short: "Record an audit gap on a node",
-		Long: `Appends a new gap to the node's audit record. Gaps represent issues
-found during audit that need resolution before the audit can pass.
+		Short: "Flag a gap in the audit record",
+		Long: `Records a gap on a node's audit. Gaps are open issues that need
+resolution before the audit passes.
 
 Examples:
   wolfcastle audit gap --node my-project "missing error handling in auth module"
@@ -27,7 +27,7 @@ Examples:
 			}
 			description := args[0]
 			if strings.TrimSpace(description) == "" {
-				return fmt.Errorf("gap description cannot be empty")
+				return fmt.Errorf("gap description cannot be empty. Describe the gap")
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {

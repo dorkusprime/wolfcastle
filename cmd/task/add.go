@@ -17,13 +17,9 @@ import (
 func newAddCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add [title]",
-		Short: "Add a task to a leaf node",
-		Long: `Adds a new task to a leaf node's task list.
-
-The positional argument is the task title (short name). Use --body or --stdin
-to provide a detailed description. The task is created in the not_started state.
-Tasks are executed in order by the daemon. Use 'wolfcastle navigate' to find the
-next actionable task.
+		Short: "Add a target to a leaf node",
+		Long: `Creates a new task on a leaf node. The daemon will find it and destroy it
+in order. Use --body or --stdin for a detailed description.
 
 Examples:
   wolfcastle task add --node my-project "implement the API endpoint"
@@ -36,7 +32,7 @@ Examples:
 			}
 			title := args[0]
 			if strings.TrimSpace(title) == "" {
-				return fmt.Errorf("task title cannot be empty")
+				return fmt.Errorf("task title cannot be empty. Name the target")
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {

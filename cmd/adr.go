@@ -5,12 +5,10 @@ import "github.com/spf13/cobra"
 // adrCmd is the parent command for architecture decision record management.
 var adrCmd = &cobra.Command{
 	Use:   "adr",
-	Short: "Manage architecture decision records",
-	Long: `Create and manage Architecture Decision Records (ADRs).
-
-ADRs document significant design decisions with context, the decision
-itself, and its consequences. They are stored as timestamped Markdown
-files in the docs/decisions/ directory.
+	Short: "Record architecture decisions",
+	Long: `ADRs document design decisions: the context, the call, and what
+follows. Timestamped Markdown files in docs/decisions/. Permanent
+record. No take-backs.
 
 Examples:
   wolfcastle adr create "Use JWT for authentication"

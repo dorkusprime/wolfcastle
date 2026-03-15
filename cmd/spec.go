@@ -15,12 +15,10 @@ import (
 // specCmd is the parent command for spec create, link, and list.
 var specCmd = &cobra.Command{
 	Use:   "spec",
-	Short: "Manage specs linked to project nodes",
-	Long: `Create, link, and list specification documents tied to project nodes.
-
-Specs are stored as Markdown files in docs/specs/ and can be linked to
-one or more project nodes. They appear in unblock diagnostics and audit
-context.
+	Short: "Manage spec documents",
+	Long: `Specs are the intelligence files. Create them, link them to nodes,
+list what's on record. They surface during unblock diagnostics and
+audit context.
 
 Examples:
   wolfcastle spec create "API Authentication Flow"
@@ -32,8 +30,9 @@ Examples:
 // specCreateCmd creates a new spec file and optionally links it to a node.
 var specCreateCmd = &cobra.Command{
 	Use:   "create [title]",
-	Short: "Create a new spec and link it to a node",
-	Long: `Creates a new spec Markdown file in docs/specs/ and optionally links it to a node.
+	Short: "Write a new spec document",
+	Long: `Creates a spec Markdown file in docs/specs/ and optionally links it
+to a node.
 
 Examples:
   wolfcastle spec create "API Authentication Flow"
@@ -42,7 +41,7 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title := args[0]
 		if strings.TrimSpace(title) == "" {
-			return fmt.Errorf("spec title cannot be empty")
+			return fmt.Errorf("spec title cannot be empty. Name it")
 		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
 
@@ -105,11 +104,9 @@ Examples:
 // specLinkCmd links an existing spec file to a project node.
 var specLinkCmd = &cobra.Command{
 	Use:   "link [filename]",
-	Short: "Link an existing spec to a node",
-	Long: `Links an existing spec file to a project node.
-
-The spec file must already exist in docs/specs/. A spec can be linked
-to multiple nodes.
+	Short: "Attach a spec to a node",
+	Long: `Links an existing spec file to a project node. The file must exist
+in docs/specs/. One spec can serve multiple nodes.
 
 Examples:
   wolfcastle spec link 2025-01-15T10-30Z-auth-flow.md --node auth-system`,
@@ -168,8 +165,8 @@ Examples:
 // specListCmd lists specs, optionally filtered by a linked node.
 var specListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List specs, optionally filtered by node",
-	Long: `Lists all specs, or only specs linked to a specific node.
+	Short: "List known specs",
+	Long: `Lists all specs, or only those linked to a specific node.
 
 Examples:
   wolfcastle spec list
@@ -233,7 +230,7 @@ Examples:
 			}))
 		} else {
 			if len(specs) == 0 {
-				output.PrintHuman("No specs found")
+				output.PrintHuman("No specs on file.")
 			} else {
 				for _, s := range specs {
 					output.PrintHuman("  %s", s["filename"])

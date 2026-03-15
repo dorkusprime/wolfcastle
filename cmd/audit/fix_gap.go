@@ -12,8 +12,8 @@ import (
 func newFixGapCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fix-gap [gap-id]",
-		Short: "Mark an audit gap as fixed",
-		Long: `Marks an open gap as fixed, recording who fixed it and when.
+		Short: "Close an audit gap",
+		Long: `Marks an open gap as fixed. Records who and when.
 
 Examples:
   wolfcastle audit fix-gap --node my-project gap-my-project-1`,

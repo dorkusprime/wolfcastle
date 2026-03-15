@@ -20,12 +20,10 @@ import (
 func newStartCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "start",
-		Short: "Start the Wolfcastle daemon",
-		Long: `Starts the Wolfcastle daemon loop, executing tasks from the project tree.
-
-The daemon picks the next actionable task, invokes the configured model
-pipeline, and updates state. Use --node to scope execution to a subtree.
-Use -d to run in the background, then 'wolfcastle follow' to watch output.
+		Short: "Unleash the daemon",
+		Long: `Starts the execution loop. Wolfcastle picks up tasks, calls models,
+validates results, and moves to the next target. Use --node to restrict
+the carnage to a subtree. Use -d to run in the background.
 
 Examples:
   wolfcastle start
@@ -60,7 +58,7 @@ Examples:
 					return fmt.Errorf("creating worktree: %w", err)
 				}
 				repoDir = wtDir
-				output.PrintHuman("Working in worktree: %s (branch: %s)", wtDir, worktreeBranch)
+				output.PrintHuman("Operating in worktree: %s (branch: %s)", wtDir, worktreeBranch)
 			}
 			defer func() {
 				if worktreeBranch != "" {
@@ -74,7 +72,7 @@ Examples:
 			// Check for running daemon
 			pid, err := daemon.ReadPID(app.WolfcastleDir)
 			if err == nil && daemon.IsProcessRunning(pid) {
-				return fmt.Errorf("wolfcastle is already running (PID %d). Use 'wolfcastle stop' first", pid)
+				return fmt.Errorf("already running (PID %d). Use 'wolfcastle stop' first", pid)
 			}
 			daemon.RemovePID(app.WolfcastleDir)
 
@@ -84,16 +82,16 @@ Examples:
 				engine := validate.NewEngine(app.Resolver.ProjectsDir(), validate.DefaultNodeLoader(app.Resolver.ProjectsDir()), app.WolfcastleDir)
 				report := engine.ValidateStartup(idx)
 				if report.HasErrors() {
-					output.PrintHuman("Startup validation found %d errors:", report.Errors)
+					output.PrintHuman("Startup blocked. %d error(s):", report.Errors)
 					for _, issue := range report.Issues {
 						if issue.Severity == validate.SeverityError {
 							output.PrintHuman("  ERROR [%s] %s: %s", issue.Category, issue.Node, issue.Description)
 						}
 					}
-					return fmt.Errorf("startup blocked by validation errors. Run 'wolfcastle doctor --fix' to repair")
+					return fmt.Errorf("validation errors. Run 'wolfcastle doctor --fix' to repair")
 				}
 				if report.Warnings > 0 {
-					output.PrintHuman("Startup validation: %d warnings (proceeding)", report.Warnings)
+					output.PrintHuman("%d warning(s). Proceeding anyway.", report.Warnings)
 				}
 			}
 
@@ -156,9 +154,9 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch string) error {
 		return fmt.Errorf("writing PID file: %w", err)
 	}
 
-	output.PrintHuman("Wolfcastle started in background (PID %d)", proc.Process.Pid)
-	output.PrintHuman("  Use 'wolfcastle follow' to watch output")
-	output.PrintHuman("  Use 'wolfcastle stop' to stop")
+	output.PrintHuman("Daemon deployed (PID %d)", proc.Process.Pid)
+	output.PrintHuman("  wolfcastle follow    Watch the operation")
+	output.PrintHuman("  wolfcastle stop      Stand down")
 
 	// Detach
 	_ = proc.Process.Release()
@@ -169,7 +167,7 @@ func cleanupWorktree(repoDir, wtDir string) {
 	removeCmd := exec.Command("git", "worktree", "remove", wtDir)
 	removeCmd.Dir = repoDir
 	if out, err := removeCmd.CombinedOutput(); err != nil {
-		output.PrintHuman("WARNING: could not remove worktree %s: %s (%v)", wtDir, string(out), err)
+		output.PrintHuman("Could not remove worktree %s: %s (%v)", wtDir, string(out), err)
 	} else {
 		output.PrintHuman("Cleaned up worktree: %s", wtDir)
 	}

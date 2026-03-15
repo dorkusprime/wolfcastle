@@ -13,13 +13,10 @@ import (
 // doctorCmd validates the structural integrity of the project tree.
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
-	Short: "Validate structural integrity of the project tree",
-	Long: `Checks for orphaned files, state inconsistencies, missing audit tasks,
-and other structural issues in the project tree. Validates all 17 required
-structural categories from the spec.
-
-Use --fix to automatically repair deterministic issues like missing audit
-tasks, state mismatches between index and node files, and orphaned entries.
+	Short: "Inspect the project tree for damage",
+	Long: `Scans for orphaned files, state inconsistencies, missing audit tasks,
+and 14 other categories of structural problems. Use --fix to repair
+what can be repaired automatically.
 
 Examples:
   wolfcastle doctor
@@ -59,7 +56,7 @@ Examples:
 		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, app.Resolver.ProjectsDir(), app.Resolver.RootIndexPath(), app.WolfcastleDir)
 
 		if len(fixes) == 0 {
-			output.PrintHuman("\nNo auto-fixable issues found")
+			output.PrintHuman("\nNothing to fix automatically.")
 		} else {
 			output.PrintHuman("\nFixed %d issues:", len(fixes))
 			for _, f := range fixes {
@@ -68,7 +65,7 @@ Examples:
 		}
 
 		if len(postFixWarnings) > 0 {
-			output.PrintHuman("\nPost-fix re-validation found %d remaining issue(s):", len(postFixWarnings))
+			output.PrintHuman("\n%d issue(s) survived the fix:", len(postFixWarnings))
 			for _, w := range postFixWarnings {
 				output.PrintHuman("  WARN  [%s] %s: %s", w.Category, w.Node, w.Description)
 			}
@@ -89,7 +86,7 @@ Examples:
 					}
 				}
 				if len(modelIssues) > 0 {
-					output.PrintHuman("\nAttempting model-assisted fixes for %d issues...", len(modelIssues))
+					output.PrintHuman("\nCalling in model-assisted repair for %d issue(s)...", len(modelIssues))
 					ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 					defer cancel()
 					modelFixed := 0
@@ -107,7 +104,7 @@ Examples:
 					if modelFixed > 0 {
 						output.PrintHuman("Model-assisted fixes applied: %d/%d", modelFixed, len(modelIssues))
 					} else {
-						output.PrintHuman("No model-assisted fixes were applicable")
+						output.PrintHuman("Model could not fix any of them.")
 					}
 				}
 			}
@@ -127,7 +124,7 @@ func reportValidationIssues(issues []validate.Issue) error {
 	}
 
 	if len(issues) == 0 {
-		output.PrintHuman("No issues found. Project tree is healthy.")
+		output.PrintHuman("No issues found. Clean.")
 		return nil
 	}
 

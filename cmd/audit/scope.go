@@ -13,8 +13,8 @@ import (
 func newScopeCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "scope",
-		Short: "Set the audit scope on a node",
-		Long: `Sets structured audit scope including description, files, systems, and criteria.
+		Short: "Define what the audit covers",
+		Long: `Sets structured audit scope: description, files, systems, and criteria.
 
 Examples:
   wolfcastle audit scope --node my-project --description "Verify auth module"

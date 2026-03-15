@@ -14,8 +14,8 @@ import (
 func newAddCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "add [idea]",
-		Short: "Add an item to the inbox",
-		Long: `Adds a quick idea or work item to the inbox for later triage.
+		Short: "Throw an idea at Wolfcastle",
+		Long: `Drops a raw idea into the inbox. Triage happens later.
 
 Examples:
   wolfcastle inbox add "refactor the auth middleware"
@@ -27,7 +27,7 @@ Examples:
 			}
 			text := args[0]
 			if strings.TrimSpace(text) == "" {
-				return fmt.Errorf("inbox item text cannot be empty")
+				return fmt.Errorf("empty text. Give Wolfcastle something to work with")
 			}
 
 			inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
@@ -48,7 +48,7 @@ Examples:
 					"timestamp": item.Timestamp,
 				}))
 			} else {
-				output.PrintHuman("Added to inbox: %s", text)
+				output.PrintHuman("Inbox: %s", text)
 			}
 			return nil
 		},
