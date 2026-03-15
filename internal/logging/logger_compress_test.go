@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -53,6 +54,9 @@ func TestCompressFile_SuccessfulRoundTrip(t *testing.T) {
 
 func TestCompressFile_ReadErrorUnreadableSource(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0000 has no effect on Windows")
+	}
 	dir := t.TempDir()
 	src := filepath.Join(dir, "unreadable.jsonl")
 	_ = os.WriteFile(src, []byte("secret data\n"), 0644)

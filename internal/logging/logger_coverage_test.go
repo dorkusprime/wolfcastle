@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -250,6 +251,9 @@ func TestWatchForNewFiles_DoneBeforePoll(t *testing.T) {
 
 func TestEnforceRetention_CompressionErrorNonFatal(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0000 has no effect on Windows")
+	}
 	dir := t.TempDir()
 
 	content := `{"level":"info"}` + "\n"
