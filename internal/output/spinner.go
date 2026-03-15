@@ -20,7 +20,7 @@ type Spinner struct {
 
 const (
 	spinnerWidth = 20       // total characters inside the brackets
-	projectile   = "────▶"  // the moving round
+	projectile   = ">>──▶"  // the moving round
 	frameDelay   = 80 * time.Millisecond
 )
 
@@ -72,33 +72,29 @@ func (s *Spinner) Stop() {
 func (s *Spinner) run() {
 	defer close(s.done)
 
+	// Hide cursor while animating to prevent flicker.
+	fmt.Fprint(os.Stdout, "\033[?25l")
+	defer fmt.Fprint(os.Stdout, "\033[?25h")
+
 	projLen := len([]rune(projectile))
 	pos := 0
+	ticker := time.NewTicker(frameDelay)
+	defer ticker.Stop()
+
+	// Render first frame immediately.
+	fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
+	pos = (pos + 1) % spinnerWidth
 
 	for {
 		select {
 		case <-s.stop:
-			clearLine()
+			fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+2))
 			return
-		default:
-		}
-
-		frame := renderFrame(pos, projLen)
-		fmt.Fprintf(os.Stdout, "\r%s", frame)
-
-		pos = (pos + 1) % spinnerWidth
-
-		select {
-		case <-s.stop:
-			clearLine()
-			return
-		case <-time.After(frameDelay):
+		case <-ticker.C:
+			fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
+			pos = (pos + 1) % spinnerWidth
 		}
 	}
-}
-
-func clearLine() {
-	fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+2))
 }
 
 // renderFrame builds one animation frame: [───▶           ─]
@@ -115,7 +111,7 @@ func renderFrame(pos, projLen int) string {
 		track[idx] = ch
 	}
 
-	return "[" + string(track) + "]"
+	return "" + string(track) + "|"
 }
 
 // IsTerminal reports whether stdout is connected to a terminal.
