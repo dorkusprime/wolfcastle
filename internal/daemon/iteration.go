@@ -272,14 +272,40 @@ func extractAssistantText(line string) string {
 		return ""
 	}
 	var envelope struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
+		Type    string `json:"type"`
+		Text    string `json:"text"`
+		Result  string `json:"result"`
+		Message struct {
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"message"`
 	}
 	if err := json.Unmarshal([]byte(line), &envelope); err != nil {
 		return ""
 	}
-	if envelope.Type == "assistant" || envelope.Type == "result" {
-		return envelope.Text
+	switch envelope.Type {
+	case "assistant":
+		// Simple format: {"type":"assistant","text":"..."}
+		if envelope.Text != "" {
+			return envelope.Text
+		}
+		// Claude Code format: {"type":"assistant","message":{"content":[{"type":"text","text":"..."}]}}
+		for _, c := range envelope.Message.Content {
+			if c.Type == "text" && c.Text != "" {
+				return c.Text
+			}
+		}
+	case "result":
+		// Simple: {"type":"result","text":"..."}
+		if envelope.Text != "" {
+			return envelope.Text
+		}
+		// Claude Code: {"type":"result","result":"..."}
+		if envelope.Result != "" {
+			return envelope.Result
+		}
 	}
 	return ""
 }
