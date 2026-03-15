@@ -161,9 +161,11 @@ const (
 
 // Run executes the daemon loop.
 func (d *Daemon) Run(ctx context.Context) error {
-	// Root the daemon in a cancelable signal context so SIGINT/SIGTERM
+	// Root the daemon in a cancelable signal context so SIGINT/SIGTERM/SIGTSTP
 	// cancels in-flight model invocations (ADR-024 shutdown compliance).
-	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	// SIGTSTP (Ctrl+Z) is caught so foreground mode exits cleanly instead of
+	// suspending to a stopped background process.
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
 	defer cancel()
 
 	// Also close the shutdown channel for backward compatibility with
