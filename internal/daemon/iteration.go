@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -228,28 +229,57 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 }
 
 // scanTerminalMarker scans model output line-by-line for terminal markers.
-// A line matches only if it contains the marker as a standalone token,
-// not embedded inside a larger word or JSON key. This prevents false
-// positives from prompt instructions echoed in Claude Code's JSON stream.
+// It handles two formats:
+// 1. Raw text: marker appears as a standalone line or at the end of a line
+// 2. JSON stream (Claude Code --output-format stream-json): marker appears
+//    inside the "text" field of a {"type":"assistant","text":"..."} envelope
+//
 // Returns the marker name or empty string if none found.
 func scanTerminalMarker(output string) string {
 	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
 	for _, line := range strings.Split(output, "\n") {
 		trimmed := strings.TrimSpace(line)
+
+		// Try to extract text from JSON stream envelope
+		text := extractAssistantText(trimmed)
+		if text == "" {
+			text = trimmed
+		}
+
+		// Check extracted text (or raw line) for markers
 		for _, m := range markers {
-			// Match if the trimmed line IS the marker, or if the marker
-			// appears as the last token on the line (model might prefix
-			// it with text). Reject matches inside JSON strings where
-			// the marker is surrounded by quotes or other content that
-			// indicates it's part of prompt echo, not a real emission.
-			if trimmed == m {
-				return m
-			}
-			// Also match "WOLFCASTLE_COMPLETE" at end of line after whitespace
-			if strings.HasSuffix(trimmed, m) && (len(trimmed) == len(m) || trimmed[len(trimmed)-len(m)-1] == ' ') {
-				return m
+			// Scan sub-lines within the text (model may emit multi-line text in one JSON envelope)
+			for _, subline := range strings.Split(text, "\n") {
+				sub := strings.TrimSpace(subline)
+				if sub == m {
+					return m
+				}
+				if strings.HasSuffix(sub, m) && (len(sub) == len(m) || sub[len(sub)-len(m)-1] == ' ') {
+					return m
+				}
 			}
 		}
+	}
+	return ""
+}
+
+// extractAssistantText extracts the text content from a Claude Code
+// stream-json assistant message. Returns empty string if the line is
+// not a valid assistant JSON envelope.
+func extractAssistantText(line string) string {
+	// Quick reject: must look like JSON
+	if len(line) < 2 || line[0] != '{' {
+		return ""
+	}
+	var envelope struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal([]byte(line), &envelope); err != nil {
+		return ""
+	}
+	if envelope.Type == "assistant" || envelope.Type == "result" {
+		return envelope.Text
 	}
 	return ""
 }
