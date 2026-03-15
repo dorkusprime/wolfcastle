@@ -42,35 +42,67 @@ Classes are defined as an object in the config, keyed by class name. Object keys
 ```json
 {
   "task_classes": {
-    "go-coding": {
-      "description": "Writing or modifying Go source code"
-    },
-    "typescript-coding": {
-      "description": "Writing or modifying TypeScript/JavaScript source code"
-    },
-    "architecture": {
-      "description": "System design, ADRs, decomposition, dependency analysis",
-      "model": "heavy"
-    },
-    "research": {
-      "description": "Information gathering, comparison, analysis",
-      "model": "light"
-    },
-    "writing": {
-      "description": "Documentation, specs, guides, prose",
-      "model": "light"
-    },
-    "design": {
-      "description": "UI/UX design, wireframes, interaction patterns"
-    },
-    "audit": {
-      "description": "Verification and review of completed work"
-    }
+    "go": { "description": "Writing or modifying Go source code" },
+    "python": { "description": "Writing or modifying Python source code" },
+    "python/django": { "description": "Django web application" },
+    "python/fastapi": { "description": "FastAPI service" },
+    "typescript": { "description": "Writing or modifying TypeScript source code" },
+    "typescript/react": { "description": "React application in TypeScript" },
+    "typescript/vue": { "description": "Vue 3 application in TypeScript" },
+    "typescript/nextjs": { "description": "Next.js application" },
+    "typescript/angular": { "description": "Angular application in TypeScript" },
+    "javascript": { "description": "Writing or modifying JavaScript source code" },
+    "javascript/react": { "description": "React application in JavaScript" },
+    "javascript/node": { "description": "Node.js backend service" },
+    "ruby": { "description": "Writing or modifying Ruby source code" },
+    "ruby/rails": { "description": "Ruby on Rails application" },
+    "java": { "description": "Writing or modifying Java source code" },
+    "java/spring": { "description": "Spring Boot application" },
+    "kotlin": { "description": "Writing or modifying Kotlin source code" },
+    "kotlin/android": { "description": "Android application in Kotlin" },
+    "swift": { "description": "Writing or modifying Swift source code" },
+    "swift/ios": { "description": "iOS application in Swift" },
+    "rust": { "description": "Writing or modifying Rust source code" },
+    "cpp": { "description": "Writing or modifying C++ source code" },
+    "c": { "description": "Writing or modifying C source code" },
+    "csharp": { "description": "Writing or modifying C# source code" },
+    "csharp/dotnet": { "description": ".NET web application in C#" },
+    "php": { "description": "Writing or modifying PHP source code" },
+    "php/laravel": { "description": "Laravel application" },
+    "dart": { "description": "Writing or modifying Dart source code" },
+    "dart/flutter": { "description": "Flutter application" },
+    "scala": { "description": "Writing or modifying Scala source code" },
+    "elixir": { "description": "Writing or modifying Elixir source code" },
+    "elixir/phoenix": { "description": "Phoenix web application" },
+    "haskell": { "description": "Writing or modifying Haskell source code" },
+    "r": { "description": "Writing or modifying R source code" },
+    "lua": { "description": "Writing or modifying Lua source code" },
+    "shell": { "description": "Shell scripts (Bash, POSIX sh)" },
+    "sql": { "description": "SQL queries, schemas, and migrations" },
+    "architecture": { "description": "System design, ADRs, decomposition, dependency analysis", "model": "heavy" },
+    "research": { "description": "Information gathering, comparison, analysis", "model": "light" },
+    "writing": { "description": "Documentation, specs, guides, prose", "model": "light" },
+    "design": { "description": "UI/UX design, wireframes, interaction patterns" },
+    "devops": { "description": "Infrastructure, CI/CD, containers, deployment" },
+    "data": { "description": "Data engineering, analysis, pipelines, visualization" },
+    "security": { "description": "Security review, hardening, threat modeling" },
+    "testing": { "description": "Test suite creation, coverage strategy, fixtures" },
+    "audit": { "description": "Verification and review of completed work" }
   }
 }
 ```
 
-The behavioral prompt file is derived from the class key: `classes/<key>.md`, resolved through the three-tier system. No `prompt_file` field needed.
+### Hierarchical class keys
+
+Class keys use `/` as a separator to express framework specificity. The key maps directly to a file path in the three-tier prompt system:
+
+- `typescript` resolves to `classes/typescript.md`
+- `typescript/react` resolves to `classes/typescript/react.md`
+- `python/django` resolves to `classes/python/django.md`
+
+**Fallback:** When a framework-specific prompt file doesn't exist, the resolver walks up the hierarchy. A task classified as `typescript/react` first looks for `classes/typescript/react.md`; if missing, it falls back to `classes/typescript.md`. This means users can add framework support by dropping a single `.md` file and config entry without needing the base language prompt to exist separately.
+
+**Framework prompts build on language prompts.** The `classes/typescript/react.md` file should not repeat TypeScript fundamentals. It covers React-specific patterns: component structure, hooks, JSX conventions, React Testing Library, state management, routing. The daemon assembles BOTH the language prompt and the framework prompt when a hierarchical class is used, so the model gets TypeScript foundations plus React specifics.
 
 ### Field definitions
 
@@ -135,8 +167,13 @@ The assembled system prompt gains a new section between the script reference and
 
 ---
 
-# Task Class: Go Coding
-[contents of classes/go-coding.md]
+# Language: TypeScript
+[contents of classes/typescript.md]
+
+---
+
+# Framework: React
+[contents of classes/typescript/react.md]
 
 ---
 
@@ -148,6 +185,8 @@ The assembled system prompt gains a new section between the script reference and
 # Current Task Context
 [iteration context with node, task, deliverables, breadcrumbs]
 ```
+
+For a simple class like `go`, only one class section is inserted. For a hierarchical class like `typescript/react`, both the language prompt and the framework prompt are included as separate sections. For non-language classes like `research`, a single section is inserted.
 
 The class section is inserted only when the task has a class and a matching config entry exists. Tasks with no class (or an empty class) get the prompt assembled exactly as today.
 
@@ -169,30 +208,40 @@ The intake prompt is updated to include the list of available classes with their
 
 1. Assign exactly one class per task via `--class`.
 2. If a task spans multiple classes (e.g., "research POS systems and then write the implementation"), split it into separate tasks, one per class.
-3. Choose the most specific applicable class. "Go Coding" over "Writing" for a task that produces Go source files, even though it also involves writing.
+3. Choose the most specific applicable class. Use `typescript/react` over `typescript` when the task is React-specific. Use `python/django` over `python` when working within a Django project.
+4. When the inbox item mentions a specific framework, use the framework class. When it's generic language work or the framework is unknown, use the base language class.
 
 ### Intake prompt additions
+
+The class list is generated dynamically from the config's `task_classes` map (excluding `audit`, which is daemon-managed). The intake prompt template receives the class list as context, not as hardcoded text. Example of the generated section:
 
 ```markdown
 ## Task Classes
 
 Every task must be assigned a class. Use the `--class` flag when adding tasks.
+Choose the most specific class that fits. Use framework classes (e.g., `typescript/react`)
+when working within a known framework; use the base language class (e.g., `typescript`)
+for general language work.
 
 Available classes:
-- `go-coding`: Writing or modifying Go source code
-- `typescript-coding`: Writing or modifying TypeScript/JavaScript source code
+- `go`: Writing or modifying Go source code
+- `python`: Writing or modifying Python source code
+- `python/django`: Django web application
+- `python/fastapi`: FastAPI service
+- `typescript`: Writing or modifying TypeScript source code
+- `typescript/react`: React application in TypeScript
+- `typescript/vue`: Vue 3 application in TypeScript
+  [... full list from config ...]
 - `architecture`: System design, ADRs, decomposition, dependency analysis
 - `research`: Information gathering, comparison, analysis
 - `writing`: Documentation, specs, guides, prose
-- `design`: UI/UX design, wireframes, interaction patterns
 
 Rules:
 - Assign exactly one class per task.
 - If work spans multiple classes, split it into separate tasks.
 - Choose the most specific class that fits.
+- When unsure of the framework, use the base language class.
 ```
-
-This section is generated dynamically from the config's `task_classes` map (excluding the `audit` class, which is daemon-managed). The intake prompt template receives the class list as context, not as hardcoded text.
 
 ---
 
@@ -229,14 +278,14 @@ Based on the TIOBE Index, Stack Overflow surveys, and GitHub language statistics
 | `python` | Python | Type hints, virtual environments, pytest, ruff/black, PEP 8 |
 | `javascript` | JavaScript | ESM vs CJS, Node vs browser, eslint, testing frameworks |
 | `typescript` | TypeScript | tsconfig strictness, type-only imports, declaration files |
-| `java` | Java | Maven/Gradle, JUnit, checked exceptions, Spring conventions |
+| `java` | Java | Maven/Gradle, JUnit, checked exceptions |
 | `csharp` | C# | .NET SDK, NuGet, xUnit/NUnit, nullable reference types |
 | `go` | Go | gofmt, go vet, table-driven tests, error wrapping |
 | `rust` | Rust | cargo clippy, ownership/borrowing guidance, Result/Option patterns |
 | `cpp` | C++ | CMake, clang-tidy, RAII, smart pointers, UB avoidance |
 | `c` | C | Makefile conventions, valgrind, buffer safety, POSIX portability |
-| `ruby` | Ruby | Bundler, RSpec/minitest, Rubocop, Rails conventions when applicable |
-| `php` | PHP | Composer, PHPUnit, PSR standards, Laravel/Symfony awareness |
+| `ruby` | Ruby | Bundler, RSpec/minitest, Rubocop |
+| `php` | PHP | Composer, PHPUnit, PSR standards |
 | `swift` | Swift | Xcode/SPM, XCTest, optionals, protocol-oriented patterns |
 | `kotlin` | Kotlin | Gradle, JUnit/kotest, null safety, coroutine conventions |
 | `scala` | Scala | sbt, ScalaTest, functional patterns, implicits guidance |
@@ -247,6 +296,35 @@ Based on the TIOBE Index, Stack Overflow surveys, and GitHub language statistics
 | `elixir` | Elixir | mix, ExUnit, OTP patterns, pattern matching, pipe operator |
 | `haskell` | Haskell | cabal/stack, HSpec, monadic patterns, type-driven development |
 | `dart` | Dart | pub, flutter test, null safety, widget patterns |
+
+### Framework classes
+
+Framework prompts live under their parent language directory (`classes/typescript/react.md`) and are assembled alongside the language prompt. They should not repeat language fundamentals; they cover framework-specific conventions, project structure, component/module patterns, routing, state management, testing utilities, and framework-specific pitfalls.
+
+| Class key | Framework | Notes |
+|-----------|-----------|-------|
+| `typescript/react` | React (TS) | Hooks, JSX, React Testing Library, component patterns, state management |
+| `typescript/vue` | Vue 3 (TS) | Composition API, SFCs, Pinia, Vue Test Utils, Vue Router |
+| `typescript/angular` | Angular | Modules/standalone components, RxJS, dependency injection, Jasmine/Karma |
+| `typescript/nextjs` | Next.js | App Router, Server Components, ISR/SSG/SSR, middleware, API routes |
+| `typescript/svelte` | SvelteKit | Runes, load functions, form actions, server routes |
+| `javascript/react` | React (JS) | Same as TS/React but with PropTypes, no type annotations |
+| `javascript/node` | Node.js | Express/Fastify patterns, middleware, async error handling, clustering |
+| `python/django` | Django | MTV pattern, ORM, migrations, DRF, management commands, template conventions |
+| `python/fastapi` | FastAPI | Pydantic models, dependency injection, async endpoints, OpenAPI |
+| `python/flask` | Flask | Blueprints, extensions, application factory, Jinja2 |
+| `ruby/rails` | Rails | Convention over configuration, ActiveRecord, concerns, RSpec Rails, generators |
+| `ruby/sinatra` | Sinatra | Lightweight routing, modular style, Rack middleware |
+| `java/spring` | Spring Boot | Auto-configuration, annotations, JPA, Spring Security, integration testing |
+| `csharp/dotnet` | .NET | Minimal APIs, Entity Framework, middleware pipeline, Razor conventions |
+| `php/laravel` | Laravel | Eloquent, Blade, artisan, service providers, feature tests |
+| `php/symfony` | Symfony | Bundles, Doctrine, Twig, event system, PHPUnit bridge |
+| `kotlin/android` | Android | Jetpack Compose, ViewModel, Room, coroutines, instrumented tests |
+| `swift/ios` | iOS/SwiftUI | SwiftUI views, Combine, Core Data, XCUITest, App lifecycle |
+| `dart/flutter` | Flutter | Widget tree, state management (Riverpod/Bloc), platform channels, widget tests |
+| `elixir/phoenix` | Phoenix | LiveView, Ecto, PubSub, Channels, ExUnit with Sandbox |
+| `rust/actix` | Actix Web | Extractors, middleware, app state, integration tests |
+| `rust/tokio` | Tokio async | Spawning, channels, select!, graceful shutdown, tracing |
 
 ### Non-language classes
 
@@ -275,13 +353,22 @@ The behavioral prompts are the product. They must be authored with the same care
 6. Draft a prompt that covers: style, error handling, testing, tooling commands, validation steps, and language-specific traps to avoid
 7. The prompt should be 40-80 lines: comprehensive enough to shape behavior meaningfully, short enough that it doesn't dominate the context window
 
+**For each framework class:**
+1. Research the framework's official documentation and style guide
+2. Research the framework's project structure conventions (where files go, naming patterns)
+3. Research the framework's component/module/route patterns and lifecycle
+4. Research the framework's recommended testing approach (specific test utilities, fixtures, mocking strategies)
+5. Research common migration pitfalls and version-specific gotchas (e.g., Vue 2 vs Vue 3, Next.js Pages Router vs App Router)
+6. Draft a prompt that assumes the language fundamentals are already covered and focuses on framework-specific conventions, patterns, and pitfalls
+7. Target 30-60 lines per prompt: focused on what the framework adds, not what the language already provides
+
 **For each non-language class:**
 1. Research best practices in the discipline (e.g., for "research": academic citation standards, fact-checking methodology, synthesis techniques)
 2. Research common failure modes when LLMs attempt this kind of work (e.g., for "writing": tendency toward vague summaries; for "research": hallucinated citations)
 3. Draft a prompt that addresses both the positive guidance and the known failure modes
 4. Target 30-60 lines per prompt
 
-**Quality bar:** Each prompt should read like it was written by a senior practitioner of that language or discipline. A Go developer reading the Go class prompt should nod, not wince. A technical writer reading the writing class prompt should recognize their own standards reflected back.
+**Quality bar:** Each prompt should read like it was written by a senior practitioner of that language, framework, or discipline. A Go developer reading the Go class prompt should nod, not wince. A Rails developer should see their conventions reflected accurately, not a generic web framework description. A technical writer reading the writing class prompt should recognize their own standards.
 
 ---
 
