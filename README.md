@@ -55,7 +55,7 @@ Nodes have [four states](docs/humans/how-it-works.md#four-states): `not_started`
 
 ## The Daemon
 
-`wolfcastle start` launches a [daemon](docs/humans/how-it-works.md#the-daemon) that runs a [pipeline of stages](docs/humans/how-it-works.md#the-pipeline) in a loop. The default pipeline has three stages: expand (break inbox items into tasks), file (organize tasks into the tree), and execute (claim a task and do the work). Summaries are generated inline during execution via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage. Each stage invokes a [model](docs/humans/configuration.md#models) with a specific role. Stages are decoupled; they read state from disk and act on it independently.
+`wolfcastle start` launches a [daemon](docs/humans/how-it-works.md#the-daemon) that runs a [pipeline of stages](docs/humans/how-it-works.md#the-pipeline). The default pipeline has two stages: intake (read inbox items and create projects/tasks) and execute (claim a task and do the work). Intake runs in a parallel goroutine, processing new inbox items independently of task execution. Summaries are generated inline during execution via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage. Each stage invokes a [model](docs/humans/configuration.md#models) with a specific role. Stages are decoupled; they read state from disk and act on it independently.
 
 When the execute stage claims a task, the model follows a [seven-phase protocol](docs/humans/how-it-works.md#seven-phase-execution): claim, study, implement, validate, record, commit, signal. The model communicates only through deterministic script calls that enforce invariants. It cannot corrupt the tree.
 

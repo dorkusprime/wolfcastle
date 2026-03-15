@@ -267,13 +267,13 @@ func TestSelfHeal_MissingStateFileSkipped(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — expand and file stage error handling
+// runIteration — intake stage is skipped in the iteration pipeline
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestRunIteration_ExpandStageError_NonFatal(t *testing.T) {
+func TestRunIteration_IntakeStageSkipped(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "expand", Model: "nonexistent", PromptFile: "expand.md"},
+		{Name: "intake", Model: "echo", PromptFile: "intake.md"},
 		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
 	}
 	_ = d.Logger.StartIteration()
@@ -283,76 +283,13 @@ func TestRunIteration_ExpandStageError_NonFatal(t *testing.T) {
 		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
-	writePromptFile(t, d.WolfcastleDir, "expand.md")
-
-	// Create inbox with new items so expand stage is triggered
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "new", Text: "new item", Timestamp: "2026-03-14T00:00:00Z"},
-	}})
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	idx, _ := d.Resolver.LoadRootIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
 	err := d.runIteration(context.Background(), nav, idx)
-	// Expand error is non-fatal; the iteration should succeed or error on execute
+	// Intake is skipped in the iteration loop; only execute runs
 	_ = err
-}
-
-func TestRunIteration_FileStageError_NonFatal(t *testing.T) {
-	d := testDaemon(t)
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "file", Model: "nonexistent", PromptFile: "file.md"},
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
-	}
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-
-	setupLeafNode(t, d, "my-node", []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
-	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
-	writePromptFile(t, d.WolfcastleDir, "file.md")
-
-	// Create inbox with expanded items so file stage is triggered
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "expanded item", Expanded: "details", Timestamp: "2026-03-14T00:00:00Z"},
-	}})
-
-	idx, _ := d.Resolver.LoadRootIndex()
-	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
-	_ = err
-}
-
-func TestRunIteration_ExpandThenFileStageSequence(t *testing.T) {
-	d := testDaemon(t)
-	// Expand model returns a section, file model runs echo
-	d.Config.Models["expand-model"] = config.ModelDef{Command: "printf", Args: []string{"## Item 1\\nExpanded"}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "expand", Model: "expand-model", PromptFile: "expand.md"},
-		{Name: "file", Model: "echo", PromptFile: "file.md"},
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
-	}
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-
-	setupLeafNode(t, d, "my-node", []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
-	})
-	for _, f := range []string{"expand.md", "file.md", "execute.md"} {
-		writePromptFile(t, d.WolfcastleDir, f)
-	}
-
-	// Create inbox with new items
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "new", Text: "new item", Timestamp: "2026-03-14T00:00:00Z"},
-	}})
-
-	idx, _ := d.Resolver.LoadRootIndex()
-	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -388,66 +325,46 @@ func TestCurrentBranch_CurrentRepo(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runExpandStage / runFileStage — invocation timeout path
+// runIntakeStage — invocation timeout path
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestRunExpandStage_InvocationTimeout(t *testing.T) {
+func TestRunIntakeStage_InvocationTimeout(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Daemon.InvocationTimeoutSeconds = 5
-	d.Config.Models["echo"] = config.ModelDef{Command: "printf", Args: []string{"## Item 1\\nExpanded"}}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "expand.md")
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "expand", Model: "echo", PromptFile: "expand.md"}
-	if err := d.runExpandStage(context.Background(), stage); err != nil {
-		t.Fatalf("expand stage error: %v", err)
-	}
-}
-
-func TestRunFileStage_InvocationTimeout(t *testing.T) {
-	d := testDaemon(t)
-	d.Config.Daemon.InvocationTimeoutSeconds = 5
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "file.md")
-
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "item", Expanded: "details"},
-	}})
-
-	stage := config.PipelineStage{Name: "file", Model: "echo", PromptFile: "file.md"}
-	if err := d.runFileStage(context.Background(), stage); err != nil {
-		t.Fatalf("file stage error: %v", err)
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("intake stage error: %v", err)
 	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runExpandStage — zero invocation timeout (no timeout set)
+// runIntakeStage — zero invocation timeout (no timeout set)
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestRunExpandStage_NoInvocationTimeout(t *testing.T) {
+func TestRunIntakeStage_NoInvocationTimeout(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Daemon.InvocationTimeoutSeconds = 0 // disabled
-	d.Config.Models["echo"] = config.ModelDef{Command: "printf", Args: []string{"## Item 1\\nExpanded"}}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "expand.md")
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "expand", Model: "echo", PromptFile: "expand.md"}
-	if err := d.runExpandStage(context.Background(), stage); err != nil {
-		t.Fatalf("expand stage error: %v", err)
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("intake stage error: %v", err)
 	}
 }
 
@@ -557,20 +474,27 @@ func TestRun_BranchVerifyEnabled(t *testing.T) {
 	}
 }
 
-func TestRunFileStage_NoInvocationTimeout(t *testing.T) {
+func TestRunIntakeStage_FilesItemsOnSuccess(t *testing.T) {
 	d := testDaemon(t)
-	d.Config.Daemon.InvocationTimeoutSeconds = 0 // disabled
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "file.md")
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "item", Expanded: "details"},
+		{Status: "new", Text: "item to file", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "file", Model: "echo", PromptFile: "file.md"}
-	if err := d.runFileStage(context.Background(), stage); err != nil {
-		t.Fatalf("file stage error: %v", err)
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("intake stage error: %v", err)
+	}
+
+	updatedInbox, err := state.LoadInbox(inboxPath)
+	if err != nil {
+		t.Fatalf("loading inbox: %v", err)
+	}
+	if updatedInbox.Items[0].Status != "filed" {
+		t.Errorf("expected filed status, got %s", updatedInbox.Items[0].Status)
 	}
 }

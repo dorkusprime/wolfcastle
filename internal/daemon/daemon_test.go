@@ -16,99 +16,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
-// --- parseExpandedSections ---
-
-func TestParseExpandedSections_MultipleSections(t *testing.T) {
-	t.Parallel()
-	input := `Some preamble text
-## Item 1
-Content for item one
-More content
-## Item 2
-Content for item two
-## Item 3
-Content for item three`
-
-	sections := parseExpandedSections(input)
-	if len(sections) != 3 {
-		t.Fatalf("expected 3 sections, got %d", len(sections))
-	}
-	if sections[0] != "## Item 1\nContent for item one\nMore content" {
-		t.Errorf("unexpected section 0: %q", sections[0])
-	}
-	if sections[1] != "## Item 2\nContent for item two" {
-		t.Errorf("unexpected section 1: %q", sections[1])
-	}
-	if sections[2] != "## Item 3\nContent for item three" {
-		t.Errorf("unexpected section 2: %q", sections[2])
-	}
-}
-
-func TestParseExpandedSections_NoSections(t *testing.T) {
-	t.Parallel()
-	input := "Just some plain text without any headings"
-	sections := parseExpandedSections(input)
-	if len(sections) != 0 {
-		t.Errorf("expected 0 sections, got %d", len(sections))
-	}
-}
-
-func TestParseExpandedSections_SingleSection(t *testing.T) {
-	t.Parallel()
-	input := "## Only Section\nSome content here"
-	sections := parseExpandedSections(input)
-	if len(sections) != 1 {
-		t.Fatalf("expected 1 section, got %d", len(sections))
-	}
-	if sections[0] != "## Only Section\nSome content here" {
-		t.Errorf("unexpected section: %q", sections[0])
-	}
-}
-
-func TestParseExpandedSections_EmptyInput(t *testing.T) {
-	t.Parallel()
-	sections := parseExpandedSections("")
-	if len(sections) != 0 {
-		t.Errorf("expected 0 sections for empty input, got %d", len(sections))
-	}
-}
-
-func TestParseExpandedSections_ConsecutiveHeadings(t *testing.T) {
-	t.Parallel()
-	input := "## First\n## Second\nContent"
-	sections := parseExpandedSections(input)
-	if len(sections) != 2 {
-		t.Fatalf("expected 2 sections, got %d", len(sections))
-	}
-	if sections[0] != "## First" {
-		t.Errorf("unexpected section 0: %q", sections[0])
-	}
-	if sections[1] != "## Second\nContent" {
-		t.Errorf("unexpected section 1: %q", sections[1])
-	}
-}
-
-func TestParseExpandedSections_PreambleOnly(t *testing.T) {
-	t.Parallel()
-	input := "Some text\nMore text\nNo headings"
-	sections := parseExpandedSections(input)
-	if len(sections) != 0 {
-		t.Errorf("expected 0 sections for preamble-only input, got %d", len(sections))
-	}
-}
-
-func TestParseExpandedSections_HeadingAtEnd(t *testing.T) {
-	t.Parallel()
-	input := "preamble\n## Trailing"
-	sections := parseExpandedSections(input)
-	if len(sections) != 1 {
-		t.Fatalf("expected 1 section, got %d", len(sections))
-	}
-	if sections[0] != "## Trailing" {
-		t.Errorf("unexpected section: %q", sections[0])
-	}
-}
-
 // --- dedupPipe ---
 
 func TestDedupPipe_BasicDedup(t *testing.T) {
@@ -173,9 +80,9 @@ func TestDedupPipe_AllWhitespace(t *testing.T) {
 func TestCheckInboxState_MissingFile(t *testing.T) {
 	t.Parallel()
 	d := &Daemon{}
-	hasNew, hasExpanded := d.checkInboxState("/nonexistent/path/inbox.json")
-	if hasNew || hasExpanded {
-		t.Error("expected false, false for missing file")
+	hasNew := d.checkInboxState("/nonexistent/path/inbox.json")
+	if hasNew {
+		t.Error("expected false for missing file")
 	}
 }
 
@@ -190,9 +97,9 @@ func TestCheckInboxState_EmptyInbox(t *testing.T) {
 	}
 
 	d := &Daemon{}
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
-	if hasNew || hasExpanded {
-		t.Error("expected false, false for empty inbox")
+	hasNew := d.checkInboxState(inboxPath)
+	if hasNew {
+		t.Error("expected false for empty inbox")
 	}
 }
 
@@ -212,61 +119,9 @@ func TestCheckInboxState_NewItemsOnly(t *testing.T) {
 	}
 
 	d := &Daemon{}
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
+	hasNew := d.checkInboxState(inboxPath)
 	if !hasNew {
 		t.Error("expected hasNew=true")
-	}
-	if hasExpanded {
-		t.Error("expected hasExpanded=false")
-	}
-}
-
-func TestCheckInboxState_ExpandedItemsOnly(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	inboxPath := filepath.Join(dir, "inbox.json")
-
-	inboxData := &state.InboxFile{
-		Items: []state.InboxItem{
-			{Timestamp: "2026-03-14T00:00:00Z", Text: "expanded thing", Status: "expanded", Expanded: "details"},
-		},
-	}
-	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
-		t.Fatal(err)
-	}
-
-	d := &Daemon{}
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
-	if hasNew {
-		t.Error("expected hasNew=false")
-	}
-	if !hasExpanded {
-		t.Error("expected hasExpanded=true")
-	}
-}
-
-func TestCheckInboxState_BothNewAndExpanded(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	inboxPath := filepath.Join(dir, "inbox.json")
-
-	inboxData := &state.InboxFile{
-		Items: []state.InboxItem{
-			{Timestamp: "2026-03-14T00:00:00Z", Text: "new thing", Status: "new"},
-			{Timestamp: "2026-03-14T00:01:00Z", Text: "expanded thing", Status: "expanded"},
-		},
-	}
-	if err := state.SaveInbox(inboxPath, inboxData); err != nil {
-		t.Fatal(err)
-	}
-
-	d := &Daemon{}
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
-	if !hasNew {
-		t.Error("expected hasNew=true")
-	}
-	if !hasExpanded {
-		t.Error("expected hasExpanded=true")
 	}
 }
 
@@ -286,9 +141,9 @@ func TestCheckInboxState_AllFiled(t *testing.T) {
 	}
 
 	d := &Daemon{}
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
-	if hasNew || hasExpanded {
-		t.Error("expected false, false when all items are filed")
+	hasNew := d.checkInboxState(inboxPath)
+	if hasNew {
+		t.Error("expected false when all items are filed")
 	}
 }
 
@@ -302,9 +157,9 @@ func TestCheckInboxState_InvalidJSON(t *testing.T) {
 	}
 
 	d := &Daemon{}
-	hasNew, hasExpanded := d.checkInboxState(inboxPath)
-	if hasNew || hasExpanded {
-		t.Error("expected false, false for invalid JSON")
+	hasNew := d.checkInboxState(inboxPath)
+	if hasNew {
+		t.Error("expected false for invalid JSON")
 	}
 }
 
@@ -932,33 +787,10 @@ func TestRunIteration_DisabledStageSkipped(t *testing.T) {
 	}
 }
 
-func TestRunIteration_ExpandFileStageSkipWhenNoInbox(t *testing.T) {
+func TestRunIteration_IntakeStageSkippedInPipeline(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "expand", Model: "echo", PromptFile: "expand.md"},
-		{Name: "file", Model: "echo", PromptFile: "file.md"},
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
-	}
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-
-	setupLeafNode(t, d, "my-node", []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
-	})
-	for _, f := range []string{"expand.md", "file.md", "execute.md"} {
-		writePromptFile(t, d.WolfcastleDir, f)
-	}
-
-	idx, _ := d.Resolver.LoadRootIndex()
-	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
-	if err := d.runIteration(context.Background(), nav, idx); err != nil {
-		t.Fatalf("runIteration error: %v", err)
-	}
-}
-
-func TestRunIteration_PendingFilingSkipsExecute(t *testing.T) {
-	d := testDaemon(t)
-	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "intake", Model: "echo", PromptFile: "intake.md"},
 		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
 	}
 	_ = d.Logger.StartIteration()
@@ -968,17 +800,13 @@ func TestRunIteration_PendingFilingSkipsExecute(t *testing.T) {
 		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
-
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "awaiting filing", Expanded: "details"},
-	}})
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	idx, _ := d.Resolver.LoadRootIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
-
-	// The execute stage should have been skipped, so no terminal marker processed
+	if err := d.runIteration(context.Background(), nav, idx); err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
 }
 
 func TestRunIteration_InvocationTimeout(t *testing.T) {
@@ -1018,44 +846,43 @@ func TestRunIteration_ZeroInvocationTimeout(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runExpandStage
+// runIntakeStage
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestRunExpandStage_NoInbox(t *testing.T) {
+func TestRunIntakeStage_NoInbox(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	stage := config.PipelineStage{Name: "expand", Model: "echo", PromptFile: "expand.md"}
-	if err := d.runExpandStage(context.Background(), stage); err != nil {
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Errorf("should succeed with no inbox: %v", err)
 	}
 }
 
-func TestRunExpandStage_WithNewItems(t *testing.T) {
+func TestRunIntakeStage_WithNewItems(t *testing.T) {
 	d := testDaemon(t)
-	d.Config.Models["echo"] = config.ModelDef{Command: "printf", Args: []string{"## Item 1\\nExpanded text"}}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "expand.md")
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "add feature X", Timestamp: "2024-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "expand", Model: "echo", PromptFile: "expand.md"}
-	if err := d.runExpandStage(context.Background(), stage); err != nil {
-		t.Fatalf("expand stage error: %v", err)
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("intake stage error: %v", err)
 	}
 
 	inboxData, _ := state.LoadInbox(inboxPath)
-	if inboxData.Items[0].Status != "expanded" {
-		t.Errorf("expected 'expanded', got %q", inboxData.Items[0].Status)
+	if inboxData.Items[0].Status != "filed" {
+		t.Errorf("expected 'filed', got %q", inboxData.Items[0].Status)
 	}
 }
 
-func TestRunExpandStage_NoNewItems(t *testing.T) {
+func TestRunIntakeStage_NoNewItems(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -1065,13 +892,13 @@ func TestRunExpandStage_NoNewItems(t *testing.T) {
 		{Status: "filed", Text: "already done"},
 	}})
 
-	stage := config.PipelineStage{Name: "expand", Model: "echo", PromptFile: "expand.md"}
-	if err := d.runExpandStage(context.Background(), stage); err != nil {
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Errorf("should return nil for no new items: %v", err)
 	}
 }
 
-func TestRunExpandStage_ModelNotFound(t *testing.T) {
+func TestRunIntakeStage_ModelNotFound(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -1081,20 +908,18 @@ func TestRunExpandStage_ModelNotFound(t *testing.T) {
 		{Status: "new", Text: "item"},
 	}})
 
-	stage := config.PipelineStage{Name: "expand", Model: "nonexistent", PromptFile: "expand.md"}
-	err := d.runExpandStage(context.Background(), stage)
+	stage := config.PipelineStage{Name: "intake", Model: "nonexistent", PromptFile: "intake.md"}
+	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Error("expected error for missing model")
 	}
 }
 
-func TestRunExpandStage_MoreItemsThanSections(t *testing.T) {
+func TestRunIntakeStage_MultipleNewItems(t *testing.T) {
 	d := testDaemon(t)
-	// Model returns only one section but we have two items
-	d.Config.Models["echo"] = config.ModelDef{Command: "printf", Args: []string{"## Item 1\\nOnly one section"}}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "expand.md")
+	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
@@ -1102,108 +927,16 @@ func TestRunExpandStage_MoreItemsThanSections(t *testing.T) {
 		{Status: "new", Text: "item 2", Timestamp: "2024-01-01T00:01:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "expand", Model: "echo", PromptFile: "expand.md"}
-	if err := d.runExpandStage(context.Background(), stage); err != nil {
-		t.Fatalf("expand stage error: %v", err)
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("intake stage error: %v", err)
 	}
 
 	inboxData, _ := state.LoadInbox(inboxPath)
-	// Both should be marked expanded even if model returned fewer sections
 	for i, item := range inboxData.Items {
-		if item.Status != "expanded" {
-			t.Errorf("item %d: expected 'expanded', got %q", i, item.Status)
+		if item.Status != "filed" {
+			t.Errorf("item %d: expected 'filed', got %q", i, item.Status)
 		}
-	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// runFileStage
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestRunFileStage_NoInbox(t *testing.T) {
-	d := testDaemon(t)
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-
-	stage := config.PipelineStage{Name: "file", Model: "echo", PromptFile: "file.md"}
-	if err := d.runFileStage(context.Background(), stage); err != nil {
-		t.Errorf("should succeed with no inbox: %v", err)
-	}
-}
-
-func TestRunFileStage_WithExpandedItems(t *testing.T) {
-	d := testDaemon(t)
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "file.md")
-
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "feature X", Expanded: "## Details\nexpanded"},
-	}})
-
-	stage := config.PipelineStage{Name: "file", Model: "echo", PromptFile: "file.md"}
-	if err := d.runFileStage(context.Background(), stage); err != nil {
-		t.Fatalf("file stage error: %v", err)
-	}
-
-	inboxData, _ := state.LoadInbox(inboxPath)
-	if inboxData.Items[0].Status != "filed" {
-		t.Errorf("expected 'filed', got %q", inboxData.Items[0].Status)
-	}
-}
-
-func TestRunFileStage_NoExpandedItems(t *testing.T) {
-	d := testDaemon(t)
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "new", Text: "not expanded yet"},
-	}})
-
-	stage := config.PipelineStage{Name: "file", Model: "echo", PromptFile: "file.md"}
-	if err := d.runFileStage(context.Background(), stage); err != nil {
-		t.Errorf("should succeed with no expanded items: %v", err)
-	}
-}
-
-func TestRunFileStage_ModelNotFound(t *testing.T) {
-	d := testDaemon(t)
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "item", Expanded: "details"},
-	}})
-
-	stage := config.PipelineStage{Name: "file", Model: "nonexistent", PromptFile: "file.md"}
-	if err := d.runFileStage(context.Background(), stage); err == nil {
-		t.Error("expected error for missing model")
-	}
-}
-
-func TestRunFileStage_ExpandedItemWithEmptyExpanded(t *testing.T) {
-	d := testDaemon(t)
-	_ = d.Logger.StartIteration()
-	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "file.md")
-
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
-		{Status: "expanded", Text: "feature with empty expansion", Expanded: ""},
-	}})
-
-	stage := config.PipelineStage{Name: "file", Model: "echo", PromptFile: "file.md"}
-	if err := d.runFileStage(context.Background(), stage); err != nil {
-		t.Fatalf("file stage error: %v", err)
-	}
-
-	inboxData, _ := state.LoadInbox(inboxPath)
-	if inboxData.Items[0].Status != "filed" {
-		t.Errorf("expected 'filed', got %q", inboxData.Items[0].Status)
 	}
 }
 

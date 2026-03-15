@@ -65,3 +65,4 @@
 | 061 | [MIT License](061-mit-license.md) | Accepted | 2026-03-14 |
 | 062 | [Realistic Model Mocks for Integration Testing](062-realistic-model-mocks.md) | Accepted | 2026-03-14 |
 | 063 | [Three-Tier Configuration](063-config-three-tier.md) | Accepted | 2026-03-14 |
+| 064 | [Consolidated Intake Stage and Parallel Inbox Processing](064-intake-stage-and-parallel-inbox.md) | Accepted | 2026-03-14 |

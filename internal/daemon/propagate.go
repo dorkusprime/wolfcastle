@@ -34,20 +34,16 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 	return state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 }
 
-// checkInboxState returns whether the inbox has new items (needing expand)
-// and expanded items (needing filing). Returns false, false if the inbox
-// file doesn't exist or can't be read.
-func (d *Daemon) checkInboxState(inboxPath string) (hasNew, hasExpanded bool) {
+// checkInboxState returns whether the inbox has new items (needing intake).
+// Returns false if the inbox file doesn't exist or can't be read.
+func (d *Daemon) checkInboxState(inboxPath string) (hasNew bool) {
 	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
-		return false, false
+		return false
 	}
 	for _, item := range inboxData.Items {
-		switch item.Status {
-		case "new":
+		if item.Status == "new" {
 			hasNew = true
-		case "expanded":
-			hasExpanded = true
 		}
 	}
 	return

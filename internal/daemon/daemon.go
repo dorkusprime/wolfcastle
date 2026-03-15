@@ -1,15 +1,19 @@
 // Package daemon implements the Wolfcastle daemon loop: finding actionable
-// tasks via tree navigation, running pipeline stages (expand, file, execute),
+// tasks via tree navigation, running pipeline stages (intake, execute),
 // parsing model output markers, and propagating state changes to ancestor
 // nodes and the root index. The daemon supports crash recovery via a
 // supervisor wrapper, signal-driven graceful shutdown, stop-file detection,
 // and configurable iteration caps.
 //
+// Inbox processing runs in a parallel goroutine that polls for new items
+// and runs the intake stage independently of the main execution loop
+// (ADR-064).
+//
 // File layout follows ADR-045:
 //
 //   - daemon.go    — Daemon struct, New, Run, RunWithSupervisor, RunOnce
 //   - iteration.go — per-iteration pipeline dispatch
-//   - stages.go    — inbox-specific stage handlers (expand, file)
+//   - stages.go    — intake stage handler, parallel inbox goroutine
 //   - markers.go   — WOLFCASTLE_* marker parsing and state mutation
 //   - retry.go     — invocation retry with exponential backoff
 //   - propagate.go — state propagation and inbox helpers
@@ -193,6 +197,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 	_ = d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
 	output.PrintHuman("=== Wolfcastle starting (scope=%s) ===", d.scopeLabel())
 
+	// Start the parallel inbox processing goroutine (ADR-064).
+	// It watches for new inbox items and runs the intake stage
+	// independently of the main execution loop.
+	go d.runInboxLoop(ctx)
+
 	for {
 		result, err := d.RunOnce(ctx)
 		if err != nil {
@@ -266,13 +275,8 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		}
 	}
 
-	// Process inbox before navigation. Expand and file stages create
-	// new tasks from inbox items, so they must run before FindNextTask
-	// to avoid the chicken-and-egg problem (inbox has items but tree
-	// is empty, so navigation finds nothing, so stages never run).
-	d.processInboxIfNeeded(ctx)
-
-	// Navigate to find work
+	// Navigate to find work. Inbox processing runs in a parallel
+	// goroutine (ADR-064), so the main loop only handles execution.
 	idx, err := d.Resolver.LoadRootIndex()
 	if err != nil {
 		return IterationStop, fmt.Errorf("loading root index: %w", err)

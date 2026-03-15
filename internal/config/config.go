@@ -30,8 +30,7 @@ func Defaults() *Config {
 		},
 		Pipeline: PipelineConfig{
 			Stages: []PipelineStage{
-				{Name: "expand", Model: "fast", PromptFile: "expand.md"},
-				{Name: "file", Model: "mid", PromptFile: "file.md"},
+				{Name: "intake", Model: "mid", PromptFile: "intake.md"},
 				{Name: "execute", Model: "heavy", PromptFile: "execute.md"},
 			},
 		},
@@ -68,6 +67,7 @@ func Defaults() *Config {
 		Daemon: DaemonConfig{
 			PollIntervalSeconds:        5,
 			BlockedPollIntervalSeconds: 5,
+			InboxPollIntervalSeconds:   5,
 			MaxIterations:              -1,
 			MaxTurnsPerInvocation:      200,
 			InvocationTimeoutSeconds:   3600,

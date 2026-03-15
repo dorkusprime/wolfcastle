@@ -1,7 +1,7 @@
 # ADR-034: Inbox Format and Lifecycle
 
 ## Status
-Accepted
+Accepted (partially superseded by ADR-064)
 
 ## Date
 2026-03-13

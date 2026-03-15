@@ -195,7 +195,7 @@ func TestValidate_CatchesDuplicateStageNames(t *testing.T) {
 	cfg := Defaults()
 	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
 	cfg.Pipeline.Stages = append(cfg.Pipeline.Stages, PipelineStage{
-		Name: "expand", Model: "fast", PromptFile: "dup.md",
+		Name: "intake", Model: "mid", PromptFile: "dup.md",
 	})
 
 	err := Validate(cfg)

@@ -60,7 +60,7 @@ func TestInboxClear_NoResolver(t *testing.T) {
 	}
 }
 
-func TestInboxClear_WithExpandedItems(t *testing.T) {
+func TestInboxClear_WithFiledItems(t *testing.T) {
 	env := newTestEnv(t)
 
 	// Add items with various statuses
@@ -69,7 +69,6 @@ func TestInboxClear_WithExpandedItems(t *testing.T) {
 		Items: []state.InboxItem{
 			{Timestamp: "2025-01-01T00:00:00Z", Text: "new one", Status: "new"},
 			{Timestamp: "2025-01-01T00:00:00Z", Text: "filed one", Status: "filed"},
-			{Timestamp: "2025-01-01T00:00:00Z", Text: "expanded one", Status: "expanded"},
 		},
 	}
 	_ = state.SaveInbox(inboxPath, inboxData)

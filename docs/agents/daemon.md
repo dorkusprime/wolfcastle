@@ -9,18 +9,22 @@ RunWithSupervisor
   └── Run (main loop)
        ├── selfHeal (ADR-020: find interrupted tasks)
        ├── branch check (ADR-015)
+       ├── start inbox goroutine (ADR-064: parallel intake)
        └── for each iteration:
             └── RunOnce
                  ├── check shutdown/stop-file/iteration-cap
                  ├── navigate to find work (state.FindNextTask)
                  └── runIteration
                       ├── claim task
-                      ├── check inbox state
-                      ├── run pipeline stages (expand → file → execute)
+                      ├── run execute stage
                       ├── parse WOLFCASTLE_* markers from output
                       ├── sync audit lifecycle
                       └── handle failure thresholds
 ```
+
+## Parallel Inbox Processing (ADR-064)
+
+Inbox processing runs in a background goroutine started by `Run()`. The goroutine polls `inbox.json` at the configured interval and runs the intake stage when new items are found. This decouples inbox processing from task execution so neither blocks the other.
 
 ## Key Invariants
 
@@ -31,15 +35,14 @@ RunWithSupervisor
 
 ## Pipeline Stages
 
-Stages are defined in `config.json` under `pipeline.stages`. The daemon processes them sequentially:
+Stages are defined in `config.json` under `pipeline.stages`. The default pipeline has two stages:
 
-| Stage | Model | Purpose | Skip condition |
-|-------|-------|---------|----------------|
-| `expand` | fast | Break inbox items into tasks | No `"new"` inbox items |
-| `file` | mid | Organize/scope tasks | No `"expanded"` inbox items |
-| `execute` | heavy | Do the actual work | Expanded items pending filing |
+| Stage | Model | Purpose |
+|-------|-------|---------|
+| `intake` | mid | Reads inbox items, calls wolfcastle CLI to create projects/tasks |
+| `execute` | heavy | Does the actual work on a single task per iteration |
 
-After `expand` runs, inbox state is re-checked so `file` sees freshly expanded items.
+The intake stage runs in a parallel goroutine and is skipped in the main iteration pipeline. The execute stage runs in the main loop.
 
 ## Marker Protocol
 
@@ -73,9 +76,10 @@ The model communicates state mutations via `WOLFCASTLE_*` prefixed lines in stdo
 
 - **Invocation retries:** exponential backoff, configured in `retries.*`
 - **Task failures:** tracked in `task.FailureCount`, thresholds trigger decomposition or auto-block
-- **Non-fatal stage errors:** expand/file stage errors are logged but don't halt the daemon
+- **Non-fatal stage errors:** intake stage errors are logged but don't halt the daemon
 
 ## Concurrency Notes
 
 - The `sync.Once` in Daemon is reset between supervisor restarts. This is safe because all goroutines from the previous `Run()` have exited before reset occurs. The reset is documented in code.
 - `d.branch` is written in `Run()` and read in `RunOnce()`. Safe because `RunOnce` is only called from within `Run`'s serial loop.
+- The inbox goroutine and the main loop both access `inbox.json` and the project tree. Safety is provided by file-level locking in the state package.

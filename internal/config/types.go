@@ -118,6 +118,7 @@ type PromptsConfig struct {
 type DaemonConfig struct {
 	PollIntervalSeconds        int    `json:"poll_interval_seconds"`
 	BlockedPollIntervalSeconds int    `json:"blocked_poll_interval_seconds"`
+	InboxPollIntervalSeconds   int    `json:"inbox_poll_interval_seconds"`
 	MaxIterations              int    `json:"max_iterations"`
 	MaxTurnsPerInvocation      int    `json:"max_turns_per_invocation"`
 	InvocationTimeoutSeconds   int    `json:"invocation_timeout_seconds"`

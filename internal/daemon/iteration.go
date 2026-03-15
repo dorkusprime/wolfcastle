@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -18,12 +17,6 @@ import (
 // enabled pipeline stage in order, applies model output markers, persists
 // state mutations, and handles failure escalation (decomposition, auto-block).
 func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, idx *state.RootIndex) error {
-	// Check inbox state before claiming. If expanded items are pending
-	// filing, the execute stage will be skipped, so we must not claim
-	// the task (otherwise it's stuck in_progress with no work done).
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
-	hasNewItems, hasExpandedItems := d.checkInboxState(inboxPath)
-
 	// Claim the task
 	addr, err := tree.ParseAddress(nav.NodeAddress)
 	if err != nil {
@@ -35,10 +28,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		return fmt.Errorf("loading node state for %s: %w", nav.NodeAddress, err)
 	}
 
-	// Only claim when execute will actually run. If filing takes
-	// priority, run expand/file stages without claiming. If the task
-	// is already in_progress (resumption after YIELD or crash recovery),
-	// skip the claim.
+	// Skip the claim if the task is already in_progress (resumption
+	// after YIELD or crash recovery).
 	alreadyInProgress := false
 	for _, t := range ns.Tasks {
 		if t.ID == nav.TaskID && t.State == state.StatusInProgress {
@@ -46,7 +37,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			break
 		}
 	}
-	if !hasExpandedItems && !alreadyInProgress {
+	if !alreadyInProgress {
 		if err := state.TaskClaim(ns, nav.TaskID); err != nil {
 			return fmt.Errorf("claiming task %s: %w", nav.TaskID, err)
 		}
@@ -58,44 +49,16 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 	}
 
-	// Run pipeline stages
+	// Run pipeline stages. Intake runs in a parallel goroutine
+	// (ADR-064), so the iteration loop only handles execute and
+	// custom stages.
 	for _, stage := range d.Config.Pipeline.Stages {
 		if !stage.IsEnabled() {
 			continue
 		}
 
-		switch stage.Name {
-		case "expand":
-			if !hasNewItems {
-				_ = d.Logger.Log(map[string]any{"type": "stage_skip", "stage": "expand", "reason": "no_new_inbox_items"})
-				continue
-			}
-			if err := d.runExpandStage(ctx, stage); err != nil {
-				_ = d.Logger.Log(map[string]any{"type": "stage_error", "stage": "expand", "error": err.Error()})
-				// Non-fatal: expand failure doesn't block execution
-				output.PrintHuman("  Expand stage error (non-fatal): %v", err)
-			}
-			// Re-check inbox state after expand — items may now be expanded
-			hasNewItems, hasExpandedItems = d.checkInboxState(inboxPath)
-			continue
-
-		case "file":
-			if !hasExpandedItems {
-				_ = d.Logger.Log(map[string]any{"type": "stage_skip", "stage": "file", "reason": "no_expanded_inbox_items"})
-				continue
-			}
-			if err := d.runFileStage(ctx, stage); err != nil {
-				_ = d.Logger.Log(map[string]any{"type": "stage_error", "stage": "file", "error": err.Error()})
-				output.PrintHuman("  File stage error (non-fatal): %v", err)
-			}
-			continue
-		}
-
-		// Skip execute stage if there are expanded items awaiting filing —
-		// prioritize filing over execution to avoid working on a stale tree.
-		if hasExpandedItems {
-			_ = d.Logger.Log(map[string]any{"type": "stage_skip", "stage": stage.Name, "reason": "pending_filing"})
-			output.PrintHuman("  Skipping %s stage: expanded items await filing", stage.Name)
+		// Skip intake stage here; it runs in the parallel inbox goroutine.
+		if stage.Name == "intake" {
 			continue
 		}
 
