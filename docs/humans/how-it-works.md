@@ -102,7 +102,7 @@ When the execute stage claims a task, the model follows a seven-phase protocol:
 4. **Validate** by running configured checks (tests, lints, builds).
 5. **Record** [breadcrumbs](audits.md#breadcrumbs) describing what was done and why.
 6. **Commit** the changes.
-7. **Yield** the task. Report completion or failure.
+7. **Signal** the outcome: COMPLETE, YIELD (needs another iteration), or BLOCKED.
 
 The model communicates through [script calls](cli.md): `wolfcastle task claim`, `wolfcastle audit breadcrumb`, `wolfcastle task complete`. Every side effect goes through a deterministic command that validates inputs and enforces invariants. The model cannot corrupt the tree. It can only ask the scripts to make valid changes.
 
