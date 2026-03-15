@@ -202,7 +202,7 @@ The metadata table captures context for traceability. All values are determined 
 | Node | JSON state: node path | Full tree-addressed path (e.g., `attunement-tree/fire-impl`) |
 | Completed | JSON state: node completion timestamp | ISO 8601 UTC timestamp when the node transitioned to Complete |
 | Archived | System clock | ISO 8601 UTC timestamp when `wolfcastle archive add` executed |
-| Engineer | `config.local.json`: identity | `{user}-{machine}` concatenation (e.g., `wild-macbook`) |
+| Engineer | `local/config.json`: identity | `{user}-{machine}` concatenation (e.g., `wild-macbook`) |
 | Branch | `git rev-parse --abbrev-ref HEAD` | Current git branch at archive time |
 | Commit | `git rev-parse HEAD` | Full SHA of the current HEAD commit at archive time |
 
@@ -226,7 +226,7 @@ The metadata table captures context for traceability. All values are determined 
    - **Node path**: from the `--node` argument.
    - **Completed timestamp**: from the node's JSON state (`completed_at` field).
    - **Archived timestamp**: current UTC time.
-   - **Engineer identity**: read from resolved config (`config.json` merged with `config.local.json`), using `identity.user` and `identity.machine`.
+   - **Engineer identity**: read from resolved config (three-tier merge of `base/config.json`, `custom/config.json`, and `local/config.json`), using `identity.user` and `identity.machine`.
    - **Branch**: execute `git rev-parse --abbrev-ref HEAD`.
    - **Commit**: execute `git rev-parse HEAD`.
 
@@ -313,7 +313,7 @@ This section enumerates every field the archive script reads from JSON state and
 | Source | Archive section | How resolved |
 |--------|-----------------|--------------|
 | System clock (UTC) | Metadata (Archived), Filename | `time.Now().UTC()` |
-| `config.local.json` → `identity` | Metadata (Engineer) | `{identity.user}-{identity.machine}` |
+| `local/config.json` → `identity` | Metadata (Engineer) | `{identity.user}-{identity.machine}` |
 | `git rev-parse --abbrev-ref HEAD` | Metadata (Branch) | Shell out |
 | `git rev-parse HEAD` | Metadata (Commit) | Shell out |
 

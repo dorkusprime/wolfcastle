@@ -83,7 +83,7 @@ Then write tests that set up state, make the target directory read-only, and ver
 | `internal/state/io.go` atomicWriteJSON | ~8 | MkdirAll, CreateTemp, Write, Close, Rename errors |
 | `cmd/audit/approve.go` lines 98-161 | ~15 | MkdirAll, SaveNodeState, WriteFile, SaveBatch, SaveRootIndex errors |
 | `cmd/project/create.go` lines 74-154 | ~16 | LoadNodeState, SaveNodeState, MkdirAll, WriteFile, SaveRootIndex errors |
-| `internal/project/scaffold.go` various | ~8 | Write errors for .gitignore, config.json, config.local.json, base dirs |
+| `internal/project/scaffold.go` various | ~8 | Write errors for .gitignore, base/config.json, custom/config.json, local/config.json, base dirs |
 | `internal/logging/logger.go` compressFile | ~5 | io.Copy error, gz.Close error, various cleanup paths |
 
 ---

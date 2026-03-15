@@ -12,9 +12,9 @@ ADR-009 establishes a three-tier layering system (base → custom → local) but
 ## Decision
 
 ### Config: Deep Merge
-`config.json` and `config.local.json` are merged via recursive deep merge. Keys in `config.local.json` override the same keys in `config.json` at the deepest level. Unspecified keys inherit from the lower tier.
+Config files across all three tiers (`base/config.json`, `custom/config.json`, `local/config.json`) are merged via recursive deep merge (ADR-063). Keys in higher tiers override the same keys in lower tiers at the deepest level. Unspecified keys inherit from the tier below.
 
-Example — if `config.json` defines:
+Example — if `base/config.json` defines:
 ```json
 {
   "models": {
@@ -24,7 +24,7 @@ Example — if `config.json` defines:
 }
 ```
 
-And `config.local.json` defines:
+And `local/config.json` defines:
 ```json
 {
   "models": {
@@ -33,13 +33,13 @@ And `config.local.json` defines:
 }
 ```
 
-The resolved config has both `fast` (from config.json) and `heavy` (from config.local.json). Only the `heavy` model is overridden.
+The resolved config has both `fast` (from base) and `heavy` (from local). Only the `heavy` model is overridden.
 
 ### Arrays: Full Replacement
-Arrays are never element-merged. An array in `config.local.json` completely replaces the array from `config.json`. This applies to `pipeline.stages`, model `args`, `prompts.fragments`, and any other array-valued field.
+Arrays are never element-merged. An array in a higher tier completely replaces the array from lower tiers. This applies to `pipeline.stages`, model `args`, `prompts.fragments`, and any other array-valued field.
 
 ### Null Deletion
-A field set to `null` in `config.local.json` removes that key from the resolved config. This allows local config to explicitly disable a team-defined setting.
+A field set to `null` in a higher tier removes that key from the resolved config. This allows local config to explicitly disable a team-defined setting.
 
 ### Prompts and Rules: File-Level Replacement
 Prompt fragments and rule files in `base/`, `custom/`, and `local/` merge at the file level. A same-named file in a higher tier completely replaces the lower tier's version. There is no partial merge of Markdown content.

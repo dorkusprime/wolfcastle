@@ -176,7 +176,7 @@ func loadRootIndex(t *testing.T, dir string) *state.RootIndex
 
 | Test | Commands exercised | Validates |
 |------|-------------------|-----------|
-| Init workflow | `init` | .wolfcastle/ created, config.json valid, base/ populated |
+| Init workflow | `init` | .wolfcastle/ created, base/config.json and custom/config.json valid, base/ populated |
 | Project lifecycle | `init` → `project create` → `task add` → `task claim` → `task complete` → `status` | State transitions, propagation, status output |
 | Audit workflow | `init` → `project create` → `audit run` → `audit pending` → `audit approve` / `audit reject` | Review batch creation, decision recording, history archival |
 | Doctor validation | `init` → manually corrupt state → `doctor` → `doctor --fix` | Issue detection, deterministic fix |
@@ -265,7 +265,7 @@ The daemon integration tests use configurable shell scripts to simulate real mod
 | `createMockModel(t, dir, name, behavior)` | Creates a named script with one of five behaviors: `complete`, `yield`, `blocked`, `no-marker`, `create-file` |
 | `createCounterMock(t, dir, yieldCount)` | Creates a script that yields `yieldCount` times then completes; returns the script path and counter file path |
 | `createNoMarkerStopAfterMock(t, dir, stopAfter)` | Creates a script that emits no terminal marker, placing the daemon stop file after `stopAfter` invocations |
-| `configureMockModels(t, dir, scriptPath)` | Overwrites `config.json` to point all three model tiers (fast, mid, heavy) at the given script |
+| `configureMockModels(t, dir, scriptPath)` | Overwrites `custom/config.json` to point all three model tiers (fast, mid, heavy) at the given script |
 
 ### Script Generation at Runtime
 

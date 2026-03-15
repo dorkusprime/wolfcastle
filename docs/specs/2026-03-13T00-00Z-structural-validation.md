@@ -774,7 +774,7 @@ When the validation engine encounters issues that require model reasoning (fix s
 
 ### 8.1 Configuration
 
-From `config.json` (or `config.local.json` override):
+From `custom/config.json` (or `local/config.json` override):
 
 ```json
 {

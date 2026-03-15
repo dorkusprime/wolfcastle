@@ -14,10 +14,11 @@ Configuration merges across three tiers. Each tier overrides the one below it.
 
 The same three-tier resolution applies to prompt templates and [rule fragments](#rule-fragments). Same-named files in higher tiers completely replace lower tier versions. New files are added.
 
-Two config files control runtime behavior:
+Each tier contains a `config.json` file:
 
-- **`config.json`**: Team-shared, committed. Models, [pipelines](#pipelines), thresholds, validation commands.
-- **`config.local.json`**: Personal, gitignored. [Identity](#identity), model overrides, local preferences.
+- **`base/config.json`**: Wolfcastle defaults. Regenerated on init/update. Gitignored.
+- **`custom/config.json`**: Team-shared overrides. Committed. Models, [pipelines](#pipelines), thresholds, validation commands.
+- **`local/config.json`**: Personal overrides. Gitignored. [Identity](#identity), model overrides, local preferences.
 
 ## Models
 
@@ -68,7 +69,7 @@ Add stages. Remove stages. Reorder stages. Run a single-stage pipeline with one 
 
 ## Identity
 
-Your identity lives in `config.local.json`, auto-populated on `wolfcastle init`:
+Your identity lives in `local/config.json`, auto-populated on `wolfcastle init`:
 
 ```json
 {
@@ -102,4 +103,4 @@ Wolfcastle does not sandbox anything. Security is configured at the model level 
 }
 ```
 
-The executing model's capabilities are determined entirely by the flags you gave it. Teams enforce permissions through config review of `config.json`. Individual engineers loosen permissions in gitignored `config.local.json` at their own risk.
+The executing model's capabilities are determined entirely by the flags you gave it. Teams enforce permissions through config review of `custom/config.json`. Individual engineers loosen permissions in gitignored `local/config.json` at their own risk.

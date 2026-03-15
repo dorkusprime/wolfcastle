@@ -15,7 +15,7 @@ Wolfcastle needs a complete, consistent set of CLI commands that serve three aud
 
 | Command | Description |
 |---------|-------------|
-| `wolfcastle init` | Scaffold `.wolfcastle/` directory, auto-populate identity in `config.local.json` |
+| `wolfcastle init` | Scaffold `.wolfcastle/` directory, auto-populate identity in `local/config.json` |
 | `wolfcastle start [--node <path>] [--worktree <branch>] [-d]` | Run the daemon. Optional subtree scoping, worktree isolation, background mode |
 | `wolfcastle stop [--force]` | Graceful stop (finish iteration) or hard kill via PID |
 | `wolfcastle status` | Show current tree state, progress, active task |

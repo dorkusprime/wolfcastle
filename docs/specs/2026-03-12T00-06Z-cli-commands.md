@@ -8,7 +8,7 @@ These conventions apply to every command unless explicitly stated otherwise.
 
 ### Tree Addressing
 
-All `--node` flags accept a slash-delimited path from the tree root to the target node (ADR-008). Example: `attunement-tree/fire-impl/task-3`. The path is resolved relative to the engineer's project directory (`projects/{identity}/`), where identity is `{user}-{machine}` from `config.local.json` (ADR-009).
+All `--node` flags accept a slash-delimited path from the tree root to the target node (ADR-008). Example: `attunement-tree/fire-impl/task-3`. The path is resolved relative to the engineer's project directory (`projects/{identity}/`), where identity is `{user}-{machine}` from `local/config.json` (ADR-009).
 
 ### Output Modes
 
@@ -32,7 +32,7 @@ All commands except `wolfcastle init` require a `.wolfcastle/` directory to exis
 
 ### Identity Resolution
 
-Commands that need the engineer's identity resolve it from `config.local.json` as `{user}-{machine}`. If `config.local.json` is missing or identity fields are absent, the command exits with code 1 and the message: `fatal: identity not configured. Run 'wolfcastle init' first.`
+Commands that need the engineer's identity resolve it from `local/config.json` as `{user}-{machine}`. If `local/config.json` is missing or identity fields are absent, the command exits with code 1 and the message: `fatal: identity not configured. Run 'wolfcastle init' first.`
 
 ---
 
@@ -46,28 +46,29 @@ wolfcastle init [--force]
 
 ### Description
 
-Scaffolds the `.wolfcastle/` directory structure in the current working directory and auto-populates engineer identity in `config.local.json`. This must be run before any other wolfcastle command. If `.wolfcastle/` already exists, the command is a no-op unless `--force` is passed.
+Scaffolds the `.wolfcastle/` directory structure in the current working directory and auto-populates engineer identity in `local/config.json`. This must be run before any other wolfcastle command. If `.wolfcastle/` already exists, the command is a no-op unless `--force` is passed.
 
 ### Arguments and Flags
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `--force` | boolean | No | `false` | Re-scaffold `.wolfcastle/`, regenerating `base/` and refreshing `config.local.json` identity without overwriting existing config files |
+| `--force` | boolean | No | `false` | Re-scaffold `.wolfcastle/`, regenerating `base/` and refreshing `local/config.json` identity without overwriting existing config files. Migrates old-style root `config.json` and `config.local.json` if present |
 
 ### Behavior
 
 1. Check whether `.wolfcastle/` already exists in the current directory.
    - If it exists and `--force` is not set, print a message and exit 0.
    - If it exists and `--force` is set, proceed (skip directory creation, regenerate `base/`, refresh identity).
-2. Create the `.wolfcastle/` directory structure (ADR-009):
+2. Create the `.wolfcastle/` directory structure (ADR-009, ADR-063):
    ```
    .wolfcastle/
      .gitignore
-     config.json
-     config.local.json
      base/
+       config.json
      custom/
+       config.json
      local/
+       config.json
      projects/
      archive/
      docs/
@@ -75,12 +76,12 @@ Scaffolds the `.wolfcastle/` directory structure in the current working director
        specs/
      logs/
    ```
-3. Write `.wolfcastle/.gitignore` with the content specified in ADR-009 (commit `config.json`, `custom/`, `projects/`, `archive/`, `docs/`; gitignore everything else).
-4. Write a default `config.json` with sensible defaults for models, pipeline, failure thresholds, and log retention (ADRs 013, 006, 019, 012).
+3. Write `.wolfcastle/.gitignore` with the content specified in ADR-009 (commit `custom/`, `projects/`, `archive/`, `docs/`; gitignore everything else).
+4. Write `base/config.json` with compiled defaults for models, pipeline, failure thresholds, and log retention (ADRs 013, 006, 019, 012). Write an empty `custom/config.json` (`{}`).
 5. Auto-detect engineer identity:
    - `user`: result of `whoami`
    - `machine`: result of `hostname`, with `.local` suffix stripped if present
-6. Write `config.local.json` with the detected identity. If the file already exists (force mode), update identity fields only; preserve any other keys the user has added.
+6. Write `local/config.json` with the detected identity. If the file already exists (force mode), update identity fields only; preserve any other keys the user has added.
 7. Generate `base/` contents from the installed Wolfcastle binary (prompt fragments, rule defaults, script reference per ADR-017).
 8. Create the engineer's project directory: `projects/{user}-{machine}/`.
 9. Write an initial root state file at `projects/{user}-{machine}/state.json` with an empty node registry (ADR-024). This root index tracks the full tree structure for fast navigation.
@@ -105,7 +106,7 @@ Identity: wild-macbook
 |------|-----------|
 | 0 | Success |
 | 1 | Current directory is not writable |
-| 1 | `config.local.json` exists but is malformed JSON (force mode) |
+| 1 | `local/config.json` exists but is malformed JSON (force mode) |
 
 ### Examples
 
@@ -124,7 +125,7 @@ wolfcastle init --force
 |-------|---------|------|
 | Directory not writable | `fatal: cannot write to current directory` | 1 |
 | Already initialized (no --force) | `Wolfcastle already initialized in .wolfcastle/. Use --force to reinitialize.` | 0 |
-| Malformed config.local.json (force mode) | `fatal: config.local.json exists but is not valid JSON` | 1 |
+| Malformed local/config.json (force mode) | `fatal: local/config.json exists but is not valid JSON` | 1 |
 
 ---
 
@@ -151,8 +152,8 @@ Starts the Wolfcastle daemon, which begins the execution loop: navigate to the n
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
-2. Resolve engineer identity from `config.local.json`. Fail if not configured.
-3. Load and merge configuration: `base/` defaults, `config.json`, `config.local.json` (deep merge per ADR-018).
+2. Resolve engineer identity from `local/config.json`. Fail if not configured.
+3. Load and merge configuration: `base/config.json` → `custom/config.json` → `local/config.json` (deep merge per ADR-018, ADR-063).
 4. **Stale PID check**: If `.wolfcastle/wolfcastle.pid` exists, check whether the PID is still a running wolfcastle process.
    - If running: print error and exit (another instance is already active).
    - If stale: remove the PID file and continue.
@@ -351,7 +352,7 @@ By default, shows only the current engineer's tree. With `--all`, aggregates sta
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
-2. Resolve engineer identity from `config.local.json`.
+2. Resolve engineer identity from `local/config.json`.
 3. Load the engineer's root state index at `projects/{identity}/state.json` (ADR-024).
 4. Walk the tree structure from the root index, loading each node's co-located `state.json` to compute summary statistics:
    - Total tasks, completed tasks, in-progress tasks, blocked tasks, pending tasks.
@@ -3525,7 +3526,7 @@ This is a user-facing command. The underlying validation engine is reusable infr
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
-2. Resolve engineer identity from `config.local.json`.
+2. Resolve engineer identity from `local/config.json`.
 3. **Structural validation** -- Go code walks the engineer's tree at `projects/{identity}/`, checking invariants:
    - **Root index consistency**: Every node directory under `projects/{identity}/` has a corresponding entry in the root `state.json` index, and vice versa.
    - **Per-node state integrity**: Every node directory contains a valid `state.json` file with required fields.

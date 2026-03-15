@@ -15,7 +15,7 @@ Wolfcastle shells out to AI CLI tools that can read/write files, execute command
 Wolfcastle does not implement its own sandboxing, filesystem boundaries, or permission system. The executing model's capabilities are determined entirely by the CLI flags configured in the `models` dictionary (ADR-013).
 
 ### Wolfcastle Makes Security Posture Explicit
-Permission flags are configured in `config.json` as part of the model args, visible and auditable:
+Permission flags are configured in `custom/config.json` as part of the model args, visible and auditable:
 
 ```json
 {
@@ -35,8 +35,8 @@ Wolfcastle does not restrict what the model can do beyond what the CLI tool enfo
 
 ## Consequences
 - Users choose their own security posture via CLI flags in config
-- Permission levels are visible, auditable, and version-controlled in `config.json`
+- Permission levels are visible, auditable, and version-controlled in `custom/config.json`
 - Teams can enforce stricter permissions by committing tighter args in shared config
-- Individual engineers can loosen permissions in `config.local.json` (gitignored) at their own risk
+- Individual engineers can loosen permissions in `local/config.json` (gitignored) at their own risk
 - Documentation should clearly explain the implications of different permission levels
 - Wolfcastle stays simple — no auth, no sandboxing, no permission logic

@@ -213,9 +213,9 @@ For this to work in integration tests, the `wolfcastle` binary must be on `PATH`
 |--------|---------|
 | `configureMockModels(t, dir, scriptPath)` | Sets all three model tiers to use the given script; disables git branch verification, sets fast poll intervals |
 | `configureWithArgs(t, dir, scriptPath, args)` | Same as above but passes extra args to the model command |
-| `setMaxIterations(t, dir, n)` | Merges a `max_iterations` override into `config.local.json` |
+| `setMaxIterations(t, dir, n)` | Merges a `max_iterations` override into `local/config.json` |
 | `setFailureAndIterationConfig(t, dir, decomp, maxDepth, hardCap, maxIter)` | Merges both failure thresholds and iteration cap |
-| `mergeLocalConfig(t, dir, overrides)` | Generic shallow-merge into `config.local.json` |
+| `mergeLocalConfig(t, dir, overrides)` | Generic shallow-merge into `local/config.json` |
 
 ## Common Patterns and Gotchas
 

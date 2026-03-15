@@ -64,7 +64,7 @@ func DefaultConfig() *Config {
 ### Merge Pipeline
 
 ```
-DefaultConfig() → overlay config.json → overlay config.local.json → Validate()
+DefaultConfig() → overlay base/config.json → overlay custom/config.json → overlay local/config.json → Validate()
 ```
 
 The `Load()` function changes from "read JSON, fill in missing fields" to "start from defaults, overlay user JSON, validate." Fields not present in user config retain their defaults. Fields explicitly set to `null` in user config delete the default (per ADR-018 null-deletion semantics).

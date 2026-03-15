@@ -4,9 +4,9 @@ Scaffolds the `.wolfcastle/` directory and sets your identity. This is the first
 
 ## What It Does
 
-Creates the full `.wolfcastle/` directory structure: `base/`, `custom/`, `local/`, `projects/`, `archive/`, `docs/`, `logs/`. Writes the `.gitignore` that separates committed files from local-only files. Generates default `config.json` with sensible defaults for [models](../configuration.md#models), [pipelines](../configuration.md#pipelines), and [failure thresholds](../failure-and-recovery.md#task-failure-escalation).
+Creates the full `.wolfcastle/` directory structure: `base/`, `custom/`, `local/`, `projects/`, `archive/`, `docs/`, `logs/`. Writes the `.gitignore` that separates committed files from local-only files. Generates `base/config.json` with compiled defaults for [models](../configuration.md#models), [pipelines](../configuration.md#pipelines), and [failure thresholds](../failure-and-recovery.md#task-failure-escalation). Creates an empty `custom/config.json` for team overrides.
 
-Auto-detects your identity from `whoami` and `hostname` (stripping `.local` suffix), writes it to `config.local.json`, and creates your [namespace](../collaboration.md#engineer-namespacing) directory at `projects/{user}-{machine}/` with a root `state.json` index.
+Auto-detects your identity from `whoami` and `hostname` (stripping `.local` suffix), writes it to `local/config.json`, and creates your [namespace](../collaboration.md#engineer-namespacing) directory at `projects/{user}-{machine}/` with a root `state.json` index.
 
 Generates `base/` contents from the installed binary: prompts, rules, and the script reference that gets injected into model context.
 
@@ -14,7 +14,7 @@ Generates `base/` contents from the installed binary: prompts, rules, and the sc
 
 | Flag | Description |
 |------|-------------|
-| `--force` | Re-scaffolds `base/` and refreshes identity without overwriting `config.json`, `custom/`, `local/`, or state files. Safe to run repeatedly. |
+| `--force` | Re-scaffolds `base/` and refreshes identity without overwriting `custom/config.json`, `local/`, or state files. Migrates old-style root `config.json` and `config.local.json` automatically. Safe to run repeatedly. |
 | `--json` | Output as structured JSON. |
 
 ## Exit Codes
@@ -27,9 +27,9 @@ Generates `base/` contents from the installed binary: prompts, rules, and the sc
 ## Consequences
 
 - Creates the `.wolfcastle/` directory tree and all scaffolding files.
-- Writes `config.local.json` with your detected identity (gitignored).
+- Writes `local/config.json` with your detected identity (gitignored).
 - Creates your engineer namespace under `projects/`.
-- With `--force`: regenerates `base/` and updates identity fields only. Does not touch `custom/`, `local/`, or existing state.
+- With `--force`: regenerates `base/` and updates identity fields only. Migrates old-style root `config.json` to `custom/config.json` and `config.local.json` to `local/config.json`. Does not touch `custom/`, `local/`, or existing state.
 
 ## See Also
 

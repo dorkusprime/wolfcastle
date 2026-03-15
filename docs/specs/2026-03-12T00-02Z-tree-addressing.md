@@ -98,7 +98,7 @@ All live project state lives under the engineer's namespace directory (ADR-009):
 .wolfcastle/projects/{user}-{machine}/
 ```
 
-The identity is resolved from `config.local.json`:
+The identity is resolved from `local/config.json`:
 
 ```json
 {
@@ -360,7 +360,7 @@ When the Go code receives a `--node` argument, it resolves it through these step
 
 ### Step 1: Determine the Engineer Namespace
 
-Read `config.local.json` to get the identity. Concatenate `{user}-{machine}` to produce the namespace. Construct the root index path:
+Read `local/config.json` to get the identity. Concatenate `{user}-{machine}` to produce the namespace. Construct the root index path:
 
 ```
 .wolfcastle/projects/{user}-{machine}/state.json

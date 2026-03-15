@@ -35,7 +35,7 @@ This is a configurable pipeline stage:
 The model receives the new project's description and all other engineers' active (non-Complete) project descriptions. It identifies potential scope overlap and returns a brief advisory.
 
 ### Opt-Out
-Disabled by setting `overlap_advisory.enabled` to `false` in config. Disabled by default in `config.local.json` if an engineer doesn't want the extra model call. Enabled by default in team `config.json` if the team values the coordination.
+Disabled by setting `overlap_advisory.enabled` to `false` in config. Disabled by default in `local/config.json` if an engineer doesn't want the extra model call. Enabled by default in team `custom/config.json` if the team values the coordination.
 
 ## Consequences
 - Engineers get early awareness of potentially overlapping work

@@ -25,13 +25,14 @@ We researched distribution patterns across Claude Code, Lefthook, Mise, Task, Nx
 ```
 .wolfcastle/
   .gitignore           # Controls what's committed (see below)
-  config.json          # Team-shared configuration (committed)
-  config.local.json    # Personal overrides, incl. identity (gitignored)
-  base/                # Wolfcastle-managed prompts/rules/templates (gitignored)
+  base/                # Wolfcastle-managed defaults, prompts, rules (gitignored)
+    config.json        # Compiled defaults (gitignored)
   custom/              # Team-shared overrides and additions (committed)
-  local/               # Personal overrides for prompts/rules (gitignored)
+    config.json        # Team-shared configuration (committed)
+  local/               # Personal overrides (gitignored)
+    config.json        # Personal overrides, incl. identity (gitignored)
   projects/            # Live work tree state, namespaced per engineer (committed)
-    wild-macbook/      # Auto-resolved from identity in config.local.json
+    wild-macbook/      # Auto-resolved from identity in local/config.json
     dave-workstation/
   archive/             # Completed work summaries as Markdown (committed)
   docs/                # Wolfcastle-managed documentation (committed)
@@ -51,7 +52,7 @@ Prompts, rules, and configuration resolve in a predictable merge order:
 A same-named file in a more specific tier replaces the more general tier (`local/` overrides `custom/`, which overrides `base/`). This mirrors the Mise/Lefthook config layering pattern.
 
 ### Engineer Identity and Project Namespacing
-`wolfcastle init` auto-populates `config.local.json` with the engineer's identity:
+`wolfcastle init` auto-populates `local/config.json` with the engineer's identity:
 
 ```json
 {
@@ -72,7 +73,6 @@ Because each engineer only writes to their own namespace within `projects/`, the
 ```
 *
 !.gitignore
-!config.json
 !custom/
 !custom/**
 !projects/
@@ -84,22 +84,22 @@ Because each engineer only writes to their own namespace within `projects/`, the
 ```
 
 This means:
-- **Committed**: `config.json`, `custom/`, `projects/`, `archive/`, `docs/`
-- **Gitignored**: `base/`, `local/`, `config.local.json`, everything else
+- **Committed**: `custom/`, `projects/`, `archive/`, `docs/`
+- **Gitignored**: `base/`, `local/`, everything else
 
 ### Archive (Merge-Conflict-Proof History)
 Completed work produces Markdown summaries in `archive/` with unique filenames (date + hash + slug). This is append-only — two engineers completing different work produce different files that coexist without conflicts. The archive serves as searchable, human-readable history without needing to spelunk git log.
 
 ### New Engineer Experience
-1. Clone the repo (gets `config.json`, `custom/`, `archive/`, `docs/`)
+1. Clone the repo (gets `custom/`, `archive/`, `docs/`)
 2. `brew install wolfcastle` (or curl installer)
-3. `wolfcastle init` (creates `config.local.json` with identity, generates `base/`)
+3. `wolfcastle init` (creates `local/config.json` with identity, generates `base/`)
 4. `wolfcastle start` (begins work)
 
 ## Consequences
 - `base/` is never vendored in git — reduces noise in diffs when Wolfcastle updates
 - Teams share config and rules via `custom/` without manual coordination
-- Personal preferences in `local/` and `config.local.json` never leak to teammates
+- Personal preferences in `local/` (including `local/config.json`) never leak to teammates
 - Project state in `projects/` is committed but namespaced per engineer — no merge conflicts, no lost state
 - Everyone can see what everyone else is working on by inspecting `projects/`
 - Archive provides conflict-free, append-only history of completed work

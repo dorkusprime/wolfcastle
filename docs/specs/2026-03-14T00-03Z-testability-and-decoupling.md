@@ -176,7 +176,7 @@ func DefaultConfig() *Config {
 }
 ```
 
-The `Load()` function changes to: `DefaultConfig()` → overlay `config.json` → overlay `config.local.json` → `Validate()`.
+The `Load()` function changes to: `DefaultConfig()` → overlay `base/config.json` → overlay `custom/config.json` → overlay `local/config.json` → `Validate()`.
 
 ---
 

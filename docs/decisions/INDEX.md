@@ -64,3 +64,4 @@
 | 060 | [Platform-Specific Code via Build Tags](060-platform-build-tags.md) | Accepted | 2026-03-14 |
 | 061 | [MIT License](061-mit-license.md) | Accepted | 2026-03-14 |
 | 062 | [Realistic Model Mocks for Integration Testing](062-realistic-model-mocks.md) | Accepted | 2026-03-14 |
+| 063 | [Three-Tier Configuration](063-config-three-tier.md) | Accepted | 2026-03-14 |

@@ -2,47 +2,48 @@
 
 ## Overview
 
-Wolfcastle uses two JSON configuration files in the `.wolfcastle/` directory:
+Wolfcastle uses three JSON configuration files following the three-tier pattern (ADR-063):
 
 | File | Purpose | Git status | Written by |
 |------|---------|------------|------------|
-| `config.json` | Team-shared configuration | Committed | User / team |
-| `config.local.json` | Personal overrides and identity | Gitignored | `wolfcastle init` + user |
+| `base/config.json` | Compiled defaults | Gitignored | `wolfcastle init` / `wolfcastle update` |
+| `custom/config.json` | Team-shared overrides | Committed | User / team |
+| `local/config.json` | Personal overrides and identity | Gitignored | `wolfcastle init` + user |
 
-Both files are user-owned. Wolfcastle reads but never writes to `config.json`. Wolfcastle writes `config.local.json` only during `wolfcastle init` (to populate identity); the user may edit it freely afterward.
+Wolfcastle regenerates `base/config.json` on every init or update. Wolfcastle reads but never writes to `custom/config.json`. Wolfcastle writes `local/config.json` only during `wolfcastle init` (to populate identity); the user may edit it freely afterward.
 
 ### Merge Semantics
 
-Per ADR-018, the two files are merged via **recursive deep merge**. Keys in `config.local.json` override the same keys in `config.json` at the deepest level. Unspecified keys inherit from `config.json`.
+Per ADR-018 and ADR-063, the three files are merged via **recursive deep merge** in order: `base/config.json` <- `custom/config.json` <- `local/config.json`. Keys in higher tiers override the same keys in lower tiers at the deepest level. Unspecified keys inherit from the tier below.
 
-Example: if `config.json` defines models `fast` and `heavy`, and `config.local.json` redefines only `heavy`, the resolved config contains both models -- `fast` from `config.json` and `heavy` from `config.local.json`.
+Example: if `base/config.json` defines models `fast` and `heavy`, and `local/config.json` redefines only `heavy`, the resolved config contains both models, with `fast` from base and `heavy` from local.
 
-Arrays are **not** deep-merged. An array in `config.local.json` replaces the entire array from `config.json`. This applies to `pipeline.stages`, model `args`, `prompts.fragments`, and any other array-valued field.
+Arrays are **not** deep-merged. An array in a higher tier replaces the entire array from the tier below. This applies to `pipeline.stages`, model `args`, `prompts.fragments`, and any other array-valued field.
 
 ---
 
 ## Field Eligibility
 
-| Field | `config.json` | `config.local.json` | Notes |
-|-------|:---:|:---:|-------|
-| `models` | Yes | Yes | Local overrides swap model tiers for personal use |
-| `pipeline` | Yes | Yes | Local can redefine stages (e.g. skip summary) |
-| `logs` | Yes | Yes | |
-| `retries` | Yes | Yes | |
-| `failure` | Yes | Yes | |
-| `identity` | No | **Yes** | Auto-populated by `wolfcastle init`. Never shared. |
-| `summary` | Yes | Yes | |
-| `docs` | Yes | Yes | |
-| `validation` | Yes | Yes | |
-| `prompts` | Yes | Yes | |
-| `daemon` | Yes | Yes | |
-| `git` | Yes | Yes | |
-| `doctor` | Yes | Yes | |
-| `unblock` | Yes | Yes | |
-| `overlap_advisory` | Yes | Yes | Enabled by default in team config; can be disabled in local config |
-| `audit` | Yes | Yes | Codebase audit command configuration (ADR-029) |
+| Field | `base/config.json` | `custom/config.json` | `local/config.json` | Notes |
+|-------|:---:|:---:|:---:|-------|
+| `models` | Yes | Yes | Yes | Local overrides swap model tiers for personal use |
+| `pipeline` | Yes | Yes | Yes | Local can redefine stages (e.g. skip summary) |
+| `logs` | Yes | Yes | Yes | |
+| `retries` | Yes | Yes | Yes | |
+| `failure` | Yes | Yes | Yes | |
+| `identity` | No | No | **Yes** | Auto-populated by `wolfcastle init`. Never shared. |
+| `summary` | Yes | Yes | Yes | |
+| `docs` | Yes | Yes | Yes | |
+| `validation` | Yes | Yes | Yes | |
+| `prompts` | Yes | Yes | Yes | |
+| `daemon` | Yes | Yes | Yes | |
+| `git` | Yes | Yes | Yes | |
+| `doctor` | Yes | Yes | Yes | |
+| `unblock` | Yes | Yes | Yes | |
+| `overlap_advisory` | Yes | Yes | Yes | Enabled by default in team config; can be disabled in local config |
+| `audit` | Yes | Yes | Yes | Codebase audit command configuration (ADR-029) |
 
-`identity` is the only field restricted to `config.local.json`. All other fields may appear in either file.
+`identity` is the only field restricted to `local/config.json`. All other fields may appear in any tier.
 
 ---
 
@@ -53,7 +54,7 @@ Arrays are **not** deep-merged. An array in `config.local.json` replaces the ent
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wolfcastle.dev/schemas/config.json",
   "title": "Wolfcastle Configuration",
-  "description": "Schema for config.json and config.local.json",
+  "description": "Schema for base/config.json, custom/config.json, and local/config.json",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -233,7 +234,7 @@ Arrays are **not** deep-merged. An array in `config.local.json` replaces the ent
 
     "identity": {
       "type": "object",
-      "description": "Engineer identity. Auto-populated by `wolfcastle init` from whoami and hostname. Used to namespace the project directory (e.g. projects/wild-macbook/). config.local.json ONLY. (ADR-009)",
+      "description": "Engineer identity. Auto-populated by `wolfcastle init` from whoami and hostname. Used to namespace the project directory (e.g. projects/wild-macbook/). local/config.json ONLY. (ADR-009)",
       "additionalProperties": false,
       "required": ["user", "machine"],
       "properties": {
@@ -442,7 +443,7 @@ Arrays are **not** deep-merged. An array in `config.local.json` replaces the ent
         "enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Whether to run the overlap check when creating a new project. Enabled by default in team config; can be disabled in config.local.json for solo engineers."
+          "description": "Whether to run the overlap check when creating a new project. Enabled by default in team config; can be disabled in local/config.json for solo engineers."
         },
         "model": {
           "type": "string",
@@ -587,9 +588,9 @@ All fields are optional. Omitted fields use the defaults specified above. A comp
 
 ---
 
-## Example: `config.json`
+## Example: `custom/config.json`
 
-This is the team-shared configuration committed to git. Shows all fields with their default values for reference. In practice, teams only need to include fields where they diverge from defaults.
+This is the team-shared configuration committed to git. Shows all fields with their default values for reference. In practice, teams only need to include fields where they diverge from defaults (since `base/config.json` already contains compiled defaults).
 
 ```json
 {
@@ -719,7 +720,7 @@ This is the team-shared configuration committed to git. Shows all fields with th
 
 ---
 
-## Example: `config.local.json`
+## Example: `local/config.json`
 
 This is a personal overrides file, gitignored. Shows identity (always present after init) and a model override swapping the heavy tier to a cheaper model for local development.
 
@@ -751,13 +752,13 @@ This is a personal overrides file, gitignored. Shows identity (always present af
 
 After deep merge, the resolved configuration has:
 - `identity.user` = `"wild"`, `identity.machine` = `"macbook"` (from local)
-- `models.fast` = Claude Haiku (from config.json, unchanged)
-- `models.mid` = Claude Sonnet (from config.json, unchanged)
-- `models.heavy` = Claude Sonnet (from config.local.json, overridden)
-- `daemon.poll_interval_seconds` = `5` (from config.json default)
-- `daemon.max_iterations` = `10` (from config.local.json, overridden)
-- `daemon.max_turns_per_invocation` = `50` (from config.local.json, overridden)
-- All other fields = defaults from config.json
+- `models.fast` = Claude Haiku (from base/config.json, unchanged)
+- `models.mid` = Claude Sonnet (from base/config.json, unchanged)
+- `models.heavy` = Claude Sonnet (from local/config.json, overridden)
+- `daemon.poll_interval_seconds` = `5` (from base/config.json default)
+- `daemon.max_iterations` = `10` (from local/config.json, overridden)
+- `daemon.max_turns_per_invocation` = `50` (from local/config.json, overridden)
+- All other fields = defaults from base/config.json
 
 ---
 
@@ -767,30 +768,30 @@ Per ADR-018, config merging follows these rules:
 
 ### Objects: Recursive Deep Merge
 
-For every key at every nesting level:
-1. If the key exists only in `config.json`, use that value.
-2. If the key exists only in `config.local.json`, use that value.
-3. If the key exists in both and both values are objects, recurse (deep merge the child objects).
-4. If the key exists in both and either value is not an object, `config.local.json` wins (full replacement).
+For every key at every nesting level, tiers are merged in order (base, then custom, then local):
+1. If the key exists only in a lower tier, use that value.
+2. If the key exists only in a higher tier, use that value.
+3. If the key exists in multiple tiers and all values are objects, recurse (deep merge the child objects).
+4. If the key exists in multiple tiers and any value is not an object, the highest tier wins (full replacement).
 
 ### Arrays: Full Replacement
 
-Arrays are never element-merged. If `config.local.json` provides an array value for any key, it completely replaces the array from `config.json`. This means:
+Arrays are never element-merged. If a higher tier provides an array value for any key, it completely replaces the array from lower tiers. This means:
 - Overriding `pipeline.stages` replaces the entire stage list.
 - Overriding a model's `args` replaces the entire args array.
 - Overriding `prompts.fragments` replaces the entire fragment list.
 
 ### Null Deletion
 
-A field set to `null` in `config.local.json` removes that key from the resolved config. This allows local config to explicitly remove a team-defined setting. For example, setting `"validation": null` in `config.local.json` disables all validation commands locally.
+A field set to `null` in a higher tier removes that key from the resolved config. This allows local or custom config to explicitly remove a setting from a lower tier. For example, setting `"validation": null` in `local/config.json` disables all validation commands locally.
 
 ### Resolution Order
 
 ```
-defaults (hardcoded in Go) <- config.json <- config.local.json
+defaults (hardcoded in Go) <- base/config.json <- custom/config.json <- local/config.json
 ```
 
-The Go binary carries hardcoded defaults for every field. `config.json` overrides those defaults. `config.local.json` overrides the result. This means a completely empty `config.json` and absent `config.local.json` produce a fully functional configuration.
+The Go binary carries hardcoded defaults for every field. `base/config.json` contains compiled defaults (identical to the hardcoded ones, provided for visibility). `custom/config.json` overrides those for the team. `local/config.json` overrides the result for the individual engineer. An empty `custom/config.json` (`{}`) and absent `local/config.json` produce a fully functional configuration.
 
 ---
 
@@ -800,7 +801,7 @@ The following validation is performed when config is loaded:
 
 1. **Model references**: Every `model` value in `pipeline.stages`, `summary.model`, `doctor.model`, `unblock.model`, and `audit.model` must reference a key that exists in the resolved `models` dictionary (after merge). Note: `overlap_advisory.model` is not validated — overlap detection is algorithmic per ADR-041.
 2. **Stage name uniqueness**: No two entries in `pipeline.stages` may share the same `name`.
-3. **No identity in config.json**: If `identity` appears in `config.json`, emit a warning. Identity is personal and should only be in `config.local.json`.
+3. **No identity in custom/config.json**: If `identity` appears in `custom/config.json`, emit a warning. Identity is personal and should only be in `local/config.json`.
 4. **Type checking**: All fields must match their declared types. Unknown keys at the top level are rejected (`additionalProperties: false`).
 5. **Constraint checking**: Numeric fields respect their `minimum` constraints. `hard_cap` must be >= `decomposition_threshold`.
 6. **Prompt file existence**: `prompt_file` values in `pipeline.stages`, `summary.prompt_file`, `doctor.prompt_file`, `unblock.prompt_file`, and `audit.prompt_file` should resolve to an existing file in at least one tier (base/, custom/, or local/). Missing prompt files produce a startup error.

@@ -52,7 +52,7 @@ Pipeline stages reference models by key and specify a prompt file:
 ```
 
 ### Override via Local Config
-Individual engineers can override model definitions in `config.local.json` — e.g. swapping "heavy" to a cheaper model during development. The three-tier merge (ADR-009) handles resolution: base defaults → team `config.json` → personal `config.local.json`.
+Individual engineers can override model definitions in `local/config.json` — e.g. swapping "heavy" to a cheaper model during development. The three-tier merge (ADR-009, ADR-063) handles resolution: `base/config.json` → `custom/config.json` → `local/config.json`.
 
 ## Consequences
 - Wolfcastle has zero provider-specific code — no API clients, no auth handling

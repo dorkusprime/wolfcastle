@@ -47,7 +47,9 @@ wolfcastle/
 
 ```
 User input → cmd/ → internal/ → filesystem (.wolfcastle/)
-                                    ├── config.json (merged config)
+                                    ├── base/config.json (defaults)
+                                    ├── custom/config.json (team overrides)
+                                    ├── local/config.json (personal overrides)
                                     ├── projects/{namespace}/
                                     │   ├── state.json (root index)
                                     │   └── {node}/state.json (per-node)

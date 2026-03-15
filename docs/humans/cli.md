@@ -59,11 +59,12 @@ Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (au
 ```
 .wolfcastle/
   .gitignore
-  config.json              <- team-shared config (committed)
-  config.local.json        <- personal config, identity (gitignored)
   base/                    <- Wolfcastle defaults, prompts, scripts (gitignored)
+    config.json            <- compiled defaults (gitignored)
   custom/                  <- team overrides and additions (committed)
+    config.json            <- team-shared config (committed)
   local/                   <- personal overrides (gitignored)
+    config.json            <- personal config, identity (gitignored)
   projects/                <- live work trees, per engineer (committed)
     wild-macbook/
     dave-workstation/
@@ -75,14 +76,14 @@ Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (au
   worktrees/               <- git worktrees when using --worktree (gitignored)
 ```
 
-**Committed**: `config.json`, `custom/`, `projects/`, `archive/`, `docs/`
+**Committed**: `custom/`, `projects/`, `archive/`, `docs/`
 
-**Gitignored**: `base/`, `local/`, `config.local.json`, `logs/`, `worktrees/`
+**Gitignored**: `base/`, `local/`, `logs/`, `worktrees/`
 
 ### New Engineer Setup
 
-1. Clone the repo. You get `config.json`, `custom/`, `archive/`, and `docs/` immediately.
+1. Clone the repo. You get `custom/`, `archive/`, and `docs/` immediately.
 2. Install Wolfcastle. `brew install wolfcastle` or the curl installer.
 3. `git config core.hooksPath .githooks` to activate the pre-commit hook (fmt, vet, build, lint).
-4. [`wolfcastle init`](cli/init.md). Creates `config.local.json` with your [identity](configuration.md#identity). Generates `base/`.
+4. [`wolfcastle init`](cli/init.md). Creates `local/config.json` with your [identity](configuration.md#identity). Generates `base/`.
 5. [`wolfcastle start`](cli/start.md). [The daemon](how-it-works.md#the-daemon) wakes up. Your [namespace](collaboration.md#engineer-namespacing) is created. Work begins.

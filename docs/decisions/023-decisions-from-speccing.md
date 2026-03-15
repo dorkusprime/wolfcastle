@@ -30,10 +30,10 @@ The pipeline spec added two optional fields to stage definitions:
 - `skip_prompt_assembly` (boolean, default false) — lightweight stages skip the full system prompt
 
 ### 5. Arrays replace entirely in config merge
-The config spec formalized that arrays in `config.local.json` completely replace arrays from `config.json`. No element-level merging. This applies to `pipeline.stages`, model `args`, `prompts.fragments`, etc.
+The config spec formalized that arrays in a higher tier completely replace arrays from lower tiers. No element-level merging. This applies to `pipeline.stages`, model `args`, `prompts.fragments`, etc.
 
 ### 6. Null deletion in config merge
-Setting a key to `null` in `config.local.json` removes it from the resolved config. Allows local config to explicitly disable team settings.
+Setting a key to `null` in a higher tier (e.g. `local/config.json`) removes it from the resolved config. Allows local config to explicitly disable team settings.
 
 ### 7. Validation commands formalized
 The config spec defined `validation.commands` as an ordered list of objects with `name`, `run`, and `timeout_seconds`. These run after task completion before marking done.
