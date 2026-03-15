@@ -180,12 +180,13 @@ func (d *Daemon) Run(ctx context.Context) error {
 		return fmt.Errorf("self-healing failed: %w", err)
 	}
 
-	// Record starting branch
+	// Record starting branch (skip if not in a git repo)
 	if d.Config.Git.VerifyBranch {
 		var err error
 		d.branch, err = currentBranch(d.RepoDir)
 		if err != nil {
-			return fmt.Errorf("getting current branch: %w", err)
+			output.PrintHuman("Not a git repository. Branch verification disabled.")
+			d.Config.Git.VerifyBranch = false
 		}
 	}
 
