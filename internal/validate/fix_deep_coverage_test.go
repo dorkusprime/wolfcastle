@@ -22,7 +22,7 @@ func TestFixWithVerification_ApplyFixesError_ReadOnlyDir(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("error-node", "Error", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		// Missing audit task triggers MISSING_AUDIT_TASK fix
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -58,7 +58,7 @@ func TestFixWithVerification_InvalidStateValueFix(t *testing.T) {
 	ns := state.NewNodeState("bad-state", "Bad State", state.NodeLeaf)
 	ns.State = state.NodeStatus("IN_PROGRESS") // Wrong casing
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -145,7 +145,7 @@ func TestFixWithVerification_NegativeFailureCount(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("neg-fail", "NegFail", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted, FailureCount: -5},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted, FailureCount: -5},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -189,7 +189,7 @@ func TestFixWithVerification_InvalidAuditStatus(t *testing.T) {
 	ns := state.NewNodeState("bad-audit", "BadAudit", state.NodeLeaf)
 	ns.Audit.Status = state.AuditStatus("INVALID_STATUS")
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -227,7 +227,7 @@ func TestFixWithVerification_StalePIDFileFix(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("valid", "Valid", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -268,7 +268,7 @@ func TestFixWithVerification_AuditStatusTaskMismatch(t *testing.T) {
 	// Audit status says in_progress but audit task is not_started
 	ns.Audit.Status = state.AuditInProgress
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusComplete},
+		{ID: "task-0001", Description: "work", State: state.StatusComplete},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -306,7 +306,7 @@ func TestFixWithVerification_InvalidAuditGapMetadata(t *testing.T) {
 		{ID: "gap-1", Status: state.GapOpen, FixedBy: "stale-value"},
 	}
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -355,7 +355,7 @@ func TestFixWithVerification_PropagationMismatch(t *testing.T) {
 	childNS := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	childNS.State = state.StatusInProgress
 	childNS.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "work", State: state.StatusInProgress},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(childDir, "state.json"), childNS)
@@ -396,7 +396,7 @@ func TestFixWithVerification_RootIndexMissingEntry(t *testing.T) {
 	_ = os.MkdirAll(orphanDir, 0755)
 	ns := state.NewNodeState("orphan", "Orphan", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(orphanDir, "state.json"), ns)

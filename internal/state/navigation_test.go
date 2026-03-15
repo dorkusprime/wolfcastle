@@ -41,7 +41,7 @@ func TestFindNextTask_FindsFirstNotStartedTask(t *testing.T) {
 
 	leafState := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
 	leafState.Tasks = []Task{
-		{ID: "task-1", Description: "do thing", State: StatusNotStarted},
+		{ID: "task-0001", Description: "do thing", State: StatusNotStarted},
 	}
 
 	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
@@ -53,7 +53,7 @@ func TestFindNextTask_FindsFirstNotStartedTask(t *testing.T) {
 	if !result.Found {
 		t.Fatal("expected to find a task")
 	}
-	if result.TaskID != "task-1" {
+	if result.TaskID != "task-0001" {
 		t.Errorf("expected task-1, got %s", result.TaskID)
 	}
 	if result.NodeAddress != "leaf-a" {
@@ -72,9 +72,9 @@ func TestFindNextTask_PrefersInProgressForSelfHealing(t *testing.T) {
 
 	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
 	leafA.Tasks = []Task{
-		{ID: "task-1", Description: "already done", State: StatusComplete},
-		{ID: "task-2", Description: "was working on this", State: StatusInProgress},
-		{ID: "task-3", Description: "not started yet", State: StatusNotStarted},
+		{ID: "task-0001", Description: "already done", State: StatusComplete},
+		{ID: "task-0002", Description: "was working on this", State: StatusInProgress},
+		{ID: "task-0003", Description: "not started yet", State: StatusNotStarted},
 	}
 
 	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
@@ -86,7 +86,7 @@ func TestFindNextTask_PrefersInProgressForSelfHealing(t *testing.T) {
 	if !result.Found {
 		t.Fatal("expected to find a task")
 	}
-	if result.TaskID != "task-2" {
+	if result.TaskID != "task-0002" {
 		t.Errorf("expected in_progress task-2 (self-healing), got %s", result.TaskID)
 	}
 }
@@ -107,7 +107,7 @@ func TestFindNextTask_SkipsCompleteNodes(t *testing.T) {
 
 	leafB := NewNodeState("leaf-b", "Leaf B", NodeLeaf)
 	leafB.Tasks = []Task{
-		{ID: "task-1", Description: "do thing", State: StatusNotStarted},
+		{ID: "task-0001", Description: "do thing", State: StatusNotStarted},
 	}
 
 	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
@@ -140,7 +140,7 @@ func TestFindNextTask_SkipsBlockedNodes(t *testing.T) {
 
 	leafB := NewNodeState("leaf-b", "Leaf B", NodeLeaf)
 	leafB.Tasks = []Task{
-		{ID: "task-1", Description: "available", State: StatusNotStarted},
+		{ID: "task-0001", Description: "available", State: StatusNotStarted},
 	}
 
 	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
@@ -181,11 +181,11 @@ func TestFindNextTask_WithScopeLimitsSearch(t *testing.T) {
 
 	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
 	leafA.Tasks = []Task{
-		{ID: "task-1", Description: "task in A", State: StatusNotStarted},
+		{ID: "task-0001", Description: "task in A", State: StatusNotStarted},
 	}
 	leafB := NewNodeState("leaf-b", "Leaf B", NodeLeaf)
 	leafB.Tasks = []Task{
-		{ID: "task-1", Description: "task in B", State: StatusNotStarted},
+		{ID: "task-0001", Description: "task in B", State: StatusNotStarted},
 	}
 
 	// Scope to leaf-b only
@@ -256,7 +256,7 @@ func TestFindNextTask_DeterministicOrder(t *testing.T) {
 	nodes := map[string]*NodeState{}
 	for _, name := range []string{"zz-last", "aa-first", "mm-middle"} {
 		ns := NewNodeState(name, name, NodeLeaf)
-		ns.Tasks = []Task{{ID: "task-1", Description: "work", State: StatusNotStarted}}
+		ns.Tasks = []Task{{ID: "task-0001", Description: "work", State: StatusNotStarted}}
 		nodes[name] = ns
 	}
 
@@ -305,7 +305,7 @@ func TestFindNextTask_TraversesOrchestratorChildren(t *testing.T) {
 
 	childB := NewNodeState("child-b", "Child B", NodeLeaf)
 	childB.Tasks = []Task{
-		{ID: "task-1", Description: "work here", State: StatusNotStarted},
+		{ID: "task-0001", Description: "work here", State: StatusNotStarted},
 	}
 
 	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{

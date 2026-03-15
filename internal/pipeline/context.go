@@ -2,6 +2,8 @@ package pipeline
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
@@ -31,8 +33,19 @@ func BuildIterationContext(nodeAddr string, ns *state.NodeState, taskID string, 
 }
 
 // BuildIterationContextWithDir is like BuildIterationContext but accepts a
-// wolfcastleDir for loading externalized prompt templates.
+// wolfcastleDir for loading externalized prompt templates and an optional
+// nodeDir for reading task markdown files.
 func BuildIterationContextWithDir(wolfcastleDir string, nodeAddr string, ns *state.NodeState, taskID string, cfgs ...*config.Config) string {
+	return buildIterationContext(wolfcastleDir, "", nodeAddr, ns, taskID, cfgs...)
+}
+
+// BuildIterationContextFull is like BuildIterationContextWithDir but also
+// accepts a nodeDir for reading per-task .md files.
+func BuildIterationContextFull(wolfcastleDir string, nodeDir string, nodeAddr string, ns *state.NodeState, taskID string, cfgs ...*config.Config) string {
+	return buildIterationContext(wolfcastleDir, nodeDir, nodeAddr, ns, taskID, cfgs...)
+}
+
+func buildIterationContext(wolfcastleDir string, nodeDir string, nodeAddr string, ns *state.NodeState, taskID string, cfgs ...*config.Config) string {
 	var cfg *config.Config
 	if len(cfgs) > 0 {
 		cfg = cfgs[0]
@@ -52,6 +65,18 @@ func BuildIterationContextWithDir(wolfcastleDir string, nodeAddr string, ns *sta
 		taskFound = true
 		fmt.Fprintf(&b, "**Task:** %s/%s\n", nodeAddr, t.ID)
 		fmt.Fprintf(&b, "**Description:** %s\n", t.Description)
+
+		// Include task .md content if available
+		if nodeDir != "" {
+			mdPath := filepath.Join(nodeDir, t.ID+".md")
+			if mdContent, err := os.ReadFile(mdPath); err == nil {
+				content := strings.TrimSpace(string(mdContent))
+				if content != "" {
+					b.WriteString("\n" + content + "\n\n")
+				}
+			}
+		}
+
 		fmt.Fprintf(&b, "**Task State:** %s\n", t.State)
 		if t.FailureCount > 0 {
 			fmt.Fprintf(&b, "**Failure Count:** %d\n", t.FailureCount)

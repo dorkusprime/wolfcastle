@@ -81,14 +81,14 @@ func TestCLI_TaskLifecycle(t *testing.T) {
 
 	// Add
 	out := run(t, dir, "task", "add", "--node", "lifecycle-proj", "implement feature")
-	if !strings.Contains(out, "task-1") {
+	if !strings.Contains(out, "task-0001") {
 		t.Fatalf("task add output unexpected: %s", out)
 	}
 
 	ns := loadNode(t, dir, "lifecycle-proj")
 	var task *state.Task
 	for i := range ns.Tasks {
-		if ns.Tasks[i].ID == "task-1" {
+		if ns.Tasks[i].ID == "task-0001" {
 			task = &ns.Tasks[i]
 			break
 		}
@@ -101,10 +101,10 @@ func TestCLI_TaskLifecycle(t *testing.T) {
 	}
 
 	// Claim
-	run(t, dir, "task", "claim", "--node", "lifecycle-proj/task-1")
+	run(t, dir, "task", "claim", "--node", "lifecycle-proj/task-0001")
 	ns = loadNode(t, dir, "lifecycle-proj")
 	for _, tsk := range ns.Tasks {
-		if tsk.ID == "task-1" {
+		if tsk.ID == "task-0001" {
 			if tsk.State != state.StatusInProgress {
 				t.Errorf("after claim: state = %s, want in_progress", tsk.State)
 			}
@@ -112,10 +112,10 @@ func TestCLI_TaskLifecycle(t *testing.T) {
 	}
 
 	// Complete
-	run(t, dir, "task", "complete", "--node", "lifecycle-proj/task-1")
+	run(t, dir, "task", "complete", "--node", "lifecycle-proj/task-0001")
 	ns = loadNode(t, dir, "lifecycle-proj")
 	for _, tsk := range ns.Tasks {
-		if tsk.ID == "task-1" {
+		if tsk.ID == "task-0001" {
 			if tsk.State != state.StatusComplete {
 				t.Errorf("after complete: state = %s, want complete", tsk.State)
 			}
@@ -129,14 +129,14 @@ func TestCLI_TaskBlockUnblock(t *testing.T) {
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "block-proj")
 	run(t, dir, "task", "add", "--node", "block-proj", "blockable task")
-	run(t, dir, "task", "claim", "--node", "block-proj/task-1")
+	run(t, dir, "task", "claim", "--node", "block-proj/task-0001")
 
 	// Block
-	run(t, dir, "task", "block", "--node", "block-proj/task-1", "waiting on API")
+	run(t, dir, "task", "block", "--node", "block-proj/task-0001", "waiting on API")
 
 	ns := loadNode(t, dir, "block-proj")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("after block: state = %s, want blocked", task.State)
 			}
@@ -147,11 +147,11 @@ func TestCLI_TaskBlockUnblock(t *testing.T) {
 	}
 
 	// Unblock
-	run(t, dir, "task", "unblock", "--node", "block-proj/task-1")
+	run(t, dir, "task", "unblock", "--node", "block-proj/task-0001")
 
 	ns = loadNode(t, dir, "block-proj")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusNotStarted {
 				t.Errorf("after unblock: state = %s, want not_started", task.State)
 			}
@@ -317,7 +317,7 @@ func TestCLI_NavigateFindsWork(t *testing.T) {
 	if !strings.Contains(out, "nav-proj") {
 		t.Errorf("navigate did not find the project: %s", out)
 	}
-	if !strings.Contains(out, "task-1") {
+	if !strings.Contains(out, "task-0001") {
 		t.Errorf("navigate did not find task-1: %s", out)
 	}
 }
@@ -354,13 +354,13 @@ func TestCLI_StatusOutput(t *testing.T) {
 
 	// Complete one project's task
 	run(t, dir, "task", "add", "--node", "status-complete", "finish me")
-	run(t, dir, "task", "claim", "--node", "status-complete/task-1")
-	run(t, dir, "task", "complete", "--node", "status-complete/task-1")
+	run(t, dir, "task", "claim", "--node", "status-complete/task-0001")
+	run(t, dir, "task", "complete", "--node", "status-complete/task-0001")
 
 	// Block another
 	run(t, dir, "task", "add", "--node", "status-blocked", "block me")
-	run(t, dir, "task", "claim", "--node", "status-blocked/task-1")
-	run(t, dir, "task", "block", "--node", "status-blocked/task-1", "stuck")
+	run(t, dir, "task", "claim", "--node", "status-blocked/task-0001")
+	run(t, dir, "task", "block", "--node", "status-blocked/task-0001", "stuck")
 
 	out := run(t, dir, "status")
 	if !strings.Contains(out, "Total:") || !strings.Contains(out, "Blocked:") {
@@ -401,8 +401,8 @@ func TestCLI_ArchiveAdd(t *testing.T) {
 	run(t, dir, "init")
 	run(t, dir, "project", "create", "archive-proj")
 	run(t, dir, "task", "add", "--node", "archive-proj", "complete me")
-	run(t, dir, "task", "claim", "--node", "archive-proj/task-1")
-	run(t, dir, "task", "complete", "--node", "archive-proj/task-1")
+	run(t, dir, "task", "claim", "--node", "archive-proj/task-0001")
+	run(t, dir, "task", "complete", "--node", "archive-proj/task-0001")
 
 	// Complete the audit task too so the node is fully complete
 	ns := loadNode(t, dir, "archive-proj")

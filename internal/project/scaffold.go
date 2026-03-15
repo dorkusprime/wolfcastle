@@ -279,6 +279,15 @@ func migrateOldConfig(wolfcastleDir string) error {
 	return nil
 }
 
+// WriteAuditTaskMD writes audit.md into nodeDir from the embedded audit-task template.
+func WriteAuditTaskMD(nodeDir string) {
+	data, err := Templates.ReadFile("templates/audits/audit-task.md")
+	if err != nil {
+		return // best-effort
+	}
+	_ = os.WriteFile(filepath.Join(nodeDir, "audit.md"), data, 0644)
+}
+
 // CreateProject creates a new project node in the tree.
 func CreateProject(
 	idx *state.RootIndex,
@@ -308,6 +317,7 @@ func CreateProject(
 		ns.Tasks = []state.Task{
 			{
 				ID:          "audit",
+				Title:       "Audit",
 				Description: "Verify all work in " + name + " is complete and correct",
 				State:       state.StatusNotStarted,
 				IsAudit:     true,

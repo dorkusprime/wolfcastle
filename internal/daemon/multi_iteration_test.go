@@ -30,7 +30,7 @@ func TestMultiIteration_YieldThenComplete(t *testing.T) {
 
 	ns := state.NewNodeState("test-node", "Test Node", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "test task", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "test task", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	data, _ := json.MarshalIndent(ns, "", "  ")
@@ -109,7 +109,7 @@ func TestMultiIteration_NoFalseMarkerFromPromptEcho(t *testing.T) {
 
 	ns := state.NewNodeState("test-node", "Test Node", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "test task", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "test task", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	data, _ := json.MarshalIndent(ns, "", "  ")

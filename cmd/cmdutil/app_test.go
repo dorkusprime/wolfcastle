@@ -666,7 +666,7 @@ func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
 		"name": "My Node",
 		"type": "leaf",
 		"state": "in_progress",
-		"tasks": [{"id":"task-1","description":"do work","state":"not_started"}],
+		"tasks": [{"id":"task-0001","description":"do work","state":"not_started"}],
 		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
 	}`
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
@@ -684,7 +684,7 @@ func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
 		if addr == "my-node" {
 			foundNode = true
 		}
-		if addr == "my-node/task-1" {
+		if addr == "my-node/task-0001" {
 			foundTask = true
 		}
 	}

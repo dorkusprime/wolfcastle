@@ -112,6 +112,7 @@ type ChildRef struct {
 // Task is a single task within a leaf node.
 type Task struct {
 	ID                 string     `json:"id"`
+	Title              string     `json:"title,omitempty"`
 	Description        string     `json:"description"`
 	State              NodeStatus `json:"state"`
 	IsAudit            bool       `json:"is_audit,omitempty"`

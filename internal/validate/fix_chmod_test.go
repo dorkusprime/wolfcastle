@@ -25,7 +25,7 @@ func TestFixWithVerification_ApplyFixesError_ReadOnlyStateFiles(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("perm-node", "Perm", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
 

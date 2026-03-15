@@ -252,7 +252,7 @@ func TestResolver_TaskDocPath(t *testing.T) {
 		taskID string
 		want   string
 	}{
-		{"task doc", MustParse("proj"), "task-1", filepath.Join("/w", "projects", "ns", "proj", "task-1.md")},
+		{"task doc", MustParse("proj"), "task-0001", filepath.Join("/w", "projects", "ns", "proj", "task-0001.md")},
 		{"audit doc", MustParse("proj/child"), "audit", filepath.Join("/w", "projects", "ns", "proj", "child", "audit.md")},
 	}
 	for _, tt := range tests {
@@ -324,7 +324,7 @@ func TestResolver_LoadNodeState(t *testing.T) {
 
 	ns := state.NewNodeState("my-proj", "My Project", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "Do something", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "Do something", State: state.StatusNotStarted},
 	}
 	data, err := json.MarshalIndent(ns, "", "  ")
 	if err != nil {

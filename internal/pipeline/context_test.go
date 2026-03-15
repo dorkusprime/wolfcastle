@@ -16,7 +16,7 @@ func TestBuildIterationContext_IncludesNodeInfo(t *testing.T) {
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.State = state.StatusInProgress
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if !strings.Contains(result, "**Node:** project/auth") {
 		t.Error("expected node address")
@@ -33,12 +33,12 @@ func TestBuildIterationContext_IncludesTaskDescription(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "Implement JWT validation", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "Implement JWT validation", State: state.StatusInProgress},
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
-	if !strings.Contains(result, "**Task:** project/auth/task-1") {
+	if !strings.Contains(result, "**Task:** project/auth/task-0001") {
 		t.Error("expected task address")
 	}
 	if !strings.Contains(result, "**Description:** Implement JWT validation") {
@@ -54,12 +54,12 @@ func TestBuildIterationContext_BreadcrumbsLimitedTo10(t *testing.T) {
 	for i := 0; i < 15; i++ {
 		ns.Audit.Breadcrumbs = append(ns.Audit.Breadcrumbs, state.Breadcrumb{
 			Timestamp: time.Date(2026, 1, 1, i, 0, 0, 0, time.UTC),
-			Task:      "task-1",
+			Task:      "task-0001",
 			Text:      strings.Repeat("x", 1) + string(rune('a'+i)),
 		})
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if !strings.Contains(result, "## Recent Breadcrumbs") {
 		t.Error("expected breadcrumbs section")
@@ -85,7 +85,7 @@ func TestBuildIterationContext_IncludesAuditScope(t *testing.T) {
 		Description: "Verify all auth endpoints",
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if !strings.Contains(result, "## Audit Scope") {
 		t.Error("expected audit scope section")
@@ -100,7 +100,7 @@ func TestBuildIterationContext_IncludesSpecs(t *testing.T) {
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Specs = []string{"spec-auth-flow.md", "spec-jwt-format.md"}
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if !strings.Contains(result, "## Linked Specs") {
 		t.Error("expected specs section")
@@ -167,7 +167,7 @@ func TestBuildIterationContext_NeedsDecomposition(t *testing.T) {
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{
-			ID:                 "task-1",
+			ID:                 "task-0001",
 			Description:        "Implement auth",
 			State:              state.StatusInProgress,
 			FailureCount:       12,
@@ -182,7 +182,7 @@ func TestBuildIterationContext_NeedsDecomposition(t *testing.T) {
 		},
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-1", cfg)
+	result := BuildIterationContext("project/auth", ns, "task-0001", cfg)
 
 	if !strings.Contains(result, "## Failure History") {
 		t.Error("expected failure history section")
@@ -206,7 +206,7 @@ func TestBuildIterationContext_FailureHistoryWithoutDecomposition(t *testing.T) 
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{
-			ID:                 "task-1",
+			ID:                 "task-0001",
 			Description:        "Implement auth",
 			State:              state.StatusInProgress,
 			FailureCount:       3,
@@ -221,7 +221,7 @@ func TestBuildIterationContext_FailureHistoryWithoutDecomposition(t *testing.T) 
 		},
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-1", cfg)
+	result := BuildIterationContext("project/auth", ns, "task-0001", cfg)
 
 	if !strings.Contains(result, "## Failure History") {
 		t.Error("expected failure history section")
@@ -239,14 +239,14 @@ func TestBuildIterationContext_FailureHistoryNoCfg(t *testing.T) {
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{
-			ID:           "task-1",
+			ID:           "task-0001",
 			Description:  "Implement auth",
 			State:        state.StatusInProgress,
 			FailureCount: 5,
 		},
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	// Without a config, failure history should not appear
 	if strings.Contains(result, "## Failure History") {
@@ -259,14 +259,14 @@ func TestBuildIterationContext_IncludesFailureCount(t *testing.T) {
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{
-			ID:           "task-1",
+			ID:           "task-0001",
 			Description:  "Implement auth",
 			State:        state.StatusInProgress,
 			FailureCount: 7,
 		},
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if !strings.Contains(result, "**Failure Count:** 7") {
 		t.Error("expected failure count in task info")
@@ -278,13 +278,13 @@ func TestBuildIterationContext_OmitsFailureCountWhenZero(t *testing.T) {
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{
-			ID:          "task-1",
+			ID:          "task-0001",
 			Description: "Implement auth",
 			State:       state.StatusInProgress,
 		},
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if strings.Contains(result, "**Failure Count:**") {
 		t.Error("failure count should be omitted when zero")
@@ -295,11 +295,11 @@ func TestBuildIterationContext_SummaryRequired_LastIncompleteTask(t *testing.T) 
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "First task", State: state.StatusComplete},
-		{ID: "task-2", Description: "Second task", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "First task", State: state.StatusComplete},
+		{ID: "task-0002", Description: "Second task", State: state.StatusInProgress},
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-2")
+	result := BuildIterationContext("project/auth", ns, "task-0002")
 
 	if !strings.Contains(result, "## Summary Required") {
 		t.Error("expected summary required section when last incomplete task")
@@ -316,11 +316,11 @@ func TestBuildIterationContext_NoSummaryRequired_OtherTasksIncomplete(t *testing
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "First task", State: state.StatusInProgress},
-		{ID: "task-2", Description: "Second task", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "First task", State: state.StatusInProgress},
+		{ID: "task-0002", Description: "Second task", State: state.StatusNotStarted},
 	}
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if strings.Contains(result, "## Summary Required") {
 		t.Error("summary should not be required when other tasks are incomplete")
@@ -331,10 +331,10 @@ func TestIsLastIncompleteTask_OnlyTask(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "Only task", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "Only task", State: state.StatusInProgress},
 	}
 
-	if !isLastIncompleteTask(ns, "task-1") {
+	if !isLastIncompleteTask(ns, "task-0001") {
 		t.Error("single task should be the last incomplete task")
 	}
 }
@@ -343,12 +343,12 @@ func TestIsLastIncompleteTask_AllOthersComplete(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "First", State: state.StatusComplete},
-		{ID: "task-2", Description: "Second", State: state.StatusComplete},
-		{ID: "task-3", Description: "Third", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "First", State: state.StatusComplete},
+		{ID: "task-0002", Description: "Second", State: state.StatusComplete},
+		{ID: "task-0003", Description: "Third", State: state.StatusInProgress},
 	}
 
-	if !isLastIncompleteTask(ns, "task-3") {
+	if !isLastIncompleteTask(ns, "task-0003") {
 		t.Error("task-3 should be the last incomplete task")
 	}
 }
@@ -357,12 +357,12 @@ func TestIsLastIncompleteTask_OthersStillIncomplete(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "First", State: state.StatusComplete},
-		{ID: "task-2", Description: "Second", State: state.StatusNotStarted},
-		{ID: "task-3", Description: "Third", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "First", State: state.StatusComplete},
+		{ID: "task-0002", Description: "Second", State: state.StatusNotStarted},
+		{ID: "task-0003", Description: "Third", State: state.StatusInProgress},
 	}
 
-	if isLastIncompleteTask(ns, "task-3") {
+	if isLastIncompleteTask(ns, "task-0003") {
 		t.Error("task-3 should NOT be last incomplete when task-2 is not_started")
 	}
 }
@@ -380,11 +380,11 @@ func TestIsLastIncompleteTask_OtherBlocked(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "First", State: state.StatusBlocked},
-		{ID: "task-2", Description: "Second", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "First", State: state.StatusBlocked},
+		{ID: "task-0002", Description: "Second", State: state.StatusInProgress},
 	}
 
-	if isLastIncompleteTask(ns, "task-2") {
+	if isLastIncompleteTask(ns, "task-0002") {
 		t.Error("task-2 should NOT be last incomplete when task-1 is blocked (not complete)")
 	}
 }
@@ -393,7 +393,7 @@ func TestBuildIterationContext_TaskNotFound(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "Exists", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "Exists", State: state.StatusInProgress},
 	}
 
 	result := BuildIterationContext("project/auth", ns, "nonexistent")
@@ -411,7 +411,7 @@ func TestBuildIterationContext_NoBreadcrumbs(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if strings.Contains(result, "## Recent Breadcrumbs") {
 		t.Error("breadcrumbs section should be absent when empty")
@@ -422,7 +422,7 @@ func TestBuildIterationContext_NoSpecs(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if strings.Contains(result, "## Linked Specs") {
 		t.Error("specs section should be absent when empty")
@@ -434,7 +434,7 @@ func TestBuildIterationContext_NoAuditScope(t *testing.T) {
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Audit.Scope = nil // explicitly nil out to test absence
 
-	result := BuildIterationContext("project/auth", ns, "task-1")
+	result := BuildIterationContext("project/auth", ns, "task-0001")
 
 	if strings.Contains(result, "## Audit Scope") {
 		t.Error("audit scope section should be absent when nil")
@@ -455,7 +455,7 @@ func TestBuildIterationContextWithDir_UsesExternalDecomp(t *testing.T) {
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{
-			ID:                 "task-1",
+			ID:                 "task-0001",
 			Description:        "Implement auth",
 			State:              state.StatusInProgress,
 			FailureCount:       12,
@@ -470,7 +470,7 @@ func TestBuildIterationContextWithDir_UsesExternalDecomp(t *testing.T) {
 		},
 	}
 
-	result := BuildIterationContextWithDir(dir, "project/auth", ns, "task-1", cfg)
+	result := BuildIterationContextWithDir(dir, "project/auth", ns, "task-0001", cfg)
 
 	if !strings.Contains(result, "CUSTOM: decompose project/auth now") {
 		t.Error("expected externalized decomposition prompt")
@@ -490,10 +490,10 @@ func TestBuildIterationContextWithDir_UsesExternalSummary(t *testing.T) {
 
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "Only task", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "Only task", State: state.StatusInProgress},
 	}
 
-	result := BuildIterationContextWithDir(dir, "project/auth", ns, "task-1")
+	result := BuildIterationContextWithDir(dir, "project/auth", ns, "task-0001")
 
 	if !strings.Contains(result, "CUSTOM SUMMARY:") {
 		t.Error("expected externalized summary-required prompt")
@@ -504,11 +504,11 @@ func TestBuildIterationContextWithDir_FallbackWhenNoDir(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "Only task", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "Only task", State: state.StatusInProgress},
 	}
 
 	// Empty wolfcastleDir triggers fallback
-	result := BuildIterationContextWithDir("", "project/auth", ns, "task-1")
+	result := BuildIterationContextWithDir("", "project/auth", ns, "task-0001")
 
 	if !strings.Contains(result, "## Summary Required") {
 		t.Error("expected fallback summary section")

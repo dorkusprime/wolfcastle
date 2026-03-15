@@ -141,7 +141,7 @@ func TestFixWithVerification_MultiplePassesConverge(t *testing.T) {
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.State = state.StatusNotStarted
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted, FailureCount: -2},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted, FailureCount: -2},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
 
@@ -192,7 +192,7 @@ func TestFixWithVerification_WithWolfcastleDirArg(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)

@@ -15,16 +15,20 @@ Manage tasks on leaf nodes. Tasks follow the lifecycle: not_started -> in_progre
 Add a new task to a leaf node.
 
 ```
-wolfcastle task add "description of the task" --node <node-address>
+wolfcastle task add "task title" --node <node-address> [--body "detailed description"] [--stdin]
 ```
 
 | Flag | Required | Description |
 |------|----------|-------------|
 | `--node` | Yes | Target leaf node address |
+| `--body` | No | Detailed task description/body text |
+| `--stdin` | No | Read task body from stdin |
 
-**Example:**
+**Examples:**
 ```
 wolfcastle task add "Implement user authentication middleware" --node my-project/auth
+wolfcastle task add "Add rate limiting" --node my-project/auth --body "Implement token-bucket rate limiting at 100 req/s per user."
+echo "Detailed spec..." | wolfcastle task add "Add caching layer" --node my-project/auth --stdin
 ```
 
 ### wolfcastle task claim

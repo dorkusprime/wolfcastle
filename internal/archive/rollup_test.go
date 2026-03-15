@@ -62,8 +62,8 @@ func TestGenerateEntry_IncludesBreadcrumbs(t *testing.T) {
 	t.Parallel()
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Audit.Breadcrumbs = []state.Breadcrumb{
-		{Timestamp: time.Date(2026, 3, 1, 10, 0, 0, 0, time.UTC), Task: "task-1", Text: "Added JWT middleware"},
-		{Timestamp: time.Date(2026, 3, 1, 11, 0, 0, 0, time.UTC), Task: "task-2", Text: "Updated tests"},
+		{Timestamp: time.Date(2026, 3, 1, 10, 0, 0, 0, time.UTC), Task: "task-0001", Text: "Added JWT middleware"},
+		{Timestamp: time.Date(2026, 3, 1, 11, 0, 0, 0, time.UTC), Task: "task-0002", Text: "Updated tests"},
 	}
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "dev", Machine: "laptop"}
@@ -86,7 +86,7 @@ func TestGenerateEntry_IncludesAuditGaps(t *testing.T) {
 	ns := state.NewNodeState("auth", "Auth Module", state.NodeLeaf)
 	ns.Audit.Gaps = []state.Gap{
 		{ID: "g1", Description: "Missing error handling", Status: state.GapOpen},
-		{ID: "g2", Description: "No input validation", Status: state.GapFixed, FixedBy: "task-2"},
+		{ID: "g2", Description: "No input validation", Status: state.GapFixed, FixedBy: "task-0002"},
 	}
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "dev", Machine: "laptop"}
@@ -102,7 +102,7 @@ func TestGenerateEntry_IncludesAuditGaps(t *testing.T) {
 	if !strings.Contains(entry.Content, "FIXED") {
 		t.Error("expected fixed gap status")
 	}
-	if !strings.Contains(entry.Content, "fixed by task-2") {
+	if !strings.Contains(entry.Content, "fixed by task-0002") {
 		t.Error("expected fixed-by attribution")
 	}
 }
@@ -182,7 +182,7 @@ func TestGenerateEntry_Escalations_OpenAndResolved(t *testing.T) {
 			Description: "Missing rate limiting",
 			SourceNode:  "project/gateway",
 			Status:      state.EscalationResolved,
-			ResolvedBy:  "task-5",
+			ResolvedBy:  "task-0005",
 		},
 	}
 	cfg := config.Defaults()

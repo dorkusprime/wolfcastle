@@ -63,9 +63,9 @@ func TestFindNextTask_UsesRootArrayWhenAvailable(t *testing.T) {
 	}
 
 	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
-	leafA.Tasks = []Task{{ID: "task-1", Description: "A work", State: StatusNotStarted}}
+	leafA.Tasks = []Task{{ID: "task-0001", Description: "A work", State: StatusNotStarted}}
 	leafB := NewNodeState("leaf-b", "Leaf B", NodeLeaf)
-	leafB.Tasks = []Task{{ID: "task-1", Description: "B work", State: StatusNotStarted}}
+	leafB.Tasks = []Task{{ID: "task-0001", Description: "B work", State: StatusNotStarted}}
 
 	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
 		"leaf-a": leafA,
@@ -120,8 +120,8 @@ func TestFindNextTask_LeafWithAllCompleteTasks(t *testing.T) {
 
 	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
 	leafA.Tasks = []Task{
-		{ID: "task-1", Description: "done", State: StatusComplete},
-		{ID: "task-2", Description: "also done", State: StatusComplete},
+		{ID: "task-0001", Description: "done", State: StatusComplete},
+		{ID: "task-0002", Description: "also done", State: StatusComplete},
 	}
 
 	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
@@ -147,7 +147,7 @@ func TestFindNextTask_LeafWithAllBlockedTasks(t *testing.T) {
 
 	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
 	leafA.Tasks = []Task{
-		{ID: "task-1", Description: "stuck", State: StatusBlocked},
+		{ID: "task-0001", Description: "stuck", State: StatusBlocked},
 	}
 
 	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
@@ -172,7 +172,7 @@ func TestFindNextTask_AuditDeferredUntilNonAuditComplete(t *testing.T) {
 
 	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
 	leafA.Tasks = []Task{
-		{ID: "task-1", Description: "real work", State: StatusNotStarted},
+		{ID: "task-0001", Description: "real work", State: StatusNotStarted},
 		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
 	}
 
@@ -185,7 +185,7 @@ func TestFindNextTask_AuditDeferredUntilNonAuditComplete(t *testing.T) {
 	if !result.Found {
 		t.Fatal("expected to find work")
 	}
-	if result.TaskID != "task-1" {
+	if result.TaskID != "task-0001" {
 		t.Errorf("expected task-1, got %s (audit should be deferred)", result.TaskID)
 	}
 }
@@ -201,7 +201,7 @@ func TestFindNextTask_AuditEligibleWhenNonAuditComplete(t *testing.T) {
 
 	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
 	leafA.Tasks = []Task{
-		{ID: "task-1", Description: "real work", State: StatusComplete},
+		{ID: "task-0001", Description: "real work", State: StatusComplete},
 		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
 	}
 
@@ -282,7 +282,7 @@ func TestFindNextTask_ScopedOrchestratorTraversesChildren(t *testing.T) {
 	}
 
 	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
-	leafA.Tasks = []Task{{ID: "task-1", Description: "work", State: StatusNotStarted}}
+	leafA.Tasks = []Task{{ID: "task-0001", Description: "work", State: StatusNotStarted}}
 
 	result, err := FindNextTask(idx, "orch", makeLoadNode(map[string]*NodeState{
 		"orch/leaf-a": leafA,

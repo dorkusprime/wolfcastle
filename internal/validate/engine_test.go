@@ -24,7 +24,7 @@ func setupTestTree(t *testing.T) (string, *state.RootIndex) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("leaf-a", "Leaf A", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "do work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "do work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -109,7 +109,7 @@ func TestValidateAll_DetectsMissingAuditTask(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("no-audit", "No Audit", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
 
@@ -141,7 +141,7 @@ func TestValidateAll_DetectsAuditNotLast(t *testing.T) {
 	ns := state.NewNodeState("bad-order", "Bad Order", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
 
@@ -172,7 +172,7 @@ func TestValidateAll_DetectsMultipleAuditTasks(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("multi-audit", "Multi Audit", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit-1", Description: "audit 1", State: state.StatusNotStarted, IsAudit: true},
 		{ID: "audit-2", Description: "audit 2", State: state.StatusNotStarted, IsAudit: true},
 	}
@@ -206,8 +206,8 @@ func TestValidateAll_DetectsCompleteWithIncomplete(t *testing.T) {
 	ns := state.NewNodeState("bad-complete", "Bad Complete", state.NodeLeaf)
 	ns.State = state.StatusComplete
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusComplete},
-		{ID: "task-2", Description: "more work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusComplete},
+		{ID: "task-0002", Description: "more work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -240,7 +240,7 @@ func TestValidateAll_DetectsBlockedWithoutReason(t *testing.T) {
 	ns := state.NewNodeState("no-reason", "No Reason", state.NodeLeaf)
 	ns.State = state.StatusBlocked
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusBlocked, BlockedReason: ""},
+		{ID: "task-0001", Description: "work", State: state.StatusBlocked, BlockedReason: ""},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -272,7 +272,7 @@ func TestValidateAll_DetectsNegativeFailureCount(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("neg-fail", "Neg Fail", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted, FailureCount: -3},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted, FailureCount: -3},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -340,7 +340,7 @@ func TestValidateAll_DetectsMultipleInProgress(t *testing.T) {
 		ns := state.NewNodeState(name, name, state.NodeLeaf)
 		ns.State = state.StatusInProgress
 		ns.Tasks = []state.Task{
-			{ID: "task-1", Description: "work", State: state.StatusInProgress},
+			{ID: "task-0001", Description: "work", State: state.StatusInProgress},
 			{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 		}
 		_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -382,7 +382,7 @@ func TestValidateAll_DetectsDepthMismatch(t *testing.T) {
 	childNS := state.NewNodeState("child", "Child", state.NodeLeaf)
 	childNS.DecompositionDepth = 1
 	childNS.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(childDir, "state.json"), childNS)
@@ -427,7 +427,7 @@ func TestValidateAll_DetectsPropagationMismatch(t *testing.T) {
 	_ = os.MkdirAll(childDir, 0755)
 	childNS := state.NewNodeState("child", "Child", state.NodeLeaf)
 	childNS.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(childDir, "state.json"), childNS)
@@ -465,7 +465,7 @@ func TestValidateStartup_OnlyRunsSubset(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -528,7 +528,7 @@ func TestApplyDeterministicFixes_MissingAudit(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	}
 	statePath := filepath.Join(leafDir, "state.json")
 	_ = state.SaveNodeState(statePath, ns)
@@ -577,7 +577,7 @@ func TestValidateAll_DetectsInvalidAuditStatus(t *testing.T) {
 	ns := state.NewNodeState("bad-audit", "Bad Audit", state.NodeLeaf)
 	ns.Audit.Status = "garbage"
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -611,7 +611,7 @@ func TestValidateAll_DetectsAuditStatusTaskMismatch(t *testing.T) {
 	ns.State = state.StatusInProgress
 	ns.Audit.Status = state.AuditPassed // wrong — should be in_progress
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "work", State: state.StatusInProgress},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -646,7 +646,7 @@ func TestValidateAll_DetectsInvalidAuditGap(t *testing.T) {
 		{ID: "", Description: "", Status: state.GapOpen}, // missing ID and description
 	}
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -681,7 +681,7 @@ func TestValidateAll_DetectsStaleGapMetadata(t *testing.T) {
 		{ID: "gap-1", Description: "test gap", Status: state.GapOpen, FixedBy: "should-not-be-here"},
 	}
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -716,7 +716,7 @@ func TestValidateAll_DetectsInvalidAuditEscalation(t *testing.T) {
 		{ID: "", Description: "", SourceNode: ""}, // all empty
 	}
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -749,7 +749,7 @@ func TestValidateAll_DetectsInvalidAuditScope(t *testing.T) {
 	ns := state.NewNodeState("bad-scope", "Bad Scope", state.NodeLeaf)
 	ns.Audit.Scope = &state.AuditScope{Description: ""} // empty description
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -781,7 +781,7 @@ func TestApplyDeterministicFixes_NegativeFailureCount(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted, FailureCount: -5},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted, FailureCount: -5},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	statePath := filepath.Join(leafDir, "state.json")

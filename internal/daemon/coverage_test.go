@@ -103,7 +103,7 @@ func TestRunOnce_BranchVerifyError(t *testing.T) {
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
-		{ID: "task-1", State: state.StatusNotStarted},
+		{ID: "task-0001", State: state.StatusNotStarted},
 	})
 
 	result, err := d.RunOnce(context.Background())
@@ -123,7 +123,7 @@ func TestRunOnce_BranchChanged(t *testing.T) {
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
-		{ID: "task-1", State: state.StatusNotStarted},
+		{ID: "task-0001", State: state.StatusNotStarted},
 	})
 
 	result, err := d.RunOnce(context.Background())
@@ -280,13 +280,13 @@ func TestRunIteration_IntakeStageSkipped(t *testing.T) {
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "my-node", []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	idx, _ := d.Resolver.LoadRootIndex()
-	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-1", Found: true}
+	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	err := d.runIteration(context.Background(), nav, idx)
 	// Intake is skipped in the iteration loop; only execute runs
 	_ = err
@@ -379,7 +379,7 @@ func TestRun_AllComplete_ExitsCleanly(t *testing.T) {
 
 	// Set up a tree where everything is complete
 	setupLeafNode(t, d, "my-node", []state.Task{
-		{ID: "task-1", State: state.StatusComplete},
+		{ID: "task-0001", State: state.StatusComplete},
 	})
 	idx, _ := d.Resolver.LoadRootIndex()
 	entry := idx.Nodes["my-node"]
@@ -404,7 +404,7 @@ func TestRun_WorkThenComplete(t *testing.T) {
 	d.Config.Logs.Compress = true
 
 	setupLeafNode(t, d, "my-node", []state.Task{
-		{ID: "task-1", Description: "do work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "do work", State: state.StatusNotStarted},
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
@@ -456,7 +456,7 @@ func TestRun_BranchVerifyEnabled(t *testing.T) {
 	d.RepoDir = "/Users/wild/repository/dorkusprime/wolfcastle/main/.claude/worktrees/agent-a99352cf"
 
 	setupLeafNode(t, d, "my-node", []state.Task{
-		{ID: "task-1", State: state.StatusComplete},
+		{ID: "task-0001", State: state.StatusComplete},
 	})
 	idx, _ := d.Resolver.LoadRootIndex()
 	entry := idx.Nodes["my-node"]

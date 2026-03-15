@@ -26,7 +26,7 @@ func TestFixWithVerification_CorruptIndexMidPass(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("fixable", "Fixable", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		// Missing audit task — triggers fix
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)

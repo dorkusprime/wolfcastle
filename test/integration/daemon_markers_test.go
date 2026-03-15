@@ -51,7 +51,7 @@ func TestDaemon_YieldThreeThenComplete(t *testing.T) {
 
 	ns := loadNode(t, dir, "yield3-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected task-1 complete, got %s", task.State)
 			}
@@ -84,7 +84,7 @@ func TestDaemon_YieldThenBlocked(t *testing.T) {
 
 	ns := loadNode(t, dir, "yb-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("expected task-1 blocked, got %s", task.State)
 			}
@@ -119,7 +119,7 @@ func TestDaemon_YieldThenNoMarker(t *testing.T) {
 
 	ns := loadNode(t, dir, "yn-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.FailureCount < 1 {
 				t.Errorf("expected failure count >= 1 from missing marker, got %d", task.FailureCount)
 			}
@@ -158,7 +158,7 @@ func TestDaemon_BlockedWithReasonText(t *testing.T) {
 
 	ns := loadNode(t, dir, "br-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("expected blocked, got %s", task.State)
 			}
@@ -193,7 +193,7 @@ func TestDaemon_NoMarkerPastDecompositionThreshold(t *testing.T) {
 
 	ns := loadNode(t, dir, "decomp-past")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.FailureCount < 2 {
 				t.Errorf("expected failure count >= 2, got %d", task.FailureCount)
 			}
@@ -247,7 +247,7 @@ touch "%s"
 
 	ns := loadNode(t, dir, "multi-marker-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected COMPLETE to win over YIELD/BLOCKED, got %s", task.State)
 			}
@@ -306,7 +306,7 @@ touch "%s"
 	// is that the daemon didn't crash or misbehave.
 	ns := loadNode(t, dir, "echo-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete, got %s", task.State)
 			}
@@ -351,7 +351,7 @@ func TestDaemon_MarkerInJSONEnvelope(t *testing.T) {
 
 	ns := loadNode(t, dir, "json-env-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete from JSON envelope marker, got %s", task.State)
 			}
@@ -397,7 +397,7 @@ func TestDaemon_MarkerInResultField(t *testing.T) {
 
 	ns := loadNode(t, dir, "result-field-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("expected blocked from result field, got %s", task.State)
 			}
@@ -446,7 +446,7 @@ func TestDaemon_MarkerInTextField(t *testing.T) {
 
 	ns := loadNode(t, dir, "text-field-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			// COMPLETE wins over YIELD in priority
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete (priority over yield), got %s", task.State)
@@ -511,7 +511,7 @@ func TestDaemon_MarkerInMessageContent(t *testing.T) {
 
 	ns := loadNode(t, dir, "msg-content-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete from message content, got %s", task.State)
 			}

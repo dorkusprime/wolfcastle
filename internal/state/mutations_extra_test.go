@@ -12,9 +12,9 @@ import (
 func TestTaskClaim_ErrorsForCompleteTask(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "done", State: StatusComplete},
+		Task{ID: "task-0001", Description: "done", State: StatusComplete},
 	)
-	err := TaskClaim(ns, "task-1")
+	err := TaskClaim(ns, "task-0001")
 	if err == nil {
 		t.Error("expected error when claiming a complete task")
 	}
@@ -23,9 +23,9 @@ func TestTaskClaim_ErrorsForCompleteTask(t *testing.T) {
 func TestTaskClaim_ErrorsForBlockedTask(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "stuck", State: StatusBlocked},
+		Task{ID: "task-0001", Description: "stuck", State: StatusBlocked},
 	)
-	err := TaskClaim(ns, "task-1")
+	err := TaskClaim(ns, "task-0001")
 	if err == nil {
 		t.Error("expected error when claiming a blocked task")
 	}
@@ -34,9 +34,9 @@ func TestTaskClaim_ErrorsForBlockedTask(t *testing.T) {
 func TestTaskClaim_SyncsAuditLifecycle(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "test", State: StatusNotStarted},
 	)
-	if err := TaskClaim(ns, "task-1"); err != nil {
+	if err := TaskClaim(ns, "task-0001"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.Audit.Status != AuditInProgress {
@@ -58,12 +58,12 @@ func TestTaskBlock_FailsOnMissingTask(t *testing.T) {
 func TestTaskBlock_DoesNotBlockNodeWithRemainingNotStartedTasks(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "first", State: StatusInProgress},
-		Task{ID: "task-2", Description: "second", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "first", State: StatusInProgress},
+		Task{ID: "task-0002", Description: "second", State: StatusNotStarted},
 	)
 	ns.State = StatusInProgress
 
-	if err := TaskBlock(ns, "task-1", "stuck"); err != nil {
+	if err := TaskBlock(ns, "task-0001", "stuck"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.State == StatusBlocked {
@@ -76,9 +76,9 @@ func TestTaskBlock_DoesNotBlockNodeWithRemainingNotStartedTasks(t *testing.T) {
 func TestTaskComplete_FailsOnNotStartedTask(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "test", State: StatusNotStarted},
 	)
-	err := TaskComplete(ns, "task-1")
+	err := TaskComplete(ns, "task-0001")
 	if err == nil {
 		t.Error("expected error when completing not_started task")
 	}
@@ -87,9 +87,9 @@ func TestTaskComplete_FailsOnNotStartedTask(t *testing.T) {
 func TestTaskComplete_FailsOnBlockedTask(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusBlocked},
+		Task{ID: "task-0001", Description: "test", State: StatusBlocked},
 	)
-	err := TaskComplete(ns, "task-1")
+	err := TaskComplete(ns, "task-0001")
 	if err == nil {
 		t.Error("expected error when completing blocked task")
 	}
@@ -107,10 +107,10 @@ func TestTaskComplete_FailsOnMissingTask(t *testing.T) {
 func TestTaskComplete_SyncsAuditLifecycle(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusInProgress},
+		Task{ID: "task-0001", Description: "test", State: StatusInProgress},
 	)
 	ns.State = StatusInProgress
-	if err := TaskComplete(ns, "task-1"); err != nil {
+	if err := TaskComplete(ns, "task-0001"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.State != StatusComplete {
@@ -126,9 +126,9 @@ func TestTaskComplete_SyncsAuditLifecycle(t *testing.T) {
 func TestTaskUnblock_FailsOnNotStartedTask(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "test", State: StatusNotStarted},
 	)
-	err := TaskUnblock(ns, "task-1")
+	err := TaskUnblock(ns, "task-0001")
 	if err == nil {
 		t.Error("expected error when unblocking not_started task")
 	}
@@ -146,10 +146,10 @@ func TestTaskUnblock_FailsOnMissingTask(t *testing.T) {
 func TestTaskUnblock_SyncsAuditLifecycle(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusBlocked, FailureCount: 2},
+		Task{ID: "task-0001", Description: "test", State: StatusBlocked, FailureCount: 2},
 	)
 	ns.State = StatusBlocked
-	if err := TaskUnblock(ns, "task-1"); err != nil {
+	if err := TaskUnblock(ns, "task-0001"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.Audit.Status != AuditInProgress {
@@ -162,9 +162,9 @@ func TestTaskUnblock_SyncsAuditLifecycle(t *testing.T) {
 func TestSetNeedsDecomposition_SetsFlag(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusInProgress},
+		Task{ID: "task-0001", Description: "test", State: StatusInProgress},
 	)
-	SetNeedsDecomposition(ns, "task-1", true)
+	SetNeedsDecomposition(ns, "task-0001", true)
 	if !ns.Tasks[0].NeedsDecomposition {
 		t.Error("expected NeedsDecomposition to be true")
 	}
@@ -173,9 +173,9 @@ func TestSetNeedsDecomposition_SetsFlag(t *testing.T) {
 func TestSetNeedsDecomposition_ClearsFlag(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusInProgress, NeedsDecomposition: true},
+		Task{ID: "task-0001", Description: "test", State: StatusInProgress, NeedsDecomposition: true},
 	)
-	SetNeedsDecomposition(ns, "task-1", false)
+	SetNeedsDecomposition(ns, "task-0001", false)
 	if ns.Tasks[0].NeedsDecomposition {
 		t.Error("expected NeedsDecomposition to be false")
 	}
@@ -184,7 +184,7 @@ func TestSetNeedsDecomposition_ClearsFlag(t *testing.T) {
 func TestSetNeedsDecomposition_NoopForUnknownTask(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusInProgress},
+		Task{ID: "task-0001", Description: "test", State: StatusInProgress},
 	)
 	// Should not panic for unknown task
 	SetNeedsDecomposition(ns, "task-99", true)
@@ -249,8 +249,8 @@ func TestMoveAuditLast_MovesAuditToEnd(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
 		Task{ID: "audit", Description: "audit task", IsAudit: true, State: StatusNotStarted},
-		Task{ID: "task-1", Description: "first", State: StatusNotStarted},
-		Task{ID: "task-2", Description: "second", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "first", State: StatusNotStarted},
+		Task{ID: "task-0002", Description: "second", State: StatusNotStarted},
 	)
 
 	MoveAuditLast(ns)
@@ -258,7 +258,7 @@ func TestMoveAuditLast_MovesAuditToEnd(t *testing.T) {
 	if ns.Tasks[len(ns.Tasks)-1].ID != "audit" {
 		t.Errorf("expected audit task last, got %s", ns.Tasks[len(ns.Tasks)-1].ID)
 	}
-	if ns.Tasks[0].ID != "task-1" {
+	if ns.Tasks[0].ID != "task-0001" {
 		t.Errorf("expected task-1 first, got %s", ns.Tasks[0].ID)
 	}
 }
@@ -266,7 +266,7 @@ func TestMoveAuditLast_MovesAuditToEnd(t *testing.T) {
 func TestMoveAuditLast_NoopWhenAlreadyLast(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "first", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "first", State: StatusNotStarted},
 		Task{ID: "audit", Description: "audit task", IsAudit: true, State: StatusNotStarted},
 	)
 
@@ -280,14 +280,14 @@ func TestMoveAuditLast_NoopWhenAlreadyLast(t *testing.T) {
 func TestMoveAuditLast_NoopWhenNoAuditTask(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "first", State: StatusNotStarted},
-		Task{ID: "task-2", Description: "second", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "first", State: StatusNotStarted},
+		Task{ID: "task-0002", Description: "second", State: StatusNotStarted},
 	)
 
 	// Should not panic
 	MoveAuditLast(ns)
 
-	if ns.Tasks[0].ID != "task-1" {
+	if ns.Tasks[0].ID != "task-0001" {
 		t.Errorf("task order should be unchanged, got %s first", ns.Tasks[0].ID)
 	}
 }
@@ -300,7 +300,7 @@ func TestAddBreadcrumb_SetsTimestamp(t *testing.T) {
 	fixed := time.Date(2026, 3, 14, 12, 0, 0, 0, time.UTC)
 	clk := clock.NewFixed(fixed)
 
-	AddBreadcrumb(ns, "leaf-1/task-1", "did something", clk)
+	AddBreadcrumb(ns, "leaf-1/task-0001", "did something", clk)
 
 	if !ns.Audit.Breadcrumbs[0].Timestamp.Equal(fixed) {
 		t.Errorf("expected %v, got %v", fixed, ns.Audit.Breadcrumbs[0].Timestamp)
@@ -317,7 +317,7 @@ func TestTaskAdd_NoExistingTasks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if task.ID != "task-1" {
+	if task.ID != "task-0001" {
 		t.Errorf("expected task-1, got %s", task.ID)
 	}
 	if task.State != StatusNotStarted {
@@ -333,10 +333,10 @@ func TestTaskAdd_NoExistingTasks(t *testing.T) {
 func TestIncrementFailure_MultipleIncrements(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusInProgress, FailureCount: 5},
+		Task{ID: "task-0001", Description: "test", State: StatusInProgress, FailureCount: 5},
 	)
 
-	count, err := IncrementFailure(ns, "task-1")
+	count, err := IncrementFailure(ns, "task-0001")
 	if err != nil {
 		t.Fatal(err)
 	}

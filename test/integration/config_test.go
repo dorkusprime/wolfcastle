@@ -110,7 +110,7 @@ func TestConfig_ModelDefinition(t *testing.T) {
 
 	ns := loadNode(t, dir, "model-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" && task.State != "complete" {
+		if task.ID == "task-0001" && task.State != "complete" {
 			t.Errorf("expected task complete with custom model, got %s", task.State)
 		}
 	}

@@ -22,7 +22,7 @@ func TestFixWithVerification_PerfectlyCleanTree_NilFixes(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("clean-leaf", "Clean Leaf", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -76,7 +76,7 @@ func TestFixWithVerification_CascadingMultiPassFixes(t *testing.T) {
 	ns := state.NewNodeState("cascade-node", "Cascade", state.NodeLeaf)
 	ns.State = state.StatusNotStarted
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted, FailureCount: -1},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted, FailureCount: -1},
 	}
 	// No audit task — triggers MISSING_AUDIT_TASK
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -117,7 +117,7 @@ func TestFixWithVerification_BlockedWithoutReasonFix(t *testing.T) {
 	ns := state.NewNodeState("blocked-leaf", "Blocked", state.NodeLeaf)
 	ns.State = state.StatusNotStarted
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusBlocked, BlockedReason: ""},
+		{ID: "task-0001", Description: "work", State: state.StatusBlocked, BlockedReason: ""},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -150,7 +150,7 @@ func TestFixWithVerification_DanglingRefAndOrphan(t *testing.T) {
 	_ = os.MkdirAll(orphanDir, 0755)
 	ns := state.NewNodeState("orphan-node", "Orphan", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(orphanDir, "state.json"), ns)
@@ -195,7 +195,7 @@ func TestFixWithVerification_FixesReturnedButZeroApplied(t *testing.T) {
 	ns := state.NewNodeState("prop-leaf", "Prop Leaf", state.NodeLeaf)
 	ns.State = state.StatusInProgress
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "work", State: state.StatusInProgress},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
@@ -239,7 +239,7 @@ func TestFixWithVerification_DepthMismatchFix(t *testing.T) {
 	childNS := state.NewNodeState("child", "Child", state.NodeLeaf)
 	childNS.DecompositionDepth = 1 // Wrong — should match parent
 	childNS.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	_ = state.SaveNodeState(filepath.Join(childDir, "state.json"), childNS)
@@ -277,7 +277,7 @@ func TestFixWithVerification_AuditNotLastFix(t *testing.T) {
 	ns.State = state.StatusNotStarted
 	ns.Tasks = []state.Task{
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
 

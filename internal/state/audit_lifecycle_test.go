@@ -43,7 +43,7 @@ func TestSyncAuditLifecycle_CompleteWithOpenGapsBlocksTask(t *testing.T) {
 	ns := NewNodeState("test", "Test", NodeLeaf)
 	ns.State = StatusComplete
 	ns.Tasks = []Task{
-		{ID: "task-1", State: StatusComplete},
+		{ID: "task-0001", State: StatusComplete},
 		{ID: "audit", State: StatusInProgress, IsAudit: true},
 	}
 	ns.Audit.Gaps = []Gap{

@@ -109,14 +109,14 @@ func TestToSlug_ConvertsNamesCorrectly(t *testing.T) {
 
 func TestSplitTaskAddress_TaskN(t *testing.T) {
 	t.Parallel()
-	nodeAddr, taskID, err := SplitTaskAddress("root/leaf/task-1")
+	nodeAddr, taskID, err := SplitTaskAddress("root/leaf/task-0001")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if nodeAddr != "root/leaf" {
 		t.Errorf("expected 'root/leaf', got %q", nodeAddr)
 	}
-	if taskID != "task-1" {
+	if taskID != "task-0001" {
 		t.Errorf("expected 'task-1', got %q", taskID)
 	}
 }
@@ -145,7 +145,7 @@ func TestSplitTaskAddress_FailsForNonTaskSuffix(t *testing.T) {
 
 func TestSplitTaskAddress_FailsForTooShort(t *testing.T) {
 	t.Parallel()
-	_, _, err := SplitTaskAddress("task-1")
+	_, _, err := SplitTaskAddress("task-0001")
 	if err == nil {
 		t.Error("expected error for single-segment address")
 	}

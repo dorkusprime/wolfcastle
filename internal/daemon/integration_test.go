@@ -25,7 +25,7 @@ func TestIntegration_MockModelValidatesPrompt(t *testing.T) {
 	d.Config.Git.VerifyBranch = false
 
 	setupLeafNode(t, d, "prompt-node", []state.Task{
-		{ID: "task-1", Description: "implement the frobulator", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "implement the frobulator", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -39,7 +39,7 @@ PROMPT=$(cat)
 RESULTS=""
 echo "$PROMPT" | grep -q "prompt-node" && RESULTS="${RESULTS}HAS_NODE_ADDR\n"
 echo "$PROMPT" | grep -q "implement the frobulator" && RESULTS="${RESULTS}HAS_TASK_DESC\n"
-echo "$PROMPT" | grep -q "task-1" && RESULTS="${RESULTS}HAS_TASK_ID\n"
+echo "$PROMPT" | grep -q "task-0001" && RESULTS="${RESULTS}HAS_TASK_ID\n"
 printf "%%b" "$RESULTS" > %s
 echo "WOLFCASTLE_COMPLETE"
 `, assertFile)
@@ -93,7 +93,7 @@ func TestIntegration_JSONStreamEnvelope(t *testing.T) {
 	d.Config.Git.VerifyBranch = false
 
 	setupLeafNode(t, d, "json-node", []state.Task{
-		{ID: "task-1", Description: "json test", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "json test", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -133,7 +133,7 @@ func TestIntegration_JSONStreamYield(t *testing.T) {
 	d.Config.Git.VerifyBranch = false
 
 	setupLeafNode(t, d, "yield-json-node", []state.Task{
-		{ID: "task-1", Description: "yield test", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "yield test", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -192,7 +192,7 @@ func TestIntegration_ThreeTierPromptOverride(t *testing.T) {
 			d.Config.Git.VerifyBranch = false
 
 			setupLeafNode(t, d, "tier-node", []state.Task{
-				{ID: "task-1", Description: "tier test", State: state.StatusNotStarted},
+				{ID: "task-0001", Description: "tier test", State: state.StatusNotStarted},
 				{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 			})
 
@@ -270,7 +270,7 @@ func TestIntegration_YieldThenComplete_WithPromptValidation(t *testing.T) {
 	d.Config.Daemon.MaxIterations = 5
 
 	setupLeafNode(t, d, "yield-node", []state.Task{
-		{ID: "task-1", Description: "multi-iter task", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "multi-iter task", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -368,7 +368,7 @@ func TestIntegration_BlockedTransition(t *testing.T) {
 	d.Config.Git.VerifyBranch = false
 
 	setupLeafNode(t, d, "block-node", []state.Task{
-		{ID: "task-1", Description: "will be blocked", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "will be blocked", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -406,7 +406,7 @@ func TestIntegration_FailureEscalation_DecompositionThreshold(t *testing.T) {
 	d.Config.Failure.HardCap = 10
 
 	setupLeafNode(t, d, "fail-node", []state.Task{
-		{ID: "task-1", Description: "will fail repeatedly", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "will fail repeatedly", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -448,7 +448,7 @@ func TestIntegration_FailureEscalation_HardCapAutoBlock(t *testing.T) {
 	d.Config.Failure.HardCap = 3
 
 	setupLeafNode(t, d, "hardcap-node", []state.Task{
-		{ID: "task-1", Description: "will hit hard cap", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "will hit hard cap", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -499,7 +499,7 @@ func TestIntegration_FailureEscalation_MaxDepthAutoBlock(t *testing.T) {
 
 	ns := state.NewNodeState("maxdepth-node", "maxdepth-node", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "at max depth", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "at max depth", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	ns.DecompositionDepth = 2 // already at max
@@ -549,7 +549,7 @@ func TestIntegration_PromptEchoRejection_JSONStream(t *testing.T) {
 	d.Config.Git.VerifyBranch = false
 
 	setupLeafNode(t, d, "echo-node", []state.Task{
-		{ID: "task-1", Description: "echo rejection test", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "echo rejection test", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -596,7 +596,7 @@ func TestIntegration_PromptEchoRejection_NoStandaloneMarker(t *testing.T) {
 	d.Config.Failure.DecompositionThreshold = 100
 
 	setupLeafNode(t, d, "nomarker-node", []state.Task{
-		{ID: "task-1", Description: "no real marker", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "no real marker", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -650,7 +650,7 @@ func TestIntegration_SelfHeal_ResumesInProgressTask(t *testing.T) {
 	ns := state.NewNodeState("crash-node", "crash-node", state.NodeLeaf)
 	ns.State = state.StatusInProgress
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "was interrupted", State: state.StatusInProgress},
+		{ID: "task-0001", Description: "was interrupted", State: state.StatusInProgress},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	data, _ := json.MarshalIndent(ns, "", "  ")

@@ -59,7 +59,7 @@ func TestDaemon_RealisticComplete(t *testing.T) {
 
 	// Verify task is complete
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected task-1 complete, got %s", task.State)
 			}
@@ -120,7 +120,7 @@ func TestDaemon_RealisticYieldResume(t *testing.T) {
 
 	// Verify task is complete
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected task-1 complete, got %s", task.State)
 			}
@@ -296,7 +296,7 @@ func TestDaemon_PartialFailure(t *testing.T) {
 	// Verify task ultimately completed
 	ns := loadNode(t, dir, "partial-fail-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected task-1 complete after recovery, got %s", task.State)
 			}

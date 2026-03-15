@@ -23,8 +23,10 @@ wolfcastle project create "Parent Project" --type orchestrator --description "Wh
 
 ### Add a task to a leaf node
 ```
-wolfcastle task add "Task description" --node <node-address>
+wolfcastle task add "Task title" --node <node-address> [--body "detailed description"]
 ```
+
+Use `--body` when a task needs more context than the title alone provides. For simple, self-explanatory tasks, the title is sufficient.
 
 Refer to the script-reference.md section above for the full command reference.
 
@@ -35,7 +37,7 @@ For each inbox item provided below:
 1. **Understand the item:** Read the raw idea and determine its scope and structure.
 2. **Determine structure:** If the item is simple, create a single leaf project. If it has multiple distinct areas, create an orchestrator with leaf children.
 3. **Create the project:** Use `wolfcastle project create` with an appropriate name, type, and `--description` that captures what the project will accomplish.
-4. **Add tasks:** Use `wolfcastle task add` to add concrete, actionable tasks. Every leaf node automatically gets an audit task, so do not add one manually.
+4. **Add tasks:** Use `wolfcastle task add` to add concrete, actionable tasks. Use `--body` for tasks that need detailed specifications. Every leaf node automatically gets an audit task, so do not add one manually.
 5. **Use descriptive names:** Project names should be clear and descriptive. Slugs are auto-generated from names.
 
 ## Rules

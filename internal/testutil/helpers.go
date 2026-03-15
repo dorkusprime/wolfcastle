@@ -99,8 +99,8 @@ func SetupWolfcastle(t *testing.T) (wolfcastleDir, namespace string) {
 // The tree has the structure:
 //
 //	root-project (orchestrator)
-//	  child-a (leaf, tasks: task-1 not_started, audit not_started)
-//	  child-b (leaf, tasks: task-1 not_started, audit not_started)
+//	  child-a (leaf, tasks: task-0001 not_started, audit not_started)
+//	  child-b (leaf, tasks: task-0001 not_started, audit not_started)
 func SetupTree(t *testing.T) (wolfcastleDir, namespace string, idx *state.RootIndex) {
 	t.Helper()
 	wolfcastleDir, namespace = SetupWolfcastle(t)
@@ -142,7 +142,7 @@ func SetupTree(t *testing.T) (wolfcastleDir, namespace string, idx *state.RootIn
 
 	childA := state.NewNodeState("child-a", "Child A", state.NodeLeaf)
 	childA.Tasks = []state.Task{
-		{ID: "task-1", Description: "First task", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "First task", State: state.StatusNotStarted},
 		{ID: "audit", Description: "Verify work", State: state.StatusNotStarted, IsAudit: true},
 	}
 	childADir := filepath.Join(projectsDir, "root-project", "child-a")
@@ -161,7 +161,7 @@ func SetupTree(t *testing.T) (wolfcastleDir, namespace string, idx *state.RootIn
 
 	childB := state.NewNodeState("child-b", "Child B", state.NodeLeaf)
 	childB.Tasks = []state.Task{
-		{ID: "task-1", Description: "First task", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "First task", State: state.StatusNotStarted},
 		{ID: "audit", Description: "Verify work", State: state.StatusNotStarted, IsAudit: true},
 	}
 	childBDir := filepath.Join(projectsDir, "root-project", "child-b")

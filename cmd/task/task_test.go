@@ -125,8 +125,8 @@ func TestTaskAdd_Success(t *testing.T) {
 	if len(ns.Tasks) != 2 {
 		t.Fatalf("expected 2 tasks (1 added + audit), got %d", len(ns.Tasks))
 	}
-	if ns.Tasks[0].ID != "task-1" {
-		t.Errorf("expected task-1, got %s", ns.Tasks[0].ID)
+	if ns.Tasks[0].ID != "task-0001" {
+		t.Errorf("expected task-0001, got %s", ns.Tasks[0].ID)
 	}
 	if ns.Tasks[0].Description != "implement the API" {
 		t.Errorf("unexpected description: %s", ns.Tasks[0].Description)
@@ -156,7 +156,7 @@ func TestTaskAdd_MultipleAdds(t *testing.T) {
 	if len(ns.Tasks) != 4 {
 		t.Fatalf("expected 4 tasks, got %d", len(ns.Tasks))
 	}
-	if ns.Tasks[0].ID != "task-1" || ns.Tasks[1].ID != "task-2" || ns.Tasks[2].ID != "task-3" {
+	if ns.Tasks[0].ID != "task-0001" || ns.Tasks[1].ID != "task-0002" || ns.Tasks[2].ID != "task-0003" {
 		t.Errorf("unexpected task IDs: %s, %s, %s", ns.Tasks[0].ID, ns.Tasks[1].ID, ns.Tasks[2].ID)
 	}
 }
@@ -205,7 +205,7 @@ func TestTaskClaim_Success(t *testing.T) {
 	_ = env.RootCmd.Execute()
 
 	// Claim it
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("task claim failed: %v", err)
 	}
@@ -239,10 +239,10 @@ func TestTaskComplete_Success(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "do work"})
 	_ = env.RootCmd.Execute()
 
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("task complete failed: %v", err)
 	}
@@ -264,10 +264,10 @@ func TestTaskBlock_Success(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work item"})
 	_ = env.RootCmd.Execute()
 
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-1", "waiting on API"})
+	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "waiting on API"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("task block failed: %v", err)
 	}
@@ -287,10 +287,10 @@ func TestTaskBlock_EmptyReason(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-1", "   "})
+	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "   "})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for empty block reason")
@@ -307,12 +307,12 @@ func TestTaskUnblock_Success(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-1", "stuck"})
+	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	_ = env.RootCmd.Execute()
 
-	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("task unblock failed: %v", err)
 	}
@@ -350,10 +350,10 @@ func TestTaskComplete_WithValidation(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "validated task"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("task complete with validation failed: %v", err)
 	}
@@ -370,10 +370,10 @@ func TestTaskComplete_ValidationFails(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "validated task"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when validation fails")
@@ -391,7 +391,7 @@ func TestTaskComplete_InvalidAddress(t *testing.T) {
 
 func TestTaskComplete_NonexistentNode(t *testing.T) {
 	env := newTestEnv(t)
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "nonexistent/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "nonexistent/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for nonexistent node")
@@ -413,13 +413,13 @@ func TestTaskLifecycle_FullFlow(t *testing.T) {
 	}
 
 	// Claim
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("claim: %v", err)
 	}
 
 	// Complete
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("complete: %v", err)
 	}

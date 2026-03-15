@@ -73,7 +73,7 @@ func TestRunOnce_BranchMismatchDetection(t *testing.T) {
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "branch-node", []state.Task{
-		{ID: "task-1", State: state.StatusNotStarted},
+		{ID: "task-0001", State: state.StatusNotStarted},
 	})
 
 	result, err := d.RunOnce(context.Background())
@@ -123,12 +123,12 @@ func TestRunIteration_InvokeErrorReturnsError(t *testing.T) {
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "invoke-fail-node", []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
 	idx, _ := d.Resolver.LoadRootIndex()
-	nav := &state.NavigationResult{NodeAddress: "invoke-fail-node", TaskID: "task-1", Found: true}
+	nav := &state.NavigationResult{NodeAddress: "invoke-fail-node", TaskID: "task-0001", Found: true}
 	err := d.runIteration(context.Background(), nav, idx)
 	if err == nil {
 		t.Fatal("expected error from failed invocation")
@@ -154,12 +154,12 @@ func TestRunIteration_DecompThreshold_SetsNeedsDecomposition(t *testing.T) {
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "decomp-node", []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
 	idx, _ := d.Resolver.LoadRootIndex()
-	nav := &state.NavigationResult{NodeAddress: "decomp-node", TaskID: "task-1", Found: true}
+	nav := &state.NavigationResult{NodeAddress: "decomp-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx)
 
 	projDir := d.Resolver.ProjectsDir()
@@ -174,7 +174,7 @@ func TestRunIteration_DecompThreshold_SetsNeedsDecomposition(t *testing.T) {
 
 	found := false
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" && task.NeedsDecomposition {
+		if task.ID == "task-0001" && task.NeedsDecomposition {
 			found = true
 		}
 	}
@@ -212,12 +212,12 @@ func TestRunIteration_DecompAtMaxDepth_TaskAutoBlocked(t *testing.T) {
 	ns := state.NewNodeState("maxdepth-node", "MaxDepth", state.NodeLeaf)
 	ns.DecompositionDepth = 0
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	}
 	writeJSON(t, filepath.Join(projDir, "maxdepth-node", "state.json"), ns)
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	nav := &state.NavigationResult{NodeAddress: "maxdepth-node", TaskID: "task-1", Found: true}
+	nav := &state.NavigationResult{NodeAddress: "maxdepth-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx)
 
 	data, err := os.ReadFile(filepath.Join(projDir, "maxdepth-node", "state.json"))
@@ -230,7 +230,7 @@ func TestRunIteration_DecompAtMaxDepth_TaskAutoBlocked(t *testing.T) {
 	}
 
 	for _, task := range reloaded.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("expected task-1 blocked, got %s", task.State)
 			}
@@ -261,12 +261,12 @@ func TestRunIteration_HardCapReached_TaskAutoBlocked(t *testing.T) {
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "hardcap-node", []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
 	idx, _ := d.Resolver.LoadRootIndex()
-	nav := &state.NavigationResult{NodeAddress: "hardcap-node", TaskID: "task-1", Found: true}
+	nav := &state.NavigationResult{NodeAddress: "hardcap-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx)
 
 	projDir := d.Resolver.ProjectsDir()
@@ -280,7 +280,7 @@ func TestRunIteration_HardCapReached_TaskAutoBlocked(t *testing.T) {
 	}
 
 	for _, task := range reloaded.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("expected blocked by hard cap, got %s", task.State)
 			}
@@ -311,12 +311,12 @@ func TestRunIteration_NoTerminalMarker_FailureIncremented(t *testing.T) {
 	defer d.Logger.Close()
 
 	setupLeafNode(t, d, "nonterminal-node", []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
 	idx, _ := d.Resolver.LoadRootIndex()
-	nav := &state.NavigationResult{NodeAddress: "nonterminal-node", TaskID: "task-1", Found: true}
+	nav := &state.NavigationResult{NodeAddress: "nonterminal-node", TaskID: "task-0001", Found: true}
 	err := d.runIteration(context.Background(), nav, idx)
 	if err != nil {
 		t.Logf("runIteration error (may be acceptable): %v", err)

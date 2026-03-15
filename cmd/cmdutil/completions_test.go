@@ -34,7 +34,7 @@ func TestCompleteTaskAddresses_WithOrchestrator(t *testing.T) {
 		"name": "Child",
 		"type": "leaf",
 		"state": "in_progress",
-		"tasks": [{"id":"task-1","description":"work","state":"not_started"}],
+		"tasks": [{"id":"task-0001","description":"work","state":"not_started"}],
 		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
 	}`
 	_ = os.WriteFile(filepath.Join(childDir, "state.json"), []byte(childJSON), 0644)
@@ -55,7 +55,7 @@ func TestCompleteTaskAddresses_WithOrchestrator(t *testing.T) {
 			foundParent = true
 		case "parent/child":
 			foundChild = true
-		case "parent/child/task-1":
+		case "parent/child/task-0001":
 			foundTask = true
 		}
 	}

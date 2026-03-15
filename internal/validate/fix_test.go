@@ -332,8 +332,8 @@ func TestFix_AuditNotLast(t *testing.T) {
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
-		{ID: "task-2", Description: "more work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0002", Description: "more work", State: state.StatusNotStarted},
 	}
 	statePath := saveLeaf(t, dir, "leaf", ns)
 
@@ -367,7 +367,7 @@ func TestFix_AuditNotLast(t *testing.T) {
 		t.Errorf("expected audit task ID 'audit', got %q", last.ID)
 	}
 	// Non-audit tasks should precede
-	if loaded.Tasks[0].ID != "task-1" || loaded.Tasks[1].ID != "task-2" {
+	if loaded.Tasks[0].ID != "task-0001" || loaded.Tasks[1].ID != "task-0002" {
 		t.Error("non-audit tasks should be in original order before audit")
 	}
 }
@@ -1717,7 +1717,7 @@ func TestFixWithVerification_SinglePass(t *testing.T) {
 	// Create a leaf missing its audit task
 	leaf := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	leaf.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	}
 	saveLeaf(t, dir, "leaf", leaf)
 
@@ -1769,7 +1769,7 @@ func TestFixWithVerification_CleanTree(t *testing.T) {
 	// Create a valid leaf with audit task
 	leaf := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	leaf.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "verify", State: state.StatusNotStarted, IsAudit: true},
 	}
 	saveLeaf(t, dir, "leaf", leaf)

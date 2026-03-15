@@ -29,7 +29,7 @@ func TestDaemon_SimpleComplete(t *testing.T) {
 	ns := loadNode(t, dir, "test-project")
 	found := false
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			found = true
 			if task.State != state.StatusComplete {
 				t.Errorf("expected task-1 state complete, got %s", task.State)
@@ -70,7 +70,7 @@ func TestDaemon_YieldThenComplete(t *testing.T) {
 
 	ns := loadNode(t, dir, "yield-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" && task.State != state.StatusComplete {
+		if task.ID == "task-0001" && task.State != state.StatusComplete {
 			t.Errorf("expected task-1 complete, got %s", task.State)
 		}
 	}
@@ -92,7 +92,7 @@ func TestDaemon_Blocked(t *testing.T) {
 
 	ns := loadNode(t, dir, "blocked-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("expected task-1 blocked, got %s", task.State)
 			}
@@ -122,7 +122,7 @@ func TestDaemon_FailureEscalation(t *testing.T) {
 
 	ns := loadNode(t, dir, "fail-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.FailureCount < 3 {
 				t.Errorf("expected failure count >= 3, got %d", task.FailureCount)
 			}
@@ -156,7 +156,7 @@ func TestDaemon_HardCapAutoBlock(t *testing.T) {
 
 	ns := loadNode(t, dir, "hardcap-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("expected auto-blocked, got %s", task.State)
 			}
@@ -227,7 +227,7 @@ func TestDaemon_SelfHealing(t *testing.T) {
 	// Manually set task to in_progress (simulating a crash during execution)
 	ns := loadNode(t, dir, "heal-test")
 	for i := range ns.Tasks {
-		if ns.Tasks[i].ID == "task-1" {
+		if ns.Tasks[i].ID == "task-0001" {
 			ns.Tasks[i].State = state.StatusInProgress
 		}
 	}
@@ -239,7 +239,7 @@ func TestDaemon_SelfHealing(t *testing.T) {
 	// Task should be completed after self-healing picks it up
 	ns = loadNode(t, dir, "heal-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected task-1 complete after self-healing, got %s", task.State)
 			}

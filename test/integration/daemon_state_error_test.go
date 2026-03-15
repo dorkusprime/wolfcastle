@@ -43,7 +43,7 @@ func TestDaemon_CleanYieldComplete_TwoIterations(t *testing.T) {
 
 	ns := loadNode(t, dir, "two-iter")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete, got %s", task.State)
 			}
@@ -79,7 +79,7 @@ func TestDaemon_YieldFiveThenComplete(t *testing.T) {
 
 	ns := loadNode(t, dir, "five-yield")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" && task.State != state.StatusComplete {
+		if task.ID == "task-0001" && task.State != state.StatusComplete {
 			t.Errorf("expected complete, got %s", task.State)
 		}
 	}
@@ -187,7 +187,7 @@ func TestDaemon_FailureThenComplete(t *testing.T) {
 
 	ns := loadNode(t, dir, "fail-ok-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete, got %s", task.State)
 			}
@@ -225,7 +225,7 @@ func TestDaemon_AlternatingFailuresAndYields(t *testing.T) {
 
 	ns := loadNode(t, dir, "alt-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete, got %s", task.State)
 			}
@@ -261,7 +261,7 @@ func TestDaemon_DecompositionCreatesChildren(t *testing.T) {
 
 	ns := loadNode(t, dir, "decomp-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if !task.NeedsDecomposition {
 				t.Error("expected needs_decomposition to be true after exceeding decomposition threshold")
 			}
@@ -289,7 +289,7 @@ func TestDaemon_TaskStartsNotStarted(t *testing.T) {
 
 	ns := loadNode(t, dir, "fresh-state")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusNotStarted {
 				t.Errorf("expected not_started, got %s", task.State)
 			}
@@ -314,7 +314,7 @@ func TestDaemon_TaskStartsInProgress_CrashRecovery(t *testing.T) {
 	// Simulate crash: set task to in_progress manually
 	ns := loadNode(t, dir, "crash-recover")
 	for i := range ns.Tasks {
-		if ns.Tasks[i].ID == "task-1" {
+		if ns.Tasks[i].ID == "task-0001" {
 			ns.Tasks[i].State = state.StatusInProgress
 		}
 	}
@@ -325,7 +325,7 @@ func TestDaemon_TaskStartsInProgress_CrashRecovery(t *testing.T) {
 
 	ns = loadNode(t, dir, "crash-recover")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete after crash recovery, got %s", task.State)
 			}
@@ -350,7 +350,7 @@ func TestDaemon_TaskStartsBlocked_ThenUnblocked(t *testing.T) {
 	// Set task to blocked (requires going through in_progress first)
 	ns := loadNode(t, dir, "block-test")
 	for i := range ns.Tasks {
-		if ns.Tasks[i].ID == "task-1" {
+		if ns.Tasks[i].ID == "task-0001" {
 			ns.Tasks[i].State = state.StatusBlocked
 			ns.Tasks[i].BlockedReason = "external dependency"
 		}
@@ -359,14 +359,14 @@ func TestDaemon_TaskStartsBlocked_ThenUnblocked(t *testing.T) {
 	saveNode(t, dir, "block-test", ns)
 
 	// Unblock before starting daemon (Tier 1: simple flip)
-	run(t, dir, "task", "unblock", "--node", "block-test/task-1")
+	run(t, dir, "task", "unblock", "--node", "block-test/task-0001")
 
 	setMaxIterations(t, dir, 10)
 	run(t, dir, "start")
 
 	ns = loadNode(t, dir, "block-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete after unblock, got %s", task.State)
 			}
@@ -451,7 +451,7 @@ func TestDaemon_MultipleLeavesUnderOrchestrator(t *testing.T) {
 	for _, leaf := range []string{"parent-orch/leaf-a", "parent-orch/leaf-b"} {
 		ns := loadNode(t, dir, leaf)
 		for _, task := range ns.Tasks {
-			if task.ID == "task-1" && task.State != state.StatusComplete {
+			if task.ID == "task-0001" && task.State != state.StatusComplete {
 				t.Errorf("%s/task-1: expected complete, got %s", leaf, task.State)
 			}
 		}
@@ -531,7 +531,7 @@ func TestDaemon_ModelCommandNotFound(t *testing.T) {
 	// The task should not be complete
 	ns := loadNode(t, dir, "cmd-not-found")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" && task.State == state.StatusComplete {
+		if task.ID == "task-0001" && task.State == state.StatusComplete {
 			t.Error("task should not be complete when model command is not found")
 		}
 	}
@@ -568,7 +568,7 @@ func TestDaemon_ModelExitsNonZero(t *testing.T) {
 
 	ns := loadNode(t, dir, "nonzero-exit")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete after recovery from non-zero exit, got %s", task.State)
 			}
@@ -624,7 +624,7 @@ fi
 
 	ns := loadNode(t, dir, "empty-stdout-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.FailureCount < 1 {
 				t.Errorf("expected failure count >= 1 for empty stdout, got %d", task.FailureCount)
 			}
@@ -688,7 +688,7 @@ touch "%s"
 
 	ns := loadNode(t, dir, "huge-stdout-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete despite huge output, got %s", task.State)
 			}
@@ -764,7 +764,7 @@ fi
 
 	ns := loadNode(t, dir, "timeout-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete after timeout recovery, got %s", task.State)
 			}
@@ -809,7 +809,7 @@ touch "%s"
 
 	ns := loadNode(t, dir, "stderr-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected complete despite stderr output, got %s", task.State)
 			}

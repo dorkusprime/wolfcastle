@@ -16,7 +16,7 @@ func newLeafWithTasks(tasks ...Task) *NodeState {
 func TestTaskAdd_InsertsBeforeAudit(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "first", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "first", State: StatusNotStarted},
 		Task{ID: "audit", Description: "audit task", State: StatusNotStarted, IsAudit: true},
 	)
 
@@ -24,14 +24,14 @@ func TestTaskAdd_InsertsBeforeAudit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if task.ID != "task-2" {
+	if task.ID != "task-0002" {
 		t.Errorf("expected task-2, got %s", task.ID)
 	}
 	// audit should still be last
 	if ns.Tasks[len(ns.Tasks)-1].ID != "audit" {
 		t.Error("audit task should remain last")
 	}
-	if ns.Tasks[1].ID != "task-2" {
+	if ns.Tasks[1].ID != "task-0002" {
 		t.Errorf("new task should be before audit, got %s at index 1", ns.Tasks[1].ID)
 	}
 }
@@ -44,7 +44,7 @@ func TestTaskAdd_GeneratesSequentialIDs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if t1.ID != "task-1" {
+	if t1.ID != "task-0001" {
 		t.Errorf("expected task-1, got %s", t1.ID)
 	}
 
@@ -52,7 +52,7 @@ func TestTaskAdd_GeneratesSequentialIDs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if t2.ID != "task-2" {
+	if t2.ID != "task-0002" {
 		t.Errorf("expected task-2, got %s", t2.ID)
 	}
 
@@ -60,7 +60,7 @@ func TestTaskAdd_GeneratesSequentialIDs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if t3.ID != "task-3" {
+	if t3.ID != "task-0003" {
 		t.Errorf("expected task-3, got %s", t3.ID)
 	}
 }
@@ -78,10 +78,10 @@ func TestTaskAdd_FailsOnOrchestratorNodes(t *testing.T) {
 func TestTaskClaim_TransitionsNotStartedToInProgress(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "test", State: StatusNotStarted},
 	)
 
-	if err := TaskClaim(ns, "task-1"); err != nil {
+	if err := TaskClaim(ns, "task-0001"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.Tasks[0].State != StatusInProgress {
@@ -95,10 +95,10 @@ func TestTaskClaim_TransitionsNotStartedToInProgress(t *testing.T) {
 func TestTaskClaim_FailsOnWrongState(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusInProgress},
+		Task{ID: "task-0001", Description: "test", State: StatusInProgress},
 	)
 
-	err := TaskClaim(ns, "task-1")
+	err := TaskClaim(ns, "task-0001")
 	if err == nil {
 		t.Error("expected error when claiming in_progress task")
 	}
@@ -117,11 +117,11 @@ func TestTaskClaim_FailsOnMissingTask(t *testing.T) {
 func TestTaskComplete_TransitionsInProgressToComplete(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusInProgress},
+		Task{ID: "task-0001", Description: "test", State: StatusInProgress},
 	)
 	ns.State = StatusInProgress
 
-	if err := TaskComplete(ns, "task-1"); err != nil {
+	if err := TaskComplete(ns, "task-0001"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.Tasks[0].State != StatusComplete {
@@ -132,12 +132,12 @@ func TestTaskComplete_TransitionsInProgressToComplete(t *testing.T) {
 func TestTaskComplete_MarksNodeCompleteWhenAllTasksDone(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "first", State: StatusComplete},
-		Task{ID: "task-2", Description: "second", State: StatusInProgress},
+		Task{ID: "task-0001", Description: "first", State: StatusComplete},
+		Task{ID: "task-0002", Description: "second", State: StatusInProgress},
 	)
 	ns.State = StatusInProgress
 
-	if err := TaskComplete(ns, "task-2"); err != nil {
+	if err := TaskComplete(ns, "task-0002"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.State != StatusComplete {
@@ -148,12 +148,12 @@ func TestTaskComplete_MarksNodeCompleteWhenAllTasksDone(t *testing.T) {
 func TestTaskComplete_DoesNotMarkNodeCompleteWithRemainingTasks(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "first", State: StatusInProgress},
-		Task{ID: "task-2", Description: "second", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "first", State: StatusInProgress},
+		Task{ID: "task-0002", Description: "second", State: StatusNotStarted},
 	)
 	ns.State = StatusInProgress
 
-	if err := TaskComplete(ns, "task-1"); err != nil {
+	if err := TaskComplete(ns, "task-0001"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.State == StatusComplete {
@@ -164,11 +164,11 @@ func TestTaskComplete_DoesNotMarkNodeCompleteWithRemainingTasks(t *testing.T) {
 func TestTaskBlock_TransitionsInProgressToBlocked(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusInProgress},
+		Task{ID: "task-0001", Description: "test", State: StatusInProgress},
 	)
 	ns.State = StatusInProgress
 
-	if err := TaskBlock(ns, "task-1", "stuck"); err != nil {
+	if err := TaskBlock(ns, "task-0001", "stuck"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.Tasks[0].State != StatusBlocked {
@@ -182,10 +182,10 @@ func TestTaskBlock_TransitionsInProgressToBlocked(t *testing.T) {
 func TestTaskBlock_FailsOnNotStarted(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusNotStarted},
+		Task{ID: "task-0001", Description: "test", State: StatusNotStarted},
 	)
 
-	err := TaskBlock(ns, "task-1", "reason")
+	err := TaskBlock(ns, "task-0001", "reason")
 	if err == nil {
 		t.Error("expected error when blocking not_started task")
 	}
@@ -194,12 +194,12 @@ func TestTaskBlock_FailsOnNotStarted(t *testing.T) {
 func TestTaskBlock_BlocksNodeWhenAllNonCompleteBlocked(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "first", State: StatusComplete},
-		Task{ID: "task-2", Description: "second", State: StatusInProgress},
+		Task{ID: "task-0001", Description: "first", State: StatusComplete},
+		Task{ID: "task-0002", Description: "second", State: StatusInProgress},
 	)
 	ns.State = StatusInProgress
 
-	if err := TaskBlock(ns, "task-2", "stuck"); err != nil {
+	if err := TaskBlock(ns, "task-0002", "stuck"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.State != StatusBlocked {
@@ -210,11 +210,11 @@ func TestTaskBlock_BlocksNodeWhenAllNonCompleteBlocked(t *testing.T) {
 func TestTaskUnblock_TransitionsBlockedToNotStarted(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusBlocked, BlockedReason: "stuck", FailureCount: 3},
+		Task{ID: "task-0001", Description: "test", State: StatusBlocked, BlockedReason: "stuck", FailureCount: 3},
 	)
 	ns.State = StatusBlocked
 
-	if err := TaskUnblock(ns, "task-1"); err != nil {
+	if err := TaskUnblock(ns, "task-0001"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.Tasks[0].State != StatusNotStarted {
@@ -228,11 +228,11 @@ func TestTaskUnblock_TransitionsBlockedToNotStarted(t *testing.T) {
 func TestTaskUnblock_ResetsFailureCounter(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusBlocked, FailureCount: 5},
+		Task{ID: "task-0001", Description: "test", State: StatusBlocked, FailureCount: 5},
 	)
 	ns.State = StatusBlocked
 
-	if err := TaskUnblock(ns, "task-1"); err != nil {
+	if err := TaskUnblock(ns, "task-0001"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.Tasks[0].FailureCount != 0 {
@@ -243,11 +243,11 @@ func TestTaskUnblock_ResetsFailureCounter(t *testing.T) {
 func TestTaskUnblock_SetsNodeInProgress(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusBlocked},
+		Task{ID: "task-0001", Description: "test", State: StatusBlocked},
 	)
 	ns.State = StatusBlocked
 
-	if err := TaskUnblock(ns, "task-1"); err != nil {
+	if err := TaskUnblock(ns, "task-0001"); err != nil {
 		t.Fatal(err)
 	}
 	if ns.State != StatusInProgress {
@@ -258,10 +258,10 @@ func TestTaskUnblock_SetsNodeInProgress(t *testing.T) {
 func TestIncrementFailure_IncrementsAndReturnsCount(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-1", Description: "test", State: StatusInProgress, FailureCount: 0},
+		Task{ID: "task-0001", Description: "test", State: StatusInProgress, FailureCount: 0},
 	)
 
-	count, err := IncrementFailure(ns, "task-1")
+	count, err := IncrementFailure(ns, "task-0001")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestIncrementFailure_IncrementsAndReturnsCount(t *testing.T) {
 		t.Errorf("expected 1, got %d", count)
 	}
 
-	count, err = IncrementFailure(ns, "task-1")
+	count, err = IncrementFailure(ns, "task-0001")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,13 +293,13 @@ func TestAddBreadcrumb_AppendsToAuditTrail(t *testing.T) {
 	ns := NewNodeState("leaf-1", "Test", NodeLeaf)
 	clk := clock.NewFixed(time.Date(2026, 3, 14, 12, 0, 0, 0, time.UTC))
 
-	AddBreadcrumb(ns, "leaf-1/task-1", "did something", clk)
-	AddBreadcrumb(ns, "leaf-1/task-2", "did more", clk)
+	AddBreadcrumb(ns, "leaf-1/task-0001", "did something", clk)
+	AddBreadcrumb(ns, "leaf-1/task-0002", "did more", clk)
 
 	if len(ns.Audit.Breadcrumbs) != 2 {
 		t.Fatalf("expected 2 breadcrumbs, got %d", len(ns.Audit.Breadcrumbs))
 	}
-	if ns.Audit.Breadcrumbs[0].Task != "leaf-1/task-1" {
+	if ns.Audit.Breadcrumbs[0].Task != "leaf-1/task-0001" {
 		t.Errorf("expected task addr leaf-1/task-1, got %s", ns.Audit.Breadcrumbs[0].Task)
 	}
 	if ns.Audit.Breadcrumbs[1].Text != "did more" {

@@ -39,7 +39,7 @@ func TestPropagateState_PreservesNewNodesAddedDuringIteration(t *testing.T) {
 	// Create the node-a state file so propagation can load it.
 	nsA := state.NewNodeState("node-a", "Node A", state.NodeLeaf)
 	nsA.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusComplete},
+		{ID: "task-0001", Description: "work", State: state.StatusComplete},
 	}
 	writeJSON(t, filepath.Join(projDir, "node-a", "state.json"), nsA)
 
@@ -100,7 +100,7 @@ func TestPropagateState_FallsBackToInMemoryOnDiskError(t *testing.T) {
 	// Create node-a state file.
 	nsA := state.NewNodeState("node-a", "Node A", state.NodeLeaf)
 	nsA.Tasks = []state.Task{
-		{ID: "task-1", Description: "work", State: state.StatusComplete},
+		{ID: "task-0001", Description: "work", State: state.StatusComplete},
 	}
 	writeJSON(t, filepath.Join(projDir, "node-a", "state.json"), nsA)
 
@@ -145,7 +145,7 @@ func TestRunOnce_CompletePrintedOnce(t *testing.T) {
 	ns := state.NewNodeState("done-node", "Done Node", state.NodeLeaf)
 	ns.State = state.StatusComplete
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "already done", State: state.StatusComplete},
+		{ID: "task-0001", Description: "already done", State: state.StatusComplete},
 		{ID: "audit", Description: "audit", State: state.StatusComplete, IsAudit: true},
 	}
 	writeJSON(t, filepath.Join(projDir, "done-node", "state.json"), ns)
@@ -213,7 +213,7 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 	ns := state.NewNodeState("done-node", "Done Node", state.NodeLeaf)
 	ns.State = state.StatusComplete
 	ns.Tasks = []state.Task{
-		{ID: "task-1", Description: "done", State: state.StatusComplete},
+		{ID: "task-0001", Description: "done", State: state.StatusComplete},
 		{ID: "audit", Description: "audit", State: state.StatusComplete, IsAudit: true},
 	}
 	writeJSON(t, filepath.Join(projDir, "done-node", "state.json"), ns)
@@ -259,7 +259,7 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 
 	nsNew := state.NewNodeState("new-node", "New Node", state.NodeLeaf)
 	nsNew.Tasks = []state.Task{
-		{ID: "task-1", Description: "new work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "new work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
 	writeJSON(t, filepath.Join(projDir, "new-node", "state.json"), nsNew)
@@ -297,7 +297,7 @@ func TestIntegration_PropagatePreservesNodesAddedDuringModelRun(t *testing.T) {
 	projDir := d.Resolver.ProjectsDir()
 
 	setupLeafNode(t, d, "existing-node", []state.Task{
-		{ID: "task-1", Description: "do the thing", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "do the thing", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
@@ -311,7 +311,7 @@ func TestIntegration_PropagatePreservesNodesAddedDuringModelRun(t *testing.T) {
 	// Build the new node state JSON.
 	newNS := state.NewNodeState("injected-node", "Injected Node", state.NodeLeaf)
 	newNS.Tasks = []state.Task{
-		{ID: "task-1", Description: "injected work", State: state.StatusNotStarted},
+		{ID: "task-0001", Description: "injected work", State: state.StatusNotStarted},
 	}
 	newNSData, _ := json.MarshalIndent(newNS, "", "  ")
 

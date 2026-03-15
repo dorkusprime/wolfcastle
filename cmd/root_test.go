@@ -253,7 +253,7 @@ func TestRunInteractiveUnblock_ModelNotFound(t *testing.T) {
 	app = env.App
 	app.Cfg.Unblock.Model = "nonexistent-model"
 
-	err := runInteractiveUnblock(t.Context(), "my-project/task-1", "diagnostic text")
+	err := runInteractiveUnblock(t.Context(), "my-project/task-0001", "diagnostic text")
 	if err == nil {
 		t.Error("expected error when model not found")
 	}
@@ -310,7 +310,7 @@ func TestUnblockCmd_NonexistentNode(t *testing.T) {
 	env := newTestEnv(t)
 	app = env.App
 
-	rootCmd.SetArgs([]string{"unblock", "--node", "nonexistent-project/task-1"})
+	rootCmd.SetArgs([]string{"unblock", "--node", "nonexistent-project/task-0001"})
 	err := rootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for nonexistent node")

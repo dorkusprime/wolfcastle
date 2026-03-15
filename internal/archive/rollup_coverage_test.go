@@ -218,13 +218,13 @@ func TestGenerateEntry_AllAuditFields(t *testing.T) {
 		Criteria:    []string{"Tests pass", "Lint clean"},
 	}
 	ns.Audit.Breadcrumbs = []state.Breadcrumb{
-		{Timestamp: time.Date(2026, 3, 1, 10, 0, 0, 0, time.UTC), Task: "task-1", Text: "First step"},
+		{Timestamp: time.Date(2026, 3, 1, 10, 0, 0, 0, time.UTC), Task: "task-0001", Text: "First step"},
 	}
 	ns.Audit.Gaps = []state.Gap{
-		{ID: "g1", Description: "Missing edge case", Status: state.GapFixed, FixedBy: "task-2"},
+		{ID: "g1", Description: "Missing edge case", Status: state.GapFixed, FixedBy: "task-0002"},
 	}
 	ns.Audit.Escalations = []state.Escalation{
-		{ID: "e1", Description: "API mismatch", SourceNode: "other", Status: state.EscalationResolved, ResolvedBy: "task-3"},
+		{ID: "e1", Description: "API mismatch", SourceNode: "other", Status: state.EscalationResolved, ResolvedBy: "task-0003"},
 	}
 	completedAt := time.Date(2026, 3, 10, 14, 0, 0, 0, time.UTC)
 	ns.Audit.CompletedAt = &completedAt
@@ -248,7 +248,7 @@ func TestGenerateEntry_AllAuditFields(t *testing.T) {
 		"Tests pass",
 		"### Gaps",
 		"FIXED",
-		"fixed by task-2",
+		"fixed by task-0002",
 		"### Escalations",
 		"RESOLVED",
 		"### Result",

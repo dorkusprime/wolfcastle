@@ -147,8 +147,8 @@ func createRealisticMock(t *testing.T, dir string, name string, cfg MockModelCon
 
 		// CLI calls for task state changes
 		if beh.CallTaskComplete {
-			// task complete --node <node-addr/task-1>
-			fmt.Fprintf(&block, "  \"$BINARY_PATH\" task complete --node \"${NODE_ADDR}/task-1\" 2>/dev/null || true\n")
+			// task complete --node <node-addr/task-0001>
+			fmt.Fprintf(&block, "  \"$BINARY_PATH\" task complete --node \"${NODE_ADDR}/task-0001\" 2>/dev/null || true\n")
 		}
 		if beh.CallTaskBlock {
 			reason := beh.TaskBlockReason
@@ -156,7 +156,7 @@ func createRealisticMock(t *testing.T, dir string, name string, cfg MockModelCon
 				reason = "blocked by model"
 			}
 			escaped := strings.ReplaceAll(reason, "'", "'\\''")
-			fmt.Fprintf(&block, "  \"$BINARY_PATH\" task block --node \"${NODE_ADDR}/task-1\" '%s' 2>/dev/null || true\n", escaped)
+			fmt.Fprintf(&block, "  \"$BINARY_PATH\" task block --node \"${NODE_ADDR}/task-0001\" '%s' 2>/dev/null || true\n", escaped)
 		}
 
 		// Stream-json output with embedded markers.

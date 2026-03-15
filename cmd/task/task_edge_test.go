@@ -18,7 +18,7 @@ func TestTaskBlock_NoResolver(t *testing.T) {
 	env := newTestEnv(t)
 	env.App.Resolver = nil
 
-	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-1", "stuck"})
+	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when resolver is nil")
@@ -38,7 +38,7 @@ func TestTaskBlock_InvalidAddress(t *testing.T) {
 func TestTaskBlock_NonexistentNode(t *testing.T) {
 	env := newTestEnv(t)
 
-	env.RootCmd.SetArgs([]string{"task", "block", "--node", "nonexistent/task-1", "stuck"})
+	env.RootCmd.SetArgs([]string{"task", "block", "--node", "nonexistent/task-0001", "stuck"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for nonexistent node")
@@ -53,7 +53,7 @@ func TestTaskClaim_NoResolver(t *testing.T) {
 	env := newTestEnv(t)
 	env.App.Resolver = nil
 
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when resolver is nil")
@@ -63,7 +63,7 @@ func TestTaskClaim_NoResolver(t *testing.T) {
 func TestTaskClaim_NonexistentNode(t *testing.T) {
 	env := newTestEnv(t)
 
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "nonexistent/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "nonexistent/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for nonexistent node")
@@ -78,7 +78,7 @@ func TestTaskComplete_NoResolver(t *testing.T) {
 	env := newTestEnv(t)
 	env.App.Resolver = nil
 
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when resolver is nil")
@@ -93,7 +93,7 @@ func TestTaskUnblock_NoResolver(t *testing.T) {
 	env := newTestEnv(t)
 	env.App.Resolver = nil
 
-	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when resolver is nil")
@@ -113,7 +113,7 @@ func TestTaskUnblock_InvalidAddress(t *testing.T) {
 func TestTaskUnblock_NonexistentNode(t *testing.T) {
 	env := newTestEnv(t)
 
-	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "nonexistent/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "nonexistent/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for nonexistent node")
@@ -126,8 +126,8 @@ func TestTaskUnblock_NonexistentNode(t *testing.T) {
 
 func TestTaskBlock_InvalidNodeAfterSplit(t *testing.T) {
 	env := newTestEnv(t)
-	// "INVALID" fails ValidateSlug (uppercase), but "INVALID/task-1" passes SplitTaskAddress
-	env.RootCmd.SetArgs([]string{"task", "block", "--node", "INVALID/task-1", "stuck"})
+	// "INVALID" fails ValidateSlug (uppercase), but "INVALID/task-0001" passes SplitTaskAddress
+	env.RootCmd.SetArgs([]string{"task", "block", "--node", "INVALID/task-0001", "stuck"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for invalid node address after split")
@@ -140,7 +140,7 @@ func TestTaskBlock_InvalidNodeAfterSplit(t *testing.T) {
 
 func TestTaskClaim_InvalidNodeAfterSplit(t *testing.T) {
 	env := newTestEnv(t)
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "INVALID/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "INVALID/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for invalid node address after split")
@@ -153,7 +153,7 @@ func TestTaskClaim_InvalidNodeAfterSplit(t *testing.T) {
 
 func TestTaskComplete_InvalidNodeAfterSplit(t *testing.T) {
 	env := newTestEnv(t)
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "INVALID/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "INVALID/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for invalid node address after split")
@@ -166,7 +166,7 @@ func TestTaskComplete_InvalidNodeAfterSplit(t *testing.T) {
 
 func TestTaskUnblock_InvalidNodeAfterSplit(t *testing.T) {
 	env := newTestEnv(t)
-	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "INVALID/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "INVALID/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error for invalid node address after split")
@@ -188,10 +188,10 @@ func TestTaskComplete_ValidationDefaultTimeout(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("complete with default timeout validation failed: %v", err)
 	}
@@ -211,13 +211,13 @@ func TestTaskComplete_NilConfig(t *testing.T) {
 	env.App.Cfg = config.Defaults()
 	env.App.Cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
 	// Set Cfg to nil again for complete
 	env.App.Cfg = nil
 
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("complete with nil config failed: %v", err)
 	}
@@ -234,9 +234,9 @@ func TestTaskComplete_JSONOutput_NodeComplete(t *testing.T) {
 	// Add, claim, complete a task
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
 	// Complete the audit task to make node complete
@@ -271,7 +271,7 @@ func TestTaskClaim_PropagateError(t *testing.T) {
 	rootStatePath := filepath.Join(env.ProjectsDir, "state.json")
 	_ = os.WriteFile(rootStatePath, []byte("invalid json"), 0644)
 
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when PropagateState fails")
@@ -288,14 +288,14 @@ func TestTaskBlock_PropagateError(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
 	// Break the root index
 	rootStatePath := filepath.Join(env.ProjectsDir, "state.json")
 	_ = os.WriteFile(rootStatePath, []byte("invalid json"), 0644)
 
-	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-1", "stuck"})
+	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when PropagateState fails")
@@ -312,14 +312,14 @@ func TestTaskComplete_PropagateError(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
 	// Break the root index
 	rootStatePath := filepath.Join(env.ProjectsDir, "state.json")
 	_ = os.WriteFile(rootStatePath, []byte("invalid json"), 0644)
 
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when PropagateState fails")
@@ -336,16 +336,16 @@ func TestTaskUnblock_PropagateError(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-1", "stuck"})
+	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	_ = env.RootCmd.Execute()
 
 	// Break the root index
 	rootStatePath := filepath.Join(env.ProjectsDir, "state.json")
 	_ = os.WriteFile(rootStatePath, []byte("invalid json"), 0644)
 
-	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when PropagateState fails")
@@ -391,9 +391,9 @@ func TestTaskComplete_NodeBecomeComplete(t *testing.T) {
 	// Add, claim, complete a task
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
-	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-1"})
+	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
 	// Complete audit task — node should become complete

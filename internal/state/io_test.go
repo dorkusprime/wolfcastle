@@ -57,8 +57,8 @@ func TestSaveAndLoadNodeState_Roundtrip(t *testing.T) {
 
 	ns := NewNodeState("leaf-1", "Test Leaf", NodeLeaf)
 	ns.Tasks = []Task{
-		{ID: "task-1", Description: "do work", State: StatusNotStarted},
-		{ID: "task-2", Description: "more work", State: StatusInProgress, FailureCount: 2},
+		{ID: "task-0001", Description: "do work", State: StatusNotStarted},
+		{ID: "task-0002", Description: "more work", State: StatusInProgress, FailureCount: 2},
 	}
 
 	if err := SaveNodeState(path, ns); err != nil {

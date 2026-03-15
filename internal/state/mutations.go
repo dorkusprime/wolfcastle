@@ -23,7 +23,7 @@ func TaskAdd(ns *NodeState, description string) (*Task, error) {
 			}
 		}
 	}
-	taskID := fmt.Sprintf("task-%d", maxNum+1)
+	taskID := fmt.Sprintf("task-%04d", maxNum+1)
 
 	task := Task{
 		ID:          taskID,

@@ -27,20 +27,20 @@ func TestProjectLifecycle(t *testing.T) {
 
 	// Add a task
 	out = run(t, dir, "task", "add", "--node", "my-feature", "implement API")
-	if !strings.Contains(out, "task-1") {
+	if !strings.Contains(out, "task-0001") {
 		t.Fatalf("task add output unexpected: %s", out)
 	}
 
 	// Claim the task
-	run(t, dir, "task", "claim", "--node", "my-feature/task-1")
+	run(t, dir, "task", "claim", "--node", "my-feature/task-0001")
 
 	// Complete the task
-	run(t, dir, "task", "complete", "--node", "my-feature/task-1")
+	run(t, dir, "task", "complete", "--node", "my-feature/task-0001")
 
 	// Verify node state via disk
 	ns := loadNode(t, dir, "my-feature")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" && task.State != state.StatusComplete {
+		if task.ID == "task-0001" && task.State != state.StatusComplete {
 			t.Errorf("task-1 state = %s, want complete", task.State)
 		}
 	}
@@ -249,7 +249,7 @@ func TestTaskClaimBeforeCreate(t *testing.T) {
 	run(t, dir, "init")
 
 	// Trying to claim a task on a non-existent node should fail
-	runExpectError(t, dir, "task", "claim", "--node", "nonexistent/task-1")
+	runExpectError(t, dir, "task", "claim", "--node", "nonexistent/task-0001")
 }
 
 func TestProjectCreateDuplicate(t *testing.T) {

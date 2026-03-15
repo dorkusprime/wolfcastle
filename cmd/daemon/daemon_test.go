@@ -199,7 +199,7 @@ func TestStatusCmd_NoResolver(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFormatAndPrintLogLine_StageStart(t *testing.T) {
-	line := `{"type":"stage_start","stage":"execute","node":"my-project","task":"task-1"}`
+	line := `{"type":"stage_start","stage":"execute","node":"my-project","task":"task-0001"}`
 	// Should not panic
 	formatAndPrintLogLine(line)
 }
@@ -215,8 +215,8 @@ func TestFormatAndPrintLogLine_AllTypes(t *testing.T) {
 		`{"type":"stage_complete","stage":"expand","exit_code":0}`,
 		`{"type":"stage_error","stage":"expand","error":"something failed"}`,
 		`{"type":"assistant","text":"Hello world"}`,
-		`{"type":"failure_increment","task":"task-1","count":3}`,
-		`{"type":"auto_block","task":"task-1","reason":"too many failures"}`,
+		`{"type":"failure_increment","task":"task-0001","count":3}`,
+		`{"type":"auto_block","task":"task-0001","reason":"too many failures"}`,
 	}
 	for _, line := range lines {
 		formatAndPrintLogLine(line)

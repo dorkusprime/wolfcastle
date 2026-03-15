@@ -114,10 +114,19 @@ Examples:
 				return fmt.Errorf("saving node state: %w", err)
 			}
 
+			// Write audit.md for leaf nodes from embedded template
+			if nt == state.NodeLeaf {
+				project.WriteAuditTaskMD(nodeDir)
+			}
+
 			// Write project description Markdown (in the node's own directory)
 			if parentNode != "" {
+				descBody := description
+				if descBody == "" {
+					descBody = "Project description goes here."
+				}
 				descPath := filepath.Join(nodeDir, slug+".md")
-				if err := os.WriteFile(descPath, []byte("# "+name+"\n\nProject description goes here.\n"), 0644); err != nil {
+				if err := os.WriteFile(descPath, []byte("# "+name+"\n\n"+descBody+"\n"), 0644); err != nil {
 					return fmt.Errorf("writing project description: %w", err)
 				}
 

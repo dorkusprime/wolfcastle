@@ -265,7 +265,7 @@ func TestDaemon_ModelCallsTaskComplete(t *testing.T) {
 
 	ns := loadNode(t, dir, "tc-cli-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected task-1 complete, got %s", task.State)
 			}
@@ -304,7 +304,7 @@ func TestDaemon_ModelCallsTaskBlock(t *testing.T) {
 
 	ns := loadNode(t, dir, "tb-cli-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("expected task-1 blocked, got %s", task.State)
 			}
@@ -356,7 +356,7 @@ func TestDaemon_ModelCreatesFilesThenFails(t *testing.T) {
 	// The task should still be in_progress (no successful completion).
 	ns := loadNode(t, dir, "fail-with-file")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusInProgress {
 				t.Errorf("expected task-1 in_progress after failed invocation, got %s", task.State)
 			}
@@ -441,7 +441,7 @@ func TestDaemon_ModelCallsTaskCompleteAndEmitsComplete(t *testing.T) {
 	// no error occurs and the task ends up complete.
 	ns := loadNode(t, dir, "double-complete-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusComplete {
 				t.Errorf("expected task-1 complete after double signal, got %s", task.State)
 			}
@@ -480,7 +480,7 @@ func TestDaemon_ModelCallsTaskBlockAndEmitsBlocked(t *testing.T) {
 	// key assertion is that no error occurs and the task ends up blocked.
 	ns := loadNode(t, dir, "double-block-test")
 	for _, task := range ns.Tasks {
-		if task.ID == "task-1" {
+		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
 				t.Errorf("expected task-1 blocked after double signal, got %s", task.State)
 			}
