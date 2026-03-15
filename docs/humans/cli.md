@@ -33,7 +33,7 @@ Scripts validate that the target node exists and is the correct type. You cannot
 
 ## The Inbox
 
-The inbox is the fastest way to get an idea into Wolfcastle. [`wolfcastle inbox add`](cli/inbox-add.md) drops a text item into a queue. The daemon's [expand stage](how-it-works.md#the-pipeline) picks it up, uses a model to decompose it into tasks, and the file stage organizes those tasks into the tree. You can also [`inbox list`](cli/inbox-list.md) to see what's pending and [`inbox clear`](cli/inbox-clear.md) to wipe the queue.
+The inbox is the fastest way to get an idea into Wolfcastle. [`wolfcastle inbox add`](cli/inbox-add.md) drops a text item into a queue. The daemon's [intake stage](how-it-works.md#the-pipeline) picks it up in a parallel goroutine, uses a model to decompose the idea into tasks, and files them into the tree. You can also [`inbox list`](cli/inbox-list.md) to see what's pending and [`inbox clear`](cli/inbox-clear.md) to wipe the queue.
 
 ## Installation
 

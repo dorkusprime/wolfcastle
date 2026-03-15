@@ -6,7 +6,7 @@ Throws an idea at Wolfcastle. It catches it.
 
 Appends a new entry to `projects/{identity}/inbox.json` (creates the file if it does not exist). The entry gets a timestamp and a status of `new`.
 
-The daemon's [expand stage](../how-it-works.md#the-pipeline) picks up new inbox items on its next iteration, decomposes them into tasks using a model, and the file stage organizes them into the [project tree](../how-it-works.md#the-project-tree). You do not need to specify where the work belongs. Wolfcastle figures that out.
+The daemon's [intake stage](../how-it-works.md#the-pipeline) picks up new inbox items in a parallel goroutine, decomposes them into tasks using a model, and files them into the [project tree](../how-it-works.md#the-project-tree). You do not need to specify where the work belongs. Wolfcastle figures that out.
 
 ## Usage
 

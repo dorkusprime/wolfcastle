@@ -37,7 +37,7 @@ These are gaps where the test just hasn't been written yet. Standard unit tests 
 | `cmd/unblock.go` lines 239-241 | ~3 | loadUnblockPreamble success path (needs unblock.md fixture) |
 | `internal/daemon/propagate.go` lines 16-25 | ~2 | Parse error in loadNode/saveNode callbacks |
 | `internal/daemon/retry.go` lines 29-55 | ~4 | Context cancellation before and during retry |
-| `internal/daemon/stages.go` various | ~4 | Model not found, invoke error, prompt error in file stage |
+| `internal/daemon/stages.go` various | ~4 | Model not found, invoke error, prompt error in intake stage |
 | `internal/pipeline/fragments.go` lines 79-81 | ~1 | Include list references missing fragment |
 | `internal/pipeline/fragments.go` lines 106-107 | ~1 | Invalid Go template syntax |
 | `internal/pipeline/prompt.go` lines 21-38 | ~2 | Skip assembly error, fragment resolution error |
