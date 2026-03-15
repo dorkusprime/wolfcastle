@@ -41,6 +41,6 @@ For each expanded inbox item provided below:
 
 - Always use `--json` flag with wolfcastle commands.
 - Create projects at the root level unless there is a clear parent-child relationship.
-- Do not create duplicate projects — check the item descriptions carefully.
+- Do not create duplicate projects. Check the item descriptions carefully.
 - Each leaf node must have at least one task (besides the auto-generated audit task).
-- Execute the commands directly — do not just output them as text.
+- Execute the commands directly. Do not just output them as text.

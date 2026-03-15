@@ -263,7 +263,7 @@ wolfcastle inbox add "Consider adding rate limiting to the API gateway"
 
 ### wolfcastle navigate
 
-Find the next actionable task via depth-first traversal of the project tree. Does NOT claim the task — use `wolfcastle task claim` after navigating.
+Find the next actionable task via depth-first traversal of the project tree. Does NOT claim the task. Use `wolfcastle task claim` after navigating.
 
 ```
 wolfcastle navigate [--node <scope-address>]
