@@ -42,6 +42,7 @@ jobs:
       - name: Upload coverage to Codecov
         if: matrix.go-version == 'stable'
         run: |
+          PARENT_SHA=$(git rev-parse HEAD~1)
           curl -Os https://cli.codecov.io/latest/linux/codecov
           chmod +x codecov
           ./codecov --verbose upload-process \
@@ -50,7 +51,8 @@ jobs:
             -n "ci-${{ github.run_id }}" \
             -F unittests \
             -f coverage.out \
-            --git-service github
+            --git-service github \
+            --parent-sha "$PARENT_SHA"
 
   lint:
     runs-on: ubuntu-latest
