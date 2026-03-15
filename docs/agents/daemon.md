@@ -17,8 +17,8 @@ RunWithSupervisor
                  └── runIteration
                       ├── claim task
                       ├── run execute stage
-                      ├── parse WOLFCASTLE_* markers from output
-                      ├── sync audit lifecycle
+                      ├── reload state from disk (model CLI calls may have mutated it)
+                      ├── scan for terminal markers (COMPLETE/YIELD/BLOCKED)
                       └── handle failure thresholds
 ```
 
@@ -29,9 +29,9 @@ Inbox processing runs in a background goroutine started by `Run()`. The goroutin
 ## Key Invariants
 
 - **Serial execution.** Only one task is in_progress at a time (ADR-014).
-- **All state mutations are persisted immediately** after marker parsing (iteration.go, after `applyModelMarkers`).
-- **Propagation after every state change.** `propagateState()` walks ancestors and updates root index.
-- **Summary is inline (ADR-036).** No separate summary stage. The executing model emits `WOLFCASTLE_SUMMARY:` alongside `WOLFCASTLE_COMPLETE`.
+- **State reloaded after invocation.** The daemon reloads state.json from disk after each model invocation to pick up mutations made by the model's CLI subprocesses (ADR-067).
+- **Propagation after every state change.** `propagateState()` re-reads the root index from disk, applies the state change, and saves.
+- **Summary via CLI (ADR-067).** The model calls `wolfcastle audit summary` before emitting `WOLFCASTLE_COMPLETE`. No summary markers.
 
 ## Pipeline Stages
 
@@ -44,24 +44,21 @@ Stages are defined in `config.json` under `pipeline.stages`. The default pipelin
 
 The intake stage runs in a parallel goroutine and is skipped in the main iteration pipeline. The execute stage runs in the main loop.
 
-## Marker Protocol
+## Terminal Markers (ADR-067)
 
-The model communicates state mutations via `WOLFCASTLE_*` prefixed lines in stdout:
+The model signals iteration completion via stdout markers. These are the only markers the daemon parses:
 
 | Marker | Effect |
 |--------|--------|
 | `WOLFCASTLE_COMPLETE` | Marks task complete |
-| `WOLFCASTLE_BLOCKED: reason` | Blocks task with reason |
-| `WOLFCASTLE_YIELD` | Ends iteration without state change |
-| `WOLFCASTLE_BREADCRUMB: text` | Adds audit breadcrumb |
-| `WOLFCASTLE_GAP: description` | Records audit gap |
-| `WOLFCASTLE_FIX_GAP: gap-id` | Marks gap as fixed |
-| `WOLFCASTLE_SCOPE: description` | Sets audit scope |
-| `WOLFCASTLE_SCOPE_FILES: a\|b\|c` | Sets scope files (pipe-delimited) |
-| `WOLFCASTLE_SCOPE_SYSTEMS: a\|b` | Sets scope systems |
-| `WOLFCASTLE_SCOPE_CRITERIA: a\|b` | Sets scope criteria |
-| `WOLFCASTLE_SUMMARY: text` | Sets result summary (ADR-036) |
-| `WOLFCASTLE_RESOLVE_ESCALATION: id` | Resolves an escalation |
+| `WOLFCASTLE_BLOCKED` | Blocks task |
+| `WOLFCASTLE_YIELD` | Ends iteration, task stays in_progress |
+
+All other state mutations (breadcrumbs, gaps, scope, summary, escalations) are made by the model calling wolfcastle CLI commands during execution. The daemon reloads state from disk after invocation to pick up these changes.
+
+## State I/O (ADR-068)
+
+All state file mutations should go through the `StateStore` (lock, read, callback, atomic write, unlock). This prevents the read-modify-write races that occur when the daemon and model CLI subprocesses write to the same files concurrently. See the spec at `docs/specs/2026-03-15T00-01Z-state-store.md`.
 
 ## Model Invocation
 
@@ -82,4 +79,4 @@ The model communicates state mutations via `WOLFCASTLE_*` prefixed lines in stdo
 
 - The `sync.Once` in Daemon is reset between supervisor restarts. This is safe because all goroutines from the previous `Run()` have exited before reset occurs. The reset is documented in code.
 - `d.branch` is written in `Run()` and read in `RunOnce()`. Safe because `RunOnce` is only called from within `Run`'s serial loop.
-- The inbox goroutine and the main loop both access `inbox.json` and the project tree. Safety is provided by file-level locking in the state package.
+- The inbox goroutine and the main loop both access `inbox.json` and the project tree. Safety is provided by the StateStore's lock-read-mutate-write pattern (ADR-068). The model's CLI subprocesses also write state files during execution; the daemon reloads from disk after invocation returns.
