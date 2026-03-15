@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/project"
 )
 
 func setupPromptDir(t *testing.T, dir string) {
@@ -24,6 +25,19 @@ func setupPromptDir(t *testing.T, dir string) {
 
 	// Write a lightweight stage prompt
 	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "expand.md"), []byte("Expand prompt"), 0644)
+}
+
+// setupEmbeddedPrompts writes the real embedded templates to a temp dir
+// so tests can verify that production prompts contain expected content.
+func setupEmbeddedPrompts(t *testing.T, dir string) {
+	t.Helper()
+	setupTiers(t, dir)
+
+	// Extract real embedded templates
+	err := project.WriteBasePrompts(dir)
+	if err != nil {
+		t.Fatalf("writing embedded prompts: %v", err)
+	}
 }
 
 func TestAssemblePrompt_IncludesRuleFragments(t *testing.T) {
@@ -113,5 +127,106 @@ func TestAssemblePrompt_SkipPromptAssembly(t *testing.T) {
 	}
 	if !strings.Contains(result, "task context here") {
 		t.Error("skip_prompt_assembly should still include iteration context")
+	}
+}
+
+// Tests below verify that assembling with real embedded templates produces
+// prompts with the right stage-specific content. This catches the case where
+// the wrong prompt file is wired to the wrong stage.
+
+func TestAssemblePrompt_ExecuteStageContainsTerminalMarkers(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupEmbeddedPrompts(t, dir)
+
+	cfg := config.Defaults()
+	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "execute.md"}
+
+	result, err := AssemblePrompt(dir, cfg, stage, "task context")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	required := []string{
+		"WOLFCASTLE_COMPLETE",
+		"WOLFCASTLE_YIELD",
+		"WOLFCASTLE_BLOCKED",
+		"execution agent",
+	}
+	for _, s := range required {
+		if !strings.Contains(result, s) {
+			t.Errorf("execute prompt missing %q", s)
+		}
+	}
+
+	// Execute prompt must NOT contain intake-specific markers
+	if strings.Contains(result, "WOLFCASTLE_INTAKE_COMPLETE") {
+		t.Error("execute prompt should not contain WOLFCASTLE_INTAKE_COMPLETE")
+	}
+	// The script reference includes all commands (including project create)
+	// as documentation, but the execute stage prompt itself should not
+	// instruct the model to create projects.
+	if strings.Contains(result, "STOP after creating projects") {
+		t.Error("execute prompt should not contain intake-specific instructions")
+	}
+}
+
+func TestAssemblePrompt_IntakeStageContainsProjectCreation(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupEmbeddedPrompts(t, dir)
+
+	cfg := config.Defaults()
+	stage := config.PipelineStage{Name: "intake", Model: "mid", PromptFile: "intake.md"}
+
+	result, err := AssemblePrompt(dir, cfg, stage, "inbox context")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	required := []string{
+		"wolfcastle project create",
+		"wolfcastle task add",
+		"WOLFCASTLE_INTAKE_COMPLETE",
+		"STOP after creating projects and tasks",
+	}
+	for _, s := range required {
+		if !strings.Contains(result, s) {
+			t.Errorf("intake prompt missing %q", s)
+		}
+	}
+
+	// Intake prompt must NOT contain execute-specific instructions
+	if strings.Contains(result, "WOLFCASTLE_COMPLETE") {
+		t.Error("intake prompt should not contain WOLFCASTLE_COMPLETE")
+	}
+	if strings.Contains(result, "WOLFCASTLE_YIELD") {
+		t.Error("intake prompt should not contain WOLFCASTLE_YIELD")
+	}
+}
+
+func TestAssemblePrompt_StagesProduceDifferentPrompts(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	setupEmbeddedPrompts(t, dir)
+
+	cfg := config.Defaults()
+
+	intake, err := AssemblePrompt(dir, cfg,
+		config.PipelineStage{Name: "intake", Model: "mid", PromptFile: "intake.md"},
+		"inbox items")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	execute, err := AssemblePrompt(dir, cfg,
+		config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "execute.md"},
+		"task context")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if intake == execute {
+		t.Error("intake and execute prompts should not be identical")
 	}
 }
