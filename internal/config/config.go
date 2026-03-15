@@ -1,6 +1,7 @@
 // Package config handles loading, merging, and validating the Wolfcastle
 // configuration. Configuration is resolved by deep-merging hardcoded
-// defaults with config.json and config.local.json (ADR-018, ADR-053).
+// defaults with the three-tier config files: base/config.json,
+// custom/config.json, and local/config.json (ADR-018, ADR-053, ADR-063).
 package config
 
 import (
@@ -99,37 +100,37 @@ func Defaults() *Config {
 	}
 }
 
+// configTiers lists the three-tier config file paths relative to the
+// wolfcastle directory, in resolution order from lowest to highest priority.
+var configTiers = []string{
+	"base/config.json",
+	"custom/config.json",
+	"local/config.json",
+}
+
 // Load reads and merges configuration from the .wolfcastle directory.
-// Resolution order: hardcoded defaults <- config.json <- config.local.json
+// Resolution order: hardcoded defaults <- base/config.json <- custom/config.json <- local/config.json
 func Load(wolfcastleDir string) (*Config, error) {
 	// Start with defaults as raw map
-	defaultsRaw, err := structToMap(Defaults())
+	result, err := structToMap(Defaults())
 	if err != nil {
 		return nil, fmt.Errorf("marshaling defaults: %w", err)
 	}
 
-	// Load config.json
-	configPath := filepath.Join(wolfcastleDir, "config.json")
-	configRaw, err := loadJSONFile(configPath)
-	if err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("reading config.json: %w", err)
-	}
-	if configRaw != nil {
-		defaultsRaw = DeepMerge(defaultsRaw, configRaw)
-	}
-
-	// Load config.local.json
-	localPath := filepath.Join(wolfcastleDir, "config.local.json")
-	localRaw, err := loadJSONFile(localPath)
-	if err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("reading config.local.json: %w", err)
-	}
-	if localRaw != nil {
-		defaultsRaw = DeepMerge(defaultsRaw, localRaw)
+	// Overlay each tier in order
+	for _, tier := range configTiers {
+		path := filepath.Join(wolfcastleDir, tier)
+		raw, err := loadJSONFile(path)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, fmt.Errorf("reading %s: %w", tier, err)
+		}
+		if raw != nil {
+			result = DeepMerge(result, raw)
+		}
 	}
 
 	// Marshal back to Config struct
-	merged, err := json.Marshal(defaultsRaw)
+	merged, err := json.Marshal(result)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling merged config: %w", err)
 	}

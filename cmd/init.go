@@ -73,9 +73,10 @@ Examples:
 			}))
 		} else {
 			output.PrintHuman("Initialized Wolfcastle in %s", wcDir)
-			output.PrintHuman("  config.json        team-shared configuration")
-			output.PrintHuman("  config.local.json  your identity (gitignored)")
-			output.PrintHuman("  base/              default prompts and rules")
+			output.PrintHuman("  base/config.json     default configuration (regenerated)")
+			output.PrintHuman("  custom/config.json   team overrides (committed)")
+			output.PrintHuman("  local/config.json    your identity (gitignored)")
+			output.PrintHuman("  base/                default prompts and rules")
 			output.PrintHuman("")
 			output.PrintHuman("Next: create a project with 'wolfcastle project create \"name\"'")
 		}

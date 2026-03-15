@@ -157,10 +157,6 @@ func TestLoadRootIndexForCompletion_FallbackResolverNil(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	_ = os.MkdirAll(wcDir, 0755)
 
-	// Write config without identity — resolver will stay nil
-	cfgJSON := `{}`
-	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), []byte(cfgJSON), 0644)
-
 	origDir, _ := os.Getwd()
 	defer func() { _ = os.Chdir(origDir) }()
 	_ = os.Chdir(tmp)
@@ -178,11 +174,11 @@ func TestLoadRootIndexForCompletion_FallbackSuccess(t *testing.T) {
 	ns := "tester-box"
 	projDir := filepath.Join(wcDir, "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "local"), 0755)
 
-	// Write config with identity
+	// Write config with identity in local/config.json
 	cfgJSON := `{"identity": {"user": "tester", "machine": "box"}}`
-	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), []byte(cfgJSON), 0644)
-	_ = os.WriteFile(filepath.Join(wcDir, "config.local.json"), []byte(cfgJSON), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "local", "config.json"), []byte(cfgJSON), 0644)
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
 
 	origDir, _ := os.Getwd()
@@ -202,10 +198,10 @@ func TestLoadRootIndexForCompletion_FallbackSuccess(t *testing.T) {
 func TestLoadConfig_MalformedConfig(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wcDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "base"), 0755)
 
 	// Write malformed config
-	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), []byte("not valid json"), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "base", "config.json"), []byte("not valid json"), 0644)
 
 	origDir, _ := os.Getwd()
 	defer func() { _ = os.Chdir(origDir) }()
@@ -214,7 +210,7 @@ func TestLoadConfig_MalformedConfig(t *testing.T) {
 	a := &App{}
 	err := a.LoadConfig()
 	if err == nil {
-		t.Error("expected error for malformed config.json")
+		t.Error("expected error for malformed config")
 	}
 }
 
@@ -224,11 +220,11 @@ func TestResolverForCompletion_FallbackSuccess(t *testing.T) {
 	ns := "tester-box"
 	projDir := filepath.Join(wcDir, "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "local"), 0755)
 
-	// Config with identity
+	// Config with identity in local/config.json
 	cfgJSON := `{"identity": {"user": "tester", "machine": "box"}}`
-	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), []byte(cfgJSON), 0644)
-	_ = os.WriteFile(filepath.Join(wcDir, "config.local.json"), []byte(cfgJSON), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "local", "config.json"), []byte(cfgJSON), 0644)
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
 
 	origDir, _ := os.Getwd()
@@ -253,10 +249,6 @@ func TestResolverForCompletion_FallbackConfigLoadsButNoResolver(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	_ = os.MkdirAll(wcDir, 0755)
-
-	// Write a config that doesn't have identity, so resolver stays nil
-	cfgJSON := `{}`
-	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), []byte(cfgJSON), 0644)
 
 	origDir, _ := os.Getwd()
 	defer func() { _ = os.Chdir(origDir) }()

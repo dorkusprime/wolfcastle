@@ -29,8 +29,8 @@ func TestInitCmd_NewProject(t *testing.T) {
 	}
 
 	// Check config files exist
-	if _, err := os.Stat(filepath.Join(wcDir, "config.json")); os.IsNotExist(err) {
-		t.Error("config.json was not created")
+	if _, err := os.Stat(filepath.Join(wcDir, "base", "config.json")); os.IsNotExist(err) {
+		t.Error("base/config.json was not created")
 	}
 }
 

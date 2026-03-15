@@ -108,7 +108,7 @@ func TestSetupWolfcastle_ConfigFilesExist(t *testing.T) {
 	t.Parallel()
 	wcDir, _ := SetupWolfcastle(t)
 
-	for _, f := range []string{"config.json", "config.local.json"} {
+	for _, f := range []string{"base/config.json", "custom/config.json", "local/config.json"} {
 		if _, err := os.Stat(filepath.Join(wcDir, f)); os.IsNotExist(err) {
 			t.Errorf("expected %s to exist", f)
 		}

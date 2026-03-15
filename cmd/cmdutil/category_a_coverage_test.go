@@ -36,7 +36,7 @@ func TestCompleteTaskAddresses_BrokenResolver(t *testing.T) {
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")
 	// With nil resolver, should fallback to LoadConfig which will fail
-	// (no config.json) and return nil
+	// (no config files) and return nil
 	if addrs != nil {
 		t.Errorf("expected nil addrs with broken resolver, got %v", addrs)
 	}

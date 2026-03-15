@@ -31,14 +31,21 @@ func newTestEnv(t *testing.T) *testEnv {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	_ = os.MkdirAll(wcDir, 0755)
 
-	// Write minimal config.json
+	// Write base/config.json with defaults
+	_ = os.MkdirAll(filepath.Join(wcDir, "base"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "custom"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "local"), 0755)
+
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 	cfg.Docs.Directory = "docs"
 	cfgData, _ := json.MarshalIndent(cfg, "", "  ")
-	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), cfgData, 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "base", "config.json"), cfgData, 0644)
 
-	// Write config.local.json with identity
+	// Write custom/config.json (empty)
+	_ = os.WriteFile(filepath.Join(wcDir, "custom", "config.json"), []byte("{}"), 0644)
+
+	// Write local/config.json with identity
 	localCfg := map[string]any{
 		"identity": map[string]string{
 			"user":    "test",
@@ -46,7 +53,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		},
 	}
 	localData, _ := json.MarshalIndent(localCfg, "", "  ")
-	_ = os.WriteFile(filepath.Join(wcDir, "config.local.json"), localData, 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "local", "config.json"), localData, 0644)
 
 	// Create projects namespace directory
 	ns := "test-dev"

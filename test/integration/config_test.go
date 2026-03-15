@@ -16,7 +16,7 @@ func TestConfig_ThreeTierMerge(t *testing.T) {
 	run(t, dir, "init")
 
 	// Merge a custom poll interval and log_level override into the existing
-	// config.local.json, preserving the identity that init created.
+	// local/config.json, preserving the identity that init created.
 	mergeLocalConfig(t, dir, map[string]any{
 		"daemon": map[string]any{
 			"poll_interval_seconds": 42,
@@ -25,7 +25,7 @@ func TestConfig_ThreeTierMerge(t *testing.T) {
 	})
 
 	// Run status --json to exercise config loading (the three-tier merge
-	// resolves defaults <- config.json <- config.local.json)
+	// resolves defaults <- base/config.json <- custom/config.json <- local/config.json)
 	resp := runJSON(t, dir, "status")
 	if !resp.OK {
 		t.Fatalf("status command failed: %+v", resp)
@@ -39,13 +39,13 @@ func TestConfig_NullDeletion(t *testing.T) {
 
 	wcDir := filepath.Join(dir, ".wolfcastle")
 
-	// Set identity to null in config.local.json. This null-deletes
+	// Set identity to null in local/config.json. This null-deletes
 	// the identity key from the merged config, causing the resolver
 	// to fail because it requires identity to determine the namespace.
 	localConfig := map[string]any{
 		"identity": nil,
 	}
-	writeJSON(t, filepath.Join(wcDir, "config.local.json"), localConfig)
+	writeJSON(t, filepath.Join(wcDir, "local", "config.json"), localConfig)
 
 	// Status (which requires identity) should fail after null deletion
 	out := runExpectError(t, dir, "status")

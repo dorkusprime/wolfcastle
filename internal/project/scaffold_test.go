@@ -39,7 +39,7 @@ func TestScaffold_CreatesAllRequiredDirectories(t *testing.T) {
 	}
 }
 
-func TestScaffold_CreatesConfigJSON(t *testing.T) {
+func TestScaffold_CreatesBaseConfigJSON(t *testing.T) {
 	t.Parallel()
 	dir := filepath.Join(t.TempDir(), ".wolfcastle")
 
@@ -47,33 +47,33 @@ func TestScaffold_CreatesConfigJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "config.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "base", "config.json"))
 	if err != nil {
-		t.Fatal("config.json not created:", err)
+		t.Fatal("base/config.json not created:", err)
 	}
 
 	var cfg map[string]any
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		t.Fatal("config.json is not valid JSON:", err)
+		t.Fatal("base/config.json is not valid JSON:", err)
 	}
 
 	// Verify populated defaults (not empty {})
 	models, ok := cfg["models"].(map[string]any)
 	if !ok || len(models) == 0 {
-		t.Error("config.json should contain default models")
+		t.Error("base/config.json should contain default models")
 	}
 	pipeline, ok := cfg["pipeline"].(map[string]any)
 	if !ok {
-		t.Error("config.json should contain pipeline config")
+		t.Error("base/config.json should contain pipeline config")
 	} else if stages, ok := pipeline["stages"].([]any); !ok || len(stages) == 0 {
-		t.Error("config.json should contain default pipeline stages")
+		t.Error("base/config.json should contain default pipeline stages")
 	}
 	if _, ok := cfg["identity"]; ok {
-		t.Error("config.json should NOT contain identity (belongs in config.local.json)")
+		t.Error("base/config.json should NOT contain identity (belongs in local/config.json)")
 	}
 }
 
-func TestScaffold_CreatesConfigLocalJSON(t *testing.T) {
+func TestScaffold_CreatesCustomConfigJSON(t *testing.T) {
 	t.Parallel()
 	dir := filepath.Join(t.TempDir(), ".wolfcastle")
 
@@ -81,19 +81,42 @@ func TestScaffold_CreatesConfigLocalJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "config.local.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "custom", "config.json"))
 	if err != nil {
-		t.Fatal("config.local.json not created:", err)
+		t.Fatal("custom/config.json not created:", err)
 	}
 
 	var cfg map[string]any
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		t.Fatal("config.local.json is not valid JSON:", err)
+		t.Fatal("custom/config.json is not valid JSON:", err)
+	}
+
+	if len(cfg) != 0 {
+		t.Error("custom/config.json should be empty object")
+	}
+}
+
+func TestScaffold_CreatesLocalConfigJSON(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), ".wolfcastle")
+
+	if err := Scaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "local", "config.json"))
+	if err != nil {
+		t.Fatal("local/config.json not created:", err)
+	}
+
+	var cfg map[string]any
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		t.Fatal("local/config.json is not valid JSON:", err)
 	}
 
 	identity, ok := cfg["identity"].(map[string]any)
 	if !ok {
-		t.Fatal("expected identity object in config.local.json")
+		t.Fatal("expected identity object in local/config.json")
 	}
 	if _, ok := identity["user"]; !ok {
 		t.Error("expected identity.user")
@@ -149,7 +172,7 @@ func TestScaffold_CreatesGitignore(t *testing.T) {
 	}
 
 	content := string(data)
-	for _, expected := range []string{"!config.json", "!custom/", "!projects/", "!archive/", "!docs/"} {
+	for _, expected := range []string{"!custom/", "!projects/", "!archive/", "!docs/"} {
 		if !contains(content, expected) {
 			t.Errorf(".gitignore should contain %q", expected)
 		}
@@ -181,7 +204,7 @@ func TestReScaffold_RegeneratesBase(t *testing.T) {
 	}
 }
 
-func TestReScaffold_PreservesConfigJSON(t *testing.T) {
+func TestReScaffold_PreservesCustomConfigJSON(t *testing.T) {
 	t.Parallel()
 	dir := filepath.Join(t.TempDir(), ".wolfcastle")
 
@@ -189,25 +212,51 @@ func TestReScaffold_PreservesConfigJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Modify config.json
-	cfgPath := filepath.Join(dir, "config.json")
-	original, _ := os.ReadFile(cfgPath)
+	// Modify custom/config.json
+	cfgPath := filepath.Join(dir, "custom", "config.json")
 	custom := []byte(`{"custom_key": "custom_value"}`)
 	if err := os.WriteFile(cfgPath, custom, 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	// ReScaffold should not overwrite config.json
+	// ReScaffold should not overwrite custom/config.json
 	if err := ReScaffold(dir); err != nil {
 		t.Fatal(err)
 	}
 
 	data, _ := os.ReadFile(cfgPath)
-	if string(data) == string(original) {
-		t.Error("ReScaffold should not overwrite config.json")
-	}
 	if string(data) != string(custom) {
-		t.Error("ReScaffold should preserve custom config.json content")
+		t.Error("ReScaffold should preserve custom/config.json content")
+	}
+}
+
+func TestReScaffold_OverwritesBaseConfigJSON(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), ".wolfcastle")
+
+	if err := Scaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Modify base/config.json
+	cfgPath := filepath.Join(dir, "base", "config.json")
+	if err := os.WriteFile(cfgPath, []byte(`{"stale": true}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// ReScaffold should overwrite base/config.json with fresh defaults
+	if err := ReScaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(cfgPath)
+	var cfg map[string]any
+	_ = json.Unmarshal(data, &cfg)
+	if _, ok := cfg["stale"]; ok {
+		t.Error("ReScaffold should overwrite base/config.json with fresh defaults")
+	}
+	if _, ok := cfg["models"]; !ok {
+		t.Error("ReScaffold should write full defaults to base/config.json")
 	}
 }
 
@@ -219,8 +268,8 @@ func TestReScaffold_RefreshesIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Write config.local.json with extra keys
-	localPath := filepath.Join(dir, "config.local.json")
+	// Write local/config.json with extra keys
+	localPath := filepath.Join(dir, "local", "config.json")
 	localCfg := map[string]any{
 		"identity":  map[string]any{"user": "old-user", "machine": "old-machine"},
 		"extra_key": "should_be_preserved",
@@ -238,10 +287,9 @@ func TestReScaffold_RefreshesIdentity(t *testing.T) {
 	_ = json.Unmarshal(newData, &result)
 
 	if _, ok := result["extra_key"]; !ok {
-		t.Error("ReScaffold should preserve extra keys in config.local.json")
+		t.Error("ReScaffold should preserve extra keys in local/config.json")
 	}
 	identity, _ := result["identity"].(map[string]any)
-	// Identity should be refreshed from system; we just verify the key exists.
 	if _, ok := identity["user"]; !ok {
 		t.Error("ReScaffold should maintain identity.user")
 	}
@@ -255,13 +303,13 @@ func TestReScaffold_HandlesCorruptLocalConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Write invalid JSON to config.local.json
-	localPath := filepath.Join(dir, "config.local.json")
+	// Write invalid JSON to local/config.json
+	localPath := filepath.Join(dir, "local", "config.json")
 	_ = os.WriteFile(localPath, []byte("not json"), 0644)
 
 	err := ReScaffold(dir)
 	if err == nil {
-		t.Error("ReScaffold should return an error for corrupt config.local.json")
+		t.Error("ReScaffold should return an error for corrupt local/config.json")
 	}
 }
 
@@ -273,25 +321,80 @@ func TestReScaffold_HandlesMissingLocalConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Remove config.local.json
-	_ = os.Remove(filepath.Join(dir, "config.local.json"))
+	// Remove local/config.json
+	_ = os.Remove(filepath.Join(dir, "local", "config.json"))
 
 	// ReScaffold should create it
 	if err := ReScaffold(dir); err != nil {
-		t.Fatal("ReScaffold should handle missing config.local.json:", err)
+		t.Fatal("ReScaffold should handle missing local/config.json:", err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "config.local.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "local", "config.json"))
 	if err != nil {
-		t.Fatal("ReScaffold should create config.local.json:", err)
+		t.Fatal("ReScaffold should create local/config.json:", err)
 	}
 
 	var cfg map[string]any
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		t.Fatal("created config.local.json is not valid JSON:", err)
+		t.Fatal("created local/config.json is not valid JSON:", err)
 	}
 	if _, ok := cfg["identity"]; !ok {
-		t.Error("created config.local.json should contain identity")
+		t.Error("created local/config.json should contain identity")
+	}
+}
+
+func TestReScaffold_MigratesOldConfigJSON(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), ".wolfcastle")
+
+	if err := Scaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate old-style config: write root config.json and config.local.json
+	oldCfg := `{"failure": {"hard_cap": 999}}`
+	_ = os.WriteFile(filepath.Join(dir, "config.json"), []byte(oldCfg), 0644)
+
+	oldLocal := `{"identity": {"user": "migrated", "machine": "host"}, "extra": "kept"}`
+	_ = os.WriteFile(filepath.Join(dir, "config.local.json"), []byte(oldLocal), 0644)
+
+	// Remove the three-tier files so migration is the only source
+	_ = os.Remove(filepath.Join(dir, "custom", "config.json"))
+	_ = os.Remove(filepath.Join(dir, "local", "config.json"))
+
+	if err := ReScaffold(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Old files should be gone
+	if _, err := os.Stat(filepath.Join(dir, "config.json")); !os.IsNotExist(err) {
+		t.Error("old config.json should be removed after migration")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "config.local.json")); !os.IsNotExist(err) {
+		t.Error("old config.local.json should be removed after migration")
+	}
+
+	// custom/config.json should contain the migrated content
+	data, err := os.ReadFile(filepath.Join(dir, "custom", "config.json"))
+	if err != nil {
+		t.Fatal("custom/config.json should exist after migration:", err)
+	}
+	var customCfg map[string]any
+	_ = json.Unmarshal(data, &customCfg)
+	failure, _ := customCfg["failure"].(map[string]any)
+	if failure["hard_cap"] != float64(999) {
+		t.Error("custom/config.json should contain migrated hard_cap")
+	}
+
+	// local/config.json should contain identity from migration, plus refreshed identity from ReScaffold
+	localData, err := os.ReadFile(filepath.Join(dir, "local", "config.json"))
+	if err != nil {
+		t.Fatal("local/config.json should exist after migration:", err)
+	}
+	var localCfg map[string]any
+	_ = json.Unmarshal(localData, &localCfg)
+	if _, ok := localCfg["identity"]; !ok {
+		t.Error("local/config.json should contain identity after migration")
 	}
 }
 

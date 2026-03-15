@@ -242,7 +242,8 @@ func TestArchiveAdd_RequireResolver(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	_ = os.MkdirAll(wcDir, 0755)
-	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), []byte(`{}`), 0644)
+	_ = os.MkdirAll(filepath.Join(wcDir, "custom"), 0755)
+	_ = os.WriteFile(filepath.Join(wcDir, "custom", "config.json"), []byte(`{}`), 0644)
 
 	origDir, _ := os.Getwd()
 	_ = os.Chdir(tmp)
@@ -304,7 +305,8 @@ func TestNavigate_RequireResolver(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	_ = os.MkdirAll(wcDir, 0755)
-	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), []byte(`{}`), 0644)
+	_ = os.MkdirAll(filepath.Join(wcDir, "custom"), 0755)
+	_ = os.WriteFile(filepath.Join(wcDir, "custom", "config.json"), []byte(`{}`), 0644)
 
 	origDir, _ := os.Getwd()
 	_ = os.Chdir(tmp)

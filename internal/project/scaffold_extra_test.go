@@ -157,18 +157,18 @@ func TestReScaffold_WritesLocalConfigWhenMissing(t *testing.T) {
 	}
 
 	// Remove local config
-	_ = os.Remove(filepath.Join(dir, "config.local.json"))
+	_ = os.Remove(filepath.Join(dir, "local", "config.json"))
 
 	if err := ReScaffold(dir); err != nil {
 		t.Fatal(err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "config.local.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "local", "config.json"))
 	if err != nil {
-		t.Fatal("config.local.json should be recreated:", err)
+		t.Fatal("local/config.json should be recreated:", err)
 	}
 	if len(data) == 0 {
-		t.Error("config.local.json should have content")
+		t.Error("local/config.json should have content")
 	}
 }
 

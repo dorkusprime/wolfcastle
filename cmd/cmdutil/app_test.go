@@ -359,16 +359,17 @@ func TestCompareNamespace_RecursesSubdirs(t *testing.T) {
 func TestLoadConfig_Success(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wcDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "base"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "local"), 0755)
 
 	// Use Defaults() to get a valid config, then marshal
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "tester", Machine: "box"}
 	cfgData, _ := json.MarshalIndent(cfg, "", "  ")
-	_ = os.WriteFile(filepath.Join(wcDir, "config.json"), cfgData, 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "base", "config.json"), cfgData, 0644)
 
 	localJSON := `{"identity": {"user": "tester", "machine": "box"}}`
-	_ = os.WriteFile(filepath.Join(wcDir, "config.local.json"), []byte(localJSON), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "local", "config.json"), []byte(localJSON), 0644)
 
 	// Create projects dir for namespace
 	ns := "tester-box"

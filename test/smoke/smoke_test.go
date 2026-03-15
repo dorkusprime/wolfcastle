@@ -89,10 +89,10 @@ func TestInitInTempDir(t *testing.T) {
 		t.Fatal(".wolfcastle directory was not created")
 	}
 
-	// Verify config.json exists
-	cfgPath := filepath.Join(wcDir, "config.json")
+	// Verify base/config.json exists
+	cfgPath := filepath.Join(wcDir, "base", "config.json")
 	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-		t.Fatal("config.json was not created")
+		t.Fatal("base/config.json was not created")
 	}
 
 	// Verify projects directory exists

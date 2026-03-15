@@ -66,12 +66,12 @@ func TestScaffold_ConfigWriteError_ReadOnly(t *testing.T) {
 		_ = os.MkdirAll(filepath.Join(wcDir, d), 0755)
 	}
 
-	// Block config.json by placing a directory in its way.
-	_ = os.MkdirAll(filepath.Join(wcDir, "config.json"), 0755)
+	// Block base/config.json by placing a directory in its way.
+	_ = os.MkdirAll(filepath.Join(wcDir, "base", "config.json"), 0755)
 
 	err := Scaffold(wcDir)
 	if err == nil {
-		t.Error("expected config.json write error")
+		t.Error("expected base/config.json write error")
 	}
 }
 
@@ -88,12 +88,12 @@ func TestScaffold_LocalConfigWriteError_ReadOnly(t *testing.T) {
 		_ = os.MkdirAll(filepath.Join(wcDir, d), 0755)
 	}
 
-	// Block config.local.json with a directory.
-	_ = os.MkdirAll(filepath.Join(wcDir, "config.local.json"), 0755)
+	// Block local/config.json with a directory.
+	_ = os.MkdirAll(filepath.Join(wcDir, "local", "config.json"), 0755)
 
 	err := Scaffold(wcDir)
 	if err == nil {
-		t.Error("expected config.local.json write error")
+		t.Error("expected local/config.json write error")
 	}
 }
 
@@ -179,13 +179,13 @@ func TestReScaffold_WriteLocalConfigError_ReadOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Replace config.local.json with a directory.
-	localPath := filepath.Join(wcDir, "config.local.json")
+	// Replace local/config.json with a directory.
+	localPath := filepath.Join(wcDir, "local", "config.json")
 	_ = os.Remove(localPath)
 	_ = os.MkdirAll(localPath, 0755)
 
 	err := ReScaffold(wcDir)
 	if err == nil {
-		t.Error("expected config.local.json write error")
+		t.Error("expected local/config.json write error")
 	}
 }

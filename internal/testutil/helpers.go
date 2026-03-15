@@ -69,10 +69,13 @@ func SetupWolfcastle(t *testing.T) (wolfcastleDir, namespace string) {
 		}
 	}
 
-	// Write default config
+	// Write default config to base/config.json
 	cfg := config.Defaults()
 	cfg.Identity = nil
-	WriteJSON(t, filepath.Join(wolfcastleDir, "config.json"), cfg)
+	WriteJSON(t, filepath.Join(wolfcastleDir, "base", "config.json"), cfg)
+
+	// Write empty custom/config.json
+	WriteJSON(t, filepath.Join(wolfcastleDir, "custom", "config.json"), map[string]any{})
 
 	// Write local config with test identity
 	localCfg := map[string]any{
@@ -81,7 +84,7 @@ func SetupWolfcastle(t *testing.T) (wolfcastleDir, namespace string) {
 			"machine": "machine",
 		},
 	}
-	WriteJSON(t, filepath.Join(wolfcastleDir, "config.local.json"), localCfg)
+	WriteJSON(t, filepath.Join(wolfcastleDir, "local", "config.json"), localCfg)
 
 	// Write empty root index
 	idx := state.NewRootIndex()

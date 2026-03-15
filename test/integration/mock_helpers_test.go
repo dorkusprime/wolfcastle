@@ -77,7 +77,7 @@ touch "%s"
 	return scriptPath
 }
 
-// configureMockModels overwrites config.json to use a mock script for all
+// configureMockModels overwrites custom/config.json to use a mock script for all
 // three model tiers (fast, mid, heavy). It also sets fast poll intervals
 // and disables git branch verification so tests run quickly in temp dirs.
 func configureMockModels(t *testing.T, dir string, scriptPath string) {
@@ -85,7 +85,7 @@ func configureMockModels(t *testing.T, dir string, scriptPath string) {
 	configureWithArgs(t, dir, scriptPath, nil)
 }
 
-// configureWithArgs overwrites config.json to point all model tiers at the
+// configureWithArgs overwrites custom/config.json to point all model tiers at the
 // given script with optional extra arguments.
 func configureWithArgs(t *testing.T, dir string, scriptPath string, args []string) {
 	t.Helper()
@@ -135,14 +135,16 @@ func configureWithArgs(t *testing.T, dir string, scriptPath string, args []strin
 	if err != nil {
 		t.Fatalf("marshaling mock config: %v", err)
 	}
-	configPath := filepath.Join(dir, ".wolfcastle", "config.json")
+	customDir := filepath.Join(dir, ".wolfcastle", "custom")
+	_ = os.MkdirAll(customDir, 0755)
+	configPath := filepath.Join(customDir, "config.json")
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
 		t.Fatalf("writing mock config: %v", err)
 	}
 }
 
 // setMaxIterations merges a max_iterations setting into the existing
-// config.local.json, preserving identity and other fields.
+// local/config.json, preserving identity and other fields.
 func setMaxIterations(t *testing.T, dir string, n int) {
 	t.Helper()
 	mergeLocalConfig(t, dir, map[string]any{
@@ -152,17 +154,19 @@ func setMaxIterations(t *testing.T, dir string, n int) {
 	})
 }
 
-// mergeLocalConfig reads the existing config.local.json, shallow-merges
+// mergeLocalConfig reads the existing local/config.json, shallow-merges
 // the provided overrides into it, and writes the result back. This
 // preserves the identity fields that init creates.
 func mergeLocalConfig(t *testing.T, dir string, overrides map[string]any) {
 	t.Helper()
-	localPath := filepath.Join(dir, ".wolfcastle", "config.local.json")
+	localDir := filepath.Join(dir, ".wolfcastle", "local")
+	_ = os.MkdirAll(localDir, 0755)
+	localPath := filepath.Join(localDir, "config.json")
 
 	existing := map[string]any{}
 	if data, err := os.ReadFile(localPath); err == nil {
 		if err := json.Unmarshal(data, &existing); err != nil {
-			t.Fatalf("parsing existing config.local.json: %v", err)
+			t.Fatalf("parsing existing local/config.json: %v", err)
 		}
 	}
 
@@ -185,7 +189,7 @@ func mergeLocalConfig(t *testing.T, dir string, overrides map[string]any) {
 		t.Fatalf("marshaling merged local config: %v", err)
 	}
 	if err := os.WriteFile(localPath, data, 0644); err != nil {
-		t.Fatalf("writing config.local.json: %v", err)
+		t.Fatalf("writing local/config.json: %v", err)
 	}
 }
 

@@ -34,27 +34,30 @@ func TestStructToMap_UnmarshalableInput(t *testing.T) {
 func TestLoad_InvalidConfigJSON(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "config.json"), []byte("not json"), 0644)
+	_ = os.MkdirAll(filepath.Join(dir, "base"), 0755)
+	_ = os.WriteFile(filepath.Join(dir, "base", "config.json"), []byte("not json"), 0644)
 
 	_, err := Load(dir)
 	if err == nil {
-		t.Error("expected error for invalid config.json")
+		t.Error("expected error for invalid base/config.json")
 	}
 }
 
 func TestLoad_InvalidConfigLocalJSON(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	// Valid config.json
+	// Valid base/config.json
+	_ = os.MkdirAll(filepath.Join(dir, "base"), 0755)
 	cfg := Defaults()
 	data, _ := json.Marshal(cfg)
-	_ = os.WriteFile(filepath.Join(dir, "config.json"), data, 0644)
-	// Invalid config.local.json
-	_ = os.WriteFile(filepath.Join(dir, "config.local.json"), []byte("bad json"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "base", "config.json"), data, 0644)
+	// Invalid local/config.json
+	_ = os.MkdirAll(filepath.Join(dir, "local"), 0755)
+	_ = os.WriteFile(filepath.Join(dir, "local", "config.json"), []byte("bad json"), 0644)
 
 	_, err := Load(dir)
 	if err == nil {
-		t.Error("expected error for invalid config.local.json")
+		t.Error("expected error for invalid local/config.json")
 	}
 }
 

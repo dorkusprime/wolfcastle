@@ -37,7 +37,6 @@ func Scaffold(wolfcastleDir string) error {
 	// Write .gitignore
 	gitignore := `*
 !.gitignore
-!config.json
 !custom/
 !custom/**
 !projects/
@@ -51,19 +50,24 @@ func Scaffold(wolfcastleDir string) error {
 		return fmt.Errorf("writing .gitignore: %w", err)
 	}
 
-	// Write default config.json with populated defaults (excluding identity)
+	// Write base/config.json with populated defaults (excluding identity)
 	defaults := config.Defaults()
-	defaults.Identity = nil // Identity belongs in config.local.json only
+	defaults.Identity = nil // Identity belongs in local/config.json only
 	cfgData, err := json.MarshalIndent(defaults, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshaling default config: %w", err)
 	}
 	cfgData = append(cfgData, '\n')
-	if err := os.WriteFile(filepath.Join(wolfcastleDir, "config.json"), cfgData, 0644); err != nil {
-		return fmt.Errorf("writing config.json: %w", err)
+	if err := os.WriteFile(filepath.Join(wolfcastleDir, "base", "config.json"), cfgData, 0644); err != nil {
+		return fmt.Errorf("writing base/config.json: %w", err)
 	}
 
-	// Write config.local.json with identity
+	// Write custom/config.json as empty object for teams to edit
+	if err := os.WriteFile(filepath.Join(wolfcastleDir, "custom", "config.json"), []byte("{}\n"), 0644); err != nil {
+		return fmt.Errorf("writing custom/config.json: %w", err)
+	}
+
+	// Write local/config.json with identity
 	identity := detectIdentity()
 	localCfg := map[string]any{
 		"identity": identity,
@@ -73,8 +77,8 @@ func Scaffold(wolfcastleDir string) error {
 		return fmt.Errorf("marshaling local config: %w", err)
 	}
 	localData = append(localData, '\n')
-	if err := os.WriteFile(filepath.Join(wolfcastleDir, "config.local.json"), localData, 0644); err != nil {
-		return fmt.Errorf("writing config.local.json: %w", err)
+	if err := os.WriteFile(filepath.Join(wolfcastleDir, "local", "config.json"), localData, 0644); err != nil {
+		return fmt.Errorf("writing local/config.json: %w", err)
 	}
 
 	// Create engineer namespace directory with empty root index
@@ -143,31 +147,13 @@ func WriteBasePrompts(wolfcastleDir string) error {
 	})
 }
 
-// ReScaffold regenerates base/ templates, refreshes identity in
-// config.local.json, and merges new config defaults into config.json
-// without overwriting existing user values.
+// ReScaffold regenerates base/ templates and config, refreshes identity
+// in local/config.json, and migrates old-style config files (config.json,
+// config.local.json) to the three-tier layout.
 func ReScaffold(wolfcastleDir string) error {
-	// Merge new defaults into existing config.json. This adds any new
-	// config keys introduced since the original init without overwriting
-	// values the user has customized.
-	cfgPath := filepath.Join(wolfcastleDir, "config.json")
-	if data, err := os.ReadFile(cfgPath); err == nil {
-		var existing map[string]any
-		if err := json.Unmarshal(data, &existing); err == nil {
-			defaults := config.Defaults()
-			defaults.Identity = nil
-			defaultsRaw, _ := json.Marshal(defaults)
-			var defaultsMap map[string]any
-			_ = json.Unmarshal(defaultsRaw, &defaultsMap)
-			// Merge: existing is the base, defaults overlay on top.
-			// This updates stale defaults while preserving structure.
-			// User customizations belong in config.local.json, which
-			// overrides config.json during Load().
-			merged := config.DeepMerge(existing, defaultsMap)
-			mergedData, _ := json.MarshalIndent(merged, "", "  ")
-			mergedData = append(mergedData, '\n')
-			_ = os.WriteFile(cfgPath, mergedData, 0644)
-		}
+	// Migrate old-style config files to three-tier layout
+	if err := migrateOldConfig(wolfcastleDir); err != nil {
+		return err
 	}
 
 	// Remove existing base/ and regenerate
@@ -189,13 +175,32 @@ func ReScaffold(wolfcastleDir string) error {
 		return fmt.Errorf("regenerating base/: %w", err)
 	}
 
-	// Refresh identity in config.local.json, preserving other keys
-	localPath := filepath.Join(wolfcastleDir, "config.local.json")
+	// Write base/config.json from Defaults (always overwritten)
+	defaults := config.Defaults()
+	defaults.Identity = nil
+	cfgData, err := json.MarshalIndent(defaults, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling default config: %w", err)
+	}
+	cfgData = append(cfgData, '\n')
+	if err := os.WriteFile(filepath.Join(wolfcastleDir, "base", "config.json"), cfgData, 0644); err != nil {
+		return fmt.Errorf("writing base/config.json: %w", err)
+	}
+
+	// Ensure custom/config.json exists
+	customCfgPath := filepath.Join(wolfcastleDir, "custom", "config.json")
+	if _, err := os.Stat(customCfgPath); os.IsNotExist(err) {
+		_ = os.MkdirAll(filepath.Join(wolfcastleDir, "custom"), 0755)
+		_ = os.WriteFile(customCfgPath, []byte("{}\n"), 0644)
+	}
+
+	// Refresh identity in local/config.json, preserving other keys
+	localPath := filepath.Join(wolfcastleDir, "local", "config.json")
 	localCfg := map[string]any{}
 
 	if data, err := os.ReadFile(localPath); err == nil {
 		if err := json.Unmarshal(data, &localCfg); err != nil {
-			return fmt.Errorf("config.local.json is not valid JSON: %w", err)
+			return fmt.Errorf("local/config.json is not valid JSON: %w", err)
 		}
 	}
 
@@ -205,8 +210,70 @@ func ReScaffold(wolfcastleDir string) error {
 		return fmt.Errorf("marshaling local config: %w", err)
 	}
 	localData = append(localData, '\n')
+	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "local"), 0755)
 	if err := os.WriteFile(localPath, localData, 0644); err != nil {
-		return fmt.Errorf("writing config.local.json: %w", err)
+		return fmt.Errorf("writing local/config.json: %w", err)
+	}
+
+	return nil
+}
+
+// migrateOldConfig moves old-style root config files to the three-tier layout.
+// If root config.json exists, it is moved to custom/config.json.
+// If config.local.json exists, its contents are merged into local/config.json.
+func migrateOldConfig(wolfcastleDir string) error {
+	// Migrate root config.json -> custom/config.json
+	oldCfgPath := filepath.Join(wolfcastleDir, "config.json")
+	if _, err := os.Stat(oldCfgPath); err == nil {
+		customDir := filepath.Join(wolfcastleDir, "custom")
+		_ = os.MkdirAll(customDir, 0755)
+		customCfgPath := filepath.Join(customDir, "config.json")
+		// Only migrate if custom/config.json doesn't already exist
+		if _, err := os.Stat(customCfgPath); os.IsNotExist(err) {
+			data, err := os.ReadFile(oldCfgPath)
+			if err != nil {
+				return fmt.Errorf("reading old config.json: %w", err)
+			}
+			if err := os.WriteFile(customCfgPath, data, 0644); err != nil {
+				return fmt.Errorf("writing custom/config.json: %w", err)
+			}
+		}
+		_ = os.Remove(oldCfgPath)
+	}
+
+	// Migrate config.local.json -> local/config.json
+	oldLocalPath := filepath.Join(wolfcastleDir, "config.local.json")
+	if _, err := os.Stat(oldLocalPath); err == nil {
+		localDir := filepath.Join(wolfcastleDir, "local")
+		_ = os.MkdirAll(localDir, 0755)
+		localCfgPath := filepath.Join(localDir, "config.json")
+
+		oldData, err := os.ReadFile(oldLocalPath)
+		if err != nil {
+			return fmt.Errorf("reading old config.local.json: %w", err)
+		}
+		var oldLocal map[string]any
+		if err := json.Unmarshal(oldData, &oldLocal); err != nil {
+			return fmt.Errorf("old config.local.json is not valid JSON: %w", err)
+		}
+
+		// Merge into existing local/config.json if it exists
+		existing := map[string]any{}
+		if data, readErr := os.ReadFile(localCfgPath); readErr == nil {
+			_ = json.Unmarshal(data, &existing)
+		}
+
+		merged := config.DeepMerge(existing, oldLocal)
+		mergedData, err := json.MarshalIndent(merged, "", "  ")
+		if err != nil {
+			return fmt.Errorf("marshaling migrated local config: %w", err)
+		}
+		mergedData = append(mergedData, '\n')
+		if err := os.WriteFile(localCfgPath, mergedData, 0644); err != nil {
+			return fmt.Errorf("writing local/config.json: %w", err)
+		}
+
+		_ = os.Remove(oldLocalPath)
 	}
 
 	return nil

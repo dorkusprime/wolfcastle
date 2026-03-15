@@ -49,7 +49,7 @@ func TestScaffold_ConfigWriteFailure(t *testing.T) {
 	tmp := t.TempDir()
 	dir := filepath.Join(tmp, ".wolfcastle")
 
-	// Create all dirs but put a directory where config.json should go
+	// Create all dirs but put a file where base/config.json should go
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -57,12 +57,33 @@ func TestScaffold_ConfigWriteFailure(t *testing.T) {
 		_ = os.MkdirAll(filepath.Join(dir, d), 0755)
 	}
 
-	// Create a directory named config.json to block the file write
-	_ = os.MkdirAll(filepath.Join(dir, "config.json"), 0755)
+	// Create a directory named config.json inside base/ to block the file write
+	_ = os.MkdirAll(filepath.Join(dir, "base", "config.json"), 0755)
 
 	err := Scaffold(dir)
 	if err == nil {
-		t.Error("expected error when config.json cannot be written")
+		t.Error("expected error when base/config.json cannot be written")
+	}
+}
+
+func TestScaffold_CustomConfigWriteFailure(t *testing.T) {
+	t.Parallel()
+	tmp := t.TempDir()
+	dir := filepath.Join(tmp, ".wolfcastle")
+
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+		_ = os.MkdirAll(filepath.Join(dir, d), 0755)
+	}
+
+	// Create a directory named config.json inside custom/ to block the file write
+	_ = os.MkdirAll(filepath.Join(dir, "custom", "config.json"), 0755)
+
+	err := Scaffold(dir)
+	if err == nil {
+		t.Error("expected error when custom/config.json cannot be written")
 	}
 }
 
@@ -78,12 +99,12 @@ func TestScaffold_LocalConfigWriteFailure(t *testing.T) {
 		_ = os.MkdirAll(filepath.Join(dir, d), 0755)
 	}
 
-	// Create a directory named config.local.json to block the file write
-	_ = os.MkdirAll(filepath.Join(dir, "config.local.json"), 0755)
+	// Create a directory named config.json inside local/ to block the file write
+	_ = os.MkdirAll(filepath.Join(dir, "local", "config.json"), 0755)
 
 	err := Scaffold(dir)
 	if err == nil {
-		t.Error("expected error when config.local.json cannot be written")
+		t.Error("expected error when local/config.json cannot be written")
 	}
 }
 
@@ -191,14 +212,14 @@ func TestReScaffold_LocalConfigWriteFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Replace config.local.json with a directory to block write
-	localPath := filepath.Join(dir, "config.local.json")
+	// Replace local/config.json with a directory to block write
+	localPath := filepath.Join(dir, "local", "config.json")
 	_ = os.Remove(localPath)
 	_ = os.MkdirAll(localPath, 0755)
 
 	err := ReScaffold(dir)
 	if err == nil {
-		t.Error("expected error when config.local.json cannot be written")
+		t.Error("expected error when local/config.json cannot be written")
 	}
 }
 
@@ -247,15 +268,15 @@ func TestReScaffold_LocalConfigMarshalWriteFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create a directory where config.local.json should be written
+	// Create a directory where local/config.json should be written
 	// to block the write
-	localPath := filepath.Join(dir, "config.local.json")
+	localPath := filepath.Join(dir, "local", "config.json")
 	_ = os.Remove(localPath)
 	_ = os.MkdirAll(localPath, 0755)
 
 	err := ReScaffold(dir)
 	if err == nil {
-		t.Error("expected error when config.local.json write is blocked")
+		t.Error("expected error when local/config.json write is blocked")
 	}
 }
 
