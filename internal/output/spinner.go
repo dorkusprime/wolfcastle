@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -19,6 +20,10 @@ type Spinner struct {
 	stop    chan struct{}
 	done    chan struct{}
 	started bool
+
+	// paused is set by clearForMessage to suppress redraws until
+	// the next message has been written and a grace period passes.
+	paused atomic.Bool
 }
 
 const (
@@ -27,11 +32,35 @@ const (
 	frameDelay   = 80 * time.Millisecond
 )
 
-// Global coordination: PrintHuman checks this before writing.
+// Global coordination: PrintHuman and PauseSpinner check this before writing.
 var (
 	activeMu      sync.Mutex
 	activeSpinner *Spinner
 )
+
+// PauseSpinner temporarily clears the spinner so other output can
+// print cleanly. Call ResumeSpinner after writing. Safe to call
+// when no spinner is active (no-op).
+func PauseSpinner() {
+	activeMu.Lock()
+	s := activeSpinner
+	activeMu.Unlock()
+	if s != nil {
+		s.clearForMessage()
+	}
+}
+
+// ResumeSpinner re-enables the spinner after a PauseSpinner call.
+// The spinner stays suppressed briefly so rapid-fire messages don't
+// interleave with redraws.
+func ResumeSpinner() {
+	activeMu.Lock()
+	s := activeSpinner
+	activeMu.Unlock()
+	if s != nil {
+		s.resumeAfterMessage()
+	}
+}
 
 // NewSpinner creates a spinner but does not start it.
 func NewSpinner() *Spinner {
@@ -88,11 +117,21 @@ func (s *Spinner) Stop() {
 	activeMu.Unlock()
 }
 
-// clearForMessage is called by PrintHuman to temporarily erase the
-// spinner line so the message prints cleanly. The spinner's next
-// tick redraws itself automatically.
+// clearForMessage is called by PrintHuman to erase the spinner line
+// and suppress redraws until the message is written.
 func (s *Spinner) clearForMessage() {
+	s.paused.Store(true)
 	fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+1))
+}
+
+// resumeAfterMessage is called by PrintHuman after writing the message.
+// The spinner stays paused for a short grace period so rapid-fire
+// messages don't interleave with redraws.
+func (s *Spinner) resumeAfterMessage() {
+	go func() {
+		time.Sleep(frameDelay * 2)
+		s.paused.Store(false)
+	}()
 }
 
 func (s *Spinner) run() {
@@ -118,6 +157,9 @@ func (s *Spinner) run() {
 			fmt.Fprintf(os.Stdout, "\r%s\r", strings.Repeat(" ", spinnerWidth+1))
 			return
 		case <-ticker.C:
+			if s.paused.Load() {
+				continue
+			}
 			fmt.Fprintf(os.Stdout, "\r%s", renderFrame(pos, projLen))
 			pos = (pos + 1) % spinnerWidth
 		}

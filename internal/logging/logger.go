@@ -15,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/dorkusprime/wolfcastle/internal/output"
 )
 
 // Level represents a log severity tier (ADR-046).
@@ -155,7 +157,8 @@ func (l *Logger) Log(record map[string]any, levels ...Level) error {
 }
 
 // writeConsole formats a record as a terse, human-readable line and
-// writes it to the console writer.
+// writes it to the console writer. Pauses any active spinner to
+// prevent visual collision on the terminal.
 func (l *Logger) writeConsole(record map[string]any, level Level) {
 	prefix := strings.ToUpper(level.String())
 	msg, _ := record["message"].(string)
@@ -166,11 +169,13 @@ func (l *Logger) writeConsole(record map[string]any, level Level) {
 		msg, _ = record["type"].(string)
 	}
 
+	output.PauseSpinner()
 	if stage != "" {
 		_, _ = fmt.Fprintf(l.Console, "[%s] %s: %s\n", prefix, stage, msg)
 	} else {
 		_, _ = fmt.Fprintf(l.Console, "[%s] %s\n", prefix, msg)
 	}
+	output.ResumeSpinner()
 }
 
 // AssistantWriter returns an io.Writer that formats each line written
