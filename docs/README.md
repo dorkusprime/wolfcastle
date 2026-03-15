@@ -16,7 +16,7 @@ Start here if you want to modify Wolfcastle.
 
 ## [Architecture Decisions](decisions/)
 
-61 ADRs documenting every major design choice. Each records the context, decision, and consequences so future contributors understand why the system is built the way it is. ADRs are the authoritative source; specs defer to them on conflict.
+62 ADRs documenting every major design choice. Each records the context, decision, and consequences so future contributors understand why the system is built the way it is. ADRs are the authoritative source; specs defer to them on conflict.
 
 ## [Specifications](specs/)
 
