@@ -7,7 +7,7 @@ Accepted
 2026-03-12
 
 ## Context
-Autonomous execution needs guardrails against infinite loops where the model repeatedly fails at a task, but also enough room for the model to iterate on genuine fixes. Ralph used a simple "3 failures = blocked" rule which was too aggressive. Wolfcastle needs a more nuanced escalation path that leverages the model's ability to restructure work when direct fixing isn't working.
+Autonomous execution needs guardrails against infinite loops where the model repeatedly fails at a task, but also enough room for the model to iterate on genuine fixes. Ralph used a simple "3 failures = blocked" rule which was too aggressive. Wolfcastle needs a more nuanced escalation path that uses the model's ability to restructure work when direct fixing isn't working.
 
 ## Decision
 
