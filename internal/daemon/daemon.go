@@ -215,7 +215,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 				d.Config.Logs.MaxAgeDays,
 				retOpts...,
 			)
-			time.Sleep(time.Duration(d.Config.Daemon.PollIntervalSeconds) * time.Second)
+			// No sleep after successful work. If there's more to do,
+			// the next iteration will find it immediately. The daemon
+			// only sleeps when idle (NoWork) or recovering (Error).
 		}
 	}
 }
