@@ -17,11 +17,11 @@ func Defaults() *Config {
 		Models: map[string]ModelDef{
 			"fast": {
 				Command: "claude",
-				Args:    []string{"-p", "--model", "claude-haiku-4-5-20251001", "--output-format", "stream-json", "--dangerously-skip-permissions"},
+				Args:    []string{"-p", "--model", "claude-haiku-4-5-20251001", "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions"},
 			},
 			"mid": {
 				Command: "claude",
-				Args:    []string{"-p", "--model", "claude-sonnet-4-6", "--output-format", "stream-json", "--dangerously-skip-permissions"},
+				Args:    []string{"-p", "--model", "claude-sonnet-4-6", "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions"},
 			},
 			"heavy": {
 				Command: "claude",
