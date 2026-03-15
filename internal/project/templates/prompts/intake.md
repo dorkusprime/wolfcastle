@@ -45,4 +45,6 @@ For each inbox item provided below:
 - Do not create duplicate projects. Check the item descriptions carefully.
 - Each leaf node must have at least one task (besides the auto-generated audit task).
 - Execute the commands directly. Do not just output them as text.
-- When you have finished processing all inbox items, emit `WOLFCASTLE_INTAKE_COMPLETE` on its own line.
+- **STOP after creating projects and tasks.** Do NOT claim tasks. Do NOT execute tasks. Do NOT do the actual work. A separate execution agent handles that.
+- Do NOT call `wolfcastle task claim` or `wolfcastle task complete`. Those are managed by the daemon.
+- When you have finished processing all inbox items, output `WOLFCASTLE_INTAKE_COMPLETE` on its own line and stop immediately.
