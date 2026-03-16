@@ -2,7 +2,7 @@
 
 # New
 
-- Let's add `requirements` to the README
+- ~~Let's add `requirements` to the README~~ — added: Go 1.26+, Git, a coding agent
 
 ## Done
 

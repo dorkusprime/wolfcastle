@@ -44,6 +44,12 @@ If a task fails, Wolfcastle tries again. If it fails ten times, Wolfcastle [deco
 
 Everything is deterministic except the model's output. State is [JSON on disk](docs/humans/how-it-works.md#distributed-state). The agent decides _what code to write_. [Scripts](docs/humans/cli.md#commands) enforce correctness. You can [stop the daemon](docs/humans/cli/stop.md), check on progress with [`wolfcastle status`](docs/humans/cli/status.md), rearrange things by hand, and restart. Wolfcastle [picks up exactly where it left off](docs/humans/failure-and-recovery.md#self-healing).
 
+## Requirements
+
+- **Go 1.26+** (for building from source)
+- **Git** (branch verification, progress detection, auto-commit)
+- **A coding agent** that reads stdin and writes stdout. [Claude Code](https://claude.com/claude-code) is the default. Anything that accepts a prompt and produces code works: Cursor, Copilot, GPT, Gemini, Llama, a bash script that echoes "done."
+
 ## Quick Start
 
 ```bash
