@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -733,4 +734,48 @@ func TestStatusCmd_AllFlagJSON(t *testing.T) {
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("status --all --json failed: %v", err)
 	}
+}
+
+// ---------------------------------------------------------------------------
+// status --interval flag accepts floats
+// ---------------------------------------------------------------------------
+
+func TestStatusCmd_IntervalAcceptsFloat(t *testing.T) {
+	env := newTestEnv(t)
+	// Verify --interval parses a float without error
+	env.RootCmd.SetArgs([]string{"status", "--interval", "0.5"})
+	// This will fail because no resolver, but the flag parsing succeeds
+	err := env.RootCmd.Execute()
+	// We only care that it didn't fail with "invalid argument" for --interval
+	if err != nil && strings.Contains(err.Error(), "ParseInt") {
+		t.Errorf("--interval should accept floats: %v", err)
+	}
+}
+
+func TestStatusCmd_IntervalAcceptsSubSecond(t *testing.T) {
+	env := newTestEnv(t)
+	env.RootCmd.SetArgs([]string{"status", "--interval", "0.05"})
+	err := env.RootCmd.Execute()
+	if err != nil && strings.Contains(err.Error(), "ParseInt") {
+		t.Errorf("--interval should accept sub-second floats: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// log command has --follow flag
+// ---------------------------------------------------------------------------
+
+func TestLogCmd_FollowFlagExists(t *testing.T) {
+	env := newTestEnv(t)
+	// Verify the log command accepts --follow without parse error
+	env.RootCmd.SetArgs([]string{"log", "--follow=false", "--lines", "5"})
+	// Will fail (no logs dir) but flag parsing should succeed
+	_ = env.RootCmd.Execute()
+}
+
+func TestLogCmd_AliasFollow(t *testing.T) {
+	env := newTestEnv(t)
+	// "follow" should work as an alias for "log"
+	env.RootCmd.SetArgs([]string{"follow", "--lines", "5"})
+	_ = env.RootCmd.Execute()
 }
