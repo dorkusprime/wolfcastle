@@ -92,6 +92,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			"task":  nav.TaskID,
 		})
 
+		// Record HEAD before invocation so we can detect new commits.
+		beforeHEAD := gitHEAD(d.RepoDir)
+
 		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), stage.Name)
 		if cancel != nil {
 			cancel()
@@ -157,7 +160,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			// Verify the model made real changes via git diff.
 			// Deliverables check existence (structural); git diff
 			// checks progress (activity). Two different questions.
-			if !checkGitProgress(d.RepoDir) {
+			if !checkGitProgress(d.RepoDir, beforeHEAD) {
 				_ = d.Logger.Log(map[string]any{
 					"type": "no_progress",
 					"task": nav.TaskID,

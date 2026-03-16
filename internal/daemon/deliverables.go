@@ -37,13 +37,34 @@ func checkDeliverables(repoDir string, ns *state.NodeState, taskID string) []str
 	return missing
 }
 
-// checkGitProgress returns true if the git working tree has uncommitted
-// changes outside of .wolfcastle/, indicating that the model made real
-// modifications. This replaces the previous baseline-hash approach:
-// deliverables check existence (structural), git diff checks progress
-// (activity). Changes inside .wolfcastle/ are excluded because the
-// daemon itself writes state files there during execution.
-func checkGitProgress(repoDir string) bool {
+// gitHEAD returns the current HEAD commit SHA, or empty string if
+// git is unavailable or the directory isn't a repo.
+func gitHEAD(repoDir string) string {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = repoDir
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// checkGitProgress returns true if either: (1) the git working tree
+// has uncommitted changes outside .wolfcastle/, or (2) HEAD has moved
+// since beforeHEAD (the model committed new work). Models are
+// instructed to commit, so a clean working tree with a new commit
+// still counts as progress.
+func checkGitProgress(repoDir string, beforeHEAD string) bool {
+	// Check for new commits first (handles the common case where
+	// the model committed its changes and the tree is clean).
+	if beforeHEAD != "" {
+		currentHEAD := gitHEAD(repoDir)
+		if currentHEAD != "" && currentHEAD != beforeHEAD {
+			return true
+		}
+	}
+
+	// Check for uncommitted changes outside .wolfcastle/
 	cmd := exec.Command("git", "status", "--porcelain")
 	cmd.Dir = repoDir
 	out, err := cmd.Output()
@@ -57,10 +78,9 @@ func checkGitProgress(repoDir string) bool {
 		if line == "" {
 			continue
 		}
-		// Extract the file path (porcelain format: "XY path" or "XY path -> path")
 		path := line
 		if len(path) > 3 {
-			path = path[3:] // strip status columns and space
+			path = path[3:]
 		}
 		if idx := strings.Index(path, " -> "); idx >= 0 {
 			path = path[idx+4:]

@@ -205,9 +205,10 @@ func TestCheckDeliverables_GlobWithLiteralMix(t *testing.T) {
 func TestCheckGitProgress_DirtyWorktree(t *testing.T) {
 	t.Parallel()
 	dir := initGitRepo(t)
+	head := gitHEAD(dir)
 	_ = os.WriteFile(filepath.Join(dir, "new-file.txt"), []byte("changes"), 0644)
 
-	if !checkGitProgress(dir) {
+	if !checkGitProgress(dir, head) {
 		t.Error("dirty worktree should report progress")
 	}
 }
@@ -215,9 +216,26 @@ func TestCheckGitProgress_DirtyWorktree(t *testing.T) {
 func TestCheckGitProgress_CleanWorktree(t *testing.T) {
 	t.Parallel()
 	dir := initGitRepo(t)
+	head := gitHEAD(dir)
 
-	if checkGitProgress(dir) {
-		t.Error("clean worktree should report no progress")
+	if checkGitProgress(dir, head) {
+		t.Error("clean worktree with same HEAD should report no progress")
+	}
+}
+
+func TestCheckGitProgress_NewCommit(t *testing.T) {
+	t.Parallel()
+	dir := initGitRepo(t)
+	head := gitHEAD(dir)
+
+	// Make a new commit (simulates model committing its work)
+	_ = os.WriteFile(filepath.Join(dir, "new-file.txt"), []byte("changes"), 0644)
+	gitRun(t, dir, "add", ".")
+	gitRun(t, dir, "commit", "-m", "model work")
+
+	// Working tree is clean but HEAD moved
+	if !checkGitProgress(dir, head) {
+		t.Error("new commit should report progress even with clean tree")
 	}
 }
 
@@ -225,9 +243,35 @@ func TestCheckGitProgress_NotGitRepo(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	// Not a git repo: assume progress (don't block pipeline)
-	if !checkGitProgress(dir) {
+	if !checkGitProgress(dir, "") {
 		t.Error("non-git directory should assume progress")
+	}
+}
+
+func TestCheckGitProgress_EmptyBeforeHEAD(t *testing.T) {
+	t.Parallel()
+	dir := initGitRepo(t)
+	_ = os.WriteFile(filepath.Join(dir, "new-file.txt"), []byte("changes"), 0644)
+
+	// Empty beforeHEAD skips commit check, falls through to status check
+	if !checkGitProgress(dir, "") {
+		t.Error("dirty worktree with empty beforeHEAD should report progress")
+	}
+}
+
+// gitRun executes a git command in the given directory.
+func gitRun(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=test",
+		"GIT_AUTHOR_EMAIL=test@test.com",
+		"GIT_COMMITTER_NAME=test",
+		"GIT_COMMITTER_EMAIL=test@test.com",
+	)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v failed: %v\n%s", args, err, out)
 	}
 }
 

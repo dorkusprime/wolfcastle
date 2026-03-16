@@ -277,19 +277,21 @@ func (d *Daemon) Run(ctx context.Context) error {
 		default:
 		}
 
+		// Stop the spinner before RunOnce so it doesn't animate
+		// over stage log messages if the poll timeout raced with
+		// workAvailable.
+		if idleSpinner != nil {
+			idleSpinner.Stop()
+			idleSpinner = nil
+		}
+
 		result, err := d.RunOnce(ctx)
 		if err != nil {
-			if idleSpinner != nil {
-				idleSpinner.Stop()
-			}
 			return err
 		}
 
 		switch result {
 		case IterationStop:
-			if idleSpinner != nil {
-				idleSpinner.Stop()
-			}
 			return nil
 		case IterationNoWork:
 			// Start spinner on first idle cycle; keep it running
@@ -316,18 +318,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 			idleSpinner.Stop()
 			idleSpinner = nil
 		case IterationError:
-			if idleSpinner != nil {
-				idleSpinner.Stop()
-				idleSpinner = nil
-			}
 			if !sleepWithContext(ctx, time.Duration(d.Config.Daemon.PollIntervalSeconds)*time.Second) {
 				return nil
 			}
 		case IterationDidWork:
-			if idleSpinner != nil {
-				idleSpinner.Stop()
-				idleSpinner = nil
-			}
 			retOpts := []logging.RetentionOption{}
 			if d.Config.Logs.Compress {
 				retOpts = append(retOpts, logging.WithCompression())
