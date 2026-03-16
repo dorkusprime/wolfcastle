@@ -55,10 +55,30 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}); err != nil {
 			return werrors.State(fmt.Errorf("claiming task %s: %w", nav.TaskID, err))
 		}
+	} else {
+		// Re-baseline deliverable hashes on retry so that changes from
+		// a previous attempt become the new starting point. Without this,
+		// a retry that doesn't re-write files the previous attempt wrote
+		// would falsely fail the "unchanged" check.
+		if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+			for i, t := range ns.Tasks {
+				if t.ID == nav.TaskID && len(t.Deliverables) > 0 {
+					ns.Tasks[i].BaselineHashes = snapshotDeliverables(d.RepoDir, t.Deliverables)
+					break
+				}
+			}
+			return nil
+		}); err != nil {
+			_ = d.Logger.Log(map[string]any{"type": "rebaseline_error", "error": err.Error()})
+		}
+	}
+
+	{
 		// Re-read after mutation for the rest of the iteration.
-		ns, err = d.Store.ReadNode(nav.NodeAddress)
-		if err != nil {
-			return werrors.State(fmt.Errorf("reloading node state after claim: %w", err))
+		var readErr error
+		ns, readErr = d.Store.ReadNode(nav.NodeAddress)
+		if readErr != nil {
+			return werrors.State(fmt.Errorf("reloading node state after claim: %w", readErr))
 		}
 	}
 
