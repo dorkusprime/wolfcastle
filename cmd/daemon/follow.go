@@ -2,10 +2,13 @@ package daemon
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -46,7 +49,9 @@ Examples:
 			if !follow {
 				return showRecentLogs(logDir, lines, minLevel)
 			}
-			return followLogs(logDir, lines, minLevel)
+			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+			defer stop()
+			return followLogs(ctx, logDir, lines, minLevel)
 		},
 	}
 }
@@ -65,19 +70,30 @@ func showRecentLogs(logDir string, lines int, minLevel logging.Level) error {
 }
 
 // followLogs streams log output in real time, following new iterations.
-func followLogs(logDir string, lines int, minLevel logging.Level) error {
+// Returns when context is cancelled.
+func followLogs(ctx context.Context, logDir string, lines int, minLevel logging.Level) error {
 	var currentFile string
 	historicalShown := false
 	waitMessageShown := false
 
 	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
 		latestPath, err := logging.LatestLogFile(logDir)
 		if err != nil {
 			if !waitMessageShown {
 				output.PrintHuman("Waiting for the daemon to produce output...")
 				waitMessageShown = true
 			}
-			time.Sleep(2 * time.Second)
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(2 * time.Second):
+			}
 			continue
 		}
 
@@ -97,7 +113,12 @@ func followLogs(logDir string, lines int, minLevel logging.Level) error {
 		if err := tailFileStreaming(currentFile, minLevel); err != nil {
 			return err
 		}
-		time.Sleep(500 * time.Millisecond)
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(500 * time.Millisecond):
+		}
 	}
 }
 
