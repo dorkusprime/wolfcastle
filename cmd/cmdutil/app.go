@@ -89,43 +89,6 @@ func (a *App) RequireResolver() error {
 	return nil
 }
 
-// PropagateState walks up from a node to the root, updating each
-// parent's child-ref state, recomputing the parent state, and
-// persisting the root index.
-func (a *App) PropagateState(nodeAddr string, nodeState state.NodeStatus) error {
-	idx, err := a.Resolver.LoadRootIndex()
-	if err != nil {
-		return fmt.Errorf("loading root index: %w", err)
-	}
-
-	loadNode := func(addr string) (*state.NodeState, error) {
-		parsed, err := tree.ParseAddress(addr)
-		if err != nil {
-			return nil, fmt.Errorf("parsing address %q: %w", addr, err)
-		}
-		return state.LoadNodeState(a.Resolver.NodeStatePath(parsed))
-	}
-
-	saveNode := func(addr string, ns *state.NodeState) error {
-		parsed, err := tree.ParseAddress(addr)
-		if err != nil {
-			return fmt.Errorf("parsing address %q: %w", addr, err)
-		}
-		return state.SaveNodeState(a.Resolver.NodeStatePath(parsed), ns)
-	}
-
-	if err := state.Propagate(nodeAddr, nodeState, idx, loadNode, saveNode); err != nil {
-		return err
-	}
-
-	// Save the root index once
-	if err := state.SaveRootIndex(a.Resolver.RootIndexPath(), idx); err != nil {
-		return fmt.Errorf("saving root index: %w", err)
-	}
-
-	return nil
-}
-
 // CheckOverlap scans other engineers' project names and descriptions
 // for potential scope overlap with the newly created project. Uses
 // bigram Jaccard similarity — no model invocation required (ADR-041).

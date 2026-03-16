@@ -61,7 +61,7 @@ func RecoverNodeState(data []byte) (*state.NodeState, *RecoveryReport, error) {
 		}
 	}
 
-	return nil, report, fmt.Errorf("JSON recovery failed: data is too corrupted to salvage")
+	return nil, report, fmt.Errorf("json recovery failed: data is too corrupted to salvage")
 }
 
 // RecoverRootIndex attempts to recover a RootIndex from malformed JSON data.
@@ -107,7 +107,7 @@ func RecoverRootIndex(data []byte) (*state.RootIndex, *RecoveryReport, error) {
 		}
 	}
 
-	return nil, report, fmt.Errorf("JSON recovery failed: root index is too corrupted to salvage")
+	return nil, report, fmt.Errorf("json recovery failed: root index is too corrupted to salvage")
 }
 
 // sanitizeJSON applies non-destructive cleanups to raw bytes: BOM removal,

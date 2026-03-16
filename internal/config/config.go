@@ -14,6 +14,7 @@ import (
 // Defaults returns the hardcoded default configuration.
 func Defaults() *Config {
 	return &Config{
+		Version: 1,
 		Models: map[string]ModelDef{
 			"fast": {
 				Command: "claude",

@@ -77,7 +77,7 @@ When a node's state changes, it must propagate up through all ancestors to the r
 3. Update the root index entry
 4. Save both the parent state file and root index
 
-**Always propagate after mutations.** Use `app.PropagateState()` in commands or `d.propagateState()` in the daemon.
+**Propagation is automatic.** `StateStore.MutateNode` propagates state changes to all ancestors within the same lock. No manual propagation calls are needed.
 
 ## Audit Lifecycle
 

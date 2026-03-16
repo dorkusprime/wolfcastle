@@ -53,7 +53,7 @@ Inbox processing runs in a background goroutine started by `Run()`. The goroutin
 - **Serial execution.** Only one task is in_progress at a time (ADR-014).
 - **State reloaded after invocation.** The daemon reloads state.json from disk after each model invocation to pick up mutations made by the model's CLI subprocesses (ADR-067).
 - **Propagation after every state change.** `propagateState()` re-reads the root index from disk, applies the state change, and saves.
-- **Summary via CLI (ADR-067).** The model calls `wolfcastle audit summary` before emitting `WOLFCASTLE_COMPLETE`. No summary markers.
+- **Summary via CLI or marker.** The model can call `wolfcastle audit summary` (ADR-067) or emit `WOLFCASTLE_SUMMARY:` inline (ADR-036). The invoke package detects the marker and stores the text on `Result.Summary`.
 
 ## Pipeline Stages
 

@@ -25,12 +25,12 @@ Consult these topic-specific files before making changes in their domain:
 | [Documentation](docs/agents/documentation.md) | Writing specs, ADRs, or updating existing docs |
 | [Voice](docs/agents/VOICE.md) | Writing user-facing copy, error messages, README text, or any prose that represents Wolfcastle's personality |
 | [Testing](docs/agents/testing.md) | Writing or debugging daemon integration tests, mock model configuration |
-| [Audit](docs/agents/AUDIT.md) | Running a comprehensive codebase audit (correctness, style, security, docs, coverage, usability) |
+| [Audit](docs/agents/AUDIT.md) | Running a full codebase audit (correctness, style, security, docs, coverage, usability) |
 
 ## Design References
 
-- [Architecture Decision Records](docs/decisions/INDEX.md) (69 ADRs) document every major design choice. Consult these before making architectural decisions.
-- [Specifications](docs/specs/) (16 implemented specs, 2 drafts) describe the current system in detail. Consult these before modifying behavior.
+- [Architecture Decision Records](docs/decisions/INDEX.md) (76 ADRs) document every major design choice. Consult these before making architectural decisions.
+- [Specifications](docs/specs/) (16 implemented specs, 3 drafts) describe the current system in detail. Consult these before modifying behavior.
 - [Full documentation hub](docs/)
 
 ## Critical Rules

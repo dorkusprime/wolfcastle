@@ -14,7 +14,7 @@ Initial release.
 - Discovery-first intake pipeline with pre-blocking for infeasible work
 
 ### CLI
-- 38 commands across lifecycle, work management, auditing, documentation, diagnostics
+- 39 commands across lifecycle, work management, auditing, documentation, diagnostics
 - Tree view status with colored glyphs and --watch mode
 - Log command with --follow streaming and level filtering
 - Interactive unblock sessions with readline support

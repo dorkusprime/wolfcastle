@@ -26,4 +26,4 @@ Each engineer gets their own namespace under `.wolfcastle/projects/`. No merge c
 
 ## [CLI Reference](cli.md)
 
-38 commands across lifecycle, task management, auditing, diagnostics, and documentation. Every command accepts `--json` and `--node` for tree addressing. Covers the inbox, installation channels, project directory layout, and new engineer setup.
+39 commands across lifecycle, task management, auditing, diagnostics, and documentation. Every command accepts `--json` and `--node` for tree addressing. Covers the inbox, installation channels, project directory layout, and new engineer setup.

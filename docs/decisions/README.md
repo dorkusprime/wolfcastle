@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This directory contains Wolfcastle's ADRs — records of significant architectural decisions made during design and development.
+This directory contains Wolfcastle's ADRs: records of significant architectural decisions made during design and development.
 
 ADRs capture the context, decision, and consequences so future contributors (human or AI) understand *why* the system is built the way it is.
 

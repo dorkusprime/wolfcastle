@@ -153,6 +153,7 @@ These cannot be unit tested by any reasonable means.
 | Various `json.Marshal` on known types | ~3 | Never fails with serializable structs |
 | `embed.FS.ReadFile` error guard | ~1 | Compiled-in files never fail to read |
 | `filepath.Rel` error guards | ~2 | Never fails on same-volume Unix paths |
+| `internal/output/spinner.go` run, clearForMessage, resumeAfterMessage | ~30 | Terminal animation requiring real TTY; writes directly to os.Stdout with cursor control. This puts the package at ~63%, well below the 85% per-package threshold, but the uncovered lines are the animation loop and pause/resume coordination that only execute when IsTerminal() returns true. |
 
 ### Approach
 

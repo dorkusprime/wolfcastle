@@ -262,58 +262,6 @@ func TestResolverForCompletion_FallbackConfigLoadsButNoResolver(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// PropagateState — invalid node address in loadNode callback
-// ---------------------------------------------------------------------------
-
-func TestPropagateState_InvalidNodeInIndex(t *testing.T) {
-	tmp := t.TempDir()
-	wcDir := filepath.Join(tmp, ".wolfcastle")
-	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
-	_ = os.MkdirAll(projDir, 0755)
-
-	// Valid root index, leaf node only
-	idxJSON := `{
-		"root_id": "my-node",
-		"root_state": "not_started",
-		"nodes": {
-			"my-node": {
-				"name": "My Node",
-				"type": "leaf",
-				"state": "in_progress",
-				"address": "my-node",
-				"children": []
-			}
-		}
-	}`
-	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
-
-	nodeDir := filepath.Join(projDir, "my-node")
-	_ = os.MkdirAll(nodeDir, 0755)
-	nodeJSON := `{
-		"id": "my-node",
-		"name": "My Node",
-		"type": "leaf",
-		"state": "complete",
-		"tasks": [],
-		"audit": {"status": "pending", "breadcrumbs": [], "gaps": [], "escalations": []}
-	}`
-	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
-
-	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
-	a := &App{
-		WolfcastleDir: wcDir,
-		Resolver:      resolver,
-	}
-
-	// Should succeed — simple propagation for root-level leaf
-	err := a.PropagateState("my-node", "complete")
-	if err != nil {
-		t.Fatalf("PropagateState failed: %v", err)
-	}
-}
-
-// ---------------------------------------------------------------------------
 // CheckOverlap — nonexistent projects dir
 // ---------------------------------------------------------------------------
 

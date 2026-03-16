@@ -28,7 +28,7 @@ Examples:
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {
-				return fmt.Errorf("--node is required")
+				return fmt.Errorf("--node is required: specify the node to inspect")
 			}
 
 			addr, err := tree.ParseAddress(nodeAddr)

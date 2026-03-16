@@ -25,7 +25,7 @@ Examples:
 			gapID := args[0]
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {
-				return fmt.Errorf("--node is required")
+				return fmt.Errorf("--node is required: specify the target node address")
 			}
 
 			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {

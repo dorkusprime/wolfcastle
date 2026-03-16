@@ -5,7 +5,7 @@ DATE    ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -ldflags "-X github.com/dorkusprime/wolfcastle/cmd.Version=$(VERSION) -X github.com/dorkusprime/wolfcastle/cmd.Commit=$(COMMIT) -X github.com/dorkusprime/wolfcastle/cmd.Date=$(DATE)"
 GOFLAGS := -trimpath
 
-.PHONY: build test install clean lint fmt vet help
+.PHONY: build test install clean lint fmt vet ci help
 
 build:
 	@echo "Building wolfcastle $(VERSION) ($(COMMIT))..."
@@ -13,7 +13,7 @@ build:
 	@echo "Built ./$(BINARY)"
 
 test:
-	go test ./...
+	go test -race ./...
 
 test-verbose:
 	go test -v ./...
@@ -35,6 +35,8 @@ vet:
 
 fmt:
 	@test -z "$$(gofmt -l .)" || (echo "gofmt needed on:"; gofmt -l .; exit 1)
+
+ci: lint test build
 
 # Cross-compilation targets
 .PHONY: build-all build-linux build-darwin build-windows
@@ -67,4 +69,5 @@ help: ## Print available targets
 	@echo "  build-linux    Cross-compile for Linux (amd64, arm64)"
 	@echo "  build-darwin   Cross-compile for macOS (amd64, arm64)"
 	@echo "  build-windows  Cross-compile for Windows (amd64)"
+	@echo "  ci             Run lint, test, and build (full local CI)"
 	@echo "  help           Print this help"

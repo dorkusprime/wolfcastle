@@ -3,6 +3,7 @@ package config
 // Config is the resolved Wolfcastle configuration after merging
 // hardcoded defaults + base/config.json + custom/config.json + local/config.json.
 type Config struct {
+	Version         int                 `json:"version"`
 	Models          map[string]ModelDef `json:"models"`
 	Pipeline        PipelineConfig      `json:"pipeline"`
 	Logs            LogsConfig          `json:"logs"`

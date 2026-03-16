@@ -90,7 +90,7 @@ func RecoveringNodeLoader(projectsDir string, onRecover func(addr string, report
 	}
 }
 
-// ValidateAll runs all 17 validation categories.
+// ValidateAll runs all validation categories.
 func (e *Engine) ValidateAll(idx *state.RootIndex) *Report {
 	return e.validate(idx, nil)
 }

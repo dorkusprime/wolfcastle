@@ -20,6 +20,18 @@ Living system specifications for Wolfcastle. These describe the current design a
 | [Production Hardening](2026-03-14T00-02Z-production-hardening.md) | State file locking, structured log levels, force stop, error message standards, interactive UX |
 | [Testability and Decoupling](2026-03-14T00-03Z-testability-and-decoupling.md) | Integration tests, multi-pass doctor, time injection, centralized defaults, callback marker parsing, property-based propagation tests |
 | [Prompt Externalization](2026-03-14T00-04Z-prompt-externalization.md) | Full prompt inventory, template variable system, new prompt files, override examples, migration plan |
+| [Goroutine Architecture](2026-03-15T00-00Z-goroutine-architecture.md) | Communication architecture between concurrent goroutines, signal chain, real-time I/O pipeline |
+| [StateStore](2026-03-15T00-01Z-state-store.md) | Unified StateStore abstraction replacing raw Load/Save pairs for file-backed state mutations |
+
+## Drafts
+
+Specs that explore potential directions without proposing adoption.
+
+| Spec | Description |
+|------|-------------|
+| [TUI](2026-03-15T00-02Z-tui.md) | Bubbletea-based terminal UI for observing and commanding the daemon |
+| [Worktree by Default](2026-03-15T00-03Z-worktree-by-default.md) | Running all daemon work in isolated git worktrees by default |
+| [Task Classes](2026-03-15T00-04Z-task-classes.md) | Classification system for tasks routing each to a behavioral prompt |
 
 ## Naming
 

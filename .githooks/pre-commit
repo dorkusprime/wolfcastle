@@ -9,4 +9,17 @@ if [ -n "$bad" ]; then
     exit 1
 fi
 
+echo "pre-commit: running vet..."
+go vet ./...
+
+echo "pre-commit: building..."
+go build ./...
+
+echo "pre-commit: running lint (if available)..."
+if command -v golangci-lint >/dev/null 2>&1; then
+    golangci-lint run ./...
+else
+    echo "  golangci-lint not installed, skipping"
+fi
+
 echo "pre-commit: ok"

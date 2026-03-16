@@ -25,7 +25,7 @@ Examples:
 			escalationID := args[0]
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {
-				return fmt.Errorf("--node is required")
+				return fmt.Errorf("--node is required: specify the node that holds this escalation")
 			}
 
 			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {

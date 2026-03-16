@@ -9,15 +9,16 @@ wolfcastle/
 │   ├── root.go              # Root command, PersistentPreRunE for config loading
 │   ├── cmdutil/             # Shared App context, completions, overlap detection
 │   ├── audit/               # Audit subcommands (approve, reject, gap, etc.)
-│   ├── daemon/              # start, stop, status, follow
+│   ├── daemon/              # start, stop, status, log
 │   ├── inbox/               # add, list, clear
 │   ├── project/             # create
-│   └── task/                # add, claim, complete, block, unblock
+│   └── task/                # add, claim, complete, block, unblock, deliverable
 ├── internal/                # Core logic (not importable outside the module)
 │   ├── archive/             # Archive entry rollup (Markdown generation)
 │   ├── clock/               # Time abstraction for deterministic testing (ADR-052)
 │   ├── config/              # Config loading, merging, validation, types
 │   ├── daemon/              # Daemon loop, pipeline execution, marker parsing
+│   ├── errors/              # Typed error categories (ADR-065)
 │   ├── invoke/              # Model CLI invocation (buffered + streaming)
 │   ├── logging/             # Per-iteration NDJSON logging
 │   ├── output/              # Structured JSON envelopes + human-readable printing
@@ -29,7 +30,7 @@ wolfcastle/
 │   ├── tree/                # Tree addressing, slug generation, resolver
 │   └── validate/            # Structural validation engine and auto-fix
 ├── docs/
-│   ├── decisions/           # ADRs (001-062)
+│   ├── decisions/           # ADRs (001-076)
 │   ├── specs/               # Implementation specs (timestamped)
 │   └── agents/              # This directory (agent guidance)
 └── Makefile
@@ -64,7 +65,7 @@ User input → cmd/ → internal/ → filesystem (.wolfcastle/)
 
 Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
-- `daemon` → `config`, `invoke`, `logging`, `output`, `pipeline`, `state`, `tree`
+- `daemon` → `config`, `errors`, `invoke`, `logging`, `output`, `pipeline`, `state`, `tree`
 - `pipeline` → `config`, `state`
 - `validate` → `state`
 - `archive` → `config`, `state`
@@ -75,4 +76,5 @@ Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/`
 - `clock` → (standalone)
 - `tree` → (standalone)
 - `output` → (standalone)
+- `errors` → (standalone)
 - `invoke` → `config`

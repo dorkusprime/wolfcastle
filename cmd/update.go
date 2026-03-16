@@ -22,12 +22,14 @@ Examples:
 		// Check for binary update
 		updater := selfupdate.NewUpdater(Version)
 		result, err := updater.Apply()
-		if err != nil {
-			output.PrintHuman("Update check failed: %v. Regenerating base/ anyway.", err)
-		} else if result.Updated {
-			output.PrintHuman("Upgraded: %s -> %s", result.CurrentVersion, result.LatestVersion)
-		} else if result.AlreadyCurrent {
-			output.PrintHuman("Already running %s. No upgrade needed.", result.CurrentVersion)
+		if !app.JSONOutput {
+			if err != nil {
+				output.PrintHuman("Update check failed: %v. Regenerating base/ anyway.", err)
+			} else if result.Updated {
+				output.PrintHuman("Upgraded: %s -> %s", result.CurrentVersion, result.LatestVersion)
+			} else if result.AlreadyCurrent {
+				output.PrintHuman("Already running %s. No upgrade needed.", result.CurrentVersion)
+			}
 		}
 
 		// Regenerate base/ prompts and rules
@@ -36,9 +38,16 @@ Examples:
 		}
 
 		if app.JSONOutput {
+			updateStatus := "unchanged"
+			if err != nil {
+				updateStatus = "check_failed"
+			} else if result.Updated {
+				updateStatus = "updated"
+			}
 			output.Print(output.Ok("update", map[string]string{
-				"path":    app.WolfcastleDir,
-				"version": Version,
+				"path":          app.WolfcastleDir,
+				"version":       Version,
+				"update_status": updateStatus,
 			}))
 		} else {
 			output.PrintHuman("base/ regenerated in %s", app.WolfcastleDir)

@@ -31,7 +31,7 @@ Examples:
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {
-				return fmt.Errorf("--node is required")
+				return fmt.Errorf("--node is required: specify the target node address")
 			}
 
 			var gapID string

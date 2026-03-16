@@ -30,6 +30,8 @@ var rootCmd = &cobra.Command{
 breaks those pieces. Then it does the work while you go do whatever it
 is you do when you're not supervising software.
 
+PRE-RELEASE: The CLI surface may change before v1.0.
+
 Quick start:
   wolfcastle init                          Claim a directory
   wolfcastle project create "my-feature"   Name your target

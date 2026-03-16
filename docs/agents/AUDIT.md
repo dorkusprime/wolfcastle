@@ -148,7 +148,7 @@ Does the code compile and run on all targets?
 
 ## 12. Code Coverage
 
-Is the test suite comprehensive enough to trust?
+Is the test suite thorough enough to trust?
 
 - [ ] Weighted coverage (`go test -coverprofile=cover.out ./... && go tool cover -func=cover.out | tail -1`) is above 93%.
 - [ ] Codecov reports above 90% (accounts for partial branch penalty).
