@@ -363,8 +363,12 @@ func TestCLI_StatusOutput(t *testing.T) {
 	run(t, dir, "task", "block", "--node", "status-blocked/task-0001", "stuck")
 
 	out := run(t, dir, "status")
-	if !strings.Contains(out, "Total:") || !strings.Contains(out, "Blocked:") {
+	if !strings.Contains(out, "nodes") || !strings.Contains(out, "Daemon:") {
 		t.Errorf("status output missing expected fields: %s", out)
+	}
+	// Verify the tree view shows node names and glyphs
+	if !strings.Contains(out, "status-complete") || !strings.Contains(out, "status-blocked") {
+		t.Errorf("status should show node names: %s", out)
 	}
 }
 

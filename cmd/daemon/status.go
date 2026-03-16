@@ -52,19 +52,29 @@ Examples:
 	}
 }
 
+// nodeDetail holds the index entry and optionally the full node state
+// for rendering the tree view.
+type nodeDetail struct {
+	entry state.IndexEntry
+	ns    *state.NodeState // nil for orchestrators or load failures
+}
+
 func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error {
 	counts := map[state.NodeStatus]int{}
 	auditCounts := map[state.AuditStatus]int{}
 	openGaps := 0
 	openEscalations := 0
 
+	details := map[string]*nodeDetail{}
+
 	for addr, entry := range idx.Nodes {
 		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
 			continue
 		}
 		counts[entry.State]++
+		nd := &nodeDetail{entry: entry}
+		details[addr] = nd
 
-		// Load leaf nodes for audit stats
 		if entry.Type == state.NodeLeaf {
 			a, err := tree.ParseAddress(addr)
 			if err != nil {
@@ -74,6 +84,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 			if err != nil {
 				continue
 			}
+			nd.ns = ns
 			auditCounts[ns.Audit.Status]++
 			for _, g := range ns.Audit.Gaps {
 				if g.Status == state.GapOpen {
@@ -88,10 +99,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 		}
 	}
 
-	total := len(idx.Nodes)
-	if scope != "" {
-		total = counts[state.StatusNotStarted] + counts[state.StatusInProgress] + counts[state.StatusComplete] + counts[state.StatusBlocked]
-	}
+	total := len(details)
 
 	daemonStatus := getDaemonStatus(app.WolfcastleDir)
 
@@ -110,31 +118,150 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 			"open_gaps":         openGaps,
 			"open_escalations":  openEscalations,
 		}))
-	} else {
-		output.PrintHuman("Battlefield Report")
-		output.PrintHuman("")
-		output.PrintHuman("  Nodes")
-		output.PrintHuman("    Total:        %d", total)
-		output.PrintHuman("    Not started:  %d", counts[state.StatusNotStarted])
-		output.PrintHuman("    In progress:  %d", counts[state.StatusInProgress])
-		output.PrintHuman("    Complete:     %d", counts[state.StatusComplete])
-		output.PrintHuman("    Blocked:      %d", counts[state.StatusBlocked])
-		output.PrintHuman("")
-		output.PrintHuman("  Audit")
-		output.PrintHuman("    Pending:      %d", auditCounts[state.AuditPending])
-		output.PrintHuman("    In progress:  %d", auditCounts[state.AuditInProgress])
-		output.PrintHuman("    Passed:       %d", auditCounts[state.AuditPassed])
-		output.PrintHuman("    Failed:       %d", auditCounts[state.AuditFailed])
-		if openGaps > 0 {
-			output.PrintHuman("    Open gaps:    %d", openGaps)
-		}
-		if openEscalations > 0 {
-			output.PrintHuman("    Open escalations: %d", openEscalations)
-		}
-		output.PrintHuman("")
-		output.PrintHuman("  Daemon: %s", daemonStatus)
+		return nil
 	}
+
+	// Human output: header summary + tree view
+	output.PrintHuman("Wolfcastle Status")
+	output.PrintHuman("")
+
+	// Summary line
+	var parts []string
+	if c := counts[state.StatusComplete]; c > 0 {
+		parts = append(parts, fmt.Sprintf("%d complete", c))
+	}
+	if c := counts[state.StatusInProgress]; c > 0 {
+		parts = append(parts, fmt.Sprintf("%d in progress", c))
+	}
+	if c := counts[state.StatusBlocked]; c > 0 {
+		parts = append(parts, fmt.Sprintf("%d blocked", c))
+	}
+	if c := counts[state.StatusNotStarted]; c > 0 {
+		parts = append(parts, fmt.Sprintf("%d not started", c))
+	}
+	if total == 0 {
+		output.PrintHuman("  No targets. Feed the inbox.")
+	} else {
+		output.PrintHuman("  %d nodes (%s)", total, strings.Join(parts, ", "))
+	}
+	output.PrintHuman("")
+
+	// Tree view: walk root nodes in order
+	for _, rootAddr := range idx.Root {
+		if scope != "" && !isInSubtree(idx, rootAddr, scope) {
+			continue
+		}
+		printNodeTree(app, idx, details, rootAddr, "  ")
+	}
+
+	// Inbox count
+	inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
+	if inboxData, err := state.LoadInbox(inboxPath); err == nil {
+		newCount, filedCount := 0, 0
+		for _, item := range inboxData.Items {
+			switch item.Status {
+			case "new":
+				newCount++
+			case "filed":
+				filedCount++
+			}
+		}
+		if newCount > 0 || filedCount > 0 {
+			output.PrintHuman("")
+			output.PrintHuman("  Inbox: %d new, %d filed", newCount, filedCount)
+		}
+	}
+
+	output.PrintHuman("  Daemon: %s", daemonStatus)
 	return nil
+}
+
+// printNodeTree recursively prints a node and its children/tasks.
+func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*nodeDetail, addr string, indent string) {
+	nd, ok := details[addr]
+	if !ok {
+		return
+	}
+
+	glyph := nodeGlyph(nd.entry.State)
+	output.PrintHuman("%s%s %s", indent, glyph, nd.entry.Name)
+
+	// For orchestrators, print children
+	if nd.entry.Type == state.NodeOrchestrator {
+		for _, childAddr := range nd.entry.Children {
+			printNodeTree(app, idx, details, childAddr, indent+"  ")
+		}
+		return
+	}
+
+	// For leaves, print tasks
+	if nd.ns == nil {
+		return
+	}
+	for _, t := range nd.ns.Tasks {
+		tGlyph := taskGlyph(t.State)
+		label := t.Title
+		if label == "" {
+			label = t.Description
+		}
+		// Truncate long descriptions
+		if len(label) > 60 {
+			label = label[:57] + "..."
+		}
+
+		extra := ""
+		if t.State == state.StatusBlocked && t.BlockedReason != "" {
+			reason := t.BlockedReason
+			if len(reason) > 50 {
+				reason = reason[:47] + "..."
+			}
+			extra = "  " + reason
+		}
+		if t.FailureCount > 0 && t.State != state.StatusComplete {
+			extra += fmt.Sprintf("  (%d failures)", t.FailureCount)
+		}
+
+		output.PrintHuman("%s  %s %s  %s%s", indent, tGlyph, t.ID, label, extra)
+	}
+
+	// Gaps
+	for _, g := range nd.ns.Audit.Gaps {
+		if g.Status == state.GapOpen {
+			desc := g.Description
+			if len(desc) > 55 {
+				desc = desc[:52] + "..."
+			}
+			output.PrintHuman("%s    ⚠ %s: %s", indent, g.ID, desc)
+		}
+	}
+}
+
+// nodeGlyph returns the TUI-consistent status glyph for a node.
+func nodeGlyph(s state.NodeStatus) string {
+	switch s {
+	case state.StatusComplete:
+		return "●"
+	case state.StatusInProgress:
+		return "◐"
+	case state.StatusBlocked:
+		return "☢"
+	default:
+		return "◯"
+	}
+}
+
+// taskGlyph returns the status glyph for a task.
+func taskGlyph(s state.NodeStatus) string {
+	switch s {
+	case state.StatusComplete:
+		return "✓"
+	case state.StatusInProgress:
+		return "→"
+	case state.StatusBlocked:
+		return "✖"
+	default:
+		return "○"
+	}
 }
 
 // getDaemonStatus checks the PID file and reports daemon status.
