@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/spf13/cobra"
@@ -206,7 +206,7 @@ func formatAndPrintLogLine(line string, minLevel logging.Level) {
 		fmt.Printf("%s[%s] Error: %s\n", prefix, stage, errMsg)
 	case "assistant":
 		if text, ok := record["text"].(string); ok {
-			formatted := formatAssistantText(text)
+			formatted := invoke.FormatAssistantText(text)
 			if formatted != "" {
 				fmt.Println(formatted)
 			}
@@ -253,73 +253,6 @@ func formatAndPrintLogLine(line string, minLevel logging.Level) {
 			fmt.Printf("%s[%s]\n", prefix, typ)
 		}
 	}
-}
-
-// formatAssistantText extracts human-readable content from Claude Code's
-// streaming JSON output.
-func formatAssistantText(raw string) string {
-	var envelope struct {
-		Type    string `json:"type"`
-		Subtype string `json:"subtype"`
-		Message struct {
-			Content []struct {
-				Type  string `json:"type"`
-				Text  string `json:"text"`
-				Name  string `json:"name"`
-				Input any    `json:"input"`
-			} `json:"content"`
-		} `json:"message"`
-		Result string `json:"result"`
-	}
-	if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
-		if len(raw) > 200 {
-			return raw[:200] + "..."
-		}
-		return raw
-	}
-
-	switch envelope.Type {
-	case "assistant":
-		var parts []string
-		for _, c := range envelope.Message.Content {
-			switch c.Type {
-			case "text":
-				if c.Text != "" {
-					parts = append(parts, c.Text)
-				}
-			case "tool_use":
-				if c.Name != "" {
-					if inputMap, ok := c.Input.(map[string]any); ok {
-						if desc, ok := inputMap["description"].(string); ok {
-							parts = append(parts, fmt.Sprintf("  → %s: %s", c.Name, desc))
-						} else if cmd, ok := inputMap["command"].(string); ok {
-							if len(cmd) > 80 {
-								cmd = cmd[:80] + "..."
-							}
-							parts = append(parts, fmt.Sprintf("  → %s: %s", c.Name, cmd))
-						} else {
-							parts = append(parts, fmt.Sprintf("  → %s", c.Name))
-						}
-					} else {
-						parts = append(parts, fmt.Sprintf("  → %s", c.Name))
-					}
-				}
-			}
-		}
-		if len(parts) > 0 {
-			return strings.Join(parts, "\n")
-		}
-	case "result":
-		if envelope.Result != "" {
-			return "[result] " + envelope.Result
-		}
-	case "system":
-		if envelope.Subtype == "init" {
-			return "[session started]"
-		}
-	}
-
-	return ""
 }
 
 // Simple offset tracking for tail -f behavior

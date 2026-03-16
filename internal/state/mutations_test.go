@@ -161,6 +161,40 @@ func TestTaskComplete_DoesNotMarkNodeCompleteWithRemainingTasks(t *testing.T) {
 	}
 }
 
+func TestTaskComplete_BlocksNodeWhenRemainingTasksBlocked(t *testing.T) {
+	t.Parallel()
+	ns := newLeafWithTasks(
+		Task{ID: "task-0001", Description: "work", State: StatusInProgress},
+		Task{ID: "task-0002", Description: "more work", State: StatusComplete},
+		Task{ID: "audit", Description: "audit", State: StatusBlocked, IsAudit: true, BlockedReason: "open gaps"},
+	)
+	ns.State = StatusInProgress
+
+	if err := TaskComplete(ns, "task-0001"); err != nil {
+		t.Fatal(err)
+	}
+	if ns.State != StatusBlocked {
+		t.Errorf("node should be blocked when all non-complete tasks are blocked, got %s", ns.State)
+	}
+}
+
+func TestTaskComplete_StaysInProgressWithNotStartedTasks(t *testing.T) {
+	t.Parallel()
+	ns := newLeafWithTasks(
+		Task{ID: "task-0001", Description: "work", State: StatusInProgress},
+		Task{ID: "task-0002", Description: "next", State: StatusNotStarted},
+		Task{ID: "audit", Description: "audit", State: StatusBlocked, IsAudit: true},
+	)
+	ns.State = StatusInProgress
+
+	if err := TaskComplete(ns, "task-0001"); err != nil {
+		t.Fatal(err)
+	}
+	if ns.State != StatusInProgress {
+		t.Errorf("node should stay in_progress with not_started tasks remaining, got %s", ns.State)
+	}
+}
+
 func TestTaskBlock_TransitionsInProgressToBlocked(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
