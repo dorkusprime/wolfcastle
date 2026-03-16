@@ -105,15 +105,6 @@ func buildDiagnostic(nodeAddr, taskID string, ns *state.NodeState, task *state.T
 	fmt.Fprintf(&b, "**Failure Count:** %d\n", task.FailureCount)
 	fmt.Fprintf(&b, "**Decomposition Depth:** %d\n\n", ns.DecompositionDepth)
 
-	// Task breadcrumbs
-	if len(task.Breadcrumbs) > 0 {
-		b.WriteString("## Task Breadcrumbs\n\n")
-		for _, bc := range task.Breadcrumbs {
-			fmt.Fprintf(&b, "- %s\n", bc)
-		}
-		b.WriteString("\n")
-	}
-
 	// Node audit breadcrumbs
 	if len(ns.Audit.Breadcrumbs) > 0 {
 		b.WriteString("## Audit Trail\n\n")
