@@ -180,20 +180,30 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	conversation := prompt
 
 	for {
+		output.PrintHuman("  thinking...")
 		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(app.Cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
 		result, invokeErr := invoke.Invoke(invokeCtx, model, conversation, repoDir)
 		cancel()
+
+		// Clear the "thinking..." line
+		fmt.Print("\033[A\033[2K")
 
 		if invokeErr != nil {
 			return fmt.Errorf("model invocation failed: %w", invokeErr)
 		}
 
-		// Display model response, formatting each streaming JSON line
+		// Display model response, filtering noise for interactive use
 		scanner := bufio.NewScanner(strings.NewReader(result.Stdout))
 		for scanner.Scan() {
-			if formatted := invoke.FormatAssistantText(scanner.Text()); formatted != "" {
-				output.PrintHuman("%s", formatted)
+			formatted := invoke.FormatAssistantText(scanner.Text())
+			if formatted == "" {
+				continue
 			}
+			// Skip session init and result summaries (duplicate of assistant text)
+			if formatted == "[session started]" || strings.HasPrefix(formatted, "[result] ") {
+				continue
+			}
+			output.PrintHuman("%s", formatted)
 		}
 		if result.Stderr != "" {
 			output.PrintError("%s", result.Stderr)
@@ -248,8 +258,18 @@ func loadUnblockPreamble() string {
 			return content
 		}
 	}
-	return "Help the user understand and resolve this blocked task. " +
-		"Ask clarifying questions. Suggest potential fixes."
+	return `You are helping a developer resolve a blocked task in Wolfcastle.
+
+Your job:
+1. Read the diagnostic context above to understand why the task is blocked.
+2. Explain the situation clearly and concisely.
+3. Ask what the user wants to do. Offer concrete options when possible.
+4. When the user makes a decision, execute it using wolfcastle CLI commands.
+
+Rules:
+- Use wolfcastle CLI commands (wolfcastle audit fix-gap, wolfcastle audit resolve-escalation, wolfcastle task unblock, etc.) to make changes. Never edit state.json or other files in .wolfcastle/ directly.
+- Be concise. The user already knows their project; don't over-explain.
+- When the issue is resolved, run the unblock command yourself rather than asking the user to do it.`
 }
 
 func init() {
