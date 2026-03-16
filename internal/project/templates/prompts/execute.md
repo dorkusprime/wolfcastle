@@ -53,16 +53,45 @@ wolfcastle audit scope --node <your-node> --description "what this node audits"
 
 ### F. Document decisions and specs
 
-When you make an architectural decision (choosing a framework, designing a data model, selecting an approach over alternatives), record it as an ADR:
-```
-wolfcastle adr create "Decision Title"
-```
-This creates a properly named file in `.wolfcastle/docs/decisions/`. Write the ADR body explaining context, options considered, and the decision.
+**ADRs are mandatory when you make a technology choice.** If you choose a framework, language, library, architecture pattern, or reject an alternative, record it. No exceptions.
 
-When you produce a design document or specification, create it through the CLI:
 ```
-wolfcastle spec create "Spec Title" --node <your-node>
+wolfcastle adr create --stdin "Use Sinatra for the web backend" <<'EOF'
+## Status
+Accepted
+
+## Context
+The project needs a lightweight web framework for a small bookmark API.
+
+## Options Considered
+1. **Sinatra**: minimal, well-documented, fits the scope
+2. **Rails**: too heavy for two endpoints
+3. **Roda**: less community support
+
+## Decision
+Sinatra. The scope is small, the API surface is two endpoints, and Sinatra's routing DSL maps directly to the requirements.
+
+## Consequences
+No ORM included by default. Database access will use raw SQL or a lightweight gem.
+EOF
 ```
+
+Every ADR needs: Status, Context, Options Considered, Decision, Consequences. Fill in real content, not placeholders.
+
+**Specs go through the CLI**, not as files in `docs/`:
+
+```
+wolfcastle spec create "API Design" --node <your-node> --body "## Overview
+The API exposes two endpoints: GET /bookmarks (list all) and POST /bookmarks (create).
+
+## Data Model
+Bookmark: id, url, title, created_at
+
+## Endpoints
+GET /bookmarks → 200 JSON array
+POST /bookmarks → 201 JSON object"
+```
+
 This creates a properly named file in `.wolfcastle/docs/specs/` and links it to the node. Never write specs directly to `docs/` or other locations.
 
 Skip this phase if your task is pure implementation with no design choices.

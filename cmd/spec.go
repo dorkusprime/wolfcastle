@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,6 +45,8 @@ Examples:
 			return fmt.Errorf("spec title cannot be empty. Name it")
 		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
+		body, _ := cmd.Flags().GetString("body")
+		useStdin, _ := cmd.Flags().GetBool("stdin")
 
 		if nodeAddr != "" {
 			if err := app.RequireResolver(); err != nil {
@@ -62,7 +65,18 @@ Examples:
 		}
 		specPath := filepath.Join(docsDir, filename)
 
-		content := fmt.Sprintf("# %s\n\n[Spec content goes here.]\n", title)
+		var content string
+		if useStdin {
+			data, readErr := io.ReadAll(os.Stdin)
+			if readErr != nil {
+				return fmt.Errorf("reading stdin: %w", readErr)
+			}
+			content = fmt.Sprintf("# %s\n\n%s\n", title, strings.TrimSpace(string(data)))
+		} else if body != "" {
+			content = fmt.Sprintf("# %s\n\n%s\n", title, body)
+		} else {
+			content = fmt.Sprintf("# %s\n\n[Spec content goes here.]\n", title)
+		}
 		if err := os.WriteFile(specPath, []byte(content), 0644); err != nil {
 			return fmt.Errorf("writing spec file: %w", err)
 		}
@@ -243,6 +257,8 @@ Examples:
 
 func init() {
 	specCreateCmd.Flags().String("node", "", "Link spec to this node")
+	specCreateCmd.Flags().String("body", "", "Spec body content")
+	specCreateCmd.Flags().Bool("stdin", false, "Read spec body from stdin")
 	specLinkCmd.Flags().String("node", "", "Target node address (required)")
 	_ = specLinkCmd.MarkFlagRequired("node")
 	specListCmd.Flags().String("node", "", "Filter specs by linked node")
