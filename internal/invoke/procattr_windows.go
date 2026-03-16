@@ -10,3 +10,7 @@ import "syscall"
 func processSysProcAttr() *syscall.SysProcAttr {
 	return nil
 }
+
+// reclaimForeground is a no-op on Windows. The foreground process group
+// concept does not apply the same way.
+func reclaimForeground() {}
