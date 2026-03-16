@@ -71,3 +71,9 @@
 | 067 | [Terminal Markers Only via CLI Audit](067-terminal-markers-only-cli-audit.md) | Accepted | 2026-03-15 |
 | 068 | [Unified StateStore for File-Backed State](068-unified-state-store.md) | Accepted | 2026-03-15 |
 | 069 | [Task Deliverables](069-task-deliverables.md) | Accepted | 2026-03-15 |
+| 070 | [Deliverable Change Detection](070-deliverable-change-detection.md) | Accepted | 2026-03-16 |
+| 071 | [Discovery-First Intake Pipeline](071-discovery-first-intake.md) | Accepted | 2026-03-16 |
+| 072 | [Pre-blocking Not-Started Tasks](072-pre-blocking-not-started-tasks.md) | Accepted | 2026-03-16 |
+| 073 | [Follow-to-Log Rename](073-follow-to-log-rename.md) | Accepted | 2026-03-16 |
+| 074 | [Status Tree View](074-status-tree-view.md) | Accepted | 2026-03-16 |
+| 075 | [Foreground Process Group Reclaim](075-foreground-process-group-reclaim.md) | Accepted | 2026-03-16 |
