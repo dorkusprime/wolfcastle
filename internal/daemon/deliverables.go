@@ -54,7 +54,7 @@ func checkDeliverablesChanged(repoDir string, ns *state.NodeState, taskID string
 		for _, d := range t.Deliverables {
 			if isGlob(d) {
 				// For globs, check if any match has a different hash
-				matches, _ := filepath.Glob(filepath.Join(repoDir, d))
+				matches := globRecursive(filepath.Join(repoDir, d))
 				for _, m := range matches {
 					rel, _ := filepath.Rel(repoDir, m)
 					current := hashFile(m)
@@ -87,7 +87,7 @@ func snapshotDeliverables(repoDir string, deliverables []string) map[string]stri
 	for _, d := range deliverables {
 		path := filepath.Join(repoDir, d)
 		if isGlob(d) {
-			matches, _ := filepath.Glob(path)
+			matches := globRecursive(path)
 			for _, m := range matches {
 				rel, _ := filepath.Rel(repoDir, m)
 				hashes[rel] = hashFile(m)
@@ -123,12 +123,10 @@ func isGlob(path string) bool {
 }
 
 // globHasMatch returns true if the pattern matches at least one
-// non-empty file on disk.
+// non-empty file on disk. Uses recursive walk for ** patterns or
+// patterns that should match in subdirectories.
 func globHasMatch(pattern string) bool {
-	matches, err := filepath.Glob(pattern)
-	if err != nil || len(matches) == 0 {
-		return false
-	}
+	matches := globRecursive(pattern)
 	for _, m := range matches {
 		info, err := os.Stat(m)
 		if err == nil && info.Size() > 0 {
@@ -136,4 +134,41 @@ func globHasMatch(pattern string) bool {
 		}
 	}
 	return false
+}
+
+// globRecursive expands a glob pattern, walking subdirectories when the
+// pattern contains path separators with wildcards (e.g., cmd/*.go matches
+// cmd/task/add.go). Standard filepath.Glob only matches one directory
+// level per *, so this function walks the base directory and applies the
+// filename pattern to every file found.
+func globRecursive(pattern string) []string {
+	// Try standard glob first for simple patterns
+	matches, _ := filepath.Glob(pattern)
+
+	// If the pattern has a wildcard in the filename part only (e.g., cmd/*.go),
+	// also walk subdirectories to find matching files
+	dir, filePattern := filepath.Split(pattern)
+	if dir == "" || !isGlob(filePattern) {
+		return matches
+	}
+
+	// Deduplicate: track what filepath.Glob already found
+	seen := make(map[string]bool)
+	for _, m := range matches {
+		seen[m] = true
+	}
+
+	// Walk subdirectories of dir looking for files that match filePattern
+	_ = filepath.Walk(strings.TrimSuffix(dir, string(filepath.Separator)), func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+		matched, _ := filepath.Match(filePattern, info.Name())
+		if matched && !seen[path] {
+			matches = append(matches, path)
+		}
+		return nil
+	})
+
+	return matches
 }

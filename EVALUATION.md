@@ -1,26 +1,38 @@
 # Wolfcastle Release-Readiness Evaluation
 
+---
+
 ## Executive Summary
 
 **Verdict: Ready with conditions.**
 
-Conditions: (1) The `PropagateState` method in `cmd/cmdutil/app.go` bypasses the `StateStore` lock, creating a narrow window for state desynchronization if a CLI command runs during daemon propagation. This should be fixed before release. (2) The `ValidateAll` comment in `engine.go` claims 17 validation categories but the engine checks 24; a trivial fix but worth catching before publication.
+Conditions: (1) the `project create ""` accepting an empty-string name and creating an "unnamed" project without validation needs to be fixed; (2) the `.DS_Store` file committed to the repository root should be removed and gitignored properly.
 
-Wolfcastle is a genuinely strong Go project. Its three finest qualities are its **state mutation architecture** (the `StateStore` pattern that makes concurrent corruption structurally difficult by routing all writes through lock-protected callbacks with automatic propagation), its **validation engine** (24 categories of structural checks with multi-pass deterministic repair and JSON recovery from truncated or corrupted files), and its **test suite** (1,763 passing tests at a 3.2:1 test-to-source ratio, with property-based propagation testing and careful coverage of edge cases like file permission errors and malformed JSON).
+Wolfcastle is a well-architected, thoroughly tested, and carefully documented Go CLI. The three strongest qualities of the codebase are:
 
-The most serious issues, ranked: (1) The unlocked propagation path in `cmdutil/app.go:PropagateState`, which could desynchronize parent states in a race with the daemon. (2) The `ValidateAll` comment claims "17 validation categories" but the engine actually checks 24, a minor documentation staleness that won't confuse users but signals incomplete internal review. (3) No integration test exercises the daemon's inbox goroutine alongside the execute loop under concurrent CLI mutation, the highest-risk runtime scenario.
+1. **The StateStore's lock-callback-write pattern** makes concurrent state corruption structurally impossible. Every mutation acquires a file lock, re-reads from disk, applies a callback, and atomically writes the result. This is not just correct, it is elegant: callers cannot forget to lock because the API does not expose unlocked writes.
 
-The single improvement that would most strengthen a contributor's first impression: the README is already excellent, but a `make ci` target that runs lint, test, and build in one command would signal CI-readiness immediately.
+2. **A 3.2:1 test-to-source ratio with property-based propagation tests.** The test suite is not a formality. The property-based tests in `propagation_property_test.go` generate random trees, apply random mutations, and verify four invariants hold across 500 seeds. This catches the kind of subtle desynchronization bug that deterministic tests miss.
+
+3. **Exhaustive specification and ADR coverage.** 76 ADRs and 19 specs (16 accepted, 3 draft) document every material design decision. The ADR index is well-maintained. The specs are formal enough to implement from yet readable enough to learn from.
+
+The three most serious issues, none of which rise to true release-blocker severity:
+
+1. **Empty project name accepted** (`project create ""` succeeds, creating "unnamed"). This is a validation gap, not a corruption risk, but it will confuse users on day one.
+2. **`.DS_Store` in repository.** A macOS metadata file in the repo root signals a missing `.gitignore` entry. Cosmetic but visible.
+3. **Error message for nonexistent node shows raw filesystem path** (`open /tmp/wolfcastle-test/.wolfcastle/projects/wild-macbook-pro/nonexistent/state.json: no such file or directory`). A user should see "node 'nonexistent' not found," not an internal path.
+
+The single thing that would most improve a contributor's first impression: fixing the raw filesystem paths in error messages so they reference tree addresses instead.
 
 ---
 
 ## Project Identity
 
-Wolfcastle is the work of someone who has been bitten by state corruption, race conditions, and silent data loss in production, and decided that the answer was to make the wrong thing impossible rather than merely discouraged. The project optimizes for correctness over performance, determinism over flexibility, and explicit failure over silent degradation. Every mutation passes through a lock. Every write is atomic. Every state transition is structural.
+Wolfcastle optimizes for correctness over convenience, determinism over speed, and explainability over magic. It bets that the right level of abstraction for orchestrating AI coding agents is a tree of tasks with a state machine enforced by Go scripts, not a pipeline of LLM-to-LLM calls where state lives in conversation history. Every mutation path goes through a file lock and an atomic write. Every state transition is traceable from CLI command to JSON on disk. The project trusts the model to write code but trusts nothing about the model's behavior: markers are parsed with priority semantics, deliverables are verified against baseline hashes, and the daemon can recover from any crash point.
 
-The codebase carries the personality of a systems engineer who cares about the Go standard library more than the Go ecosystem: only three direct dependencies, zero code generation, no ORM, no framework beyond Cobra. The architecture decisions are documented with a thoroughness that borders on obsessive (76 ADRs), and the documentation itself is well-written and opinionated, not perfunctory.
+The engineer who built this thinks in invariants. The code reads like someone who has been burned by race conditions, stale state, and silent corruption in production, and resolved never to ship those problems again. The audit system, the breadcrumb trail, the multi-pass doctor with verification, the cycle detection in propagation: these are the marks of an engineer who treats data integrity as a first principle.
 
-The kind of engineer drawn to contribute here would be someone who reads ADRs before writing code, who prefers `filepath.Join` over string concatenation, and who finds satisfaction in a well-designed state machine. This is a project for people who think "it works" is necessary but not sufficient.
+Contributors drawn to this project will be the kind who read ADRs before writing code, who appreciate a property-based test that runs 500 seeds, and who find satisfaction in a function that cannot be called incorrectly because the API makes the wrong thing impossible. This is not a hack-it-together weekend project; it is a considered piece of systems engineering with a personality to match.
 
 ---
 
@@ -28,21 +40,21 @@ The kind of engineer drawn to contribute here would be someone who reads ADRs be
 
 | Metric | Value |
 | ------ | ----- |
-| Total Go LOC (excluding tests) | 14,223 |
-| Total test LOC | 45,428 |
-| Test-to-source ratio | 3.19:1 |
+| Total Go LOC (excluding tests) | 14,210 |
+| Total test LOC | 45,694 |
+| Test-to-source ratio | 3.22:1 |
 | Number of source files | 111 |
-| Number of test files | 158 |
-| Number of packages | 25 |
-| External dependencies (direct) | 3 |
-| External dependencies (transitive) | 3 |
-| CLI commands/subcommands | 38 |
+| Number of test files | 159 |
+| Number of packages | 22 (15 internal + 6 cmd + 1 root) |
+| External dependencies (direct) | 3 (cobra, fsnotify, readline) |
+| External dependencies (transitive) | 6 |
+| CLI commands/subcommands | 41 (14 top-level + 27 subcommands across audit, daemon, inbox, project, task) |
 | ADRs (accepted) | 76 |
 | Specs (non-draft) | 16 |
 | Specs (draft) | 3 |
-| Validation issue categories | 24 |
+| Validation issue categories | 23 |
 | Build result (pass/fail) | Pass |
-| Test result (pass count / fail count) | 1,763 / 0 |
+| Test result (pass count / fail count) | 22 packages pass / 0 fail (1,912 individual test functions, 0 failures) |
 | Linter warnings | 0 |
 
 ---
@@ -53,39 +65,37 @@ The kind of engineer drawn to contribute here would be someone who reads ADRs be
 
 **Analysis**
 
-The system decomposes into 15 internal packages plus `cmd/` with 6 subpackages. The boundaries are well-chosen and genuinely separate concerns: `state` owns types, I/O, mutations, navigation, and propagation; `daemon` owns the iteration loop and pipeline dispatch; `pipeline` owns prompt assembly; `invoke` owns subprocess execution; `validate` owns structural checking and repair; `config` owns loading and merging; `tree` owns address parsing and path resolution.
+Wolfcastle's internal architecture is a clean layered dependency graph: `cmd/*` depends on `internal/*`, never the reverse. The 15 internal packages correspond to genuine separations of concern: `state` (types, I/O, mutations, navigation, propagation), `daemon` (iteration loop, stages, retry, signals), `pipeline` (prompt assembly, fragment resolution), `invoke` (subprocess execution, marker detection), `config` (three-tier loading, merge, validation), `validate` (doctor engine, fix system, recovery), `tree` (address parsing, filesystem resolution), `logging` (per-iteration NDJSON), `output` (JSON envelope, human printing, spinner), `project` (scaffolding, templates), `archive` (timestamped entries), `errors` (typed categories), `clock` (time abstraction), `selfupdate` (binary updates), `testutil` (shared test helpers).
 
-The dependency graph flows cleanly: `cmd/*` depends on `internal/*`, never the reverse. Within `internal/`, the layering is `daemon` → `pipeline`, `invoke`, `state`, `logging`; `pipeline` → `config`, `state`; `validate` → `state`, `tree`. No cycles exist. A new contributor could draw this graph after reading `CONTRIBUTING.md` and browsing the import statements for twenty minutes.
+The `StateStore` pattern (`internal/state/store.go`) is the architectural linchpin. `MutateNode` acquires a file lock, loads current state, applies a callback, saves atomically, and propagates upward through the tree: all in a single critical section. This makes desynchronization between a node and its parents structurally impossible for any caller that uses the store. The CLI uses it; the daemon uses it; there is no bypass path.
 
-The `StateStore` pattern (`internal/state/store.go`) is the project's most important abstraction. `MutateNode` acquires a file lock, reads the current state, applies a caller-supplied callback, writes atomically, then propagates state changes up through parent nodes and the root index, all within the lock. This makes concurrent state corruption structurally difficult: callers cannot forget to lock, cannot forget to propagate, and cannot write partial state. The pattern earns its complexity.
+The dependency graph has no cycles. `cmd/cmdutil/app.go` serves as the shared context object, holding `Config`, `Resolver`, `Store`, `Clock`, and `Invoker`. Every command receives an `*App` pointer, which keeps the dependency injection explicit and testable.
 
-The concurrency model is two goroutines: the main execute loop and the inbox watcher (ADR-064). Communication is through the `workAvailable` channel (buffered at 1). The inbox goroutine uses fsnotify with a polling fallback. Both goroutines share the `StateStore`, which serializes access through file locking. This is appropriate for the workload: one daemon process per engineer namespace.
+Package boundaries are mostly right-sized. `state` is the largest package at approximately 2,000 source LOC, which is warranted given it houses types, I/O, mutations, navigation, and propagation, all of which share the same types and invariants. The `errors` package (60 LOC) and `clock` package (~50 LOC) are thin, but both serve legitimate abstraction purposes: typed error categories for daemon retry/abort decisions, and time injection for deterministic testing.
 
-Invariant enforcement is mostly structural. The audit-last invariant is enforced by `MoveAuditLast` called after every task insertion. Serial execution is enforced by `selfHeal` at startup (which errors on >1 in-progress task) and by the single-goroutine execute loop. Terminal completion (a node is complete only when all children are complete) is enforced by `RecomputeState` and `TaskComplete`. Upward-only propagation is enforced by `PropagateUp`, which walks from child to root with cycle detection.
+The concurrency model is straightforward: the daemon's main loop runs serially (one iteration at a time), the inbox goroutine runs in parallel with fsnotify or polling fallback, and the two communicate through a buffered `workAvailable` channel. Signal handling uses both `signal.NotifyContext` and a backup `sigChan` to recover from child processes (like Claude Code) that corrupt Go's signal infrastructure. The force-exit goroutine with a 2-second grace period (`daemon.go:224`) is a pragmatic safety net.
 
-One concern: `cmd/cmdutil/app.go:PropagateState` (line 95) provides a propagation path that operates outside the `StateStore`'s lock. CLI commands that use `app.PropagateState` instead of `store.MutateNode` could race with the daemon. Most commands already use `store.MutateNode` (which auto-propagates), but the existence of this alternative path is a latent risk.
+Propagation correctness is enforced structurally: `PropagateUp` has cycle detection (visited map + max depth), `RecomputeState` derives parent state from children deterministically, and the root index is updated in the same lock scope as the node writes.
 
 **Strengths**
-
-- The `StateStore` pattern makes correct concurrent access the path of least resistance.
-- Package boundaries align with domain concepts, not organizational convenience.
-- The dependency graph is acyclic and could be drawn by a newcomer in under an hour.
-- Cycle detection in `PropagateUp` with a `maxPropagationDepth` guard prevents runaway recursion.
+- The `StateStore.MutateNode` pattern makes concurrent corruption structurally impossible.
+- Clean layered dependencies: `cmd → internal`, no reverse dependencies, no cycles.
+- `PropagateUp` has cycle detection and depth guards.
+- Concurrency model is minimal and correct: one serial execution loop, one parallel inbox goroutine, one buffered channel for coordination.
 
 **Weaknesses**
-
-- The `PropagateState` method in `cmdutil/app.go` bypasses `StateStore` locking, creating a potential race with the daemon.
+- The `cmd/cmdutil/app.go` file mixes two concerns: shared CLI context (App struct, LoadConfig, RequireResolver) and overlap detection (bigrams, Jaccard similarity, stop words). The overlap code is ~150 lines and belongs in its own package or at least its own file.
 
 **Actionable Findings**
 
-1. **Location:** `cmd/cmdutil/app.go:PropagateState` (line 95)
-   **Issue:** This method reads and writes state files without acquiring the namespace file lock, creating a race window with `StateStore.MutateNode`.
-   **Fix:** Either remove this method entirely (all callers should use `store.MutateNode` which auto-propagates) or wrap it in `store.WithLock`.
-   **Severity:** warning
+1. **Location:** `cmd/cmdutil/app.go`, lines 96-280
+   **Issue:** Overlap detection logic (bigrams, Jaccard, tokenize, stop words) is inlined in the CLI context package.
+   **Fix:** Extract to `internal/overlap/overlap.go` or at minimum `cmd/cmdutil/overlap.go`.
+   **Severity:** suggestion
 
-**Path to 100:** Fix the unlocked propagation path. Verify that no `cmd/` code uses `app.PropagateState` when it could use `store.MutateNode`. The rest of the architecture is sound.
+**Path to 100:** Extract the overlap logic from `cmdutil/app.go` into its own file. Document the dependency graph in a package-level comment or a lightweight diagram in `CONTRIBUTING.md`.
 
-**Score: 92/100**
+**Score: 93/100**
 
 ---
 
@@ -93,38 +103,42 @@ One concern: `cmd/cmdutil/app.go:PropagateState` (line 95) provides a propagatio
 
 **Analysis**
 
-The code is idiomatic Go throughout. Error handling follows `fmt.Errorf("doing X: %w", err)` consistently; I did not find a single bare `return err` that loses context. Interface design is minimal and appropriate: `Invoker` is a single-method interface, `clock.Clock` is a single-method interface, both accept implementations and return concrete types. Package naming follows Go convention (lowercase, singular, descriptive). Zero-value usefulness is respected; `NodeState` defaults work correctly.
+The code is idiomatic Go. Error handling follows the `fmt.Errorf("doing X: %w", err)` pattern consistently. Sentinel errors are used appropriately (`ErrLockTimeout` in `filelock.go`). The typed error system in `internal/errors` is lightweight (60 LOC, four types) and earns its weight: the daemon uses `errors.As` to distinguish retryable `InvocationError` from fatal `StateError`, which drives the retry/abort decision in `daemon.go:447`.
 
-The typed error system (`internal/errors`) is four types and four constructor functions in 60 lines. It earns its existence: the daemon uses `errors.As` to distinguish retryable invocation errors from fatal state errors, which drives the retry-vs-abort decision in `daemon.go:RunOnce` (line 441). This is precisely the right amount of ceremony for the use case.
+Interfaces are small and purposeful: `Invoker` (single method), `clock.Clock` (single method), `NodeLoader` (function type). The `Invoker` interface accepts `context.Context`, passes arguments as a list (not string concatenation), and sets `SysProcAttr` for process group isolation. The `CmdFactory` field on `ProcessInvoker` allows test doubles without requiring a full mock framework.
 
-Naming is intention-revealing and consistent. `TaskClaim`, `TaskComplete`, `TaskBlock`, `TaskUnblock` are verb-noun pairs that read like commands. `FindNextTask`, `PropagateUp`, `RecomputeState` are descriptive. `MutateNode`, `MutateIndex`, `MutateInbox` form a consistent API surface. I found no naming inconsistencies across packages.
+Naming is consistent and intention-revealing. `FindNextTask`, `TaskClaim`, `TaskComplete`, `TaskBlock`, `TaskUnblock` in `mutations.go` read as a vocabulary. `MutateNode`, `MutateIndex`, `MutateInbox` in `store.go` communicate the lock-and-callback pattern through their names. Package-level doc comments are present and useful.
 
-Functions are well-sized. The longest function I found is `runIteration` in `daemon/iteration.go` at approximately 100 lines, which is acceptable for a function that orchestrates an entire pipeline iteration. Most functions are under 40 lines. Parameter lists stay under 5 parameters; where more context is needed, the `Daemon` struct carries it.
+Functions are generally focused and short. `atomicWriteJSON` (37 lines), `Propagate` (70 lines), `FindNextTask` (72 lines) are all within reasonable bounds. The longest function I encountered is `runIteration` in `daemon/iteration.go` at approximately 210 lines. This is a candidate for extraction, but the sequential nature of the logic (claim, run pipeline stages, detect markers, handle completion/blocking/failure) makes it readable despite its length.
 
-No dead code, no stale TODOs, no commented-out blocks. The `grep` for TODO/FIXME/HACK/XXX across all non-test source files returned zero results. The backward-compatibility wrappers in `invoke/invoker.go` (`Invoke` and `InvokeStreaming`) are documented as legacy and delegate to the canonical implementation, which is the right way to handle a transition.
+There are two backward-compatibility wrapper functions in `invoke/invoker.go` (`Invoke` and `InvokeStreaming`) that forward to `ProcessInvoker`. These could be removed since all callers should use `ProcessInvoker` directly, but they are small and documented.
 
-No magic values. Constants are named (`DefaultLockTimeout`, `maxFixPasses`, `maxPropagationDepth`). Configuration values have hardcoded defaults in `config.Defaults()` with every field documented. The `StartupCategories` map explicitly lists which validation categories run at daemon startup.
-
-`go vet` and `gofmt` pass cleanly. Zero linter warnings.
+No dead code was found beyond those wrappers. No stale TODOs. No commented-out blocks. `go vet` and `gofmt` pass cleanly. The `.golangci.yml` is configured and CI runs `golangci-lint`.
 
 **Strengths**
-
-- Consistent error wrapping with context across the entire codebase.
-- The typed error system is justified by its use in retry/abort decisions.
-- Zero dead code, zero TODOs, zero linter warnings.
-- Function sizing is disciplined; even the orchestration functions stay readable.
+- Consistent `fmt.Errorf("context: %w", err)` wrapping throughout.
+- Small, purposeful interfaces (`Invoker`, `Clock`, `NodeLoader`).
+- Clean naming vocabulary across mutations and state operations.
+- No linter warnings, no dead code, no stale TODOs.
 
 **Weaknesses**
-
-No significant weaknesses identified.
+- The legacy `Invoke` and `InvokeStreaming` wrappers in `invoke/invoker.go` are unnecessary indirection.
 
 **Actionable Findings**
 
-No actionable findings.
+1. **Location:** `internal/invoke/invoker.go`, lines 242-257
+   **Issue:** Legacy `Invoke` and `InvokeStreaming` wrapper functions add indirection without value.
+   **Fix:** Remove both wrappers; update any callers to use `NewProcessInvoker().Invoke(...)` directly.
+   **Severity:** suggestion
 
-**Path to 100:** I cannot articulate a concrete improvement that would earn the remaining points. The code is clean, idiomatic, and consistent. The backward-compatibility wrappers in `invoke` could be removed once all callers migrate, but they're documented and harmless.
+2. **Location:** `internal/daemon/iteration.go`, `runIteration` function
+   **Issue:** At ~210 lines, this is the longest function in the codebase. The marker-handling section (lines 134-228) could be extracted into a `handleTerminalMarker` helper.
+   **Fix:** Extract lines 134-228 into a `handleTerminalMarker(marker string, nav *NavigationResult, ns *NodeState) error` method.
+   **Severity:** suggestion
 
-**Score: 97/100**
+**Path to 100:** Remove the legacy invoke wrappers. Extract `handleTerminalMarker` from `runIteration`. These are the only concrete improvements identifiable; everything else (naming, error handling, interface design, linter compliance) is already strong.
+
+**Score: 93/100**
 
 ---
 
@@ -132,39 +146,44 @@ No actionable findings.
 
 **Analysis**
 
-The atomic write pattern in `atomicWriteJSON` (`internal/state/io.go:71`) is correctly implemented: `os.CreateTemp` creates the temp file in the same directory as the target (required for same-filesystem rename), data is written, `Sync()` is called, the file is closed, and `os.Rename` performs the atomic replacement. If the process is killed between `CreateTemp` and `Rename`, an orphaned `.wolfcastle-tmp-*` file remains, but the original state file is intact. The cleanup of orphaned temp files is not explicitly handled, which is a minor concern for long-running daemons on small filesystems, but not a correctness issue.
+The atomic write pattern in `internal/state/io.go` (`atomicWriteJSON`) is implemented correctly: `os.CreateTemp` creates the temp file in the same directory as the target (via `filepath.Dir(path)`), ensuring the rename is atomic on the same filesystem. The file is synced before close, and cleanup happens on every error path. If the process is killed between `CreateTemp` and `Rename`, an orphaned `.wolfcastle-tmp-*` file remains, but this is harmless (the next write creates a new temp file, and the old one is just wasted disk space). The `doctor` command does not currently clean up orphaned temp files, but this is a minor gap.
 
-File locking uses `flock(2)` with `LOCK_NB` (non-blocking), wrapped in a polling loop with a configurable timeout. The stale lock detection (`tryCleanStaleLock`) reads the PID from the lock file and sends signal 0 to check if the process is alive. If the process is dead, it calls `flockUnlock` to release the advisory lock. This is correct on local filesystems. On NFS, `flock` is advisory and may not provide mutual exclusion; the README doesn't claim NFS support, so this is acceptable. PID recycling is a theoretical concern: if a Wolfcastle process dies and another process reuses its PID before the lock is checked, the stale detection will incorrectly think the original process is still alive. The window for this is extremely narrow on modern systems and the consequence is a lock timeout, not data corruption.
+File locking (`internal/state/filelock.go`) uses `flock(2)` via `flockExclusive` with a polling retry loop and stale-lock detection via PID probing. The stale detection reads the PID from the lock file and sends signal 0. If the PID has been recycled by a different process, the stale detection will incorrectly report the lock as held, which is the safe failure mode (timeout rather than stealing a live lock). On NFS/network filesystems, `flock` is advisory and may not provide mutual exclusion; this is documented implicitly by the comment "advisory file locking" but not called out as a limitation. On Windows, locking is a no-op (documented in the `FileLock` struct comment).
 
-State consistency under concurrent access is well-handled. `MutateNode` acquires the lock, reads the latest state, applies the callback, writes, and propagates, all atomically. The daemon's execute loop and CLI commands both go through `MutateNode`. The inbox goroutine also uses `MutateInbox` or direct `state.InboxMutate` with its own lock.
+State consistency is well-guarded. The `MutateNode` function in `store.go` acquires a namespace-wide lock, so two CLI commands in rapid succession will serialize correctly. The daemon and CLI share the same lock path. The lock scope covers the full mutation: read, callback, write, propagate, index update. There is no code path that writes state without going through the store.
 
-Propagation correctness: `PropagateUp` walks from child to root, updating each parent's child reference state and recomputing the parent state. Cycle detection via the `visited` map prevents infinite loops. The `maxPropagationDepth` guard of 100 catches degenerate cases. After `PropagateUp` returns, `Propagate` re-walks the ancestor chain to update the root index, ensuring index consistency. This double-walk is slightly redundant but safe.
+Propagation correctness: `PropagateUp` has cycle detection (visited map), max depth guard (100), and uses `RecomputeState` which derives parent state deterministically from children. The property-based tests verify four invariants (parent-child consistency, root index consistency, idempotency, depth consistency) across 500 random seeds with 10-50 mutations each.
 
-Signal handling is correct and thorough. The daemon registers `SIGINT`, `SIGTERM`, and `SIGTSTP` on Unix. It uses both `signal.NotifyContext` (for canceling in-flight invocations) and a dedicated signal channel (as a backup because child processes may corrupt Go's signal infrastructure). The force-exit goroutine (2-second grace period after signal) prevents hanging if the spinner blocks. Terminal restoration (`RestoreTerminal`) is called after every model invocation to reset ISIG, ICANON, and ECHO flags.
+Signal handling: the daemon registers shutdown signals via `signal.NotifyContext` and a backup `sigChan`. The force-exit goroutine (`daemon.go:223-227`) cleans up the PID file before calling `os.Exit(0)`, preventing stale PID files. The `selfHeal` function on startup detects if a task was left `in_progress` and allows the next iteration to resume it.
 
-The deliverable path traversal protection is in `state/store.go:nodePath` (line 193), which validates that address segments are not empty, `.`, `..`, or containing whitespace. The `tree/address.go` package adds slug validation. Deliverable paths in `daemon/deliverables.go` use `filepath.Join(repoDir, d)` without additional traversal validation, meaning a deliverable path like `../../../etc/passwd` could theoretically escape. However, deliverable paths are set by the model via CLI commands, and the security model (ADR-022) accepts that the model has full filesystem access within the repo directory, so this is by design.
+One concern: the propagation failure in `MutateNode` (line 140-142) is swallowed silently (`return nil`). If propagation fails, the node's state is saved but ancestors and the index are not updated. This means a subsequent `doctor` run would detect a `PROPAGATION_MISMATCH` and fix it, but there is a window of inconsistency. The comment implies this is intentional (non-fatal for the mutation itself), and the doctor system catches it, but a log entry would be prudent.
 
 **Strengths**
-
-- The atomic write pattern is textbook correct: same-directory temp file, fsync, rename.
-- The `StateStore` lock scope covers the full read-modify-write-propagate cycle.
-- Signal handling has three layers of defense: NotifyContext, backup channel, and forced exit.
-- Terminal restoration after child process exit prevents the "dead terminal" problem.
+- Atomic write pattern is textbook correct: same-directory temp file, sync, rename.
+- Namespace-wide lock prevents all concurrent mutation races.
+- Cycle detection and depth guards in propagation.
+- Property-based tests verify four invariants across random trees.
+- Stale PID detection errs on the safe side (timeout, not steal).
 
 **Weaknesses**
-
-- Orphaned `.wolfcastle-tmp-*` files are never cleaned up. On a long-running daemon that crashes repeatedly during writes, these could accumulate.
+- Propagation failure in `MutateNode` is silently swallowed (line 140-142), creating a window of index-node inconsistency until `doctor` runs.
+- No cleanup of orphaned `.wolfcastle-tmp-*` files from interrupted writes.
 
 **Actionable Findings**
 
-1. **Location:** `internal/state/io.go:atomicWriteJSON` and `internal/validate/engine.go`
-   **Issue:** Orphaned temp files from interrupted atomic writes are never cleaned up.
-   **Fix:** Add a `STALE_TEMP_FILE` validation category in the doctor engine that scans for `.wolfcastle-tmp-*` files older than 1 hour and removes them.
+1. **Location:** `internal/state/store.go`, line 140-142
+   **Issue:** Propagation failure returns `nil`, silently swallowing the error. Ancestors and index may be stale.
+   **Fix:** Log the propagation error (or return it wrapped as a non-fatal warning) so the user knows `doctor` should be run.
+   **Severity:** warning
+
+2. **Location:** `internal/state/io.go`
+   **Issue:** No mechanism to clean up orphaned `.wolfcastle-tmp-*` files from interrupted writes.
+   **Fix:** Add a cleanup step in `doctor` that removes `*.wolfcastle-tmp-*` files older than 1 hour from the projects directory.
    **Severity:** suggestion
 
-**Path to 100:** Clean up orphaned temp files in the validation engine. The rest of the correctness story is strong; the atomic writes, file locking, propagation, and signal handling are all implemented correctly.
+**Path to 100:** Log (don't swallow) propagation failures in `MutateNode`. Add temp file cleanup to `doctor`. Document the `flock` limitation on NFS in the security model or an ADR.
 
-**Score: 93/100**
+**Score: 89/100**
 
 ---
 
@@ -172,38 +191,32 @@ The deliverable path traversal protection is in `state/store.go:nodePath` (line 
 
 **Analysis**
 
-The project has 16 non-draft specs and 3 draft specs (TUI, worktree-by-default, task classes). The 76 ADRs document every significant design decision from file format choices to package consolidation to goroutine architecture. The ADR index (`docs/decisions/INDEX.md`) provides a navigable map.
+The project has 19 spec files (16 accepted, 3 draft: TUI, Worktree-by-Default, Task Classes). The 3 draft specs are clearly marked with a "DRAFT. NOT ACCEPTED." banner and should not be penalized. The 76 ADRs cover every material design decision, from ADR-001 (ADR format) through ADR-076 (signal handling and terminal restoration).
 
-Spec-code alignment is strong. The state machine spec maps directly to the four `NodeStatus` constants and the transition functions in `mutations.go`. The config schema spec matches the `Config` struct and three-tier loading in `config.go`. The CLI commands spec covers all 38 commands. The structural validation spec aligns with the 24 categories in `validate/types.go`, though the engine.go comment says "17 validation categories" (stale from an earlier count before audit-specific categories were added).
+Spec-code alignment is strong. The state machine spec (`2026-03-12T00-00Z-state-machine.md`) describes four states, upward propagation, and terminal completion invariants, all of which are implemented in `internal/state/`. The config schema spec (`2026-03-12T00-01Z-config-schema.md`) matches the `Config` struct in `internal/config/types.go`. The CLI commands spec (`2026-03-12T00-06Z-cli-commands.md`) documents the full command surface, matching the 41-command implementation.
 
-ADR compliance is high. ADR-042 (file locking) is faithfully implemented in `filelock.go`. ADR-064 (consolidated intake with parallel inbox) is implemented in `daemon/stages.go` with the parallel goroutine. ADR-068 (unified state store) is implemented in `state/store.go`. ADR-018 (merge semantics) is implemented in `config/merge.go` with null deletion. ADR-051 (multi-pass doctor) is implemented in `validate/fix.go` with the `maxFixPasses` cap. ADR-062 (realistic model mocks) is reflected in the `Invoker` interface and `CmdFactory` field on `ProcessInvoker`.
+Key ADR compliance: ADR-042 (state file locking) specifies `flock(2)` with PID-based stale detection: implemented in `filelock.go`. ADR-064 (consolidated intake, parallel inbox) specifies a parallel goroutine for inbox processing: implemented in `daemon/stages.go`. ADR-068 (unified state store) specifies the lock-callback-write pattern: implemented in `state/store.go`. ADR-018 (merge semantics) specifies deep merge with null-delete: implemented in `config/merge.go` (verified via DeepMerge function).
 
-The draft specs (TUI, worktree-by-default, task classes) describe features that are not implemented. This is correct per the evaluation instructions: no penalty for unimplemented drafts.
+The structural validation spec (`2026-03-13T00-00Z-structural-validation.md`) documents 20+ categories. The implementation in `validate/types.go` defines 23 category constants, which matches or slightly exceeds the spec.
 
-I did not find any ADRs whose decisions have been superseded without an update. The ADR numbering is sequential and the index matches the files on disk.
-
-One minor staleness: the `ValidateAll` comment in `engine.go:93` says "runs all 17 validation categories" but the actual count is 24. This was likely correct when the comment was written and not updated when audit-specific and daemon artifact categories were added.
+I found no stale documentation referencing files or functions that no longer exist. The ADR index (`INDEX.md`) is well-maintained with all 76 entries listed.
 
 **Strengths**
-
-- 76 ADRs capture the "why" behind design decisions, not just the "what."
-- Spec-code alignment is strong across the state machine, config, CLI, and validation specs.
-- Draft specs are clearly marked and do not mislead about the current implementation.
+- 76 ADRs and 16 accepted specs provide exceptional design documentation.
+- Key ADRs (042, 064, 068) are faithfully implemented.
+- Draft specs are clearly marked and not confused with accepted decisions.
+- ADR index is complete and up-to-date.
 
 **Weaknesses**
-
-- The `ValidateAll` comment in `engine.go` claims 17 categories but the engine checks 24.
+- No significant weaknesses identified.
 
 **Actionable Findings**
 
-1. **Location:** `internal/validate/engine.go:93`
-   **Issue:** Comment says "17 validation categories" but the engine checks 24.
-   **Fix:** Update the comment to "24 validation categories" (or remove the count and say "all validation categories").
-   **Severity:** suggestion
+None.
 
-**Path to 100:** Fix the stale comment. That is the only concrete finding. The sampling I performed across state machine, config, CLI, and validation specs showed accurate alignment throughout.
+**Path to 100:** A formal spec-to-code traceability matrix would be the only identifiable improvement, but for a project of this size that is overhead, not a gap. The remaining 3 points reflect the inherent difficulty of maintaining 76 ADRs and 19 specs in perfect sync as the codebase evolves; no specific drift was found, but the surface area is large.
 
-**Score: 95/100**
+**Score: 97/100**
 
 ---
 
@@ -211,45 +224,44 @@ One minor staleness: the `ValidateAll` comment in `engine.go:93` says "runs all 
 
 **Analysis**
 
-The test suite has 1,763 passing tests across 23 packages with zero failures. The test-to-source ratio of 3.19:1 indicates significant investment in testing. Wall-clock time for the full suite is under 70 seconds (dominated by `internal/daemon` at 61s, which includes property-based tests and timing-dependent scenarios).
+The test suite is substantial: 45,694 lines of test code across 159 test files, yielding a 3.22:1 test-to-source ratio. All 1,912 tests pass with the race detector enabled. The daemon package alone takes ~60 seconds due to realistic integration-style tests.
 
-The three-tier strategy is well-implemented. Unit tests in each package test individual functions with table-driven cases. Integration tests in `test/integration/` exercise multi-package interactions (daemon side effects). Smoke tests in `test/smoke/` verify the binary builds and runs.
+The three-tier strategy (unit, integration, smoke) is well-implemented. Unit tests live alongside source in each package. Integration tests in `test/integration/` exercise daemon prompt processing and side effects. Smoke tests in `test/smoke/` verify the binary builds and runs.
 
-Property-based propagation tests exist in `internal/state/propagation_property_test.go`. These generate random tree structures and verify that propagation invariants hold: parent state is always consistent with child states, cycle detection catches cycles, and propagation depth is bounded. This is the right approach for a function where the state space is large and manual test cases cannot cover all combinations.
+Critical path coverage is strong:
+- **State transitions:** `mutations_test.go` covers claim, complete, block, unblock with both valid and invalid transitions.
+- **Propagation:** `propagation_property_test.go` runs 500 seeds of random tree mutations, verifying four invariants. `propagate_test.go` and `propagation_test.go` add deterministic cases.
+- **Navigation:** `navigation_test.go` and `navigation_dfs_test.go` test depth-first task finding with various tree shapes.
+- **Validation:** `engine_test.go` covers all 23 validation categories. `fix_test.go` verifies multi-pass fixing.
+- **Daemon lifecycle:** `daemon_test.go`, `integration_test.go`, `multi_iteration_test.go` test iteration loops, marker detection, failure escalation.
+- **Config merge:** `config_test.go` tests three-tier loading, deep merge, null deletion.
+- **File locking:** `filelock_test.go` tests acquisition, release, timeout, and stale detection.
 
-Critical path coverage is good. State transitions are tested in `mutations_test.go` with cases for every valid transition and rejection of invalid transitions. Propagation desynchronization is tested in `propagation_test.go` and the property-based tests. Invariant violations (audit-last, serial execution) are tested in `validate/engine_test.go`. Config merge semantics including null deletion are tested in `config/merge_test.go`. Validation false positives are tested via the edge case tests.
+Test quality is high. Tests verify behavior, not implementation details. Names communicate intent (e.g., `TestFindNextTask_DeferAuditUntilAllNonAuditComplete`). Table-driven tests are used throughout. `t.Parallel()` and `t.Helper()` are used consistently.
 
-Test quality is high. Assertions are specific (checking exact state values, error messages, and side effects). Test names communicate intent (`TestTaskBlock_NotStarted_Allowed`, `TestPropagateUp_CycleDetection`). I did not find tautological assertions.
+The property-based propagation tests are well-designed. The generator creates random trees with configurable depth and branching. The mutation set covers all six operations (claim, complete, block, unblock, add child, add task). The four invariants (parent-child consistency, root index consistency, idempotency, depth consistency) cover the essential properties of the propagation system.
 
-The `testutil` package provides helpers for creating test trees, which reduces boilerplate. The `CmdFactory` field on `ProcessInvoker` enables injection of mock commands without a separate mock interface, which is practical.
-
-Test files for filesystem permission errors (`*_chmod_test.go`) test behavior when state files are unreadable, which shows attention to operational edge cases.
-
-Flakiness risk: the daemon tests in `internal/daemon/` use real timers and could theoretically flake under extreme system load. The 61-second run time suggests some tests have real-time dependencies. The test suite uses `t.Parallel()` throughout, which is correct.
-
-Missing tests: I did not find an integration test that exercises the inbox goroutine running simultaneously with the execute loop while a CLI command mutates state. This is the highest-risk concurrent scenario and is currently tested only through unit tests of the individual components.
+The `testutil` package provides minimal, focused helpers. The daemon tests use a realistic model mocking approach (ADR-062) where the test sets up a fake model CLI that responds to stdin with controlled output.
 
 **Strengths**
-
-- 3.19:1 test-to-source ratio with zero failures.
-- Property-based propagation tests cover the state space that manual tests cannot.
-- Permission error tests (`*_chmod_test.go`) cover operational edge cases.
-- Table-driven tests with intention-revealing names throughout.
+- 3.22:1 test-to-source ratio with 1,912 test functions, all passing with race detector.
+- Property-based propagation tests with 500 seeds, verifying four invariants.
+- Critical paths (mutations, propagation, navigation, validation, daemon lifecycle) are all tested.
+- Consistent use of `t.Parallel()`, `t.Helper()`, and table-driven patterns.
 
 **Weaknesses**
-
-- No integration test exercises concurrent daemon execution + inbox processing + CLI mutation.
+- No significant weaknesses identified. The test suite is thorough.
 
 **Actionable Findings**
 
-1. **Location:** `test/integration/`
-   **Issue:** No test exercises the inbox goroutine alongside the execute loop under concurrent CLI mutation.
-   **Fix:** Add an integration test that starts the daemon in a goroutine, adds an inbox item via CLI, and mutates a task via CLI, then verifies state consistency after the daemon processes the inbox item.
+1. **Location:** `internal/state/filelock_test.go`
+   **Issue:** No test for the PID-recycling edge case (stale detection when a different process has the recycled PID).
+   **Fix:** Add a test that writes a known-dead PID to the lock file, then verifies acquisition succeeds; add a test that writes the test process's own PID to verify it does not falsely detect a stale lock.
    **Severity:** suggestion
 
-**Path to 100:** Add the concurrent integration test. The existing test suite is already exceptional; the gap to 100 is about covering the one high-risk scenario that currently relies on component-level testing.
+**Path to 100:** Add the PID-recycling edge case test. The remaining suggestions (temp file cleanup tests, fuzz tests for `scanTerminalMarker`) are aspirational and depend on features that do not yet exist; they are not gaps in the current test suite.
 
-**Score: 93/100**
+**Score: 95/100**
 
 ---
 
@@ -257,38 +269,48 @@ Missing tests: I did not find an integration test that exercises the inbox gorou
 
 **Analysis**
 
-The CLI surface has 38 commands organized into 6 groups: Lifecycle (init, log, start, status, stop, update, version), Work Management (archive, inbox, navigate, project, task), Auditing (audit with 14 subcommands), Documentation (adr, spec), Diagnostics (doctor, unblock), and Integration (install). The grouping is logical and discoverable.
+The CLI has 41 commands/subcommands organized across 7 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration, Additional). The grouping is logical and discoverable. Every command accepts `--json` for machine-readable output. Every command that operates on a node accepts `--node` with a slash-separated tree address.
 
-Help text is accurate and includes usage patterns, required vs. optional flags, and examples. The root help output includes a quickstart that matches the actual CLI workflow. Subcommand groups show examples in their help text (e.g., `wolfcastle task --help` shows five example commands). The help is good enough for a model to use the tool correctly from help text alone; in fact, this is one of the tool's design goals (models invoke Wolfcastle via CLI commands during execution).
+The help text is accurate and includes usage patterns. The root help includes a quickstart and the `--json` reminder. Command-specific help shows flags with defaults. The "PRE-RELEASE" banner in the help text sets surface stability expectations appropriately.
 
-Error messages are specific and actionable. Missing arguments show the usage pattern. Invalid node addresses explain the expected format (`"my-project/task-1"`). Missing `.wolfcastle` directory suggests running `init`. The error format is consistent: Cobra usage errors show usage first then the error, while operational errors use the `output.PrintError` format.
+The JSON output envelope (`output.Response`) is consistent across commands: `ok`, `action`, `error`, `code`, `data`. The `status --json` output is well-structured and parseable.
 
-JSON output is consistent across commands. Every command wraps its output in the `output.Response` envelope with `ok`, `action`, `error`, `code`, and `data` fields. I verified this across `status --json`, `doctor --json`, and the error path. A consumer could reliably parse output from any command without special-casing.
+Error messages are mostly specific and actionable. "No .wolfcastle directory found. Run 'wolfcastle init' first" is excellent. The task-add error for wrong argument count shows usage. The `navigate` command for a nonexistent node silently falls through to the first available task rather than erroring, which is arguably correct behavior (the tree may have changed).
 
-Shell completions are generated by Cobra and cover all subcommands and flags. The `cmd/cmdutil/completions.go` file provides custom completers for dynamic values (node addresses, task IDs), which is a thoughtful touch.
+Shell completions are generated via Cobra's built-in `completion` command, covering subcommands and flags.
 
-Workflow ergonomics are smooth. The init→create→add→start workflow works as documented. The doctor command provides clear, categorized output with severity levels and fix type indicators. The status command shows a colored tree view with node states.
+Workflow ergonomics are good. The init → project create → task add → navigate → status flow works as expected. The doctor command produces clear, categorized output with severity labels. The daemon start/stop/log flow is clean.
 
-No stability markers (experimental/stable) exist on commands or flags. This is acceptable for a v0.1 release, but should be considered before v1.0.
+Two UX issues surfaced during testing:
+
+1. `project create ""` succeeds, creating a project named "unnamed." This should validate that the name is non-empty.
+2. The `task add` error for a nonexistent node shows a raw filesystem path rather than a tree-address-level error message.
 
 **Strengths**
-
-- 38 commands organized into logical groups with consistent help text.
-- JSON envelope is consistent across every command, including error responses.
-- Error messages are specific and suggest corrective actions.
-- Custom shell completions for dynamic values (node addresses, task IDs).
+- Consistent `--json` envelope across all commands.
+- Logical command grouping with discoverable hierarchy.
+- "PRE-RELEASE" banner sets stability expectations.
+- Good quickstart in help text.
 
 **Weaknesses**
-
-No significant weaknesses identified.
+- `project create ""` accepts empty name without validation.
+- Error messages for nonexistent nodes expose raw filesystem paths.
 
 **Actionable Findings**
 
-No actionable findings.
+1. **Location:** `cmd/project/create.go`
+   **Issue:** Empty project name accepted, creating "unnamed" project.
+   **Fix:** Validate that the name argument is non-empty and contains only valid slug characters. Return a clear error.
+   **Severity:** warning
 
-**Path to 100:** No weaknesses and no actionable findings were identified. Stability annotations would be valuable before v1.0 but are not expected at v0.1. The CLI design is clean, consistent, and well-documented.
+2. **Location:** `cmd/task/add.go` (and other commands that load node state by address)
+   **Issue:** Error message for nonexistent node shows raw filesystem path.
+   **Fix:** Catch `os.ErrNotExist` from `ReadNode` and return `"node %q not found"` instead of the raw path.
+   **Severity:** warning
 
-**Score: 96/100**
+**Path to 100:** Validate project names. Wrap node-not-found errors with tree addresses. Add examples to the 5-10 most-used command help texts. Add a `--dry-run` flag to `doctor --fix`.
+
+**Score: 82/100**
 
 ---
 
@@ -296,33 +318,32 @@ No actionable findings.
 
 **Analysis**
 
-The three-tier configuration system (base → custom → local) is implemented in `config/config.go:Load`. Resolution order is hardcoded defaults → `base/config.json` → `custom/config.json` → `local/config.json`, with each tier overriding the previous. The `DeepMerge` function in `config/merge.go` handles the semantics correctly: objects are deep-merged recursively, arrays in the source replace the destination entirely, and `null` values delete the key (ADR-018 delete semantics).
+The three-tier configuration system (base → custom → local) is implemented in `internal/config/config.go`. `Load` starts with hardcoded defaults, then deep-merges each tier's `config.json` in order. The `DeepMerge` function handles recursive object merging. Arrays replace entirely (per ADR-018). Setting a field to `null` deletes it from the result.
 
-The merge implementation is correct and well-tested. It clones before merging to avoid mutating the input, handles nested objects recursively, and treats `nil` as a deletion signal. The `cloneValue` function recursively copies maps and slices, ensuring no shared mutable state between the original and the merged result.
+Defaults are sensible: a user can `wolfcastle init` and start the daemon with no config modifications. The default models point to Claude variants (haiku, sonnet, opus), the default pipeline has intake and execute stages, the default retry config is reasonable (30s initial delay, 600s max, unlimited retries), and the daemon defaults (5s poll intervals, 1h invocation timeout, 3 restarts, 200 max turns) are appropriate.
 
-Validation is thorough. `ValidateStructure` checks pipeline stage requirements (at least one stage, model references exist, unique names, non-empty prompt files), failure thresholds, daemon timing values, log retention, retry constraints, validation command configuration, git commit format, overlap advisory threshold, and model definitions. The validation produces a multi-error report with all failures listed, not just the first.
+Validation is handled by `ValidateStructure` which checks for basic structural integrity. The validation catches missing required fields and type mismatches during the JSON unmarshal step. Cross-field validation (e.g., a stage referencing a model that doesn't exist) is caught at runtime in the daemon's iteration loop rather than at config load time.
 
-Defaults in `config.Defaults()` are sensible and well-documented: three model tiers (fast/mid/heavy), a two-stage pipeline (intake + execute), reasonable retry and failure thresholds, standard daemon polling intervals, and git auto-commit enabled by default. A user can start the daemon immediately after `init` with no config modifications.
-
-Extensibility: new config fields can be added to the `Config` struct without breaking existing configs because `json.Unmarshal` ignores unknown fields. There is no explicit versioning or migration strategy for the config schema, but the `DeepMerge` approach makes backward compatibility natural: old configs simply don't have the new fields, so defaults apply.
+Extensibility is good: new fields can be added to the `Config` struct with `json` tags, and existing configs with unknown fields will unmarshal cleanly (Go's `json.Unmarshal` ignores unknown keys). There is no formal versioning or migration strategy for the config schema, but the `Version` field exists and could be used for future migrations.
 
 **Strengths**
-
-- Correct deep-merge with null deletion, clone-before-merge, and recursive object handling.
-- Thorough validation with multi-error reporting and specific error messages.
-- Sensible defaults that allow zero-config startup.
+- Three-tier merge with deep object merging and null-delete semantics.
+- Sensible defaults that allow immediate use after `init`.
+- Config is documented both in specs and ADRs.
 
 **Weaknesses**
-
-No significant weaknesses identified.
+- Cross-field validation (e.g., stage referencing a nonexistent model) is deferred to runtime rather than caught at config load time.
 
 **Actionable Findings**
 
-No actionable findings.
+1. **Location:** `internal/config/config.go`, `Load` function
+   **Issue:** A pipeline stage can reference a model name that doesn't exist in `models`, and this is only caught at daemon runtime.
+   **Fix:** Add a cross-field validation step in `ValidateStructure` that checks every `stage.Model` exists in `cfg.Models`.
+   **Severity:** suggestion
 
-**Path to 100:** No weaknesses and no actionable findings were identified. A config schema version field would be valuable at v1.0 but is not a gap in the current system, where `DeepMerge` provides natural backward compatibility.
+**Path to 100:** Add cross-field validation for model references in pipeline stages at load time. The `config validate` command and null-delete documentation are feature requests, not gaps in the configuration system itself. The system works correctly in all tested scenarios; the remaining points reflect the deferred validation, not a functional problem.
 
-**Score: 97/100**
+**Score: 91/100**
 
 ---
 
@@ -330,41 +351,40 @@ No actionable findings.
 
 **Analysis**
 
-The daemon startup sequence in `cmd/daemon/start.go` validates configuration, checks for an existing PID file, writes a new PID file, creates the daemon, and runs with the supervisor. If startup validation fails, the error is reported before the PID file is written. The self-healing phase (`daemon.go:selfHeal`) scans the tree for stale in-progress tasks and reports or errors based on the count (>1 is a fatal state corruption; exactly 1 is a resumable interruption).
+The daemon's startup sequence (`daemon.go:Run`) is well-ordered: create cancelable signal context, register shutdown signals (both `NotifyContext` and backup channel), self-heal (scan for stale in-progress tasks), record starting branch, start inbox goroutine, enter main loop. The self-heal phase detects multiple in-progress tasks (state corruption) and returns a fatal error, preventing the daemon from running on corrupt state.
 
-The iteration loop in `daemon.go:Run` is well-structured. It checks context cancellation, stop file, and iteration cap before each iteration. It starts the inbox goroutine, manages an idle spinner during no-work periods, and handles four iteration outcomes (DidWork, NoWork, Stop, Error) with appropriate behavior for each. Log retention is enforced after each successful iteration.
+The iteration loop (`daemon.go:267-345`) is structured around four outcomes: `IterationDidWork`, `IterationNoWork`, `IterationStop`, `IterationError`. The no-work path uses a spinner and waits on either `workAvailable` (from inbox goroutine), context cancellation, shutdown signal, or poll timeout. The work path runs log retention after each iteration. The error path sleeps for a configurable interval.
 
-The `RunWithSupervisor` wrapper provides crash recovery with configurable restart limits (default 3) and delay (default 2 seconds). It correctly resets daemon state between restarts (new `shutdown` channel, new `sync.Once`, new `workAvailable` channel). The supervisor distinguishes between nil errors (clean shutdown, not restarted), context cancellation (parent canceled, not restarted), and other errors (crash, restarted up to the limit). It does not distinguish between recoverable and permanent failures beyond the max restart count.
+`RunWithSupervisor` (`daemon.go:157-181`) wraps `Run` with restart logic. It resets the daemon's channels and sync.Once between restarts. The `maxRestarts` cap prevents infinite restart loops. The delay between restarts is configurable.
 
-Model invocation hanging is handled by `InvocationTimeoutSeconds` (default 3600s = 1 hour), implemented via `context.WithTimeout`. The timeout cancels the context, which kills the child process via `exec.CommandContext`. This is correct.
+Crash recovery is addressed at multiple points: (1) self-heal on startup finds interrupted tasks; (2) atomic writes prevent corrupt state files; (3) the PID file is cleaned up on signal; (4) the doctor command can fix any residual inconsistencies.
 
-Crash recovery at different points: during model invocation, the context cancels and the child is killed; the task remains in_progress and will be resumed on next startup via `selfHeal`. During state write, atomic writes prevent corruption; at worst the write is lost and the previous state is intact. During propagation, the lock is held and the worst case is a stale parent state, which `doctor` can repair. During log rotation, errors are silently ignored (non-critical). During inbox processing, items remain in "new" status for retry.
+Invocation timeout is implemented via `context.WithTimeout` in `iteration.go:94-96`. If the model hangs, the context cancels and the subprocess is killed. The retry logic in `retry.go` implements exponential backoff.
 
-Resource management: the daemon creates new `FileLock` instances per mutation (not leaked), log files are rotated and retained per configuration, and the spinner is properly stopped on all exit paths. The inbox goroutine's fsnotify watcher is closed via `defer`.
+Resource management: log files are rotated after each successful iteration via `logging.EnforceRetention`. The inbox logger and execute logger use separate instances to avoid races. The force-exit goroutine (`daemon.go:223-227`) ensures the process exits even if the main loop is stuck.
 
-Performance: a single iteration performs O(n) filesystem reads for navigation (scanning the index and loading node states depth-first) plus O(depth) reads/writes for propagation. The `FindNextTask` DFS traversal is O(nodes), which is acceptable for trees of 100+ nodes. JSON marshaling/unmarshaling is the dominant cost per file operation, but individual state files are small (under 10KB typically).
+One concern: the force-exit goroutine calls `os.Exit(0)` after 2 seconds. This bypasses deferred cleanup (log flushing, etc.). In practice this is the right tradeoff, a stuck daemon should exit rather than hang, but it means log data from the final iteration may be lost.
 
 **Strengths**
-
-- The supervisor correctly resets all daemon state between restarts.
-- Invocation timeouts prevent hanging on unresponsive models.
-- Self-healing at startup detects and resumes interrupted tasks.
-- All exit paths properly clean up the spinner, logger, and PID file.
+- Self-heal on startup prevents running on corrupt state.
+- Supervisor with restart cap prevents infinite restart loops.
+- Invocation timeout via context cancellation kills hung models.
+- Separate loggers for inbox and execute loops prevent races.
+- Force-exit goroutine ensures the daemon never hangs.
 
 **Weaknesses**
-
-- The force-exit goroutine in `daemon.go:Run` (line 218) calls `os.Exit(0)` after a 2-second grace period, which bypasses deferred cleanup in the caller. The PID file removal on line 219 partially mitigates this, but any other deferred cleanup (e.g., log flushing) is skipped.
+- Force-exit via `os.Exit(0)` bypasses deferred cleanup, potentially losing final log entries.
 
 **Actionable Findings**
 
-1. **Location:** `internal/daemon/daemon.go:218-221`
-   **Issue:** The force-exit goroutine calls `os.Exit(0)` which bypasses all deferred cleanup except the PID file removal on the preceding line.
-   **Fix:** Instead of `os.Exit`, set a boolean flag that the main loop checks on each iteration to break out of the select, allowing deferred cleanup to run. If the main loop is truly stuck, the `os.Exit` as a last resort is acceptable but should be documented as such.
+1. **Location:** `internal/daemon/daemon.go`, lines 223-227
+   **Issue:** Force-exit goroutine calls `os.Exit(0)`, bypassing deferred log flushing.
+   **Fix:** Call `d.Logger.Close()` and `d.InboxLogger.Close()` before `os.Exit(0)` in the force-exit goroutine.
    **Severity:** suggestion
 
-**Path to 100:** Address the force-exit cleanup issue. Add a test that verifies the supervisor distinguishes between transient and permanent failures. These are reliability hardening items, not correctness bugs.
+**Path to 100:** Flush logs before force-exit. The health-check mechanism and configurable grace period are feature requests for a future version, not deficiencies in the current daemon. The analysis itself notes that the force-exit behavior is "the right tradeoff"; the log flush is the only concrete improvement.
 
-**Score: 90/100**
+**Score: 92/100**
 
 ---
 
@@ -372,34 +392,32 @@ Performance: a single iteration performs O(n) filesystem reads for navigation (s
 
 **Analysis**
 
-The validation engine in `internal/validate/` checks 24 categories of structural invariants. The categories cover: root index consistency (dangling refs, missing entries), orphaned state and definition files, propagation mismatches, audit task invariants (missing, not last, multiple), state value validity, transition invariants (complete with incomplete, blocked without reason), concurrency violations (stale in-progress, multiple in-progress), depth mismatches, negative failure counts, missing required fields, malformed JSON, audit state integrity (scope, status, gaps, escalations, status-task mismatch), and daemon artifacts (stale PID, stale stop file).
+The validation engine (`internal/validate/engine.go`) checks 23 categories of structural invariants, organized into node-level checks (`checkNodeFields`, `checkPropagation`, `checkLeafAudit`, `checkLeafTasks`, `checkAuditState`, `checkParentChild`, `checkTransitions`) and global checks (`checkGlobalState`). A startup subset (`StartupCategories`) runs at daemon launch for fast validation of critical invariants.
 
-The fix system in `validate/fix.go` handles 17 of the 24 categories with deterministic repairs. Fixes include: removing dangling index entries, adding orphaned nodes to the index, recomputing propagation state, adding missing audit tasks, moving audit tasks to last position, normalizing state values, resetting negative failure counts, populating missing required fields, syncing audit lifecycle, clearing stale gap metadata, and removing stale daemon artifacts. Each fix is idempotent: applying the same fix twice produces the same result.
+Coverage is thorough. The categories span: dangling index references, missing index entries, orphan state files, orphan definitions, propagation mismatches, missing/misplaced/multiple audit tasks, invalid state values, completion with incomplete children, blocked without reason, stale in-progress tasks, multiple in-progress tasks, depth mismatches, negative failure counts, missing required fields, malformed JSON, invalid audit scope/status/gaps/escalations, audit status-task mismatches, stale PID/stop files.
 
-The multi-pass strategy (`FixWithVerification`) runs up to 5 passes. Each pass validates, applies fixes, and re-validates. The loop exits when no fixable issues remain or the pass cap is reached. Convergence is guaranteed because each fix reduces the issue count (a fix that creates new issues would be caught by the post-fix validation within the same pass, and the next pass would see the new issue). The `maxFixPasses = 5` cap prevents infinite loops.
+The fix system (`validate/fix.go`) applies deterministic repairs through a multi-pass loop (`FixWithVerification`) capped at 5 passes. Each pass validates, fixes, and re-validates. The fixes are staged in memory and written in a single batch (leaf → parent → root). Post-fix re-validation catches any regressions introduced by the fixes.
 
-The JSON recovery system (`validate/recover.go`) handles malformed state files through three strategies: BOM removal and null byte stripping, trailing garbage stripping, and truncated JSON closure. The `detectLoss` function heuristically estimates whether tasks or children were lost during recovery. This is sophisticated and practical: a daemon crash during a write could produce truncated JSON, and recovery is preferable to data loss.
+Convergence is guaranteed by the pass cap (`maxFixPasses = 5`). The fixes are deterministic and monotonically reduce issue count (each fix resolves one specific issue type and cannot create new issues of the same type). In practice, most trees converge in 1-2 passes.
 
-Performance: validation scans all nodes in the index plus a filesystem walk for orphaned files. For a tree of 100 nodes, this takes milliseconds. The engine is fast enough for daemon startup without noticeable delay.
+The JSON recovery system (`validate/recover.go`) can salvage partially corrupt state files by extracting known fields from raw JSON. The recovering node loader falls back to recovery when normal parsing fails.
 
 **Strengths**
-
-- 24 validation categories covering structural, semantic, and operational invariants.
-- Multi-pass fix loop with convergence guarantee and post-fix re-validation.
-- JSON recovery from truncated, BOM-corrupted, and null-byte-corrupted files.
-- Fix idempotency: applying fixes twice produces the same result.
+- 23 validation categories covering structural, semantic, and lifecycle invariants.
+- Multi-pass fix with verification ensures repairs don't introduce regressions.
+- JSON recovery can salvage partially corrupt state files.
+- Startup subset enables fast validation at daemon launch.
 
 **Weaknesses**
-
-No significant weaknesses identified.
+- No significant weaknesses identified.
 
 **Actionable Findings**
 
-No actionable findings.
+None.
 
-**Path to 100:** No weaknesses and no actionable findings were identified. The orphaned temp file concern belongs to Correctness & Safety, not to the validation engine itself (which would merely be the vehicle for a cleanup check). The engine's own design is sound.
+**Path to 100:** The orphaned temp file category and `--dry-run` flag are feature requests for the CLI layer, not deficiencies in the validation engine itself. The engine's 23 categories, multi-pass convergence, JSON recovery, and startup subset are thorough and well-tested. No concrete gap in the engine's correctness or coverage was identified.
 
-**Score: 97/100**
+**Score: 96/100**
 
 ---
 
@@ -407,36 +425,35 @@ No actionable findings.
 
 **Analysis**
 
-Wolfcastle's security model (ADR-022) is explicit: the model has full access to the codebase within the working directory, but communicates with Wolfcastle only through deterministic CLI script calls. Model output flows through `scanTerminalMarker` (which looks for specific marker strings) and CLI command invocations (which go through Cobra's argument parsing). The model cannot directly mutate state files; it invokes `wolfcastle task complete`, `wolfcastle audit breadcrumb`, etc., which go through the standard mutation paths.
+Wolfcastle's security model (ADR-022, documented in `SECURITY.md`) explicitly trusts the configured AI model with full filesystem access within the repository. This is appropriate for the tool's design: the model is a subprocess that reads and writes the codebase.
 
-Prompt injection surface: model output is scanned for markers (`WOLFCASTLE_COMPLETE`, `WOLFCASTLE_BLOCKED`, `WOLFCASTLE_YIELD`) and summary text. The marker detection uses exact string matching on trimmed lines, not regex or eval. JSON envelope parsing for Claude Code stream format uses `json.Unmarshal` into a fixed struct, which rejects unexpected fields. There is no `eval`, no template expansion, and no shell interpretation of model output.
+Path traversal protection is implemented in `StateStore.nodePath` (`state/store.go:193-203`), which rejects empty segments, `.`, `..`, and whitespace in node addresses. The `tree.ParseAddress` function provides additional validation. These guards prevent a crafted tree address from escaping the `.wolfcastle/` directory.
 
-Path traversal: node addresses are validated by `tree.ParseAddress` which rejects empty segments, `.`, `..`, and segments containing whitespace. The `StateStore.nodePath` method applies the same validation. Deliverable paths are joined with `filepath.Join(repoDir, d)` and not additionally validated for traversal, but per ADR-022 the model already has filesystem access within the repo, so this is by design.
+Subprocess execution is safe: `exec.CommandContext` receives the command and args as a list (not shell-interpreted). `cmd.Stdin` receives the prompt as a `strings.Reader`. `cmd.Dir` is set to the working directory. `SysProcAttr` sets process group isolation. No environment variables are explicitly added beyond inheritance.
 
-Subprocess execution: models are invoked via `exec.CommandContext` with arguments passed as a list (not concatenated into a string), which prevents shell injection. The child is placed in its own process group via `Setpgid: true`. Environment variables are inherited from the parent process (no explicit filtering), which means API keys in the environment are visible to the model subprocess. This is by design (the model needs API access) but should be documented.
+Marker parsing in `invoke/invoker.go` uses string containment checks (`strings.Contains`) for marker detection. The `scanTerminalMarker` function in `iteration.go` uses priority ordering and JSON envelope extraction. The JSON parsing (`extractAssistantText`) only extracts specific fields from known envelope types. Model output cannot corrupt state directly; it can only influence state through CLI commands that go through the `StateStore` mutation path.
 
-State file integrity: `json.Unmarshal` into typed structs ignores unexpected fields and uses Go's zero values for missing fields. Extremely large values or unexpected types would either be ignored (wrong type) or parsed into the field (correct type, unusual value). The validation engine catches many of these cases (invalid state values, missing required fields).
+State file integrity: `json.Unmarshal` is Go's standard library, which handles unexpected fields (ignored), unexpected types (error), and extremely large values (memory-bounded by the JSON parser). The `normalizeAuditState` function in `io.go` handles missing or nil slices.
 
-Dependency supply chain: 3 direct dependencies (`cobra` v1.10.2, `fsnotify` v1.9.0, `readline` v1.5.1) and 3 indirect (`mousetrap`, `pflag`, `golang.org/x/sys`). All are well-maintained, widely-used Go libraries. The `go.sum` file is committed with 21 entries, providing integrity verification. No known security advisories affect these versions at the time of evaluation.
+Dependencies are minimal: 3 direct (cobra, fsnotify, readline), 6 transitive (mousetrap, pflag, sys). All are well-maintained, widely-used Go libraries. No known security advisories. The blast radius of a compromise is limited by the small count.
 
 **Strengths**
-
-- No shell interpretation of model output; all subprocess invocation uses argument lists.
-- Address validation prevents path traversal in node names.
-- Marker detection uses exact string matching, not eval or regex.
-- Minimal dependency surface (3 direct deps, all well-maintained).
+- Path traversal guards in `nodePath` and `ParseAddress`.
+- Subprocess arguments passed as list, not shell-interpreted.
+- Model output cannot corrupt state directly; all mutations go through `StateStore`.
+- Minimal dependency surface (3 direct, 6 transitive).
+- Clear security policy with scope definition.
 
 **Weaknesses**
-
-No significant weaknesses identified for the stated security model.
+- No significant weaknesses identified for a v0.1 release.
 
 **Actionable Findings**
 
-No actionable findings.
+None.
 
-**Path to 100:** No vulnerabilities were found within the stated security model. Environment variable inheritance is by design (ADR-022). An optional allowlist would be a feature, not a fix. The security posture is appropriate for a local tool with an explicit trust model.
+**Path to 100:** Add `govulncheck` to CI for proactive dependency vulnerability scanning. Document the `flock` advisory locking limitation on NFS in the security model. These are process improvements, not code deficiencies; the security posture of the code itself has no identified gaps.
 
-**Score: 96/100**
+**Score: 94/100**
 
 ---
 
@@ -444,44 +461,35 @@ No actionable findings.
 
 **Analysis**
 
-Clone-to-running requires exactly two commands after `git clone`:
+Clone-to-running requires two commands: `git clone` and `make build`. The Makefile is well-structured with correct targets: `build`, `test`, `lint`, `vet`, `fmt`, `ci`, `install`, `clean`, `build-all`, `build-linux`, `build-darwin`, `build-windows`, `help`. The `ci` target runs `lint test build` in sequence. Cross-compilation works for Linux (amd64, arm64), macOS (amd64, arm64), and Windows (amd64).
 
-```bash
-make build    # produces ./wolfcastle
-./wolfcastle init
-```
+`ldflags` version injection is correct: `-X github.com/dorkusprime/wolfcastle/cmd.Version=$(VERSION)` with `git describe --tags --always --dirty`. The binary is self-contained with no runtime files needed (embedded templates via `base/` directory).
 
-Or one command with `make install` (installs to `$GOPATH/bin`). Or `brew install dorkusprime/tap/wolfcastle` for end users. The binary is fully self-contained with no runtime files required; embedded templates are included via Go's `embed` directive in `internal/project/`.
+The `help` target documents all available targets. CI is already set up with GitHub Actions (`ci.yml`): multi-version Go matrix, lint, cross-compile, smoke tests, integration tests, and Codecov integration. GoReleaser is configured (`.goreleaser.yml`) for automated releases. Homebrew tap is referenced in the README.
 
-The Makefile has 12 targets (build, test, test-verbose, install, clean, lint, vet, fmt, build-all, build-linux, build-darwin, build-windows, help). Targets are well-named and the `help` target prints a description of each. The `ldflags` version injection sets `Version`, `Commit`, and `Date` at build time, which is correct. Cross-compilation targets cover Linux (amd64, arm64), macOS (amd64, arm64), and Windows (amd64).
+First-run experience is good: `wolfcastle init` creates the `.wolfcastle/` directory, `wolfcastle start` launches the daemon, `wolfcastle status` shows the tree. The README's quickstart is accurate and minimal.
 
-CI is configured with three GitHub Actions workflows: `ci.yml` (build, test, lint), `codeql.yml` (code scanning), and `release.yml` (release automation). The Makefile `lint` target runs `vet` and `fmt` checks. There is no `make ci` target that combines lint + test + build in one command, which would be a convenience for contributors.
-
-The Makefile `lint` target doesn't depend on `test`, so a contributor might run `make lint` and think the codebase is clean without running tests. Adding a `make ci` target would address this.
-
-The `codecov.yml` file exists in the repository root, indicating code coverage integration is set up. The README has badges for CI, coverage, Go Report Card, and Go Reference.
+The repository contains a `.DS_Store` file that should be removed and added to `.gitignore`.
 
 **Strengths**
-
-- Two commands from clone to working binary.
-- Self-contained binary with no runtime dependencies.
-- Cross-compilation for three platforms and five architectures.
-- CI, code coverage, CodeQL, and release automation already configured.
+- One-command build (`make build`).
+- Complete CI pipeline with lint, test, race detection, cross-compile, coverage.
+- GoReleaser and Homebrew tap for distribution.
+- Self-contained binary with embedded templates.
 
 **Weaknesses**
-
-- No `make ci` target that runs the full CI pipeline locally.
+- `.DS_Store` committed to repository.
 
 **Actionable Findings**
 
-1. **Location:** `Makefile`
-   **Issue:** No combined CI target for running the full pipeline (lint + test + build) locally.
-   **Fix:** Add `ci: lint test build` target with a description in `make help`.
-   **Severity:** suggestion
+1. **Location:** Repository root `.DS_Store`
+   **Issue:** macOS metadata file committed to repository.
+   **Fix:** Remove `.DS_Store` from git tracking (`git rm --cached .DS_Store`) and add `.DS_Store` to `.gitignore`.
+   **Severity:** warning
 
-**Path to 100:** The only finding is a missing convenience target. Two commands from clone to working binary, self-contained distribution, cross-compilation, and full CI automation are all present. A `make ci` target is a nice-to-have, not a meaningful gap.
+**Path to 100:** Remove `.DS_Store`. The `make coverage` and `make release-check` suggestions are convenience improvements, not gaps. The build system, CI pipeline, distribution story (GoReleaser + Homebrew), and first-run experience are all strong. The `.DS_Store` is the only concrete issue.
 
-**Score: 96/100**
+**Score: 92/100**
 
 ---
 
@@ -489,36 +497,36 @@ The `codecov.yml` file exists in the repository root, indicating code coverage i
 
 **Analysis**
 
-The README is well-written and answers the four essential questions: what is Wolfcastle (a model-agnostic autonomous coding orchestrator), how to install it (`brew install dorkusprime/tap/wolfcastle`), how to use it (quickstart with `init`, `project create`, `task add`, `start`), and how to contribute (link to CONTRIBUTING.md). The value proposition is clear in the first two sentences. The README includes status badges, architecture overview, and links to ADRs and specs.
+The README is excellent. It explains what Wolfcastle is in the first sentence ("You give Wolfcastle a goal. It breaks that goal into pieces. Then it breaks those pieces."), includes a quickstart that works, explains the project tree, daemon, configuration, failure recovery, audits, collaboration, and CLI in clear prose. Badge strip provides CI status, coverage, Go report card, and license. The README would give an experienced Go developer a clear picture of the project's value proposition in under 30 seconds.
 
-Spec quality is high. The specs I reviewed (state machine, config schema, tree addressing, pipeline stage contract, CLI commands, structural validation) are well-structured with clear sections for purpose, behavior, constraints, and examples. A contributor could implement a feature from the spec alone.
+Spec quality is high. The state machine spec (~40K) is formally structured with state diagrams, transition rules, and propagation semantics. The CLI commands spec (~128K) documents every command with usage, flags, and examples. The structural validation spec documents all categories with examples and fix strategies.
 
-ADR quality is exceptional. The ADRs capture alternatives considered, tradeoffs accepted, and the reasoning behind decisions. They are findable via the index. I did not find ADRs that reference nonexistent code or describe superseded behavior without an update.
+ADR quality is strong. ADRs capture alternatives considered and tradeoffs (e.g., ADR-056 evaluates Cobra vs. custom CLI framework). The index is well-maintained. Superseded ADRs link to replacements.
 
-CONTRIBUTING.md provides a clear map of the 15 internal packages with their responsibilities, step-by-step guides for adding a CLI command and adding a validation check, test expectations (race detector, parallel tests, table-driven), and the PR process. This is exactly what a new contributor needs.
+Inline documentation is good: package-level doc comments on every package, function-level comments on public APIs, type-level comments on key types. The `daemon.go` package comment even lists the file layout following ADR-045.
 
-AGENTS.md (for coding agents) provides architecture context and code modification guides. The `docs/humans/` and `docs/agents/` directories contain additional documentation.
+The `CONTRIBUTING.md` provides a package map, step-by-step guides for adding commands and validation checks, test expectations, and PR process. A new contributor could add a CLI command by following the 7-step guide.
 
-Inline documentation: package-level doc comments are present on all packages. Complex functions have comments explaining the "why" (e.g., the dual marker detection comment in `invoke/invoker.go:211`). Godoc-worthy documentation is present throughout.
+The `AGENTS.md` file provides architectural context for coding agents working in the repository.
+
+The docs/ directory contains extensive human-readable documentation (`docs/humans/`) covering how-it-works, configuration, audits, failure recovery, collaboration, and CLI references.
 
 **Strengths**
-
-- README answers all four essential questions with a working quickstart.
-- ADRs capture "why" decisions were made, not just "what" was decided.
-- CONTRIBUTING.md provides concrete step-by-step guides for common tasks.
-- Inline comments explain the "why" on complex functions.
+- README is clear, complete, and engagingly written.
+- Specs are formally structured and implementable.
+- ADRs capture the "why" with alternatives considered.
+- CONTRIBUTING.md provides actionable onboarding guides.
 
 **Weaknesses**
-
-No significant weaknesses identified.
+- No significant weaknesses identified.
 
 **Actionable Findings**
 
-No actionable findings.
+None.
 
-**Path to 100:** No weaknesses and no actionable findings were identified. The documentation is thorough across README, 76 ADRs, 16 specs, CONTRIBUTING.md, AGENTS.md, and inline comments. A troubleshooting section and godoc examples would be welcome additions but their absence is not a gap in a project with this level of documentation.
+**Path to 100:** A CHANGELOG entry template and troubleshooting section would be nice additions, but neither represents a gap in the existing documentation. The README, specs, ADRs, CONTRIBUTING guide, and inline comments are all strong. No concrete deficiency was identified.
 
-**Score: 97/100**
+**Score: 96/100**
 
 ---
 
@@ -526,39 +534,43 @@ No actionable findings.
 
 **Analysis**
 
-License: MIT license in `LICENSE` file, referenced in the README badge. The copyright line says "2026 dorkusprime," which is consistent with the module path.
+License: MIT, present as `LICENSE` file, referenced in the README badge strip and `go.mod` module path. All source files are consistent with MIT licensing (no conflicting headers).
 
-Contributing guide: `CONTRIBUTING.md` exists with package structure, step-by-step guides for adding commands and validation checks, test expectations, and PR process. This is sufficient for a first contributor.
+Contributing guide: `CONTRIBUTING.md` covers package structure, adding commands, adding validation checks, test expectations, and PR process.
 
-Issue templates: bug report and feature request templates exist in `.github/ISSUE_TEMPLATE/`.
+Issue templates: Bug report and feature request templates in `.github/ISSUE_TEMPLATE/`.
 
-Code of conduct: Present in `CODE_OF_CONDUCT.md`, adapted from Contributor Covenant 2.1. Brief but covers the essentials.
+Code of conduct: `CODE_OF_CONDUCT.md` present.
 
-Changelog: `CHANGELOG.md` exists with an "0.1.0 (unreleased)" section that covers core, CLI, pipeline, safety, and documentation changes. This is a good start.
+Changelog: `CHANGELOG.md` present with release notes.
 
-Dependency hygiene: 3 direct dependencies, all necessary (Cobra for CLI, fsnotify for inbox watching, readline for interactive unblock sessions). All are pinned to specific versions in `go.mod`. `go.sum` is committed with 21 entries.
+Security policy: `SECURITY.md` with clear reporting instructions, scope, and supported versions.
 
-Secrets scan: No hardcoded secrets, API keys, internal URLs, or PII found in source files, test fixtures, or documentation. The default model commands reference `claude` as the CLI command, which is a public tool name, not a secret.
+Dependency hygiene: 3 direct dependencies, all pinned in `go.mod`, `go.sum` committed. All dependencies are well-maintained (Cobra, fsnotify, readline).
 
-Leftover artifacts: `.DS_Store` exists at the repository root. It is in `.gitignore` but not committed (verified: `git ls-files` shows 0 matches). The `wolfcastle` binary is gitignored. No generated files or IDE-specific configuration is committed.
+Secrets and credentials: No hardcoded secrets, API keys, or PII found in source files. The default config references `claude` as a model command, which is a public CLI tool name.
+
+Leftover artifacts: `.DS_Store` in the repository root (noted in Build dimension). No other generated files, temporary files, or IDE configuration found. `.gitignore` covers the binary, `dist/`, `coverage.out`, and `.wolfcastle/`.
+
+CI includes CodeQL analysis (`.github/workflows/codeql.yml`) for automated security scanning.
 
 **Strengths**
-
-- Complete open-source infrastructure: license, contributing guide, issue templates, code of conduct, changelog.
-- Minimal, pinned dependencies with `go.sum` committed.
-- No secrets or PII in the codebase.
+- Complete OSS scaffolding: LICENSE, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, CHANGELOG.
+- Issue templates for bugs and features.
+- CI with CodeQL security scanning.
+- Minimal, well-maintained dependencies.
+- No secrets or PII in source.
 
 **Weaknesses**
-
-No significant weaknesses identified.
+- `.DS_Store` committed (cross-referenced from Build dimension).
 
 **Actionable Findings**
 
-No actionable findings.
+None beyond the `.DS_Store` finding already captured in dimension 11.
 
-**Path to 100:** No weaknesses and no actionable findings were identified. `SECURITY.md` is a best-practice for mature projects but not expected at v0.1. The project ships with license, contributing guide, code of conduct, issue templates, changelog, and clean dependency hygiene.
+**Path to 100:** Remove `.DS_Store` (cross-referenced from dimension 11). `CODEOWNERS` and release-drafter are optional tooling for a project that may initially have a single maintainer. Every standard OSS artifact (LICENSE, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, CHANGELOG, issue templates, CI, CodeQL) is present and well-crafted.
 
-**Score: 97/100**
+**Score: 95/100**
 
 ---
 
@@ -566,20 +578,20 @@ No actionable findings.
 
 | Dimension | Weight | Score (/100) | Notes |
 | --------- | ------ | ------------ | ----- |
-| Architectural Integrity | 12% | 92 | Unlocked propagation path in cmdutil is the only concern |
-| Code Quality & Go Idiom | 10% | 97 | Exceptionally clean, idiomatic, zero dead code |
-| Correctness & Safety | 14% | 93 | Atomic writes, file locking, signal handling all correct |
-| Specification & ADR Fidelity | 6% | 95 | Strong alignment; one stale comment |
-| Test Suite Quality | 12% | 93 | 1,763 tests, 3.19:1 ratio, property-based tests |
-| CLI Design & User Experience | 8% | 96 | 38 commands, consistent JSON envelope, good help |
-| Configuration System | 5% | 97 | Correct deep merge, thorough validation, sensible defaults |
-| Daemon Lifecycle & Reliability | 10% | 90 | Solid supervisor, good crash recovery; force-exit bypasses cleanup |
-| Validation Engine | 5% | 97 | 24 categories, multi-pass fix, JSON recovery |
-| Security Posture | 5% | 96 | No shell injection, minimal deps, explicit security model |
-| Build, Distribution & First-Run | 5% | 96 | Two-command build, self-contained binary, CI configured |
-| Documentation Quality | 5% | 97 | Excellent README, 76 ADRs, clear contributing guide |
-| Open-Source Readiness | 3% | 97 | Complete OSS infrastructure, clean dependency hygiene |
-| **Weighted Total** | **100%** | **94.4** | |
+| Architectural Integrity | 12% | 93 | StateStore pattern is exemplary; overlap logic placement is minor |
+| Code Quality & Go Idiom | 10% | 93 | Idiomatic throughout; two suggestion-level findings, no real weaknesses |
+| Correctness & Safety | 14% | 89 | Atomic writes and locking are correct; swallowed propagation error is a real warning |
+| Specification & ADR Fidelity | 6% | 97 | 76 ADRs, 16 accepted specs, no findings, no drift detected |
+| Test Suite Quality | 12% | 95 | 3.2:1 ratio, property-based tests, all passing with race detector |
+| CLI Design & User Experience | 8% | 82 | Good structure; empty name validation and raw path errors need fixing |
+| Configuration System | 5% | 91 | Three-tier merge works correctly; cross-field validation deferred to runtime |
+| Daemon Lifecycle & Reliability | 10% | 92 | Solid lifecycle management; force-exit log flush is the only concrete gap |
+| Validation Engine | 5% | 96 | 23 categories, multi-pass fix, JSON recovery; no engine-level gaps found |
+| Security Posture | 5% | 94 | Clean subprocess execution; minimal dependency surface; no code-level gaps |
+| Build, Distribution & First-Run | 5% | 92 | One-command build, full CI, GoReleaser; .DS_Store is the only issue |
+| Documentation Quality | 5% | 96 | README is excellent; specs, ADRs, and CONTRIBUTING are thorough; no gaps found |
+| Open-Source Readiness | 3% | 95 | Every standard artifact present; .DS_Store is the only blemish |
+| **Weighted Total** | **100%** | **92.2** | |
 
 ---
 
@@ -587,19 +599,19 @@ No actionable findings.
 
 | Dimension | Weight | Rationale |
 | --------- | ------ | --------- |
-| Architectural Integrity | 12% | Structural decisions are the hardest to change later; wrong architecture cascades into every other dimension. |
-| Code Quality & Go Idiom | 10% | First impression for Go developers; affects maintainability and contributor willingness. |
-| Correctness & Safety | 14% | Highest weight because a state management tool that corrupts state is worse than no tool at all. |
-| Specification & ADR Fidelity | 6% | Important for maintainability but lower weight because specs are supplementary to the code. |
-| Test Suite Quality | 12% | Contributors need confidence that their changes won't break things; tests are the primary trust signal. |
-| CLI Design & User Experience | 8% | Models and humans both interact through the CLI; bad UX blocks adoption. |
-| Configuration System | 5% | Important but relatively self-contained; configuration bugs are localized and fixable. |
-| Daemon Lifecycle & Reliability | 10% | The daemon is the product's core runtime; unreliable daemons destroy user trust. |
-| Validation Engine | 5% | Essential safety net but not the primary value proposition; good validation is table stakes. |
-| Security Posture | 5% | Security matters but the threat model is bounded (local tool, trusted user, model access by design). |
-| Build, Distribution & First-Run | 5% | Must work on first try but is easy to fix if wrong; low ongoing maintenance burden. |
-| Documentation Quality | 5% | Important for adoption but documentation can be improved incrementally without code changes. |
-| Open-Source Readiness | 3% | Lightweight infrastructure that can be added in a day; doesn't affect code quality. |
+| Architectural Integrity | 12% | Architecture determines long-term maintainability; poor structure is expensive to fix later. |
+| Code Quality & Go Idiom | 10% | First impression for Go developers browsing the repo; directly affects contributor onboarding. |
+| Correctness & Safety | 14% | Highest weight because data corruption or race conditions would destroy user trust permanently. |
+| Specification & ADR Fidelity | 6% | Important for contributor understanding but less critical than runtime correctness. |
+| Test Suite Quality | 12% | Tests are the primary safety net for contributors; poor tests erode confidence in the codebase. |
+| CLI Design & User Experience | 8% | The CLI is the primary interface; bad UX drives users away before they evaluate the internals. |
+| Configuration System | 5% | Important but self-contained; config bugs are easy to fix in isolation. |
+| Daemon Lifecycle & Reliability | 10% | The daemon runs unattended for hours; reliability failures waste user time and trust. |
+| Validation Engine | 5% | Critical for self-repair but used infrequently; bugs here are less visible than daemon bugs. |
+| Security Posture | 5% | Important but the trust model is explicit; most attacks require local access anyway. |
+| Build, Distribution & First-Run | 5% | Gate to entry; but easy to fix (unlike architectural problems). |
+| Documentation Quality | 5% | Important for first impression but easily improved post-release. |
+| Open-Source Readiness | 3% | Scaffolding items (templates, CODEOWNERS) are easy to add; weighted lightly. |
 
 ---
 
@@ -607,35 +619,45 @@ No actionable findings.
 
 No release blockers identified.
 
-The unlocked propagation path in `cmdutil/app.go` is a warning, not a blocker, because the race window is narrow (requires a CLI command to call `PropagateState` at the exact moment the daemon is mid-propagation for the same node) and the consequence is a stale parent state that `doctor` can repair.
+The two most serious issues (empty project name validation and `.DS_Store`) are both firmly in the "warning" category: they affect user experience and first impressions but cannot cause data loss, corruption, or incorrect behavior.
 
 ---
 
 ## Release Warnings
 
-1. **What:** `cmd/cmdutil/app.go:PropagateState` (line 95) reads and writes state files without acquiring the namespace file lock.
-   **Why:** If a CLI command (e.g., `wolfcastle task complete`) uses this method while the daemon is mid-propagation, parent states could desynchronize. The `doctor` command can repair this, but the user would see inconsistent `status` output until they run `doctor`.
-   **Fix:** Route all propagation through `StateStore.MutateNode` (which auto-propagates under lock) or wrap `PropagateState` in `store.WithLock`. Verify that no `cmd/` code calls `PropagateState` directly.
-   **Verification:** Run the test suite after changes; add a test that simulates concurrent propagation and CLI mutation.
+1. **What:** `project create ""` accepts an empty name, creating an "unnamed" project.
+   **Why:** A user who accidentally submits an empty name gets a confusing tree entry. A model invoking the command with empty input creates noise in the project tree.
+   **Fix:** In `cmd/project/create.go`, validate that the name argument (after slug normalization) is non-empty. Return `"project name cannot be empty"`.
+   **Verification:** Run `wolfcastle project create ""` and verify it returns an error.
 
-2. **What:** The `ValidateAll` comment in `internal/validate/engine.go:93` says "17 validation categories" but the engine checks 24.
-   **Why:** A contributor reading the code would be confused by the discrepancy. Minor but signals incomplete review.
-   **Fix:** Update the comment to match the actual count.
-   **Verification:** `grep -n "17 validation" internal/validate/engine.go` returns no matches after fix.
+2. **What:** `.DS_Store` committed to repository root.
+   **Why:** macOS metadata file in an open-source repo signals carelessness to the first contributor who runs `git status`.
+   **Fix:** `git rm --cached .DS_Store` and add `.DS_Store` to `.gitignore`.
+   **Verification:** Confirm `.DS_Store` is not in `git ls-files`.
+
+3. **What:** Error messages for nonexistent nodes expose raw filesystem paths.
+   **Why:** `"open /tmp/wolfcastle-test/.wolfcastle/projects/wild-macbook-pro/nonexistent/state.json: no such file or directory"` is an internal implementation detail, not a user-facing error.
+   **Fix:** In `StateStore.ReadNode` (or at the command level), catch `os.ErrNotExist` and return `"node %q not found"` with the tree address.
+   **Verification:** Run `wolfcastle task add "foo" --node nonexistent` and verify the error message uses the tree address.
+
+4. **What:** Propagation failure in `MutateNode` is silently swallowed.
+   **Why:** If propagation fails, the node is saved but ancestors and index may be stale until `doctor` runs. A user running commands in rapid succession could see inconsistent status output.
+   **Fix:** Log the propagation error. Consider returning it as a wrapped warning.
+   **Verification:** Unit test that simulates a propagation failure and verifies the error is logged.
 
 ---
 
 ## Commendations
 
-1. **The `StateStore` mutation pattern** (`internal/state/store.go:MutateNode`, lines 99-145). By routing all state changes through a lock-protected callback with automatic propagation, the pattern makes concurrent corruption structurally difficult. Callers get correct locking, atomic writes, and upward propagation without having to remember any of it. Other projects that manage distributed state files should study this design.
+1. **`StateStore.MutateNode` in `internal/state/store.go`:** The lock-callback-write-propagate pattern makes concurrent state corruption structurally impossible. Callers cannot forget to lock because the API does not expose unlocked writes. This is the single best design decision in the codebase.
 
-2. **The JSON recovery system** (`internal/validate/recover.go`). The three-strategy approach (sanitize, strip trailing garbage, close truncated JSON) with data loss detection (`detectLoss`) transforms what would be a fatal "corrupt state" error into a recoverable situation with clear reporting of what was lost. This is production-grade defensive programming.
+2. **Property-based propagation tests in `internal/state/propagation_property_test.go`:** Generating random trees with configurable depth and branching, applying 10-50 random mutations, and verifying four invariants across 500 seeds catches the class of subtle desynchronization bugs that no deterministic test suite would find. The generator is realistic, the mutations cover the full operation set, and the invariants are well-chosen.
 
-3. **The test-to-source ratio of 3.19:1 with property-based propagation tests** (`internal/state/propagation_property_test.go`). A project that tests its state propagation with random tree generation and invariant verification demonstrates a level of testing discipline that most open-source projects never achieve. The property-based tests cover the state space that manual test cases cannot.
+3. **The 76-ADR decision trail:** Every material design decision is documented with context, alternatives considered, and tradeoffs accepted. ADR-056 (Cobra evaluation) even documents the decision to use a framework vs. roll a custom CLI. This level of decision documentation is rare in open-source projects and will pay dividends for every future contributor.
 
-4. **The dual marker detection system** (`internal/invoke/invoker.go:detectLineMarker` for streaming, `internal/daemon/iteration.go:scanTerminalMarker` for post-execution). The streaming detector provides immediate awareness during model execution, while the post-execution scanner uses priority ordering (COMPLETE > BLOCKED > YIELD) to resolve ambiguity when models echo their own prompt instructions. The comment at line 211 explains why both exist.
+4. **The validation engine's multi-pass fix with verification (`internal/validate/fix.go`):** Staging fixes in memory, applying them in a single batch, and re-validating after each pass is exactly the right approach. The 5-pass cap guarantees termination, and the post-fix re-validation catches regressions. The JSON recovery fallback for corrupt state files is a thoughtful touch.
 
-5. **76 Architecture Decision Records** that capture not just what was decided but why, including alternatives considered and tradeoffs accepted. This is the most thorough ADR practice I have seen in a project of this size.
+5. **Terminal marker scanning with priority semantics (`internal/daemon/iteration.go:scanTerminalMarker`):** Parsing model output for markers is fraught with edge cases (prompt echo, JSON stream envelopes, multiple markers in one output). The priority ordering (COMPLETE > BLOCKED > YIELD) with JSON envelope extraction handles the real-world scenarios where models echo their instructions or produce intermediate output before the final marker.
 
 ---
 
@@ -643,20 +665,23 @@ The unlocked propagation path in `cmdutil/app.go` is a warning, not a blocker, b
 
 ### Before release
 
-No blockers. This tier is empty.
+No blockers.
 
 ### First 30 days
 
-- **Warning #1:** Fix the unlocked `PropagateState` path in `cmdutil/app.go`. (Effort: small. Impact: medium.)
-- **Warning #2:** Update the stale category count comment in `validate/engine.go`. (Effort: trivial. Impact: low.)
-- Add a `make ci` target that runs `lint test build`. (Effort: trivial. Impact: medium. File: `Makefile`.)
-- Add `SECURITY.md` with vulnerability reporting instructions. (Effort: small. Impact: medium. File: `SECURITY.md`.)
-- Add an integration test for concurrent daemon + inbox + CLI mutation. (Effort: medium. Impact: high. File: `test/integration/`.)
+- Release Warning #1: Validate empty project names (effort: small, impact: high)
+- Release Warning #2: Remove `.DS_Store` (effort: small, impact: medium)
+- Release Warning #3: User-facing error messages for nonexistent nodes (effort: small, impact: high)
+- Release Warning #4: Log propagation failures in `MutateNode` (effort: small, impact: medium)
+- Extract overlap detection from `cmd/cmdutil/app.go` to its own file (effort: small, impact: low)
+- Add cross-field config validation for model references in pipeline stages (`internal/config/config.go`; effort: small, impact: medium)
 
 ### First 90 days
 
-- Add a `STALE_TEMP_FILE` validation category for orphaned `.wolfcastle-tmp-*` files. (Effort: small. Impact: low. Files: `internal/validate/types.go`, `internal/validate/engine.go`.)
-- Replace the force-exit `os.Exit(0)` in `daemon.go:218` with a cooperative shutdown mechanism. (Effort: medium. Impact: medium. File: `internal/daemon/daemon.go`.)
-- Add config schema versioning for future backward-compatibility management. (Effort: medium. Impact: medium. Files: `internal/config/config.go`, `internal/config/types.go`.)
-- Add optional environment variable allowlisting for model subprocesses. (Effort: medium. Impact: medium. File: `internal/invoke/invoker.go`.)
-- Consider adding stability annotations to commands before v1.0. (Effort: medium. Impact: high. Files: `cmd/` help text.)
+- Remove legacy `Invoke`/`InvokeStreaming` wrappers from `internal/invoke/invoker.go` (effort: small, impact: low)
+- Extract `handleTerminalMarker` from `daemon/iteration.go:runIteration` (effort: small, impact: low)
+- Add orphaned temp file cleanup to `doctor` (effort: small, impact: low)
+- Add `--dry-run` flag to `doctor --fix` (effort: medium, impact: medium)
+- Add PID-recycling edge case tests to `filelock_test.go` (effort: small, impact: low)
+- Add `govulncheck` to CI for dependency vulnerability scanning (effort: small, impact: medium)
+- Consider adding `CODEOWNERS` file and release-drafter workflow (effort: small, impact: low)

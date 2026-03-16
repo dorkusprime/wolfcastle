@@ -239,6 +239,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
 
+	d.iteration = 0
+	_ = d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
+	output.PrintHuman("=== Wolfcastle engaged (scope=%s) ===", d.scopeLabel())
+
 	// Self-healing phase (ADR-020)
 	if err := d.selfHeal(); err != nil {
 		return fmt.Errorf("self-healing failed: %w", err)
@@ -253,10 +257,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 			d.Config.Git.VerifyBranch = false
 		}
 	}
-
-	d.iteration = 0
-	_ = d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
-	output.PrintHuman("=== Wolfcastle engaged (scope=%s) ===", d.scopeLabel())
 
 	// Start the parallel inbox processing goroutine (ADR-064).
 	// It watches for new inbox items and runs the intake stage

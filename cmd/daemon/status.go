@@ -225,6 +225,11 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		if t.FailureCount > 0 && t.State != state.StatusComplete {
 			extra += fmt.Sprintf("  (%d failures)", t.FailureCount)
 		}
+		// Show description detail for completed tasks when a title is
+		// the primary label and the description adds information.
+		if t.State == state.StatusComplete && t.Title != "" && t.Description != "" && t.Description != t.Title {
+			extra += "\n" + indent + "         " + t.Description
+		}
 
 		output.PrintHuman("%s  %s %s  %s%s", indent, tGlyph, t.ID, label, extra)
 	}
