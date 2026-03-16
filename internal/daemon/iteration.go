@@ -190,14 +190,15 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				return state.TaskComplete(ns, nav.TaskID)
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
-			} else {
-				// Re-read for propagation
-				if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-					ns = updated
-				}
-				if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
-				}
+			}
+			// Always propagate after COMPLETE, even if TaskComplete failed.
+			// The model may have blocked the task via CLI during execution,
+			// leaving the node in a blocked state that needs propagation.
+			if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+				ns = updated
+			}
+			if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
+				_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 			}
 			return nil
 		}
