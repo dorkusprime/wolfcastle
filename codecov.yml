@@ -20,3 +20,4 @@ coverage:
 comment:
   layout: "reach,diff,flags,files"
   behavior: default
+  require_changes: false
