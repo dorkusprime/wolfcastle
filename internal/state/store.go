@@ -196,7 +196,7 @@ func (s *StateStore) nodePath(addr string) (string, error) {
 	}
 	parts := strings.Split(addr, "/")
 	for _, p := range parts {
-		if p == "" || strings.ContainsAny(p, " \t\n") {
+		if p == "" || p == "." || p == ".." || strings.ContainsAny(p, " \t\n") {
 			return "", fmt.Errorf("invalid address segment %q in %q", p, addr)
 		}
 	}

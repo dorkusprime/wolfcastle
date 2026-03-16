@@ -209,14 +209,15 @@ func (d *Daemon) Run(ctx context.Context) error {
 				if !ok {
 					return
 				}
-				output.PrintHuman("\n=== Signal received. Standing down. ===")
+				output.PrintHuman("\n=== Wolfcastle standing down (signal) ===")
 				cancel()
 				d.shutdownOnce.Do(func() { close(d.shutdown) })
 				// Force exit after a grace period in case the main loop
-				// is stuck (e.g., spinner Stop() blocking).
+				// is stuck (e.g., spinner Stop() blocking). Clean up PID
+				// file before exiting to prevent stale PID on next start.
 				go func() {
 					time.Sleep(2 * time.Second)
-					output.PrintHuman("=== Forced shutdown ===")
+					_ = os.Remove(filepath.Join(d.WolfcastleDir, "wolfcastle.pid"))
 					os.Exit(0)
 				}()
 				return
