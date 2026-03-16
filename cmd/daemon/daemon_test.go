@@ -602,7 +602,7 @@ func TestRegister_AllCommandsPresent(t *testing.T) {
 	for _, c := range cmds {
 		names[c.Name()] = true
 	}
-	for _, expected := range []string{"start", "stop", "follow", "status"} {
+	for _, expected := range []string{"start", "stop", "log", "status"} {
 		if !names[expected] {
 			t.Errorf("expected command %q to be registered", expected)
 		}
