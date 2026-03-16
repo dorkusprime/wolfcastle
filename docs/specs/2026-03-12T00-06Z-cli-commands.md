@@ -1,6 +1,6 @@
 # CLI Command Specification
 
-This is the primary implementation reference for every Wolfcastle CLI command. All commands listed in ADR-021 are specified here with full synopsis, behavior, output format, exit codes, and error handling.
+This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 39 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `inbox`, `spec`, `adr`, `archive`, `install`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
 
 ## Conventions
 
@@ -134,7 +134,7 @@ wolfcastle init --force
 ### Synopsis
 
 ```
-wolfcastle start [--node <path>] [--worktree <branch>] [-d]
+wolfcastle start [--node <path>] [--worktree <branch>] [-d] [-v]
 ```
 
 ### Description
@@ -147,7 +147,8 @@ Starts the Wolfcastle daemon, which begins the execution loop: navigate to the n
 |------|------|----------|---------|-------------|
 | `--node <path>` | string | No | (none -- full tree) | Scope execution to a specific subtree. The path is a tree address (ADR-008) |
 | `--worktree <branch>` | string | No | (none -- current branch) | Run in an isolated git worktree on the specified branch. Creates the branch from HEAD if it does not exist (ADR-015) |
-| `-d` | boolean | No | `false` | Run as a background daemon. Forks, writes PID file, returns immediately |
+| `-d`, `--daemon` | boolean | No | `false` | Run as a background daemon. Forks, writes PID file, returns immediately |
+| `-v`, `--verbose` | boolean | No | `false` | Set console log level to debug |
 
 ### Behavior
 
@@ -330,7 +331,7 @@ wolfcastle stop --force
 ### Synopsis
 
 ```
-wolfcastle status [--node <path>] [--all] [--json]
+wolfcastle status [--node <path>] [--all] [--watch [-w]] [--interval <seconds>] [--json]
 ```
 
 ### Description
@@ -341,12 +342,16 @@ When `--node` is provided, shows status for only the specified subtree, consiste
 
 By default, shows only the current engineer's tree. With `--all`, aggregates state across all engineer directories at runtime (ADR-024). The `--all` mode is read-only -- it scans other engineers' `projects/` directories for their root `state.json` and per-node `state.json` files but never writes to them.
 
+With `--watch` (or `-w`), the display refreshes on an interval until interrupted with Ctrl+C. The refresh interval defaults to 5 seconds and can be overridden with `--interval`.
+
 ### Arguments and Flags
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `--node <path>` | string | No | (none -- full tree) | Show status for only the specified subtree (ADR-008). Consistent with `--node` on `start` and `navigate` |
 | `--all` | boolean | No | `false` | Aggregate status across all engineer directories, not just the current engineer's |
+| `-w`, `--watch` | boolean | No | `false` | Refresh status on an interval until interrupted |
+| `--interval <seconds>` | float64 | No | `5` | Refresh interval in seconds (only meaningful with `--watch`) |
 | `--json` | boolean | No | `false` | Output as structured JSON instead of human-readable text |
 
 ### Behavior
@@ -534,41 +539,55 @@ wolfcastle status --all --json
 
 ---
 
-## wolfcastle follow
+## wolfcastle log
 
 ### Synopsis
 
 ```
-wolfcastle follow [--lines <n>]
+wolfcastle log [--follow [-f]] [--lines <n>] [--level <level>]
 ```
 
 ### Description
 
-Tails the active iteration's model output in real time. Works in both foreground and background modes by streaming from NDJSON log files (ADR-012). Finds the highest-numbered log file and tails it, automatically switching to the next file when a new iteration starts.
+Reads the daemon's log output. Without `--follow`, prints recent log lines and exits (like reading a file). With `--follow` (or `-f`), streams output in real time and tracks new iterations automatically, similar to `tail -f`. Works in both foreground and background modes by reading from NDJSON log files (ADR-012).
 
 ### Arguments and Flags
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `--lines <n>` | integer | No | `20` | Number of historical lines to show before streaming |
+| `-f`, `--follow` | boolean | No | `false` | Stream output in real time (like tail -f) |
+| `--lines <n>` | integer | No | `20` | Number of lines to show |
+| `-l`, `--level <level>` | string | No | (none) | Minimum log level filter (debug, info, warn, error) |
 
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
 2. Find the highest-numbered log file in `.wolfcastle/logs/`.
-   - If no log files exist, wait for one to appear (with a timeout message after 5 seconds).
-3. Print the last `n` lines of the current log file (parsed from NDJSON, formatted for human readability).
-4. Tail the file, printing new lines as they are appended.
-5. Watch for new iteration files. When a new, higher-numbered file appears, switch to tailing it and print a separator:
+   - If no log files exist and `--follow` is not set, report no logs and exit.
+   - If no log files exist and `--follow` is set, wait for one to appear (with a timeout message after 5 seconds).
+3. Print the last `n` lines of the current log file (parsed from NDJSON, formatted for human readability). If `--level` is specified, only lines at or above that severity are shown.
+4. **Without `--follow`**: exit 0.
+5. **With `--follow`**: tail the file, printing new lines as they are appended.
+6. Watch for new iteration files. When a new, higher-numbered file appears, switch to tailing it and print a separator:
    ```
    --- iteration 0042 started ---
    ```
-6. Continue until the user presses Ctrl+C, or the daemon exits (detected by checking the PID file / process status periodically).
-7. When the daemon exits, print a final message and exit.
+7. Continue until the user presses Ctrl+C, or the daemon exits (detected by checking the PID file / process status periodically).
+8. When the daemon exits, print a final message and exit.
 
 ### Output
 
-Streaming human-readable output parsed from NDJSON log entries:
+Recent log output (without `--follow`):
+
+```
+[18:45:03] Navigating to attunement-tree/fire-impl/task-3
+[18:45:04] Executing pipeline stage: execute (heavy)
+[18:45:05] Model: Analyzing the fire implementation stamina cost...
+[18:45:12] Script call: wolfcastle task claim --node attunement-tree/fire-impl/task-3
+[18:45:12] Task claimed: attunement-tree/fire-impl/task-3
+```
+
+Streaming output (with `--follow`):
 
 ```
 [18:45:03] Navigating to attunement-tree/fire-impl/task-3
@@ -585,17 +604,26 @@ Streaming human-readable output parsed from NDJSON log entries:
 
 | Code | Condition |
 |------|-----------|
-| 0 | User interrupted (Ctrl+C) or daemon exited |
+| 0 | Log output displayed, or user interrupted (Ctrl+C), or daemon exited |
 | 1 | `.wolfcastle/` not found |
 
 ### Examples
 
 ```bash
-# Follow with default 20 lines of history
-wolfcastle follow
+# Show the last 20 log lines and exit
+wolfcastle log
 
-# Follow with 100 lines of history
-wolfcastle follow --lines 100
+# Show the last 100 lines
+wolfcastle log --lines 100
+
+# Stream logs in real time
+wolfcastle log -f
+
+# Stream only warnings and errors
+wolfcastle log -f --level warn
+
+# Show recent errors only
+wolfcastle log --level error
 ```
 
 ### Error Cases
@@ -1139,6 +1167,79 @@ wolfcastle task unblock --node attunement-tree/water-impl/task-1 && wolfcastle s
 | Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
 | Not a leaf | `{"ok": false, "error": "node 'foo/bar' is not a leaf task", "code": "INVALID_NODE_TYPE"}` | 3 |
 | Wrong state | `{"ok": false, "error": "task 'foo/bar' is 'not_started', not 'blocked'", "code": "INVALID_STATE"}` | 4 |
+
+---
+
+## wolfcastle task deliverable
+
+### Synopsis
+
+```
+wolfcastle task deliverable --node <path> "<file-path>"
+```
+
+### Description
+
+Declares a file that a task is expected to produce. The daemon verifies all deliverables exist before accepting `WOLFCASTLE_COMPLETE`. Missing deliverables count as a failure and the model is re-invoked. Deliverables accumulate: multiple calls append to the task's deliverable list.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the task to attach the deliverable to (ADR-008) |
+| `"<file-path>"` | string (positional) | Yes | -- | Path to the file the task must produce (relative to the repository root) |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
+4. Validate the `--node` path exists and points to a leaf task.
+5. Load the node's co-located `state.json`.
+6. Append the file path to the task's `deliverables` array. Reject duplicates.
+7. Write the updated node `state.json`.
+8. Output the result as JSON.
+
+### Output
+
+```json
+{
+  "ok": true,
+  "action": "deliverable_added",
+  "node": "my-project/task-0001",
+  "path": "docs/pos-research.md",
+  "deliverable_count": 2
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Deliverable added successfully |
+| 1 | `.wolfcastle/` not found or identity not configured |
+| 2 | Node path not found |
+| 3 | Node is not a leaf task |
+| 4 | File path is empty |
+
+### Examples
+
+```bash
+# Declare a deliverable on a task
+wolfcastle task deliverable "docs/pos-research.md" --node pizza-docs/task-0001
+
+# Declare a code file as a deliverable
+wolfcastle task deliverable "src/api/handler.go" --node my-project/task-0002
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
+| Not a leaf | `{"ok": false, "error": "node 'foo/bar' is not a leaf task", "code": "INVALID_NODE_TYPE"}` | 3 |
+| Empty path | `{"ok": false, "error": "deliverable path must not be empty", "code": "EMPTY_PATH"}` | 4 |
+| Duplicate | `{"ok": false, "error": "deliverable 'foo.md' already declared on this task", "code": "DUPLICATE_DELIVERABLE"}` | 1 |
 
 ---
 
@@ -2005,6 +2106,75 @@ wolfcastle audit show --node attunement-tree/fire-impl --json | jq '.data.gaps'
 | Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
 | No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
 | Node not found | `fatal: node 'foo/bar' not found in tree` | 1 |
+
+---
+
+## wolfcastle audit summary
+
+### Synopsis
+
+```
+wolfcastle audit summary --node <path> "<text>"
+```
+
+### Description
+
+Sets the final result summary on a node's audit record. This is the short, human-readable conclusion that goes into the archive entry. Typically called by the model before signaling `WOLFCASTLE_COMPLETE` on the final task of a node.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the target node (ADR-008) |
+| `"<text>"` | string (positional) | Yes | -- | Summary text describing the outcome of the work |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
+4. Validate the `--node` path exists in the tree index.
+5. Load the node's co-located `state.json`.
+6. Set the `audit.summary` field to the provided text. Overwrites any previous summary.
+7. Write the updated node `state.json`.
+8. Output the result as JSON.
+
+### Output
+
+```json
+{
+  "ok": true,
+  "action": "summary_set",
+  "node": "my-project",
+  "text": "Implemented JWT auth with full test coverage"
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Summary set successfully |
+| 1 | `.wolfcastle/` not found or identity not configured |
+| 2 | Node path not found |
+| 3 | Text is empty |
+
+### Examples
+
+```bash
+# Record the result summary before completing
+wolfcastle audit summary --node my-project "Implemented JWT auth with full test coverage"
+
+# Summarize a sub-project
+wolfcastle audit summary --node auth/login "Refactored login flow to use OAuth2"
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
+| Empty text | `{"ok": false, "error": "summary text cannot be empty. State the outcome", "code": "EMPTY_TEXT"}` | 3 |
 
 ---
 

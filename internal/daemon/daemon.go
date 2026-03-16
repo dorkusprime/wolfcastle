@@ -42,6 +42,11 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
+// inboxIterationOffset separates inbox log file numbering from execute
+// loop numbering so both can write to the same directory without
+// filename collisions.
+const inboxIterationOffset = 10000
+
 // Daemon is the main Wolfcastle daemon loop.
 type Daemon struct {
 	Config        *config.Config
@@ -90,7 +95,7 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 	// Offset inbox iterations by 10000 to avoid filename collisions
 	// with the execute loop. Both write to the same directory but
 	// their iteration numbers never overlap.
-	inboxLogger.Iteration = 10000 + logging.IterationFromDir(logDir)
+	inboxLogger.Iteration = inboxIterationOffset + logging.IterationFromDir(logDir)
 
 	return &Daemon{
 		Config:        cfg,
