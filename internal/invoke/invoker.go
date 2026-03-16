@@ -112,6 +112,7 @@ func (p *ProcessInvoker) Invoke(ctx context.Context, model config.ModelDef, prom
 		cmd.Stdout = &stdout
 
 		err := cmd.Run()
+		RestoreTerminal()
 
 		output := stdout.String()
 		result := &Result{
@@ -173,6 +174,7 @@ func (p *ProcessInvoker) Invoke(ctx context.Context, model config.ModelDef, prom
 	}
 
 	err = cmd.Wait()
+	RestoreTerminal()
 
 	result.Stdout = captured.String()
 	result.Stderr = stderr.String()

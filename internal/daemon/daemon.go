@@ -57,6 +57,7 @@ type Daemon struct {
 	shutdown      chan struct{}
 	shutdownOnce  sync.Once
 	workAvailable chan struct{}
+	sigChan       chan os.Signal
 	branch        string
 	iteration     int
 	lastNoWorkMsg string // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
@@ -196,18 +197,32 @@ func (d *Daemon) Run(ctx context.Context) error {
 	defer cancel()
 
 	// Dedicated signal channel as a backup. Child processes (Claude Code)
-	// may corrupt the terminal's process group, causing signal.NotifyContext
-	// to miss signals after the child exits. This channel catches signals
-	// regardless of terminal state and closes the shutdown channel directly.
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, shutdownSignals...)
-	defer signal.Stop(sigChan)
+	// may corrupt Go's signal infrastructure. Re-register after every
+	// model invocation to ensure signals are always caught.
+	d.sigChan = make(chan os.Signal, 2)
+	signal.Notify(d.sigChan, shutdownSignals...)
+	defer signal.Stop(d.sigChan)
 	go func() {
-		select {
-		case <-sigChan:
-			cancel()
-			d.shutdownOnce.Do(func() { close(d.shutdown) })
-		case <-ctx.Done():
+		for {
+			select {
+			case _, ok := <-d.sigChan:
+				if !ok {
+					return
+				}
+				output.PrintHuman("\n=== Signal received. Standing down. ===")
+				cancel()
+				d.shutdownOnce.Do(func() { close(d.shutdown) })
+				// Force exit after a grace period in case the main loop
+				// is stuck (e.g., spinner Stop() blocking).
+				go func() {
+					time.Sleep(2 * time.Second)
+					output.PrintHuman("=== Forced shutdown ===")
+					os.Exit(0)
+				}()
+				return
+			case <-d.shutdown:
+				return
+			}
 		}
 	}()
 

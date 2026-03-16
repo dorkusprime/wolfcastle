@@ -41,22 +41,24 @@ For each inbox item, follow this decision tree to determine the right task struc
 If the inbox item references a specific technology, framework, or domain:
 
 - **You know it well** (mainstream, well-documented, you can confidently describe its project structure and conventions): proceed to Step 2.
-- **You don't know it or aren't sure** (unfamiliar framework, niche technology, made-up name, something you can't verify): create a **discovery task** as the first task. This task investigates the technology and determines whether it exists and how it works. Its deliverable is a research document. Do NOT create implementation tasks for technologies you haven't verified. The discovery agent will create follow-up tasks after researching.
+- **You don't know it or aren't sure** (unfamiliar framework, niche technology, made-up name, something you can't verify): create the full task chain anyway (discovery → spec → implementation). The discovery task researches the technology. If the technology turns out to be fake or infeasible, the discovery agent will pre-block the downstream tasks. If it's real, work continues naturally through the chain.
 
 ### Step 2: Is the request specific enough to implement?
 
 - **Yes, the requirements are concrete** (specific inputs, outputs, behaviors, file formats): create implementation tasks directly with clear deliverables.
-- **No, the request is vague or open-ended** ("build a website", "create a CLI tool", "make an API"): create a **spec-writing task** before any implementation tasks. The spec task produces a design document. Implementation tasks follow the spec. If you also needed a discovery task from Step 1, the spec task comes after discovery.
+- **No, the request is vague or open-ended** ("build a website", "create a CLI tool", "make an API"): create a **spec-writing task** before implementation tasks. The spec task produces a design document. Implementation tasks follow the spec.
 
 ### Step 3: Create the task chain
 
-The standard task chain for uncertain or complex work:
+When the inbox item asks for something to be BUILT (a website, a CLI tool, an API, a feature), always include an implementation task at the end of the chain, even when discovery or spec tasks come first. The implementation agent reads the spec and figures out the details.
+
+When the inbox item only asks for research, documentation, or analysis, do NOT add an implementation task that wasn't requested.
 
 1. **Discovery** (when technology is unfamiliar): research the technology, verify it exists, document findings. Deliverable: `docs/<slug>-research.md`
-2. **Write Spec** (when requirements are vague): design the implementation based on research or the inbox item. Deliverable: `docs/<slug>-spec.md`
-3. **Implementation tasks** (only when you know both the technology and the requirements): concrete, specific tasks with file deliverables.
+2. **Write Spec** (when requirements are vague): design the implementation based on research or the inbox item. Deliverable: use `wolfcastle spec create --stdin` to create in the right location.
+3. **Implementation** (when the item asks for something to be built): build what the spec describes. Even if you're uncertain about structure, create a task like "Implement based on spec" with a broad deliverable (e.g. `src/**`).
 
-For simple, well-understood requests (e.g., "create a hello world file"), skip directly to implementation tasks. Not everything needs discovery or a spec.
+For simple, well-understood requests (e.g., "create a hello world file"), skip discovery and spec. Not everything needs the full chain.
 
 ### Examples
 
@@ -65,7 +67,9 @@ For simple, well-understood requests (e.g., "create a hello world file"), skip d
 Inbox: "Build a website using BlazeJS framework"
 → Create project "BlazeJS Website"
 → Task 1: "Research BlazeJS framework" --deliverable "docs/blazejs-research.md"
-   (Discovery agent will determine if BlazeJS exists and create follow-up tasks)
+→ Task 2: "Write implementation spec" --deliverable "docs/blazejs-spec.md"
+→ Task 3: "Implement website based on spec" --deliverable "src/**"
+   (If BlazeJS doesn't exist, the research agent pre-blocks tasks 2 and 3)
 ```
 
 **Known framework, vague requirements:**

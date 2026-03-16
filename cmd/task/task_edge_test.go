@@ -282,7 +282,7 @@ func TestTaskClaim_PropagateError(t *testing.T) {
 // task block — PropagateState error (broken root index)
 // ---------------------------------------------------------------------------
 
-func TestTaskBlock_PropagateError(t *testing.T) {
+func TestTaskBlock_BrokenIndexStillBlocks(t *testing.T) {
 	env := newTestEnv(t)
 	createLeafNode(t, env, "my-project", "My Project")
 
@@ -291,14 +291,16 @@ func TestTaskBlock_PropagateError(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	// Break the root index
+	// Break the root index. MutateNode propagation is non-fatal,
+	// so the block should still succeed even if propagation can't
+	// update the index.
 	rootStatePath := filepath.Join(env.ProjectsDir, "state.json")
 	_ = os.WriteFile(rootStatePath, []byte("invalid json"), 0644)
 
 	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Error("expected error when PropagateState fails")
+	if err != nil {
+		t.Errorf("block should succeed even with broken index: %v", err)
 	}
 }
 

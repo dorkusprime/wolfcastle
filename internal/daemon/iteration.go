@@ -55,13 +55,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}); err != nil {
 			return werrors.State(fmt.Errorf("claiming task %s: %w", nav.TaskID, err))
 		}
-		// Re-read after mutation to get updated state for propagation
+		// Re-read after mutation for the rest of the iteration.
 		ns, err = d.Store.ReadNode(nav.NodeAddress)
 		if err != nil {
 			return werrors.State(fmt.Errorf("reloading node state after claim: %w", err))
-		}
-		if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-			return werrors.State(fmt.Errorf("propagating state after claim: %w", err))
 		}
 	}
 
@@ -110,6 +107,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		if cancel != nil {
 			cancel()
 		}
+
+		// Restore terminal to cooked mode in case the child left it in raw mode.
 		if err != nil {
 			_ = d.Logger.Log(map[string]any{"type": "stage_error", "stage": stage.Name, "error": err.Error()})
 			return err
@@ -141,15 +140,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
 			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 				return state.TaskBlock(ns, nav.TaskID, "blocked by model")
-			}); err == nil {
-				// Re-read for propagation
-				if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-					ns = updated
-				}
-				if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
-				}
-			} else {
+			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
 			}
 			return nil
@@ -190,15 +181,6 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				return state.TaskComplete(ns, nav.TaskID)
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
-			}
-			// Always propagate after COMPLETE, even if TaskComplete failed.
-			// The model may have blocked the task via CLI during execution,
-			// leaving the node in a blocked state that needs propagation.
-			if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-				ns = updated
-			}
-			if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-				_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 			}
 			return nil
 		}
@@ -243,14 +225,6 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			_ = d.Logger.Log(map[string]any{"type": "failure_increment_error", "error": mutErr.Error()})
 		} else {
 			_ = d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
-
-			// Re-read for propagation
-			if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-				ns = updated
-			}
-			if err := d.propagateState(nav.NodeAddress, ns.State, idx); err != nil {
-				_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
-			}
 		}
 	}
 

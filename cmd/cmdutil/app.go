@@ -28,6 +28,8 @@ type App struct {
 	Clock         clock.Clock
 	Invoker       invoke.Invoker
 	JSONOutput    bool
+	Version       string
+	Commit        string
 }
 
 // FindWolfcastleDir walks upward from the working directory until it
