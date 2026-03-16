@@ -2,6 +2,7 @@ package task
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -30,6 +31,12 @@ Examples:
 			delivPath := args[0]
 			if strings.TrimSpace(delivPath) == "" {
 				return fmt.Errorf("deliverable path cannot be empty")
+			}
+			if filepath.IsAbs(delivPath) {
+				return fmt.Errorf("deliverable path must be relative, got absolute path %q", delivPath)
+			}
+			if strings.Contains(delivPath, "..") {
+				return fmt.Errorf("deliverable path must not contain '..' traversal components")
 			}
 			nodeFlag, _ := cmd.Flags().GetString("node")
 			if nodeFlag == "" {

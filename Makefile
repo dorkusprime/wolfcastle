@@ -5,7 +5,7 @@ DATE    ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -ldflags "-X github.com/dorkusprime/wolfcastle/cmd.Version=$(VERSION) -X github.com/dorkusprime/wolfcastle/cmd.Commit=$(COMMIT) -X github.com/dorkusprime/wolfcastle/cmd.Date=$(DATE)"
 GOFLAGS := -trimpath
 
-.PHONY: build test install clean lint fmt vet
+.PHONY: build test install clean lint fmt vet help
 
 build:
 	@echo "Building wolfcastle $(VERSION) ($(COMMIT))..."
@@ -51,3 +51,20 @@ build-darwin:
 
 build-windows:
 	GOOS=windows GOARCH=amd64 go build $(GOFLAGS) $(LDFLAGS) -o dist/$(BINARY)-windows-amd64.exe .
+
+help: ## Print available targets
+	@echo "wolfcastle build targets:"
+	@echo ""
+	@echo "  build          Build wolfcastle binary"
+	@echo "  test           Run tests"
+	@echo "  test-verbose   Run tests with verbose output"
+	@echo "  install        Install wolfcastle to GOPATH/bin"
+	@echo "  clean          Remove built binary and build cache"
+	@echo "  lint           Run vet and fmt checks"
+	@echo "  vet            Run go vet"
+	@echo "  fmt            Check gofmt compliance"
+	@echo "  build-all      Cross-compile for all platforms"
+	@echo "  build-linux    Cross-compile for Linux (amd64, arm64)"
+	@echo "  build-darwin   Cross-compile for macOS (amd64, arm64)"
+	@echo "  build-windows  Cross-compile for Windows (amd64)"
+	@echo "  help           Print this help"

@@ -257,24 +257,27 @@ func TestTaskComplete_JSONOutput_NodeComplete(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// task claim — PropagateState error (broken root index)
+// task claim — broken root index is non-fatal (MutateNode propagation
+// silently skips when the index can't be loaded)
 // ---------------------------------------------------------------------------
 
-func TestTaskClaim_PropagateError(t *testing.T) {
+func TestTaskClaim_BrokenIndexStillClaims(t *testing.T) {
 	env := newTestEnv(t)
 	createLeafNode(t, env, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
 
-	// Break the root index to cause PropagateState to fail
+	// Break the root index. MutateNode propagation is non-fatal,
+	// so the claim should still succeed even if propagation can't
+	// update the index.
 	rootStatePath := filepath.Join(env.ProjectsDir, "state.json")
 	_ = os.WriteFile(rootStatePath, []byte("invalid json"), 0644)
 
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Error("expected error when PropagateState fails")
+	if err != nil {
+		t.Errorf("claim should succeed even with broken index: %v", err)
 	}
 }
 
@@ -305,10 +308,11 @@ func TestTaskBlock_BrokenIndexStillBlocks(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task complete — PropagateState error (broken root index)
+// task complete — broken root index is non-fatal (MutateNode propagation
+// silently skips when the index can't be loaded)
 // ---------------------------------------------------------------------------
 
-func TestTaskComplete_PropagateError(t *testing.T) {
+func TestTaskComplete_BrokenIndexStillCompletes(t *testing.T) {
 	env := newTestEnv(t)
 	createLeafNode(t, env, "my-project", "My Project")
 
@@ -317,22 +321,25 @@ func TestTaskComplete_PropagateError(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	// Break the root index
+	// Break the root index. MutateNode propagation is non-fatal,
+	// so the complete should still succeed even if propagation can't
+	// update the index.
 	rootStatePath := filepath.Join(env.ProjectsDir, "state.json")
 	_ = os.WriteFile(rootStatePath, []byte("invalid json"), 0644)
 
 	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Error("expected error when PropagateState fails")
+	if err != nil {
+		t.Errorf("complete should succeed even with broken index: %v", err)
 	}
 }
 
 // ---------------------------------------------------------------------------
-// task unblock — PropagateState error (broken root index)
+// task unblock — broken root index is non-fatal (MutateNode propagation
+// silently skips when the index can't be loaded)
 // ---------------------------------------------------------------------------
 
-func TestTaskUnblock_PropagateError(t *testing.T) {
+func TestTaskUnblock_BrokenIndexStillUnblocks(t *testing.T) {
 	env := newTestEnv(t)
 	createLeafNode(t, env, "my-project", "My Project")
 
@@ -343,14 +350,16 @@ func TestTaskUnblock_PropagateError(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	_ = env.RootCmd.Execute()
 
-	// Break the root index
+	// Break the root index. MutateNode propagation is non-fatal,
+	// so the unblock should still succeed even if propagation can't
+	// update the index.
 	rootStatePath := filepath.Join(env.ProjectsDir, "state.json")
 	_ = os.WriteFile(rootStatePath, []byte("invalid json"), 0644)
 
 	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Error("expected error when PropagateState fails")
+	if err != nil {
+		t.Errorf("unblock should succeed even with broken index: %v", err)
 	}
 }
 

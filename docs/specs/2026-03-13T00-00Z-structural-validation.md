@@ -215,6 +215,40 @@ Daemon artifacts are operational files that can be left behind when the daemon c
 
 **Example**: The `stop` file exists but no daemon is running. The next `wolfcastle start` would immediately shut down upon seeing it.
 
+### Audit State Integrity
+
+These categories validate the audit metadata on each node: scope, status, gaps, escalations, and the relationship between the audit task's state and the computed audit status.
+
+#### INVALID_AUDIT_SCOPE
+
+**Description**: The audit scope exists but has no description.
+
+**Severity**: Warning
+
+#### INVALID_AUDIT_STATUS
+
+**Description**: The audit status field contains an unrecognized value (not pending, in_progress, passed, or failed).
+
+**Severity**: Error
+
+#### INVALID_AUDIT_GAP
+
+**Description**: An audit gap has an unrecognized status (not open or fixed) or is missing required fields.
+
+**Severity**: Warning
+
+#### INVALID_AUDIT_ESCALATION
+
+**Description**: An audit escalation has an unrecognized status (not open or resolved) or is missing required fields.
+
+**Severity**: Warning
+
+#### AUDIT_STATUS_TASK_MISMATCH
+
+**Description**: The computed audit status (based on the audit task's state and open gaps) does not match the stored `audit.status` field. For example, the audit task is in_progress but the status says "passed."
+
+**Severity**: Warning
+
 ---
 
 ## 2. Severity Levels

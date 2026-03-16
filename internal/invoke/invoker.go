@@ -200,6 +200,15 @@ func detectMarkers(output string, result *Result) {
 
 // detectLineMarker checks a single line for WOLFCASTLE_* markers and
 // updates the result. Only the first terminal marker is recorded.
+// This is the streaming detector: it fires during output capture for
+// immediate awareness. It uses first-match semantics.
+//
+// The daemon also runs scanTerminalMarker (in daemon/iteration.go)
+// AFTER execution completes. That scanner uses priority ordering
+// (COMPLETE > BLOCKED > YIELD) across the full output to handle
+// cases where multiple markers appear (e.g., prompt echo followed
+// by the real marker). Both detectors exist because streaming needs
+// immediate detection while post-execution needs priority resolution.
 func detectLineMarker(line string, result *Result) {
 	trimmed := strings.TrimSpace(line)
 

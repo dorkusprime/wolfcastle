@@ -1,6 +1,9 @@
 package state
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 // NavigationResult is the output of FindNextTask.
 type NavigationResult struct {
@@ -19,7 +22,7 @@ func FindNextTask(idx *RootIndex, scopeAddr string, loadNode func(addr string) (
 	if scopeAddr != "" {
 		entry, ok := idx.Nodes[scopeAddr]
 		if !ok {
-			return &NavigationResult{Reason: "scope address not found"}, nil
+			return nil, fmt.Errorf("node %q not found in index", scopeAddr)
 		}
 		if entry.State == StatusComplete {
 			return &NavigationResult{Reason: "scoped node is complete"}, nil

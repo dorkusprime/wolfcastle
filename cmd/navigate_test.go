@@ -73,6 +73,10 @@ func TestNavigate_WithScope(t *testing.T) {
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("navigate --node failed: %v", err)
 	}
+
+	// Reset the --node flag so it doesn't leak into subsequent tests
+	// that share the package-level navigateCmd.
+	_ = navigateCmd.Flags().Set("node", "")
 }
 
 func TestNavigate_JSONOutput(t *testing.T) {

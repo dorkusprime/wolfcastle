@@ -228,15 +228,9 @@ func TestFindNextTask_AllComplete(t *testing.T) {
 func TestFindNextTask_ScopeNotFound(t *testing.T) {
 	t.Parallel()
 	idx := NewRootIndex()
-	result, err := FindNextTask(idx, "nonexistent", makeLoadNode(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Found {
-		t.Error("expected not found")
-	}
-	if result.Reason != "scope address not found" {
-		t.Errorf("expected 'scope address not found', got %q", result.Reason)
+	_, err := FindNextTask(idx, "nonexistent", makeLoadNode(nil))
+	if err == nil {
+		t.Fatal("expected error for nonexistent scope address")
 	}
 }
 
