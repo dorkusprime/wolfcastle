@@ -176,7 +176,7 @@ func TestLoadUnblockPreamble_NoWolfcastleDir(t *testing.T) {
 	if preamble == "" {
 		t.Error("expected non-empty fallback preamble")
 	}
-	if !strings.Contains(preamble, "Help the user") {
+	if !strings.Contains(preamble, "helping a developer resolve a blocked task") {
 		t.Error("expected default preamble text")
 	}
 }
