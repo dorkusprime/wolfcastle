@@ -28,7 +28,7 @@ wolfcastle task add "Task title" --node <node-address> [--body "detailed descrip
 
 Use `--body` when a task needs more context than the title alone provides. For simple, self-explanatory tasks, the title is sufficient.
 
-**Always specify at least one deliverable per task** using `--deliverable "path/to/file"`. The daemon verifies deliverables exist before accepting task completion. Tasks without deliverables cannot be verified and will complete without proof of work. Use glob patterns when the exact filename isn't known yet (e.g. `--deliverable "docs/report-*.md"`).
+**Always specify at least one deliverable per task** using `--deliverable "path/to/file"`. The daemon verifies deliverables exist before accepting task completion. Tasks without deliverables cannot be verified and will complete without proof of work. Use glob patterns when the exact filename isn't known yet (e.g. `--deliverable ".wolfcastle/artifacts/report-*.md"`). Research and spec deliverables go in `.wolfcastle/artifacts/`. Implementation deliverables go in the repo (e.g. `src/`).
 
 Refer to the script-reference.md section above for the full command reference.
 
@@ -54,9 +54,11 @@ When the inbox item asks for something to be BUILT (a website, a CLI tool, an AP
 
 When the inbox item only asks for research, documentation, or analysis, do NOT add an implementation task that wasn't requested.
 
-1. **Discovery** (when technology is unfamiliar): research the technology, verify it exists, document findings. Deliverable: `docs/<slug>-research.md`
-2. **Write Spec** (when requirements are vague): design the implementation based on research or the inbox item. Deliverable: use `wolfcastle spec create --stdin` to create in the right location.
+1. **Discovery** (when technology is unfamiliar): research the technology, verify it exists, document findings. Deliverable: `.wolfcastle/artifacts/<slug>-research.md`
+2. **Write Spec** (when requirements are vague): design the implementation based on research or the inbox item. Deliverable: `.wolfcastle/artifacts/<slug>-spec.md`
 3. **Implementation** (when the item asks for something to be built): build what the spec describes. Even if you're uncertain about structure, create a task like "Implement based on spec" with a broad deliverable (e.g. `src/**`).
+
+Research documents, specs, and other intermediate artifacts go in `.wolfcastle/artifacts/`, NOT in the repo's `docs/` directory. Only final implementation code goes into the repo proper.
 
 For simple, well-understood requests (e.g., "create a hello world file"), skip discovery and spec. Not everything needs the full chain.
 
@@ -66,8 +68,8 @@ For simple, well-understood requests (e.g., "create a hello world file"), skip d
 ```
 Inbox: "Build a website using BlazeJS framework"
 → Create project "BlazeJS Website"
-→ Task 1: "Research BlazeJS framework" --deliverable "docs/blazejs-research.md"
-→ Task 2: "Write implementation spec" --deliverable "docs/blazejs-spec.md"
+→ Task 1: "Research BlazeJS framework" --deliverable ".wolfcastle/artifacts/blazejs-research.md"
+→ Task 2: "Write implementation spec" --deliverable ".wolfcastle/artifacts/blazejs-spec.md"
 → Task 3: "Implement website based on spec" --deliverable "src/**"
    (If BlazeJS doesn't exist, the research agent pre-blocks tasks 2 and 3)
 ```
@@ -76,7 +78,7 @@ Inbox: "Build a website using BlazeJS framework"
 ```
 Inbox: "Build a REST API for user management"
 → Create project "User Management API"
-→ Task 1: "Design API spec: endpoints, data models, auth strategy" --deliverable "docs/api-spec.md"
+→ Task 1: "Design API spec" --deliverable ".wolfcastle/artifacts/api-spec.md"
 → Task 2: "Implement API based on spec" --deliverable "src/api/**"
 ```
 
