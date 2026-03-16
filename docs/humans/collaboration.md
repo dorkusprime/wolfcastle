@@ -73,7 +73,7 @@ Logs are NDJSON, one self-contained JSON record per line. Each daemon iteration 
 .wolfcastle/logs/0002-20260312T18-47Z.jsonl
 ```
 
-`wolfcastle follow` finds the latest file and tails it, watching for new files as iterations advance.
+`wolfcastle log` finds the latest file and tails it, watching for new files as iterations advance. (`follow` still works as an alias.)
 
 ```json
 {
