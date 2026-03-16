@@ -9,18 +9,40 @@ RunWithSupervisor
   └── Run (main loop)
        ├── selfHeal (ADR-020: find interrupted tasks)
        ├── branch check (ADR-015)
+       ├── snapshotDeliverables (baseline hashes for change detection)
        ├── start inbox goroutine (ADR-064: parallel intake)
+       ├── start spinner goroutine
        └── for each iteration:
             └── RunOnce
                  ├── check shutdown/stop-file/iteration-cap
                  ├── navigate to find work (state.FindNextTask)
                  └── runIteration
                       ├── claim task
+                      ├── PauseSpinner
                       ├── run execute stage
+                      ├── ResumeSpinner
+                      ├── reclaim foreground process group
                       ├── reload state from disk (model CLI calls may have mutated it)
                       ├── scan for terminal markers (COMPLETE/YIELD/BLOCKED)
+                      ├── checkDeliverablesChanged
                       └── handle failure thresholds
 ```
+
+## Spinner Coordination
+
+The daemon runs a spinner animation in a background goroutine to signal liveness while waiting between iterations. Before invoking the model subprocess, the daemon calls `PauseSpinner()` to stop the animation (the model's own output takes the terminal). After invocation returns, `ResumeSpinner()` restarts it. Both calls are synchronous; the spinner goroutine blocks on a channel until told to resume.
+
+## Deliverable Baseline Hashes
+
+At startup, `snapshotDeliverables()` walks the project tree and records a hash of each deliverable file. After each iteration, `checkDeliverablesChanged()` re-hashes and compares. This detects when the model has produced or modified deliverables during execution, even if no state marker was emitted. Changed files are logged.
+
+## Foreground Process Group Reclaim
+
+Model invocations run in their own process group (`Setpgid: true`). When the subprocess exits, the daemon reclaims the foreground process group so that terminal signals (SIGINT, SIGTSTP) route back to the daemon rather than being swallowed by the defunct child group.
+
+## Discovery-First Intake Pipeline
+
+Inbox processing uses a discovery-first approach: new inbox items are scanned and decomposed into project/task structures before any task execution begins. The intake model creates the nodes and marks new tasks as `not_started` with a pre-block so the daemon does not pick them up mid-decomposition. Once intake completes, the pre-block is removed and the tasks become eligible for execution during normal navigation.
 
 ## Parallel Inbox Processing (ADR-064)
 

@@ -44,6 +44,6 @@ Then the loop begins: [navigate](navigate.md) to the next task, run the [pipelin
 ## See Also
 
 - [`wolfcastle stop`](stop.md) to shut it down.
-- [`wolfcastle log`](follow.md) to watch it work (`follow` still works as an alias).
+- [`wolfcastle log`](log.md) to watch it work (`follow` still works as an alias).
 - [`wolfcastle status`](status.md) to check progress.
 - [The Daemon](../how-it-works.md#the-daemon) for the full execution model.
