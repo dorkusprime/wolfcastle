@@ -4,4 +4,5 @@ dist/
 coverage.out
 *.coverprofile
 *.test
-.claude
+.claude/
+.wolfcastle/

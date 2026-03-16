@@ -545,6 +545,12 @@ func TestCheckOverlap_FindsMatch(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCompleteNodeAddresses_NilResolver(t *testing.T) {
+	// Run from a temp dir to avoid picking up .wolfcastle/ from the repo
+	tmp := t.TempDir()
+	origDir, _ := os.Getwd()
+	_ = os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+
 	a := &App{}
 	fn := CompleteNodeAddresses(a)
 	addrs, directive := fn(nil, nil, "")
@@ -557,6 +563,11 @@ func TestCompleteNodeAddresses_NilResolver(t *testing.T) {
 }
 
 func TestCompleteTaskAddresses_NilResolver(t *testing.T) {
+	tmp := t.TempDir()
+	origDir, _ := os.Getwd()
+	_ = os.Chdir(tmp)
+	defer func() { _ = os.Chdir(origDir) }()
+
 	a := &App{}
 	fn := CompleteTaskAddresses(a)
 	addrs, directive := fn(nil, nil, "")
