@@ -195,8 +195,24 @@ func (d *Daemon) Run(ctx context.Context) error {
 	ctx, cancel := signal.NotifyContext(ctx, shutdownSignals...)
 	defer cancel()
 
-	// Also close the shutdown channel for backward compatibility with
-	// stop-file and supervisor checks.
+	// Dedicated signal channel as a backup. Child processes (Claude Code)
+	// may corrupt the terminal's process group, causing signal.NotifyContext
+	// to miss signals after the child exits. This channel catches signals
+	// regardless of terminal state and closes the shutdown channel directly.
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, shutdownSignals...)
+	defer signal.Stop(sigChan)
+	go func() {
+		select {
+		case <-sigChan:
+			cancel()
+			d.shutdownOnce.Do(func() { close(d.shutdown) })
+		case <-ctx.Done():
+		}
+	}()
+
+	// Also close the shutdown channel when context cancels (covers
+	// programmatic cancellation, not just signals).
 	go func() {
 		<-ctx.Done()
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
@@ -264,6 +280,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 			}
 			select {
 			case <-ctx.Done():
+				idleSpinner.Stop()
+				return nil
+			case <-d.shutdown:
 				idleSpinner.Stop()
 				return nil
 			case <-d.workAvailable:
