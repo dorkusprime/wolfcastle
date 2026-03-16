@@ -115,10 +115,11 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 	for _, task := range ns.Tasks {
 		if !task.IsAudit {
 			nonAuditCount++
-			if task.State == StatusComplete {
+			switch task.State {
+			case StatusComplete:
 				nonAuditComplete++
 				nonAuditDone++
-			} else if task.State == StatusBlocked {
+			case StatusBlocked:
 				nonAuditBlocked++
 				nonAuditDone++
 			}
