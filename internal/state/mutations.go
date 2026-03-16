@@ -65,10 +65,18 @@ func TaskClaim(ns *NodeState, taskID string) error {
 }
 
 // TaskComplete transitions a task from in_progress to complete.
+// If the task was already blocked by the model during execution
+// (via CLI), this is a no-op: the blocked state takes precedence
+// and MutateNode still propagates.
 func TaskComplete(ns *NodeState, taskID string) error {
 	t := findTask(ns, taskID)
 	if t == nil {
 		return fmt.Errorf("task %q not found", taskID)
+	}
+	if t.State == StatusComplete || t.State == StatusBlocked {
+		// Already in a terminal state (model set it via CLI during execution).
+		// Don't error; let MutateNode propagate the current state.
+		return nil
 	}
 	if t.State != StatusInProgress {
 		return fmt.Errorf("task %q is %s, must be in_progress to complete", taskID, t.State)
@@ -103,13 +111,45 @@ func TaskBlock(ns *NodeState, taskID string, reason string) error {
 	if t == nil {
 		return fmt.Errorf("task %q not found", taskID)
 	}
-	if t.State != StatusInProgress && t.State != StatusNotStarted {
+	if t.State == StatusBlocked {
+		// Already blocked (model did it via CLI during execution).
+		// Update reason if provided, but don't error.
+		if reason != "" {
+			t.BlockedReason = reason
+		}
+		// Still run the node-state recomputation below.
+	} else if t.State != StatusInProgress && t.State != StatusNotStarted {
 		return fmt.Errorf("task %q is %s, must be in_progress or not_started to block", taskID, t.State)
+	} else {
+		t.State = StatusBlocked
+		t.BlockedReason = reason
 	}
-	t.State = StatusBlocked
-	t.BlockedReason = reason
 
-	// Check if all non-complete tasks are blocked
+	// Check if all non-audit tasks are blocked (none completed).
+	// If so, auto-block the audit task too: nothing to verify.
+	nonAuditAllBlocked := true
+	anyNonAuditComplete := false
+	for _, task := range ns.Tasks {
+		if task.IsAudit {
+			continue
+		}
+		if task.State == StatusComplete {
+			anyNonAuditComplete = true
+		}
+		if task.State != StatusBlocked {
+			nonAuditAllBlocked = false
+		}
+	}
+	if nonAuditAllBlocked && !anyNonAuditComplete {
+		for i, task := range ns.Tasks {
+			if task.IsAudit && task.State == StatusNotStarted {
+				ns.Tasks[i].State = StatusBlocked
+				ns.Tasks[i].BlockedReason = "all tasks blocked; nothing to audit"
+			}
+		}
+	}
+
+	// Check if all non-complete tasks are blocked → node is blocked
 	allBlockedOrComplete := true
 	for _, task := range ns.Tasks {
 		if task.State != StatusComplete && task.State != StatusBlocked {

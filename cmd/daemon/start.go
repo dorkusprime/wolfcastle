@@ -31,6 +31,7 @@ Examples:
   wolfcastle start -d
   wolfcastle start --worktree feature-branch`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			output.PrintHuman("wolfcastle %s (%s)", app.Version, app.Commit)
 			nodeScope, _ := cmd.Flags().GetString("node")
 			background, _ := cmd.Flags().GetBool("daemon")
 			worktreeBranch, _ := cmd.Flags().GetString("worktree")

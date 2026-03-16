@@ -84,14 +84,17 @@ func TestTaskComplete_FailsOnNotStartedTask(t *testing.T) {
 	}
 }
 
-func TestTaskComplete_FailsOnBlockedTask(t *testing.T) {
+func TestTaskComplete_IdempotentOnBlockedTask(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(
-		Task{ID: "task-0001", Description: "test", State: StatusBlocked},
+		Task{ID: "task-0001", Description: "test", State: StatusBlocked, BlockedReason: "stuck"},
 	)
 	err := TaskComplete(ns, "task-0001")
-	if err == nil {
-		t.Error("expected error when completing blocked task")
+	if err != nil {
+		t.Errorf("completing a blocked task should be a no-op, got: %v", err)
+	}
+	if ns.Tasks[0].State != StatusBlocked {
+		t.Errorf("task should remain blocked, got %s", ns.Tasks[0].State)
 	}
 }
 

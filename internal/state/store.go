@@ -91,10 +91,11 @@ func (s *StateStore) ReadInbox() (*InboxFile, error) {
 // Each acquires the namespace lock, reads the current value, calls the
 // callback, and writes the result back atomically.
 
-// MutateNode locks the namespace, loads the node state, applies fn, and
-// saves the result. Returns an error if the node state file does not
-// exist (callers should create the file first for new nodes).
-// If fn returns an error the write is skipped and the error propagated.
+// MutateNode locks the namespace, loads the node state, applies fn,
+// saves the result, and propagates the new state up through parent
+// nodes and the root index. Every state change is automatically
+// reflected in the full tree. If fn returns an error the write is
+// skipped and the error propagated.
 func (s *StateStore) MutateNode(addr string, fn func(*NodeState) error) error {
 	p, err := s.nodePath(addr)
 	if err != nil {
@@ -109,7 +110,37 @@ func (s *StateStore) MutateNode(addr string, fn func(*NodeState) error) error {
 		if err := fn(ns); err != nil {
 			return err
 		}
-		return SaveNodeState(p, ns)
+		if err := SaveNodeState(p, ns); err != nil {
+			return err
+		}
+
+		// Propagate state up through parents and root index.
+		idx, idxErr := LoadRootIndex(s.indexPath())
+		if idxErr != nil {
+			// No index yet (e.g., during scaffolding). Skip propagation.
+			return nil
+		}
+
+		loadNode := func(a string) (*NodeState, error) {
+			np, err := s.nodePath(a)
+			if err != nil {
+				return nil, err
+			}
+			return LoadNodeState(np)
+		}
+		saveNode := func(a string, n *NodeState) error {
+			np, err := s.nodePath(a)
+			if err != nil {
+				return err
+			}
+			return SaveNodeState(np, n)
+		}
+
+		if err := Propagate(addr, ns.State, idx, loadNode, saveNode); err != nil {
+			// Propagation failure is non-fatal for the mutation itself.
+			return nil
+		}
+		return SaveRootIndex(s.indexPath(), idx)
 	})
 }
 
