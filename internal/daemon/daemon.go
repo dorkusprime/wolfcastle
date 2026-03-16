@@ -228,6 +228,18 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	var idleSpinner *output.Spinner
 	for {
+		// Check for context cancellation before each iteration.
+		// This catches signals that arrived during the previous
+		// RunOnce call or while the spinner was animating.
+		select {
+		case <-ctx.Done():
+			if idleSpinner != nil {
+				idleSpinner.Stop()
+			}
+			return nil
+		default:
+		}
+
 		result, err := d.RunOnce(ctx)
 		if err != nil {
 			if idleSpinner != nil {
@@ -347,6 +359,11 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	})
 	if err != nil {
 		return IterationStop, werrors.Navigation(fmt.Errorf("navigation failed: %w", err))
+	}
+
+	// Check for shutdown after navigation (which reads multiple files).
+	if ctx.Err() != nil {
+		return IterationStop, nil
 	}
 
 	if !navResult.Found {
