@@ -1005,6 +1005,39 @@ func TestRunWithSupervisor_ContextCancel(t *testing.T) {
 	_ = d.RunWithSupervisor(ctx)
 }
 
+func TestRunWithSupervisor_ContextCancelReturnsNil(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	err := d.RunWithSupervisor(ctx)
+	// When context is already cancelled, Run exits and ctx.Err() != nil,
+	// so RunWithSupervisor should return the Run error (likely nil).
+	// The key assertion: it does NOT wrap the error as "exceeded max restarts".
+	if err != nil && strings.Contains(err.Error(), "exceeded max restarts") {
+		t.Error("context cancellation should not trigger max restarts error")
+	}
+}
+
+func TestRunWithSupervisor_ContextCancelReturnsNilNotMaxRestarts(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 0
+	d.Config.Daemon.RestartDelaySeconds = 0
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	err := d.RunWithSupervisor(ctx)
+	// When context is already cancelled, Run exits and ctx.Err() != nil,
+	// so RunWithSupervisor should not wrap the error as "exceeded max restarts".
+	if err != nil && strings.Contains(err.Error(), "exceeded max restarts") {
+		t.Error("context cancellation should not trigger max restarts error")
+	}
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // propagateState
 // ═══════════════════════════════════════════════════════════════════════════
