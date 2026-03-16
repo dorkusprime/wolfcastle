@@ -81,7 +81,7 @@ func createRealisticMock(t *testing.T, dir string, name string, cfg MockModelCon
 		t.Fatalf("creating mock scripts dir: %v", err)
 	}
 
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	counterFile := filepath.Join(scriptsDir, name+"-counter.txt")
 	promptDir := filepath.Join(scriptsDir, name+"-prompts")
 	assertionFile = filepath.Join(scriptsDir, name+"-assertions.txt")

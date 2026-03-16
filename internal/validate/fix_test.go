@@ -764,7 +764,8 @@ func TestFix_StalePIDFile(t *testing.T) {
 	idxPath := saveIndex(t, dir, idx)
 
 	// Create a stale PID file
-	pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
+	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
+	pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
 	_ = os.WriteFile(pidPath, []byte("99999999"), 0644)
 
 	issues := []Issue{{
@@ -815,7 +816,8 @@ func TestFix_StaleStopFile(t *testing.T) {
 	idx := state.NewRootIndex()
 	idxPath := saveIndex(t, dir, idx)
 
-	stopPath := filepath.Join(wolfcastleDir, "stop")
+	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
+	stopPath := filepath.Join(wolfcastleDir, "system", "stop")
 	_ = os.WriteFile(stopPath, []byte(""), 0644)
 
 	issues := []Issue{{
@@ -887,7 +889,8 @@ func TestDetect_StalePIDFile(t *testing.T) {
 	idx := state.NewRootIndex()
 
 	// Create PID file with a dead PID
-	pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
+	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
+	pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
 	_ = os.WriteFile(pidPath, []byte("99999999"), 0644)
 
 	engine := NewEngine(dir, DefaultNodeLoader(dir), wolfcastleDir)
@@ -929,7 +932,8 @@ func TestDetect_StaleStopFile(t *testing.T) {
 	wolfcastleDir := t.TempDir()
 	idx := state.NewRootIndex()
 
-	stopPath := filepath.Join(wolfcastleDir, "stop")
+	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
+	stopPath := filepath.Join(wolfcastleDir, "system", "stop")
 	_ = os.WriteFile(stopPath, []byte(""), 0644)
 
 	engine := NewEngine(dir, DefaultNodeLoader(dir), wolfcastleDir)
@@ -969,7 +973,8 @@ func TestIsDaemonAlive_NoPIDFile(t *testing.T) {
 func TestIsDaemonAlive_EmptyPIDFile(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte(""), 0644)
+	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte(""), 0644)
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
 	if engine.isDaemonAlive() {
 		t.Error("expected false for empty PID file")
@@ -979,7 +984,8 @@ func TestIsDaemonAlive_EmptyPIDFile(t *testing.T) {
 func TestIsDaemonAlive_NonNumericPID(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte("not-a-number"), 0644)
+	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte("not-a-number"), 0644)
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
 	if engine.isDaemonAlive() {
 		t.Error("expected false for non-numeric PID")
@@ -990,7 +996,8 @@ func TestIsDaemonAlive_DeadProcess(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
 	// Use a very large PID unlikely to be alive
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
 	if engine.isDaemonAlive() {
 		t.Error("expected false for dead process")
@@ -1001,7 +1008,8 @@ func TestIsDaemonAlive_LiveProcess(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
 	// Use our own PID — we know we're alive
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"),
+	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"),
 		[]byte(fmt.Sprintf("%d", os.Getpid())), 0644)
 
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)

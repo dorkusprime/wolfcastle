@@ -17,7 +17,7 @@ func TestCompleteTaskAddresses_BrokenResolver(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	// Valid root index
@@ -83,10 +83,10 @@ func TestCheckOverlap_AllStopWordsInput(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
-	_ = os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
 
 	// Create another namespace
-	otherDir := filepath.Join(wcDir, "projects", "other-dev")
+	otherDir := filepath.Join(wcDir, "system", "projects", "other-dev")
 	_ = os.MkdirAll(otherDir, 0755)
 	_ = os.WriteFile(filepath.Join(otherDir, "proj.md"), []byte("database migration schema"), 0644)
 
@@ -111,7 +111,7 @@ func TestCompleteTaskAddresses_IndexSucceedsResolverFails(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"not_started","address":"my-node","children":[]}}}`), 0644)

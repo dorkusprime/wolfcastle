@@ -346,7 +346,7 @@ None of these are great. Submodule support would need its own investigation.
 
 ## 13. Interaction with Intake Stage
 
-The intake model runs CLI commands (`wolfcastle project create`, `wolfcastle task add`) to create project structure from inbox items. These commands modify files in `.wolfcastle/projects/`, which lives in the main tree, not the worktree.
+The intake model runs CLI commands (`wolfcastle project create`, `wolfcastle task add`) to create project structure from inbox items. These commands modify files in `.wolfcastle/system/projects/`, which lives in the main tree, not the worktree.
 
 This is fine as long as the CLI commands write to `wolfcastleDir` (the main tree's `.wolfcastle/`) rather than deriving paths from the current working directory. The current implementation already does this. But it's a subtle invariant that would need to be tested and documented.
 

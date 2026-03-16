@@ -240,8 +240,8 @@ func TestFixWithVerification_StalePIDFileFix(t *testing.T) {
 	_ = state.SaveRootIndex(idxPath, idx)
 
 	// Create stale PID file (PID that doesn't exist)
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "wolfcastle.pid"), []byte("99999999\n"), 0644)
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "stop"), []byte(""), 0644)
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999\n"), 0644)
+	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "stop"), []byte(""), 0644)
 
 	fixes, report, err := FixWithVerification(dir, idxPath, DefaultNodeLoader(dir), wolfcastleDir)
 	if err != nil {

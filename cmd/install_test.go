@@ -102,7 +102,7 @@ func TestInstallSkillCmd_Success(t *testing.T) {
 	app = env.App
 
 	// Create the base/skills source directory
-	sourceDir := filepath.Join(env.WolfcastleDir, "base", "skills")
+	sourceDir := filepath.Join(env.WolfcastleDir, "system", "base", "skills")
 	_ = os.MkdirAll(sourceDir, 0755)
 	_ = os.WriteFile(filepath.Join(sourceDir, "wolfcastle.md"), []byte("# Test Skill\n"), 0644)
 

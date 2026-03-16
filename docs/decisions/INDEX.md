@@ -78,3 +78,4 @@
 | 074 | [Status Tree View](074-status-tree-view.md) | Accepted | 2026-03-16 |
 | 075 | [Foreground Process Group Reclaim](075-foreground-process-group-reclaim.md) | Accepted | 2026-03-16 |
 | 076 | [Signal Handling and Terminal Restoration](076-signal-handling-and-terminal-restoration.md) | Accepted | 2026-03-16 |
+| 077 | [System Directory Restructure](077-system-directory-restructure.md) | Accepted | 2026-03-16 |

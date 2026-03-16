@@ -224,7 +224,7 @@ func TestDaemon_MultipleMarkersInOneOutput_CompleteWins(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatalf("creating scripts dir: %v", err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath := filepath.Join(scriptsDir, "multi-marker.sh")
 	body := fmt.Sprintf(`#!/bin/sh
 cat > /dev/null
@@ -278,7 +278,7 @@ func TestDaemon_MarkerInPromptEcho_Rejected(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatalf("creating scripts dir: %v", err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath := filepath.Join(scriptsDir, "echo-marker.sh")
 	body := fmt.Sprintf(`#!/bin/sh
 cat > /dev/null
@@ -329,7 +329,7 @@ func TestDaemon_MarkerInJSONEnvelope(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatalf("creating scripts dir: %v", err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath := filepath.Join(scriptsDir, "json-envelope.sh")
 
 	envelope := map[string]string{"type": "result", "text": "WOLFCASTLE_COMPLETE"}
@@ -375,7 +375,7 @@ func TestDaemon_MarkerInResultField(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatalf("creating scripts dir: %v", err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath := filepath.Join(scriptsDir, "result-field.sh")
 
 	envelope := map[string]string{"type": "result", "result": "WOLFCASTLE_BLOCKED"}
@@ -421,7 +421,7 @@ func TestDaemon_MarkerInTextField(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatalf("creating scripts dir: %v", err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath := filepath.Join(scriptsDir, "text-field.sh")
 
 	// Emit YIELD in assistant text, then COMPLETE in result text
@@ -471,7 +471,7 @@ func TestDaemon_MarkerInMessageContent(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatalf("creating scripts dir: %v", err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath := filepath.Join(scriptsDir, "msg-content.sh")
 
 	type contentBlock struct {

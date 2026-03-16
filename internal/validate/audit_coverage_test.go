@@ -16,7 +16,7 @@ import (
 func TestRecoveringNodeLoader_NormalLoad(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	projDir := filepath.Join(dir, "projects")
+	projDir := filepath.Join(dir, "system", "projects")
 	nodeDir := filepath.Join(projDir, "my-node")
 	_ = os.MkdirAll(nodeDir, 0755)
 
@@ -56,7 +56,7 @@ func TestRecoveringNodeLoader_MissingFile(t *testing.T) {
 func TestRecoveringNodeLoader_RecoveryPath(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	projDir := filepath.Join(dir, "projects")
+	projDir := filepath.Join(dir, "system", "projects")
 	nodeDir := filepath.Join(projDir, "my-node")
 	_ = os.MkdirAll(nodeDir, 0755)
 
@@ -89,7 +89,7 @@ func TestRecoveringNodeLoader_RecoveryPath(t *testing.T) {
 func TestRecoveringNodeLoader_UnrecoverableFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	projDir := filepath.Join(dir, "projects")
+	projDir := filepath.Join(dir, "system", "projects")
 	nodeDir := filepath.Join(projDir, "my-node")
 	_ = os.MkdirAll(nodeDir, 0755)
 

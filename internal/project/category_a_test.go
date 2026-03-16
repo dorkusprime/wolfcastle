@@ -22,7 +22,7 @@ func TestReScaffold_InvalidJSONInLocalConfig(t *testing.T) {
 	}
 
 	// Now corrupt local/config.json with invalid JSON
-	localPath := filepath.Join(dir, "local", "config.json")
+	localPath := filepath.Join(dir, "system", "local", "config.json")
 	if err := os.WriteFile(localPath, []byte("NOT VALID JSON{{{"), 0644); err != nil {
 		t.Fatal(err)
 	}

@@ -29,7 +29,7 @@ func TestStartCmd_AlreadyRunning_OwnPID(t *testing.T) {
 	env := newStatusTestEnv(t)
 	// Write our own PID as the running daemon
 	pid := os.Getpid()
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
@@ -59,9 +59,10 @@ func TestStartCmd_StalePIDRecoveredBeforeStart(t *testing.T) {
 	env := newStatusTestEnv(t)
 
 	// Write a stale PID file (process doesn't exist)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "daemon.meta.json"), []byte("{}"), 0644)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "stop"), []byte(""), 0644)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "daemon.meta.json"), []byte("{}"), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
@@ -70,7 +71,7 @@ func TestStartCmd_StalePIDRecoveredBeforeStart(t *testing.T) {
 	_ = err
 
 	// Verify stale files were cleaned up
-	if _, statErr := os.Stat(filepath.Join(env.WolfcastleDir, "wolfcastle.pid")); !os.IsNotExist(statErr) {
+	if _, statErr := os.Stat(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid")); !os.IsNotExist(statErr) {
 		t.Error("stale PID file should be cleaned up before start")
 	}
 }
@@ -86,16 +87,16 @@ func TestStartCmd_StalePIDRecoveredBeforeStart(t *testing.T) {
 func TestRecoverStaleDaemonState_ValidPIDNotRunning(t *testing.T) {
 	tmp := t.TempDir()
 	// Write a PID that was valid but the process is now dead
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("99999999"), 0644)
-	_ = os.WriteFile(filepath.Join(tmp, "stop"), []byte(""), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "stop"), []byte(""), 0644)
 
 	recoverStaleDaemonState(tmp)
 
 	// Should clean up the stale files
-	if _, err := os.Stat(filepath.Join(tmp, "wolfcastle.pid")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); !os.IsNotExist(err) {
 		t.Error("stale PID file should be removed for dead process")
 	}
-	if _, err := os.Stat(filepath.Join(tmp, "stop")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "stop")); !os.IsNotExist(err) {
 		t.Error("stale stop file should be removed for dead process")
 	}
 }

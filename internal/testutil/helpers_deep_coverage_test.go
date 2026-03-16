@@ -85,16 +85,16 @@ func TestSetupWolfcastle_AllDirectoriesExist(t *testing.T) {
 	wcDir, ns := SetupWolfcastle(t)
 
 	expectedDirs := []string{
-		"base/prompts",
-		"base/rules",
-		"base/audits",
-		"custom",
-		"local",
+		"system/base/prompts",
+		"system/base/rules",
+		"system/base/audits",
+		"system/custom",
+		"system/local",
 		"archive",
 		"docs/decisions",
 		"docs/specs",
-		"logs",
-		filepath.Join("projects", ns),
+		"system/logs",
+		filepath.Join("system", "projects", ns),
 	}
 	for _, d := range expectedDirs {
 		path := filepath.Join(wcDir, d)
@@ -108,7 +108,7 @@ func TestSetupWolfcastle_ConfigFilesExist(t *testing.T) {
 	t.Parallel()
 	wcDir, _ := SetupWolfcastle(t)
 
-	for _, f := range []string{"base/config.json", "custom/config.json", "local/config.json"} {
+	for _, f := range []string{"system/base/config.json", "system/custom/config.json", "system/local/config.json"} {
 		if _, err := os.Stat(filepath.Join(wcDir, f)); os.IsNotExist(err) {
 			t.Errorf("expected %s to exist", f)
 		}
@@ -119,7 +119,7 @@ func TestSetupWolfcastle_RootIndexExists(t *testing.T) {
 	t.Parallel()
 	wcDir, ns := SetupWolfcastle(t)
 
-	idxPath := filepath.Join(wcDir, "projects", ns, "state.json")
+	idxPath := filepath.Join(wcDir, "system", "projects", ns, "state.json")
 	if _, err := os.Stat(idxPath); os.IsNotExist(err) {
 		t.Error("expected root index to exist")
 	}

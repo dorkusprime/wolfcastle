@@ -85,7 +85,7 @@ func runJSON(t *testing.T, dir string, args ...string) output.Response {
 func loadRootIndex(t *testing.T, dir string) *state.RootIndex {
 	t.Helper()
 	ns := discoverNamespace(t, dir)
-	idxPath := filepath.Join(dir, ".wolfcastle", "projects", ns, "state.json")
+	idxPath := filepath.Join(dir, ".wolfcastle", "system", "projects", ns, "state.json")
 	idx, err := state.LoadRootIndex(idxPath)
 	if err != nil {
 		t.Fatalf("failed to load root index at %s: %v", idxPath, err)
@@ -97,7 +97,7 @@ func loadRootIndex(t *testing.T, dir string) *state.RootIndex {
 func loadNode(t *testing.T, dir, addr string) *state.NodeState {
 	t.Helper()
 	ns := discoverNamespace(t, dir)
-	statePath := filepath.Join(dir, ".wolfcastle", "projects", ns, filepath.FromSlash(addr), "state.json")
+	statePath := filepath.Join(dir, ".wolfcastle", "system", "projects", ns, filepath.FromSlash(addr), "state.json")
 	ns2, err := state.LoadNodeState(statePath)
 	if err != nil {
 		t.Fatalf("failed to load node state at %s: %v", statePath, err)
@@ -109,7 +109,7 @@ func loadNode(t *testing.T, dir, addr string) *state.NodeState {
 func saveNode(t *testing.T, dir, addr string, ns *state.NodeState) {
 	t.Helper()
 	namespace := discoverNamespace(t, dir)
-	statePath := filepath.Join(dir, ".wolfcastle", "projects", namespace, filepath.FromSlash(addr), "state.json")
+	statePath := filepath.Join(dir, ".wolfcastle", "system", "projects", namespace, filepath.FromSlash(addr), "state.json")
 	if err := state.SaveNodeState(statePath, ns); err != nil {
 		t.Fatalf("failed to save node state at %s: %v", statePath, err)
 	}
@@ -119,7 +119,7 @@ func saveNode(t *testing.T, dir, addr string, ns *state.NodeState) {
 // .wolfcastle/projects/. There should be exactly one after init.
 func discoverNamespace(t *testing.T, dir string) string {
 	t.Helper()
-	projectsDir := filepath.Join(dir, ".wolfcastle", "projects")
+	projectsDir := filepath.Join(dir, ".wolfcastle", "system", "projects")
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
 		t.Fatalf("cannot read projects dir %s: %v", projectsDir, err)

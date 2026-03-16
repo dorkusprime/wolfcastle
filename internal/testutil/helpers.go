@@ -52,16 +52,16 @@ func SetupWolfcastle(t *testing.T) (wolfcastleDir, namespace string) {
 	namespace = "test-machine"
 
 	dirs := []string{
-		"base/prompts",
-		"base/rules",
-		"base/audits",
-		"custom",
-		"local",
+		"system/base/prompts",
+		"system/base/rules",
+		"system/base/audits",
+		"system/custom",
+		"system/local",
 		"archive",
 		"docs/decisions",
 		"docs/specs",
-		"logs",
-		filepath.Join("projects", namespace),
+		"system/logs",
+		filepath.Join("system", "projects", namespace),
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(filepath.Join(wolfcastleDir, d), 0755); err != nil {
@@ -72,10 +72,10 @@ func SetupWolfcastle(t *testing.T) (wolfcastleDir, namespace string) {
 	// Write default config to base/config.json
 	cfg := config.Defaults()
 	cfg.Identity = nil
-	WriteJSON(t, filepath.Join(wolfcastleDir, "base", "config.json"), cfg)
+	WriteJSON(t, filepath.Join(wolfcastleDir, "system", "base", "config.json"), cfg)
 
 	// Write empty custom/config.json
-	WriteJSON(t, filepath.Join(wolfcastleDir, "custom", "config.json"), map[string]any{})
+	WriteJSON(t, filepath.Join(wolfcastleDir, "system/custom", "config.json"), map[string]any{})
 
 	// Write local config with test identity
 	localCfg := map[string]any{
@@ -84,11 +84,11 @@ func SetupWolfcastle(t *testing.T) (wolfcastleDir, namespace string) {
 			"machine": "machine",
 		},
 	}
-	WriteJSON(t, filepath.Join(wolfcastleDir, "local", "config.json"), localCfg)
+	WriteJSON(t, filepath.Join(wolfcastleDir, "system/local", "config.json"), localCfg)
 
 	// Write empty root index
 	idx := state.NewRootIndex()
-	WriteJSON(t, filepath.Join(wolfcastleDir, "projects", namespace, "state.json"), idx)
+	WriteJSON(t, filepath.Join(wolfcastleDir, "system", "projects", namespace, "state.json"), idx)
 
 	return wolfcastleDir, namespace
 }
@@ -104,7 +104,7 @@ func SetupWolfcastle(t *testing.T) (wolfcastleDir, namespace string) {
 func SetupTree(t *testing.T) (wolfcastleDir, namespace string, idx *state.RootIndex) {
 	t.Helper()
 	wolfcastleDir, namespace = SetupWolfcastle(t)
-	projectsDir := filepath.Join(wolfcastleDir, "projects", namespace)
+	projectsDir := filepath.Join(wolfcastleDir, "system", "projects", namespace)
 
 	idx = state.NewRootIndex()
 	idx.RootID = "root-project"
@@ -178,7 +178,7 @@ func SetupTree(t *testing.T) (wolfcastleDir, namespace string, idx *state.RootIn
 func LoadRootIndex(t *testing.T, wolfcastleDir, namespace string) *state.RootIndex {
 	t.Helper()
 	var idx state.RootIndex
-	ReadJSON(t, filepath.Join(wolfcastleDir, "projects", namespace, "state.json"), &idx)
+	ReadJSON(t, filepath.Join(wolfcastleDir, "system", "projects", namespace, "state.json"), &idx)
 	return &idx
 }
 
@@ -186,12 +186,12 @@ func LoadRootIndex(t *testing.T, wolfcastleDir, namespace string) *state.RootInd
 func LoadNode(t *testing.T, wolfcastleDir, namespace, addr string) *state.NodeState {
 	t.Helper()
 	var ns state.NodeState
-	ReadJSON(t, filepath.Join(wolfcastleDir, "projects", namespace, addr, "state.json"), &ns)
+	ReadJSON(t, filepath.Join(wolfcastleDir, "system", "projects", namespace, addr, "state.json"), &ns)
 	return &ns
 }
 
 // SaveNode writes a node's state to disk.
 func SaveNode(t *testing.T, wolfcastleDir, namespace, addr string, ns *state.NodeState) {
 	t.Helper()
-	WriteJSON(t, filepath.Join(wolfcastleDir, "projects", namespace, addr, "state.json"), ns)
+	WriteJSON(t, filepath.Join(wolfcastleDir, "system", "projects", namespace, addr, "state.json"), ns)
 }

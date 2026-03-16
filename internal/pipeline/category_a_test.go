@@ -18,7 +18,7 @@ func TestResolveAllFragments_IncludeListMissingFragment(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create one fragment but include-list references a second that doesn't exist
-	baseDir := filepath.Join(dir, "base", "rules")
+	baseDir := filepath.Join(dir, "system", "base", "rules")
 	_ = os.MkdirAll(baseDir, 0755)
 	_ = os.WriteFile(filepath.Join(baseDir, "exists.md"), []byte("content"), 0644)
 
@@ -42,7 +42,7 @@ func TestResolvePromptTemplate_InvalidGoTemplateSyntax(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	promptsDir := filepath.Join(dir, "base", "prompts")
+	promptsDir := filepath.Join(dir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptsDir, 0755)
 	_ = os.WriteFile(filepath.Join(promptsDir, "bad.md"),
 		[]byte("Hello {{.Name"), 0644) // Unclosed template action
@@ -64,7 +64,7 @@ func TestAssemblePrompt_SkipAssembly_MissingPromptFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	// Create minimal structure but don't write the prompt file
-	_ = os.MkdirAll(filepath.Join(dir, "base", "prompts"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "prompts"), 0755)
 
 	cfg := config.Defaults()
 	skip := true
@@ -89,7 +89,7 @@ func TestAssemblePrompt_FragmentResolutionError(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create the prompt file so the stage prompt resolves
-	promptsDir := filepath.Join(dir, "base", "prompts")
+	promptsDir := filepath.Join(dir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptsDir, 0755)
 	_ = os.WriteFile(filepath.Join(promptsDir, "execute.md"), []byte("Execute"), 0644)
 

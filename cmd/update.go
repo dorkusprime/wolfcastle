@@ -12,9 +12,9 @@ import (
 // updateCmd checks for binary updates and regenerates base/ prompts.
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Upgrade the binary and refresh base/",
-	Long: `Checks for a newer version and regenerates the base/ directory.
-custom/, local/, and state files are not touched.
+	Short: "Upgrade the binary and refresh system/base/",
+	Long: `Checks for a newer version and regenerates the system/base/ directory.
+system/custom/, system/local/, and state files are not touched.
 
 Examples:
   wolfcastle update`,
@@ -24,7 +24,7 @@ Examples:
 		result, err := updater.Apply()
 		if !app.JSONOutput {
 			if err != nil {
-				output.PrintHuman("Update check failed: %v. Regenerating base/ anyway.", err)
+				output.PrintHuman("Update check failed: %v. Regenerating system/base/ anyway.", err)
 			} else if result.Updated {
 				output.PrintHuman("Upgraded: %s -> %s", result.CurrentVersion, result.LatestVersion)
 			} else if result.AlreadyCurrent {
@@ -50,7 +50,7 @@ Examples:
 				"update_status": updateStatus,
 			}))
 		} else {
-			output.PrintHuman("base/ regenerated in %s", app.WolfcastleDir)
+			output.PrintHuman("system/base/ regenerated in %s", app.WolfcastleDir)
 		}
 		return nil
 	},

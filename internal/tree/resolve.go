@@ -27,7 +27,7 @@ func NewResolver(wolfcastleDir string, cfg *config.Config) (*Resolver, error) {
 
 // ProjectsDir returns the root projects directory for this engineer.
 func (r *Resolver) ProjectsDir() string {
-	return filepath.Join(r.WolfcastleDir, "projects", r.Namespace)
+	return filepath.Join(r.WolfcastleDir, "system", "projects", r.Namespace)
 }
 
 // RootIndexPath returns the path to the root state.json.

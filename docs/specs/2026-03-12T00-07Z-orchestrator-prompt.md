@@ -459,7 +459,7 @@ These prohibitions are stated explicitly in the prompt. They represent the bound
 
 ### 9.1 Do Not Edit State Files Directly
 
-State lives in JSON files under `.wolfcastle/projects/`. The model must never read, write, or modify these files. All state interaction happens through `wolfcastle` commands. This is the core invariant from ADR-002 and ADR-003.
+State lives in JSON files under `.wolfcastle/system/projects/`. The model must never read, write, or modify these files. All state interaction happens through `wolfcastle` commands. This is the core invariant from ADR-002 and ADR-003.
 
 **Why:** Ralph's most common corruption bugs came from the model editing STATUS.md incorrectly -- wrong status strings, malformed tables, forgotten updates. Wolfcastle eliminates this entire failure class by making state mutations deterministic.
 

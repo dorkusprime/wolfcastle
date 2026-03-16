@@ -15,7 +15,7 @@ func TestResolveFragment_UnreadableFile(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create a file in the base tier that can't be read
-	baseDir := filepath.Join(dir, "base")
+	baseDir := filepath.Join(dir, "system", "base")
 	_ = os.MkdirAll(baseDir, 0755)
 	unreadable := filepath.Join(baseDir, "rules.md")
 	_ = os.WriteFile(unreadable, []byte("content"), 0644)
@@ -32,7 +32,7 @@ func TestResolveAllFragments_WithIncludeAndExclude(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	baseDir := filepath.Join(dir, "base", "rules")
+	baseDir := filepath.Join(dir, "system", "base", "rules")
 	_ = os.MkdirAll(baseDir, 0755)
 	_ = os.WriteFile(filepath.Join(baseDir, "alpha.md"), []byte("alpha"), 0644)
 	_ = os.WriteFile(filepath.Join(baseDir, "beta.md"), []byte("beta"), 0644)
@@ -53,12 +53,12 @@ func TestResolveAllFragments_TierOverride(t *testing.T) {
 	dir := t.TempDir()
 
 	// Write in base tier
-	baseDir := filepath.Join(dir, "base", "rules")
+	baseDir := filepath.Join(dir, "system", "base", "rules")
 	_ = os.MkdirAll(baseDir, 0755)
 	_ = os.WriteFile(filepath.Join(baseDir, "rule.md"), []byte("base version"), 0644)
 
 	// Override in local tier
-	localDir := filepath.Join(dir, "local", "rules")
+	localDir := filepath.Join(dir, "system", "local", "rules")
 	_ = os.MkdirAll(localDir, 0755)
 	_ = os.WriteFile(filepath.Join(localDir, "rule.md"), []byte("local version"), 0644)
 

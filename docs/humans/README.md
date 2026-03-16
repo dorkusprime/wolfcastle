@@ -22,7 +22,7 @@ Every leaf gets verified by an automatic audit task that reviews breadcrumbs aga
 
 ## [Collaboration](collaboration.md)
 
-Each engineer gets their own namespace under `.wolfcastle/projects/`. No merge conflicts, no coordination overhead. Wolfcastle commits to your current branch with safety checks, or isolates work in a separate git worktree. Completed projects move to the archive. Everything is tracked in structured NDJSON logs.
+Each engineer gets their own namespace under `.wolfcastle/system/projects/`. No merge conflicts, no coordination overhead. Wolfcastle commits to your current branch with safety checks, or isolates work in a separate git worktree. Completed projects move to the archive. Everything is tracked in structured NDJSON logs.
 
 ## [CLI Reference](cli.md)
 

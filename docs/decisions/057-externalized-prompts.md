@@ -103,7 +103,7 @@ func ResolvePromptTemplate(wolfcastleDir, promptFile string, ctx any) (string, e
 A team wants to customize the decomposition instructions to reference their own project structure conventions:
 
 ```
-.wolfcastle/custom/prompts/decomposition.md
+.wolfcastle/system/custom/prompts/decomposition.md
 ```
 
 This file completely replaces `base/prompts/decomposition.md` (per ADR-018's file-level replacement semantics), and the model sees the team's custom decomposition guidance instead of the default.

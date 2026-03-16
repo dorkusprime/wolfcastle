@@ -35,3 +35,5 @@ hardcoded defaults <- base/config.json <- custom/config.json <- local/config.jso
 - Existing installs are migrated automatically on `init --force`. The migration moves `config.json` to `custom/config.json` and merges `config.local.json` into `local/config.json`.
 - The `.gitignore` template no longer needs the `!config.json` exception; `base/` and `local/` are already gitignored, and `custom/` is already committed.
 - Teams gain a clean separation: `custom/config.json` is the single file reviewed in PRs for team config changes, free of regenerated defaults that would otherwise create noisy diffs.
+
+**Amendment (ADR-077):** The three tiers moved under `.wolfcastle/system/` (`system/base/`, `system/custom/`, `system/local/`). The merge semantics and override order are unchanged.

@@ -13,7 +13,7 @@ import (
 // Listed from lowest to highest priority; later entries override earlier
 // ones for same-named files. Defined once to prevent drift between
 // ResolveFragment, ResolveAllFragments, and any other tier-aware code.
-var Tiers = []string{"base", "custom", "local"}
+var Tiers = []string{"system/base", "system/custom", "system/local"}
 
 // ResolveFragment finds a file through the three-tier merge.
 // Returns the content from the most specific tier that has it.

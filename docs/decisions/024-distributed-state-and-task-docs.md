@@ -15,7 +15,7 @@ During the spec phase, the tree addressing spec chose a single `state.json` per 
 State is distributed as one `state.json` per node, co-located with the node's project definition and task documents:
 
 ```
-.wolfcastle/projects/wild-macbook/
+.wolfcastle/system/projects/wild-macbook/
   state.json                          # Root index: tree structure, node registry
   attunement-tree/
     state.json                        # Orchestrator node state

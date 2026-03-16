@@ -49,7 +49,7 @@ func TestSetupWolfcastle_CreatesDirectory(t *testing.T) {
 	}
 
 	// Verify key subdirectories
-	for _, sub := range []string{"base/prompts", "logs", "archive"} {
+	for _, sub := range []string{"system/base/prompts", "system/logs", "archive"} {
 		if _, err := os.Stat(filepath.Join(wcDir, sub)); os.IsNotExist(err) {
 			t.Errorf("subdirectory %s should exist", sub)
 		}

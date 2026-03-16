@@ -16,7 +16,7 @@ When a new project is created, Wolfcastle optionally runs a lightweight model ch
 
 ### Behavior
 - Runs at **project creation time** only, not on every start
-- **Read-only** — scans other engineers' `.wolfcastle/projects/*/` directories for project description Markdown files
+- **Read-only** — scans other engineers' `.wolfcastle/system/projects/*/` directories for project description Markdown files
 - **Informational only** — prints an advisory to the console. No errors, no blocking, no state changes
 - The engineer can ignore it entirely
 

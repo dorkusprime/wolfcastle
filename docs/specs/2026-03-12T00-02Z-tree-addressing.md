@@ -95,7 +95,7 @@ wolfcastle task complete --node attunement-tree/fire-impl/task-2
 All live project state lives under the engineer's namespace directory (ADR-009):
 
 ```
-.wolfcastle/projects/{user}-{machine}/
+.wolfcastle/system/projects/{user}-{machine}/
 ```
 
 The identity is resolved from `local/config.json`:
@@ -109,14 +109,14 @@ The identity is resolved from `local/config.json`:
 }
 ```
 
-This produces the root path `.wolfcastle/projects/wild-macbook/`.
+This produces the root path `.wolfcastle/system/projects/wild-macbook/`.
 
 ### Distributed State: Per-Node `state.json` Files
 
 State is distributed as one `state.json` per node, co-located with that node's project description and task documents (ADR-024). Each node's `state.json` contains only that node's data. The engineer's root `state.json` is a centralized index of the full tree structure for fast navigation.
 
 ```
-.wolfcastle/projects/wild-macbook/
+.wolfcastle/system/projects/wild-macbook/
   state.json                          # Root index: full tree structure registry
   attunement-tree/
     state.json                        # Orchestrator node state
@@ -146,7 +146,7 @@ The directory structure under the engineer namespace mirrors the tree address. E
 The engineer's root `state.json` sits at the top of the namespace directory:
 
 ```
-.wolfcastle/projects/wild-macbook/state.json
+.wolfcastle/system/projects/wild-macbook/state.json
 ```
 
 This file is a centralized index of the full tree structure (ADR-024). It enables fast navigation and lookup without walking the filesystem. It is Wolfcastle-owned (ADR-002) -- modified only by deterministic scripts, never by the model or user directly.
@@ -316,9 +316,9 @@ Each node may have an optional Markdown description file co-located in its direc
 
 | Address | Definition file path |
 |---------|---------------------|
-| `attunement-tree` | `.wolfcastle/projects/wild-macbook/attunement-tree/attunement-tree.md` |
-| `attunement-tree/fire-impl` | `.wolfcastle/projects/wild-macbook/attunement-tree/fire-impl/fire-impl.md` |
-| `attunement-tree/balance-pass/pvp` | `.wolfcastle/projects/wild-macbook/attunement-tree/balance-pass/pvp/pvp.md` |
+| `attunement-tree` | `.wolfcastle/system/projects/wild-macbook/attunement-tree/attunement-tree.md` |
+| `attunement-tree/fire-impl` | `.wolfcastle/system/projects/wild-macbook/attunement-tree/fire-impl/fire-impl.md` |
+| `attunement-tree/balance-pass/pvp` | `.wolfcastle/system/projects/wild-macbook/attunement-tree/balance-pass/pvp/pvp.md` |
 
 These Markdown files are model-written documentation (per ADR-010). They describe what the project is about in enough detail for the executing model to understand the scope. They are not state -- they are documentation. The model reads them for context; scripts ignore them.
 
@@ -335,7 +335,7 @@ Go code controls context injection: the brief JSON description is always include
 Example layout for a leaf with task working documents:
 
 ```
-.wolfcastle/projects/wild-macbook/attunement-tree/fire-impl/
+.wolfcastle/system/projects/wild-macbook/attunement-tree/fire-impl/
   state.json                      # Leaf state with task list
   fire-impl.md                    # Project description
   task-2.md                       # Working doc for task-2 (model-created)
@@ -349,7 +349,7 @@ A task without a companion Markdown file is valid. The model decides when a task
 Each engineer maintains their own independent tree in their namespace (ADR-024). There is no shared state file across engineers.
 
 - `wolfcastle status` shows only the current engineer's tree (default).
-- `wolfcastle status --all` aggregates across all engineer directories at runtime by walking `.wolfcastle/projects/*/state.json`.
+- `wolfcastle status --all` aggregates across all engineer directories at runtime by walking `.wolfcastle/system/projects/*/state.json`.
 - No merge conflicts on state files, ever.
 
 When engineer A creates a project and commits the definition files (Markdown), engineer B gets them on pull but they do not automatically appear in B's state. Projects appear in an engineer's state when they start working on them, or `wolfcastle doctor` (ADR-025) can detect orphaned definitions and offer to register them.
@@ -363,7 +363,7 @@ When the Go code receives a `--node` argument, it resolves it through these step
 Read `local/config.json` to get the identity. Concatenate `{user}-{machine}` to produce the namespace. Construct the root index path:
 
 ```
-.wolfcastle/projects/{user}-{machine}/state.json
+.wolfcastle/system/projects/{user}-{machine}/state.json
 ```
 
 ### Step 2: Parse the Root Index
@@ -393,13 +393,13 @@ If the address has the form `<node-address>/task-N`, split it into the node addr
 For operations that need the full node state (task list, audit status, failure counters), construct the node's `state.json` path by converting the tree address to a directory path:
 
 ```
-.wolfcastle/projects/{user}-{machine}/{address-with-slashes-as-directories}/state.json
+.wolfcastle/system/projects/{user}-{machine}/{address-with-slashes-as-directories}/state.json
 ```
 
 For example, `attunement-tree/fire-impl` resolves to:
 
 ```
-.wolfcastle/projects/wild-macbook/attunement-tree/fire-impl/state.json
+.wolfcastle/system/projects/wild-macbook/attunement-tree/fire-impl/state.json
 ```
 
 ### Step 6: Resolve the Definition File (if needed)
@@ -407,13 +407,13 @@ For example, `attunement-tree/fire-impl` resolves to:
 For operations that need the project description (e.g., building the execution prompt), construct the Markdown file path. The definition file is co-located in the node's directory, named after the node's own slug:
 
 ```
-.wolfcastle/projects/{user}-{machine}/{address-as-directory}/{slug}.md
+.wolfcastle/system/projects/{user}-{machine}/{address-as-directory}/{slug}.md
 ```
 
 For example, `attunement-tree/fire-impl` resolves to:
 
 ```
-.wolfcastle/projects/wild-macbook/attunement-tree/fire-impl/fire-impl.md
+.wolfcastle/system/projects/wild-macbook/attunement-tree/fire-impl/fire-impl.md
 ```
 
 If the file exists, read it. If it does not exist, the node has no description (this is valid -- descriptions are optional).
@@ -423,13 +423,13 @@ If the file exists, read it. If it does not exist, the node has no description (
 For the active task during execution, construct the companion Markdown path:
 
 ```
-.wolfcastle/projects/{user}-{machine}/{leaf-address-as-directory}/{task-id}.md
+.wolfcastle/system/projects/{user}-{machine}/{leaf-address-as-directory}/{task-id}.md
 ```
 
 For example, `task-3` in `attunement-tree/fire-impl` resolves to:
 
 ```
-.wolfcastle/projects/wild-macbook/attunement-tree/fire-impl/task-3.md
+.wolfcastle/system/projects/wild-macbook/attunement-tree/fire-impl/task-3.md
 ```
 
 If the file exists, include it in the execution context. If not, the task has no working document (this is valid -- companion documents are optional and model-created).
@@ -556,7 +556,7 @@ This performs three filesystem operations:
 2. Creates the node directory and its `state.json`:
 
 ```
-.wolfcastle/projects/wild-macbook/attunement-tree/state.json
+.wolfcastle/system/projects/wild-macbook/attunement-tree/state.json
 ```
 
 ```json
@@ -584,7 +584,7 @@ This performs three filesystem operations:
 3. Optionally, the model creates the definition file at:
 
 ```
-.wolfcastle/projects/wild-macbook/attunement-tree/attunement-tree.md
+.wolfcastle/system/projects/wild-macbook/attunement-tree/attunement-tree.md
 ```
 
 ### Creating a Sub-Project
@@ -597,7 +597,7 @@ This validates that `attunement-tree` exists and is an orchestrator, then:
 
 1. Adds `fire-impl` to `attunement-tree`'s `children` array in both the root index and the orchestrator's own `state.json`.
 2. Creates the root index `nodes` entry keyed as `attunement-tree/fire-impl`.
-3. Creates the node directory `.wolfcastle/projects/wild-macbook/attunement-tree/fire-impl/` with its own `state.json`.
+3. Creates the node directory `.wolfcastle/system/projects/wild-macbook/attunement-tree/fire-impl/` with its own `state.json`.
 4. The new node's type (orchestrator or leaf) defaults to leaf. An orchestrator is created by subsequently adding children to it.
 
 ### Creating Tasks

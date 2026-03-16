@@ -329,7 +329,7 @@ func (e *Engine) checkGlobalState(idx *state.RootIndex, categories map[string]bo
 
 	if e.include(CatStalePIDFile, categories) {
 		if e.wolfcastleDir != "" && !e.isDaemonAlive() {
-			pidPath := filepath.Join(e.wolfcastleDir, "wolfcastle.pid")
+			pidPath := filepath.Join(e.wolfcastleDir, "system", "wolfcastle.pid")
 			if _, err := os.Stat(pidPath); err == nil {
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityWarning,
@@ -343,7 +343,7 @@ func (e *Engine) checkGlobalState(idx *state.RootIndex, categories map[string]bo
 	}
 	if e.include(CatStaleStopFile, categories) {
 		if e.wolfcastleDir != "" && !e.isDaemonAlive() {
-			stopPath := filepath.Join(e.wolfcastleDir, "stop")
+			stopPath := filepath.Join(e.wolfcastleDir, "system", "stop")
 			if _, err := os.Stat(stopPath); err == nil {
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityWarning,
@@ -608,7 +608,7 @@ func (e *Engine) isDaemonAlive() bool {
 	if e.wolfcastleDir == "" {
 		return false
 	}
-	pidPath := filepath.Join(e.wolfcastleDir, "wolfcastle.pid")
+	pidPath := filepath.Join(e.wolfcastleDir, "system", "wolfcastle.pid")
 	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		return false

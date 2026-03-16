@@ -23,7 +23,7 @@ func newStatusTestEnv(t *testing.T) *testEnv {
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	// Create root index with some nodes
@@ -178,7 +178,7 @@ func TestShowTreeStatus_MultipleNodeStates(t *testing.T) {
 func TestShowAllStatus_WithMultipleNamespaces(t *testing.T) {
 	env := newStatusTestEnv(t)
 	// Create a second namespace
-	ns2Dir := filepath.Join(env.WolfcastleDir, "projects", "other-eng")
+	ns2Dir := filepath.Join(env.WolfcastleDir, "system", "projects", "other-eng")
 	_ = os.MkdirAll(ns2Dir, 0755)
 	idx2 := state.NewRootIndex()
 	idx2.Nodes["other-proj"] = state.IndexEntry{

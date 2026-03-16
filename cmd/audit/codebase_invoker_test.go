@@ -57,7 +57,7 @@ func TestRunCodebaseAudit_FullFlow(t *testing.T) {
 	env := newInvokerTestEnv(t)
 
 	// Create audit scope file
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("Check for vulnerabilities"), 0644)
 
@@ -126,7 +126,7 @@ func TestRunCodebaseAudit_InvokeError(t *testing.T) {
 	t.Parallel()
 	env := newInvokerTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "perf.md"), []byte("Check performance"), 0644)
 
@@ -157,7 +157,7 @@ func TestRunCodebaseAudit_NonZeroExitCode(t *testing.T) {
 	t.Parallel()
 	env := newInvokerTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "test.md"), []byte("Audit"), 0644)
 
@@ -191,7 +191,7 @@ func TestRunCodebaseAudit_NoFindings(t *testing.T) {
 	t.Parallel()
 	env := newInvokerTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "clean.md"), []byte("Clean audit"), 0644)
 
@@ -255,7 +255,7 @@ func TestRunCodebaseAudit_MultipleScopes(t *testing.T) {
 	t.Parallel()
 	env := newInvokerTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("Security checks"), 0644)
 	_ = os.WriteFile(filepath.Join(baseAudits, "performance.md"), []byte("Performance checks"), 0644)
@@ -308,7 +308,7 @@ func TestRunCodebaseAudit_JSONOutput(t *testing.T) {
 	env := newInvokerTestEnv(t)
 	env.App.JSONOutput = true
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "test.md"), []byte("Test audit"), 0644)
 
@@ -349,7 +349,7 @@ func TestRunCodebaseAudit_BatchMetadata(t *testing.T) {
 	cfg.Models["test-model"] = config.ModelDef{Command: "echo", Args: []string{"test"}}
 
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 	idx := state.NewRootIndex()
 	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
@@ -372,7 +372,7 @@ Description.
 		Invoker:       mock,
 	}
 
-	baseAudits := filepath.Join(wcDir, "base", "audits")
+	baseAudits := filepath.Join(wcDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "test.md"), []byte("Test"), 0644)
 

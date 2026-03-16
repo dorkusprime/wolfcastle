@@ -98,7 +98,7 @@ func TestRunCmd_UnknownScopeWhenOthersExist(t *testing.T) {
 	env := newTestEnv(t)
 
 	// Create real scopes so the "unknown" one is checked against a populated map
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("# Security\nSecurity audit"), 0644)
 	_ = os.WriteFile(filepath.Join(baseAudits, "performance.md"), []byte("# Perf\nPerformance audit"), 0644)

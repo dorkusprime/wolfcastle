@@ -4,7 +4,7 @@ Reads the daemon's logs. Without flags, shows recent output and exits. With `--f
 
 ## What It Does
 
-Finds the highest-numbered [log file](../collaboration.md#logging) in `.wolfcastle/logs/`, parses NDJSON into human-readable output with timestamps, stage names, and model activity, then prints the last `n` lines.
+Finds the highest-numbered [log file](../collaboration.md#logging) in `.wolfcastle/system/logs/`, parses NDJSON into human-readable output with timestamps, stage names, and model activity, then prints the last `n` lines.
 
 With `--follow` (`-f`), continues streaming new lines as they appear. When the daemon moves to a new iteration and creates a new log file, `log -f` detects the switch, prints a separator, and starts tailing the new file. Continues until Ctrl+C.
 

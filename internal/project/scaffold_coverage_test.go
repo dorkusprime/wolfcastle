@@ -30,7 +30,7 @@ func TestScaffold_GitignoreWriteFailure(t *testing.T) {
 	}
 
 	// Create the subdirectories so MkdirAll succeeds
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "custom", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/custom", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(dir, d), 0755)
 	}
 
@@ -53,12 +53,12 @@ func TestScaffold_ConfigWriteFailure(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "custom", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/custom", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(dir, d), 0755)
 	}
 
 	// Create a directory named config.json inside base/ to block the file write
-	_ = os.MkdirAll(filepath.Join(dir, "base", "config.json"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "config.json"), 0755)
 
 	err := Scaffold(dir)
 	if err == nil {
@@ -74,12 +74,12 @@ func TestScaffold_CustomConfigWriteFailure(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(dir, d), 0755)
 	}
 
 	// Create a directory named config.json inside custom/ to block the file write
-	_ = os.MkdirAll(filepath.Join(dir, "custom", "config.json"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system/custom", "config.json"), 0755)
 
 	err := Scaffold(dir)
 	if err == nil {
@@ -95,12 +95,12 @@ func TestScaffold_LocalConfigWriteFailure(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "custom", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/custom", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(dir, d), 0755)
 	}
 
 	// Create a directory named config.json inside local/ to block the file write
-	_ = os.MkdirAll(filepath.Join(dir, "local", "config.json"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system/local", "config.json"), 0755)
 
 	err := Scaffold(dir)
 	if err == nil {
@@ -116,12 +116,12 @@ func TestScaffold_NamespaceDirCreationFailure(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "custom", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/custom", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(dir, d), 0755)
 	}
 
 	// Create a file named "projects" to block the namespace dir creation
-	_ = os.WriteFile(filepath.Join(dir, "projects"), []byte("block"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "system", "projects"), []byte("block"), 0644)
 
 	err := Scaffold(dir)
 	if err == nil {
@@ -140,11 +140,11 @@ func TestScaffold_RootIndexWriteFailure(t *testing.T) {
 	}
 
 	// Find the namespace directory and make it read-only
-	entries, err := os.ReadDir(filepath.Join(dir, "projects"))
+	entries, err := os.ReadDir(filepath.Join(dir, "system", "projects"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	nsDir := filepath.Join(dir, "projects", entries[0].Name())
+	nsDir := filepath.Join(dir, "system", "projects", entries[0].Name())
 
 	// Remove state.json then make dir read-only so the write fails
 	_ = os.Remove(filepath.Join(nsDir, "state.json"))
@@ -152,7 +152,7 @@ func TestScaffold_RootIndexWriteFailure(t *testing.T) {
 	defer func() { _ = os.Chmod(nsDir, 0755) }()
 
 	// Remove all base/ to force WriteBasePrompts path
-	_ = os.RemoveAll(filepath.Join(dir, "base"))
+	_ = os.RemoveAll(filepath.Join(dir, "system", "base"))
 
 	// Try rescaffold; the namespace dir is read-only
 	// For Scaffold: we need a fresh attempt
@@ -161,13 +161,13 @@ func TestScaffold_RootIndexWriteFailure(t *testing.T) {
 	if err := os.MkdirAll(dir2, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "custom", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/custom", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(dir2, d), 0755)
 	}
 	// Block the state.json write: create a dir where state.json should be
 	identity := detectIdentity()
 	ns := identity["user"].(string) + "-" + identity["machine"].(string)
-	stateDir := filepath.Join(dir2, "projects", ns, "state.json")
+	stateDir := filepath.Join(dir2, "system", "projects", ns, "state.json")
 	_ = os.MkdirAll(stateDir, 0755)
 
 	err = Scaffold(dir2)
@@ -188,7 +188,7 @@ func TestReScaffold_RemoveBaseFailure(t *testing.T) {
 	}
 
 	// Make sure base exists, then remove it — should be fine
-	_ = os.RemoveAll(filepath.Join(dir, "base"))
+	_ = os.RemoveAll(filepath.Join(dir, "system", "base"))
 	if err := ReScaffold(dir); err != nil {
 		t.Fatal("ReScaffold should succeed even if base/ doesn't exist:", err)
 	}
@@ -213,7 +213,7 @@ func TestReScaffold_LocalConfigWriteFailure(t *testing.T) {
 	}
 
 	// Replace local/config.json with a directory to block write
-	localPath := filepath.Join(dir, "local", "config.json")
+	localPath := filepath.Join(dir, "system/local", "config.json")
 	_ = os.Remove(localPath)
 	_ = os.MkdirAll(localPath, 0755)
 
@@ -232,7 +232,8 @@ func TestWriteBasePrompts_MkdirAllFailure(t *testing.T) {
 
 	// Create base as a file to block MkdirAll inside
 	_ = os.MkdirAll(dir, 0755)
-	_ = os.WriteFile(filepath.Join(dir, "base"), []byte("block"), 0644)
+	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(dir, "system", "base"), []byte("block"), 0644)
 
 	err := WriteBasePrompts(dir)
 	if err == nil {
@@ -246,10 +247,10 @@ func TestWriteBasePrompts_WriteFileFailure(t *testing.T) {
 	dir := filepath.Join(tmp, ".wolfcastle")
 
 	// Create base/prompts but make it read-only
-	promptsDir := filepath.Join(dir, "base", "prompts")
+	promptsDir := filepath.Join(dir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptsDir, 0755)
-	_ = os.MkdirAll(filepath.Join(dir, "base", "rules"), 0755)
-	_ = os.MkdirAll(filepath.Join(dir, "base", "audits"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "rules"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "audits"), 0755)
 
 	_ = os.Chmod(promptsDir, 0555)
 	defer func() { _ = os.Chmod(promptsDir, 0755) }()
@@ -270,7 +271,7 @@ func TestReScaffold_LocalConfigMarshalWriteFailure(t *testing.T) {
 
 	// Create a directory where local/config.json should be written
 	// to block the write
-	localPath := filepath.Join(dir, "local", "config.json")
+	localPath := filepath.Join(dir, "system/local", "config.json")
 	_ = os.Remove(localPath)
 	_ = os.MkdirAll(localPath, 0755)
 
@@ -286,12 +287,12 @@ func TestScaffold_BasePromptWriteFailure(t *testing.T) {
 	dir := filepath.Join(tmp, ".wolfcastle")
 
 	// Create all expected directories
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "custom", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/custom", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(dir, d), 0755)
 	}
 	// Make base/prompts read-only so WriteBasePrompts fails inside Scaffold
-	_ = os.Chmod(filepath.Join(dir, "base", "prompts"), 0555)
-	defer func() { _ = os.Chmod(filepath.Join(dir, "base", "prompts"), 0755) }()
+	_ = os.Chmod(filepath.Join(dir, "system", "base", "prompts"), 0555)
+	defer func() { _ = os.Chmod(filepath.Join(dir, "system", "base", "prompts"), 0755) }()
 
 	err := Scaffold(dir)
 	if err == nil {

@@ -20,7 +20,7 @@ Advisory file locking using `syscall.Flock` (Unix) or `LockFileEx` (Windows) via
 ### Lock File
 
 ```
-.wolfcastle/projects/{namespace}/.lock
+.wolfcastle/system/projects/{namespace}/.lock
 ```
 
 One lock per engineer namespace. The lock file is created on first acquisition and never deleted (zero-length sentinel file).
@@ -241,7 +241,7 @@ Every error message should answer: *what failed, and what can the user do about 
 
 | Bad | Good |
 |-----|------|
-| `"error"` | `"loading config: .wolfcastle/base/config.json not found — run 'wolfcastle init'"` |
+| `"error"` | `"loading config: .wolfcastle/system/base/config.json not found — run 'wolfcastle init'"` |
 | `"invalid input"` | `"--node must be a task address (e.g. my-project/task-1)"` |
 | `"not found"` | `"task task-3 not found in my-project — use 'wolfcastle status --node my-project' to list tasks"` |
 

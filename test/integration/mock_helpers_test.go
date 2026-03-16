@@ -26,7 +26,7 @@ func createMockModel(t *testing.T, dir string, name string, behavior string) str
 		t.Fatalf("creating mock scripts dir: %v", err)
 	}
 
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath := filepath.Join(scriptsDir, name+".sh")
 
 	// All scripts consume stdin (the prompt) and emit stream-json to stdout.
@@ -135,7 +135,7 @@ func configureWithArgs(t *testing.T, dir string, scriptPath string, args []strin
 	if err != nil {
 		t.Fatalf("marshaling mock config: %v", err)
 	}
-	customDir := filepath.Join(dir, ".wolfcastle", "custom")
+	customDir := filepath.Join(dir, ".wolfcastle", "system", "custom")
 	_ = os.MkdirAll(customDir, 0755)
 	configPath := filepath.Join(customDir, "config.json")
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
@@ -159,7 +159,7 @@ func setMaxIterations(t *testing.T, dir string, n int) {
 // preserves the identity fields that init creates.
 func mergeLocalConfig(t *testing.T, dir string, overrides map[string]any) {
 	t.Helper()
-	localDir := filepath.Join(dir, ".wolfcastle", "local")
+	localDir := filepath.Join(dir, ".wolfcastle", "system", "local")
 	_ = os.MkdirAll(localDir, 0755)
 	localPath := filepath.Join(localDir, "config.json")
 
@@ -209,7 +209,7 @@ func createCounterMock(t *testing.T, dir string, yieldCount int) (scriptPath, co
 		t.Fatalf("writing counter file: %v", err)
 	}
 
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath = filepath.Join(scriptsDir, "counter-mock.sh")
 	body := fmt.Sprintf(`#!/bin/sh
 cat > /dev/null
@@ -247,7 +247,7 @@ func createNoMarkerStopAfterMock(t *testing.T, dir string, stopAfter int) string
 		t.Fatalf("writing counter file: %v", err)
 	}
 
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath := filepath.Join(scriptsDir, "nomarker-stop.sh")
 	body := fmt.Sprintf(`#!/bin/sh
 cat > /dev/null

@@ -55,8 +55,8 @@ func TestDefaults_ReturnsValidConfig(t *testing.T) {
 func TestLoad_EmptyConfigJSON_ReturnsDefaults(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(dir, "base"), 0755)
-	if err := os.WriteFile(filepath.Join(dir, "base", "config.json"), []byte("{}"), 0644); err != nil {
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base"), 0755)
+	if err := os.WriteFile(filepath.Join(dir, "system", "base", "config.json"), []byte("{}"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -78,9 +78,9 @@ func TestLoad_WithOverrides_MergesCorrectly(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	_ = os.MkdirAll(filepath.Join(dir, "custom"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "custom"), 0755)
 	configJSON := `{"failure": {"hard_cap": 100}}`
-	if err := os.WriteFile(filepath.Join(dir, "custom", "config.json"), []byte(configJSON), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "system", "custom", "config.json"), []byte(configJSON), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -102,14 +102,14 @@ func TestLoad_LocalOverridesConfig(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	_ = os.MkdirAll(filepath.Join(dir, "custom"), 0755)
-	_ = os.MkdirAll(filepath.Join(dir, "local"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "custom"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "local"), 0755)
 	configJSON := `{"failure": {"hard_cap": 100}}`
 	localJSON := `{"failure": {"hard_cap": 200}}`
-	if err := os.WriteFile(filepath.Join(dir, "custom", "config.json"), []byte(configJSON), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "system", "custom", "config.json"), []byte(configJSON), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "local", "config.json"), []byte(localJSON), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "system", "local", "config.json"), []byte(localJSON), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -127,16 +127,16 @@ func TestLoad_ThreeTierMerge(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	_ = os.MkdirAll(filepath.Join(dir, "base"), 0755)
-	_ = os.MkdirAll(filepath.Join(dir, "custom"), 0755)
-	_ = os.MkdirAll(filepath.Join(dir, "local"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "custom"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "local"), 0755)
 
 	// base sets hard_cap to 50
-	_ = os.WriteFile(filepath.Join(dir, "base", "config.json"), []byte(`{"failure": {"hard_cap": 50}}`), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "system", "base", "config.json"), []byte(`{"failure": {"hard_cap": 50}}`), 0644)
 	// custom overrides to 100
-	_ = os.WriteFile(filepath.Join(dir, "custom", "config.json"), []byte(`{"failure": {"hard_cap": 100, "decomposition_threshold": 5}}`), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "system", "custom", "config.json"), []byte(`{"failure": {"hard_cap": 100, "decomposition_threshold": 5}}`), 0644)
 	// local overrides hard_cap to 200, but decomposition_threshold stays from custom
-	_ = os.WriteFile(filepath.Join(dir, "local", "config.json"), []byte(`{"failure": {"hard_cap": 200}}`), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "system", "local", "config.json"), []byte(`{"failure": {"hard_cap": 200}}`), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -502,9 +502,9 @@ func TestLoad_LocalOnly_NoBaseOrCustom(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	_ = os.MkdirAll(filepath.Join(dir, "local"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "local"), 0755)
 	localJSON := `{"failure": {"hard_cap": 999}}`
-	if err := os.WriteFile(filepath.Join(dir, "local", "config.json"), []byte(localJSON), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "system", "local", "config.json"), []byte(localJSON), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -526,8 +526,8 @@ func TestLoad_InvalidJSON_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	_ = os.MkdirAll(filepath.Join(dir, "base"), 0755)
-	if err := os.WriteFile(filepath.Join(dir, "base", "config.json"), []byte("{invalid json}"), 0644); err != nil {
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base"), 0755)
+	if err := os.WriteFile(filepath.Join(dir, "system", "base", "config.json"), []byte("{invalid json}"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -541,8 +541,8 @@ func TestLoad_InvalidLocalJSON_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	_ = os.MkdirAll(filepath.Join(dir, "local"), 0755)
-	if err := os.WriteFile(filepath.Join(dir, "local", "config.json"), []byte("{not valid}"), 0644); err != nil {
+	_ = os.MkdirAll(filepath.Join(dir, "system", "local"), 0755)
+	if err := os.WriteFile(filepath.Join(dir, "system", "local", "config.json"), []byte("{not valid}"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -557,9 +557,9 @@ func TestLoad_ValidationFailure_ReturnsError(t *testing.T) {
 	dir := t.TempDir()
 
 	// Set pipeline stages to empty array, which should fail structural validation
-	_ = os.MkdirAll(filepath.Join(dir, "custom"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "custom"), 0755)
 	configJSON := `{"pipeline": {"stages": []}}`
-	if err := os.WriteFile(filepath.Join(dir, "custom", "config.json"), []byte(configJSON), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "system", "custom", "config.json"), []byte(configJSON), 0644); err != nil {
 		t.Fatal(err)
 	}
 

@@ -38,7 +38,7 @@ internal/project/templates/
 ```
 
 ### Extraction on Init/Update
-`WriteBasePrompts()` walks the embedded FS and writes each file to `.wolfcastle/base/`:
+`WriteBasePrompts()` walks the embedded FS and writes each file to `.wolfcastle/system/base/`:
 
 ```go
 fs.WalkDir(Templates, "templates", func(path string, d fs.DirEntry, err error) error {

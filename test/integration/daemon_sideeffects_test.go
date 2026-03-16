@@ -325,7 +325,7 @@ func TestDaemon_ModelCreatesFilesThenFails(t *testing.T) {
 	// Use createNoMarkerStopAfterMock-style behavior: no marker, but
 	// the mock creates a file. We use createRealisticMock with no marker
 	// and stop after one invocation via ExtraCommands.
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	scriptPath, _ := createRealisticMock(t, dir, "creates-then-fails", MockModelConfig{
 		Behaviors: []MockBehavior{
 			{

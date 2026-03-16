@@ -114,9 +114,9 @@ func Defaults() *Config {
 // configTiers lists the three-tier config file paths relative to the
 // wolfcastle directory, in resolution order from lowest to highest priority.
 var configTiers = []string{
-	"base/config.json",
-	"custom/config.json",
-	"local/config.json",
+	"system/base/config.json",
+	"system/custom/config.json",
+	"system/local/config.json",
 }
 
 // Load reads and merges configuration from the .wolfcastle directory.

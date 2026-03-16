@@ -160,6 +160,7 @@ func TestCheckInboxState_OnlyFiled(t *testing.T) {
 func TestWriteAndReadPID_RoundTrip(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
+	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
 	if err := WritePID(dir); err != nil {
 		t.Fatal(err)
 	}

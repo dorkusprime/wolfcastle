@@ -242,8 +242,8 @@ func TestArchiveAdd_RequireResolver(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	_ = os.MkdirAll(wcDir, 0755)
-	_ = os.MkdirAll(filepath.Join(wcDir, "custom"), 0755)
-	_ = os.WriteFile(filepath.Join(wcDir, "custom", "config.json"), []byte(`{}`), 0644)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "custom"), 0755)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "custom", "config.json"), []byte(`{}`), 0644)
 
 	origDir, _ := os.Getwd()
 	_ = os.Chdir(tmp)
@@ -305,8 +305,8 @@ func TestNavigate_RequireResolver(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	_ = os.MkdirAll(wcDir, 0755)
-	_ = os.MkdirAll(filepath.Join(wcDir, "custom"), 0755)
-	_ = os.WriteFile(filepath.Join(wcDir, "custom", "config.json"), []byte(`{}`), 0644)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "custom"), 0755)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "custom", "config.json"), []byte(`{}`), 0644)
 
 	origDir, _ := os.Getwd()
 	_ = os.Chdir(tmp)
@@ -412,7 +412,7 @@ func TestLoadUnblockPreamble_SuccessWithFile(t *testing.T) {
 	app = env.App
 
 	// Create the unblock.md in base/prompts/
-	promptsDir := filepath.Join(env.WolfcastleDir, "base", "prompts")
+	promptsDir := filepath.Join(env.WolfcastleDir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptsDir, 0755)
 	_ = os.WriteFile(filepath.Join(promptsDir, "unblock.md"),
 		[]byte("Custom unblock instructions: help the user carefully."), 0644)

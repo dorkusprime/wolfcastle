@@ -58,7 +58,7 @@ func TestBuildDoctorPrompt_WithTemplate(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	promptDir := filepath.Join(dir, "base", "prompts")
+	promptDir := filepath.Join(dir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptDir, 0755)
 	_ = os.WriteFile(filepath.Join(promptDir, "doctor.md"),
 		[]byte(`Fix node {{.Node}}: {{.Category}} ({{.FixType}}) - {{.Description}}`), 0644)
