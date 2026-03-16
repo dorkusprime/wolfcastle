@@ -96,7 +96,7 @@ Examples:
 			}
 
 			if background {
-				return startBackground(app.WolfcastleDir, nodeScope, worktreeBranch)
+				return startBackground(app.WolfcastleDir, nodeScope, worktreeBranch, "")
 			}
 
 			d, err := daemon.New(app.Cfg, app.WolfcastleDir, app.Resolver, nodeScope, repoDir)
@@ -115,11 +115,15 @@ Examples:
 	}
 }
 
-func startBackground(wolfcastleDir, nodeScope, worktreeBranch string) error {
-	// Re-exec ourselves with the same flags but without -d
-	execPath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("finding executable: %w", err)
+// startBackground launches the daemon as a detached background process.
+// executablePath is the binary to re-exec; pass "" to use os.Executable().
+func startBackground(wolfcastleDir, nodeScope, worktreeBranch, executablePath string) error {
+	if executablePath == "" {
+		var err error
+		executablePath, err = os.Executable()
+		if err != nil {
+			return fmt.Errorf("finding executable: %w", err)
+		}
 	}
 
 	cmdArgs := []string{"start"}
@@ -130,7 +134,7 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch string) error {
 		cmdArgs = append(cmdArgs, "--worktree", worktreeBranch)
 	}
 
-	proc := exec.Command(execPath, cmdArgs...)
+	proc := exec.Command(executablePath, cmdArgs...)
 	proc.Stdin = nil
 	proc.Dir = filepath.Dir(wolfcastleDir)
 
@@ -145,6 +149,7 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch string) error {
 	proc.Stderr = logFile
 
 	if err := proc.Start(); err != nil {
+		_ = logFile.Close()
 		return fmt.Errorf("starting background process: %w", err)
 	}
 
@@ -155,7 +160,7 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch string) error {
 	}
 
 	output.PrintHuman("Daemon deployed (PID %d)", proc.Process.Pid)
-	output.PrintHuman("  wolfcastle follow    Watch the operation")
+	output.PrintHuman("  wolfcastle log -f    Watch the operation")
 	output.PrintHuman("  wolfcastle stop      Stand down")
 
 	// Detach

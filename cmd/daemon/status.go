@@ -1,8 +1,10 @@
 package daemon
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -44,7 +46,9 @@ Examples:
 			}
 
 			if watch {
-				return watchStatus(app, scopeNode, showAll, interval)
+				ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+				defer stop()
+				return watchStatus(ctx, app, scopeNode, showAll, interval)
 			}
 
 			if showAll {
@@ -379,15 +383,15 @@ func showAllStatus(app *cmdutil.App) error {
 }
 
 // watchStatus refreshes the status display on an interval, clearing the
-// screen between refreshes. Ctrl+C to stop.
-func watchStatus(app *cmdutil.App, scope string, showAll bool, intervalSec float64) error {
+// screen between refreshes. Returns when context is cancelled.
+func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64) error {
 	if intervalSec < 0.1 {
 		intervalSec = 0.1
 	}
 	d := time.Duration(intervalSec * float64(time.Second))
 	for {
 		// Clear screen and move cursor to top-left
-		fmt.Print("\033[2J\033[H")
+		_, _ = fmt.Fprint(os.Stdout, "\033[2J\033[H")
 
 		if showAll {
 			if err := showAllStatus(app); err != nil {
@@ -404,7 +408,11 @@ func watchStatus(app *cmdutil.App, scope string, showAll bool, intervalSec float
 			}
 		}
 
-		time.Sleep(d)
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(d):
+		}
 	}
 }
 

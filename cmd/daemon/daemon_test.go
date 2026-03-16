@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -920,4 +921,216 @@ func TestPrintNodeTree_LeafWithNilNodeState(t *testing.T) {
 
 	// Should not panic when ns is nil (no tasks to print).
 	printNodeTree(env.App, idx, details, "leaf", "  ")
+}
+
+// ---------------------------------------------------------------------------
+// startBackground
+// ---------------------------------------------------------------------------
+
+func TestStartBackground_HappyPath(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	wolfDir := filepath.Join(dir, ".wolfcastle")
+	_ = os.MkdirAll(wolfDir, 0755)
+
+	// Use "sleep" as the child process; it starts and we release it.
+	err := startBackground(wolfDir, "", "", "sleep")
+	if err != nil {
+		t.Fatalf("startBackground failed: %v", err)
+	}
+
+	// PID file should exist
+	pidData, err := os.ReadFile(filepath.Join(wolfDir, "wolfcastle.pid"))
+	if err != nil {
+		t.Fatal("PID file should exist after startBackground")
+	}
+	if len(pidData) == 0 {
+		t.Error("PID file should not be empty")
+	}
+
+	// daemon.log should exist
+	if _, err := os.Stat(filepath.Join(wolfDir, "daemon.log")); err != nil {
+		t.Error("daemon.log should exist")
+	}
+}
+
+func TestStartBackground_WithNodeScope(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	wolfDir := filepath.Join(dir, ".wolfcastle")
+	_ = os.MkdirAll(wolfDir, 0755)
+
+	err := startBackground(wolfDir, "my-project", "", "sleep")
+	if err != nil {
+		t.Fatalf("startBackground with scope failed: %v", err)
+	}
+}
+
+func TestStartBackground_WithWorktree(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	wolfDir := filepath.Join(dir, ".wolfcastle")
+	_ = os.MkdirAll(wolfDir, 0755)
+
+	err := startBackground(wolfDir, "", "feature-branch", "sleep")
+	if err != nil {
+		t.Fatalf("startBackground with worktree failed: %v", err)
+	}
+}
+
+func TestStartBackground_BadExecutable(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	wolfDir := filepath.Join(dir, ".wolfcastle")
+	_ = os.MkdirAll(wolfDir, 0755)
+
+	err := startBackground(wolfDir, "", "", "/nonexistent/binary")
+	if err == nil {
+		t.Error("expected error for nonexistent executable")
+	}
+}
+
+func TestStartBackground_LogDirNotWritable(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("skip in CI")
+	}
+	t.Parallel()
+	dir := t.TempDir()
+	wolfDir := filepath.Join(dir, ".wolfcastle")
+	_ = os.MkdirAll(wolfDir, 0755)
+
+	// Make wolfDir read-only so daemon.log creation fails
+	_ = os.Chmod(wolfDir, 0555)
+	defer func() { _ = os.Chmod(wolfDir, 0755) }()
+
+	err := startBackground(wolfDir, "", "", "sleep")
+	if err == nil {
+		t.Error("expected error when log dir is not writable")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// nodeGlyph and taskGlyph — all states
+// ---------------------------------------------------------------------------
+
+func TestNodeGlyph_AllStates(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		status state.NodeStatus
+		glyph  string
+	}{
+		{state.StatusComplete, "●"},
+		{state.StatusInProgress, "◐"},
+		{state.StatusBlocked, "☢"},
+		{state.StatusNotStarted, "◯"},
+		{"unknown_status", "◯"},
+	}
+	for _, tc := range cases {
+		result := nodeGlyph(tc.status)
+		if !strings.Contains(result, tc.glyph) {
+			t.Errorf("nodeGlyph(%s) = %q, expected to contain %q", tc.status, result, tc.glyph)
+		}
+	}
+}
+
+func TestTaskGlyph_AllStates(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		status state.NodeStatus
+		glyph  string
+	}{
+		{state.StatusComplete, "✓"},
+		{state.StatusInProgress, "→"},
+		{state.StatusBlocked, "✖"},
+		{state.StatusNotStarted, "○"},
+		{"unknown_status", "○"},
+	}
+	for _, tc := range cases {
+		result := taskGlyph(tc.status)
+		if !strings.Contains(result, tc.glyph) {
+			t.Errorf("taskGlyph(%s) = %q, expected to contain %q", tc.status, result, tc.glyph)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// watchStatus — runs one cycle then context cancels
+// ---------------------------------------------------------------------------
+
+func TestWatchStatus_SingleCycle(t *testing.T) {
+	t.Parallel()
+	env := newStatusTestEnv(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- watchStatus(ctx, env.App, "", false, 0.1)
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("watchStatus error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("watchStatus did not exit after context cancellation")
+	}
+}
+
+func TestWatchStatus_WithScope(t *testing.T) {
+	t.Parallel()
+	env := newStatusTestEnv(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- watchStatus(ctx, env.App, "my-project", false, 0.1)
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("watchStatus with scope error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("watchStatus did not exit")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// followLogs — context cancellation
+// ---------------------------------------------------------------------------
+
+func TestFollowLogs_NoLogs(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	err := followLogs(ctx, dir, 20, logging.LevelInfo)
+	if err != nil {
+		t.Fatalf("followLogs error: %v", err)
+	}
+}
+
+func TestFollowLogs_WithLogFile(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Create a log file
+	logLine := `{"level":"info","type":"stage_start","stage":"execute","timestamp":"2026-03-16T00:00:00Z"}` + "\n"
+	_ = os.WriteFile(filepath.Join(dir, "0001-20260316T00-00Z.jsonl"), []byte(logLine), 0644)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	err := followLogs(ctx, dir, 5, logging.LevelInfo)
+	if err != nil {
+		t.Fatalf("followLogs error: %v", err)
+	}
 }
