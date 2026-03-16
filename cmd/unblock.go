@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -187,8 +188,13 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 			return fmt.Errorf("model invocation failed: %w", invokeErr)
 		}
 
-		// Display model response
-		output.PrintHuman("%s", result.Stdout)
+		// Display model response, formatting each streaming JSON line
+		scanner := bufio.NewScanner(strings.NewReader(result.Stdout))
+		for scanner.Scan() {
+			if formatted := invoke.FormatAssistantText(scanner.Text()); formatted != "" {
+				output.PrintHuman("%s", formatted)
+			}
+		}
 		if result.Stderr != "" {
 			output.PrintError("%s", result.Stderr)
 		}
@@ -207,10 +213,13 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 		}
 		input = strings.TrimSpace(input)
 
-		if input == "quit" || input == "exit" || input == "" {
+		if input == "quit" || input == "exit" {
 			output.PrintHuman("Session closed.")
 			output.PrintHuman("\nWhen ready: wolfcastle task unblock --node %s", taskAddr)
 			break
+		}
+		if input == "" {
+			continue
 		}
 
 		conversation += "\n\nUser: " + input + "\n\nAssistant: "

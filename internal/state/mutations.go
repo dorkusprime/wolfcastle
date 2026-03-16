@@ -75,16 +75,21 @@ func TaskComplete(ns *NodeState, taskID string) error {
 	}
 	t.State = StatusComplete
 
-	// Check if all tasks are complete
+	// Recompute node state: all complete, all-non-complete blocked, or in_progress
 	allComplete := true
+	allBlockedOrComplete := true
 	for _, task := range ns.Tasks {
 		if task.State != StatusComplete {
 			allComplete = false
-			break
+		}
+		if task.State != StatusComplete && task.State != StatusBlocked {
+			allBlockedOrComplete = false
 		}
 	}
 	if allComplete {
 		ns.State = StatusComplete
+	} else if allBlockedOrComplete {
+		ns.State = StatusBlocked
 	}
 	SyncAuditLifecycle(ns)
 	return nil
