@@ -107,15 +107,17 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 		return nil, err
 	}
 
-	// Check whether all non-audit tasks are complete. The audit task
-	// should only run after all real work is done.
+	// Check whether all non-audit tasks are finished (complete or blocked).
+	// The audit task runs after all real work is done or stuck. Blocked
+	// tasks won't produce more work without human intervention, so the
+	// audit should run and report what happened.
 	nonAuditCount := 0
-	nonAuditComplete := 0
+	nonAuditDone := 0
 	for _, task := range ns.Tasks {
 		if !task.IsAudit {
 			nonAuditCount++
-			if task.State == StatusComplete {
-				nonAuditComplete++
+			if task.State == StatusComplete || task.State == StatusBlocked {
+				nonAuditDone++
 			}
 		}
 	}
@@ -123,9 +125,9 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 	// This happens when project create auto-generates the audit task
 	// but the intake model hasn't added real tasks yet. Orchestrators
 	// legitimately have only audit tasks (real work is in child nodes).
-	allNonAuditComplete := nonAuditComplete == nonAuditCount
+	allNonAuditDone := nonAuditDone == nonAuditCount
 	if ns.Type == NodeLeaf && nonAuditCount == 0 {
-		allNonAuditComplete = false
+		allNonAuditDone = false
 	}
 
 	// Return in_progress tasks first (self-healing: resume after crash).
@@ -144,7 +146,7 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 	// Then not_started tasks, deferring audit tasks until all others are done.
 	for _, task := range ns.Tasks {
 		if task.State == StatusNotStarted {
-			if task.IsAudit && !allNonAuditComplete {
+			if task.IsAudit && !allNonAuditDone {
 				continue
 			}
 			return &NavigationResult{
