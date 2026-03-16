@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -21,21 +22,29 @@ func newStatusCmd(app *cmdutil.App) *cobra.Command {
 		Short: "Survey the battlefield",
 		Long: `Shows node states across the project tree. How many targets remain.
 How many have fallen. Use --node to scope to a subtree, --all to
-see every engineer's namespace.
+see every engineer's namespace. Use --watch to refresh on an interval.
 
 Examples:
   wolfcastle status
   wolfcastle status --node auth-system
+  wolfcastle status --watch
+  wolfcastle status -w --interval 2
   wolfcastle status --all
   wolfcastle status --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			showAll, _ := cmd.Flags().GetBool("all")
 			scopeNode, _ := cmd.Flags().GetString("node")
+			watch, _ := cmd.Flags().GetBool("watch")
+			interval, _ := cmd.Flags().GetInt("interval")
 
 			if !showAll {
 				if err := app.RequireResolver(); err != nil {
 					return err
 				}
+			}
+
+			if watch {
+				return watchStatus(app, scopeNode, showAll, interval)
 			}
 
 			if showAll {
@@ -330,6 +339,35 @@ func showAllStatus(app *cmdutil.App) error {
 		}
 	}
 	return nil
+}
+
+// watchStatus refreshes the status display on an interval, clearing the
+// screen between refreshes. Ctrl+C to stop.
+func watchStatus(app *cmdutil.App, scope string, showAll bool, intervalSec int) error {
+	if intervalSec < 1 {
+		intervalSec = 1
+	}
+	for {
+		// Clear screen and move cursor to top-left
+		fmt.Print("\033[2J\033[H")
+
+		if showAll {
+			if err := showAllStatus(app); err != nil {
+				output.PrintError("%v", err)
+			}
+		} else {
+			idx, err := app.Resolver.LoadRootIndex()
+			if err != nil {
+				output.PrintError("%v", err)
+			} else {
+				if err := showTreeStatus(app, idx, scope); err != nil {
+					output.PrintError("%v", err)
+				}
+			}
+		}
+
+		time.Sleep(time.Duration(intervalSec) * time.Second)
+	}
 }
 
 // isInSubtree checks whether addr is the scope node or a descendant of it.

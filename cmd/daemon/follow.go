@@ -15,19 +15,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newFollowCmd(app *cmdutil.App) *cobra.Command {
+func newLogCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
-		Use:   "follow",
-		Short: "Watch the daemon work",
-		Long: `Streams model output in real time. Follows new iterations automatically.
-Ctrl+C to disengage.
+		Use:   "log",
+		Short: "Read the daemon's logs",
+		Long: `Shows daemon log output. Without --follow, prints recent log lines
+and exits (like reading a file). With --follow, streams output in
+real time and tracks new iterations automatically.
 
 Examples:
-  wolfcastle follow
-  wolfcastle follow --lines 100`,
+  wolfcastle log
+  wolfcastle log --lines 50
+  wolfcastle log --follow
+  wolfcastle log -f -l debug`,
+		Aliases: []string{"follow"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logDir := filepath.Join(app.WolfcastleDir, "logs")
 			lines, _ := cmd.Flags().GetInt("lines")
+			follow, _ := cmd.Flags().GetBool("follow")
 			levelFilter, _ := cmd.Flags().GetString("level")
 			minLevel := logging.LevelInfo
 			if levelFilter != "" {
@@ -37,42 +42,62 @@ Examples:
 					return fmt.Errorf("unknown log level %q (use debug, info, warn, error)", levelFilter)
 				}
 			}
-			var currentFile string
-			historicalShown := false
-			waitMessageShown := false
 
-			for {
-				latestPath, err := logging.LatestLogFile(logDir)
-				if err != nil {
-					if !waitMessageShown {
-						output.PrintHuman("Waiting for the daemon to produce output...")
-						waitMessageShown = true
-					}
-					time.Sleep(2 * time.Second)
-					continue
-				}
-
-				if latestPath != currentFile {
-					if currentFile != "" {
-						fmt.Printf("\n--- New iteration: %s ---\n\n", filepath.Base(latestPath))
-					} else {
-						fmt.Printf("--- Following: %s ---\n\n", filepath.Base(latestPath))
-						// Show historical lines from the initial log file
-						if lines > 0 && !historicalShown {
-							showHistoricalLines(latestPath, lines, minLevel)
-							historicalShown = true
-						}
-					}
-					currentFile = latestPath
-				}
-
-				if err := tailFileStreaming(currentFile, minLevel); err != nil {
-					return err
-				}
-				// After EOF, poll for new data or new files
-				time.Sleep(500 * time.Millisecond)
+			if !follow {
+				return showRecentLogs(logDir, lines, minLevel)
 			}
+			return followLogs(logDir, lines, minLevel)
 		},
+	}
+}
+
+// showRecentLogs prints the last N lines from the most recent log file and exits.
+func showRecentLogs(logDir string, lines int, minLevel logging.Level) error {
+	latestPath, err := logging.LatestLogFile(logDir)
+	if err != nil {
+		output.PrintHuman("No logs yet.")
+		return nil
+	}
+
+	fmt.Printf("--- %s ---\n\n", filepath.Base(latestPath))
+	showHistoricalLines(latestPath, lines, minLevel)
+	return nil
+}
+
+// followLogs streams log output in real time, following new iterations.
+func followLogs(logDir string, lines int, minLevel logging.Level) error {
+	var currentFile string
+	historicalShown := false
+	waitMessageShown := false
+
+	for {
+		latestPath, err := logging.LatestLogFile(logDir)
+		if err != nil {
+			if !waitMessageShown {
+				output.PrintHuman("Waiting for the daemon to produce output...")
+				waitMessageShown = true
+			}
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		if latestPath != currentFile {
+			if currentFile != "" {
+				fmt.Printf("\n--- New iteration: %s ---\n\n", filepath.Base(latestPath))
+			} else {
+				fmt.Printf("--- Following: %s ---\n\n", filepath.Base(latestPath))
+				if lines > 0 && !historicalShown {
+					showHistoricalLines(latestPath, lines, minLevel)
+					historicalShown = true
+				}
+			}
+			currentFile = latestPath
+		}
+
+		if err := tailFileStreaming(currentFile, minLevel); err != nil {
+			return err
+		}
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
@@ -85,7 +110,6 @@ func showHistoricalLines(path string, n int, minLevel logging.Level) {
 	}
 	defer func() { _ = f.Close() }()
 
-	// Read all lines, then take the last n
 	var allLines []string
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -101,7 +125,6 @@ func showHistoricalLines(path string, n int, minLevel logging.Level) {
 		formatAndPrintLogLine(line, minLevel)
 	}
 
-	// Set the offset so tailFileStreaming doesn't re-print what we just showed
 	if info, err := os.Stat(path); err == nil {
 		setOffset(path, info.Size())
 	}
@@ -114,8 +137,6 @@ func tailFileStreaming(path string, minLevel logging.Level) error {
 	}
 	defer func() { _ = f.Close() }()
 
-	// Seek to where we last left off by checking current file size
-	// We use a static map to track offsets across calls
 	offset := getOffset(path)
 	if offset > 0 {
 		if _, err := f.Seek(offset, 0); err != nil {
@@ -123,13 +144,12 @@ func tailFileStreaming(path string, minLevel logging.Level) error {
 		}
 	}
 
-	// Check if the file has grown
 	info, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
 	if info.Size() <= offset {
-		return nil // No new data
+		return nil
 	}
 
 	scanner := bufio.NewScanner(f)
@@ -137,10 +157,6 @@ func tailFileStreaming(path string, minLevel logging.Level) error {
 		formatAndPrintLogLine(scanner.Text(), minLevel)
 	}
 
-	// Update the offset to the current file size. We re-stat because
-	// the file may have grown since our initial check. Using f.Seek(0,1)
-	// would be unreliable because bufio.Scanner reads ahead into an
-	// internal buffer.
 	if endInfo, err := os.Stat(path); err == nil {
 		setOffset(path, endInfo.Size())
 	}
@@ -156,7 +172,6 @@ func formatAndPrintLogLine(line string, minLevel logging.Level) {
 		return
 	}
 
-	// Filter by log level
 	if lvlStr, ok := record["level"].(string); ok {
 		if lvl, ok := logging.ParseLevel(lvlStr); ok && lvl < minLevel {
 			return
@@ -190,8 +205,6 @@ func formatAndPrintLogLine(line string, minLevel logging.Level) {
 		errMsg, _ := record["error"].(string)
 		fmt.Printf("%s[%s] Error: %s\n", prefix, stage, errMsg)
 	case "assistant":
-		// The raw text field contains Claude Code's JSON streaming output.
-		// Extract meaningful content rather than dumping raw JSON.
 		if text, ok := record["text"].(string); ok {
 			formatted := formatAssistantText(text)
 			if formatted != "" {
@@ -234,7 +247,6 @@ func formatAndPrintLogLine(line string, minLevel logging.Level) {
 		errMsg, _ := record["error"].(string)
 		fmt.Printf("%s[propagate] Error: %s\n", prefix, errMsg)
 	default:
-		// Unknown type at debug level: show type and any message field
 		if msg, ok := record["message"].(string); ok && msg != "" {
 			fmt.Printf("%s[%s] %s\n", prefix, typ, msg)
 		} else if typ != "" {
@@ -244,10 +256,8 @@ func formatAndPrintLogLine(line string, minLevel logging.Level) {
 }
 
 // formatAssistantText extracts human-readable content from Claude Code's
-// streaming JSON output. The raw text is a JSON envelope with nested
-// message content. We extract the actual text the model produced.
+// streaming JSON output.
 func formatAssistantText(raw string) string {
-	// Try to parse as Claude Code JSON stream envelope
 	var envelope struct {
 		Type    string `json:"type"`
 		Subtype string `json:"subtype"`
@@ -262,7 +272,6 @@ func formatAssistantText(raw string) string {
 		Result string `json:"result"`
 	}
 	if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
-		// Not JSON; treat as plain text (truncated if long)
 		if len(raw) > 200 {
 			return raw[:200] + "..."
 		}
