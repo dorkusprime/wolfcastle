@@ -104,16 +104,13 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 	report := &Report{}
 	var inProgressTasks []string
 
-	// Per-node checks
 	for addr, entry := range idx.Nodes {
-		_, parseErr := tree.ParseAddress(addr)
-		if parseErr != nil {
+		if _, parseErr := tree.ParseAddress(addr); parseErr != nil {
 			continue
 		}
 
 		ns, err := e.loadNode(addr)
 		if err != nil {
-			// ROOTINDEX_DANGLING_REF: index references non-existent node
 			if e.include(CatRootIndexDanglingRef, categories) {
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityError,
@@ -127,176 +124,190 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 			continue
 		}
 
-		// MALFORMED_JSON is implicitly checked above (LoadNodeState fails)
+		e.checkNodeFields(ns, addr, categories, report)
+		e.checkPropagation(ns, addr, entry, categories, report)
 
-		// MISSING_REQUIRED_FIELD
-		if e.include(CatMissingRequiredField, categories) {
-			if ns.ID == "" || ns.Name == "" || string(ns.Type) == "" || string(ns.State) == "" {
-				report.Issues = append(report.Issues, Issue{
-					Severity:    SeverityError,
-					Category:    CatMissingRequiredField,
-					Node:        addr,
-					Description: "Missing required field(s) in state.json",
-					CanAutoFix:  true,
-					FixType:     FixDeterministic,
-				})
-			}
-		}
-
-		// INVALID_STATE_VALUE
-		if e.include(CatInvalidStateValue, categories) {
-			if !isValidState(ns.State) {
-				_, normalizable := NormalizeStateValue(string(ns.State))
-				fixType := FixModelAssisted
-				if normalizable {
-					fixType = FixDeterministic
-				}
-				report.Issues = append(report.Issues, Issue{
-					Severity:    SeverityError,
-					Category:    CatInvalidStateValue,
-					Node:        addr,
-					Description: fmt.Sprintf("Invalid state value: %q", ns.State),
-					CanAutoFix:  normalizable,
-					FixType:     fixType,
-				})
-			}
-		}
-
-		// State mismatch (index vs node) — reported as propagation issue
-		if e.include(CatPropagationMismatch, categories) {
-			if ns.State != entry.State {
-				report.Issues = append(report.Issues, Issue{
-					Severity:    SeverityError,
-					Category:    CatPropagationMismatch,
-					Node:        addr,
-					Description: fmt.Sprintf("Index says %s but node state says %s", entry.State, ns.State),
-					CanAutoFix:  true,
-					FixType:     FixDeterministic,
-				})
-			}
-
-			// Orchestrator state propagation check
-			if ns.Type == state.NodeOrchestrator && len(ns.Children) > 0 {
-				expected := state.RecomputeState(ns.Children)
-				if ns.State != expected {
-					report.Issues = append(report.Issues, Issue{
-						Severity:    SeverityError,
-						Category:    CatPropagationMismatch,
-						Node:        addr,
-						Description: fmt.Sprintf("Computed state is %s but stored is %s", expected, ns.State),
-						CanAutoFix:  true,
-						FixType:     FixDeterministic,
-					})
-				}
-			}
-		}
-
-		// Leaf-specific checks
 		if ns.Type == state.NodeLeaf {
 			e.checkLeafAudit(ns, addr, categories, report)
 			e.checkLeafTasks(ns, addr, categories, report, &inProgressTasks)
 		}
-
-		// Audit state checks apply to both leaf and orchestrator nodes
 		e.checkAuditState(ns, addr, categories, report)
+		e.checkParentChild(ns, addr, entry, idx, categories, report)
+		e.checkTransitions(ns, addr, categories, report)
+	}
 
-		// ORPHAN_STATE: node has a parent but parent doesn't list it as child
-		if e.include(CatOrphanState, categories) && entry.Parent != "" {
-			if parentEntry, ok := idx.Nodes[entry.Parent]; ok {
-				found := false
-				for _, child := range parentEntry.Children {
-					if child == addr {
-						found = true
-						break
-					}
+	e.checkGlobalState(idx, categories, report, inProgressTasks)
+
+	report.Counts()
+	return report
+}
+
+// checkNodeFields validates required fields and state values.
+func (e *Engine) checkNodeFields(ns *state.NodeState, addr string, categories map[string]bool, report *Report) {
+	if e.include(CatMissingRequiredField, categories) {
+		if ns.ID == "" || ns.Name == "" || string(ns.Type) == "" || string(ns.State) == "" {
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityError,
+				Category:    CatMissingRequiredField,
+				Node:        addr,
+				Description: "Missing required field(s) in state.json",
+				CanAutoFix:  true,
+				FixType:     FixDeterministic,
+			})
+		}
+	}
+
+	if e.include(CatInvalidStateValue, categories) {
+		if !isValidState(ns.State) {
+			_, normalizable := NormalizeStateValue(string(ns.State))
+			fixType := FixModelAssisted
+			if normalizable {
+				fixType = FixDeterministic
+			}
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityError,
+				Category:    CatInvalidStateValue,
+				Node:        addr,
+				Description: fmt.Sprintf("Invalid state value: %q", ns.State),
+				CanAutoFix:  normalizable,
+				FixType:     fixType,
+			})
+		}
+	}
+}
+
+// checkPropagation verifies index-node state consistency and orchestrator recomputation.
+func (e *Engine) checkPropagation(ns *state.NodeState, addr string, entry state.IndexEntry, categories map[string]bool, report *Report) {
+	if !e.include(CatPropagationMismatch, categories) {
+		return
+	}
+
+	if ns.State != entry.State {
+		report.Issues = append(report.Issues, Issue{
+			Severity:    SeverityError,
+			Category:    CatPropagationMismatch,
+			Node:        addr,
+			Description: fmt.Sprintf("Index says %s but node state says %s", entry.State, ns.State),
+			CanAutoFix:  true,
+			FixType:     FixDeterministic,
+		})
+	}
+
+	if ns.Type == state.NodeOrchestrator && len(ns.Children) > 0 {
+		expected := state.RecomputeState(ns.Children)
+		if ns.State != expected {
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityError,
+				Category:    CatPropagationMismatch,
+				Node:        addr,
+				Description: fmt.Sprintf("Computed state is %s but stored is %s", expected, ns.State),
+				CanAutoFix:  true,
+				FixType:     FixDeterministic,
+			})
+		}
+	}
+}
+
+// checkParentChild validates parent-child relationships and depth consistency.
+func (e *Engine) checkParentChild(ns *state.NodeState, addr string, entry state.IndexEntry, idx *state.RootIndex, categories map[string]bool, report *Report) {
+	if entry.Parent == "" {
+		return
+	}
+
+	if e.include(CatOrphanState, categories) {
+		if parentEntry, ok := idx.Nodes[entry.Parent]; ok {
+			found := false
+			for _, child := range parentEntry.Children {
+				if child == addr {
+					found = true
+					break
 				}
-				if !found {
+			}
+			if !found {
+				report.Issues = append(report.Issues, Issue{
+					Severity:    SeverityError,
+					Category:    CatOrphanState,
+					Node:        addr,
+					Description: fmt.Sprintf("Node has parent %s but parent does not list it as child", entry.Parent),
+					FixType:     FixModelAssisted,
+				})
+			}
+		}
+	}
+
+	if e.include(CatDepthMismatch, categories) {
+		parentNS, parentErr := e.loadNode(entry.Parent)
+		if parentErr == nil && ns.DecompositionDepth < parentNS.DecompositionDepth {
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityError,
+				Category:    CatDepthMismatch,
+				Node:        addr,
+				Description: fmt.Sprintf("Child depth %d < parent depth %d", ns.DecompositionDepth, parentNS.DecompositionDepth),
+				CanAutoFix:  true,
+				FixType:     FixDeterministic,
+			})
+		}
+	}
+}
+
+// checkTransitions validates state transition invariants.
+func (e *Engine) checkTransitions(ns *state.NodeState, addr string, categories map[string]bool, report *Report) {
+	if e.include(CatCompleteWithIncomplete, categories) {
+		if ns.Type == state.NodeLeaf && ns.State == state.StatusComplete {
+			for _, t := range ns.Tasks {
+				if t.State != state.StatusComplete {
 					report.Issues = append(report.Issues, Issue{
 						Severity:    SeverityError,
-						Category:    CatOrphanState,
+						Category:    CatCompleteWithIncomplete,
 						Node:        addr,
-						Description: fmt.Sprintf("Node has parent %s but parent does not list it as child", entry.Parent),
+						Description: "Leaf is complete but has incomplete tasks",
 						FixType:     FixModelAssisted,
 					})
+					break
 				}
 			}
 		}
+		if ns.Type == state.NodeOrchestrator && ns.State == state.StatusComplete {
+			for _, c := range ns.Children {
+				if c.State != state.StatusComplete {
+					report.Issues = append(report.Issues, Issue{
+						Severity:    SeverityError,
+						Category:    CatCompleteWithIncomplete,
+						Node:        addr,
+						Description: "Orchestrator is complete but has incomplete children",
+						FixType:     FixModelAssisted,
+					})
+					break
+				}
+			}
+		}
+	}
 
-		// DEPTH_MISMATCH: child depth must be >= parent depth
-		if e.include(CatDepthMismatch, categories) && entry.Parent != "" {
-			parentNS, parentErr := e.loadNode(entry.Parent)
-			if parentErr == nil && ns.DecompositionDepth < parentNS.DecompositionDepth {
+	if e.include(CatBlockedWithoutReason, categories) {
+		for _, t := range ns.Tasks {
+			if t.State == state.StatusBlocked && t.BlockedReason == "" {
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityError,
-					Category:    CatDepthMismatch,
+					Category:    CatBlockedWithoutReason,
 					Node:        addr,
-					Description: fmt.Sprintf("Child depth %d < parent depth %d", ns.DecompositionDepth, parentNS.DecompositionDepth),
+					Description: fmt.Sprintf("Task %s is blocked without a reason", t.ID),
 					CanAutoFix:  true,
 					FixType:     FixDeterministic,
 				})
 			}
 		}
-
-		// INVALID_TRANSITION_COMPLETE_WITH_INCOMPLETE
-		if e.include(CatCompleteWithIncomplete, categories) {
-			if ns.Type == state.NodeLeaf && ns.State == state.StatusComplete {
-				for _, t := range ns.Tasks {
-					if t.State != state.StatusComplete {
-						report.Issues = append(report.Issues, Issue{
-							Severity:    SeverityError,
-							Category:    CatCompleteWithIncomplete,
-							Node:        addr,
-							Description: "Leaf is complete but has incomplete tasks",
-							FixType:     FixModelAssisted,
-						})
-						break
-					}
-				}
-			}
-			if ns.Type == state.NodeOrchestrator && ns.State == state.StatusComplete {
-				for _, c := range ns.Children {
-					if c.State != state.StatusComplete {
-						report.Issues = append(report.Issues, Issue{
-							Severity:    SeverityError,
-							Category:    CatCompleteWithIncomplete,
-							Node:        addr,
-							Description: "Orchestrator is complete but has incomplete children",
-							FixType:     FixModelAssisted,
-						})
-						break
-					}
-				}
-			}
-		}
-
-		// INVALID_TRANSITION_BLOCKED_WITHOUT_REASON
-		if e.include(CatBlockedWithoutReason, categories) {
-			for _, t := range ns.Tasks {
-				if t.State == state.StatusBlocked && t.BlockedReason == "" {
-					report.Issues = append(report.Issues, Issue{
-						Severity:    SeverityError,
-						Category:    CatBlockedWithoutReason,
-						Node:        addr,
-						Description: fmt.Sprintf("Task %s is blocked without a reason", t.ID),
-						CanAutoFix:  true,
-						FixType:     FixDeterministic,
-					})
-				}
-			}
-		}
 	}
+}
 
-	// ROOTINDEX_MISSING_ENTRY: node on disk but not in index
+// checkGlobalState runs cross-node checks: orphans, in-progress invariants, daemon artifacts.
+func (e *Engine) checkGlobalState(idx *state.RootIndex, categories map[string]bool, report *Report, inProgressTasks []string) {
 	if e.include(CatRootIndexMissingEntry, categories) {
 		e.checkOrphanedStateFiles(idx, report)
 	}
-
-	// ORPHAN_DEFINITION: .md files without corresponding nodes
 	if e.include(CatOrphanDefinition, categories) {
 		e.checkOrphanedDefinitions(idx, report)
 	}
 
-	// Global in-progress checks
 	if e.include(CatMultipleInProgress, categories) && len(inProgressTasks) > 1 {
 		report.Issues = append(report.Issues, Issue{
 			Severity:    SeverityError,
@@ -306,7 +317,6 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 		})
 	}
 	if e.include(CatStaleInProgress, categories) && len(inProgressTasks) > 0 {
-		// Flag as stale if no live daemon is running for this workspace
 		if !e.isDaemonAlive() {
 			report.Issues = append(report.Issues, Issue{
 				Severity:    SeverityWarning,
@@ -317,7 +327,6 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 		}
 	}
 
-	// Daemon artifact checks
 	if e.include(CatStalePIDFile, categories) {
 		if e.wolfcastleDir != "" && !e.isDaemonAlive() {
 			pidPath := filepath.Join(e.wolfcastleDir, "wolfcastle.pid")
@@ -346,9 +355,6 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 			}
 		}
 	}
-
-	report.Counts()
-	return report
 }
 
 func (e *Engine) checkLeafAudit(ns *state.NodeState, addr string, categories map[string]bool, report *Report) {
