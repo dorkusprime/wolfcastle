@@ -29,7 +29,7 @@ Consult these topic-specific files before making changes in their domain:
 
 ## Design References
 
-- [Architecture Decision Records](docs/decisions/INDEX.md) (76 ADRs) document every major design choice. Consult these before making architectural decisions.
+- [Architecture Decision Records](docs/decisions/INDEX.md) (77 ADRs) document every major design choice. Consult these before making architectural decisions.
 - [Specifications](docs/specs/) (16 implemented specs, 3 drafts) describe the current system in detail. Consult these before modifying behavior.
 - [Full documentation hub](docs/)
 
@@ -41,3 +41,4 @@ Consult these topic-specific files before making changes in their domain:
 4. **gofmt before committing.** Run `gofmt -w .`. The CI will reject unformatted code.
 5. **Specs track implementation, not aspirations.** If you change behavior, update the corresponding spec. ADRs override specs when there's a conflict.
 6. **Never rebase main.** Use `git pull` (merge), not `git pull --rebase`. Rebasing rewrites commit SHAs, which breaks Codecov and any other service that tracks by commit hash.
+7. **`.wolfcastle/system/` is off-limits (ADR-077).** Never write directly to `.wolfcastle/system/`. That directory contains config, state, logs, and prompts managed by the scaffold and daemon. Write model outputs to `.wolfcastle/docs/` (specs, ADRs) and `.wolfcastle/artifacts/` (research) only. Configuration is Go code (`internal/config/`), not JSON files.
