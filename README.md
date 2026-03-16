@@ -4,7 +4,7 @@
 
 **You have a codebase. _Wolfcastle will build it._**
 
-You give Wolfcastle a goal. It breaks that goal into targets. Then it points AI coding agents at your codebase and eliminates those targets one by one. It does not ask for permission. It does not wait for feedback. It works while you do whatever it is that you do.
+You give Wolfcastle a goal. It breaks that goal into a tree of targets and sends AI coding agents to destroy them, depth-first, until the tree is conquered. While you do whatever it is you do.
 
 ## Status
 
