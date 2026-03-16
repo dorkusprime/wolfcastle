@@ -1,10 +1,8 @@
 package daemon
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -39,82 +37,39 @@ func checkDeliverables(repoDir string, ns *state.NodeState, taskID string) []str
 	return missing
 }
 
-// checkDeliverablesChanged verifies that at least one deliverable has
-// changed since the baseline snapshot was taken at claim time. Returns
-// true if work was done (any file is new, modified, or the baseline
-// was empty). Tasks with no deliverables or no baseline always pass.
-func checkDeliverablesChanged(repoDir string, ns *state.NodeState, taskID string) bool {
-	for _, t := range ns.Tasks {
-		if t.ID != taskID {
+// checkGitProgress returns true if the git working tree has uncommitted
+// changes outside of .wolfcastle/, indicating that the model made real
+// modifications. This replaces the previous baseline-hash approach:
+// deliverables check existence (structural), git diff checks progress
+// (activity). Changes inside .wolfcastle/ are excluded because the
+// daemon itself writes state files there during execution.
+func checkGitProgress(repoDir string) bool {
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = repoDir
+	out, err := cmd.Output()
+	if err != nil {
+		// If git isn't available or this isn't a repo, assume progress
+		// was made rather than blocking the pipeline.
+		return true
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
 			continue
 		}
-		if len(t.Deliverables) == 0 || len(t.BaselineHashes) == 0 {
-			return true // nothing to compare against
+		// Extract the file path (porcelain format: "XY path" or "XY path -> path")
+		path := line
+		if len(path) > 3 {
+			path = path[3:] // strip status columns and space
 		}
-		for _, d := range t.Deliverables {
-			if isGlob(d) {
-				// For globs, check if any match has a different hash
-				matches := globRecursive(filepath.Join(repoDir, d))
-				for _, m := range matches {
-					rel, _ := filepath.Rel(repoDir, m)
-					current := hashFile(m)
-					baseline, existed := t.BaselineHashes[rel]
-					if !existed || current != baseline {
-						return true
-					}
-				}
-			} else {
-				current := hashFile(filepath.Join(repoDir, d))
-				baseline, existed := t.BaselineHashes[d]
-				if !existed || current != baseline {
-					return true
-				}
-			}
+		if idx := strings.Index(path, " -> "); idx >= 0 {
+			path = path[idx+4:]
 		}
-		return false // everything matches baseline exactly
-	}
-	return true // task not found, don't block
-}
-
-// snapshotDeliverables computes SHA-256 hashes for all deliverable files
-// that currently exist on disk. Missing files get the sentinel "missing".
-// The result is stored in Task.BaselineHashes at claim time.
-func snapshotDeliverables(repoDir string, deliverables []string) map[string]string {
-	if len(deliverables) == 0 {
-		return nil
-	}
-	hashes := make(map[string]string)
-	for _, d := range deliverables {
-		path := filepath.Join(repoDir, d)
-		if isGlob(d) {
-			matches := globRecursive(path)
-			for _, m := range matches {
-				rel, _ := filepath.Rel(repoDir, m)
-				hashes[rel] = hashFile(m)
-			}
-			if len(matches) == 0 {
-				hashes[d] = "missing"
-			}
-		} else {
-			hashes[d] = hashFile(path)
+		if !strings.HasPrefix(path, ".wolfcastle/") && !strings.HasPrefix(path, ".wolfcastle\\") {
+			return true
 		}
 	}
-	return hashes
-}
-
-// hashFile returns the hex-encoded SHA-256 of a file, or "missing" if
-// the file doesn't exist or can't be read.
-func hashFile(path string) string {
-	f, err := os.Open(path)
-	if err != nil {
-		return "missing"
-	}
-	defer func() { _ = f.Close() }()
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "missing"
-	}
-	return hex.EncodeToString(h.Sum(nil))
+	return false
 }
 
 // isGlob reports whether the path contains glob metacharacters.
@@ -123,8 +78,8 @@ func isGlob(path string) bool {
 }
 
 // globHasMatch returns true if the pattern matches at least one
-// non-empty file on disk. Uses recursive walk for ** patterns or
-// patterns that should match in subdirectories.
+// non-empty file on disk. Uses recursive walk for patterns whose
+// filename part contains wildcards.
 func globHasMatch(pattern string) bool {
 	matches := globRecursive(pattern)
 	for _, m := range matches {
@@ -137,28 +92,23 @@ func globHasMatch(pattern string) bool {
 }
 
 // globRecursive expands a glob pattern, walking subdirectories when the
-// pattern contains path separators with wildcards (e.g., cmd/*.go matches
-// cmd/task/add.go). Standard filepath.Glob only matches one directory
-// level per *, so this function walks the base directory and applies the
-// filename pattern to every file found.
+// filename part contains wildcards (e.g., cmd/*.go matches cmd/task/add.go).
+// Standard filepath.Glob only matches one directory level per *, so this
+// function walks the base directory and applies the filename pattern to
+// every file found.
 func globRecursive(pattern string) []string {
-	// Try standard glob first for simple patterns
 	matches, _ := filepath.Glob(pattern)
 
-	// If the pattern has a wildcard in the filename part only (e.g., cmd/*.go),
-	// also walk subdirectories to find matching files
 	dir, filePattern := filepath.Split(pattern)
 	if dir == "" || !isGlob(filePattern) {
 		return matches
 	}
 
-	// Deduplicate: track what filepath.Glob already found
 	seen := make(map[string]bool)
 	for _, m := range matches {
 		seen[m] = true
 	}
 
-	// Walk subdirectories of dir looking for files that match filePattern
 	_ = filepath.Walk(strings.TrimSuffix(dir, string(filepath.Separator)), func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil

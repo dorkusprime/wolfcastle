@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -198,240 +199,115 @@ func TestCheckDeliverables_GlobWithLiteralMix(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// snapshotDeliverables + checkDeliverablesChanged
+// checkGitProgress
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestSnapshotDeliverables_MissingFiles(t *testing.T) {
+func TestCheckGitProgress_DirtyWorktree(t *testing.T) {
+	t.Parallel()
+	dir := initGitRepo(t)
+	_ = os.WriteFile(filepath.Join(dir, "new-file.txt"), []byte("changes"), 0644)
+
+	if !checkGitProgress(dir) {
+		t.Error("dirty worktree should report progress")
+	}
+}
+
+func TestCheckGitProgress_CleanWorktree(t *testing.T) {
+	t.Parallel()
+	dir := initGitRepo(t)
+
+	if checkGitProgress(dir) {
+		t.Error("clean worktree should report no progress")
+	}
+}
+
+func TestCheckGitProgress_NotGitRepo(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	hashes := snapshotDeliverables(dir, []string{"nonexistent.txt"})
-	if hashes["nonexistent.txt"] != "missing" {
-		t.Errorf("expected 'missing', got %q", hashes["nonexistent.txt"])
+
+	// Not a git repo: assume progress (don't block pipeline)
+	if !checkGitProgress(dir) {
+		t.Error("non-git directory should assume progress")
 	}
 }
 
-func TestSnapshotDeliverables_ExistingFile(t *testing.T) {
+// initGitRepo creates a temporary git repo with one commit.
+func initGitRepo(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+	run("init")
+	run("config", "user.email", "test@test.com")
+	run("config", "user.name", "test")
+	_ = os.WriteFile(filepath.Join(dir, "README.md"), []byte("init"), 0644)
+	run("add", ".")
+	run("commit", "-m", "init")
+	return dir
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// globRecursive
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestGlobRecursive_MatchesSubdirectories(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "output.md"), []byte("hello"), 0644)
-	hashes := snapshotDeliverables(dir, []string{"output.md"})
-	if hashes["output.md"] == "missing" || hashes["output.md"] == "" {
-		t.Error("expected a real hash for existing file")
+	_ = os.MkdirAll(filepath.Join(dir, "cmd", "task"), 0755)
+	_ = os.WriteFile(filepath.Join(dir, "cmd", "root.go"), []byte("package cmd"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "cmd", "task", "add.go"), []byte("package task"), 0644)
+
+	matches := globRecursive(filepath.Join(dir, "cmd", "*.go"))
+	if len(matches) < 2 {
+		t.Errorf("expected at least 2 matches (root.go + task/add.go), got %d: %v", len(matches), matches)
+	}
+	foundSubdir := false
+	for _, m := range matches {
+		if filepath.Base(m) == "add.go" {
+			foundSubdir = true
+		}
+	}
+	if !foundSubdir {
+		t.Error("globRecursive should find files in subdirectories")
 	}
 }
 
-func TestSnapshotDeliverables_GlobPattern(t *testing.T) {
+func TestGlobRecursive_NoWildcard(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "report-2026.md"), []byte("data"), 0644)
-	hashes := snapshotDeliverables(dir, []string{"report-*.md"})
-	if _, ok := hashes["report-2026.md"]; !ok {
-		t.Error("glob should expand to matched filename in hash map")
+	_ = os.WriteFile(filepath.Join(dir, "exact.txt"), []byte("content"), 0644)
+
+	matches := globRecursive(filepath.Join(dir, "exact.txt"))
+	if len(matches) != 1 {
+		t.Errorf("exact path should return 1 match, got %d", len(matches))
 	}
 }
 
-func TestSnapshotDeliverables_Empty(t *testing.T) {
-	t.Parallel()
-	hashes := snapshotDeliverables("/tmp", nil)
-	if hashes != nil {
-		t.Error("nil deliverables should return nil hashes")
-	}
-}
-
-func TestCheckDeliverablesChanged_NewFile(t *testing.T) {
+func TestGlobRecursive_NoMatches(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"output.txt"},
-			BaselineHashes: map[string]string{"output.txt": "missing"},
-		}},
-	}
-	// Create the file after baseline
-	_ = os.WriteFile(filepath.Join(dir, "output.txt"), []byte("new content"), 0644)
 
-	if !checkDeliverablesChanged(dir, ns, "task-0001") {
-		t.Error("new file should count as changed")
-	}
-}
-
-func TestCheckDeliverablesChanged_ModifiedFile(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "output.txt"), []byte("original"), 0644)
-	baseline := snapshotDeliverables(dir, []string{"output.txt"})
-
-	// Modify the file
-	_ = os.WriteFile(filepath.Join(dir, "output.txt"), []byte("modified"), 0644)
-
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"output.txt"},
-			BaselineHashes: baseline,
-		}},
-	}
-	if !checkDeliverablesChanged(dir, ns, "task-0001") {
-		t.Error("modified file should count as changed")
-	}
-}
-
-func TestCheckDeliverablesChanged_Unchanged(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "output.txt"), []byte("same"), 0644)
-	baseline := snapshotDeliverables(dir, []string{"output.txt"})
-
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"output.txt"},
-			BaselineHashes: baseline,
-		}},
-	}
-	if checkDeliverablesChanged(dir, ns, "task-0001") {
-		t.Error("unchanged file should not count as changed")
-	}
-}
-
-func TestCheckDeliverablesChanged_NoBaseline(t *testing.T) {
-	t.Parallel()
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:           "task-0001",
-			Deliverables: []string{"output.txt"},
-		}},
-	}
-	// No baseline = always passes (backward compatible)
-	if !checkDeliverablesChanged("/tmp", ns, "task-0001") {
-		t.Error("no baseline should always pass")
-	}
-}
-
-func TestCheckDeliverablesChanged_NoDeliverables(t *testing.T) {
-	t.Parallel()
-	ns := &state.NodeState{
-		Tasks: []state.Task{{ID: "task-0001"}},
-	}
-	if !checkDeliverablesChanged("/tmp", ns, "task-0001") {
-		t.Error("no deliverables should always pass")
+	matches := globRecursive(filepath.Join(dir, "*.xyz"))
+	if len(matches) != 0 {
+		t.Errorf("expected 0 matches, got %d", len(matches))
 	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkDeliverablesChanged — glob paths
+// isGlob
 // ═══════════════════════════════════════════════════════════════════════════
-
-func TestCheckDeliverablesChanged_GlobUnchanged(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "report-v1.md"), []byte("original"), 0644)
-	baseline := snapshotDeliverables(dir, []string{"report-*.md"})
-
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"report-*.md"},
-			BaselineHashes: baseline,
-		}},
-	}
-	if checkDeliverablesChanged(dir, ns, "task-0001") {
-		t.Error("glob files unchanged should return false")
-	}
-}
-
-func TestCheckDeliverablesChanged_GlobNewFileAppears(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "report-v1.md"), []byte("original"), 0644)
-	baseline := snapshotDeliverables(dir, []string{"report-*.md"})
-
-	// A new file appears matching the glob after baseline.
-	_ = os.WriteFile(filepath.Join(dir, "report-v2.md"), []byte("new"), 0644)
-
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"report-*.md"},
-			BaselineHashes: baseline,
-		}},
-	}
-	if !checkDeliverablesChanged(dir, ns, "task-0001") {
-		t.Error("new file matching glob should count as changed")
-	}
-}
-
-func TestCheckDeliverablesChanged_GlobFileModified(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "report-v1.md"), []byte("original"), 0644)
-	baseline := snapshotDeliverables(dir, []string{"report-*.md"})
-
-	// Modify the existing file.
-	_ = os.WriteFile(filepath.Join(dir, "report-v1.md"), []byte("changed content"), 0644)
-
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"report-*.md"},
-			BaselineHashes: baseline,
-		}},
-	}
-	if !checkDeliverablesChanged(dir, ns, "task-0001") {
-		t.Error("modified glob file should count as changed")
-	}
-}
-
-func TestCheckDeliverablesChanged_GlobNoMatches(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	// Baseline captured when no files matched the glob.
-	baseline := snapshotDeliverables(dir, []string{"output-*.csv"})
-
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"output-*.csv"},
-			BaselineHashes: baseline,
-		}},
-	}
-	// Still no matches: no change detected, should return false.
-	if checkDeliverablesChanged(dir, ns, "task-0001") {
-		t.Error("glob with no matches at baseline and still no matches should return false")
-	}
-}
-
-func TestCheckDeliverablesChanged_TaskNotFound(t *testing.T) {
-	t.Parallel()
-	ns := &state.NodeState{
-		Tasks: []state.Task{{ID: "task-0001"}},
-	}
-	// Task not found in list: should return true (don't block).
-	if !checkDeliverablesChanged("/tmp", ns, "task-9999") {
-		t.Error("task not found should return true")
-	}
-}
-
-func TestCheckDeliverablesChanged_MixedGlobAndLiteral(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "output-v1.csv"), []byte("data"), 0644)
-	_ = os.WriteFile(filepath.Join(dir, "summary.md"), []byte("summary"), 0644)
-	baseline := snapshotDeliverables(dir, []string{"output-*.csv", "summary.md"})
-
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"output-*.csv", "summary.md"},
-			BaselineHashes: baseline,
-		}},
-	}
-	// Nothing changed.
-	if checkDeliverablesChanged(dir, ns, "task-0001") {
-		t.Error("nothing changed in mixed glob+literal should return false")
-	}
-}
 
 func TestIsGlob(t *testing.T) {
 	t.Parallel()

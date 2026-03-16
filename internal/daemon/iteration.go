@@ -40,45 +40,14 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	}
 	if !alreadyInProgress {
 		if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
-			if err := state.TaskClaim(ns, nav.TaskID); err != nil {
-				return err
-			}
-			// Snapshot deliverable hashes at claim time so we can
-			// detect whether the model actually changed anything.
-			for i, t := range ns.Tasks {
-				if t.ID == nav.TaskID {
-					ns.Tasks[i].BaselineHashes = snapshotDeliverables(d.RepoDir, t.Deliverables)
-					break
-				}
-			}
-			return nil
+			return state.TaskClaim(ns, nav.TaskID)
 		}); err != nil {
 			return werrors.State(fmt.Errorf("claiming task %s: %w", nav.TaskID, err))
 		}
-	} else {
-		// Re-baseline deliverable hashes on retry so that changes from
-		// a previous attempt become the new starting point. Without this,
-		// a retry that doesn't re-write files the previous attempt wrote
-		// would falsely fail the "unchanged" check.
-		if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
-			for i, t := range ns.Tasks {
-				if t.ID == nav.TaskID && len(t.Deliverables) > 0 {
-					ns.Tasks[i].BaselineHashes = snapshotDeliverables(d.RepoDir, t.Deliverables)
-					break
-				}
-			}
-			return nil
-		}); err != nil {
-			_ = d.Logger.Log(map[string]any{"type": "rebaseline_error", "error": err.Error()})
-		}
-	}
-
-	{
 		// Re-read after mutation for the rest of the iteration.
-		var readErr error
-		ns, readErr = d.Store.ReadNode(nav.NodeAddress)
-		if readErr != nil {
-			return werrors.State(fmt.Errorf("reloading node state after claim: %w", readErr))
+		ns, err = d.Store.ReadNode(nav.NodeAddress)
+		if err != nil {
+			return werrors.State(fmt.Errorf("reloading node state after claim: %w", err))
 		}
 	}
 
@@ -185,13 +154,15 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {
-			// Verify the model actually changed at least one deliverable.
-			if !checkDeliverablesChanged(d.RepoDir, ns, nav.TaskID) {
+			// Verify the model made real changes via git diff.
+			// Deliverables check existence (structural); git diff
+			// checks progress (activity). Two different questions.
+			if !checkGitProgress(d.RepoDir) {
 				_ = d.Logger.Log(map[string]any{
-					"type": "deliverable_unchanged",
+					"type": "no_progress",
 					"task": nav.TaskID,
 				})
-				output.PrintHuman("  Deliverables unchanged since claim. Failing task.")
+				output.PrintHuman("  No changes detected. Failing task.")
 				marker = ""
 			}
 		}

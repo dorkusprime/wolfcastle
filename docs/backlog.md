@@ -1,5 +1,9 @@
 # User items as they come up. Don't process these until directed.
 
+# New
+
+- Let's add `requirements` to the README
+
 ## Done
 
 - ~~Terminal marker not detected~~ — misdiagnosis. `scanTerminalMarker` already handles the `result` envelope correctly. The actual problem was the deliverable unchanged check clearing the marker.
