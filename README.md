@@ -46,9 +46,9 @@ Everything is deterministic except the model's output. State is [JSON on disk](d
 
 ## Requirements
 
-- **Go 1.26+** (for building from source)
 - **Git** (branch verification, progress detection, auto-commit)
 - **A coding agent** that reads stdin and writes stdout. [Claude Code](https://claude.com/claude-code) is the default. Anything that accepts a prompt and produces code works: Cursor, Copilot, GPT, Gemini, Llama, a bash script that echoes "done."
+- **Go 1.26+** (only if building from source)
 
 ## Quick Start
 
