@@ -119,7 +119,6 @@ type Task struct {
 	BlockedReason      string            `json:"block_reason,omitempty"`
 	FailureCount       int               `json:"failure_count"`
 	NeedsDecomposition bool              `json:"needs_decomposition,omitempty"`
-	Breadcrumbs        []string          `json:"breadcrumbs,omitempty"`
 	Deliverables       []string          `json:"deliverables,omitempty"`
 	BaselineHashes     map[string]string `json:"baseline_hashes,omitempty"`
 }

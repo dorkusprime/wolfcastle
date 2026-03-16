@@ -205,15 +205,5 @@ func TestBuildDiagnostic_EmptyNode(t *testing.T) {
 	}
 }
 
-func TestBuildDiagnostic_WithTaskBreadcrumbs(t *testing.T) {
-	ns := state.NewNodeState("proj", "Proj", state.NodeLeaf)
-	task := &state.Task{
-		ID:          "t-1",
-		State:       state.StatusBlocked,
-		Breadcrumbs: []string{"tried X", "tried Y"},
-	}
-	diag := buildDiagnostic("proj", "t-1", ns, task)
-	if !strings.Contains(diag, "tried X") {
-		t.Error("expected task breadcrumbs in diagnostic")
-	}
-}
+// Task.Breadcrumbs was removed (vestigial field, never written in production).
+// Breadcrumbs are stored on AuditState.Breadcrumbs.
