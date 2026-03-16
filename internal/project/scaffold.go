@@ -24,6 +24,7 @@ func Scaffold(wolfcastleDir string) error {
 		"custom",
 		"local",
 		"archive",
+		"artifacts",
 		"docs/decisions",
 		"docs/specs",
 		"logs",
