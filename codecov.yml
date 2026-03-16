@@ -17,6 +17,10 @@ coverage:
       default:
         target: 80%
 
+parsers:
+  go:
+    partials_as_hits: true
+
 comment:
   layout: "reach,diff,flags,files"
   behavior: default
