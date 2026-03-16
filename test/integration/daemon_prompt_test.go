@@ -216,7 +216,7 @@ func TestDaemon_PromptContainsLocalTierOverride(t *testing.T) {
 	run(t, dir, "init")
 
 	wcDir := filepath.Join(dir, ".wolfcastle")
-	for _, tier := range []string{"base", "custom", "local"} {
+	for _, tier := range []string{"system/base", "system/custom", "system/local"} {
 		if err := os.MkdirAll(filepath.Join(wcDir, tier, "rules"), 0755); err != nil {
 			t.Fatalf("creating %s rules dir: %v", tier, err)
 		}

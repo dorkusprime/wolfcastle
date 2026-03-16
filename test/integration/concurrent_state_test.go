@@ -51,7 +51,7 @@ func TestConcurrentDaemonLoopInboxAndCLI(t *testing.T) {
 
 	// Discover the namespace so we can build a StateStore directly.
 	ns := discoverNamespace(t, dir)
-	storeDir := dir + "/.wolfcastle/projects/" + ns
+	storeDir := dir + "/.wolfcastle/system/projects/" + ns
 	store := state.NewStateStore(storeDir, 5*time.Second)
 
 	// Coordination: the CLI goroutine needs to know which task is
@@ -344,7 +344,7 @@ func TestConcurrentMutateNodeContention(t *testing.T) {
 	}
 
 	ns := discoverNamespace(t, dir)
-	storeDir := dir + "/.wolfcastle/projects/" + ns
+	storeDir := dir + "/.wolfcastle/system/projects/" + ns
 	store := state.NewStateStore(storeDir, 10*time.Second)
 
 	// Launch goroutines that each claim and complete a different task.
