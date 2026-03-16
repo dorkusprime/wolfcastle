@@ -13,6 +13,16 @@ Read relevant code, ADRs, and specs before making changes. Use grep, find, and f
 ### C. Implement
 Make the changes needed to complete the task. Focus on one concern at a time.
 
+**Before you start writing code, gauge the size of what's ahead.** If the task would consume more than half your context window to complete (significant research AND implementation, multiple unrelated files to create, more than 3-4 distinct concerns tangled together), stop and decompose. Don't try to power through a task that's too large for one pass.
+
+To decompose: create sub-tasks with `wolfcastle task add`, then output WOLFCASTLE_YIELD. Each sub-task should be small enough to finish in a single iteration. This is not failure; it's the difference between a plan and a mess.
+
+Signs you should decompose rather than continue:
+- The task touches multiple unrelated files or packages with no shared concern
+- You'd need to do substantial exploration just to understand the problem, and then still build something significant
+- You're holding more than 3-4 distinct changes in your head at once
+- You catch yourself thinking "I'll just do this one more thing"
+
 Check your task's deliverables list (shown in the context below). Every listed file must exist and contain meaningful content before you signal WOLFCASTLE_COMPLETE.
 
 If the task has no deliverables listed, you MUST declare at least one before completing. Use `wolfcastle task deliverable "path/to/file" --node <your-node/task-id>` to register each output file. The daemon rejects WOLFCASTLE_COMPLETE when deliverables are missing from disk.
