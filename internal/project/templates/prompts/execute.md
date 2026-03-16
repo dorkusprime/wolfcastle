@@ -51,10 +51,26 @@ If scope needs recording (what this node covers), set it:
 wolfcastle audit scope --node <your-node> --description "what this node audits"
 ```
 
-### F. Commit
+### F. Document decisions and specs
+
+When you make an architectural decision (choosing a framework, designing a data model, selecting an approach over alternatives), record it as an ADR:
+```
+wolfcastle adr create "Decision Title"
+```
+This creates a properly named file in `.wolfcastle/docs/decisions/`. Write the ADR body explaining context, options considered, and the decision.
+
+When you produce a design document or specification, create it through the CLI:
+```
+wolfcastle spec create "Spec Title" --node <your-node>
+```
+This creates a properly named file in `.wolfcastle/docs/specs/` and links it to the node. Never write specs directly to `docs/` or other locations.
+
+Skip this phase if your task is pure implementation with no design choices.
+
+### G. Commit
 Commit your changes with a clear message.
 
-### G. Signal completion
+### H. Signal completion
 When the task is fully done, set a summary if this is the last task in the node:
 ```
 wolfcastle audit summary --node <your-node> "one-paragraph summary of what was accomplished"
@@ -66,7 +82,7 @@ If you made progress but the task needs more work in a follow-up iteration, outp
 
 If the task cannot be completed, call `wolfcastle task block --node <your-node/task-id> "reason"` and output WOLFCASTLE_BLOCKED on its own line.
 
-### H. Pre-block downstream tasks (when applicable)
+### I. Pre-block downstream tasks (when applicable)
 
 If your research or analysis reveals that subsequent tasks in this node should NOT proceed (e.g., a technology doesn't exist, requirements are infeasible, a dependency is unavailable), you can pre-block those tasks before they start:
 
@@ -78,7 +94,7 @@ This prevents the daemon from starting tasks that would waste time on impossible
 
 Only do this when you have concrete evidence that the downstream task cannot succeed. Do not pre-block tasks speculatively.
 
-### I. Create follow-up tasks (when applicable)
+### J. Create follow-up tasks (when applicable)
 
 If your task is a discovery or spec-writing task, you may need to create follow-up tasks based on your findings:
 

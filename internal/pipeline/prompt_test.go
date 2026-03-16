@@ -168,14 +168,13 @@ func TestAssemblePrompt_ExecuteStageContainsTerminalMarkers(t *testing.T) {
 	}
 
 	// Execute prompt must NOT contain commands outside its AllowedCommands.
-	// Note: project create IS allowed (needed for decomposition).
+	// Note: project create, adr create, spec create/link are allowed.
 	forbidden := []string{
 		"### wolfcastle task claim",
 		"### wolfcastle task complete",
 		"### wolfcastle navigate",
 		"### wolfcastle inbox add",
 		"### wolfcastle archive add",
-		"### wolfcastle adr create",
 	}
 	for _, s := range forbidden {
 		if strings.Contains(result, s) {
