@@ -184,7 +184,7 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	}
 
 	glyph := nodeGlyph(nd.entry.State)
-	output.PrintHuman("%s%s %s", indent, glyph, nd.entry.Name)
+	output.PrintHuman("%s%s %s  (%s)", indent, glyph, nd.entry.Name, addr)
 
 	// For orchestrators, print children
 	if nd.entry.Type == state.NodeOrchestrator {
@@ -204,18 +204,10 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		if label == "" {
 			label = t.Description
 		}
-		// Truncate long descriptions
-		if len(label) > 60 {
-			label = label[:57] + "..."
-		}
 
 		extra := ""
 		if t.State == state.StatusBlocked && t.BlockedReason != "" {
-			reason := t.BlockedReason
-			if len(reason) > 50 {
-				reason = reason[:47] + "..."
-			}
-			extra = "  " + reason
+			extra = "\n" + indent + "         " + t.BlockedReason
 		}
 		if t.FailureCount > 0 && t.State != state.StatusComplete {
 			extra += fmt.Sprintf("  (%d failures)", t.FailureCount)
@@ -227,11 +219,7 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	// Gaps
 	for _, g := range nd.ns.Audit.Gaps {
 		if g.Status == state.GapOpen {
-			desc := g.Description
-			if len(desc) > 55 {
-				desc = desc[:52] + "..."
-			}
-			output.PrintHuman("%s    ⚠ %s: %s", indent, g.ID, desc)
+			output.PrintHuman("%s    ⚠ %s: %s", indent, g.ID, g.Description)
 		}
 	}
 }
