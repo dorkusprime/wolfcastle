@@ -35,7 +35,7 @@ Examples:
 			showAll, _ := cmd.Flags().GetBool("all")
 			scopeNode, _ := cmd.Flags().GetString("node")
 			watch, _ := cmd.Flags().GetBool("watch")
-			interval, _ := cmd.Flags().GetInt("interval")
+			interval, _ := cmd.Flags().GetFloat64("interval")
 
 			if !showAll {
 				if err := app.RequireResolver(); err != nil {
@@ -228,36 +228,73 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	// Gaps
 	for _, g := range nd.ns.Audit.Gaps {
 		if g.Status == state.GapOpen {
-			output.PrintHuman("%s    ⚠ %s: %s", indent, g.ID, g.Description)
+			if output.IsTerminal() {
+				output.PrintHuman("%s    %s⚠ %s: %s%s", indent, colorYellow, g.ID, g.Description, colorReset)
+			} else {
+				output.PrintHuman("%s    ⚠ %s: %s", indent, g.ID, g.Description)
+			}
 		}
 	}
 }
 
-// nodeGlyph returns the TUI-consistent status glyph for a node.
+// ANSI color codes matching the TUI spec (section 2.9).
+const (
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorRed    = "\033[31m"
+	colorDim    = "\033[2m"
+	colorReset  = "\033[0m"
+)
+
+// nodeGlyph returns the TUI-consistent colored status glyph for a node.
 func nodeGlyph(s state.NodeStatus) string {
+	if !output.IsTerminal() {
+		switch s {
+		case state.StatusComplete:
+			return "●"
+		case state.StatusInProgress:
+			return "◐"
+		case state.StatusBlocked:
+			return "☢"
+		default:
+			return "◯"
+		}
+	}
 	switch s {
 	case state.StatusComplete:
-		return "●"
+		return colorGreen + "●" + colorReset
 	case state.StatusInProgress:
-		return "◐"
+		return colorYellow + "◐" + colorReset
 	case state.StatusBlocked:
-		return "☢"
+		return colorRed + "☢" + colorReset
 	default:
-		return "◯"
+		return colorDim + "◯" + colorReset
 	}
 }
 
-// taskGlyph returns the status glyph for a task.
+// taskGlyph returns the colored status glyph for a task.
 func taskGlyph(s state.NodeStatus) string {
+	if !output.IsTerminal() {
+		switch s {
+		case state.StatusComplete:
+			return "✓"
+		case state.StatusInProgress:
+			return "→"
+		case state.StatusBlocked:
+			return "✖"
+		default:
+			return "○"
+		}
+	}
 	switch s {
 	case state.StatusComplete:
-		return "✓"
+		return colorGreen + "✓" + colorReset
 	case state.StatusInProgress:
-		return "→"
+		return colorYellow + "→" + colorReset
 	case state.StatusBlocked:
-		return "✖"
+		return colorRed + "✖" + colorReset
 	default:
-		return "○"
+		return colorDim + "○" + colorReset
 	}
 }
 
@@ -343,10 +380,11 @@ func showAllStatus(app *cmdutil.App) error {
 
 // watchStatus refreshes the status display on an interval, clearing the
 // screen between refreshes. Ctrl+C to stop.
-func watchStatus(app *cmdutil.App, scope string, showAll bool, intervalSec int) error {
-	if intervalSec < 1 {
-		intervalSec = 1
+func watchStatus(app *cmdutil.App, scope string, showAll bool, intervalSec float64) error {
+	if intervalSec < 0.1 {
+		intervalSec = 0.1
 	}
+	d := time.Duration(intervalSec * float64(time.Second))
 	for {
 		// Clear screen and move cursor to top-left
 		fmt.Print("\033[2J\033[H")
@@ -366,7 +404,7 @@ func watchStatus(app *cmdutil.App, scope string, showAll bool, intervalSec int) 
 			}
 		}
 
-		time.Sleep(time.Duration(intervalSec) * time.Second)
+		time.Sleep(d)
 	}
 }
 
