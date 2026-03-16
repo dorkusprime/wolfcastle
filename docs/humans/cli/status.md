@@ -29,5 +29,5 @@ None. This command is strictly read-only.
 
 ## See Also
 
-- [`wolfcastle follow`](follow.md) to watch daemon output in real time.
+- [`wolfcastle log`](follow.md) to watch daemon output in real time (`follow` still works as an alias).
 - [The Project Tree](../how-it-works.md#the-project-tree) for how the tree is structured.

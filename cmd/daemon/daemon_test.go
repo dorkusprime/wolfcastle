@@ -779,3 +779,145 @@ func TestLogCmd_AliasFollow(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"follow", "--lines", "5"})
 	_ = env.RootCmd.Execute()
 }
+
+// ---------------------------------------------------------------------------
+// nodeGlyph
+// ---------------------------------------------------------------------------
+
+func TestNodeGlyph(t *testing.T) {
+	// In tests, output.IsTerminal() is false (piped), so we get plain glyphs.
+	tests := []struct {
+		status state.NodeStatus
+		want   string
+	}{
+		{state.StatusComplete, "●"},
+		{state.StatusInProgress, "◐"},
+		{state.StatusBlocked, "☢"},
+		{state.StatusNotStarted, "◯"},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.status), func(t *testing.T) {
+			got := nodeGlyph(tt.status)
+			if got != tt.want {
+				t.Errorf("nodeGlyph(%s) = %q, want %q", tt.status, got, tt.want)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// taskGlyph
+// ---------------------------------------------------------------------------
+
+func TestTaskGlyph(t *testing.T) {
+	tests := []struct {
+		status state.NodeStatus
+		want   string
+	}{
+		{state.StatusComplete, "✓"},
+		{state.StatusInProgress, "→"},
+		{state.StatusBlocked, "✖"},
+		{state.StatusNotStarted, "○"},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.status), func(t *testing.T) {
+			got := taskGlyph(tt.status)
+			if got != tt.want {
+				t.Errorf("taskGlyph(%s) = %q, want %q", tt.status, got, tt.want)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// printNodeTree
+// ---------------------------------------------------------------------------
+
+func TestPrintNodeTree(t *testing.T) {
+	env := newStatusTestEnv(t)
+
+	// Build a tree: one orchestrator ("orch") with two leaf children ("leaf-a", "leaf-b").
+	// Each leaf has tasks in various states.
+	idx := state.NewRootIndex()
+	idx.Root = []string{"orch"}
+	idx.Nodes["orch"] = state.IndexEntry{
+		Name:     "Orchestrator",
+		Type:     state.NodeOrchestrator,
+		State:    state.StatusInProgress,
+		Address:  "orch",
+		Children: []string{"leaf-a", "leaf-b"},
+	}
+	idx.Nodes["leaf-a"] = state.IndexEntry{
+		Name:    "Leaf A",
+		Type:    state.NodeLeaf,
+		State:   state.StatusComplete,
+		Address: "leaf-a",
+		Parent:  "orch",
+	}
+	idx.Nodes["leaf-b"] = state.IndexEntry{
+		Name:    "Leaf B",
+		Type:    state.NodeLeaf,
+		State:   state.StatusBlocked,
+		Address: "leaf-b",
+		Parent:  "orch",
+	}
+
+	// Create node state files for the leaves
+	leafADir := filepath.Join(env.ProjectsDir, "leaf-a")
+	_ = os.MkdirAll(leafADir, 0755)
+	nsA := state.NewNodeState("leaf-a", "Leaf A", state.NodeLeaf)
+	nsA.Tasks = []state.Task{
+		{ID: "task-0001", Title: "First task", State: state.StatusComplete},
+		{ID: "task-0002", Title: "Second task", State: state.StatusInProgress},
+	}
+	nsAData, _ := json.MarshalIndent(nsA, "", "  ")
+	_ = os.WriteFile(filepath.Join(leafADir, "state.json"), nsAData, 0644)
+
+	leafBDir := filepath.Join(env.ProjectsDir, "leaf-b")
+	_ = os.MkdirAll(leafBDir, 0755)
+	nsB := state.NewNodeState("leaf-b", "Leaf B", state.NodeLeaf)
+	nsB.Tasks = []state.Task{
+		{ID: "task-0003", Title: "Blocked task", State: state.StatusBlocked, BlockedReason: "waiting on API"},
+		{ID: "task-0004", Description: "Not started yet", State: state.StatusNotStarted},
+		{ID: "task-0005", Title: "Failing task", State: state.StatusInProgress, FailureCount: 3},
+	}
+	nsBData, _ := json.MarshalIndent(nsB, "", "  ")
+	_ = os.WriteFile(filepath.Join(leafBDir, "state.json"), nsBData, 0644)
+
+	// Build details map the same way showTreeStatus does
+	details := map[string]*nodeDetail{
+		"orch":   {entry: idx.Nodes["orch"]},
+		"leaf-a": {entry: idx.Nodes["leaf-a"], ns: nsA},
+		"leaf-b": {entry: idx.Nodes["leaf-b"], ns: nsB},
+	}
+
+	// Should not panic; exercises orchestrator recursion, leaf task rendering,
+	// blocked reason display, failure count display, and title/description fallback.
+	printNodeTree(env.App, idx, details, "orch", "  ")
+}
+
+func TestPrintNodeTree_MissingAddr(t *testing.T) {
+	env := newStatusTestEnv(t)
+	idx := state.NewRootIndex()
+	details := map[string]*nodeDetail{}
+
+	// Calling with an address not in details should return silently.
+	printNodeTree(env.App, idx, details, "nonexistent", "  ")
+}
+
+func TestPrintNodeTree_LeafWithNilNodeState(t *testing.T) {
+	env := newStatusTestEnv(t)
+	idx := state.NewRootIndex()
+	idx.Nodes["leaf"] = state.IndexEntry{
+		Name:    "Leaf",
+		Type:    state.NodeLeaf,
+		State:   state.StatusNotStarted,
+		Address: "leaf",
+	}
+	details := map[string]*nodeDetail{
+		"leaf": {entry: idx.Nodes["leaf"], ns: nil},
+	}
+
+	// Should not panic when ns is nil (no tasks to print).
+	printNodeTree(env.App, idx, details, "leaf", "  ")
+}

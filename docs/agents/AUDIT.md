@@ -130,7 +130,7 @@ Does the build pipeline catch problems?
 - [ ] CodeQL security scanning runs on main pushes, PRs, and weekly.
 - [ ] GoReleaser config matches `cmd/version.go` LDFLAGS (Version, Commit, Date).
 - [ ] Makefile targets work: `make build`, `make test`, `make lint`.
-- [ ] Pre-commit hook (`.githooks/pre-commit`) runs fmt, vet, build, lint.
+- [ ] Pre-commit hook (`.githooks/pre-commit`) runs gofmt only. CI handles vet, build, and lint via branch protection.
 - [ ] Integration and smoke tests run in CI with correct build tags.
 - [ ] Dependencies are minimal and current. `go mod tidy` produces no changes.
 
