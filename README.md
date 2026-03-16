@@ -4,7 +4,7 @@
 
 **You have a codebase. _Wolfcastle will build it._**
 
-Wolfcastle is a model-agnostic autonomous coding orchestrator. Tell it what to build. It decomposes the work into tasks, points AI coding agents at your codebase, verifies every result, and moves on to the next task. It does not ask for permission. It does not wait for feedback. It works while you do whatever it is that you do.
+You give Wolfcastle a goal. It breaks that goal into targets. Then it points AI coding agents at your codebase and eliminates those targets one by one. It does not ask for permission. It does not wait for feedback. It works while you do whatever it is that you do.
 
 ## Status
 
