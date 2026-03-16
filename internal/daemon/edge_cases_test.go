@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -782,17 +783,16 @@ func TestRunOnce_EmptyTree(t *testing.T) {
 // runIteration — deliverables unchanged rejects COMPLETE
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestRunIteration_UnchangedDeliverables_RejectsComplete(t *testing.T) {
+func TestRunIteration_NoGitProgress_RejectsComplete(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	projDir := d.Resolver.ProjectsDir()
 
-	// Pre-create the deliverable so the hash at claim time matches
-	delivDir := filepath.Join(d.RepoDir, "docs")
-	_ = os.MkdirAll(delivDir, 0755)
-	_ = os.WriteFile(filepath.Join(delivDir, "output.md"), []byte("existing content"), 0644)
+	// Initialize a git repo in the daemon's RepoDir so checkGitProgress
+	// can detect the absence of changes.
+	initTestGitRepo(t, d.RepoDir)
 
-	// Model claims COMPLETE but doesn't modify the deliverable
+	// Model claims COMPLETE but doesn't modify any files
 	d.Config.Models["noop-complete"] = config.ModelDef{
 		Command: "echo",
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
@@ -808,8 +808,7 @@ func TestRunIteration_UnchangedDeliverables_RejectsComplete(t *testing.T) {
 
 	ns := state.NewNodeState("unchanged-node", "unchanged-node", state.NodeLeaf)
 	ns.Tasks = []state.Task{
-		{ID: "task-0001", Description: "should change output", State: state.StatusNotStarted,
-			Deliverables: []string{"docs/output.md"}},
+		{ID: "task-0001", Description: "should write code", State: state.StatusNotStarted},
 	}
 	idx := state.NewRootIndex()
 	idx.Root = []string{"unchanged-node"}
@@ -824,12 +823,12 @@ func TestRunIteration_UnchangedDeliverables_RejectsComplete(t *testing.T) {
 	nav := &state.NavigationResult{NodeAddress: "unchanged-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx2)
 
-	// Task should NOT be complete since deliverables didn't change
+	// Task should NOT be complete since git shows no changes
 	reloaded, _ := d.Store.ReadNode("unchanged-node")
 	for _, task := range reloaded.Tasks {
 		if task.ID == "task-0001" {
 			if task.State == state.StatusComplete {
-				t.Error("task should not be complete when deliverables are unchanged")
+				t.Error("task should not be complete when git shows no progress")
 			}
 			if task.FailureCount < 1 {
 				t.Errorf("expected failure count >= 1, got %d", task.FailureCount)
@@ -838,6 +837,31 @@ func TestRunIteration_UnchangedDeliverables_RejectsComplete(t *testing.T) {
 		}
 	}
 	t.Error("task-0001 not found")
+}
+
+// initTestGitRepo initializes a git repo in dir with one commit.
+func initTestGitRepo(t *testing.T, dir string) {
+	t.Helper()
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+	run("init")
+	run("config", "user.email", "test@test.com")
+	run("config", "user.name", "test")
+	_ = os.WriteFile(filepath.Join(dir, ".gitkeep"), []byte(""), 0644)
+	run("add", ".")
+	run("commit", "-m", "init")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -944,96 +968,6 @@ func TestRunOnce_NoWorkDeduplication(t *testing.T) {
 // ═══════════════════════════════════════════════════════════════════════════
 // checkDeliverables — glob pattern with subdirectory
 // ═══════════════════════════════════════════════════════════════════════════
-
-func TestCheckDeliverablesChanged_GlobNewMatch(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-
-	// Baseline: no matches for the glob
-	baseline := map[string]string{"reports/*.md": "missing"}
-
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"reports/*.md"},
-			BaselineHashes: baseline,
-		}},
-	}
-
-	// Now create a matching file
-	_ = os.MkdirAll(filepath.Join(dir, "reports"), 0755)
-	_ = os.WriteFile(filepath.Join(dir, "reports", "summary.md"), []byte("new report"), 0644)
-
-	if !checkDeliverablesChanged(dir, ns, "task-0001") {
-		t.Error("new glob match should count as changed")
-	}
-}
-
-func TestCheckDeliverablesChanged_TaskNotFound_Passes(t *testing.T) {
-	t.Parallel()
-	ns := &state.NodeState{
-		Tasks: []state.Task{{
-			ID:             "task-0001",
-			Deliverables:   []string{"output.txt"},
-			BaselineHashes: map[string]string{"output.txt": "abc123"},
-		}},
-	}
-	// Asking about a task that doesn't exist should pass (not block)
-	if !checkDeliverablesChanged("/tmp", ns, "task-9999") {
-		t.Error("nonexistent task should always pass deliverables check")
-	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// snapshotDeliverables — glob with no matches
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestSnapshotDeliverables_GlobNoMatch(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	hashes := snapshotDeliverables(dir, []string{"nonexistent-*.log"})
-	if v, ok := hashes["nonexistent-*.log"]; !ok || v != "missing" {
-		t.Errorf("unmatched glob should produce 'missing' sentinel, got %v", hashes)
-	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// hashFile edge cases
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestHashFile_ExistingFile(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	path := filepath.Join(dir, "test.txt")
-	_ = os.WriteFile(path, []byte("hello"), 0644)
-
-	h := hashFile(path)
-	if h == "missing" || h == "" {
-		t.Error("expected a valid hash for existing file")
-	}
-	// Same content should produce same hash
-	h2 := hashFile(path)
-	if h != h2 {
-		t.Error("hashing same file twice should produce same result")
-	}
-}
-
-func TestHashFile_NonexistentFile(t *testing.T) {
-	t.Parallel()
-	h := hashFile("/nonexistent/path/to/file")
-	if h != "missing" {
-		t.Errorf("expected 'missing' for nonexistent file, got %q", h)
-	}
-}
-
-func TestHashFile_Directory(t *testing.T) {
-	t.Parallel()
-	// Trying to hash a directory should return missing (or error gracefully)
-	dir := t.TempDir()
-	h := hashFile(dir)
-	// Reading a directory as a file may return an error or empty hash
-	_ = h
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // runIteration — multiple stages, only execute runs (intake skipped)
