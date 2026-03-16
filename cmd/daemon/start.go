@@ -107,7 +107,7 @@ Examples:
 
 			// Write PID file for foreground mode too, so `wolfcastle status`
 			// can detect a running daemon regardless of how it was started.
-			pidFile := filepath.Join(app.WolfcastleDir, "wolfcastle.pid")
+			pidFile := filepath.Join(app.WolfcastleDir, "system", "wolfcastle.pid")
 			_ = os.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644)
 			defer func() { _ = os.Remove(pidFile) }()
 
@@ -141,7 +141,7 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch, executablePath st
 
 	// Redirect stdout/stderr to a daemon log file so startup errors
 	// aren't silently lost.
-	daemonLog := filepath.Join(wolfcastleDir, "daemon.log")
+	daemonLog := filepath.Join(wolfcastleDir, "system", "daemon.log")
 	logFile, err := os.OpenFile(daemonLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return fmt.Errorf("creating daemon log: %w", err)
@@ -155,7 +155,7 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch, executablePath st
 	}
 
 	// Write PID file
-	pidFile := filepath.Join(wolfcastleDir, "wolfcastle.pid")
+	pidFile := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
 	if err := os.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", proc.Process.Pid)), 0644); err != nil {
 		return fmt.Errorf("writing PID file: %w", err)
 	}
@@ -203,7 +203,7 @@ func createWorktree(repoDir, branch string) (string, error) {
 }
 
 func recoverStaleDaemonState(wolfcastleDir string) {
-	pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
+	pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
 	data, err := os.ReadFile(pidPath)
 	if os.IsNotExist(err) {
 		return
@@ -224,7 +224,7 @@ func recoverStaleDaemonState(wolfcastleDir string) {
 	if err := process.Signal(syscall.Signal(0)); err != nil {
 		// Process is dead — clean up stale files
 		_ = os.Remove(pidPath)
-		_ = os.Remove(filepath.Join(wolfcastleDir, "daemon.meta.json"))
-		_ = os.Remove(filepath.Join(wolfcastleDir, "stop"))
+		_ = os.Remove(filepath.Join(wolfcastleDir, "system", "daemon.meta.json"))
+		_ = os.Remove(filepath.Join(wolfcastleDir, "system", "stop"))
 	}
 }

@@ -17,7 +17,7 @@ func TestCompleteTaskAddresses_WithOrchestrator(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	idxJSON := `{"nodes":{
@@ -78,7 +78,7 @@ func TestCompleteTaskAddresses_BrokenNodeState(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	idxJSON := `{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"in_progress","address":"my-node","children":[]}}}`
@@ -116,10 +116,10 @@ func TestCheckOverlap_ShortText(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
-	_ = os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
 
 	// Create another namespace with a project
-	otherDir := filepath.Join(wcDir, "projects", "other-dev")
+	otherDir := filepath.Join(wcDir, "system", "projects", "other-dev")
 	_ = os.MkdirAll(otherDir, 0755)
 	_ = os.WriteFile(filepath.Join(otherDir, "proj.md"), []byte("some content"), 0644)
 
@@ -172,13 +172,13 @@ func TestLoadRootIndexForCompletion_FallbackSuccess(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "tester-box"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
-	_ = os.MkdirAll(filepath.Join(wcDir, "local"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "local"), 0755)
 
 	// Write config with identity in local/config.json
 	cfgJSON := `{"identity": {"user": "tester", "machine": "box"}}`
-	_ = os.WriteFile(filepath.Join(wcDir, "local", "config.json"), []byte(cfgJSON), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), []byte(cfgJSON), 0644)
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
 
 	origDir, _ := os.Getwd()
@@ -198,10 +198,10 @@ func TestLoadRootIndexForCompletion_FallbackSuccess(t *testing.T) {
 func TestLoadConfig_MalformedConfig(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(filepath.Join(wcDir, "base"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
 
 	// Write malformed config
-	_ = os.WriteFile(filepath.Join(wcDir, "base", "config.json"), []byte("not valid json"), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), []byte("not valid json"), 0644)
 
 	origDir, _ := os.Getwd()
 	defer func() { _ = os.Chdir(origDir) }()
@@ -218,13 +218,13 @@ func TestResolverForCompletion_FallbackSuccess(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "tester-box"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
-	_ = os.MkdirAll(filepath.Join(wcDir, "local"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "local"), 0755)
 
 	// Config with identity in local/config.json
 	cfgJSON := `{"identity": {"user": "tester", "machine": "box"}}`
-	_ = os.WriteFile(filepath.Join(wcDir, "local", "config.json"), []byte(cfgJSON), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), []byte(cfgJSON), 0644)
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
 
 	origDir, _ := os.Getwd()
@@ -285,10 +285,10 @@ func TestCheckOverlap_NoMatchesBelowThreshold(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
-	_ = os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
 
 	// Another engineer with completely different topic
-	otherDir := filepath.Join(wcDir, "projects", "alice-dev")
+	otherDir := filepath.Join(wcDir, "system", "projects", "alice-dev")
 	_ = os.MkdirAll(otherDir, 0755)
 	_ = os.WriteFile(filepath.Join(otherDir, "quantum.md"),
 		[]byte("quantum entanglement photon superposition"), 0644)

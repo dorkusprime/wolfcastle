@@ -13,53 +13,57 @@ import (
 
 func TestRecoverStaleDaemonState_EmptyPidFile(t *testing.T) {
 	tmp := t.TempDir()
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(""), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(""), 0644)
 	recoverStaleDaemonState(tmp)
 
 	// Empty PID parses as error — file should be cleaned
-	if _, err := os.Stat(filepath.Join(tmp, "wolfcastle.pid")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); !os.IsNotExist(err) {
 		t.Error("empty PID file should be removed")
 	}
 }
 
 func TestRecoverStaleDaemonState_WhitespacePid(t *testing.T) {
 	tmp := t.TempDir()
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("  \n"), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("  \n"), 0644)
 	recoverStaleDaemonState(tmp)
 
-	if _, err := os.Stat(filepath.Join(tmp, "wolfcastle.pid")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); !os.IsNotExist(err) {
 		t.Error("whitespace-only PID file should be removed")
 	}
 }
 
 func TestRecoverStaleDaemonState_LiveProcess(t *testing.T) {
 	tmp := t.TempDir()
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
 	pid := os.Getpid()
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d\n", pid)), 0644)
-	_ = os.WriteFile(filepath.Join(tmp, "daemon.meta.json"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d\n", pid)), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "daemon.meta.json"), []byte("{}"), 0644)
 
 	recoverStaleDaemonState(tmp)
 
 	// PID file should survive since process is alive
-	if _, err := os.Stat(filepath.Join(tmp, "wolfcastle.pid")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); os.IsNotExist(err) {
 		t.Error("PID file should not be removed for a running process")
 	}
 	// Meta file should also survive
-	if _, err := os.Stat(filepath.Join(tmp, "daemon.meta.json")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "daemon.meta.json")); os.IsNotExist(err) {
 		t.Error("daemon meta should not be removed for a running process")
 	}
 }
 
 func TestRecoverStaleDaemonState_DeadProcessCleansAllFiles(t *testing.T) {
 	tmp := t.TempDir()
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("99999999"), 0644)
-	_ = os.WriteFile(filepath.Join(tmp, "daemon.meta.json"), []byte(`{"status":"running"}`), 0644)
-	_ = os.WriteFile(filepath.Join(tmp, "stop"), []byte(""), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "daemon.meta.json"), []byte(`{"status":"running"}`), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "stop"), []byte(""), 0644)
 
 	recoverStaleDaemonState(tmp)
 
-	for _, f := range []string{"wolfcastle.pid", "daemon.meta.json", "stop"} {
-		if _, err := os.Stat(filepath.Join(tmp, f)); !os.IsNotExist(err) {
+	for _, f := range []string{"wolfcastle.pid", "system", "daemon.meta.json", "stop"} {
+		if _, err := os.Stat(filepath.Join(tmp, "system", f)); !os.IsNotExist(err) {
 			t.Errorf("stale file %s should be cleaned up for dead process", f)
 		}
 	}
@@ -91,7 +95,7 @@ func TestStartCmd_FlagsRegistered(t *testing.T) {
 func TestStartCmd_AlreadyRunning_ErrorContainsPID(t *testing.T) {
 	env := newStatusTestEnv(t)
 	pid := os.Getpid()
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()

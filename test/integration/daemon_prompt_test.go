@@ -113,7 +113,7 @@ func TestDaemon_PromptContainsBaseTierRules(t *testing.T) {
 	run(t, dir, "init")
 
 	// Write a rule fragment into base/rules/
-	rulesDir := filepath.Join(dir, ".wolfcastle", "base", "rules")
+	rulesDir := filepath.Join(dir, ".wolfcastle", "system", "base", "rules")
 	if err := os.MkdirAll(rulesDir, 0755); err != nil {
 		t.Fatalf("creating rules dir: %v", err)
 	}
@@ -151,8 +151,8 @@ func TestDaemon_PromptContainsCustomTierOverride(t *testing.T) {
 	run(t, dir, "init")
 
 	wcDir := filepath.Join(dir, ".wolfcastle")
-	baseRulesDir := filepath.Join(wcDir, "base", "rules")
-	customRulesDir := filepath.Join(wcDir, "custom", "rules")
+	baseRulesDir := filepath.Join(wcDir, "system", "base", "rules")
+	customRulesDir := filepath.Join(wcDir, "system", "custom", "rules")
 	if err := os.MkdirAll(baseRulesDir, 0755); err != nil {
 		t.Fatalf("creating base rules dir: %v", err)
 	}
@@ -222,15 +222,15 @@ func TestDaemon_PromptContainsLocalTierOverride(t *testing.T) {
 		}
 	}
 
-	if err := os.WriteFile(filepath.Join(wcDir, "base", "rules", "local-test.md"),
+	if err := os.WriteFile(filepath.Join(wcDir, "system", "base", "rules", "local-test.md"),
 		[]byte("SENTINEL_BASE_LOCAL_SHOULD_NOT_APPEAR"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(wcDir, "custom", "rules", "local-test.md"),
+	if err := os.WriteFile(filepath.Join(wcDir, "system", "custom", "rules", "local-test.md"),
 		[]byte("SENTINEL_CUSTOM_LOCAL_SHOULD_NOT_APPEAR"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(wcDir, "local", "rules", "local-test.md"),
+	if err := os.WriteFile(filepath.Join(wcDir, "system", "local", "rules", "local-test.md"),
 		[]byte("SENTINEL_LOCAL_OVERRIDE_5533"), 0644); err != nil {
 		t.Fatal(err)
 	}

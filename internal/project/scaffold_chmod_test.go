@@ -39,7 +39,7 @@ func TestScaffold_GitignoreWriteError_ReadOnly(t *testing.T) {
 	wcDir := filepath.Join(dir, ".wolfcastle")
 
 	// Create all required subdirectories first.
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "custom", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/custom", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(wcDir, d), 0755)
 	}
 
@@ -62,12 +62,12 @@ func TestScaffold_ConfigWriteError_ReadOnly(t *testing.T) {
 	dir := t.TempDir()
 	wcDir := filepath.Join(dir, ".wolfcastle")
 
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "custom", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/custom", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(wcDir, d), 0755)
 	}
 
 	// Block base/config.json by placing a directory in its way.
-	_ = os.MkdirAll(filepath.Join(wcDir, "base", "config.json"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base", "config.json"), 0755)
 
 	err := Scaffold(wcDir)
 	if err == nil {
@@ -84,12 +84,12 @@ func TestScaffold_LocalConfigWriteError_ReadOnly(t *testing.T) {
 	dir := t.TempDir()
 	wcDir := filepath.Join(dir, ".wolfcastle")
 
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits", "custom", "local", "archive", "docs/decisions", "docs/specs", "logs"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits", "system/custom", "system/local", "archive", "docs/decisions", "docs/specs", "system/logs"} {
 		_ = os.MkdirAll(filepath.Join(wcDir, d), 0755)
 	}
 
 	// Block local/config.json with a directory.
-	_ = os.MkdirAll(filepath.Join(wcDir, "local", "config.json"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system/local", "config.json"), 0755)
 
 	err := Scaffold(wcDir)
 	if err == nil {
@@ -112,11 +112,11 @@ func TestReScaffold_RemoveAllError_ReadOnly(t *testing.T) {
 	}
 
 	// Lock a file inside base/ so RemoveAll can't remove everything.
-	basePrompts := filepath.Join(wcDir, "base", "prompts")
+	basePrompts := filepath.Join(wcDir, "system", "base", "prompts")
 	_ = os.Chmod(basePrompts, 0500)
-	_ = os.Chmod(filepath.Join(wcDir, "base"), 0500)
+	_ = os.Chmod(filepath.Join(wcDir, "system", "base"), 0500)
 	t.Cleanup(func() {
-		_ = os.Chmod(filepath.Join(wcDir, "base"), 0755)
+		_ = os.Chmod(filepath.Join(wcDir, "system", "base"), 0755)
 		_ = os.Chmod(basePrompts, 0755)
 	})
 
@@ -157,9 +157,9 @@ func TestReScaffold_MkdirAllBaseError_Blocked(t *testing.T) {
 	}
 
 	// Lock the wolfcastle dir so MkdirAll(base/prompts) fails after RemoveAll.
-	_ = os.RemoveAll(filepath.Join(wcDir, "base"))
-	_ = os.Chmod(wcDir, 0555)
-	t.Cleanup(func() { _ = os.Chmod(wcDir, 0755) })
+	_ = os.RemoveAll(filepath.Join(wcDir, "system", "base"))
+	_ = os.Chmod(filepath.Join(wcDir, "system"), 0555)
+	t.Cleanup(func() { _ = os.Chmod(filepath.Join(wcDir, "system"), 0755) })
 
 	err := ReScaffold(wcDir)
 	if err == nil {
@@ -180,7 +180,7 @@ func TestReScaffold_WriteLocalConfigError_ReadOnly(t *testing.T) {
 	}
 
 	// Replace local/config.json with a directory.
-	localPath := filepath.Join(wcDir, "local", "config.json")
+	localPath := filepath.Join(wcDir, "system/local", "config.json")
 	_ = os.Remove(localPath)
 	_ = os.MkdirAll(localPath, 0755)
 

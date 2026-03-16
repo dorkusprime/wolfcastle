@@ -32,7 +32,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	idx := state.NewRootIndex()
@@ -645,7 +645,7 @@ func TestDiscoverScopes_FindsScopes(t *testing.T) {
 	env := newTestEnv(t)
 
 	// Create audit scope files
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("# Security\nCheck for vulnerabilities"), 0644)
 	_ = os.WriteFile(filepath.Join(baseAudits, "performance.md"), []byte("# Performance\nCheck for bottlenecks"), 0644)
@@ -663,11 +663,11 @@ func TestDiscoverScopes_TierOverride(t *testing.T) {
 	env := newTestEnv(t)
 
 	// Base and custom with same name
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("base security"), 0644)
 
-	customAudits := filepath.Join(env.WolfcastleDir, "custom", "audits")
+	customAudits := filepath.Join(env.WolfcastleDir, "system", "custom", "audits")
 	_ = os.MkdirAll(customAudits, 0755)
 	_ = os.WriteFile(filepath.Join(customAudits, "security.md"), []byte("custom security"), 0644)
 

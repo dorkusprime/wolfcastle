@@ -4,9 +4,9 @@ Installs the Wolfcastle skill for Claude Code.
 
 ## What It Does
 
-Checks that `.wolfcastle/base/skills/` exists and has content. Creates `.claude/` if needed. Then installs the skill using the best method available:
+Checks that `.wolfcastle/system/base/skills/` exists and has content. Creates `.claude/` if needed. Then installs the skill using the best method available:
 
-**Symlink mode** (preferred, on macOS and Linux): creates `.claude/wolfcastle/` as a symlink pointing to `.wolfcastle/base/skills/`. When you run [`wolfcastle update`](update.md), the skills update automatically because the symlink still points to the regenerated `base/`.
+**Symlink mode** (preferred, on macOS and Linux): creates `.claude/wolfcastle/` as a symlink pointing to `.wolfcastle/system/base/skills/`. When you run [`wolfcastle update`](update.md), the skills update automatically because the symlink still points to the regenerated `base/`.
 
 **Copy mode** (fallback, on platforms without symlink support): copies the skill files to `.claude/wolfcastle/`. You will need to re-run `install skill` after updates to get new skill content.
 

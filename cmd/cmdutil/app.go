@@ -110,7 +110,7 @@ func (a *App) CheckOverlap(projectName, description string) {
 	}
 
 	// Collect and compare against other engineers' projects
-	projectsRoot := filepath.Join(a.WolfcastleDir, "projects")
+	projectsRoot := filepath.Join(a.WolfcastleDir, "system", "projects")
 	entries, err := os.ReadDir(projectsRoot)
 	if err != nil {
 		return

@@ -43,7 +43,7 @@ The prompt rule for executing agents becomes: "Write to `.wolfcastle/docs/` and 
 
 ## Migration
 
-`ReScaffold` detects old-layout directories (`base/` at `.wolfcastle/base/` without a `system/` parent) and moves them automatically. Existing `.wolfcastle/` directories migrate on the next `wolfcastle init` or daemon startup.
+`ReScaffold` detects old-layout directories (`base/` at `.wolfcastle/system/base/` without a `system/` parent) and moves them automatically. Existing `.wolfcastle/` directories migrate on the next `wolfcastle init` or daemon startup.
 
 ## Consequences
 

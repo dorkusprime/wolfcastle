@@ -15,16 +15,16 @@ func setupPromptDir(t *testing.T, dir string) {
 	setupTiers(t, dir)
 
 	// Write a rule fragment
-	_ = os.WriteFile(filepath.Join(dir, "base", "rules", "rule1.md"), []byte("Rule one content"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "system", "base", "rules", "rule1.md"), []byte("Rule one content"), 0644)
 
 	// Write script reference
-	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "script-reference.md"), []byte("Script reference"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "system", "base", "prompts", "script-reference.md"), []byte("Script reference"), 0644)
 
 	// Write stage prompt
-	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "execute.md"), []byte("Execute prompt"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "system", "base", "prompts", "execute.md"), []byte("Execute prompt"), 0644)
 
 	// Write a lightweight stage prompt
-	_ = os.WriteFile(filepath.Join(dir, "base", "prompts", "expand.md"), []byte("Expand prompt"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "system", "base", "prompts", "expand.md"), []byte("Expand prompt"), 0644)
 }
 
 // setupEmbeddedPrompts writes the real embedded templates to a temp dir

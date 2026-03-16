@@ -6,9 +6,9 @@ Configuration merges across three tiers. Each tier overrides the one below it.
 
 | Tier | Location | Ownership | Git Status |
 |------|----------|-----------|------------|
-| **local/** | `.wolfcastle/local/` | You | Gitignored. Personal overrides. |
-| **custom/** | `.wolfcastle/custom/` | Team | Committed. Shared across all engineers. |
-| **base/** | `.wolfcastle/base/` | Wolfcastle | Gitignored. Regenerated on init/update. |
+| **local/** | `.wolfcastle/system/local/` | You | Gitignored. Personal overrides. |
+| **custom/** | `.wolfcastle/system/custom/` | Team | Committed. Shared across all engineers. |
+| **base/** | `.wolfcastle/system/base/` | Wolfcastle | Gitignored. Regenerated on init/update. |
 
 **JSON objects** deep-merge recursively. Override a single nested field without rewriting the whole object. **Arrays** replace entirely. Set a field to **`null`** in a higher tier to delete it from the resolved config.
 
@@ -79,7 +79,7 @@ Your identity lives in `local/config.json`, auto-populated on `wolfcastle init`:
 }
 ```
 
-This determines your project [namespace](collaboration.md#engineer-namespacing). Your work lives under `.wolfcastle/projects/wild-macbook/`. Nobody else writes there. You write nowhere else.
+This determines your project [namespace](collaboration.md#engineer-namespacing). Your work lives under `.wolfcastle/system/projects/wild-macbook/`. Nobody else writes there. You write nowhere else.
 
 ## Rule Fragments
 

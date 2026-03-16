@@ -242,7 +242,7 @@ Existing prompts (execute.md, expand.md, etc.) contain no `{{` template syntax a
 A team wants the doctor model to be more conservative — always choosing `not_started`:
 
 ```
-.wolfcastle/custom/prompts/doctor.md
+.wolfcastle/system/custom/prompts/doctor.md
 ```
 
 ```markdown
@@ -260,7 +260,7 @@ Output: {"resolution": "not_started", "reason": "conservative policy — re-exec
 A team uses a specific project structure convention:
 
 ```
-.wolfcastle/custom/prompts/decomposition-guidance.md
+.wolfcastle/system/custom/prompts/decomposition-guidance.md
 ```
 
 ```markdown
@@ -282,7 +282,7 @@ Use the wolfcastle CLI:
 A developer wants more detailed summaries:
 
 ```
-.wolfcastle/local/prompts/summary-required.md
+.wolfcastle/system/local/prompts/summary-required.md
 ```
 
 ```markdown
@@ -308,7 +308,7 @@ Emit before `WOLFCASTLE_COMPLETE`.
 Writes all prompt files to `base/prompts/`:
 
 ```
-.wolfcastle/base/prompts/
+.wolfcastle/system/base/prompts/
 ├── audit.md
 ├── decomposition-guidance.md    # NEW
 ├── doctor.md                    # NEW

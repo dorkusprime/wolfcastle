@@ -589,7 +589,7 @@ func TestDaemon_ModelProducesEmptyStdout(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	counterFile := filepath.Join(scriptsDir, "empty-counter.txt")
 	if err := os.WriteFile(counterFile, []byte("0"), 0644); err != nil {
 		t.Fatal(err)
@@ -647,7 +647,7 @@ func TestDaemon_ModelProducesHugeStdout(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 
 	// Script generates ~1MB of output, then the terminal marker
 	hugeScript := filepath.Join(scriptsDir, "huge-stdout.sh")
@@ -716,7 +716,7 @@ func TestDaemon_ModelTimesOut(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	counterFile := filepath.Join(scriptsDir, "timeout-counter.txt")
 	if err := os.WriteFile(counterFile, []byte("0"), 0644); err != nil {
 		t.Fatal(err)
@@ -785,7 +785,7 @@ func TestDaemon_ModelWritesToStderr(t *testing.T) {
 	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 
 	stderrScript := filepath.Join(scriptsDir, "stderr-mock.sh")
 	body := fmt.Sprintf(`#!/bin/sh

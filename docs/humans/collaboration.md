@@ -5,7 +5,7 @@
 Multiple engineers work on the same repo simultaneously. No merge conflicts. No coordination overhead. Each engineer's project tree lives in its own namespace:
 
 ```
-.wolfcastle/projects/
+.wolfcastle/system/projects/
   wild-macbook/          <- your tree
   dave-workstation/      <- Dave's tree
   sarah-laptop/          <- Sarah's tree
@@ -69,8 +69,8 @@ Specs live in the committed `docs/specs/` directory with ISO 8601 timestamp file
 Logs are NDJSON, one self-contained JSON record per line. Each daemon iteration produces its own log file:
 
 ```
-.wolfcastle/logs/0001-20260312T18-45Z.jsonl
-.wolfcastle/logs/0002-20260312T18-47Z.jsonl
+.wolfcastle/system/logs/0001-20260312T18-45Z.jsonl
+.wolfcastle/system/logs/0002-20260312T18-47Z.jsonl
 ```
 
 `wolfcastle log` finds the latest file and tails it, watching for new files as iterations advance. (`follow` still works as an alias.)

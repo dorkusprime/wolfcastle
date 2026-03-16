@@ -36,7 +36,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	idx := state.NewRootIndex()
@@ -83,7 +83,8 @@ func TestGetDaemonStatus_NoPidFile(t *testing.T) {
 
 func TestGetDaemonStatus_MalformedPid(t *testing.T) {
 	tmp := t.TempDir()
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("not-a-number"), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("not-a-number"), 0644)
 	status := getDaemonStatus(tmp)
 	if status != "unknown (malformed PID file)" {
 		t.Errorf("expected malformed PID message, got %q", status)
@@ -93,7 +94,8 @@ func TestGetDaemonStatus_MalformedPid(t *testing.T) {
 func TestGetDaemonStatus_StalePid(t *testing.T) {
 	tmp := t.TempDir()
 	// Use PID 1 (which exists but won't be our daemon), or a very large PID
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
 	status := getDaemonStatus(tmp)
 	if status == "" {
 		t.Error("status should not be empty")
@@ -152,11 +154,12 @@ func TestRecoverStaleDaemonState_NoPidFile(t *testing.T) {
 
 func TestRecoverStaleDaemonState_MalformedPid(t *testing.T) {
 	tmp := t.TempDir()
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("garbage"), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("garbage"), 0644)
 	recoverStaleDaemonState(tmp)
 
 	// PID file should be removed
-	if _, err := os.Stat(filepath.Join(tmp, "wolfcastle.pid")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); !os.IsNotExist(err) {
 		t.Error("malformed PID file should be cleaned up")
 	}
 }
@@ -164,20 +167,21 @@ func TestRecoverStaleDaemonState_MalformedPid(t *testing.T) {
 func TestRecoverStaleDaemonState_DeadProcess(t *testing.T) {
 	tmp := t.TempDir()
 	// Use a very large PID that almost certainly doesn't exist
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte("99999999"), 0644)
-	_ = os.WriteFile(filepath.Join(tmp, "daemon.meta.json"), []byte("{}"), 0644)
-	_ = os.WriteFile(filepath.Join(tmp, "stop"), []byte(""), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "daemon.meta.json"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "stop"), []byte(""), 0644)
 
 	recoverStaleDaemonState(tmp)
 
 	// All stale files should be cleaned up
-	if _, err := os.Stat(filepath.Join(tmp, "wolfcastle.pid")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); !os.IsNotExist(err) {
 		t.Error("stale PID file should be removed")
 	}
-	if _, err := os.Stat(filepath.Join(tmp, "daemon.meta.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "daemon.meta.json")); !os.IsNotExist(err) {
 		t.Error("stale daemon meta file should be removed")
 	}
-	if _, err := os.Stat(filepath.Join(tmp, "stop")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "stop")); !os.IsNotExist(err) {
 		t.Error("stale stop file should be removed")
 	}
 }
@@ -262,7 +266,8 @@ func TestStopCmd_NoPidFile(t *testing.T) {
 
 func TestStopCmd_StalePid(t *testing.T) {
 	env := newTestEnv(t)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
 	if err == nil {
@@ -272,7 +277,8 @@ func TestStopCmd_StalePid(t *testing.T) {
 
 func TestStopCmd_StalePid_Force(t *testing.T) {
 	env := newTestEnv(t)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
 	env.RootCmd.SetArgs([]string{"stop", "--force"})
 	err := env.RootCmd.Execute()
 	if err == nil {
@@ -291,7 +297,8 @@ func TestStopCmd_RunningProcess_SIGTERM(t *testing.T) {
 	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
 
 	pid := sleepCmd.Process.Pid
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
@@ -312,7 +319,8 @@ func TestStopCmd_RunningProcess_SIGTERM_JSON(t *testing.T) {
 	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
 
 	pid := sleepCmd.Process.Pid
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
@@ -331,7 +339,8 @@ func TestStopCmd_RunningProcess_Force(t *testing.T) {
 	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
 
 	pid := sleepCmd.Process.Pid
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	env.RootCmd.SetArgs([]string{"stop", "--force"})
 	err := env.RootCmd.Execute()
@@ -347,7 +356,7 @@ func TestStopCmd_RunningProcess_Force(t *testing.T) {
 func TestFollowCmd_WithLogFile(t *testing.T) {
 	env := newTestEnv(t)
 
-	logDir := filepath.Join(env.WolfcastleDir, "logs")
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
 	_ = os.MkdirAll(logDir, 0755)
 	logFile := filepath.Join(logDir, "001-test.jsonl")
 	_ = os.WriteFile(logFile, []byte(`{"type":"assistant","text":"hello"}`+"\n"), 0644)
@@ -370,7 +379,7 @@ func TestFollowCmd_WithLogFile(t *testing.T) {
 func TestFollowCmd_NoLogs(t *testing.T) {
 	env := newTestEnv(t)
 
-	logDir := filepath.Join(env.WolfcastleDir, "logs")
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
 	_ = os.MkdirAll(logDir, 0755)
 
 	done := make(chan error, 1)
@@ -400,7 +409,8 @@ func TestStopCmd_RunningProcess_Force_JSON(t *testing.T) {
 	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
 
 	pid := sleepCmd.Process.Pid
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	env.RootCmd.SetArgs([]string{"stop", "--force"})
 	err := env.RootCmd.Execute()
@@ -618,7 +628,8 @@ func TestRegister_AllCommandsPresent(t *testing.T) {
 func TestGetDaemonStatus_RunningProcess(t *testing.T) {
 	tmp := t.TempDir()
 	pid := os.Getpid()
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 	status := getDaemonStatus(tmp)
 	if status == "stopped" {
 		t.Error("expected running status for own PID")
@@ -633,12 +644,13 @@ func TestRecoverStaleDaemonState_RunningProcess(t *testing.T) {
 	tmp := t.TempDir()
 	// Use our own PID (which is running)
 	pid := os.Getpid()
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	recoverStaleDaemonState(tmp)
 
 	// PID file should still exist since process is running
-	if _, err := os.Stat(filepath.Join(tmp, "wolfcastle.pid")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); os.IsNotExist(err) {
 		t.Error("PID file should not be removed for a running process")
 	}
 }
@@ -661,7 +673,8 @@ func TestStartCmd_AlreadyRunning(t *testing.T) {
 	env := newTestEnv(t)
 	// Write our own PID as the running daemon
 	pid := os.Getpid()
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
@@ -694,7 +707,8 @@ func TestStopCmd_StalePidJSON(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
 	if err == nil {
@@ -932,6 +946,8 @@ func TestStartBackground_HappyPath(t *testing.T) {
 	dir := t.TempDir()
 	wolfDir := filepath.Join(dir, ".wolfcastle")
 	_ = os.MkdirAll(wolfDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
+	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
 
 	// Use "sleep" as the child process; it starts and we release it.
 	err := startBackground(wolfDir, "", "", "sleep")
@@ -940,7 +956,7 @@ func TestStartBackground_HappyPath(t *testing.T) {
 	}
 
 	// PID file should exist
-	pidData, err := os.ReadFile(filepath.Join(wolfDir, "wolfcastle.pid"))
+	pidData, err := os.ReadFile(filepath.Join(wolfDir, "system", "wolfcastle.pid"))
 	if err != nil {
 		t.Fatal("PID file should exist after startBackground")
 	}
@@ -949,7 +965,7 @@ func TestStartBackground_HappyPath(t *testing.T) {
 	}
 
 	// daemon.log should exist
-	if _, err := os.Stat(filepath.Join(wolfDir, "daemon.log")); err != nil {
+	if _, err := os.Stat(filepath.Join(wolfDir, "system", "daemon.log")); err != nil {
 		t.Error("daemon.log should exist")
 	}
 }
@@ -959,6 +975,7 @@ func TestStartBackground_WithNodeScope(t *testing.T) {
 	dir := t.TempDir()
 	wolfDir := filepath.Join(dir, ".wolfcastle")
 	_ = os.MkdirAll(wolfDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
 
 	err := startBackground(wolfDir, "my-project", "", "sleep")
 	if err != nil {
@@ -971,6 +988,7 @@ func TestStartBackground_WithWorktree(t *testing.T) {
 	dir := t.TempDir()
 	wolfDir := filepath.Join(dir, ".wolfcastle")
 	_ = os.MkdirAll(wolfDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
 
 	err := startBackground(wolfDir, "", "feature-branch", "sleep")
 	if err != nil {
@@ -983,6 +1001,7 @@ func TestStartBackground_BadExecutable(t *testing.T) {
 	dir := t.TempDir()
 	wolfDir := filepath.Join(dir, ".wolfcastle")
 	_ = os.MkdirAll(wolfDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
 
 	err := startBackground(wolfDir, "", "", "/nonexistent/binary")
 	if err == nil {
@@ -998,10 +1017,11 @@ func TestStartBackground_LogDirNotWritable(t *testing.T) {
 	dir := t.TempDir()
 	wolfDir := filepath.Join(dir, ".wolfcastle")
 	_ = os.MkdirAll(wolfDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
 
 	// Make wolfDir read-only so daemon.log creation fails
-	_ = os.Chmod(wolfDir, 0555)
-	defer func() { _ = os.Chmod(wolfDir, 0755) }()
+	_ = os.Chmod(filepath.Join(wolfDir, "system"), 0555)
+	defer func() { _ = os.Chmod(filepath.Join(wolfDir, "system"), 0755) }()
 
 	err := startBackground(wolfDir, "", "", "sleep")
 	if err == nil {

@@ -363,7 +363,7 @@ func ApplyDeterministicFixes(
 
 		case CatStalePIDFile:
 			if wolfcastleDir != "" {
-				pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
+				pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
 				if err := os.Remove(pidPath); err == nil {
 					fixes = append(fixes, FixResult{Category: issue.Category, Description: "removed stale PID file"})
 				}
@@ -371,7 +371,7 @@ func ApplyDeterministicFixes(
 
 		case CatStaleStopFile:
 			if wolfcastleDir != "" {
-				stopPath := filepath.Join(wolfcastleDir, "stop")
+				stopPath := filepath.Join(wolfcastleDir, "system", "stop")
 				if err := os.Remove(stopPath); err == nil {
 					fixes = append(fixes, FixResult{Category: issue.Category, Description: "removed stale stop file"})
 				}

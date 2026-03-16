@@ -91,7 +91,7 @@ Separately, `wolfcastle audit run` is a read-only codebase analysis tool. It run
 
 ## Collaboration
 
-Each engineer's project tree lives in its own [namespace](docs/humans/collaboration.md#engineer-namespacing) under `.wolfcastle/projects/` (e.g., `wild-macbook/`, `dave-workstation/`). Everyone can see everyone else's work, but nobody writes to anyone else's state. No merge conflicts. No coordination overhead. An optional [overlap advisory](docs/humans/collaboration.md#overlap-advisory) warns you when your new project's scope collides with someone else's active work.
+Each engineer's project tree lives in its own [namespace](docs/humans/collaboration.md#engineer-namespacing) under `.wolfcastle/system/projects/` (e.g., `wild-macbook/`, `dave-workstation/`). Everyone can see everyone else's work, but nobody writes to anyone else's state. No merge conflicts. No coordination overhead. An optional [overlap advisory](docs/humans/collaboration.md#overlap-advisory) warns you when your new project's scope collides with someone else's active work.
 
 Wolfcastle [commits code to your current branch](docs/humans/collaboration.md#git-integration) by default with branch safety checks on every commit. If someone switches branches underneath it, the daemon blocks immediately. For isolation, [`--worktree`](docs/humans/collaboration.md#worktree-isolation) runs all work in a separate git worktree that gets cleaned up on completion. Completed projects are moved to the [archive](docs/humans/collaboration.md#archive), and everything is tracked in [structured logs](docs/humans/collaboration.md#logging).
 

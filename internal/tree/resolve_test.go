@@ -162,7 +162,7 @@ func TestResolver_ProjectsDir(t *testing.T) {
 	t.Parallel()
 	r := &Resolver{WolfcastleDir: "/home/user/.wolfcastle", Namespace: "alice-laptop"}
 	got := r.ProjectsDir()
-	want := filepath.Join("/home/user/.wolfcastle", "projects", "alice-laptop")
+	want := filepath.Join("/home/user/.wolfcastle", "system", "projects", "alice-laptop")
 	if got != want {
 		t.Errorf("ProjectsDir() = %q, want %q", got, want)
 	}
@@ -172,7 +172,7 @@ func TestResolver_RootIndexPath(t *testing.T) {
 	t.Parallel()
 	r := &Resolver{WolfcastleDir: "/home/user/.wolfcastle", Namespace: "alice-laptop"}
 	got := r.RootIndexPath()
-	want := filepath.Join("/home/user/.wolfcastle", "projects", "alice-laptop", "state.json")
+	want := filepath.Join("/home/user/.wolfcastle", "system", "projects", "alice-laptop", "state.json")
 	if got != want {
 		t.Errorf("RootIndexPath() = %q, want %q", got, want)
 	}
@@ -186,9 +186,9 @@ func TestResolver_NodeDir(t *testing.T) {
 		addr Address
 		want string
 	}{
-		{"root address", Address{}, filepath.Join("/w", "projects", "ns")},
-		{"single segment", MustParse("proj"), filepath.Join("/w", "projects", "ns", "proj")},
-		{"nested address", MustParse("proj/sub/leaf"), filepath.Join("/w", "projects", "ns", "proj", "sub", "leaf")},
+		{"root address", Address{}, filepath.Join("/w", "system", "projects", "ns")},
+		{"single segment", MustParse("proj"), filepath.Join("/w", "system", "projects", "ns", "proj")},
+		{"nested address", MustParse("proj/sub/leaf"), filepath.Join("/w", "system", "projects", "ns", "proj", "sub", "leaf")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -208,8 +208,8 @@ func TestResolver_NodeStatePath(t *testing.T) {
 		addr Address
 		want string
 	}{
-		{"root", Address{}, filepath.Join("/w", "projects", "ns", "state.json")},
-		{"nested", MustParse("proj/child"), filepath.Join("/w", "projects", "ns", "proj", "child", "state.json")},
+		{"root", Address{}, filepath.Join("/w", "system", "projects", "ns", "state.json")},
+		{"nested", MustParse("proj/child"), filepath.Join("/w", "system", "projects", "ns", "proj", "child", "state.json")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -230,8 +230,8 @@ func TestResolver_NodeDefPath(t *testing.T) {
 		want string
 	}{
 		{"root returns empty", Address{}, ""},
-		{"single segment", MustParse("proj"), filepath.Join("/w", "projects", "ns", "proj", "proj.md")},
-		{"nested", MustParse("proj/child"), filepath.Join("/w", "projects", "ns", "proj", "child", "child.md")},
+		{"single segment", MustParse("proj"), filepath.Join("/w", "system", "projects", "ns", "proj", "proj.md")},
+		{"nested", MustParse("proj/child"), filepath.Join("/w", "system", "projects", "ns", "proj", "child", "child.md")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -252,8 +252,8 @@ func TestResolver_TaskDocPath(t *testing.T) {
 		taskID string
 		want   string
 	}{
-		{"task doc", MustParse("proj"), "task-0001", filepath.Join("/w", "projects", "ns", "proj", "task-0001.md")},
-		{"audit doc", MustParse("proj/child"), "audit", filepath.Join("/w", "projects", "ns", "proj", "child", "audit.md")},
+		{"task doc", MustParse("proj"), "task-0001", filepath.Join("/w", "system", "projects", "ns", "proj", "task-0001.md")},
+		{"audit doc", MustParse("proj/child"), "audit", filepath.Join("/w", "system", "projects", "ns", "proj", "child", "audit.md")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -268,7 +268,7 @@ func TestResolver_TaskDocPath(t *testing.T) {
 func TestResolver_LoadRootIndex(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	nsDir := filepath.Join(tmpDir, "projects", "alice-laptop")
+	nsDir := filepath.Join(tmpDir, "system", "projects", "alice-laptop")
 	if err := os.MkdirAll(nsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -317,7 +317,7 @@ func TestResolver_LoadRootIndex_FileNotFound(t *testing.T) {
 func TestResolver_LoadNodeState(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	nodeDir := filepath.Join(tmpDir, "projects", "ns", "my-proj")
+	nodeDir := filepath.Join(tmpDir, "system", "projects", "ns", "my-proj")
 	if err := os.MkdirAll(nodeDir, 0755); err != nil {
 		t.Fatal(err)
 	}

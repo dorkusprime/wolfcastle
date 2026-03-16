@@ -756,7 +756,7 @@ func TestRunCmd_BrokenBatchFile(t *testing.T) {
 	env := newTestEnv(t)
 
 	// Create audit scope files so we get past the "no scopes" check
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "test.md"), []byte("# Test\nTest scope"), 0644)
 
@@ -954,11 +954,11 @@ func TestApprove_NoDescriptionFinding(t *testing.T) {
 func TestDiscoverScopes_LocalOverride(t *testing.T) {
 	env := newTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "test.md"), []byte("base test"), 0644)
 
-	localAudits := filepath.Join(env.WolfcastleDir, "local", "audits")
+	localAudits := filepath.Join(env.WolfcastleDir, "system", "local", "audits")
 	_ = os.MkdirAll(localAudits, 0755)
 	_ = os.WriteFile(filepath.Join(localAudits, "test.md"), []byte("local test"), 0644)
 
@@ -998,7 +998,7 @@ func TestHistory_BrokenHistoryFile(t *testing.T) {
 func TestDiscoverScopes_SkipsDirsAndNonMd(t *testing.T) {
 	env := newTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "valid.md"), []byte("# Valid\nA valid scope"), 0644)
 	_ = os.WriteFile(filepath.Join(baseAudits, "notes.txt"), []byte("not a scope"), 0644)
@@ -1020,7 +1020,7 @@ func TestDiscoverScopes_SkipsDirsAndNonMd(t *testing.T) {
 func TestDiscoverScopes_DescriptionFromContent(t *testing.T) {
 	env := newTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"),
 		[]byte("# Security Audit\nCheck for vulnerabilities and security issues"), 0644)
@@ -1048,7 +1048,7 @@ func TestDiscoverScopes_DescriptionFromContent(t *testing.T) {
 func TestRunCmd_ListFlagWithScopes(t *testing.T) {
 	env := newTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("# Security\nCheck for vulnerabilities"), 0644)
 	_ = os.WriteFile(filepath.Join(baseAudits, "performance.md"), []byte("# Performance\nCheck bottlenecks"), 0644)
@@ -1062,7 +1062,7 @@ func TestRunCmd_ListFlagWithScopes(t *testing.T) {
 func TestRunCmd_ScopeFlag(t *testing.T) {
 	env := newTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("Check security"), 0644)
 	_ = os.WriteFile(filepath.Join(baseAudits, "perf.md"), []byte("Check perf"), 0644)

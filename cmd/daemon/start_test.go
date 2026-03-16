@@ -56,7 +56,8 @@ func TestStartCmd_ValidationWarnings(t *testing.T) {
 
 func TestStopCmd_ForceFlag(t *testing.T) {
 	env := newTestEnv(t)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte("99999999"), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
 	env.RootCmd.SetArgs([]string{"stop", "--force"})
 	err := env.RootCmd.Execute()
 	if err == nil {
@@ -68,7 +69,8 @@ func TestStopCmd_RunningProcess(t *testing.T) {
 	env := newTestEnv(t)
 	// Use our own PID — it's running, but signal will succeed
 	pid := os.Getpid()
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 
 	// This will send SIGTERM to ourselves, which is dangerous in a test.
 	// Instead, test the JSON output path by making sure stop parses the PID correctly.
@@ -95,7 +97,7 @@ func TestStopCmd_JSONOutput(t *testing.T) {
 func TestShowAllStatus_MissingProjectsDir(t *testing.T) {
 	env := newTestEnv(t)
 	// Remove the projects dir entirely
-	_ = os.RemoveAll(filepath.Join(env.WolfcastleDir, "projects"))
+	_ = os.RemoveAll(filepath.Join(env.WolfcastleDir, "system", "projects"))
 
 	err := showAllStatus(env.App)
 	if err == nil {
@@ -128,7 +130,8 @@ func TestStartCmd_VerboseFlag(t *testing.T) {
 
 func TestRecoverStaleDaemonState_UnreadablePidFile(t *testing.T) {
 	tmp := t.TempDir()
-	pidPath := filepath.Join(tmp, "wolfcastle.pid")
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	pidPath := filepath.Join(tmp, "system", "wolfcastle.pid")
 	_ = os.WriteFile(pidPath, []byte("12345"), 0000)
 	// Should handle read error gracefully
 	recoverStaleDaemonState(tmp)
@@ -143,7 +146,8 @@ func TestRecoverStaleDaemonState_UnreadablePidFile(t *testing.T) {
 func TestGetDaemonStatus_CurrentProcessJSON(t *testing.T) {
 	tmp := t.TempDir()
 	pid := os.Getpid()
-	_ = os.WriteFile(filepath.Join(tmp, "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
 	status := getDaemonStatus(tmp)
 	expected := fmt.Sprintf("running (PID %d)", pid)
 	if status != expected {
@@ -195,7 +199,7 @@ func TestShowTreeStatus_WithAuditDataJSON(t *testing.T) {
 func TestShowAllStatus_EmptyNamespaces(t *testing.T) {
 	env := newTestEnv(t)
 	// Create a projects dir with a non-dir entry
-	projectsDir := filepath.Join(env.WolfcastleDir, "projects")
+	projectsDir := filepath.Join(env.WolfcastleDir, "system", "projects")
 	_ = os.WriteFile(filepath.Join(projectsDir, "not-a-dir.txt"), []byte("ignore"), 0644)
 
 	err := showAllStatus(env.App)

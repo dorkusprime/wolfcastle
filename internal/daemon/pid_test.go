@@ -9,6 +9,7 @@ import (
 func TestWritePID_CreatesPIDFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
+	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
 	if err := WritePID(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +35,8 @@ func TestReadPID_MissingFile(t *testing.T) {
 func TestReadPID_InvalidContent(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "wolfcastle.pid"), []byte("not-a-number"), 0644)
+	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(dir, "system", "wolfcastle.pid"), []byte("not-a-number"), 0644)
 
 	_, err := ReadPID(dir)
 	if err == nil {
@@ -45,11 +47,12 @@ func TestReadPID_InvalidContent(t *testing.T) {
 func TestRemovePID_RemovesFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
+	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
 	_ = WritePID(dir)
 
 	RemovePID(dir)
 
-	pidPath := filepath.Join(dir, "wolfcastle.pid")
+	pidPath := filepath.Join(dir, "system", "wolfcastle.pid")
 	if _, err := os.Stat(pidPath); !os.IsNotExist(err) {
 		t.Error("PID file should be removed")
 	}

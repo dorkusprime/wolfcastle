@@ -112,7 +112,7 @@ The model communicates through [script calls](cli.md): `wolfcastle task claim`, 
 State is stored as one `state.json` per node, co-located with its project description and task documents. Each engineer's tree lives in its own [namespace](collaboration.md#engineer-namespacing).
 
 ```
-.wolfcastle/projects/wild-macbook/
+.wolfcastle/system/projects/wild-macbook/
   state.json                        <- root index
   backend/
     state.json                      <- orchestrator state

@@ -144,8 +144,8 @@ func testDaemon(t *testing.T) *Daemon {
 	tmp := t.TempDir()
 	wolfDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-user"
-	projDir := filepath.Join(wolfDir, "projects", ns)
-	logDir := filepath.Join(wolfDir, "logs")
+	projDir := filepath.Join(wolfDir, "system", "projects", ns)
+	logDir := filepath.Join(wolfDir, "system", "logs")
 	for _, d := range []string{projDir, logDir} {
 		if err := os.MkdirAll(d, 0755); err != nil {
 			t.Fatal(err)
@@ -217,7 +217,7 @@ func setupLeafNode(t *testing.T, d *Daemon, nodeAddr string, tasks []state.Task)
 func writePromptFile(t *testing.T, wolfDir, filename string) {
 	t.Helper()
 	// Prompt resolution checks local/ first, then custom/, then base/
-	dir := filepath.Join(wolfDir, "base", "prompts")
+	dir := filepath.Join(wolfDir, "system", "base", "prompts")
 	_ = os.MkdirAll(dir, 0755)
 	_ = os.WriteFile(filepath.Join(dir, filename), []byte("test prompt"), 0644)
 }
@@ -357,7 +357,7 @@ func TestRunOnce_StopFile(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	stopPath := filepath.Join(d.WolfcastleDir, "stop")
+	stopPath := filepath.Join(d.WolfcastleDir, "system", "stop")
 	_ = os.WriteFile(stopPath, []byte("stop"), 0644)
 
 	result, err := d.RunOnce(context.Background())

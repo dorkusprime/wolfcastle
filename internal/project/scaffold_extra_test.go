@@ -10,16 +10,16 @@ import (
 func TestWriteBasePrompts_SkipsDirectories(t *testing.T) {
 	t.Parallel()
 	dir := filepath.Join(t.TempDir(), ".wolfcastle")
-	_ = os.MkdirAll(filepath.Join(dir, "base", "prompts"), 0755)
-	_ = os.MkdirAll(filepath.Join(dir, "base", "rules"), 0755)
-	_ = os.MkdirAll(filepath.Join(dir, "base", "audits"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "prompts"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "rules"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "audits"), 0755)
 
 	if err := WriteBasePrompts(dir); err != nil {
 		t.Fatal(err)
 	}
 
 	// Verify no empty directories were created as files
-	_ = filepath.Walk(filepath.Join(dir, "base"), func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(filepath.Join(dir, "system", "base"), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,7 @@ func TestReScaffold_RegeneratesAllBaseDirectories(t *testing.T) {
 	}
 
 	// Remove entire base directory
-	if err := os.RemoveAll(filepath.Join(dir, "base")); err != nil {
+	if err := os.RemoveAll(filepath.Join(dir, "system", "base")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -80,7 +80,7 @@ func TestReScaffold_RegeneratesAllBaseDirectories(t *testing.T) {
 	}
 
 	// Verify base directories were recreated
-	for _, d := range []string{"base/prompts", "base/rules", "base/audits"} {
+	for _, d := range []string{"system/base/prompts", "system/base/rules", "system/base/audits"} {
 		path := filepath.Join(dir, d)
 		info, err := os.Stat(path)
 		if err != nil {
@@ -118,7 +118,7 @@ func TestScaffold_WritesBasePromptFiles(t *testing.T) {
 	}
 
 	// Verify execute.md is written
-	data, err := os.ReadFile(filepath.Join(dir, "base", "prompts", "execute.md"))
+	data, err := os.ReadFile(filepath.Join(dir, "system", "base", "prompts", "execute.md"))
 	if err != nil {
 		t.Fatal("execute.md should exist:", err)
 	}
@@ -135,7 +135,7 @@ func TestScaffold_NamespaceContainsUserAndMachine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, err := os.ReadDir(filepath.Join(dir, "projects"))
+	entries, err := os.ReadDir(filepath.Join(dir, "system", "projects"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,13 +157,13 @@ func TestReScaffold_WritesLocalConfigWhenMissing(t *testing.T) {
 	}
 
 	// Remove local config
-	_ = os.Remove(filepath.Join(dir, "local", "config.json"))
+	_ = os.Remove(filepath.Join(dir, "system", "local", "config.json"))
 
 	if err := ReScaffold(dir); err != nil {
 		t.Fatal(err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "local", "config.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "system", "local", "config.json"))
 	if err != nil {
 		t.Fatal("local/config.json should be recreated:", err)
 	}
@@ -183,7 +183,7 @@ func TestWriteBasePrompts_CreatesSubdirectories(t *testing.T) {
 	}
 
 	// Verify prompts directory was created
-	info, err := os.Stat(filepath.Join(dir, "base", "prompts"))
+	info, err := os.Stat(filepath.Join(dir, "system", "base", "prompts"))
 	if err != nil {
 		t.Fatal("base/prompts should exist:", err)
 	}

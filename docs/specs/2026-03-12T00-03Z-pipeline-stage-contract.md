@@ -507,8 +507,8 @@ The daemon enters an idle poll loop. It periodically checks for new inbox items 
 Each iteration produces its own NDJSON log file (ADR-012):
 
 ```
-.wolfcastle/logs/0001-20260312T18-45Z.jsonl
-.wolfcastle/logs/0002-20260312T18-47Z.jsonl
+.wolfcastle/system/logs/0001-20260312T18-45Z.jsonl
+.wolfcastle/system/logs/0002-20260312T18-47Z.jsonl
 ```
 
 Within each log file, every stage invocation produces structured records including:

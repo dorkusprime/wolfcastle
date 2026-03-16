@@ -31,7 +31,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	idx := state.NewRootIndex()

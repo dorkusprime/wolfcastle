@@ -272,7 +272,7 @@ The summary is stored in the node's `audit.result_summary` field in its `state.j
 }
 ```
 
-It lives here until `wolfcastle archive add` reads it and renders it into the Markdown archive entry. The summary is part of the node's committed state (`.wolfcastle/projects/` is committed per ADR-009), so it survives daemon restarts.
+It lives here until `wolfcastle archive add` reads it and renders it into the Markdown archive entry. The summary is part of the node's committed state (`.wolfcastle/system/projects/` is committed per ADR-009), so it survives daemon restarts.
 
 ### Opt-Out
 

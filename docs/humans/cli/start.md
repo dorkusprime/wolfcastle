@@ -36,7 +36,7 @@ Then the loop begins: [navigate](navigate.md) to the next task, run the [pipelin
 ## Consequences
 
 - Writes PID file (background mode only).
-- Creates NDJSON log files in `.wolfcastle/logs/`.
+- Creates NDJSON log files in `.wolfcastle/system/logs/`.
 - Mutates [state files](../how-it-works.md#distributed-state) as tasks progress.
 - May create git commits via the execute stage.
 - May create worktree directories.

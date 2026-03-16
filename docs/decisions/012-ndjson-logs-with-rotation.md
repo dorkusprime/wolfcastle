@@ -17,11 +17,11 @@ We evaluated NDJSON, plain text, SQLite, and binary formats. NDJSON wins because
 Logs are NDJSON (newline-delimited JSON). Each line is a self-contained JSON record.
 
 ### Per-Iteration Files
-Each daemon iteration produces its own log file in `.wolfcastle/logs/`, named with an iteration prefix and timestamp:
+Each daemon iteration produces its own log file in `.wolfcastle/system/logs/`, named with an iteration prefix and timestamp:
 
 ```
-.wolfcastle/logs/0001-20260312T18-45Z.jsonl
-.wolfcastle/logs/0002-20260312T18-47Z.jsonl
+.wolfcastle/system/logs/0001-20260312T18-45Z.jsonl
+.wolfcastle/system/logs/0002-20260312T18-47Z.jsonl
 ```
 
 The iteration prefix provides ordering; the timestamp provides context. `wolfcastle follow` finds the highest-numbered file and tails it, watching for new files to appear when the next iteration starts. No symlinks — fully cross-platform compatible.
@@ -55,4 +55,4 @@ All fields are optional — omitted fields use the defaults shown above.
 - Teams can tune retention via config — stricter for CI, looser for long-running projects
 - NDJSON is the only log format; no plain-text fallback needed
 - Log cleanup is handled by the Go binary, not external tools like logrotate
-- Logs live in `.wolfcastle/logs/`, gitignored by the wildcard rule in ADR-009
+- Logs live in `.wolfcastle/system/logs/`, gitignored by the wildcard rule in ADR-009

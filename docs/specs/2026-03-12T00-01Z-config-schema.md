@@ -142,7 +142,7 @@ Arrays are **not** deep-merged. An array in a higher tier replaces the entire ar
 
     "logs": {
       "type": "object",
-      "description": "NDJSON log retention settings. Logs are per-iteration files in .wolfcastle/logs/. (ADR-012)",
+      "description": "NDJSON log retention settings. Logs are per-iteration files in .wolfcastle/system/logs/. (ADR-012)",
       "additionalProperties": false,
       "properties": {
         "max_files": {

@@ -20,7 +20,7 @@ Adopt advisory file locking via `flock(2)` (`syscall.Flock` on the state
 file's directory) with per-namespace granularity:
 
 1. **Lock granularity.** One lock per engineer namespace, not per-node. The
-   lock file lives at `.wolfcastle/projects/{namespace}/.lock`.
+   lock file lives at `.wolfcastle/system/projects/{namespace}/.lock`.
 2. **Daemon lock scope.** The daemon holds the lock for the duration of each
    iteration — acquired in `RunOnce()`, released after state save and
    propagation.

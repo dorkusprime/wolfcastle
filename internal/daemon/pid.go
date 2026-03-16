@@ -11,13 +11,13 @@ import (
 
 // WritePID writes the current process PID to a file.
 func WritePID(wolfcastleDir string) error {
-	path := filepath.Join(wolfcastleDir, "wolfcastle.pid")
+	path := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
 	return os.WriteFile(path, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644)
 }
 
 // ReadPID reads the PID from the PID file.
 func ReadPID(wolfcastleDir string) (int, error) {
-	path := filepath.Join(wolfcastleDir, "wolfcastle.pid")
+	path := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
@@ -28,7 +28,7 @@ func ReadPID(wolfcastleDir string) (int, error) {
 // RemovePID removes the PID file. Errors are ignored because the PID
 // file is advisory; a missing file is not a failure condition.
 func RemovePID(wolfcastleDir string) {
-	_ = os.Remove(filepath.Join(wolfcastleDir, "wolfcastle.pid"))
+	_ = os.Remove(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"))
 }
 
 // IsProcessRunning checks if a process with the given PID is still alive.

@@ -20,7 +20,7 @@ The three most serious issues, none of which rise to true release-blocker severi
 
 1. **Empty project name accepted** (`project create ""` succeeds, creating "unnamed"). This is a validation gap, not a corruption risk, but it will confuse users on day one.
 2. **`.DS_Store` in repository.** A macOS metadata file in the repo root signals a missing `.gitignore` entry. Cosmetic but visible.
-3. **Error message for nonexistent node shows raw filesystem path** (`open /tmp/wolfcastle-test/.wolfcastle/projects/wild-macbook-pro/nonexistent/state.json: no such file or directory`). A user should see "node 'nonexistent' not found," not an internal path.
+3. **Error message for nonexistent node shows raw filesystem path** (`open /tmp/wolfcastle-test/.wolfcastle/system/projects/wild-macbook-pro/nonexistent/state.json: no such file or directory`). A user should see "node 'nonexistent' not found," not an internal path.
 
 The single thing that would most improve a contributor's first impression: fixing the raw filesystem paths in error messages so they reference tree addresses instead.
 
@@ -636,7 +636,7 @@ The two most serious issues (empty project name validation and `.DS_Store`) are 
    **Verification:** Confirm `.DS_Store` is not in `git ls-files`.
 
 3. **What:** Error messages for nonexistent nodes expose raw filesystem paths.
-   **Why:** `"open /tmp/wolfcastle-test/.wolfcastle/projects/wild-macbook-pro/nonexistent/state.json: no such file or directory"` is an internal implementation detail, not a user-facing error.
+   **Why:** `"open /tmp/wolfcastle-test/.wolfcastle/system/projects/wild-macbook-pro/nonexistent/state.json: no such file or directory"` is an internal implementation detail, not a user-facing error.
    **Fix:** In `StateStore.ReadNode` (or at the command level), catch `os.ErrNotExist` and return `"node %q not found"` with the tree address.
    **Verification:** Run `wolfcastle task add "foo" --node nonexistent` and verify the error message uses the tree address.
 

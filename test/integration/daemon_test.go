@@ -201,7 +201,7 @@ func TestDaemon_EmptyTree(t *testing.T) {
 	// Place a stop file so the daemon exits immediately after finding no work.
 	// Without this, the daemon would poll indefinitely since max_iterations
 	// only counts work iterations.
-	stopFile := filepath.Join(dir, ".wolfcastle", "stop")
+	stopFile := filepath.Join(dir, ".wolfcastle", "system", "stop")
 	if err := os.WriteFile(stopFile, []byte(""), 0644); err != nil {
 		t.Fatalf("creating stop file: %v", err)
 	}

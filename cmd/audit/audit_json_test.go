@@ -211,7 +211,7 @@ func TestScope_SetSystems(t *testing.T) {
 func TestAuditList_WithScopes(t *testing.T) {
 	env := newTestEnv(t)
 
-	baseAudits := filepath.Join(env.WolfcastleDir, "base", "audits")
+	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
 	_ = os.WriteFile(filepath.Join(baseAudits, "security.md"), []byte("Check security"), 0644)
 

@@ -165,7 +165,7 @@ func TestDaemon_PromptContainsRuleFragments(t *testing.T) {
 	run(t, dir, "init")
 
 	// Write a custom rule fragment into base/rules/
-	rulesDir := filepath.Join(dir, ".wolfcastle", "base", "rules")
+	rulesDir := filepath.Join(dir, ".wolfcastle", "system", "base", "rules")
 	if err := os.MkdirAll(rulesDir, 0755); err != nil {
 		t.Fatalf("creating rules dir: %v", err)
 	}

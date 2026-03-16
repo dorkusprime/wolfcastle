@@ -16,15 +16,15 @@ func TestScaffold_CreatesAllRequiredDirectories(t *testing.T) {
 	}
 
 	expectedDirs := []string{
-		"base/prompts",
-		"base/rules",
-		"base/audits",
-		"custom",
-		"local",
+		"system/base/prompts",
+		"system/base/rules",
+		"system/base/audits",
+		"system/custom",
+		"system/local",
+		"system/logs",
 		"archive",
 		"docs/decisions",
 		"docs/specs",
-		"logs",
 	}
 	for _, d := range expectedDirs {
 		path := filepath.Join(dir, d)
@@ -47,7 +47,7 @@ func TestScaffold_CreatesBaseConfigJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "base", "config.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "system", "base", "config.json"))
 	if err != nil {
 		t.Fatal("base/config.json not created:", err)
 	}
@@ -81,7 +81,7 @@ func TestScaffold_CreatesCustomConfigJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "custom", "config.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "system/custom", "config.json"))
 	if err != nil {
 		t.Fatal("custom/config.json not created:", err)
 	}
@@ -104,7 +104,7 @@ func TestScaffold_CreatesLocalConfigJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "local", "config.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "system/local", "config.json"))
 	if err != nil {
 		t.Fatal("local/config.json not created:", err)
 	}
@@ -135,7 +135,7 @@ func TestScaffold_CreatesRootIndex(t *testing.T) {
 	}
 
 	// Find the projects directory (it's under projects/<user>-<machine>/)
-	entries, err := os.ReadDir(filepath.Join(dir, "projects"))
+	entries, err := os.ReadDir(filepath.Join(dir, "system", "projects"))
 	if err != nil {
 		t.Fatal("projects directory not created:", err)
 	}
@@ -143,7 +143,7 @@ func TestScaffold_CreatesRootIndex(t *testing.T) {
 		t.Fatalf("expected 1 namespace directory, got %d", len(entries))
 	}
 
-	stateFile := filepath.Join(dir, "projects", entries[0].Name(), "state.json")
+	stateFile := filepath.Join(dir, "system", "projects", entries[0].Name(), "state.json")
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		t.Fatal("state.json not created:", err)
@@ -172,7 +172,7 @@ func TestScaffold_CreatesGitignore(t *testing.T) {
 	}
 
 	content := string(data)
-	for _, expected := range []string{"!custom/", "!projects/", "!archive/", "!docs/"} {
+	for _, expected := range []string{"!system/custom/", "!system/projects/", "!archive/", "!docs/"} {
 		if !contains(content, expected) {
 			t.Errorf(".gitignore should contain %q", expected)
 		}
@@ -189,7 +189,7 @@ func TestReScaffold_RegeneratesBase(t *testing.T) {
 	}
 
 	// Remove a base file to verify it gets regenerated
-	promptFile := filepath.Join(dir, "base", "prompts", "execute.md")
+	promptFile := filepath.Join(dir, "system", "base", "prompts", "execute.md")
 	if err := os.Remove(promptFile); err != nil {
 		t.Fatal("removing prompt file:", err)
 	}
@@ -213,7 +213,7 @@ func TestReScaffold_PreservesCustomConfigJSON(t *testing.T) {
 	}
 
 	// Modify custom/config.json
-	cfgPath := filepath.Join(dir, "custom", "config.json")
+	cfgPath := filepath.Join(dir, "system/custom", "config.json")
 	custom := []byte(`{"custom_key": "custom_value"}`)
 	if err := os.WriteFile(cfgPath, custom, 0644); err != nil {
 		t.Fatal(err)
@@ -239,7 +239,7 @@ func TestReScaffold_OverwritesBaseConfigJSON(t *testing.T) {
 	}
 
 	// Modify base/config.json
-	cfgPath := filepath.Join(dir, "base", "config.json")
+	cfgPath := filepath.Join(dir, "system", "base", "config.json")
 	if err := os.WriteFile(cfgPath, []byte(`{"stale": true}`), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestReScaffold_RefreshesIdentity(t *testing.T) {
 	}
 
 	// Write local/config.json with extra keys
-	localPath := filepath.Join(dir, "local", "config.json")
+	localPath := filepath.Join(dir, "system/local", "config.json")
 	localCfg := map[string]any{
 		"identity":  map[string]any{"user": "old-user", "machine": "old-machine"},
 		"extra_key": "should_be_preserved",
@@ -304,7 +304,7 @@ func TestReScaffold_HandlesCorruptLocalConfig(t *testing.T) {
 	}
 
 	// Write invalid JSON to local/config.json
-	localPath := filepath.Join(dir, "local", "config.json")
+	localPath := filepath.Join(dir, "system/local", "config.json")
 	_ = os.WriteFile(localPath, []byte("not json"), 0644)
 
 	err := ReScaffold(dir)
@@ -322,14 +322,14 @@ func TestReScaffold_HandlesMissingLocalConfig(t *testing.T) {
 	}
 
 	// Remove local/config.json
-	_ = os.Remove(filepath.Join(dir, "local", "config.json"))
+	_ = os.Remove(filepath.Join(dir, "system/local", "config.json"))
 
 	// ReScaffold should create it
 	if err := ReScaffold(dir); err != nil {
 		t.Fatal("ReScaffold should handle missing local/config.json:", err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "local", "config.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "system/local", "config.json"))
 	if err != nil {
 		t.Fatal("ReScaffold should create local/config.json:", err)
 	}
@@ -359,8 +359,8 @@ func TestReScaffold_MigratesOldConfigJSON(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "config.local.json"), []byte(oldLocal), 0644)
 
 	// Remove the three-tier files so migration is the only source
-	_ = os.Remove(filepath.Join(dir, "custom", "config.json"))
-	_ = os.Remove(filepath.Join(dir, "local", "config.json"))
+	_ = os.Remove(filepath.Join(dir, "system/custom", "config.json"))
+	_ = os.Remove(filepath.Join(dir, "system/local", "config.json"))
 
 	if err := ReScaffold(dir); err != nil {
 		t.Fatal(err)
@@ -375,7 +375,7 @@ func TestReScaffold_MigratesOldConfigJSON(t *testing.T) {
 	}
 
 	// custom/config.json should contain the migrated content
-	data, err := os.ReadFile(filepath.Join(dir, "custom", "config.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "system/custom", "config.json"))
 	if err != nil {
 		t.Fatal("custom/config.json should exist after migration:", err)
 	}
@@ -387,7 +387,7 @@ func TestReScaffold_MigratesOldConfigJSON(t *testing.T) {
 	}
 
 	// local/config.json should contain identity from migration, plus refreshed identity from ReScaffold
-	localData, err := os.ReadFile(filepath.Join(dir, "local", "config.json"))
+	localData, err := os.ReadFile(filepath.Join(dir, "system/local", "config.json"))
 	if err != nil {
 		t.Fatal("local/config.json should exist after migration:", err)
 	}
@@ -414,21 +414,21 @@ func containsHelper(s, substr string) bool {
 func TestWriteBasePrompts_CreatesPromptFiles(t *testing.T) {
 	t.Parallel()
 	dir := filepath.Join(t.TempDir(), ".wolfcastle")
-	_ = os.MkdirAll(filepath.Join(dir, "base", "prompts"), 0755)
-	_ = os.MkdirAll(filepath.Join(dir, "base", "rules"), 0755)
-	_ = os.MkdirAll(filepath.Join(dir, "base", "audits"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "prompts"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "rules"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base", "audits"), 0755)
 
 	if err := WriteBasePrompts(dir); err != nil {
 		t.Fatal(err)
 	}
 
 	expectedFiles := []string{
-		"base/prompts/execute.md",
-		"base/prompts/expand.md",
-		"base/prompts/file.md",
-		"base/prompts/summary.md",
-		"base/prompts/script-reference.md",
-		"base/rules/git-conventions.md",
+		"system/base/prompts/execute.md",
+		"system/base/prompts/expand.md",
+		"system/base/prompts/file.md",
+		"system/base/prompts/summary.md",
+		"system/base/prompts/script-reference.md",
+		"system/base/rules/git-conventions.md",
 	}
 	for _, f := range expectedFiles {
 		path := filepath.Join(dir, f)

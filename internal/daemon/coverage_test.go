@@ -21,7 +21,7 @@ func TestNew_LogDirCreationFails(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir()
 	// Put a file where the log dir should be
-	blocker := filepath.Join(tmp, ".wolfcastle", "logs")
+	blocker := filepath.Join(tmp, ".wolfcastle", "system", "logs")
 	_ = os.MkdirAll(filepath.Dir(blocker), 0755)
 	_ = os.WriteFile(blocker, []byte("block"), 0644)
 
@@ -57,7 +57,7 @@ func TestNew_ResumesIteration(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir()
 	wolfDir := filepath.Join(tmp, ".wolfcastle")
-	logDir := filepath.Join(wolfDir, "logs")
+	logDir := filepath.Join(wolfDir, "system", "logs")
 	_ = os.MkdirAll(logDir, 0755)
 	// Create fake log files
 	_ = os.WriteFile(filepath.Join(logDir, "0005-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
@@ -163,7 +163,7 @@ func TestResolveContextHeader_MissingTemplate(t *testing.T) {
 func TestResolveContextHeader_WithTemplate(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	promptsDir := filepath.Join(dir, "base", "prompts")
+	promptsDir := filepath.Join(dir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptsDir, 0755)
 	_ = os.WriteFile(filepath.Join(promptsDir, "expand-context.md"), []byte("# Custom Header\n"), 0644)
 

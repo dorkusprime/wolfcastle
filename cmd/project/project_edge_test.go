@@ -18,7 +18,7 @@ func TestProjectCreate_OverlapEnabled(t *testing.T) {
 	env.App.Cfg.OverlapAdvisory.Threshold = 0.1
 
 	// Create another engineer's namespace with similar project
-	otherDir := filepath.Join(env.WolfcastleDir, "projects", "alice-dev")
+	otherDir := filepath.Join(env.WolfcastleDir, "system", "projects", "alice-dev")
 	_ = os.MkdirAll(otherDir, 0755)
 	_ = os.WriteFile(filepath.Join(otherDir, "auth-system.md"),
 		[]byte("authentication system endpoint login"), 0644)
@@ -161,7 +161,7 @@ func TestProjectCreate_OverlapWithMultipleEngineers(t *testing.T) {
 
 	// Create two other engineers with similar projects
 	for _, engineer := range []string{"alice-dev", "bob-dev"} {
-		dir := filepath.Join(env.WolfcastleDir, "projects", engineer)
+		dir := filepath.Join(env.WolfcastleDir, "system", "projects", engineer)
 		_ = os.MkdirAll(dir, 0755)
 		_ = os.WriteFile(filepath.Join(dir, "auth-system.md"),
 			[]byte("authentication authorization system login"), 0644)

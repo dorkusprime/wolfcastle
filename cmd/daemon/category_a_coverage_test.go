@@ -33,7 +33,7 @@ func TestShowAllStatus_NamespaceWithBrokenStateJSON(t *testing.T) {
 	env := newStatusTestEnv(t)
 
 	// Create a second namespace with broken state.json
-	brokenDir := filepath.Join(env.WolfcastleDir, "projects", "broken-ns")
+	brokenDir := filepath.Join(env.WolfcastleDir, "system", "projects", "broken-ns")
 	_ = os.MkdirAll(brokenDir, 0755)
 	_ = os.WriteFile(filepath.Join(brokenDir, "state.json"), []byte("not valid json"), 0644)
 
@@ -53,7 +53,7 @@ func TestShowAllStatus_NoSummaries(t *testing.T) {
 
 	// projects/ dir exists but has no namespace subdirectories at all
 	// Remove the default namespace dir
-	_ = os.RemoveAll(filepath.Join(env.WolfcastleDir, "projects", "test-dev"))
+	_ = os.RemoveAll(filepath.Join(env.WolfcastleDir, "system", "projects", "test-dev"))
 
 	// No namespaces should result in "No engineer namespaces found"
 	err := showAllStatus(env.App)
@@ -67,7 +67,7 @@ func TestShowAllStatus_NoSummaries_JSON(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	_ = os.RemoveAll(filepath.Join(env.WolfcastleDir, "projects", "test-dev"))
+	_ = os.RemoveAll(filepath.Join(env.WolfcastleDir, "system", "projects", "test-dev"))
 
 	err := showAllStatus(env.App)
 	if err != nil {

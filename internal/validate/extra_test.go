@@ -204,7 +204,8 @@ func TestValidateAll_DetectsStalePIDFile(t *testing.T) {
 	idx := state.NewRootIndex()
 
 	// Write a PID file with a definitely-dead PID
-	_ = os.WriteFile(filepath.Join(wDir, "wolfcastle.pid"), []byte("99999999\n"), 0644)
+	_ = os.MkdirAll(filepath.Join(wDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(wDir, "system", "wolfcastle.pid"), []byte("99999999\n"), 0644)
 
 	engine := NewEngine(dir, DefaultNodeLoader(dir), wDir)
 	report := engine.ValidateAll(idx)
@@ -226,7 +227,8 @@ func TestValidateAll_DetectsStaleStopFile(t *testing.T) {
 	wDir := t.TempDir()
 	idx := state.NewRootIndex()
 
-	_ = os.WriteFile(filepath.Join(wDir, "stop"), []byte(""), 0644)
+	_ = os.MkdirAll(filepath.Join(wDir, "system"), 0755)
+	_ = os.WriteFile(filepath.Join(wDir, "system", "stop"), []byte(""), 0644)
 
 	engine := NewEngine(dir, DefaultNodeLoader(dir), wDir)
 	report := engine.ValidateAll(idx)
@@ -334,7 +336,8 @@ func TestApplyDeterministicFixes_StalePIDFile(t *testing.T) {
 	_ = state.SaveRootIndex(idxPath, idx)
 
 	// Create a stale PID file
-	pidPath := filepath.Join(wDir, "wolfcastle.pid")
+	_ = os.MkdirAll(filepath.Join(wDir, "system"), 0755)
+	pidPath := filepath.Join(wDir, "system", "wolfcastle.pid")
 	_ = os.WriteFile(pidPath, []byte("99999999\n"), 0644)
 
 	issues := []Issue{{
@@ -364,7 +367,8 @@ func TestApplyDeterministicFixes_StaleStopFile(t *testing.T) {
 	idxPath := filepath.Join(dir, "state.json")
 	_ = state.SaveRootIndex(idxPath, idx)
 
-	stopPath := filepath.Join(wDir, "stop")
+	_ = os.MkdirAll(filepath.Join(wDir, "system"), 0755)
+	stopPath := filepath.Join(wDir, "system", "stop")
 	_ = os.WriteFile(stopPath, []byte(""), 0644)
 
 	issues := []Issue{{

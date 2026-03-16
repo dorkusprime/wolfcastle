@@ -309,7 +309,7 @@ func taskGlyph(s state.NodeStatus) string {
 
 // getDaemonStatus checks the PID file and reports daemon status.
 func getDaemonStatus(wolfcastleDir string) string {
-	pidPath := filepath.Join(wolfcastleDir, "wolfcastle.pid")
+	pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
 	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		return "stopped"
@@ -329,7 +329,7 @@ func getDaemonStatus(wolfcastleDir string) string {
 }
 
 func showAllStatus(app *cmdutil.App) error {
-	projectsDir := filepath.Join(app.WolfcastleDir, "projects")
+	projectsDir := filepath.Join(app.WolfcastleDir, "system", "projects")
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
 		return fmt.Errorf("reading projects dir: %w", err)

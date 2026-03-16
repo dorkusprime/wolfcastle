@@ -359,21 +359,21 @@ func TestCompareNamespace_RecursesSubdirs(t *testing.T) {
 func TestLoadConfig_Success(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(filepath.Join(wcDir, "base"), 0755)
-	_ = os.MkdirAll(filepath.Join(wcDir, "local"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "local"), 0755)
 
 	// Use Defaults() to get a valid config, then marshal
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "tester", Machine: "box"}
 	cfgData, _ := json.MarshalIndent(cfg, "", "  ")
-	_ = os.WriteFile(filepath.Join(wcDir, "base", "config.json"), cfgData, 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), cfgData, 0644)
 
 	localJSON := `{"identity": {"user": "tester", "machine": "box"}}`
-	_ = os.WriteFile(filepath.Join(wcDir, "local", "config.json"), []byte(localJSON), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), []byte(localJSON), 0644)
 
 	// Create projects dir for namespace
 	ns := "tester-box"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	// Write a root index so the resolver can init
@@ -451,7 +451,7 @@ func TestCheckOverlap_EmptyProject(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
-	_ = os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
 
 	a := &App{
 		WolfcastleDir: wcDir,
@@ -468,10 +468,10 @@ func TestCheckOverlap_FindsMatch(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
-	_ = os.MkdirAll(filepath.Join(wcDir, "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
 
 	// Create another engineer's namespace with similar project
-	otherDir := filepath.Join(wcDir, "projects", "alice-dev")
+	otherDir := filepath.Join(wcDir, "system", "projects", "alice-dev")
 	_ = os.MkdirAll(otherDir, 0755)
 	_ = os.WriteFile(filepath.Join(otherDir, "database-migration.md"),
 		[]byte("database migration schema upgrade postgresql"), 0644)
@@ -530,7 +530,7 @@ func TestCompleteNodeAddresses_WithResolver(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	idxJSON := `{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"not_started","address":"my-node","children":[]}}}`
@@ -561,7 +561,7 @@ func TestLoadRootIndexForCompletion_AlreadyLoaded(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	idxJSON := `{"nodes":{}}`
@@ -609,7 +609,7 @@ func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	// Create a root index with a leaf node

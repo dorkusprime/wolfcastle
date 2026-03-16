@@ -45,7 +45,7 @@ func TestConfig_NullDeletion(t *testing.T) {
 	localConfig := map[string]any{
 		"identity": nil,
 	}
-	writeJSON(t, filepath.Join(wcDir, "local", "config.json"), localConfig)
+	writeJSON(t, filepath.Join(wcDir, "system", "local", "config.json"), localConfig)
 
 	// Status (which requires identity) should fail after null deletion
 	out := runExpectError(t, dir, "status")
@@ -60,7 +60,7 @@ func TestConfig_PromptOverride(t *testing.T) {
 	run(t, dir, "init")
 
 	// Create a custom prompt override
-	customDir := filepath.Join(dir, ".wolfcastle", "custom", "prompts")
+	customDir := filepath.Join(dir, ".wolfcastle", "system", "custom", "prompts")
 	if err := os.MkdirAll(customDir, 0755); err != nil {
 		t.Fatalf("creating custom prompts dir: %v", err)
 	}

@@ -32,18 +32,18 @@ func newTestEnv(t *testing.T) *testEnv {
 	_ = os.MkdirAll(wcDir, 0755)
 
 	// Write base/config.json with defaults
-	_ = os.MkdirAll(filepath.Join(wcDir, "base"), 0755)
-	_ = os.MkdirAll(filepath.Join(wcDir, "custom"), 0755)
-	_ = os.MkdirAll(filepath.Join(wcDir, "local"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "custom"), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "local"), 0755)
 
 	cfg := config.Defaults()
 	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
 	cfg.Docs.Directory = "docs"
 	cfgData, _ := json.MarshalIndent(cfg, "", "  ")
-	_ = os.WriteFile(filepath.Join(wcDir, "base", "config.json"), cfgData, 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), cfgData, 0644)
 
 	// Write custom/config.json (empty)
-	_ = os.WriteFile(filepath.Join(wcDir, "custom", "config.json"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "custom", "config.json"), []byte("{}"), 0644)
 
 	// Write local/config.json with identity
 	localCfg := map[string]any{
@@ -53,11 +53,11 @@ func newTestEnv(t *testing.T) *testEnv {
 		},
 	}
 	localData, _ := json.MarshalIndent(localCfg, "", "  ")
-	_ = os.WriteFile(filepath.Join(wcDir, "local", "config.json"), localData, 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), localData, 0644)
 
 	// Create projects namespace directory
 	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "projects", ns)
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
 	_ = os.MkdirAll(projDir, 0755)
 
 	// Write empty root index

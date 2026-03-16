@@ -180,10 +180,10 @@ func TestIntegration_ThreeTierPromptOverride(t *testing.T) {
 		tiers    []string // which tiers to populate (base, custom, local)
 		expected string   // which marker the mock should see
 	}{
-		{"base only", []string{"base"}, "BASE_MARKER"},
-		{"custom overrides base", []string{"base", "custom"}, "CUSTOM_MARKER"},
-		{"local overrides all", []string{"base", "custom", "local"}, "LOCAL_MARKER"},
-		{"local overrides base (no custom)", []string{"base", "local"}, "LOCAL_MARKER"},
+		{"base only", []string{"system/base"}, "BASE_MARKER"},
+		{"custom overrides base", []string{"system/base", "system/custom"}, "CUSTOM_MARKER"},
+		{"local overrides all", []string{"system/base", "system/custom", "system/local"}, "LOCAL_MARKER"},
+		{"local overrides base (no system/custom)", []string{"system/base", "system/local"}, "LOCAL_MARKER"},
 	}
 
 	for _, tt := range tests {
@@ -197,9 +197,9 @@ func TestIntegration_ThreeTierPromptOverride(t *testing.T) {
 			})
 
 			markers := map[string]string{
-				"base":   "BASE_MARKER",
-				"custom": "CUSTOM_MARKER",
-				"local":  "LOCAL_MARKER",
+				"system/base":   "BASE_MARKER",
+				"system/custom": "CUSTOM_MARKER",
+				"system/local":  "LOCAL_MARKER",
 			}
 
 			for _, tier := range tt.tiers {

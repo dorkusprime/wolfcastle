@@ -71,10 +71,10 @@ Examples:
 			}))
 		} else {
 			output.PrintHuman("Wolfcastle deployed in %s", wcDir)
-			output.PrintHuman("  base/config.json     defaults (regenerated on update)")
-			output.PrintHuman("  custom/config.json   team overrides (committed)")
-			output.PrintHuman("  local/config.json    your identity (gitignored)")
-			output.PrintHuman("  base/                prompts and rules")
+			output.PrintHuman("  system/base/config.json     defaults (regenerated on update)")
+			output.PrintHuman("  system/custom/config.json   team overrides (committed)")
+			output.PrintHuman("  system/local/config.json    your identity (gitignored)")
+			output.PrintHuman("  system/base/                prompts and rules")
 			output.PrintHuman("")
 			output.PrintHuman("Next: wolfcastle project create \"target-name\"")
 		}
@@ -83,6 +83,6 @@ Examples:
 }
 
 func init() {
-	initCmd.Flags().Bool("force", false, "Re-scaffold base/ templates and refresh identity")
+	initCmd.Flags().Bool("force", false, "Re-scaffold system/base/ templates and refresh identity")
 	rootCmd.AddCommand(initCmd)
 }

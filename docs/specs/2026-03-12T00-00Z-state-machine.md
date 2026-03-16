@@ -356,7 +356,7 @@ Per ADR-024, state is distributed as one `state.json` per node, co-located with 
 ### 10.1 File Layout
 
 ```
-.wolfcastle/projects/wild-macbook/
+.wolfcastle/system/projects/wild-macbook/
   state.json                          # Root index (tree structure, node registry)
   attunement-tree/
     state.json                        # Orchestrator node state

@@ -19,7 +19,7 @@ An extensible installation command for integrations. Currently supports one targ
 ### Claude Code Skill Installation
 `wolfcastle install skill`:
 1. Detects symlink support on the current OS
-2. If symlinks supported: creates `project_root/.claude/wolfcastle/` as a symlink to the skill definition in `.wolfcastle/base/skills/`
+2. If symlinks supported: creates `project_root/.claude/wolfcastle/` as a symlink to the skill definition in `.wolfcastle/system/base/skills/`
 3. If no symlink support: copies the skill files to `.claude/wolfcastle/`
 4. The skill enables CC users to run Wolfcastle commands natively from conversation
 

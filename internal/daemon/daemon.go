@@ -70,7 +70,7 @@ type Daemon struct {
 
 // New creates a new daemon.
 func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scopeNode string, repoDir string) (*Daemon, error) {
-	logDir := filepath.Join(wolfcastleDir, "logs")
+	logDir := filepath.Join(wolfcastleDir, "system", "logs")
 	logger, err := logging.NewLogger(logDir)
 	if err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				// file before exiting to prevent stale PID on next start.
 				go func() {
 					time.Sleep(2 * time.Second)
-					_ = os.Remove(filepath.Join(d.WolfcastleDir, "wolfcastle.pid"))
+					_ = os.Remove(filepath.Join(d.WolfcastleDir, "system", "wolfcastle.pid"))
 					os.Exit(0)
 				}()
 				return
@@ -327,7 +327,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				retOpts = append(retOpts, logging.WithCompression())
 			}
 			_ = logging.EnforceRetention(
-				filepath.Join(d.WolfcastleDir, "logs"),
+				filepath.Join(d.WolfcastleDir, "system", "logs"),
 				d.Config.Logs.MaxFiles,
 				d.Config.Logs.MaxAgeDays,
 				retOpts...,
@@ -353,7 +353,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	}
 
 	// Check stop file
-	stopFilePath := filepath.Join(d.WolfcastleDir, "stop")
+	stopFilePath := filepath.Join(d.WolfcastleDir, "system", "stop")
 	if _, err := os.Stat(stopFilePath); err == nil {
 		_ = os.Remove(stopFilePath)
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})

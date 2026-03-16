@@ -13,7 +13,7 @@ func TestAssemblePrompt_LightweightStage(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create a prompt file for the lightweight stage
-	promptsDir := filepath.Join(dir, "base", "prompts")
+	promptsDir := filepath.Join(dir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptsDir, 0755)
 	_ = os.WriteFile(filepath.Join(promptsDir, "navigate.md"),
 		[]byte("Navigate to next task"), 0644)
@@ -40,12 +40,12 @@ func TestAssemblePrompt_FullStageWithRules(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create prompts and rules
-	promptsDir := filepath.Join(dir, "base", "prompts")
+	promptsDir := filepath.Join(dir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptsDir, 0755)
 	_ = os.WriteFile(filepath.Join(promptsDir, "execute.md"),
 		[]byte("Execute the task"), 0644)
 
-	rulesDir := filepath.Join(dir, "base", "rules")
+	rulesDir := filepath.Join(dir, "system", "base", "rules")
 	_ = os.MkdirAll(rulesDir, 0755)
 	_ = os.WriteFile(filepath.Join(rulesDir, "safety.md"),
 		[]byte("Always validate input"), 0644)
@@ -79,7 +79,7 @@ func TestResolvePromptTemplate_WithData(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	promptsDir := filepath.Join(dir, "base", "prompts")
+	promptsDir := filepath.Join(dir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptsDir, 0755)
 	_ = os.WriteFile(filepath.Join(promptsDir, "test.md"),
 		[]byte("Hello {{.Name}}!"), 0644)

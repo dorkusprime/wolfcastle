@@ -33,7 +33,7 @@ copies on Windows.`,
 		skillDir := filepath.Join(claudeDir, "wolfcastle")
 
 		// Source: base/skills/ in .wolfcastle
-		sourceDir := filepath.Join(app.WolfcastleDir, "base", "skills")
+		sourceDir := filepath.Join(app.WolfcastleDir, "system", "base", "skills")
 
 		// Ensure source exists and has content
 		if err := ensureSkillSource(sourceDir); err != nil {

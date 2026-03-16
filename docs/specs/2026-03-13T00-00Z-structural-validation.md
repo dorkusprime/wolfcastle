@@ -12,7 +12,7 @@ The validation engine checks for every category of structural issue that can ari
 
 ### 1.1 Root Index Inconsistencies
 
-The root `state.json` (at `.wolfcastle/projects/{identity}/state.json`) is the centralized index of the full tree structure. It must be consistent with the per-node state files that exist on disk.
+The root `state.json` (at `.wolfcastle/system/projects/{identity}/state.json`) is the centralized index of the full tree structure. It must be consistent with the per-node state files that exist on disk.
 
 #### ROOTINDEX_DANGLING_REF
 
@@ -22,7 +22,7 @@ The root `state.json` (at `.wolfcastle/projects/{identity}/state.json`) is the c
 
 **Severity**: Error
 
-**Example**: Root index lists `attunement-tree/fire-impl` as a child, but `.wolfcastle/projects/wild-macbook/attunement-tree/fire-impl/state.json` does not exist.
+**Example**: Root index lists `attunement-tree/fire-impl` as a child, but `.wolfcastle/system/projects/wild-macbook/attunement-tree/fire-impl/state.json` does not exist.
 
 #### ROOTINDEX_MISSING_ENTRY
 
@@ -42,7 +42,7 @@ The root `state.json` (at `.wolfcastle/projects/{identity}/state.json`) is the c
 
 **Severity**: Error
 
-**Example**: `.wolfcastle/projects/wild-macbook/attunement-tree/ice-impl/state.json` exists, but `attunement-tree`'s `state.json` does not list `ice-impl` in its `children` array.
+**Example**: `.wolfcastle/system/projects/wild-macbook/attunement-tree/ice-impl/state.json` exists, but `attunement-tree`'s `state.json` does not list `ice-impl` in its `children` array.
 
 ### 1.3 Orphaned Definition Files
 
@@ -54,7 +54,7 @@ The root `state.json` (at `.wolfcastle/projects/{identity}/state.json`) is the c
 
 **Severity**: Warning
 
-**Example**: `.wolfcastle/projects/wild-macbook/attunement-tree/ice-impl.md` exists, but there is no `ice-impl` node under `attunement-tree` in any state file.
+**Example**: `.wolfcastle/system/projects/wild-macbook/attunement-tree/ice-impl.md` exists, but there is no `ice-impl` node under `attunement-tree` in any state file.
 
 ### 1.4 State Propagation Errors
 
@@ -624,19 +624,19 @@ Errors (3)
 
   ERROR  ROOTINDEX_DANGLING_REF
          Node:  attunement-tree/fire-impl
-         File:  .wolfcastle/projects/wild-macbook/state.json
+         File:  .wolfcastle/system/projects/wild-macbook/state.json
          Root index references node, but no state.json exists on disk.
          Fix:   Remove dangling entry from root index. [deterministic]
 
   ERROR  PROPAGATION_MISMATCH
          Node:  attunement-tree
-         File:  .wolfcastle/projects/wild-macbook/attunement-tree/state.json
+         File:  .wolfcastle/system/projects/wild-macbook/attunement-tree/state.json
          Orchestrator state is "complete" but child "water-impl" is "in_progress".
          Fix:   Recompute orchestrator state from children. [deterministic]
 
   ERROR  MISSING_AUDIT_TASK
          Node:  attunement-tree/water-impl
-         File:  .wolfcastle/projects/wild-macbook/attunement-tree/water-impl/state.json
+         File:  .wolfcastle/system/projects/wild-macbook/attunement-tree/water-impl/state.json
          Leaf node has no audit task.
          Fix:   Append default audit task. [deterministic]
 
@@ -644,7 +644,7 @@ Warnings (1)
 ------------
 
   WARN   ORPHAN_DEFINITION
-         File:  .wolfcastle/projects/wild-macbook/attunement-tree/ice-impl.md
+         File:  .wolfcastle/system/projects/wild-macbook/attunement-tree/ice-impl.md
          Markdown definition file has no corresponding node in state.
          Fix:   Delete orphaned file, or register node. [deterministic]
 
@@ -674,7 +674,7 @@ The JSON report is emitted when `wolfcastle doctor --json` is used. It follows t
         "severity": "error",
         "message": "Root index references node, but no state.json exists on disk.",
         "node_path": "attunement-tree/fire-impl",
-        "file_path": ".wolfcastle/projects/wild-macbook/state.json",
+        "file_path": ".wolfcastle/system/projects/wild-macbook/state.json",
         "field": "root.children",
         "fix_strategy": "deterministic",
         "fix_description": "Remove dangling entry from root index."
@@ -684,7 +684,7 @@ The JSON report is emitted when `wolfcastle doctor --json` is used. It follows t
         "severity": "error",
         "message": "Orchestrator state is \"complete\" but child \"water-impl\" is \"in_progress\".",
         "node_path": "attunement-tree",
-        "file_path": ".wolfcastle/projects/wild-macbook/attunement-tree/state.json",
+        "file_path": ".wolfcastle/system/projects/wild-macbook/attunement-tree/state.json",
         "field": "state",
         "fix_strategy": "deterministic",
         "fix_description": "Recompute orchestrator state from children."
@@ -694,7 +694,7 @@ The JSON report is emitted when `wolfcastle doctor --json` is used. It follows t
         "severity": "error",
         "message": "Leaf node has no audit task.",
         "node_path": "attunement-tree/water-impl",
-        "file_path": ".wolfcastle/projects/wild-macbook/attunement-tree/water-impl/state.json",
+        "file_path": ".wolfcastle/system/projects/wild-macbook/attunement-tree/water-impl/state.json",
         "field": "tasks",
         "fix_strategy": "deterministic",
         "fix_description": "Append default audit task."
@@ -704,7 +704,7 @@ The JSON report is emitted when `wolfcastle doctor --json` is used. It follows t
         "severity": "warning",
         "message": "Markdown definition file has no corresponding node in state.",
         "node_path": "",
-        "file_path": ".wolfcastle/projects/wild-macbook/attunement-tree/ice-impl.md",
+        "file_path": ".wolfcastle/system/projects/wild-macbook/attunement-tree/ice-impl.md",
         "field": "",
         "fix_strategy": "deterministic",
         "fix_description": "Delete orphaned file."
@@ -785,14 +785,14 @@ This prevents the fixer from making things worse.
 
 ### 7.5 Doctor Log
 
-Every fix application is logged to `.wolfcastle/logs/doctor.jsonl` as NDJSON:
+Every fix application is logged to `.wolfcastle/system/logs/doctor.jsonl` as NDJSON:
 
 ```json
 {
   "timestamp": "2026-03-13T14:31:00Z",
   "issue_id": "ROOTINDEX_DANGLING_REF",
   "node_path": "attunement-tree/fire-impl",
-  "file_path": ".wolfcastle/projects/wild-macbook/state.json",
+  "file_path": ".wolfcastle/system/projects/wild-macbook/state.json",
   "fix_strategy": "deterministic",
   "fix_description": "Removed dangling entry from root index.",
   "applied": true,

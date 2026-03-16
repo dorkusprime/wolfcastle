@@ -188,7 +188,7 @@ func TestFixWithVerification_WithWolfcastleDirArg(t *testing.T) {
 	_ = os.MkdirAll(wolfDir, 0755)
 
 	idx := state.NewRootIndex()
-	leafDir := filepath.Join(dir, "projects", "leaf")
+	leafDir := filepath.Join(dir, "system", "projects", "leaf")
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.Tasks = []state.Task{
@@ -200,7 +200,7 @@ func TestFixWithVerification_WithWolfcastleDirArg(t *testing.T) {
 		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "leaf",
 	}
 
-	projDir := filepath.Join(dir, "projects")
+	projDir := filepath.Join(dir, "system", "projects")
 	idxPath := filepath.Join(projDir, "state.json")
 	_ = state.SaveRootIndex(idxPath, idx)
 
@@ -283,7 +283,7 @@ func TestTryModelAssistedFix_WithWolfcastleDirTemplate(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	wolfDir := filepath.Join(dir, ".wolfcastle")
-	promptsDir := filepath.Join(wolfDir, "base", "prompts")
+	promptsDir := filepath.Join(wolfDir, "system", "base", "prompts")
 	_ = os.MkdirAll(promptsDir, 0755)
 	_ = os.WriteFile(filepath.Join(promptsDir, "doctor.md"),
 		[]byte(`Fix {{.Node}}: {{.Description}}`), 0644)
