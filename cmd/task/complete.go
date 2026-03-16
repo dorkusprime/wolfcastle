@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"path/filepath"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -38,47 +37,36 @@ Examples:
 				return fmt.Errorf("--node must be a task address: %w", err)
 			}
 
-			addr, err := tree.ParseAddress(nodeAddr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-			statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
+			var finalNodeState state.NodeStatus
 
-			ns, err := state.LoadNodeState(statePath)
-			if err != nil {
-				return fmt.Errorf("loading node state: %w", err)
-			}
+			// MutateNode handles save + propagation automatically.
+			// Validation commands run inside the callback so that a
+			// failure aborts the mutation before anything is written.
+			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+				if err := state.TaskComplete(ns, taskID); err != nil {
+					return err
+				}
 
-			if err := state.TaskComplete(ns, taskID); err != nil {
-				return err
-			}
-
-			// Run configured validation commands before saving.
-			// If a validation command fails, the error is returned before
-			// SaveNodeState is called, so the in-memory mutation is discarded
-			// and the on-disk state remains unchanged.
-			if app.Cfg != nil {
-				for _, vc := range app.Cfg.Validation.Commands {
-					timeout := 30 * time.Second
-					if vc.TimeoutSeconds > 0 {
-						timeout = time.Duration(vc.TimeoutSeconds) * time.Second
-					}
-					ctx, cancel := context.WithTimeout(context.Background(), timeout)
-					out, err := exec.CommandContext(ctx, "sh", "-c", vc.Run).CombinedOutput()
-					cancel()
-					if err != nil {
-						return fmt.Errorf("validation command %q failed (completion not saved): %v\n%s", vc.Name, err, string(out))
+				// Run configured validation commands before saving.
+				if app.Cfg != nil {
+					for _, vc := range app.Cfg.Validation.Commands {
+						timeout := 30 * time.Second
+						if vc.TimeoutSeconds > 0 {
+							timeout = time.Duration(vc.TimeoutSeconds) * time.Second
+						}
+						ctx, cancel := context.WithTimeout(context.Background(), timeout)
+						out, err := exec.CommandContext(ctx, "sh", "-c", vc.Run).CombinedOutput()
+						cancel()
+						if err != nil {
+							return fmt.Errorf("validation command %q failed (completion not saved): %v\n%s", vc.Name, err, string(out))
+						}
 					}
 				}
-			}
 
-			if err := state.SaveNodeState(statePath, ns); err != nil {
+				finalNodeState = ns.State
+				return nil
+			}); err != nil {
 				return err
-			}
-
-			// Propagate state up through parent orchestrators and root index
-			if err := app.PropagateState(nodeAddr, ns.State); err != nil {
-				return fmt.Errorf("propagating state: %w", err)
 			}
 
 			if app.JSONOutput {
@@ -86,11 +74,11 @@ Examples:
 					"address":    nodeFlag,
 					"task_id":    taskID,
 					"state":      string(state.StatusComplete),
-					"node_state": string(ns.State),
+					"node_state": string(finalNodeState),
 				}))
 			} else {
 				output.PrintHuman("Destroyed %s", nodeFlag)
-				if ns.State == state.StatusComplete {
+				if finalNodeState == state.StatusComplete {
 					output.PrintHuman("Node %s eliminated", nodeAddr)
 				}
 			}

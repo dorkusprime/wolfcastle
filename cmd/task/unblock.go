@@ -2,7 +2,6 @@ package task
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -35,28 +34,11 @@ Examples:
 				return fmt.Errorf("--node must be a task address: %w", err)
 			}
 
-			addr, err := tree.ParseAddress(nodeAddr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-			statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-
-			ns, err := state.LoadNodeState(statePath)
-			if err != nil {
-				return fmt.Errorf("loading node state: %w", err)
-			}
-
-			if err := state.TaskUnblock(ns, taskID); err != nil {
+			// MutateNode handles save + propagation automatically.
+			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+				return state.TaskUnblock(ns, taskID)
+			}); err != nil {
 				return err
-			}
-
-			if err := state.SaveNodeState(statePath, ns); err != nil {
-				return err
-			}
-
-			// Propagate state up through parent orchestrators and root index
-			if err := app.PropagateState(nodeAddr, ns.State); err != nil {
-				return fmt.Errorf("propagating state: %w", err)
 			}
 
 			if app.JSONOutput {

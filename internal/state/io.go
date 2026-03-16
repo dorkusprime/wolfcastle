@@ -91,6 +91,11 @@ func atomicWriteJSON(path string, v any) error {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("writing temp file: %w", err)
 	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("syncing temp file: %w", err)
+	}
 	if err := tmp.Close(); err != nil {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("closing temp file: %w", err)
