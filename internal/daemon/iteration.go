@@ -216,17 +216,32 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			return nil
 		}
 
-		// No terminal marker — auto-commit partial work, then increment failure count
+		// Determine failure type for context injection on retry
+		failureType := "no_terminal_marker"
+		if scanTerminalMarker(result.Stdout) != "" {
+			// A marker was found but cleared by deliverable or progress check
+			failureType = "no_progress"
+		}
+
+		// Auto-commit partial work, then increment failure count
 		autoCommitPartialWork(d.RepoDir, d.Logger, nav.TaskID)
 
 		_ = d.Logger.Log(map[string]any{
-			"type":  "no_terminal_marker",
+			"type":  failureType,
 			"empty": result.Stdout == "",
 			"task":  nav.TaskID,
 		})
 
 		var failCount int
 		mutErr := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+			// Record the failure type for context injection on next retry
+			for i := range ns.Tasks {
+				if ns.Tasks[i].ID == nav.TaskID {
+					ns.Tasks[i].LastFailureType = failureType
+					break
+				}
+			}
+
 			var err error
 			failCount, err = state.IncrementFailure(ns, nav.TaskID)
 			if err != nil {
