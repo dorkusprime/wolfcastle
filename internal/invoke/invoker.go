@@ -32,6 +32,8 @@ const (
 	MarkerBlocked
 	// MarkerSkip indicates WOLFCASTLE_SKIP was found.
 	MarkerSkip
+	// MarkerContinue indicates WOLFCASTLE_CONTINUE was found.
+	MarkerContinue
 )
 
 // String returns the human-readable name of the marker.
@@ -45,6 +47,8 @@ func (m Marker) String() string {
 		return "WOLFCASTLE_BLOCKED"
 	case MarkerSkip:
 		return "WOLFCASTLE_SKIP"
+	case MarkerContinue:
+		return "WOLFCASTLE_CONTINUE"
 	default:
 		return "none"
 	}
@@ -225,6 +229,8 @@ func detectLineMarker(line string, result *Result) {
 			result.TerminalMarker = MarkerYield
 		case strings.Contains(trimmed, "WOLFCASTLE_SKIP"):
 			result.TerminalMarker = MarkerSkip
+		case strings.Contains(trimmed, "WOLFCASTLE_CONTINUE"):
+			result.TerminalMarker = MarkerContinue
 		case strings.Contains(trimmed, "WOLFCASTLE_BLOCKED"):
 			result.TerminalMarker = MarkerBlocked
 		}

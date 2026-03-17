@@ -97,6 +97,17 @@ type NodeState struct {
 	Children []ChildRef `json:"children,omitempty"`
 	// Leaf fields
 	Tasks []Task `json:"tasks,omitempty"`
+	// Orchestrator planning
+	Scope           string         `json:"scope,omitempty"`
+	PendingScope    []string       `json:"pending_scope,omitempty"`
+	SuccessCriteria []string       `json:"success_criteria,omitempty"`
+	AuditEnrichment []string       `json:"audit_enrichment,omitempty"`
+	NeedsPlanning   bool           `json:"needs_planning,omitempty"`
+	PlanningTrigger string         `json:"planning_trigger,omitempty"`
+	PlanningModel   string         `json:"planning_model,omitempty"`
+	ReplanCount     map[string]int `json:"replan_count,omitempty"`
+	MaxReplans      int            `json:"max_replans,omitempty"`
+	PlanningHistory []PlanningPass `json:"planning_history,omitempty"`
 	// Common
 	Audit AuditState `json:"audit"`
 	Specs []string   `json:"specs,omitempty"`
@@ -178,6 +189,13 @@ type Escalation struct {
 	Status      EscalationStatus `json:"status"`
 	ResolvedBy  string           `json:"resolved_by,omitempty"`
 	ResolvedAt  *time.Time       `json:"resolved_at,omitempty"`
+}
+
+// PlanningPass records a single orchestrator planning iteration.
+type PlanningPass struct {
+	Timestamp time.Time `json:"timestamp"`
+	Trigger   string    `json:"trigger"`
+	Summary   string    `json:"summary"`
 }
 
 // NewRootIndex creates an empty root index.

@@ -30,7 +30,17 @@ type ModelDef struct {
 
 // PipelineConfig defines the stage pipeline.
 type PipelineConfig struct {
-	Stages []PipelineStage `json:"stages"`
+	Stages   []PipelineStage `json:"stages"`
+	Planning PlanningConfig  `json:"planning"`
+}
+
+// PlanningConfig controls orchestrator planning passes.
+type PlanningConfig struct {
+	Enabled         bool   `json:"enabled"`
+	Model           string `json:"model,omitempty"`
+	MaxChildren     int    `json:"max_children,omitempty"`
+	MaxTasksPerLeaf int    `json:"max_tasks_per_leaf,omitempty"`
+	MaxReplans      int    `json:"max_replans,omitempty"`
 }
 
 // PipelineStage defines a single pipeline stage.

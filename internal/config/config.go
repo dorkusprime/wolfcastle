@@ -30,6 +30,13 @@ func Defaults() *Config {
 			},
 		},
 		Pipeline: PipelineConfig{
+			Planning: PlanningConfig{
+				Enabled:         false,
+				Model:           "heavy",
+				MaxChildren:     10,
+				MaxTasksPerLeaf: 8,
+				MaxReplans:      3,
+			},
 			Stages: []PipelineStage{
 				{
 					Name:            "intake",

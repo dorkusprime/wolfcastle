@@ -294,7 +294,7 @@ func scanTerminalMarker(output string) string {
 	// This prevents an early YIELD (from prompt echo or an intermediate
 	// model message) from shadowing a later COMPLETE.
 	found := map[string]bool{}
-	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_SKIP", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
+	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_SKIP", "WOLFCASTLE_CONTINUE", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
 
 	for _, line := range strings.Split(output, "\n") {
 		trimmed := strings.TrimSpace(line)
