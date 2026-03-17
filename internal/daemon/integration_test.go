@@ -720,10 +720,11 @@ echo "WOLFCASTLE_COMPLETE"
 // 7. Deliverable verification
 // ═══════════════════════════════════════════════════════════════════════════
 
-// TestIntegration_MissingDeliverable_RejectsComplete verifies that when a task
+// TestIntegration_MissingDeliverable_WarnsButCompletes verifies that when a task
 // declares deliverables and the model emits WOLFCASTLE_COMPLETE without creating
-// the files, the completion is rejected and the failure count increments.
-func TestIntegration_MissingDeliverable_RejectsComplete(t *testing.T) {
+// the files, the deliverable check warns but does not block completion. Git
+// progress is the hard gate; missing deliverables are advisory.
+func TestIntegration_MissingDeliverable_WarnsButCompletes(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = false
 	d.Config.Failure.HardCap = 100
@@ -739,7 +740,8 @@ func TestIntegration_MissingDeliverable_RejectsComplete(t *testing.T) {
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	})
 
-	// Model says COMPLETE but does not create the deliverable file
+	// Model says COMPLETE but does not create the deliverable file.
+	// Without a git repo, checkGitProgress assumes progress (returns true).
 	d.Config.Models["echo"] = config.ModelDef{
 		Command: "echo",
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
@@ -756,12 +758,12 @@ func TestIntegration_MissingDeliverable_RejectsComplete(t *testing.T) {
 	projDir := d.Resolver.ProjectsDir()
 	ns, _ := state.LoadNodeState(filepath.Join(projDir, "deliv-node", "state.json"))
 
-	// Task should NOT be complete (deliverable missing)
-	if ns.Tasks[0].State == state.StatusComplete {
-		t.Error("task should not be complete when deliverables are missing")
+	// Task completes despite missing deliverable (warning only, not a gate)
+	if ns.Tasks[0].State != state.StatusComplete {
+		t.Errorf("task should complete (deliverable is advisory), got %s", ns.Tasks[0].State)
 	}
-	if ns.Tasks[0].FailureCount != 1 {
-		t.Errorf("expected failure count 1, got %d", ns.Tasks[0].FailureCount)
+	if ns.Tasks[0].FailureCount != 0 {
+		t.Errorf("expected failure count 0 (warning only), got %d", ns.Tasks[0].FailureCount)
 	}
 }
 

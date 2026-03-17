@@ -153,16 +153,16 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				ns = updated
 			}
 
-			// Verify deliverables exist before accepting completion.
+			// Verify deliverables exist. Missing deliverables are a warning,
+			// not a completion failure. Git progress is the hard gate.
 			missing := checkDeliverables(d.RepoDir, ns, nav.TaskID)
 			if len(missing) > 0 {
 				_ = d.Logger.Log(map[string]any{
-					"type":    "deliverable_missing",
+					"type":    "deliverable_warning",
 					"task":    nav.TaskID,
 					"missing": missing,
 				})
-				output.PrintHuman("  Deliverables missing: %v. Failing task.", missing)
-				marker = "" // clear so we fall through to the failure path
+				output.PrintHuman("  Warning: declared deliverables missing: %v", missing)
 			}
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {
