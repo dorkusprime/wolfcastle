@@ -73,10 +73,16 @@ Examples:
 			}
 			nsPath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...))
 
+			parentTask, _ := cmd.Flags().GetString("parent")
+
 			var task *state.Task
 			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				var addErr error
-				task, addErr = state.TaskAdd(ns, title)
+				if parentTask != "" {
+					task, addErr = state.TaskAddChild(ns, parentTask, title)
+				} else {
+					task, addErr = state.TaskAdd(ns, title)
+				}
 				if addErr != nil {
 					return addErr
 				}
@@ -148,6 +154,7 @@ Examples:
 	cmd.Flags().StringSlice("acceptance", nil, "Acceptance criterion (repeatable)")
 	cmd.Flags().StringSlice("reference", nil, "Reference material path (repeatable)")
 	cmd.Flags().String("integration", "", "How this task connects to other work")
+	cmd.Flags().String("parent", "", "Parent task ID for hierarchical decomposition (e.g., task-0001)")
 	_ = cmd.MarkFlagRequired("node")
 	return cmd
 }

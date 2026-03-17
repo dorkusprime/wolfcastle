@@ -47,6 +47,129 @@ func TaskAdd(ns *NodeState, description string) (*Task, error) {
 	return &task, nil
 }
 
+// TaskAddChild creates a child task under the given parent with a hierarchical
+// ID (e.g., task-0001.0001). The child is inserted immediately after the parent
+// and any existing children in the flat task list.
+func TaskAddChild(ns *NodeState, parentID, description string) (*Task, error) {
+	// Verify parent exists
+	parentFound := false
+	for _, t := range ns.Tasks {
+		if t.ID == parentID {
+			parentFound = true
+			break
+		}
+	}
+	if !parentFound {
+		return nil, fmt.Errorf("parent task %q not found", parentID)
+	}
+
+	// Find the highest existing child number under this parent
+	prefix := parentID + "."
+	maxChild := 0
+	for _, t := range ns.Tasks {
+		if strings.HasPrefix(t.ID, prefix) {
+			// Extract the immediate child number (first segment after prefix)
+			rest := t.ID[len(prefix):]
+			if dot := strings.Index(rest, "."); dot >= 0 {
+				rest = rest[:dot]
+			}
+			if n, err := strconv.Atoi(rest); err == nil && n > maxChild {
+				maxChild = n
+			}
+		}
+	}
+	childID := fmt.Sprintf("%s.%04d", parentID, maxChild+1)
+
+	task := Task{
+		ID:          childID,
+		Description: description,
+		State:       StatusNotStarted,
+	}
+
+	// Insert after parent and all existing children (maintains lexicographic order)
+	insertIdx := len(ns.Tasks)
+	pastParent := false
+	for i, t := range ns.Tasks {
+		if t.ID == parentID {
+			pastParent = true
+			continue
+		}
+		if pastParent && !strings.HasPrefix(t.ID, prefix) {
+			insertIdx = i
+			break
+		}
+	}
+	ns.Tasks = append(ns.Tasks[:insertIdx], append([]Task{task}, ns.Tasks[insertIdx:]...)...)
+
+	return &task, nil
+}
+
+// TaskChildren returns true if the given task has any children in the task list.
+func TaskChildren(ns *NodeState, taskID string) bool {
+	prefix := taskID + "."
+	for _, t := range ns.Tasks {
+		if strings.HasPrefix(t.ID, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// DeriveParentStatus computes a parent task's status from its children.
+// Returns the derived status and true if the task has children, or the
+// task's own status and false if it has no children.
+func DeriveParentStatus(ns *NodeState, taskID string) (NodeStatus, bool) {
+	prefix := taskID + "."
+	hasChildren := false
+	allComplete := true
+	anyInProgress := false
+	anyBlocked := false
+
+	for _, t := range ns.Tasks {
+		if !strings.HasPrefix(t.ID, prefix) {
+			continue
+		}
+		// Only consider immediate children (one level deep)
+		rest := t.ID[len(prefix):]
+		if strings.Contains(rest, ".") {
+			continue
+		}
+		hasChildren = true
+		switch t.State {
+		case StatusComplete:
+			// ok
+		case StatusInProgress:
+			anyInProgress = true
+			allComplete = false
+		case StatusBlocked:
+			anyBlocked = true
+			allComplete = false
+		default:
+			allComplete = false
+		}
+	}
+
+	if !hasChildren {
+		for _, t := range ns.Tasks {
+			if t.ID == taskID {
+				return t.State, false
+			}
+		}
+		return StatusNotStarted, false
+	}
+
+	if allComplete {
+		return StatusComplete, true
+	}
+	if anyInProgress {
+		return StatusInProgress, true
+	}
+	if anyBlocked {
+		return StatusBlocked, true
+	}
+	return StatusNotStarted, true
+}
+
 // TaskClaim transitions a task from not_started to in_progress.
 func TaskClaim(ns *NodeState, taskID string) error {
 	t := findTask(ns, taskID)
