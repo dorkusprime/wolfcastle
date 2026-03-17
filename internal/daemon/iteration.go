@@ -166,10 +166,16 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {
-			// Verify the model made real changes via git diff.
-			// Deliverables check existence (structural); git diff
-			// checks progress (activity). Two different questions.
-			if !checkGitProgress(d.RepoDir, beforeHEAD) {
+			// Audit tasks skip the git progress check: their output is
+			// state mutations in .wolfcastle/system/, not code changes.
+			isAudit := false
+			for _, t := range ns.Tasks {
+				if t.ID == nav.TaskID {
+					isAudit = t.IsAudit
+					break
+				}
+			}
+			if !isAudit && !checkGitProgress(d.RepoDir, beforeHEAD) {
 				_ = d.Logger.Log(map[string]any{
 					"type": "no_progress",
 					"task": nav.TaskID,
