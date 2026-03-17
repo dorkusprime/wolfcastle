@@ -162,6 +162,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 			}
+			d.autoCompleteDecomposedParents(nav.NodeAddress)
 			return nil
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {
@@ -209,6 +210,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 			}
+			d.autoCompleteDecomposedParents(nav.NodeAddress)
 			return nil
 		}
 
@@ -355,6 +357,54 @@ func extractAssistantText(line string) string {
 		}
 	}
 	return ""
+}
+
+// autoCompleteDecomposedParents checks if any blocked task in the node was
+// decomposed into subtasks and all those subtasks are now complete. If so,
+// the parent is auto-completed.
+func (d *Daemon) autoCompleteDecomposedParents(nodeAddr string) {
+	ns, err := d.Store.ReadNode(nodeAddr)
+	if err != nil {
+		return
+	}
+	const prefix = "decomposed into subtasks: "
+	for _, t := range ns.Tasks {
+		if t.State != state.StatusBlocked || !strings.HasPrefix(t.BlockedReason, prefix) {
+			continue
+		}
+		parts := strings.TrimPrefix(t.BlockedReason, prefix)
+		subtaskIDs := strings.Split(parts, ", ")
+		allComplete := true
+		for _, subID := range subtaskIDs {
+			subID = strings.TrimSpace(subID)
+			found := false
+			for _, sub := range ns.Tasks {
+				if sub.ID == subID {
+					found = true
+					if sub.State != state.StatusComplete {
+						allComplete = false
+					}
+					break
+				}
+			}
+			if !found {
+				allComplete = false
+			}
+			if !allComplete {
+				break
+			}
+		}
+		if allComplete {
+			taskID := t.ID
+			_ = d.Store.MutateNode(nodeAddr, func(ns2 *state.NodeState) error {
+				return state.TaskComplete(ns2, taskID)
+			})
+			_ = d.Logger.Log(map[string]any{
+				"type": "auto_complete_parent",
+				"task": taskID,
+			})
+		}
+	}
 }
 
 // findNewTasks returns the IDs of tasks present in after but not in before,
