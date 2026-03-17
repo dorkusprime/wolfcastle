@@ -174,6 +174,22 @@ func TestScanTerminalMarker(t *testing.T) {
 		{"empty", "", ""},
 		{"multiline with marker last", "line1\nline2\nWOLFCASTLE_COMPLETE", "WOLFCASTLE_COMPLETE"},
 		{"multiline embedded only", "use WOLFCASTLE_YIELD when pausing\nnormal output", ""},
+
+		// Markdown formatting: models sometimes wrap markers in emphasis or backticks
+		{"markdown bold", "**WOLFCASTLE_COMPLETE**", "WOLFCASTLE_COMPLETE"},
+		{"markdown italic", "*WOLFCASTLE_COMPLETE*", "WOLFCASTLE_COMPLETE"},
+		{"backtick", "`WOLFCASTLE_COMPLETE`", "WOLFCASTLE_COMPLETE"},
+		{"underscore emphasis", "__WOLFCASTLE_COMPLETE__", "WOLFCASTLE_COMPLETE"},
+		{"mixed bold+backtick", "**`WOLFCASTLE_COMPLETE`**", "WOLFCASTLE_COMPLETE"},
+		{"blocked bold", "**WOLFCASTLE_BLOCKED**", "WOLFCASTLE_BLOCKED"},
+		{"yield italic", "*WOLFCASTLE_YIELD*", "WOLFCASTLE_YIELD"},
+
+		// SKIP marker: used when a task is already resolved or unnecessary
+		{"skip with reason", "WOLFCASTLE_SKIP already done", "WOLFCASTLE_SKIP"},
+		{"skip standalone", "WOLFCASTLE_SKIP", "WOLFCASTLE_SKIP"},
+		{"skip in json result", `{"type":"result","result":"WOLFCASTLE_SKIP resolved in prior task"}`, "WOLFCASTLE_SKIP"},
+		{"skip priority over blocked", "WOLFCASTLE_BLOCKED\nWOLFCASTLE_SKIP prior work", "WOLFCASTLE_SKIP"},
+		{"complete priority over skip", "WOLFCASTLE_SKIP old\nWOLFCASTLE_COMPLETE", "WOLFCASTLE_COMPLETE"},
 	}
 
 	for _, tt := range tests {
