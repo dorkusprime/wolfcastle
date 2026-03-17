@@ -120,6 +120,7 @@ type Task struct {
 	FailureCount       int        `json:"failure_count"`
 	NeedsDecomposition bool       `json:"needs_decomposition,omitempty"`
 	Deliverables       []string   `json:"deliverables,omitempty"`
+	LastFailureType    string     `json:"last_failure_type,omitempty"`
 }
 
 // AuditState tracks audit information for a node.

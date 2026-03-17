@@ -19,9 +19,9 @@ Read relevant code, ADRs, and specs before making changes. Use grep, find, and f
 ### C. Implement
 Make the changes needed to complete the task. Focus on one concern at a time.
 
-**Before you start writing code, gauge the size of what's ahead.** If the task would consume more than half your context window to complete (significant research AND implementation, multiple unrelated files to create, more than 3-4 distinct concerns tangled together), stop and decompose. Don't try to power through a task that's too large for one pass.
+**Before writing code, list every file you'll need to modify.** If there are more than 8 files, create sub-tasks with `wolfcastle task add` and emit WOLFCASTLE_YIELD. Do not attempt tasks that touch more than 8 files.
 
-To decompose: create sub-tasks with `wolfcastle task add`, then output WOLFCASTLE_YIELD. Each sub-task should be small enough to finish in a single iteration. This is not failure; it's the difference between a plan and a mess.
+To decompose: create sub-tasks with `wolfcastle task add`, then emit WOLFCASTLE_YIELD on its own line. The daemon automatically blocks the parent task and works on the sub-tasks. Each sub-task should be small enough to finish in a single iteration.
 
 Signs you should decompose rather than continue:
 - The task touches multiple unrelated files or packages with no shared concern
@@ -29,9 +29,11 @@ Signs you should decompose rather than continue:
 - You're holding more than 3-4 distinct changes in your head at once
 - You catch yourself thinking "I'll just do this one more thing"
 
-Check your task's deliverables list (shown in the context below). Every listed file must exist and contain meaningful content before you signal WOLFCASTLE_COMPLETE.
+**Do NOT move, rename, or delete packages. Do NOT change import paths.** If you believe a structural change is needed, record it as an audit gap and continue with the current structure.
 
-If the task has no deliverables listed, you MUST declare at least one before completing. Use `wolfcastle task deliverable "path/to/file" --node <your-node/task-id>` to register each output file. The daemon rejects WOLFCASTLE_COMPLETE when deliverables are missing from disk.
+Check your task's deliverables list (shown in the context below). Deliverables are advisory; the daemon warns on missing deliverables but does not block completion. Git progress (committed changes) is the hard gate.
+
+If the task has no deliverables listed, declare at least one before completing. Use `wolfcastle task deliverable "path/to/file" --node <your-node/task-id>` to register each output file.
 
 ### D. Validate
 Run any configured validation commands. Fix issues before proceeding.
@@ -100,24 +102,35 @@ POST /bookmarks → 201 JSON object"
 
 This creates a properly named file in `.wolfcastle/docs/specs/` and links it to the node. Never write specs directly to `docs/` or other locations.
 
+**Specs for new contracts.** If you create a new package or define an interface that other packages depend on, create a spec via `wolfcastle spec create` documenting the contract, error behavior, and usage patterns.
+
 Skip this phase if your task is pure implementation with no design choices.
 
-### G. Commit
+### G. Verify documentation
+
+Before signaling completion, check:
+
+1. **ADRs for technology choices.** If you introduced a new package, chose a library or framework, selected a concurrency strategy, defined an interface, or rejected an alternative approach, you MUST create an ADR via `wolfcastle adr create`. This is not optional. The audit will flag missing ADRs.
+
+2. **Specs for new contracts.** If you created a new package or defined an interface that other packages depend on, create a spec via `wolfcastle spec create` documenting the contract, error behavior, and usage patterns.
+
+### H. Commit
 Commit your changes with a clear message.
 
-### H. Signal completion
+### I. Signal completion
 When the task is fully done, set a summary if this is the last task in the node:
 ```
 wolfcastle audit summary --node <your-node> "one-paragraph summary of what was accomplished"
 ```
 
-Then output WOLFCASTLE_COMPLETE on its own line. This marks the task as complete.
+Then emit one terminal marker on its own line, as plain text. No markdown formatting, no bold, no backticks, no emphasis.
 
-If you made progress but the task needs more work in a follow-up iteration, output WOLFCASTLE_YIELD on its own line instead. The daemon will re-invoke you on the next iteration with the task still in progress.
+- **WOLFCASTLE_COMPLETE** — Task is done. You must have committed changes before emitting this.
+- **WOLFCASTLE_SKIP** *reason* — The task's work was already completed by a prior task, manual change, or codebase evolution. Do not redo work that already exists. Include a reason. Example: `WOLFCASTLE_SKIP tree.Resolver already removed in prior commit`
+- **WOLFCASTLE_YIELD** — You made progress but the task needs more work, or you created sub-tasks and need the daemon to work on them.
+- **WOLFCASTLE_BLOCKED** — The task cannot be completed. Call `wolfcastle task block` first with a reason.
 
-If the task cannot be completed, call `wolfcastle task block --node <your-node/task-id> "reason"` and output WOLFCASTLE_BLOCKED on its own line.
-
-### I. Pre-block downstream tasks (when applicable)
+### J. Pre-block downstream tasks (when applicable)
 
 If your research or analysis reveals that subsequent tasks in this node should NOT proceed (e.g., a technology doesn't exist, requirements are infeasible, a dependency is unavailable), you can pre-block those tasks before they start:
 
@@ -129,7 +142,7 @@ This prevents the daemon from starting tasks that would waste time on impossible
 
 Only do this when you have concrete evidence that the downstream task cannot succeed. Do not pre-block tasks speculatively.
 
-### J. Create follow-up tasks (when applicable)
+### K. Create follow-up tasks (when applicable)
 
 If your task is a discovery or spec-writing task, you may need to create follow-up tasks based on your findings:
 
@@ -145,5 +158,6 @@ This is a hard stop. Do not continue after emitting a terminal marker.
 - One task per iteration. No exceptions.
 - Commit before signaling completion.
 - Never edit state.json files directly.
-- Always emit exactly one terminal marker: WOLFCASTLE_COMPLETE, WOLFCASTLE_YIELD, or WOLFCASTLE_BLOCKED.
+- Always emit exactly one terminal marker as plain text on its own line: WOLFCASTLE_COMPLETE, WOLFCASTLE_SKIP, WOLFCASTLE_YIELD, or WOLFCASTLE_BLOCKED.
+- Do NOT move, rename, or delete packages or change import paths.
 - Never invent structure for technologies you haven't verified. If discovery reveals something doesn't exist, pre-block downstream tasks and explain why.

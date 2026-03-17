@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
+	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -92,8 +94,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			"task":  nav.TaskID,
 		})
 
-		// Record HEAD before invocation so we can detect new commits.
+		// Record HEAD and task list before invocation so we can detect
+		// new commits and new tasks (for YIELD+decomposition).
 		beforeHEAD := gitHEAD(d.RepoDir)
+		preInvocationNS := ns
 
 		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), stage.Name)
 		if cancel != nil {
@@ -126,6 +130,24 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		marker := scanTerminalMarker(result.Stdout)
 		if marker == "WOLFCASTLE_YIELD" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_YIELD"})
+
+			// Check if the model created new tasks during this iteration.
+			// Compare against pre-invocation state since ns was reloaded
+			// after model execution and already includes new tasks.
+			if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+				newTasks := findNewTasks(preInvocationNS, updatedNS)
+				if len(newTasks) > 0 {
+					reason := "decomposed into subtasks: " + strings.Join(newTasks, ", ")
+					_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
+						return state.TaskBlock(ns2, nav.TaskID, reason)
+					})
+					_ = d.Logger.Log(map[string]any{
+						"type":      "yield_decomposition",
+						"task":      nav.TaskID,
+						"new_tasks": newTasks,
+					})
+				}
+			}
 			return nil
 		}
 		if marker == "WOLFCASTLE_BLOCKED" {
@@ -137,6 +159,16 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 			return nil
 		}
+		if marker == "WOLFCASTLE_SKIP" {
+			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_SKIP", "task": nav.TaskID})
+			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+				return state.TaskComplete(ns, nav.TaskID)
+			}); err != nil {
+				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
+			}
+			d.autoCompleteDecomposedParents(nav.NodeAddress)
+			return nil
+		}
 		if marker == "WOLFCASTLE_COMPLETE" {
 			// Re-read state from disk since the model may have added
 			// deliverables via CLI during execution.
@@ -144,23 +176,29 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				ns = updated
 			}
 
-			// Verify deliverables exist before accepting completion.
+			// Verify deliverables exist. Missing deliverables are a warning,
+			// not a completion failure. Git progress is the hard gate.
 			missing := checkDeliverables(d.RepoDir, ns, nav.TaskID)
 			if len(missing) > 0 {
 				_ = d.Logger.Log(map[string]any{
-					"type":    "deliverable_missing",
+					"type":    "deliverable_warning",
 					"task":    nav.TaskID,
 					"missing": missing,
 				})
-				output.PrintHuman("  Deliverables missing: %v. Failing task.", missing)
-				marker = "" // clear so we fall through to the failure path
+				output.PrintHuman("  Warning: declared deliverables missing: %v", missing)
 			}
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {
-			// Verify the model made real changes via git diff.
-			// Deliverables check existence (structural); git diff
-			// checks progress (activity). Two different questions.
-			if !checkGitProgress(d.RepoDir, beforeHEAD) {
+			// Audit tasks skip the git progress check: their output is
+			// state mutations in .wolfcastle/system/, not code changes.
+			isAudit := false
+			for _, t := range ns.Tasks {
+				if t.ID == nav.TaskID {
+					isAudit = t.IsAudit
+					break
+				}
+			}
+			if !isAudit && !checkGitProgress(d.RepoDir, beforeHEAD) {
 				_ = d.Logger.Log(map[string]any{
 					"type": "no_progress",
 					"task": nav.TaskID,
@@ -176,18 +214,36 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 			}
+			d.autoCompleteDecomposedParents(nav.NodeAddress)
 			return nil
 		}
 
-		// No terminal marker — increment failure count
+		// Determine failure type for context injection on retry
+		failureType := "no_terminal_marker"
+		if scanTerminalMarker(result.Stdout) != "" {
+			// A marker was found but cleared by deliverable or progress check
+			failureType = "no_progress"
+		}
+
+		// Auto-commit partial work, then increment failure count
+		autoCommitPartialWork(d.RepoDir, d.Logger, nav.TaskID)
+
 		_ = d.Logger.Log(map[string]any{
-			"type":  "no_terminal_marker",
+			"type":  failureType,
 			"empty": result.Stdout == "",
 			"task":  nav.TaskID,
 		})
 
 		var failCount int
 		mutErr := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+			// Record the failure type for context injection on next retry
+			for i := range ns.Tasks {
+				if ns.Tasks[i].ID == nav.TaskID {
+					ns.Tasks[i].LastFailureType = failureType
+					break
+				}
+			}
+
 			var err error
 			failCount, err = state.IncrementFailure(ns, nav.TaskID)
 			if err != nil {
@@ -238,7 +294,7 @@ func scanTerminalMarker(output string) string {
 	// This prevents an early YIELD (from prompt echo or an intermediate
 	// model message) from shadowing a later COMPLETE.
 	found := map[string]bool{}
-	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
+	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_SKIP", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
 
 	for _, line := range strings.Split(output, "\n") {
 		trimmed := strings.TrimSpace(line)
@@ -252,7 +308,13 @@ func scanTerminalMarker(output string) string {
 		for _, m := range markers {
 			for _, subline := range strings.Split(text, "\n") {
 				sub := strings.TrimSpace(subline)
+				sub = strings.Trim(sub, "*_`")
+				sub = strings.TrimSpace(sub)
 				if sub == m {
+					found[m] = true
+				}
+				// SKIP matches as a prefix: "WOLFCASTLE_SKIP reason text"
+				if m == "WOLFCASTLE_SKIP" && strings.HasPrefix(sub, m+" ") {
 					found[m] = true
 				}
 				if strings.HasSuffix(sub, m) && (len(sub) == len(m) || sub[len(sub)-len(m)-1] == ' ') {
@@ -316,4 +378,108 @@ func extractAssistantText(line string) string {
 		}
 	}
 	return ""
+}
+
+// autoCommitPartialWork commits any uncommitted changes in the repo when a
+// task fails without a terminal marker. This preserves partial work that the
+// model did before failing, preventing it from being lost on the next iteration.
+func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string) {
+	// Check for uncommitted changes
+	statusCmd := exec.Command("git", "status", "--porcelain")
+	statusCmd.Dir = repoDir
+	out, err := statusCmd.Output()
+	if err != nil || len(strings.TrimSpace(string(out))) == 0 {
+		return // no changes or git unavailable
+	}
+
+	// Stage and commit
+	addCmd := exec.Command("git", "add", "-A")
+	addCmd.Dir = repoDir
+	if err := addCmd.Run(); err != nil {
+		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
+		return
+	}
+
+	msg := fmt.Sprintf("wolfcastle: auto-commit partial work [%s]", taskID)
+	commitCmd := exec.Command("git", "commit", "-m", msg, "--no-verify")
+	commitCmd.Dir = repoDir
+	if err := commitCmd.Run(); err != nil {
+		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
+		return
+	}
+
+	_ = logger.Log(map[string]any{"type": "auto_commit", "task": taskID})
+}
+
+// autoCompleteDecomposedParents checks if any blocked task in the node was
+// decomposed into subtasks and all those subtasks are now complete. If so,
+// the parent is auto-completed.
+func (d *Daemon) autoCompleteDecomposedParents(nodeAddr string) {
+	ns, err := d.Store.ReadNode(nodeAddr)
+	if err != nil {
+		return
+	}
+	const prefix = "decomposed into subtasks: "
+	for _, t := range ns.Tasks {
+		if t.State != state.StatusBlocked || !strings.HasPrefix(t.BlockedReason, prefix) {
+			continue
+		}
+		parts := strings.TrimPrefix(t.BlockedReason, prefix)
+		subtaskIDs := strings.Split(parts, ", ")
+		allComplete := true
+		for _, subID := range subtaskIDs {
+			subID = strings.TrimSpace(subID)
+			found := false
+			for _, sub := range ns.Tasks {
+				if sub.ID == subID {
+					found = true
+					if sub.State != state.StatusComplete {
+						allComplete = false
+					}
+					break
+				}
+			}
+			if !found {
+				allComplete = false
+			}
+			if !allComplete {
+				break
+			}
+		}
+		if allComplete {
+			taskID := t.ID
+			_ = d.Store.MutateNode(nodeAddr, func(ns2 *state.NodeState) error {
+				// Unblock the parent first, then complete it.
+				// TaskComplete treats blocked as terminal and won't transition.
+				for i := range ns2.Tasks {
+					if ns2.Tasks[i].ID == taskID && ns2.Tasks[i].State == state.StatusBlocked {
+						ns2.Tasks[i].State = state.StatusInProgress
+						ns2.Tasks[i].BlockedReason = ""
+						break
+					}
+				}
+				return state.TaskComplete(ns2, taskID)
+			})
+			_ = d.Logger.Log(map[string]any{
+				"type": "auto_complete_parent",
+				"task": taskID,
+			})
+		}
+	}
+}
+
+// findNewTasks returns the IDs of tasks present in after but not in before,
+// excluding audit tasks. Used to detect subtasks created during a YIELD.
+func findNewTasks(before, after *state.NodeState) []string {
+	beforeIDs := make(map[string]bool)
+	for _, t := range before.Tasks {
+		beforeIDs[t.ID] = true
+	}
+	var newIDs []string
+	for _, t := range after.Tasks {
+		if !beforeIDs[t.ID] && !t.IsAudit {
+			newIDs = append(newIDs, t.ID)
+		}
+	}
+	return newIDs
 }

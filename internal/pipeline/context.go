@@ -86,6 +86,17 @@ func buildIterationContext(wolfcastleDir string, nodeDir string, nodeAddr string
 		fmt.Fprintf(&b, "**Task State:** %s\n", t.State)
 		if t.FailureCount > 0 {
 			fmt.Fprintf(&b, "**Failure Count:** %d\n", t.FailureCount)
+			if t.LastFailureType != "" {
+				fmt.Fprintf(&b, "\n## Previous Attempt Failed\n\n")
+				switch t.LastFailureType {
+				case "no_terminal_marker":
+					fmt.Fprintf(&b, "The previous attempt did not emit a terminal marker (WOLFCASTLE_COMPLETE, WOLFCASTLE_SKIP, WOLFCASTLE_BLOCKED, or WOLFCASTLE_YIELD). Make sure to emit exactly one terminal marker when done.\n")
+				case "no_progress":
+					fmt.Fprintf(&b, "The previous attempt emitted WOLFCASTLE_COMPLETE but no git changes were detected. You must commit your changes before signaling completion.\n")
+				default:
+					fmt.Fprintf(&b, "The previous attempt failed with reason: %s\n", t.LastFailureType)
+				}
+			}
 		}
 
 		// Failure history and decomposition policy
