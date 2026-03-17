@@ -121,6 +121,13 @@ type Task struct {
 	NeedsDecomposition bool       `json:"needs_decomposition,omitempty"`
 	Deliverables       []string   `json:"deliverables,omitempty"`
 	LastFailureType    string     `json:"last_failure_type,omitempty"`
+	Body               string     `json:"body,omitempty"`
+	TaskType           string     `json:"task_type,omitempty"`
+	Class              string     `json:"class,omitempty"`
+	Constraints        []string   `json:"constraints,omitempty"`
+	AcceptanceCriteria []string   `json:"acceptance_criteria,omitempty"`
+	References         []string   `json:"references,omitempty"`
+	Integration        string     `json:"integration,omitempty"`
 }
 
 // AuditState tracks audit information for a node.
