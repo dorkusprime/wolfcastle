@@ -11,8 +11,8 @@ Read the scope description below. If it references a spec, read the spec file. E
 Identify:
 - What concerns does this scope cover?
 - What needs research before implementation can begin?
-- What specs need to be written?
-- What architectural decisions need ADRs?
+- What specs need to be written for interfaces or contracts?
+- Where will the implementer face choices between alternatives? (Those decisions will need ADRs after they're made. You don't write ADRs now; the executor writes them after making the decision. But you can anticipate where decisions will arise and note them in task bodies.)
 - What can proceed directly to implementation?
 - What ordering constraints exist between the pieces?
 

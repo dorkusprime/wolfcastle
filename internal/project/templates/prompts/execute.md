@@ -106,13 +106,19 @@ This creates a properly named file in `.wolfcastle/docs/specs/` and links it to 
 
 Skip this phase if your task is pure implementation with no design choices.
 
-### G. Verify documentation
+### G. Document decisions
 
-Before signaling completion, check:
+Review the work you just did. If you made decisions, document them.
 
-1. **ADRs for technology choices.** If you introduced a new package, chose a library or framework, selected a concurrency strategy, defined an interface, or rejected an alternative approach, you MUST create an ADR via `wolfcastle adr create`. This is not optional. The audit will flag missing ADRs.
+**ADRs record decisions, not packages.** An ADR answers "what did we decide, what alternatives did we consider, and why did we choose this one?" Create an ADR via `wolfcastle adr create` when:
+- You chose one approach over another (stdlib vs third-party library, interface vs concrete type, sync vs async, mutex vs channel)
+- You defined a contract that other packages will depend on
+- You made a structural choice (separate package vs inline, handler pattern vs middleware pattern)
+- Someone reading this code later would ask "why was it done this way?"
 
-2. **Specs for new contracts.** If you created a new package or defined an interface that other packages depend on, create a spec via `wolfcastle spec create` documenting the contract, error behavior, and usage patterns.
+Do not create an ADR for trivial or forced choices (there's only one reasonable way to do it) or for decisions the orchestrator already documented.
+
+**Specs document contracts.** If you created an interface or a type that other packages depend on, create a spec via `wolfcastle spec create` documenting: what methods exist, what they return, how errors behave, and what callers can assume.
 
 ### H. Commit
 Commit your changes with a clear message.
