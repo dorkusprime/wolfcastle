@@ -252,6 +252,8 @@ func scanTerminalMarker(output string) string {
 		for _, m := range markers {
 			for _, subline := range strings.Split(text, "\n") {
 				sub := strings.TrimSpace(subline)
+				sub = strings.Trim(sub, "*_`")
+				sub = strings.TrimSpace(sub)
 				if sub == m {
 					found[m] = true
 				}
