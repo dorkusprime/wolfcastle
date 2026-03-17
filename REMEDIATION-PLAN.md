@@ -2,142 +2,275 @@
 
 Work branch: `fix/remediation` (based on `main` at `21ca134`)
 Worktree: `/Users/wild/repository/dorkusprime/wolfcastle/fix/remediation`
-Remediation specs: `~/Desktop/remediation/failure-{1..6}-*.md`
-Run report: `docs/domain-refactor-run-report.md` (on main)
-Backlog: `docs/backlog.md` (on main)
+Remediation specs: `~/Desktop/remediation/failure-{1..7}-*.md`
+Run report: `/Users/wild/repository/dorkusprime/wolfcastle/main/docs/domain-refactor-run-report.md`
+Backlog: `/Users/wild/repository/dorkusprime/wolfcastle/main/docs/backlog.md`
+Domain repo spec (reference only): `/Users/wild/repository/dorkusprime/wolfcastle/main/docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md`
+Spec audits (reference only): `/Users/wild/repository/dorkusprime/wolfcastle/main/fs-spec-audit.md` and `fs-spec-audit-v2.md`
 
 ## Context for a new session
 
-This plan remediates 6 failures discovered during Wolfcastle's autonomous implementation of the Domain Repository Architecture spec on the `refactor/domains` branch. The failures are daemon infrastructure bugs that affect all Wolfcastle runs, not just the refactor. Fixes go on `fix/remediation` (off `main`). The `refactor/domains` branch is a test case only; its commit SHAs are used for regression verification via throwaway worktrees.
+### What is Wolfcastle?
 
-Key files to read before starting:
-- This file (`REMEDIATION-PLAN.md` in the worktree root)
-- `~/Desktop/remediation/failure-{1..6}-*.md` (detailed per-failure plans with exact SHAs and test steps)
-- `internal/daemon/iteration.go` (marker scanning, progress check, YIELD handler)
-- `internal/daemon/deliverables.go` (git progress check)
-- `internal/invoke/invoker.go` (marker constants, detection)
-- `internal/project/templates/prompts/execute.md` (model instructions)
-- `docs/backlog.md` (on main, for actionable items beyond the 6 failures)
+Wolfcastle is a Go CLI project orchestrator. You give it a goal, it decomposes it into a tree of tasks, and sends AI coding agents (Claude Code by default) to implement them one by one. The daemon runs a pipeline: intake (decompose inbox items into projects/tasks) and execute (claim a task, invoke a model, verify the result). The model communicates completion via terminal markers on stdout: `WOLFCASTLE_COMPLETE`, `WOLFCASTLE_BLOCKED`, `WOLFCASTLE_YIELD`. The daemon checks that real work was done (git progress), deliverables exist, and then advances to the next task. Each leaf in the project tree ends with an audit task that reviews the work.
+
+### What happened?
+
+Wolfcastle was used to implement its own Domain Repository Architecture (a 13-step refactoring spec). The run completed but revealed 7 systemic failures in the daemon infrastructure that affect all Wolfcastle runs. These failures are documented in `~/Desktop/remediation/failure-{1..7}-*.md` with exact commit SHAs for regression replay.
+
+### What does this plan do?
+
+Apply code fixes and prompt changes to the wolfcastle daemon on the `fix/remediation` branch (based on `main`). Then verify each fix passes 3 times. Then run the full test suite to catch regressions. Then push and PR.
+
+### Key architecture details the executor needs to know
+
+- **Terminal markers**: Model emits `WOLFCASTLE_COMPLETE`, `WOLFCASTLE_BLOCKED`, or `WOLFCASTLE_YIELD` on stdout. The daemon scans output via `scanTerminalMarker` in `internal/daemon/iteration.go`. The invoke package also detects markers during streaming via `detectLineMarker` in `internal/invoke/invoker.go`.
+- **Git progress check**: After COMPLETE, the daemon verifies work was done via `checkGitProgress` in `internal/daemon/deliverables.go`. Checks HEAD moved OR uncommitted changes outside `.wolfcastle/system/`.
+- **Deliverable check**: Before progress check, the daemon verifies declared deliverable files exist via `checkDeliverables` in `internal/daemon/deliverables.go`.
+- **IsAudit**: Tasks with `IsAudit: true` are audit tasks that review work rather than writing code.
+- **YIELD**: Leaves the task `in_progress` for resumption. Used for crash recovery and decomposition.
+- **State files**: Per-node JSON in `.wolfcastle/system/projects/<namespace>/<address>/state.json`. Mutated via `StateStore.MutateNode`.
+- **Prompts**: Embedded Go templates extracted to `.wolfcastle/system/base/prompts/` at scaffold time. Execute prompt is `execute.md`, audit prompt is in `audits/audit-task.md`.
+
+### Prerequisites
+
+- Go 1.26+ installed
+- Claude Code CLI (`claude`) installed and configured with API key (for live daemon tests)
+- Git configured globally (or the test steps use `-c user.name=test -c user.email=test@test.com`)
 
 ## Worktree layout
 
 | Worktree | Branch | Purpose |
 |----------|--------|---------|
 | `wolfcastle/fix/remediation` | `fix/remediation` | Active fixes. All commits go here. |
-| `wolfcastle/refactor/domains` | `refactor/domains` | Test case. Read-only reference for SHAs. |
-| Throwaway `/tmp/regression-fN` | detached HEAD | Created from `refactor/domains` SHAs for regression replay. Deleted after each test. |
+| `wolfcastle/main` | `main` | Reference. Read backlog and run report from here. Do NOT modify. |
+| `wolfcastle/refactor/domains` | `refactor/domains` | Test case. Read-only reference for regression SHAs. |
+| `/tmp/regression-fN` | detached HEAD | Throwaway worktrees from `refactor/domains` SHAs. Created for regression replay, deleted after. |
 
 ## Task list
 
-### Phase 1: Code fixes (sequential, each depends on the previous)
+### Phase 1: Code fixes
 
-| # | Task | Files | Depends on | Remediation spec |
-|---|------|-------|------------|-----------------|
-| 1.1 | Strip markdown from markers | `internal/daemon/iteration.go` | — | `failure-3-markdown-marker.md` |
-| 1.2 | Add WOLFCASTLE_SKIP marker | `internal/invoke/invoker.go`, `internal/daemon/iteration.go` | 1.1 (scanner changes) | `failure-5-work-already-done.md` |
-| 1.3 | Skip progress check for IsAudit | `internal/daemon/iteration.go`, `internal/daemon/deliverables.go` | 1.2 (marker dispatch) | `failure-1-audit-progress-check.md` |
-| 1.4 | Downgrade deliverable missing to warning | `internal/daemon/iteration.go`, `cmd/task/deliverable.go` | 1.3 | `failure-4-deliverable-path.md` |
-| 1.5 | YIELD blocks parent when subtasks created | `internal/daemon/iteration.go` | 1.2 (SKIP needed for parent completion) | `failure-6-yield-self-decomposition.md` |
-| 1.6 | Auto-complete decomposed parents | `internal/daemon/iteration.go` or `internal/state/mutations.go` | 1.5 | `failure-6-yield-self-decomposition.md` |
+All code fixes touch `internal/daemon/iteration.go` as the primary file. Apply them sequentially to avoid merge conflicts. Run `go build ./...` and `go test ./internal/daemon/` after EACH fix to catch breakage immediately.
 
-### Phase 2: Prompt changes
+| # | Task | Files | Depends on | Spec |
+|---|------|-------|------------|------|
+| 1.1 | Strip markdown from markers | `internal/daemon/iteration.go` | — | `failure-3` |
+| 1.2 | Add WOLFCASTLE_SKIP marker | `internal/invoke/invoker.go`, `internal/daemon/iteration.go` | 1.1 | `failure-5` |
+| 1.3 | Skip progress check for IsAudit | `internal/daemon/iteration.go`, `internal/daemon/deliverables.go` | 1.2 | `failure-1` |
+| 1.4 | Downgrade deliverable missing to warning | `internal/daemon/iteration.go` | 1.3 | `failure-4` |
+| 1.5 | YIELD blocks parent when subtasks created | `internal/daemon/iteration.go` | 1.4 | `failure-6` |
+| 1.6 | Auto-complete decomposed parents | `internal/daemon/iteration.go` | 1.5 | `failure-6` |
+| 1.7 | Auto-commit partial work on failure | `internal/daemon/iteration.go` | 1.6 | backlog |
+| 1.8 | Failure context in retry prompt | `internal/daemon/iteration.go`, `internal/pipeline/context.go` | 1.7 | backlog |
+| 1.9 | Validate deliverable paths at declaration | `cmd/task/deliverable.go` | — (independent file) | backlog |
 
-| # | Task | Files | Depends on |
-|---|------|-------|------------|
-| 2.1 | Add "no formatting" to marker instructions | `internal/project/templates/prompts/execute.md` | 1.1 |
-| 2.2 | Add WOLFCASTLE_SKIP to marker documentation | `internal/project/templates/prompts/execute.md` | 1.2 |
-| 2.3 | Add "do not move packages" constraint | `internal/project/templates/prompts/execute.md` | — |
-| 2.4 | Add "list files, decompose if >8" trigger | `internal/project/templates/prompts/execute.md` | — |
-| 2.5 | Add YIELD + decompose documentation | `internal/project/templates/prompts/execute.md` | 1.5 |
+**Why Phase 3 items moved here:** Tasks 1.7-1.8 modify `iteration.go`, the same file as 1.1-1.6. Applying them in a separate phase creates unnecessary merge risk. Task 1.9 is an independent file and can be done at any point.
 
-### Phase 3: Backlog code fixes (independent of Phase 1/2)
+**After EACH task:**
+```bash
+cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation
+go build ./...
+go test -count=1 ./internal/daemon/  # or ./cmd/task/ for 1.9
+# If either fails, fix before proceeding
+git add -A && git commit -m "<commit message>"
+```
 
-These are directly actionable code items from the backlog that don't require specs.
+#### 1.8 detail: Failure context in retry prompt
 
-| # | Task | Files | Backlog item |
-|---|------|-------|-------------|
-| 3.1 | Auto-commit partial work on failure | `internal/daemon/iteration.go` | "Model scope creep across task boundaries" |
-| 3.2 | Failure context in retry prompt | `internal/pipeline/context.go` | "Failure context in iteration prompt" |
-| 3.3 | Validate deliverable paths at declaration | `cmd/task/deliverable.go` | "task deliverable doesn't validate paths" |
+The backlog says "daemon reads the last log entry for the task and injects it into the iteration context." The implementation:
 
-### Phase 4: Unit tests for all fixes
+1. In `iteration.go`, before invoking the model, check if the task has `FailureCount > 0`.
+2. If so, read the last log file for this task (the daemon knows the log directory and the current iteration number; the previous iteration is `iteration - 1`).
+3. Extract the failure type from the log (`no_terminal_marker`, `no_progress`, `deliverable_warning`, etc.).
+4. Pass this as a string to `pipeline.BuildIterationContext` (or `ContextBuilder.Build`), which includes it in the context under a "Previous attempt failed" header.
+5. The pipeline/context.go change: accept an optional `failureReason string` parameter and include it in the output when non-empty.
 
-Write tests AFTER each fix is proven with 3 manual passes.
+This is a daemon + pipeline change, not just pipeline.
+
+### Phase 2: Prompt and audit changes
+
+All prompt changes can be done in a single commit since they're all text edits to template files. Apply after Phase 1 is complete.
+
+| # | Task | File |
+|---|------|------|
+| 2.1 | Marker: "emit as plain text, no formatting" | `execute.md` |
+| 2.2 | Marker: document WOLFCASTLE_SKIP and when to use it | `execute.md` |
+| 2.3 | Constraint: "do not move, rename, or delete packages" | `execute.md` |
+| 2.4 | Decomposition: "list files first, decompose if >8" | `execute.md` |
+| 2.5 | Decomposition: "after creating subtasks, emit YIELD" | `execute.md` |
+| 2.6 | ADR: pre-completion verification step | `execute.md` |
+| 2.7 | ADR/spec: mandatory REMEDIATE on absence in audit | `audit-task.md` |
+| 2.8 | Spec: create spec for new interfaces | `execute.md` |
+
+Full file paths:
+- `internal/project/templates/prompts/execute.md`
+- `internal/project/templates/audits/audit-task.md`
+
+**After all prompt changes:**
+```bash
+go build ./...  # prompts are embedded, verify build
+git add -A && git commit -m "Prompt and audit enforcement changes"
+```
+
+### Phase 3: Unit tests
+
+Write tests for ALL fixes from Phase 1. These are permanent regression tests that will live in the codebase.
 
 | # | Test | Package | Covers |
 |---|------|---------|--------|
-| 4.1 | TestScanTerminalMarker markdown variants | `internal/daemon` | 1.1 |
-| 4.2 | TestScanTerminalMarker SKIP variants | `internal/daemon` | 1.2 |
-| 4.3 | TestRunIteration_SkipBypassesProgressCheck | `internal/daemon` | 1.2 |
-| 4.4 | TestRunIteration_AuditSkipsProgressCheck | `internal/daemon` | 1.3 (already exists, verify) |
-| 4.5 | TestRunIteration_MissingDeliverables_WarnsButCompletes | `internal/daemon` | 1.4 |
-| 4.6 | TestRunIteration_YieldWithSubtasks_BlocksParent | `internal/daemon` | 1.5 |
-| 4.7 | TestRunIteration_YieldWithoutSubtasks_StaysInProgress | `internal/daemon` | 1.5 |
-| 4.8 | TestAutoCompleteDecomposedParent | `internal/daemon` | 1.6 |
-| 4.9 | TestPartialWorkCommittedOnFailure | `internal/daemon` | 3.1 |
-| 4.10 | TestFailureContextInRetryPrompt | `internal/pipeline` | 3.2 |
-| 4.11 | TestDeliverablePathWarning | `cmd/task` | 3.3 |
+| 3.1 | TestScanTerminalMarker: markdown bold, italic, backtick, underscore, mixed | `internal/daemon` | 1.1 |
+| 3.2 | TestScanTerminalMarker: SKIP standalone, with reason, in JSON, priority | `internal/daemon` | 1.2 |
+| 3.3 | TestRunIteration_SkipBypassesProgressCheck | `internal/daemon` | 1.2 |
+| 3.4 | TestRunIteration_AuditSkipsProgressCheck (verify existing or add) | `internal/daemon` | 1.3 |
+| 3.5 | TestRunIteration_MissingDeliverables_WarnsButCompletes | `internal/daemon` | 1.4 |
+| 3.6 | TestRunIteration_YieldWithSubtasks_BlocksParent | `internal/daemon` | 1.5 |
+| 3.7 | TestRunIteration_YieldWithoutSubtasks_StaysInProgress | `internal/daemon` | 1.5 |
+| 3.8 | TestAutoCompleteDecomposedParent | `internal/daemon` | 1.6 |
+| 3.9 | TestPartialWorkCommittedOnFailure | `internal/daemon` | 1.7 |
+| 3.10 | TestFailureContextInRetryPrompt | `internal/daemon` or `internal/pipeline` | 1.8 |
+| 3.11 | TestDeliverablePathValidation | `cmd/task` | 1.9 |
 
-### Phase 5: Remediation verification (3 passes each)
+**After all tests:**
+```bash
+go test -race -count=1 ./internal/daemon/ ./internal/pipeline/ ./cmd/task/
+git add -A && git commit -m "Tests for all remediation fixes"
+```
 
-Run each failure's test steps from `~/Desktop/remediation/failure-N-*.md`. Each must pass 3 consecutive times. Use throwaway worktrees from `refactor/domains` SHAs for regression replay.
+### Phase 4: Deterministic verification (3 passes each)
 
-| # | Failure | Regression SHA | Method |
-|---|---------|---------------|--------|
-| 5.1 | Audit progress check | `ef3095b` | Unit test + live daemon |
-| 5.2 | Package move | `2283d18` | Prompt verification + supplementary live test |
-| 5.3 | Markdown marker | `e5df644` | Unit test (primary) + live daemon (supplementary) |
-| 5.4 | Deliverable path | `2283d18` | Unit test + live daemon with pre-declared wrong deliverable |
-| 5.5 | Work already done | `a055e49` | Unit test (primary) + live daemon (supplementary) |
-| 5.6 | YIELD decomposition | `7b6e463` | Unit test + mock model script |
-
-### Phase 6: Final regression suite
+Run each fix's unit tests 3 times in a row. These are deterministic (no model invocation). If any test fails on any pass, the fix has a bug.
 
 ```bash
 cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation
-gofmt -l .                           # formatting
-go vet ./...                         # vet
-go build ./...                       # build
-go test -race -count=1 ./...         # unit + package tests
-go test -race -tags integration -count=1 ./test/integration/  # integration
-go test -race -tags smoke -count=1 ./test/smoke/              # smoke
+
+# Run ALL remediation-related tests 3 times
+for i in 1 2 3; do
+    echo "=== Pass $i ==="
+    go test -race -count=1 -run "TestScanTerminalMarker|TestRunIteration_Skip|TestRunIteration_Audit|TestRunIteration_MissingDeliv|TestRunIteration_Yield|TestAutoComplete|TestPartialWork|TestFailureContext|TestDeliverablePath" ./internal/daemon/ ./internal/pipeline/ ./cmd/task/
+    if [ $? -ne 0 ]; then
+        echo "FAIL on pass $i"
+        exit 1
+    fi
+done
+echo "All 3 passes succeeded"
 ```
 
-All must pass. If regressions appear, fix them before proceeding.
+### Phase 5: Live daemon verification (supplementary)
 
-### Phase 7: Commit and push
+These tests invoke the real model and cost money (~$0.30+ per invocation). They are supplementary to the deterministic tests. If the model doesn't cooperate (non-deterministic), the test is inconclusive, not a failure.
 
-Once all phases pass:
+**Prerequisite:** Claude Code CLI must be installed and configured with a valid API key.
+
+| # | Failure | Method | Passes required |
+|---|---------|--------|----------------|
+| 5.1 | Audit progress | Live daemon: complete a task, let audit run | 3 |
+| 5.2 | Package move | Prompt content verification (deterministic) | 3 (just grep) |
+| 5.3 | Markdown marker | Unit tests cover this (no live test needed) | — |
+| 5.4 | Deliverable path | Live daemon with pre-declared wrong deliverable | 3 |
+| 5.5 | Work already done | Live daemon with pre-existing file | 3 |
+| 5.6 | YIELD decomposition | Mock model script (deterministic, no real model) | 3 |
+| 5.7 | ADR enforcement | Live daemon: task creating new package | 3 |
+
+For each live test, follow the exact steps in `~/Desktop/remediation/failure-N-*.md`. Key reminders:
+- Use temp directories (`/tmp/test-N-*`), not the worktree
+- Add `git -c user.name=test -c user.email=test@test.com` to all git commands in temp dirs
+- Create `.wolfcastle/system/local/` directory before writing config
+- Set `max_iterations` high enough to include the audit (5+ for single-task leaves)
+- Build the binary first: `cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation && make build`
+
+**5.6 uses a mock model** (shell script that creates subtasks and yields). This is deterministic and doesn't require API access. See `failure-6-yield-self-decomposition.md` for the mock script.
+
+**5.7 success criteria are tiered:** Either (a) the model creates an ADR proactively (execute prompt works), OR (b) the audit flags the missing ADR as REMEDIATE (audit prompt works). Both missing = failure. See `failure-7-adr-spec-enforcement.md` for full steps.
+
+### Phase 6: Regression verification (regression tests from `refactor/domains`)
+
+Verify the fixes don't break the scenarios that originally worked. Create throwaway worktrees from `refactor/domains` SHAs.
+
+```bash
+# Verify the old audit-progress fix still works
+git worktree add /tmp/regression-audit ef3095b
+cd /tmp/regression-audit && make build
+# ... run the regression test from failure-1 spec ...
+cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation
+git worktree remove /tmp/regression-audit
+
+# Repeat for other regression SHAs as needed
+```
+
+### Phase 7: Final test suite
+
+```bash
+cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation
+gofmt -l .                                                        # formatting clean
+go vet ./...                                                      # vet clean
+go build ./...                                                    # build clean
+go test -race -count=1 ./...                                      # all unit tests
+go test -race -count=1 -tags integration ./test/integration/      # integration tests
+go test -race -count=1 -tags smoke ./test/smoke/                  # smoke tests
+```
+
+ALL must pass. If regressions appear, fix and re-run from Phase 4.
+
+### Phase 8: Push and PR
+
 ```bash
 cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation
 git push -u origin fix/remediation
-# Then create PR from wolfcastle/main:
-# gh pr create --title "..." --body "..."
+
+# Create PR from wolfcastle/main directory (not the worktree):
+cd /Users/wild/repository/dorkusprime/wolfcastle/main
+gh pr create --head fix/remediation --title "Remediate 7 daemon failures from domain refactor run" --body "$(cat <<'EOF'
+## Summary
+- Strip markdown formatting from terminal markers
+- Add WOLFCASTLE_SKIP for already-completed tasks
+- Skip git progress check for audit tasks
+- Downgrade missing deliverables to warning
+- Block parent on YIELD with subtask creation, auto-complete when done
+- Auto-commit partial work on failure
+- Include failure context in retry prompts
+- Validate deliverable paths at declaration
+- Strengthen ADR/spec enforcement in execute and audit prompts
+
+## Test plan
+- 11 new unit tests covering all daemon fixes
+- 3-pass deterministic verification for each fix
+- Live daemon verification for audit, deliverable, skip, yield, and ADR scenarios
+- Full regression suite (unit, integration, smoke)
+
+Run report: docs/domain-refactor-run-report.md
+Remediation specs: ~/Desktop/remediation/failure-{1..7}-*.md
+EOF
+)" --auto --merge
 ```
 
 ## Execution order
 
 ```
-1.1 → 1.2 → 1.3 → 1.4 → 1.5 → 1.6  (code fixes, sequential)
-        ↓
-2.1 → 2.2 → 2.3 → 2.4 → 2.5         (prompt changes, after relevant code fix)
-        ↓
-3.1, 3.2, 3.3                         (backlog fixes, independent)
-        ↓
-4.1 → 4.11                            (unit tests for all fixes)
-        ↓
-5.1 → 5.6                             (remediation verification, 3 passes each)
-        ↓
-6                                      (final regression suite)
-        ↓
-7                                      (commit and push)
+Phase 1: Code fixes (sequential, with build+test after each)
+  1.1 → 1.2 → 1.3 → 1.4 → 1.5 → 1.6 → 1.7 → 1.8
+  1.9 (independent, can be done anytime)
+    ↓
+Phase 2: Prompt and audit changes (single commit)
+    ↓
+Phase 3: Unit tests for all fixes (single commit)
+    ↓
+Phase 4: Deterministic 3-pass verification
+    ↓
+Phase 5: Live daemon verification (supplementary, requires API key)
+    ↓
+Phase 6: Regression verification (throwaway worktrees)
+    ↓
+Phase 7: Final test suite
+    ↓
+Phase 8: Push and PR
 ```
 
-Phases 1-3 can overlap with Phase 4 (write tests as fixes are applied). Phase 5 must wait until all fixes are in. Phase 6 must be the last thing before Phase 7.
+Phases 1-3 are the core work. Phase 4 proves the fixes deterministically. Phase 5 is supplementary confidence. Phase 6 catches regressions against known scenarios. Phase 7 is the final gate.
 
 ## Commit strategy
 
-One commit per logical fix. Do not squash. The commit history should tell the story:
+One commit per code fix. Prompt changes in one commit. Tests in one commit. Do not squash. The commit history tells the story:
 
 1. `Strip markdown formatting from terminal marker scanner`
 2. `Add WOLFCASTLE_SKIP terminal marker`
@@ -145,8 +278,15 @@ One commit per logical fix. Do not squash. The commit history should tell the st
 4. `Downgrade missing deliverables to warning`
 5. `Block parent task on YIELD with subtask creation`
 6. `Auto-complete decomposed parents when subtasks finish`
-7. `Prompt: no formatting on markers, SKIP docs, decomposition trigger, package constraint`
-8. `Auto-commit partial work on task failure`
-9. `Include failure context in retry iteration prompt`
-10. `Validate and suggest corrections for deliverable paths`
+7. `Auto-commit partial work on task failure`
+8. `Include failure context in retry iteration prompt`
+9. `Validate and suggest corrections for deliverable paths`
+10. `Strengthen prompt and audit enforcement for markers, ADRs, specs, decomposition`
 11. `Tests for all remediation fixes`
+
+## If something goes wrong
+
+- **A fix breaks existing tests:** Fix the regression before moving to the next task. Run `go test ./internal/daemon/` after every change.
+- **Live daemon test is inconclusive (model doesn't cooperate):** Log the result, note it as inconclusive, and move on. The deterministic unit tests are the primary gate.
+- **Phase 7 reveals a regression:** Identify which commit introduced it (`git bisect`), fix it, re-run Phases 4-7.
+- **Context window running low:** The plan is designed for autonomous execution. If compacting is needed, this file plus `~/Desktop/remediation/failure-{1..7}-*.md` contain everything needed to resume.
