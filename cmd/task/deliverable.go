@@ -2,6 +2,7 @@ package task
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -66,6 +67,21 @@ Examples:
 				return err
 			}
 
+			// Warn if the declared path doesn't exist yet (may be a typo)
+			repoDir := filepath.Dir(app.WolfcastleDir)
+			if !isGlobPath(delivPath) {
+				fullPath := filepath.Join(repoDir, delivPath)
+				if _, statErr := os.Stat(fullPath); os.IsNotExist(statErr) {
+					base := filepath.Base(delivPath)
+					matches := findFilesByName(repoDir, base)
+					if len(matches) > 0 {
+						output.PrintHuman("Warning: '%s' does not exist. Did you mean one of: %v", delivPath, matches)
+					} else {
+						output.PrintHuman("Warning: '%s' does not exist yet", delivPath)
+					}
+				}
+			}
+
 			if app.JSONOutput {
 				output.Print(output.Ok("task_deliverable", map[string]string{
 					"address":     nodeFlag,
@@ -82,4 +98,35 @@ Examples:
 	cmd.Flags().String("node", "", "Task address: node-path/task-id (required)")
 	_ = cmd.MarkFlagRequired("node")
 	return cmd
+}
+
+// isGlobPath reports whether a path contains glob metacharacters.
+func isGlobPath(path string) bool {
+	return strings.ContainsAny(path, "*?[")
+}
+
+// findFilesByName walks the repo looking for files with the given base name.
+// Returns up to 5 relative paths.
+func findFilesByName(repoDir, baseName string) []string {
+	var matches []string
+	_ = filepath.Walk(repoDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			// Skip .wolfcastle and .git directories
+			if info != nil && info.IsDir() && (info.Name() == ".wolfcastle" || info.Name() == ".git") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if info.Name() == baseName {
+			rel, _ := filepath.Rel(repoDir, path)
+			if rel != "" {
+				matches = append(matches, rel)
+			}
+		}
+		if len(matches) >= 5 {
+			return filepath.SkipAll
+		}
+		return nil
+	})
+	return matches
 }
