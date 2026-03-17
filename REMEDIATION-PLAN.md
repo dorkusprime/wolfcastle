@@ -73,8 +73,22 @@ cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation
 go build ./...
 go test -count=1 ./internal/daemon/  # or ./cmd/task/ for 1.9
 # If either fails, fix before proceeding
+
+# Then run the live daemon test from the failure spec 3 times:
+make build  # build the binary
+# Follow "Verify with live daemon" steps in ~/Desktop/remediation/failure-N-*.md
+# Must pass 3 consecutive times before committing
+
 git add -A && git commit -m "<commit message>"
 ```
+
+**Live test reminders:**
+- Use temp directories (`/tmp/test-N-*`), not the worktree
+- `git -c user.name=test -c user.email=test@test.com` for all git commands in temp dirs
+- Create `.wolfcastle/system/local/` before writing config
+- `max_iterations` 5+ for single-task leaves (includes audit)
+- F6 uses a mock model script (see `failure-6-yield-self-decomposition.md`)
+- F7 success is tiered: model creates ADR proactively OR audit flags missing ADR as REMEDIATE
 
 #### 1.8 detail: Failure context in retry prompt
 
@@ -113,77 +127,7 @@ go build ./...  # prompts are embedded, verify build
 git add -A && git commit -m "Prompt and audit enforcement changes"
 ```
 
-### Phase 3: Unit tests
-
-Write tests for ALL fixes from Phase 1. These are permanent regression tests that will live in the codebase.
-
-| # | Test | Package | Covers |
-|---|------|---------|--------|
-| 3.1 | TestScanTerminalMarker: markdown bold, italic, backtick, underscore, mixed | `internal/daemon` | 1.1 |
-| 3.2 | TestScanTerminalMarker: SKIP standalone, with reason, in JSON, priority | `internal/daemon` | 1.2 |
-| 3.3 | TestRunIteration_SkipBypassesProgressCheck | `internal/daemon` | 1.2 |
-| 3.4 | TestRunIteration_AuditSkipsProgressCheck (verify existing or add) | `internal/daemon` | 1.3 |
-| 3.5 | TestRunIteration_MissingDeliverables_WarnsButCompletes | `internal/daemon` | 1.4 |
-| 3.6 | TestRunIteration_YieldWithSubtasks_BlocksParent | `internal/daemon` | 1.5 |
-| 3.7 | TestRunIteration_YieldWithoutSubtasks_StaysInProgress | `internal/daemon` | 1.5 |
-| 3.8 | TestAutoCompleteDecomposedParent | `internal/daemon` | 1.6 |
-| 3.9 | TestPartialWorkCommittedOnFailure | `internal/daemon` | 1.7 |
-| 3.10 | TestFailureContextInRetryPrompt | `internal/daemon` or `internal/pipeline` | 1.8 |
-| 3.11 | TestDeliverablePathValidation | `cmd/task` | 1.9 |
-
-**After all tests:**
-```bash
-go test -race -count=1 ./internal/daemon/ ./internal/pipeline/ ./cmd/task/
-git add -A && git commit -m "Tests for all remediation fixes"
-```
-
-### Phase 4: Deterministic verification (3 passes each)
-
-Run each fix's unit tests 3 times in a row. These are deterministic (no model invocation). If any test fails on any pass, the fix has a bug.
-
-```bash
-cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation
-
-# Run ALL remediation-related tests 3 times
-for i in 1 2 3; do
-    echo "=== Pass $i ==="
-    go test -race -count=1 -run "TestScanTerminalMarker|TestRunIteration_Skip|TestRunIteration_Audit|TestRunIteration_MissingDeliv|TestRunIteration_Yield|TestAutoComplete|TestPartialWork|TestFailureContext|TestDeliverablePath" ./internal/daemon/ ./internal/pipeline/ ./cmd/task/
-    if [ $? -ne 0 ]; then
-        echo "FAIL on pass $i"
-        exit 1
-    fi
-done
-echo "All 3 passes succeeded"
-```
-
-### Phase 5: Live daemon verification (supplementary)
-
-These tests invoke the real model and cost money (~$0.30+ per invocation). They are supplementary to the deterministic tests. If the model doesn't cooperate (non-deterministic), the test is inconclusive, not a failure.
-
-**Prerequisite:** Claude Code CLI must be installed and configured with a valid API key.
-
-| # | Failure | Method | Passes required |
-|---|---------|--------|----------------|
-| 5.1 | Audit progress | Live daemon: complete a task, let audit run | 3 |
-| 5.2 | Package move | Prompt content verification (deterministic) | 3 (just grep) |
-| 5.3 | Markdown marker | Unit tests cover this (no live test needed) | — |
-| 5.4 | Deliverable path | Live daemon with pre-declared wrong deliverable | 3 |
-| 5.5 | Work already done | Live daemon with pre-existing file | 3 |
-| 5.6 | YIELD decomposition | Mock model script (deterministic, no real model) | 3 |
-| 5.7 | ADR enforcement | Live daemon: task creating new package | 3 |
-
-For each live test, follow the exact steps in `~/Desktop/remediation/failure-N-*.md`. Key reminders:
-- Use temp directories (`/tmp/test-N-*`), not the worktree
-- Add `git -c user.name=test -c user.email=test@test.com` to all git commands in temp dirs
-- Create `.wolfcastle/system/local/` directory before writing config
-- Set `max_iterations` high enough to include the audit (5+ for single-task leaves)
-- Build the binary first: `cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation && make build`
-
-**5.6 uses a mock model** (shell script that creates subtasks and yields). This is deterministic and doesn't require API access. See `failure-6-yield-self-decomposition.md` for the mock script.
-
-**5.7 success criteria are tiered:** Either (a) the model creates an ADR proactively (execute prompt works), OR (b) the audit flags the missing ADR as REMEDIATE (audit prompt works). Both missing = failure. See `failure-7-adr-spec-enforcement.md` for full steps.
-
-### Phase 6: Regression verification (regression tests from `refactor/domains`)
+### Phase 3: Regression verification (regression tests from `refactor/domains`)
 
 Verify the fixes don't break the scenarios that originally worked. Create throwaway worktrees from `refactor/domains` SHAs.
 
@@ -198,7 +142,30 @@ git worktree remove /tmp/regression-audit
 # Repeat for other regression SHAs as needed
 ```
 
-### Phase 7: Final test suite
+### Phase 4: Unit tests for all fixes
+
+Write tests that codify what the live tests proved. These are permanent regression tests.
+
+| # | Test | Package | Covers |
+|---|------|---------|--------|
+| 4.1 | TestScanTerminalMarker: markdown bold, italic, backtick, underscore, mixed | `internal/daemon` | 1.1 |
+| 4.2 | TestScanTerminalMarker: SKIP standalone, with reason, in JSON, priority | `internal/daemon` | 1.2 |
+| 4.3 | TestRunIteration_SkipBypassesProgressCheck | `internal/daemon` | 1.2 |
+| 4.4 | TestRunIteration_AuditSkipsProgressCheck | `internal/daemon` | 1.3 |
+| 4.5 | TestRunIteration_MissingDeliverables_WarnsButCompletes | `internal/daemon` | 1.4 |
+| 4.6 | TestRunIteration_YieldWithSubtasks_BlocksParent | `internal/daemon` | 1.5 |
+| 4.7 | TestRunIteration_YieldWithoutSubtasks_StaysInProgress | `internal/daemon` | 1.5 |
+| 4.8 | TestAutoCompleteDecomposedParent | `internal/daemon` | 1.6 |
+| 4.9 | TestPartialWorkCommittedOnFailure | `internal/daemon` | 1.7 |
+| 4.10 | TestFailureContextInRetryPrompt | `internal/daemon` or `internal/pipeline` | 1.8 |
+| 4.11 | TestDeliverablePathValidation | `cmd/task` | 1.9 |
+
+```bash
+go test -race -count=1 ./internal/daemon/ ./internal/pipeline/ ./cmd/task/
+git add -A && git commit -m "Tests for all remediation fixes"
+```
+
+### Phase 5: Final test suite
 
 ```bash
 cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation
@@ -210,9 +177,9 @@ go test -race -count=1 -tags integration ./test/integration/      # integration 
 go test -race -count=1 -tags smoke ./test/smoke/                  # smoke tests
 ```
 
-ALL must pass. If regressions appear, fix and re-run from Phase 4.
+ALL must pass. If regressions appear, fix and re-run from Phase 1 live tests.
 
-### Phase 8: Push and PR
+### Phase 6: Push and PR
 
 ```bash
 cd /Users/wild/repository/dorkusprime/wolfcastle/fix/remediation
@@ -248,25 +215,29 @@ EOF
 
 ```
 Phase 1: Code fixes (sequential, with build+test after each)
+  For EACH fix:
+    1. Apply code change
+    2. Build (go build ./...)
+    3. Run existing tests (go test ./internal/daemon/)
+    4. Run live daemon test from failure spec, 3 consecutive passes
+    5. If live test fails → iterate on fix → rebuild → retest
+    6. Commit only after 3 consecutive live passes
   1.1 → 1.2 → 1.3 → 1.4 → 1.5 → 1.6 → 1.7 → 1.8
   1.9 (independent, can be done anytime)
     ↓
 Phase 2: Prompt and audit changes (single commit)
+  Then live-test prompt-dependent fixes (F2, F7): 3 passes each
     ↓
-Phase 3: Unit tests for all fixes (single commit)
+Phase 3: Regression verification (throwaway worktrees from refactor/domains SHAs)
     ↓
-Phase 4: Deterministic 3-pass verification
+Phase 4: Unit tests for all fixes (codify what the live tests proved)
     ↓
-Phase 5: Live daemon verification (supplementary, requires API key)
+Phase 5: Final test suite (go test -race ./...)
     ↓
-Phase 6: Regression verification (throwaway worktrees)
-    ↓
-Phase 7: Final test suite
-    ↓
-Phase 8: Push and PR
+Phase 6: Push and PR
 ```
 
-Phases 1-3 are the core work. Phase 4 proves the fixes deterministically. Phase 5 is supplementary confidence. Phase 6 catches regressions against known scenarios. Phase 7 is the final gate.
+Live daemon tests are the primary gate. Unit tests codify what the live tests already proved. Regression tests ensure fixes don't break scenarios that previously worked.
 
 ## Commit strategy
 
@@ -287,6 +258,6 @@ One commit per code fix. Prompt changes in one commit. Tests in one commit. Do n
 ## If something goes wrong
 
 - **A fix breaks existing tests:** Fix the regression before moving to the next task. Run `go test ./internal/daemon/` after every change.
-- **Live daemon test is inconclusive (model doesn't cooperate):** Log the result, note it as inconclusive, and move on. The deterministic unit tests are the primary gate.
-- **Phase 7 reveals a regression:** Identify which commit introduced it (`git bisect`), fix it, re-run Phases 4-7.
+- **Live daemon test fails (model doesn't cooperate):** Iterate on the fix. If the model consistently fails to use the right marker format or follow instructions, that's a signal the prompt needs strengthening, not that the test is inconclusive.
+- **Phase 6 reveals a regression:** Identify which commit introduced it (`git bisect`), fix it, re-run Phases 4-6.
 - **Context window running low:** The plan is designed for autonomous execution. If compacting is needed, this file plus `~/Desktop/remediation/failure-{1..7}-*.md` contain everything needed to resume.
