@@ -32,26 +32,20 @@ type App struct {
 	Commit        string
 }
 
-// FindWolfcastleDir walks upward from the working directory until it
-// locates a .wolfcastle directory, returning its path or an error if
-// no such directory exists anywhere in the ancestor chain.
+// FindWolfcastleDir checks the current working directory for a .wolfcastle
+// directory. It does not walk up the directory tree. This prevents commands
+// from silently operating on a .wolfcastle in an ancestor directory (e.g.,
+// running wolfcastle from ~/ when ~/ has an accidental .wolfcastle).
 func (a *App) FindWolfcastleDir() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	for {
-		candidate := filepath.Join(dir, ".wolfcastle")
-		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-			return candidate, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
+	candidate := filepath.Join(dir, ".wolfcastle")
+	if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+		return candidate, nil
 	}
-	return "", fmt.Errorf("no .wolfcastle directory found. Run 'wolfcastle init' first")
+	return "", fmt.Errorf("no .wolfcastle directory found in current directory. Run 'wolfcastle init' first")
 }
 
 // LoadConfig discovers the .wolfcastle directory, loads its

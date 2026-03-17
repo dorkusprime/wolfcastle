@@ -198,14 +198,10 @@ func TestFindWolfcastleDir_Found(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sub := filepath.Join(tmp, "a", "b")
-	if err := os.MkdirAll(sub, 0755); err != nil {
-		t.Fatal(err)
-	}
-
+	// CWD must be the directory containing .wolfcastle (no walking up)
 	origDir, _ := os.Getwd()
 	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(sub)
+	_ = os.Chdir(tmp)
 
 	app := &App{}
 	found, err := app.FindWolfcastleDir()
@@ -217,6 +213,29 @@ func TestFindWolfcastleDir_Found(t *testing.T) {
 	resolvedFound, _ := filepath.EvalSymlinks(found)
 	if resolvedFound != resolvedWcDir {
 		t.Errorf("got %q, want %q", resolvedFound, resolvedWcDir)
+	}
+}
+
+func TestFindWolfcastleDir_DoesNotWalkUp(t *testing.T) {
+	tmp := t.TempDir()
+	// Create .wolfcastle in the parent
+	if err := os.MkdirAll(filepath.Join(tmp, ".wolfcastle"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// CWD is a subdirectory without .wolfcastle
+	sub := filepath.Join(tmp, "a", "b")
+	if err := os.MkdirAll(sub, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	origDir, _ := os.Getwd()
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(sub)
+
+	app := &App{}
+	_, err := app.FindWolfcastleDir()
+	if err == nil {
+		t.Fatal("expected error: should not walk up to find .wolfcastle in ancestor")
 	}
 }
 
@@ -382,10 +401,8 @@ func TestLoadConfig_Success(t *testing.T) {
 	origDir, _ := os.Getwd()
 	defer func() { _ = os.Chdir(origDir) }()
 
-	// cd into a subdirectory so FindWolfcastleDir walks up
-	sub := filepath.Join(tmp, "deep", "nested")
-	_ = os.MkdirAll(sub, 0755)
-	_ = os.Chdir(sub)
+	// cd into the directory containing .wolfcastle (no walking up)
+	_ = os.Chdir(tmp)
 
 	a := &App{}
 	err := a.LoadConfig()
