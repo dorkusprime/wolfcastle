@@ -155,9 +155,14 @@ Phase structure: Assess → Verify → Decide → Record → Signal.
 - **Verify:** Check the codebase: do the deliverables exist? Do tests pass? Do the pieces integrate?
 - **Decide:** Complete if criteria met. Create new leaves if gaps found.
 - **Record:** Write a planning breadcrumb summarizing the review outcome.
-- **Signal:** Emit `WOLFCASTLE_COMPLETE` if criteria met. Emit `WOLFCASTLE_YIELD` if new work created (transitions back to Active).
+- **Signal:** Emit `WOLFCASTLE_COMPLETE` if criteria met and no new work created. Emit `WOLFCASTLE_CONTINUE` if new work was created and the orchestrator should transition back to Active.
 
-All planning prompts use the same terminal markers as execution (`WOLFCASTLE_COMPLETE`, `WOLFCASTLE_BLOCKED`, `WOLFCASTLE_YIELD`). `WOLFCASTLE_SKIP` is not used for planning (there's no concept of "planning already done by someone else").
+Planning prompts use a subset of terminal markers with one addition:
+- `WOLFCASTLE_COMPLETE`: Planning/review finished successfully.
+- `WOLFCASTLE_BLOCKED`: Planning cannot proceed (escalate).
+- `WOLFCASTLE_CONTINUE`: Review found gaps and created new work; transition back to Active. (Planning-only marker, not used in execution.)
+
+Planning does not use `WOLFCASTLE_YIELD` or `WOLFCASTLE_SKIP`. These are execution-only markers with decomposition and already-done semantics that don't apply to planning. The daemon's marker handler branches on whether the current iteration is a planning pass or an execution pass: planning passes recognize `WOLFCASTLE_CONTINUE`, execution passes recognize `WOLFCASTLE_YIELD` and `WOLFCASTLE_SKIP`.
 
 The daemon selects the prompt variant based on the trigger type recorded in the orchestrator's state.
 
@@ -309,7 +314,9 @@ Nesting depth is unbounded. Each level of decomposition costs an invocation, pro
 
 Navigation is depth-first: all children of `task-0001` complete before `task-0002` starts. Within a level, tasks execute in order. This eliminates the current bug where siblings execute before children of decomposed parents. Crash recovery is preserved: `in_progress` tasks are always picked first regardless of position in the sorted order (see Navigation and Crash Recovery in the Testing Strategy section).
 
-**Implementation: flat list with hierarchical ID strings.** The state file keeps a flat `[]Task` slice. IDs are hierarchical strings. Lexicographic sort of hierarchical IDs produces depth-first order naturally (`task-0001`, `task-0001.0001`, `task-0001.0002`, `task-0002`). Parent-child relationships are determined by prefix matching. No nested struct or recursive serialization needed. This is backward compatible with existing state files (old `task-0001` IDs are valid hierarchical IDs with depth 1).
+**Implementation: flat list with hierarchical ID strings.** Navigation with ancestor checks is O(n*d) where n is task count and d is nesting depth. For realistic sizes (< 100 tasks, < 4 levels), this is negligible. If large projects surface performance issues, an index of parent-child relationships can be built at state load time (O(n) build, O(1) lookup).
+
+The state file keeps a flat `[]Task` slice. IDs are hierarchical strings. Lexicographic sort of hierarchical IDs produces depth-first order naturally (`task-0001`, `task-0001.0001`, `task-0001.0002`, `task-0002`). Parent-child relationships are determined by prefix matching. No nested struct or recursive serialization needed. This is backward compatible with existing state files (old `task-0001` IDs are valid hierarchical IDs with depth 1).
 
 A parent task's status derives from its children:
 - All children complete: parent is complete.
@@ -349,16 +356,17 @@ The current daemon loop:
 
 The new daemon loop:
 1. Deliver any buffered pending scope from intake to orchestrator state files.
-2. Check for orchestrators that need planning (`needs_planning` flag set).
-3. If found, run the planning pass. Priority: breadth-first (shallowest unplanned orchestrator first). Top-level structure must be established before drilling down, because a child orchestrator's planning pass depends on its parent having created it with a scope description. Within the same depth, process in tree order.
-4. Navigate to the next task (depth-first through the task tree).
-5. Invoke the executor.
-6. Handle the terminal marker.
-7. After task completion, check if any orchestrator needs re-planning:
-   - Did a child just complete? Check if the parent orchestrator's children are all complete. If the orchestrator has `SuccessCriteria`, trigger completion review. Otherwise, auto-complete.
-   - Did a child just block? Trigger parent orchestrator re-planning with `plan-remediate`.
+2. Navigate depth-first through the tree. The first actionable item is either:
+   - An orchestrator with `needs_planning` set, or
+   - A task that is `not_started` (with no `not_started` ancestors) or `in_progress` (crash recovery).
+   Orchestrator planning is checked at the same priority as task readiness. The daemon processes whichever it encounters first in depth-first order. This means planning is just-in-time: the root orchestrator plans, its first child orchestrator plans, the first leaf's tasks execute, all before sibling orchestrators are planned.
+3. If the actionable item is an orchestrator needing planning: run the planning pass.
+4. If the actionable item is a task: invoke the executor and handle the terminal marker.
+5. After the iteration (planning or execution), check for re-planning triggers:
+   - Did a child just complete? Check if the parent orchestrator's children are all complete. If the orchestrator has `SuccessCriteria`, set `needs_planning` with `completion_review` trigger. Otherwise, auto-complete.
+   - Did a child just block? Set parent orchestrator `needs_planning` with `plan-remediate` trigger.
    - Did intake buffer pending scope? Will be delivered at step 1 of the next iteration.
-8. Repeat.
+6. Repeat.
 
 Planning passes are iterations in the daemon's log, just like task executions. They consume an iteration number and produce log output. The daemon's `max_iterations` limit applies to both planning and execution iterations. Planning passes appear in `wolfcastle status` as "Planning: [orchestrator name]" and in `wolfcastle daemon follow` as logged iterations with a `"stage": "plan"` tag.
 
@@ -372,6 +380,28 @@ If a planning invocation crashes or times out mid-pass (some children created, o
 4. Children created during the crashed pass that are `not_started` can be modified or deleted by the re-invocation.
 
 No special rollback mechanism is needed. The orchestrator's re-invocation sees the current state and adjusts.
+
+### NeedsPlanning State Transitions
+
+`NeedsPlanning` is a flag on orchestrator `NodeState` that the daemon checks during navigation. The following table defines every transition:
+
+| Event | Sets `NeedsPlanning` | Sets `PlanningTrigger` | Clears `NeedsPlanning` |
+|-------|---------------------|----------------------|----------------------|
+| Intake creates orchestrator | yes | `initial` | — |
+| Parent orchestrator creates child orchestrator | yes | `initial` | — |
+| Intake delivers buffered pending scope | yes | `new_scope` | — |
+| Child blocks or audit fails | yes | `child_blocked` | — |
+| All children complete (orchestrator has SuccessCriteria) | yes | `completion_review` | — |
+| All children complete (orchestrator has no SuccessCriteria) | — | — | — (auto-completes instead) |
+| Planning pass emits WOLFCASTLE_COMPLETE | — | — | yes |
+| Planning pass emits WOLFCASTLE_BLOCKED | — | — | yes (orchestrator blocks itself) |
+| Planning pass emits WOLFCASTLE_CONTINUE | — | — | yes (but new triggers may re-set it on next iteration) |
+| Planning pass crashes/times out | remains set | unchanged | — (re-invoked on next iteration) |
+
+`NeedsPlanning` and `NodeStatus` interact as follows:
+- An orchestrator can have `NeedsPlanning=true` while its `State` is `in_progress` (normal: active orchestrator receiving new work or handling a blocked child).
+- An orchestrator should never have `NeedsPlanning=true` while its `State` is `complete`. If this occurs, self-heal should log a warning and clear the flag.
+- An orchestrator with `State=blocked` and `NeedsPlanning=true` means the orchestrator blocked itself but a new trigger (e.g., pending scope from intake) arrived. The daemon should re-invoke it, which may unblock it.
 
 ### Orchestrator State
 
@@ -593,10 +623,10 @@ These backlog items are addressed by this spec and should be moved to Done when 
 - "Task descriptions need more detail" — addressed by Task Definition Structure.
 - "Intake decomposition should reference spec granularity" — addressed by orchestrator planning (orchestrator reads the spec and creates tasks at the right granularity).
 
-## Open Questions
+## Design Decisions
 
-1. **Planning pass cost for simple projects.** A single-leaf project ("add a --verbose flag") goes through: intake creates orchestrator → orchestrator planning pass creates one leaf with one task → executor runs the task. That's 3 invocations (intake + planning + execution) where the current system uses 2 (intake + execution). For simple work, the planning pass adds latency and cost without adding value. Should orchestrators with a single obvious leaf be optimized? One option: intake could create the leaf directly (bypassing the orchestrator) when the work is clearly single-scope. But this reintroduces the "intake does planning" pattern. Another option: accept the overhead as the cost of consistency.
+1. **Planning pass cost for simple projects.** Accept the overhead. A simple project's orchestrator planning pass will be fast (small scope, one leaf, a few tasks). The cost of consistency (every project flows through the same pipeline) outweighs the cost of one extra invocation. If profiling shows this is material for common workflows, add an optimization later (intake bypass for single-scope items). Do not add the optimization preemptively.
 
-2. **Child orchestrator autonomy vs. parent control.** The spec says an orchestrator cannot modify a child orchestrator's subtree, only mark it as `needs_planning` with amended scope. What if the child orchestrator disagrees with the amendment? Is the parent's scope amendment authoritative, or does the child orchestrator have discretion to interpret it?
+2. **Child orchestrator autonomy vs. parent control.** Parent scope amendments are authoritative. The child orchestrator incorporates them into its next planning pass. If the child cannot reconcile the amendment with its existing plan, it blocks itself and escalates back to the parent. The parent adjudicates. This matches organizational hierarchy: scope flows down, escalations flow up.
 
-3. **State schema migration.** The new `NodeState` and `Task` fields need to be added without breaking existing state files. All new fields use `omitempty` JSON tags, making deserialization backward compatible. The behavioral changes (orchestrators receiving planning invocations) need a feature flag or version gate so existing projects don't suddenly get planning passes they weren't designed for. Proposed: a `pipeline.planning.enabled` config flag, defaulting to `false` until the feature is stable.
+3. **State schema migration.** All new `NodeState` and `Task` fields use `omitempty` JSON tags, making deserialization backward compatible. Rich task definition fields (Phase 1), hierarchical IDs (Phase 4a), and single daemon enforcement (Phase 5) are always-on once shipped. Orchestrator planning invocations (Phases 2-3) are gated by a `pipeline.planning.enabled` config flag, defaulting to `false`. When false, orchestrators behave as inert containers (current behavior). When true, the daemon runs planning passes. This allows incremental rollout without affecting existing projects.
