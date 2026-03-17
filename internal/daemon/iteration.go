@@ -94,8 +94,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			"task":  nav.TaskID,
 		})
 
-		// Record HEAD before invocation so we can detect new commits.
+		// Record HEAD and task list before invocation so we can detect
+		// new commits and new tasks (for YIELD+decomposition).
 		beforeHEAD := gitHEAD(d.RepoDir)
+		preInvocationNS := ns
 
 		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), stage.Name)
 		if cancel != nil {
@@ -130,10 +132,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_YIELD"})
 
 			// Check if the model created new tasks during this iteration.
-			// If so, block the parent so navigation moves to the subtasks
-			// instead of re-picking this yielded task.
+			// Compare against pre-invocation state since ns was reloaded
+			// after model execution and already includes new tasks.
 			if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-				newTasks := findNewTasks(ns, updatedNS)
+				newTasks := findNewTasks(preInvocationNS, updatedNS)
 				if len(newTasks) > 0 {
 					reason := "decomposed into subtasks: " + strings.Join(newTasks, ", ")
 					_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
