@@ -384,13 +384,28 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		return IterationStop, werrors.Navigation(fmt.Errorf("loading root index: %w", err))
 	}
 
-	navResult, err := state.FindNextTask(idx, d.ScopeNode, func(addr string) (*state.NodeState, error) {
+	// Deliver any buffered pending scope from intake (between passes, never during).
+	d.deliverPendingScope(idx)
+
+	// Check for orchestrators needing planning (unified DFS with task navigation).
+	// Planning runs before task execution when an orchestrator needs it.
+	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
+		if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
+			output.PrintHuman("Planning error: %v", err)
+			return IterationError, nil
+		}
+		return IterationDidWork, nil
+	}
+
+	nodeLoader := func(addr string) (*state.NodeState, error) {
 		a, err := tree.ParseAddress(addr)
 		if err != nil {
 			return nil, fmt.Errorf("parsing address %q: %w", addr, err)
 		}
 		return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
-	})
+	}
+
+	navResult, err := state.FindNextTask(idx, d.ScopeNode, nodeLoader)
 	if err != nil {
 		return IterationStop, werrors.Navigation(fmt.Errorf("navigation failed: %w", err))
 	}
@@ -443,6 +458,15 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		}
 
 		return IterationError, nil
+	}
+
+	// After task completion, check if any orchestrator needs re-planning.
+	// Re-read the index since the iteration may have changed node states.
+	if d.Config.Pipeline.Planning.Enabled {
+		freshIdx, readErr := d.Store.ReadIndex()
+		if readErr == nil {
+			d.checkReplanningTriggers(navResult.NodeAddress, navResult.TaskID, freshIdx)
+		}
 	}
 
 	return IterationDidWork, nil
