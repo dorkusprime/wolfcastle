@@ -126,6 +126,24 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		marker := scanTerminalMarker(result.Stdout)
 		if marker == "WOLFCASTLE_YIELD" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_YIELD"})
+
+			// Check if the model created new tasks during this iteration.
+			// If so, block the parent so navigation moves to the subtasks
+			// instead of re-picking this yielded task.
+			if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+				newTasks := findNewTasks(ns, updatedNS)
+				if len(newTasks) > 0 {
+					reason := "decomposed into subtasks: " + strings.Join(newTasks, ", ")
+					_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
+						return state.TaskBlock(ns2, nav.TaskID, reason)
+					})
+					_ = d.Logger.Log(map[string]any{
+						"type":      "yield_decomposition",
+						"task":      nav.TaskID,
+						"new_tasks": newTasks,
+					})
+				}
+			}
 			return nil
 		}
 		if marker == "WOLFCASTLE_BLOCKED" {
@@ -337,4 +355,20 @@ func extractAssistantText(line string) string {
 		}
 	}
 	return ""
+}
+
+// findNewTasks returns the IDs of tasks present in after but not in before,
+// excluding audit tasks. Used to detect subtasks created during a YIELD.
+func findNewTasks(before, after *state.NodeState) []string {
+	beforeIDs := make(map[string]bool)
+	for _, t := range before.Tasks {
+		beforeIDs[t.ID] = true
+	}
+	var newIDs []string
+	for _, t := range after.Tasks {
+		if !beforeIDs[t.ID] && !t.IsAudit {
+			newIDs = append(newIDs, t.ID)
+		}
+	}
+	return newIDs
 }
