@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
+	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -214,7 +216,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			return nil
 		}
 
-		// No terminal marker — increment failure count
+		// No terminal marker — auto-commit partial work, then increment failure count
+		autoCommitPartialWork(d.RepoDir, d.Logger, nav.TaskID)
+
 		_ = d.Logger.Log(map[string]any{
 			"type":  "no_terminal_marker",
 			"empty": result.Stdout == "",
@@ -357,6 +361,37 @@ func extractAssistantText(line string) string {
 		}
 	}
 	return ""
+}
+
+// autoCommitPartialWork commits any uncommitted changes in the repo when a
+// task fails without a terminal marker. This preserves partial work that the
+// model did before failing, preventing it from being lost on the next iteration.
+func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string) {
+	// Check for uncommitted changes
+	statusCmd := exec.Command("git", "status", "--porcelain")
+	statusCmd.Dir = repoDir
+	out, err := statusCmd.Output()
+	if err != nil || len(strings.TrimSpace(string(out))) == 0 {
+		return // no changes or git unavailable
+	}
+
+	// Stage and commit
+	addCmd := exec.Command("git", "add", "-A")
+	addCmd.Dir = repoDir
+	if err := addCmd.Run(); err != nil {
+		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
+		return
+	}
+
+	msg := fmt.Sprintf("wolfcastle: auto-commit partial work [%s]", taskID)
+	commitCmd := exec.Command("git", "commit", "-m", msg, "--no-verify")
+	commitCmd.Dir = repoDir
+	if err := commitCmd.Run(); err != nil {
+		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
+		return
+	}
+
+	_ = logger.Log(map[string]any{"type": "auto_commit", "task": taskID})
 }
 
 // autoCompleteDecomposedParents checks if any blocked task in the node was
