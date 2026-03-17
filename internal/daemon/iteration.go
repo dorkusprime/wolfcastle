@@ -137,6 +137,15 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 			return nil
 		}
+		if marker == "WOLFCASTLE_SKIP" {
+			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_SKIP", "task": nav.TaskID})
+			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+				return state.TaskComplete(ns, nav.TaskID)
+			}); err != nil {
+				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
+			}
+			return nil
+		}
 		if marker == "WOLFCASTLE_COMPLETE" {
 			// Re-read state from disk since the model may have added
 			// deliverables via CLI during execution.
@@ -238,7 +247,7 @@ func scanTerminalMarker(output string) string {
 	// This prevents an early YIELD (from prompt echo or an intermediate
 	// model message) from shadowing a later COMPLETE.
 	found := map[string]bool{}
-	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
+	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_SKIP", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
 
 	for _, line := range strings.Split(output, "\n") {
 		trimmed := strings.TrimSpace(line)
@@ -255,6 +264,10 @@ func scanTerminalMarker(output string) string {
 				sub = strings.Trim(sub, "*_`")
 				sub = strings.TrimSpace(sub)
 				if sub == m {
+					found[m] = true
+				}
+				// SKIP matches as a prefix: "WOLFCASTLE_SKIP reason text"
+				if m == "WOLFCASTLE_SKIP" && strings.HasPrefix(sub, m+" ") {
 					found[m] = true
 				}
 				if strings.HasSuffix(sub, m) && (len(sub) == len(m) || sub[len(sub)-len(m)-1] == ' ') {
