@@ -449,6 +449,15 @@ func (d *Daemon) autoCompleteDecomposedParents(nodeAddr string) {
 		if allComplete {
 			taskID := t.ID
 			_ = d.Store.MutateNode(nodeAddr, func(ns2 *state.NodeState) error {
+				// Unblock the parent first, then complete it.
+				// TaskComplete treats blocked as terminal and won't transition.
+				for i := range ns2.Tasks {
+					if ns2.Tasks[i].ID == taskID && ns2.Tasks[i].State == state.StatusBlocked {
+						ns2.Tasks[i].State = state.StatusInProgress
+						ns2.Tasks[i].BlockedReason = ""
+						break
+					}
+				}
 				return state.TaskComplete(ns2, taskID)
 			})
 			_ = d.Logger.Log(map[string]any{
