@@ -131,21 +131,40 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		if marker == "WOLFCASTLE_YIELD" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_YIELD"})
 
-			// Check if the model created new tasks during this iteration.
-			// Compare against pre-invocation state since ns was reloaded
-			// after model execution and already includes new tasks.
-			if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-				newTasks := findNewTasks(preInvocationNS, updatedNS)
-				if len(newTasks) > 0 {
-					reason := "decomposed into subtasks: " + strings.Join(newTasks, ", ")
-					_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
-						return state.TaskBlock(ns2, nav.TaskID, reason)
-					})
-					_ = d.Logger.Log(map[string]any{
-						"type":      "yield_decomposition",
-						"task":      nav.TaskID,
-						"new_tasks": newTasks,
-					})
+			// If the model created child tasks (hierarchical IDs like task-0001.0001),
+			// navigation handles them automatically via depth-first ordering.
+			// The parent task's status derives from its children.
+			//
+			// Legacy support: if the model created sibling tasks (flat IDs like
+			// task-0002) and the planning pipeline is disabled, fall back to the
+			// old block-parent behavior.
+			if !d.Config.Pipeline.Planning.Enabled {
+				if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+					newTasks := findNewTasks(preInvocationNS, updatedNS)
+					if len(newTasks) > 0 {
+						reason := "decomposed into subtasks: " + strings.Join(newTasks, ", ")
+						_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
+							return state.TaskBlock(ns2, nav.TaskID, reason)
+						})
+						_ = d.Logger.Log(map[string]any{
+							"type":      "yield_decomposition",
+							"task":      nav.TaskID,
+							"new_tasks": newTasks,
+						})
+					}
+				}
+			} else {
+				// With planning enabled, just log the yield. Navigation
+				// handles child task ordering via hierarchical IDs.
+				if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+					newTasks := findNewTasks(preInvocationNS, updatedNS)
+					if len(newTasks) > 0 {
+						_ = d.Logger.Log(map[string]any{
+							"type":      "yield_decomposition",
+							"task":      nav.TaskID,
+							"new_tasks": newTasks,
+						})
+					}
 				}
 			}
 			return nil
@@ -166,7 +185,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 			}
-			d.autoCompleteDecomposedParents(nav.NodeAddress)
+			if !d.Config.Pipeline.Planning.Enabled {
+				d.autoCompleteDecomposedParents(nav.NodeAddress)
+			}
 			return nil
 		}
 		if marker == "WOLFCASTLE_COMPLETE" {
@@ -214,7 +235,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 			}
-			d.autoCompleteDecomposedParents(nav.NodeAddress)
+			if !d.Config.Pipeline.Planning.Enabled {
+				d.autoCompleteDecomposedParents(nav.NodeAddress)
+			}
 			return nil
 		}
 
