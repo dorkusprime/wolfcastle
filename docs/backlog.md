@@ -6,6 +6,8 @@ Items accumulate here as they surface. Don't process unless directed.
 
 These shape how Wolfcastle plans, executes, and learns from its work.
 
+- **Auto-unblock audit after remediation.** When a remediation leaf completes (all gaps fixed, ADRs/specs written), the original blocked audit task stays blocked because nobody calls `wolfcastle task unblock`. The daemon should detect that a remediation leaf targeting a blocked audit has completed and automatically unblock the audit so it re-runs. Without this, the blocked node stays blocked forever and the orchestrator can never complete. Observed in eval #6: Render Context Methods audit blocked for missing ADRs/spec, remediation created and completed all docs, but the audit stayed "blocked by model."
+
 - **Spec review pipeline.** Specs go from draft to implementation with no structured review. The domain repository spec needed 4 revision passes to reach quality. Wolfcastle should have a review stage: after a spec is created, a separate model audits it for logical gaps, missing method signatures, contradictions, and under-specified behavior before it drives implementation.
 
 - **After Action Reviews per task.** Every task should produce an AAR following the standard template: objective, what happened, what went well, what can be improved, action items. The next task reads prior AARs for full context. Replaces terse breadcrumbs with actionable narrative. AARs accumulate in the leaf directory and become the audit's primary input.
