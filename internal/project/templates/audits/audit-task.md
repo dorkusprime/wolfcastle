@@ -1,16 +1,63 @@
 # Audit
 
-Verify all work in this node is complete and correct.
+Verify all work in this node is complete, correct, and high-quality. This audit covers both leaf nodes (verifying specific tasks) and orchestrator nodes (verifying the aggregate of all children).
 
-## Checklist
+For leaf nodes, your scope is the files touched by tasks in this node.
+For orchestrator nodes, your scope is everything touched by all descendant nodes.
+
+## 1. Completeness
 
 - [ ] All tasks marked complete actually did what they claimed
 - [ ] Deliverables exist and contain meaningful content
 - [ ] No files were left in a broken state
-- [ ] Any validation commands pass
 - [ ] Breadcrumbs describe what was done and why
 - [ ] No gaps remain open
-- [ ] Specs are in `.wolfcastle/docs/specs/` (not `docs/` or other locations). If a spec is in the wrong place, read its content, then run `wolfcastle spec create "Spec Title" --body "content" --node <node>`, then delete the misplaced file.
-- [ ] **Decisions are documented.** Read the code changes. Identify decisions where alternatives existed: a library was chosen over another, an interface was defined instead of a concrete type, a concurrency strategy was selected, a structural pattern was adopted. For each such decision, check whether an ADR exists in `.wolfcastle/docs/decisions/`. If a non-trivial decision is undocumented, the audit verdict is REMEDIATE. A "non-trivial decision" is one where a reasonable developer might have chosen differently. Do not flag forced choices or standard patterns.
-- [ ] **Contracts are specified and populated.** If a task created an interface or a type that other packages depend on, a spec should exist in `.wolfcastle/docs/specs/` describing the contract. If missing for a public interface, verdict is REMEDIATE. Read every spec file; if any contains only a title and placeholder text (e.g., "[Spec content goes here.]") or is shorter than 10 lines, it is not a real spec. Delete the placeholder and create a proper spec via `wolfcastle spec create` with actual method signatures, error behavior, and usage patterns.
-- [ ] Research documents are in `.wolfcastle/artifacts/` (not `docs/`). If research is in the wrong place, move it to `.wolfcastle/artifacts/` and update the deliverable path.
+
+## 2. Build and test verification
+
+Run the project's build and test commands. If you don't know what they are, look for a Makefile, package.json, Cargo.toml, go.mod, or equivalent. At minimum:
+
+- [ ] **The project builds without errors.** Run the build command. If it fails, the audit verdict is REMEDIATE.
+- [ ] **All tests pass.** Run the test suite. If any test fails, the audit verdict is REMEDIATE. Include the failing test name and error in your gap report.
+- [ ] **No formatting violations.** Run the project's formatter (gofmt, prettier, rustfmt, clang-format, etc.). If files need formatting, fix them and commit.
+- [ ] **Static analysis clean.** Run the project's linter if one is configured. New warnings introduced by this node's work are audit findings.
+
+## 3. Correctness
+
+Read the code changes made by tasks in this node. For each file changed:
+
+- [ ] **Nil/null safety.** Every pointer, optional, or interface field is checked or initialized before use. Struct constructors and Init methods set all fields. No nil dereference paths exist.
+- [ ] **Error handling.** Every error is either returned with context, logged, or explicitly discarded with a comment explaining why. Bare `_ = someFunc()` without justification is a finding. Errors from I/O operations (file writes, network calls, directory creation) are never silently ignored.
+- [ ] **Edge cases.** Empty inputs, zero values, nil collections, boundary conditions. Functions handle these gracefully rather than panicking.
+- [ ] **Concurrency safety.** Shared mutable state is protected by locks or channels. No race conditions are introduced. If the project has a race detector, run it.
+
+## 4. Code quality
+
+- [ ] **No duplication.** Search for logic that appears in more than one place. If two functions render the same output, format the same data, or implement the same algorithm, one should delegate to the other. Copy-paste with minor variations is a finding.
+- [ ] **No dead code.** Functions, variables, or imports that are never called or used. Commented-out code blocks. Unreachable branches. Remove them.
+- [ ] **No overly complex functions.** Functions longer than 50 lines or with deeply nested conditionals (3+ levels) should be decomposed. High cyclomatic complexity is a finding.
+- [ ] **Clear naming.** Types, functions, and variables have descriptive names. No abbreviations that obscure meaning. No stuttering (e.g., a package named `config` with a type named `ConfigManager`).
+- [ ] **Minimal public surface.** Only export what callers need. Unexported helpers should stay unexported. If a type or function was exported but has no external callers, it should be unexported.
+
+## 5. Modularity and architecture
+
+- [ ] **Single responsibility.** Each file, function, and type does one thing. Files that mix unrelated concerns are a finding.
+- [ ] **No circular dependencies.** Packages/modules do not import each other. If a dependency needs to flow both ways, an interface should break the cycle.
+- [ ] **Consistent patterns.** Similar problems are solved the same way throughout the codebase. If a new pattern was introduced, verify it doesn't contradict an existing one without good reason.
+- [ ] **Clean interfaces.** Interfaces have the minimal set of methods their consumers need. No "god interfaces" with 10+ methods when callers use 2.
+
+## 6. Documentation and specs
+
+- [ ] **Specs are populated.** Check `.wolfcastle/docs/specs/`. If any spec contains only a title and placeholder text, or is shorter than 10 lines, delete it and create a proper spec via `wolfcastle spec create` with actual signatures, error behavior, and usage patterns.
+- [ ] **Decisions are documented.** Read the code changes. Identify decisions where alternatives existed. For each undocumented non-trivial decision, create an ADR via `wolfcastle adr create`. A "non-trivial decision" is one where a reasonable developer might have chosen differently.
+- [ ] **Contracts are specified.** If a task created an interface or type that other packages depend on, a spec should exist describing the contract.
+- [ ] **Specs and ADRs are in the right place.** Specs go in `.wolfcastle/docs/specs/`, ADRs in `.wolfcastle/docs/decisions/`, research in `.wolfcastle/artifacts/`.
+
+## Verdicts
+
+After completing all checks:
+
+- **PASS**: Everything checks out. No findings. Emit WOLFCASTLE_COMPLETE.
+- **REMEDIATE**: You found concrete, verifiable issues. Record each one as an audit gap with `wolfcastle audit gap`, then emit WOLFCASTLE_BLOCKED with a summary of what needs fixing. Every remediation must cite specific evidence (file, line, or test output). No hypothetical improvements, style preferences, or "could-be-betters."
+
+PASS is the expected outcome for well-executed work. Only REMEDIATE when you have evidence.

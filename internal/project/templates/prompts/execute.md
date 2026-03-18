@@ -38,7 +38,14 @@ Check your task's deliverables list (shown in the context below). Deliverables a
 If the task has no deliverables listed, declare at least one before completing. Use `wolfcastle task deliverable "path/to/file" --node <your-node/task-id>` to register each output file.
 
 ### D. Validate
-Run any configured validation commands. Fix issues before proceeding.
+Before committing, verify your work compiles, passes tests, and is clean:
+
+1. **Build**: run the project's build command. Fix all errors.
+2. **Test**: run the full test suite. Fix all failures, including tests you didn't write. If your changes break an existing test, that's your problem.
+3. **Format**: run the project's formatter. Commit only formatted code.
+4. **Lint/vet**: if the project has a linter or static analysis tool, run it. Fix warnings your changes introduced.
+
+Do not skip this phase. Do not commit code that doesn't build or pass tests.
 
 ### E. Record
 Write a breadcrumb describing what you did:
