@@ -96,6 +96,35 @@ func TestFindPlanningTarget_SkipsCompletedOrchestrators(t *testing.T) {
 	}
 }
 
+func TestFindPlanningTarget_InfersNeedFromChildlessOrchestrator(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Resolver.ProjectsDir()
+	idx := state.NewRootIndex()
+	idx.Root = []string{"orch-node"}
+	idx.Nodes["orch-node"] = state.IndexEntry{
+		Name: "Orch", Type: state.NodeOrchestrator, State: state.StatusNotStarted, Address: "orch-node",
+	}
+	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+
+	// Orchestrator with no children, no tasks, and NeedsPlanning=false.
+	// The daemon should infer it needs planning from the empty structure.
+	ns := state.NewNodeState("orch-node", "Orch", state.NodeOrchestrator)
+	ns.NeedsPlanning = false
+	ns.Scope = "some scope"
+	writeJSON(t, filepath.Join(projDir, "orch-node", "state.json"), ns)
+
+	addr, foundNS := d.findPlanningTarget(idx)
+	if addr != "orch-node" {
+		t.Errorf("expected childless orchestrator to be inferred as planning target, got %q", addr)
+	}
+	if foundNS != nil && foundNS.PlanningTrigger != "initial" {
+		t.Errorf("expected inferred trigger 'initial', got %q", foundNS.PlanningTrigger)
+	}
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // runPlanningPass
 // ═══════════════════════════════════════════════════════════════════════════

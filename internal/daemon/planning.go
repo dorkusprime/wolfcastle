@@ -48,7 +48,18 @@ func (d *Daemon) dfsFindPlanning(idx *state.RootIndex, addr string) (string, *st
 		if err != nil {
 			return "", nil
 		}
-		if ns.NeedsPlanning {
+		// An orchestrator needs planning if:
+		// 1. NeedsPlanning is explicitly set (re-planning triggers, intake), or
+		// 2. It has no children and no tasks (newly created, never planned).
+		// Case 2 means the daemon infers the need from structure rather than
+		// requiring the creator to set a flag.
+		needsPlanning := ns.NeedsPlanning
+		if !needsPlanning && len(ns.Children) == 0 && len(ns.Tasks) == 0 {
+			needsPlanning = true
+			// Set the trigger so the planning pass knows this is initial
+			ns.PlanningTrigger = "initial"
+		}
+		if needsPlanning {
 			return addr, ns
 		}
 		// Check children depth-first
