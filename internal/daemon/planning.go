@@ -12,8 +12,10 @@ import (
 )
 
 // findPlanningTarget searches the tree depth-first for an orchestrator
-// that needs planning. Returns the node address and state, or empty string
-// if no orchestrator needs planning.
+// that needs planning. Called only when no actionable task exists, making
+// planning lazy: each orchestrator gets planned right before its subtree
+// needs work. Returns the node address and state, or empty string if no
+// orchestrator needs planning.
 func (d *Daemon) findPlanningTarget(idx *state.RootIndex) (string, *state.NodeState) {
 	if !d.Config.Pipeline.Planning.Enabled {
 		return "", nil
