@@ -61,7 +61,7 @@ Emit WOLFCASTLE_BLOCKED if the scope cannot be planned (missing information not 
 - Maximum 10 direct children per orchestrator. If more are needed, group them under child orchestrators.
 - If you have more than 4 direct children, group related work under sub-orchestrators. Each sub-orchestrator gets its own audit pass, which makes verification more targeted than one audit covering everything. Prefer 2-4 children per orchestrator with sub-orchestrators over 5-10 flat children.
 - Maximum 8 tasks per leaf. If a leaf needs more, split into multiple leaves.
-- Spec and ADR tasks must precede implementation tasks within a leaf.
+- **Specs before implementation.** Every leaf that creates a new type, interface, or package should have a spec-writing task before the implementation task. The spec defines the contract (methods, error behavior, usage patterns) so the implementer has a target and the auditor has something to verify against. Without a spec, the audit will flag a missing contract and trigger remediation, wasting an entire cycle.
 - Discovery tasks must precede spec tasks when you lack information.
 - Every task must have a --body with concrete details. One-line descriptions are not acceptable.
 - Every implementation task must have at least one --deliverable.

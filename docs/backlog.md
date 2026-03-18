@@ -6,6 +6,8 @@ Items accumulate here as they surface. Don't process unless directed.
 
 These shape how Wolfcastle plans, executes, and learns from its work.
 
+- **Harden audit unblock after remediation.** In eval #6, the remediation task successfully unblocked the original audit, but it wasn't obvious whether that would happen reliably. Investigate: does the remediation prompt (`plan-remediate.md`) consistently instruct the model to include an unblock step? Should the daemon auto-unblock as a fallback? A prompt change in the remediate template or the remediation task body may be enough to make this reliable without daemon-side logic.
+
 - **Spec review pipeline.** Specs go from draft to implementation with no structured review. The domain repository spec needed 4 revision passes to reach quality. Wolfcastle should have a review stage: after a spec is created, a separate model audits it for logical gaps, missing method signatures, contradictions, and under-specified behavior before it drives implementation.
 
 - **After Action Reviews per task.** Every task should produce an AAR following the standard template: objective, what happened, what went well, what can be improved, action items. The next task reads prior AARs for full context. Replaces terse breadcrumbs with actionable narrative. AARs accumulate in the leaf directory and become the audit's primary input.
