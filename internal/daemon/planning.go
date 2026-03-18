@@ -352,4 +352,3 @@ func (d *Daemon) deliverPendingScope(idx *state.RootIndex) {
 		}
 	}
 }
-
