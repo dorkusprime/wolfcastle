@@ -377,62 +377,52 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		}
 	}
 
-	// Navigate to find work. Inbox processing runs in a parallel
-	// goroutine (ADR-064), so the main loop only handles execution.
+	// Load the tree. Inbox processing runs in a parallel goroutine
+	// (ADR-064), so the main loop handles execution and planning.
 	idx, err := d.Store.ReadIndex()
 	if err != nil {
 		return IterationStop, werrors.Navigation(fmt.Errorf("loading root index: %w", err))
 	}
 
-	// Deliver any buffered pending scope from intake (between passes, never during).
+	// Deliver any buffered pending scope from intake.
 	d.deliverPendingScope(idx)
 
-	// Check for orchestrators needing planning. Planning and execution
-	// alternate: one planning pass per iteration, then look for tasks.
-	// This prevents long planning passes from starving execution.
-	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
-		// Only plan if there's no actionable task waiting. This gives
-		// execution priority over planning when both are available.
-		nodeLoader := func(addr string) (*state.NodeState, error) {
-			a, parseErr := tree.ParseAddress(addr)
-			if parseErr != nil {
-				return nil, fmt.Errorf("parsing address %q: %w", addr, parseErr)
-			}
-			return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
-		}
-		navResult, navErr := state.FindNextTask(idx, d.ScopeNode, nodeLoader)
-		hasTask := navErr == nil && navResult.Found
-
-		if !hasTask {
-			if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
-				output.PrintHuman("Planning error: %v", err)
-				return IterationError, nil
-			}
-			return IterationDidWork, nil
-		}
-		// Task is available; fall through to execution.
-		// Planning will run on the next iteration when no task is ready.
-	}
-
 	nodeLoader := func(addr string) (*state.NodeState, error) {
-		a, err := tree.ParseAddress(addr)
-		if err != nil {
-			return nil, fmt.Errorf("parsing address %q: %w", addr, err)
+		a, parseErr := tree.ParseAddress(addr)
+		if parseErr != nil {
+			return nil, fmt.Errorf("parsing address %q: %w", addr, parseErr)
 		}
 		return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
 	}
 
+	// Step 1: Try to find an actionable task. Execute if found.
 	navResult, err := state.FindNextTask(idx, d.ScopeNode, nodeLoader)
 	if err != nil {
 		return IterationStop, werrors.Navigation(fmt.Errorf("navigation failed: %w", err))
 	}
-
-	// Check for shutdown after navigation (which reads multiple files).
 	if ctx.Err() != nil {
 		return IterationStop, nil
 	}
 
-	if !navResult.Found {
+	if navResult.Found {
+		// Work available. Skip to execution below.
+		goto execute
+	}
+
+	// Step 2: No actionable task. Plan the next childless orchestrator.
+	// Planning is lazy: it only fires when navigation finds nothing to
+	// execute. This means each orchestrator gets planned right before
+	// its subtree needs work, not before.
+	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
+		if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
+			output.PrintHuman("Planning error: %v", err)
+			return IterationError, nil
+		}
+		return IterationDidWork, nil
+	}
+
+	// Step 3: Nothing to execute, nothing to plan. Report why.
+	{
 		var msg string
 		switch navResult.Reason {
 		case "all_complete":
@@ -444,13 +434,14 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		default:
 			msg = "Standing by. (" + navResult.Reason + ")"
 		}
-		// Print the message once per unique reason. Suppress repeats.
 		if msg != d.lastNoWorkMsg {
 			output.PrintHuman(msg)
 			d.lastNoWorkMsg = msg
 		}
 		return IterationNoWork, nil
 	}
+
+execute:
 
 	// Tree has work again; reset the dedup so next idle prints fresh.
 	d.lastNoWorkMsg = ""
