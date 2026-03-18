@@ -176,6 +176,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
 			}
+			// Propagate blocked state so parent orchestrators can detect
+			// the block and trigger remediation planning.
+			if err := d.propagateState(nav.NodeAddress, state.StatusBlocked, idx); err != nil {
+				_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+			}
 			return nil
 		}
 		if marker == "WOLFCASTLE_SKIP" {
