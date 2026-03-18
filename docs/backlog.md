@@ -30,8 +30,6 @@ Operational improvements to the daemon's core loop and resilience.
 
 - **CWD resolution for wolfcastle commands.** Commands should require `.wolfcastle/` in CWD and refuse to operate if it isn't there. No walking up the directory tree. Caught when `wolfcastle start` was accidentally run from `~/` with a stray `.wolfcastle/` and silently operated on the wrong project.
 
-- **Execute prompt spec reference.** When the inbox item links to a spec, the iteration context should include the spec path or content. Currently the model gets a task title like "Implement DaemonRepository" and has to discover the spec during Study.
-
 ## User Experience
 
 How the tool feels to use.
@@ -96,3 +94,5 @@ Things that should be better in the implementation.
 - ~~Execute prompt: --parent for hierarchical decomposition~~ (fix/low-hanging)
 - ~~Execute prompt: branch/worktree guardrail~~ (fix/low-hanging)
 - ~~Audit prompt: verify spec content not just existence~~ (fix/low-hanging)
+- ~~Execute prompt spec reference~~ (inline .md references in iteration context, fix/low-hanging)
+- ~~Planning prompts require --reference when scope has a spec~~ (fix/low-hanging)
