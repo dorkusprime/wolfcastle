@@ -3,36 +3,25 @@ package state
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
 // RenderContext renders a task's context section as a formatted string suitable
-// for inclusion in an iteration prompt. nodeAddr is the slash-delimited address
-// of the parent node (e.g. "project/auth"); nodeDir, when non-empty, is the
-// filesystem path to the node directory for reading per-task .md files.
+// for inclusion in an iteration prompt. The output covers task metadata,
+// deliverables, acceptance criteria, constraints, references (with inline spec
+// content for small .md files), failure count, and last failure type. Failure
+// headers and decomposition guidance are intentionally excluded; those belong
+// to the ContextBuilder which has access to config thresholds.
 //
-// The output covers task metadata, deliverables, acceptance criteria,
-// constraints, references (with inline spec content for small .md files),
-// failure count, and last failure type. Failure headers and decomposition
-// guidance are intentionally excluded; those belong to the ContextBuilder
-// which has access to config thresholds.
-func (t *Task) RenderContext(nodeAddr string, nodeDir string) string {
+// The task address line renders only the task ID; the full node-qualified
+// address is provided by NodeState.RenderContext or ContextBuilder. Per-task
+// .md file content is likewise the ContextBuilder's responsibility, since it
+// requires filesystem access that a domain type should not perform.
+func (t *Task) RenderContext() string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "**Task:** %s/%s\n", nodeAddr, t.ID)
+	fmt.Fprintf(&b, "**Task:** %s\n", t.ID)
 	fmt.Fprintf(&b, "**Description:** %s\n", t.Description)
-
-	// Include task .md content if available
-	if nodeDir != "" {
-		mdPath := filepath.Join(nodeDir, t.ID+".md")
-		if mdContent, err := os.ReadFile(mdPath); err == nil {
-			content := strings.TrimSpace(string(mdContent))
-			if content != "" {
-				b.WriteString("\n" + content + "\n\n")
-			}
-		}
-	}
 
 	if t.TaskType != "" {
 		fmt.Fprintf(&b, "**Task Type:** %s\n", t.TaskType)

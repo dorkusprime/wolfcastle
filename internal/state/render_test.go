@@ -17,9 +17,9 @@ func TestRenderContext_BasicFields(t *testing.T) {
 		State:       StatusInProgress,
 	}
 
-	result := task.RenderContext("project/auth", "")
+	result := task.RenderContext()
 
-	if !strings.Contains(result, "**Task:** project/auth/task-0001") {
+	if !strings.Contains(result, "**Task:** task-0001") {
 		t.Error("expected task address")
 	}
 	if !strings.Contains(result, "**Description:** Implement JWT validation") {
@@ -38,7 +38,7 @@ func TestRenderContext_TaskType(t *testing.T) {
 		TaskType: "implementation",
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "**Task Type:** implementation") {
 		t.Error("expected task type")
@@ -49,7 +49,7 @@ func TestRenderContext_TaskTypeOmittedWhenEmpty(t *testing.T) {
 	t.Parallel()
 	task := Task{ID: "task-0001", State: StatusInProgress}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if strings.Contains(result, "**Task Type:**") {
 		t.Error("task type should be omitted when empty")
@@ -64,7 +64,7 @@ func TestRenderContext_Body(t *testing.T) {
 		Body:  "Detailed instructions for the task.",
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "## Task Details") {
 		t.Error("expected task details section")
@@ -82,7 +82,7 @@ func TestRenderContext_Integration(t *testing.T) {
 		Integration: "Must integrate with the auth middleware.",
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "## Integration") {
 		t.Error("expected integration section")
@@ -100,7 +100,7 @@ func TestRenderContext_Deliverables(t *testing.T) {
 		Deliverables: []string{"internal/auth/jwt.go", "internal/auth/jwt_test.go"},
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "**Deliverables:**") {
 		t.Error("expected deliverables section")
@@ -121,7 +121,7 @@ func TestRenderContext_AcceptanceCriteria(t *testing.T) {
 		AcceptanceCriteria: []string{"All tests pass", "No lint errors"},
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "**Acceptance Criteria:**") {
 		t.Error("expected acceptance criteria section")
@@ -142,7 +142,7 @@ func TestRenderContext_Constraints(t *testing.T) {
 		Constraints: []string{"No external dependencies", "Must be backward compatible"},
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "**Constraints:**") {
 		t.Error("expected constraints section")
@@ -160,7 +160,7 @@ func TestRenderContext_References(t *testing.T) {
 		References: []string{"docs/api-spec.txt", "docs/design.txt"},
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "**Reference Material:**") {
 		t.Error("expected reference material section")
@@ -182,7 +182,7 @@ func TestRenderContext_ReferencesInlineMdContent(t *testing.T) {
 		References: []string{specPath},
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "### Reference: "+specPath) {
 		t.Error("expected inlined reference header")
@@ -204,7 +204,7 @@ func TestRenderContext_ReferencesSkipLargeMdFiles(t *testing.T) {
 		References: []string{specPath},
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if strings.Contains(result, "### Reference:") {
 		t.Error("large files should not be inlined")
@@ -219,7 +219,7 @@ func TestRenderContext_FailureCount(t *testing.T) {
 		FailureCount: 7,
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "**Failure Count:** 7") {
 		t.Error("expected failure count")
@@ -230,7 +230,7 @@ func TestRenderContext_FailureCountOmittedWhenZero(t *testing.T) {
 	t.Parallel()
 	task := Task{ID: "task-0001", State: StatusInProgress}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if strings.Contains(result, "**Failure Count:**") {
 		t.Error("failure count should be omitted when zero")
@@ -246,7 +246,7 @@ func TestRenderContext_LastFailureType_NoTerminalMarker(t *testing.T) {
 		LastFailureType: "no_terminal_marker",
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "## Previous Attempt Failed") {
 		t.Error("expected previous attempt failed section")
@@ -265,7 +265,7 @@ func TestRenderContext_LastFailureType_NoProgress(t *testing.T) {
 		LastFailureType: "no_progress",
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "no git changes were detected") {
 		t.Error("expected no_progress explanation")
@@ -281,7 +281,7 @@ func TestRenderContext_LastFailureType_Custom(t *testing.T) {
 		LastFailureType: "timeout",
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if !strings.Contains(result, "failed with reason: timeout") {
 		t.Error("expected custom failure type")
@@ -296,61 +296,10 @@ func TestRenderContext_NoFailureSection_WhenCountZero(t *testing.T) {
 		LastFailureType: "no_progress", // stale field, count is zero
 	}
 
-	result := task.RenderContext("node", "")
+	result := task.RenderContext()
 
 	if strings.Contains(result, "## Previous Attempt Failed") {
 		t.Error("failure section should not appear when count is zero")
-	}
-}
-
-func TestRenderContext_NodeDirMdFile(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "task-0001.md"), []byte("# Task Markdown\n\nExtra context here."), 0644)
-
-	task := Task{
-		ID:    "task-0001",
-		State: StatusInProgress,
-	}
-
-	result := task.RenderContext("node", dir)
-
-	if !strings.Contains(result, "# Task Markdown") {
-		t.Error("expected task markdown content")
-	}
-	if !strings.Contains(result, "Extra context here.") {
-		t.Error("expected task markdown body")
-	}
-}
-
-func TestRenderContext_NodeDirMdFileMissing(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-
-	task := Task{
-		ID:    "task-0001",
-		State: StatusInProgress,
-	}
-
-	result := task.RenderContext("node", dir)
-
-	// Should still render without error
-	if !strings.Contains(result, "**Task:** node/task-0001") {
-		t.Error("expected task address even without .md file")
-	}
-}
-
-func TestRenderContext_EmptyNodeDir(t *testing.T) {
-	t.Parallel()
-	task := Task{
-		ID:    "task-0001",
-		State: StatusInProgress,
-	}
-
-	result := task.RenderContext("node", "")
-
-	if !strings.Contains(result, "**Task:** node/task-0001") {
-		t.Error("expected task address with empty nodeDir")
 	}
 }
 
@@ -362,10 +311,10 @@ func TestRenderContext_AllOptionalFieldsEmpty(t *testing.T) {
 		State:       StatusNotStarted,
 	}
 
-	result := task.RenderContext("proj", "")
+	result := task.RenderContext()
 
 	// Should contain only basic fields
-	if !strings.Contains(result, "**Task:** proj/task-0001") {
+	if !strings.Contains(result, "**Task:** task-0001") {
 		t.Error("expected task address")
 	}
 	if !strings.Contains(result, "**Task State:** not_started") {
@@ -408,10 +357,10 @@ func TestRenderContext_FullTask(t *testing.T) {
 		LastFailureType:    "no_progress",
 	}
 
-	result := task.RenderContext("myproj/widgets", "")
+	result := task.RenderContext()
 
 	expected := []string{
-		"**Task:** myproj/widgets/task-0003",
+		"**Task:** task-0003",
 		"**Description:** Build the widget",
 		"**Task Type:** implementation",
 		"## Task Details",
