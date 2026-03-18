@@ -21,11 +21,11 @@ func writeFile(t *testing.T, path, content string) {
 
 func TestResolve(t *testing.T) {
 	tests := []struct {
-		name    string
-		setup   func(root string) // populate tier dirs
-		rel     string
-		want    string
-		wantErr bool
+		name     string
+		setup    func(root string) // populate tier dirs
+		rel      string
+		want     string
+		wantErr  bool
 		notExist bool
 	}{
 		{
