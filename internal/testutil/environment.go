@@ -10,6 +10,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/git"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
@@ -53,11 +54,11 @@ type Environment struct {
 	// State provides coordinated access to project state files.
 	State *state.StateStore
 
-	// TODO: populate when ConfigRepository is built
-	// Config *config.ConfigRepository
+	// Config provides three-tier configuration resolution.
+	Config *config.ConfigRepository
 
-	// TODO: populate when PromptRepository is built
-	// Prompts *pipeline.PromptRepository
+	// Prompts provides three-tier prompt file resolution.
+	Prompts *pipeline.PromptRepository
 
 	// TODO: populate when ClassRepository is built
 	// Classes *pipeline.ClassRepository
@@ -160,6 +161,8 @@ func NewEnvironment(t *testing.T) *Environment {
 		Root:      wolfcastleDir,
 		Tiers:     tiers,
 		State:     store,
+		Config:    config.NewConfigRepositoryWithTiers(tiers, wolfcastleDir),
+		Prompts:   pipeline.NewPromptRepositoryWithTiers(tiers),
 		Daemon:    daemon.NewDaemonRepository(wolfcastleDir),
 		t:         t,
 		namespace: namespace,
