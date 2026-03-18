@@ -12,6 +12,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -163,17 +164,23 @@ func testDaemon(t *testing.T) *Daemon {
 	}
 
 	resolver := &tree.Resolver{WolfcastleDir: wolfDir, Namespace: ns}
+
+	prompts := pipeline.NewPromptRepository(wolfDir)
+	classes := pipeline.NewClassRepository(prompts)
+	ctxBuilder := pipeline.NewContextBuilder(prompts, classes)
+
 	return &Daemon{
-		Config:        testConfig(),
-		WolfcastleDir: wolfDir,
-		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), 5*time.Second),
-		Logger:        logger,
-		InboxLogger:   inboxLogger,
-		Clock:         clock.New(),
-		RepoDir:       tmp,
-		shutdown:      make(chan struct{}),
-		workAvailable: make(chan struct{}, 1),
+		Config:         testConfig(),
+		WolfcastleDir:  wolfDir,
+		Resolver:       resolver,
+		Store:          state.NewStateStore(resolver.ProjectsDir(), 5*time.Second),
+		Logger:         logger,
+		InboxLogger:    inboxLogger,
+		Clock:          clock.New(),
+		RepoDir:        tmp,
+		ContextBuilder: ctxBuilder,
+		shutdown:       make(chan struct{}),
+		workAvailable:  make(chan struct{}, 1),
 	}
 }
 

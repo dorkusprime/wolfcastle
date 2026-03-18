@@ -2,6 +2,8 @@ package pipeline
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
@@ -31,9 +33,9 @@ func NewContextBuilder(prompts *PromptRepository, classes *ClassRepository) *Con
 
 // Build assembles the complete iteration context for a single task within a
 // node. The returned Markdown string is ready for inclusion in the
-// execute-stage prompt. cfg may be nil for backward compatibility; failure
-// context is skipped when nil.
-func (cb *ContextBuilder) Build(nodeAddr string, ns *state.NodeState, taskID string, cfg *config.Config) string {
+// execute-stage prompt. nodeDir is optional; when non-empty, per-task .md
+// files are read from it. cfg may be nil; failure context is skipped when nil.
+func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeState, taskID string, cfg *config.Config) string {
 	var b strings.Builder
 
 	// 1. Node address header
@@ -52,6 +54,25 @@ func (cb *ContextBuilder) Build(nodeAddr string, ns *state.NodeState, taskID str
 		taskCtx := task.RenderContext()
 		if cut := "**Task:** " + task.ID + "\n"; strings.HasPrefix(taskCtx, cut) {
 			taskCtx = taskCtx[len(cut):]
+		}
+
+		// Insert per-task .md file content before the rest of the task context.
+		if nodeDir != "" {
+			mdPath := filepath.Join(nodeDir, task.ID+".md")
+			if mdContent, err := os.ReadFile(mdPath); err == nil {
+				content := strings.TrimSpace(string(mdContent))
+				if content != "" {
+					// The task description line is already written; inject the
+					// .md content before the remaining task metadata.
+					descLine := "**Description:** " + task.Description + "\n"
+					if idx := strings.Index(taskCtx, descLine); idx >= 0 {
+						after := idx + len(descLine)
+						b.WriteString(taskCtx[:after])
+						b.WriteString("\n" + content + "\n\n")
+						taskCtx = taskCtx[after:]
+					}
+				}
+			}
 		}
 		b.WriteString(taskCtx)
 

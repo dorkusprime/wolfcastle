@@ -68,7 +68,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		// Execute stage (and any other custom stages)
 		nodeDir := filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...))
-		iterCtx := pipeline.BuildIterationContextFull(d.WolfcastleDir, nodeDir, nav.NodeAddress, ns, nav.TaskID, d.Config)
+		iterCtx := d.ContextBuilder.Build(nav.NodeAddress, nodeDir, ns, nav.TaskID, d.Config)
 
 		prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, stage, iterCtx)
 		if err != nil {

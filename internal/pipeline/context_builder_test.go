@@ -24,7 +24,7 @@ func TestContextBuilder_IncludesNodeContext(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("my-project/auth", ns, "task-0001", nil)
+	got := cb.Build("my-project/auth", "", ns, "task-0001", nil)
 
 	if !strings.Contains(got, "**Node:** my-project/auth") {
 		t.Error("missing node address header")
@@ -46,18 +46,18 @@ func TestContextBuilder_IncludesTaskContext(t *testing.T) {
 		State: state.StatusInProgress,
 		Tasks: []state.Task{
 			{
-				ID:           "task-0001",
-				Description:  "Implement auth",
-				State:        state.StatusInProgress,
-				Body:         "Detailed body text here",
-				Deliverables: []string{"auth.go", "auth_test.go"},
+				ID:                 "task-0001",
+				Description:        "Implement auth",
+				State:              state.StatusInProgress,
+				Body:               "Detailed body text here",
+				Deliverables:       []string{"auth.go", "auth_test.go"},
 				AcceptanceCriteria: []string{"tests pass"},
 			},
 		},
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", nil)
+	got := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if !strings.Contains(got, "**Task:** proj/task-0001") {
 		t.Error("missing node-qualified task address")
@@ -91,7 +91,7 @@ func TestContextBuilder_IncludesClassGuidance(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", nil)
+	got := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if !strings.Contains(got, "## Class Guidance") {
 		t.Error("missing class guidance header")
@@ -114,7 +114,7 @@ func TestContextBuilder_OmitsClassWhenEmpty(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", nil)
+	got := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if strings.Contains(got, "## Class Guidance") {
 		t.Error("class guidance should be absent when task has no class")
@@ -143,7 +143,7 @@ func TestContextBuilder_IncludesAuditContext(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", nil)
+	got := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if !strings.Contains(got, "## Recent Breadcrumbs") {
 		t.Error("missing breadcrumbs section")
@@ -173,7 +173,7 @@ func TestContextBuilder_SummaryRequired_LastIncompleteTask(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0002", nil)
+	got := cb.Build("proj", "", ns, "task-0002", nil)
 
 	if !strings.Contains(got, "## Summary Required") {
 		t.Error("missing summary required section for last incomplete task")
@@ -197,7 +197,7 @@ func TestContextBuilder_SummaryOmitted_OtherTasksRemain(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", nil)
+	got := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if strings.Contains(got, "## Summary Required") {
 		t.Error("summary required should be absent when other tasks are incomplete")
@@ -218,7 +218,7 @@ func TestContextBuilder_SummaryRequired_UsesPromptTemplate(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", nil)
+	got := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if !strings.Contains(got, "Custom summary instructions from template.") {
 		t.Error("should use summary-required.md prompt template when available")
@@ -245,7 +245,7 @@ func TestContextBuilder_FailureHeader(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", cfg)
+	got := cb.Build("proj", "", ns, "task-0001", cfg)
 
 	// Falls back to hardcoded text since no context-headers.md template is seeded
 	if !strings.Contains(got, "Failure History") {
@@ -271,7 +271,7 @@ func TestContextBuilder_FailureHeader_UsesPromptTemplate(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", cfg)
+	got := cb.Build("proj", "", ns, "task-0001", cfg)
 
 	if !strings.Contains(got, "CUSTOM HEADER: 5 failures, threshold 10") {
 		t.Errorf("expected custom template output, got:\n%s", got)
@@ -298,7 +298,7 @@ func TestContextBuilder_DecompositionGuidance(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj/deep", ns, "task-0001", cfg)
+	got := cb.Build("proj/deep", "", ns, "task-0001", cfg)
 
 	if !strings.Contains(got, "Decomposition required") {
 		t.Error("missing decomposition guidance")
@@ -329,7 +329,7 @@ func TestContextBuilder_DecompositionGuidance_UsesPromptTemplate(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj/node", ns, "task-0001", cfg)
+	got := cb.Build("proj/node", "", ns, "task-0001", cfg)
 
 	if !strings.Contains(got, "DECOMPOSE NOW at proj/node") {
 		t.Errorf("expected custom decomposition template, got:\n%s", got)
@@ -349,7 +349,7 @@ func TestContextBuilder_FailureSkippedWithNilConfig(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", nil)
+	got := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if strings.Contains(got, "Failure History") {
 		t.Error("failure context should be skipped when cfg is nil")
@@ -366,7 +366,7 @@ func TestContextBuilder_MinimalNodeState_TaskNotFound(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj/empty", ns, "nonexistent", nil)
+	got := cb.Build("proj/empty", "", ns, "nonexistent", nil)
 
 	if !strings.Contains(got, "**Node:** proj/empty") {
 		t.Error("should still include node address")
@@ -399,7 +399,7 @@ func TestContextBuilder_IncludesLinkedSpecs(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", nil)
+	got := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if !strings.Contains(got, "## Linked Specs") {
 		t.Error("missing linked specs section")
@@ -451,7 +451,7 @@ func TestContextBuilder_ClassResolveError_SkipsGuidance(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", nil)
+	got := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if strings.Contains(got, "## Class Guidance") {
 		t.Error("class guidance should be silently skipped when Resolve fails")
@@ -488,7 +488,7 @@ func TestContextBuilder_SectionOrdering(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", ns, "task-0001", cfg)
+	got := cb.Build("proj", "", ns, "task-0001", cfg)
 
 	// Verify ordering: node addr < node context < task < class < audit < failure
 	nodeIdx := strings.Index(got, "**Node:** proj")

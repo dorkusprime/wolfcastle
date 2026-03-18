@@ -38,6 +38,7 @@ import (
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -49,15 +50,16 @@ const inboxIterationOffset = 10000
 
 // Daemon is the main Wolfcastle daemon loop.
 type Daemon struct {
-	Config        *config.Config
-	WolfcastleDir string
-	Resolver      *tree.Resolver
-	Store         *state.StateStore
-	ScopeNode     string
-	Logger        *logging.Logger
-	InboxLogger   *logging.Logger // separate logger for the inbox goroutine
-	RepoDir       string
-	Clock         clock.Clock
+	Config         *config.Config
+	WolfcastleDir  string
+	Resolver       *tree.Resolver
+	Store          *state.StateStore
+	ScopeNode      string
+	Logger         *logging.Logger
+	InboxLogger    *logging.Logger // separate logger for the inbox goroutine
+	RepoDir        string
+	Clock          clock.Clock
+	ContextBuilder *pipeline.ContextBuilder
 
 	shutdown      chan struct{}
 	shutdownOnce  sync.Once
@@ -97,18 +99,27 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 	// their iteration numbers never overlap.
 	inboxLogger.Iteration = inboxIterationOffset + logging.IterationFromDir(logDir)
 
+	// Build domain repositories for prompt and class resolution, then
+	// assemble a ContextBuilder that replaces the legacy standalone
+	// buildIterationContext functions.
+	prompts := pipeline.NewPromptRepository(wolfcastleDir)
+	classes := pipeline.NewClassRepository(prompts)
+	classes.Reload(cfg.TaskClasses)
+	ctxBuilder := pipeline.NewContextBuilder(prompts, classes)
+
 	return &Daemon{
-		Config:        cfg,
-		WolfcastleDir: wolfcastleDir,
-		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), 5*time.Second),
-		ScopeNode:     scopeNode,
-		Logger:        logger,
-		InboxLogger:   inboxLogger,
-		RepoDir:       repoDir,
-		Clock:         clock.New(),
-		shutdown:      make(chan struct{}),
-		workAvailable: make(chan struct{}, 1),
+		Config:         cfg,
+		WolfcastleDir:  wolfcastleDir,
+		Resolver:       resolver,
+		Store:          state.NewStateStore(resolver.ProjectsDir(), 5*time.Second),
+		ScopeNode:      scopeNode,
+		Logger:         logger,
+		InboxLogger:    inboxLogger,
+		RepoDir:        repoDir,
+		Clock:          clock.New(),
+		ContextBuilder: ctxBuilder,
+		shutdown:       make(chan struct{}),
+		workAvailable:  make(chan struct{}, 1),
 	}, nil
 }
 
