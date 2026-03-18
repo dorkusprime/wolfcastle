@@ -372,17 +372,18 @@ func CreateProject(
 	// Create node state
 	ns := state.NewNodeState(slug, name, nodeType)
 
-	// Add audit task for leaf nodes
-	if nodeType == state.NodeLeaf {
-		ns.Tasks = []state.Task{
-			{
-				ID:          "audit",
-				Title:       "Audit",
-				Description: "Verify all work in " + name + " is complete and correct",
-				State:       state.StatusNotStarted,
-				IsAudit:     true,
-			},
-		}
+	// Add audit task for all node types. Leaf audits verify the node's
+	// tasks. Orchestrator audits verify the aggregate of all children's
+	// work: cross-cutting quality, duplication between siblings,
+	// consistent patterns, and integration.
+	ns.Tasks = []state.Task{
+		{
+			ID:          "audit",
+			Title:       "Audit",
+			Description: "Verify all work in " + name + " is complete and correct",
+			State:       state.StatusNotStarted,
+			IsAudit:     true,
+		},
 	}
 
 	// Update root index

@@ -25,6 +25,8 @@ Make the changes needed to complete the task. Focus on one concern at a time.
 
 To decompose: create sub-tasks with `wolfcastle task add --parent <your-task-id>`, then emit WOLFCASTLE_YIELD on its own line. The `--parent` flag creates hierarchical IDs (task-0001.0001, task-0001.0002). The parent auto-completes when all children finish. Each sub-task should be small enough to finish in a single iteration.
 
+**If this is a retry and prior subtasks exist from a failed decomposition**, block them before creating new ones: `wolfcastle task block --node <your-node/old-task-id> "Superseded by new decomposition"`. Do not leave orphaned subtasks in the tree.
+
 Signs you should decompose rather than continue:
 - The task touches multiple unrelated files or packages with no shared concern
 - You'd need to do substantial exploration just to understand the problem, and then still build something significant

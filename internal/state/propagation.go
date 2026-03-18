@@ -2,8 +2,10 @@ package state
 
 import "fmt"
 
-// RecomputeState derives an orchestrator's state from its children.
-func RecomputeState(children []ChildRef) NodeStatus {
+// RecomputeState derives an orchestrator's state from its children
+// and its own tasks (e.g., audit). The orchestrator only completes
+// when both all children AND all own tasks are complete.
+func RecomputeState(children []ChildRef, tasks ...[]Task) NodeStatus {
 	if len(children) == 0 {
 		return StatusNotStarted
 	}
@@ -21,6 +23,20 @@ func RecomputeState(children []ChildRef) NodeStatus {
 		}
 		if c.State == StatusBlocked {
 			anyBlocked = true
+		}
+	}
+
+	// Check own tasks (if provided). An incomplete audit task
+	// prevents the orchestrator from completing even if all
+	// children are done.
+	if len(tasks) > 0 {
+		for _, t := range tasks[0] {
+			if t.State != StatusComplete {
+				allComplete = false
+			}
+			if t.State != StatusNotStarted {
+				allNotStarted = false
+			}
 		}
 	}
 
@@ -94,7 +110,7 @@ func PropagateUp(
 			}
 		}
 
-		newState := RecomputeState(parent.Children)
+		newState := RecomputeState(parent.Children, parent.Tasks)
 		parent.State = newState
 
 		if err := saveParent(parentAddr, parent); err != nil {

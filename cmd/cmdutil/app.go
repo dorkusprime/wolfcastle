@@ -62,6 +62,10 @@ func (a *App) LoadConfig() error {
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
+	// Set defaults for fields that callers may use without checking.
+	if a.Clock == nil {
+		a.Clock = clock.New()
+	}
 	// Don't validate identity for commands that don't need it
 	a.Resolver, err = tree.NewResolver(a.WolfcastleDir, a.Cfg)
 	if err != nil {
