@@ -60,8 +60,8 @@ type Environment struct {
 	// Prompts provides three-tier prompt file resolution.
 	Prompts *pipeline.PromptRepository
 
-	// TODO: populate when ClassRepository is built
-	// Classes *pipeline.ClassRepository
+	// Classes provides task class prompt resolution atop PromptRepository.
+	Classes *pipeline.ClassRepository
 
 	// Daemon provides access to daemon filesystem operations (PID, stop file, logs).
 	Daemon *daemon.DaemonRepository
@@ -157,12 +157,15 @@ func NewEnvironment(t *testing.T) *Environment {
 
 	store := state.NewStateStore(projectsDir, 5*time.Second)
 
+	prompts := pipeline.NewPromptRepositoryWithTiers(tiers)
+
 	return &Environment{
 		Root:      wolfcastleDir,
 		Tiers:     tiers,
 		State:     store,
 		Config:    config.NewConfigRepositoryWithTiers(tiers, wolfcastleDir),
-		Prompts:   pipeline.NewPromptRepositoryWithTiers(tiers),
+		Prompts:   prompts,
+		Classes:   pipeline.NewClassRepository(prompts),
 		Daemon:    daemon.NewDaemonRepository(wolfcastleDir),
 		t:         t,
 		namespace: namespace,

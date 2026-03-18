@@ -20,6 +20,7 @@ type Config struct {
 	OverlapAdvisory OverlapConfig       `json:"overlap_advisory"`
 	Unblock         UnblockConfig       `json:"unblock"`
 	Audit           AuditCommandConfig  `json:"audit"`
+	TaskClasses     map[string]ClassDef `json:"task_classes,omitempty"`
 }
 
 // ModelDef defines a CLI model invocation.
@@ -169,4 +170,12 @@ type UnblockConfig struct {
 type AuditCommandConfig struct {
 	Model      string `json:"model"`
 	PromptFile string `json:"prompt_file"`
+}
+
+// ClassDef defines a single task class entry in the config. Classes are
+// behavioral modifiers: a description shown to the intake model for
+// classification, and an optional model override for execution.
+type ClassDef struct {
+	Description string `json:"description"`
+	Model       string `json:"model,omitempty"`
 }
