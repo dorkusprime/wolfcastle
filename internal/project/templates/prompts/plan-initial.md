@@ -65,6 +65,7 @@ Emit WOLFCASTLE_BLOCKED if the scope cannot be planned (missing information not 
 - Every task must have a --body with concrete details. One-line descriptions are not acceptable.
 - Every implementation task must have at least one --deliverable.
 - Every task should have --acceptance criteria.
+- If this orchestrator's scope references a spec, every task must include `--reference "path/to/spec.md"`. The executor receives these references in its iteration context and can read them during Study. Without references, the executor has to discover the spec by searching.
 - Cleanup and deletion tasks go last within their leaf.
 
 ## Rules

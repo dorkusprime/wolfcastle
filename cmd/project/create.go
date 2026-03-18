@@ -108,14 +108,11 @@ Examples:
 				}
 				addr = createdAddr
 
-				// Set scope and trigger planning for orchestrators.
-				// NeedsPlanning is always set on new orchestrators so the
-				// daemon runs a planning pass. If --scope is provided, it
-				// becomes the orchestrator's scope description. If not, the
-				// orchestrator's name serves as minimal scope context.
+				// Set scope for orchestrators. The daemon infers planning need
+				// from structure (childless orchestrator with no tasks), so we
+				// don't set NeedsPlanning here. This avoids re-planning
+				// orchestrators that get children created in the same pass.
 				if nt == state.NodeOrchestrator {
-					ns.NeedsPlanning = true
-					ns.PlanningTrigger = "initial"
 					if scope != "" {
 						ns.Scope = scope
 					} else if description != "" {
