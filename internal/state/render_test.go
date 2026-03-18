@@ -172,7 +172,7 @@ func TestRenderContext_ReferencesInlineMdContent(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	specPath := filepath.Join(dir, "spec.md")
-	os.WriteFile(specPath, []byte("# API Spec\n\nEndpoints listed here."), 0644)
+	_ = os.WriteFile(specPath, []byte("# API Spec\n\nEndpoints listed here."), 0644)
 
 	task := Task{
 		ID:         "task-0001",
@@ -194,7 +194,7 @@ func TestRenderContext_ReferencesSkipLargeMdFiles(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	specPath := filepath.Join(dir, "huge.md")
-	os.WriteFile(specPath, []byte(strings.Repeat("x", 9000)), 0644)
+	_ = os.WriteFile(specPath, []byte(strings.Repeat("x", 9000)), 0644)
 
 	task := Task{
 		ID:         "task-0001",
@@ -304,7 +304,7 @@ func TestRenderContext_NoFailureSection_WhenCountZero(t *testing.T) {
 func TestRenderContext_NodeDirMdFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "task-0001.md"), []byte("# Task Markdown\n\nExtra context here."), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-0001.md"), []byte("# Task Markdown\n\nExtra context here."), 0644)
 
 	task := Task{
 		ID:    "task-0001",
