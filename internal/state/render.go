@@ -98,3 +98,35 @@ func (t *Task) RenderContext(nodeAddr string, nodeDir string) string {
 
 	return b.String()
 }
+
+// RenderContext renders the audit state (breadcrumbs and scope) as a formatted
+// string for inclusion in an iteration prompt. Returns empty string when there
+// are no breadcrumbs and no scope.
+func (a *AuditState) RenderContext() string {
+	hasBreadcrumbs := len(a.Breadcrumbs) > 0
+	hasScope := a.Scope != nil
+
+	if !hasBreadcrumbs && !hasScope {
+		return ""
+	}
+
+	var b strings.Builder
+
+	if hasBreadcrumbs {
+		b.WriteString("\n## Recent Breadcrumbs\n\n")
+		start := 0
+		if len(a.Breadcrumbs) > 10 {
+			start = len(a.Breadcrumbs) - 10
+		}
+		for _, bc := range a.Breadcrumbs[start:] {
+			fmt.Fprintf(&b, "- [%s] %s: %s\n", bc.Timestamp.Format("2006-01-02T15:04Z"), bc.Task, bc.Text)
+		}
+	}
+
+	if hasScope {
+		b.WriteString("\n## Audit Scope\n\n")
+		b.WriteString(a.Scope.Description + "\n")
+	}
+
+	return b.String()
+}

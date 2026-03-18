@@ -1,10 +1,12 @@
 package state
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRenderContext_BasicFields(t *testing.T) {
@@ -428,6 +430,146 @@ func TestRenderContext_FullTask(t *testing.T) {
 	for _, s := range expected {
 		if !strings.Contains(result, s) {
 			t.Errorf("expected output to contain %q", s)
+		}
+	}
+}
+
+// --- AuditState.RenderContext tests ---
+
+func TestAuditRenderContext_Empty(t *testing.T) {
+	t.Parallel()
+	audit := AuditState{}
+	if audit.RenderContext() != "" {
+		t.Error("empty audit state should return empty string")
+	}
+}
+
+func TestAuditRenderContext_EmptyBreadcrumbsNilScope(t *testing.T) {
+	t.Parallel()
+	audit := AuditState{Breadcrumbs: []Breadcrumb{}}
+	if audit.RenderContext() != "" {
+		t.Error("empty breadcrumbs with nil scope should return empty string")
+	}
+}
+
+func TestAuditRenderContext_BreadcrumbsOnly(t *testing.T) {
+	t.Parallel()
+	ts := time.Date(2026, 3, 15, 14, 30, 0, 0, time.UTC)
+	audit := AuditState{
+		Breadcrumbs: []Breadcrumb{
+			{Timestamp: ts, Task: "task-0001", Text: "Added JWT validation"},
+		},
+	}
+
+	result := audit.RenderContext()
+
+	if !strings.Contains(result, "## Recent Breadcrumbs") {
+		t.Error("expected breadcrumbs header")
+	}
+	if !strings.Contains(result, "- [2026-03-15T14:30Z] task-0001: Added JWT validation") {
+		t.Error("expected formatted breadcrumb entry")
+	}
+	if strings.Contains(result, "## Audit Scope") {
+		t.Error("scope section should not appear when scope is nil")
+	}
+}
+
+func TestAuditRenderContext_ScopeOnly(t *testing.T) {
+	t.Parallel()
+	audit := AuditState{
+		Scope: &AuditScope{Description: "Verify auth middleware"},
+	}
+
+	result := audit.RenderContext()
+
+	if strings.Contains(result, "## Recent Breadcrumbs") {
+		t.Error("breadcrumbs section should not appear when empty")
+	}
+	if !strings.Contains(result, "## Audit Scope") {
+		t.Error("expected audit scope header")
+	}
+	if !strings.Contains(result, "Verify auth middleware") {
+		t.Error("expected scope description")
+	}
+}
+
+func TestAuditRenderContext_BreadcrumbsAndScope(t *testing.T) {
+	t.Parallel()
+	ts := time.Date(2026, 1, 10, 8, 0, 0, 0, time.UTC)
+	audit := AuditState{
+		Breadcrumbs: []Breadcrumb{
+			{Timestamp: ts, Task: "task-0002", Text: "Refactored handler"},
+		},
+		Scope: &AuditScope{Description: "Check error handling"},
+	}
+
+	result := audit.RenderContext()
+
+	if !strings.Contains(result, "## Recent Breadcrumbs") {
+		t.Error("expected breadcrumbs header")
+	}
+	if !strings.Contains(result, "## Audit Scope") {
+		t.Error("expected audit scope header")
+	}
+	// Breadcrumbs should come before scope
+	bcIdx := strings.Index(result, "## Recent Breadcrumbs")
+	scIdx := strings.Index(result, "## Audit Scope")
+	if bcIdx >= scIdx {
+		t.Error("breadcrumbs section should appear before scope section")
+	}
+}
+
+func TestAuditRenderContext_LimitToLast10Breadcrumbs(t *testing.T) {
+	t.Parallel()
+	var crumbs []Breadcrumb
+	base := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	for i := 0; i < 15; i++ {
+		crumbs = append(crumbs, Breadcrumb{
+			Timestamp: base.Add(time.Duration(i) * time.Hour),
+			Task:      "task-0001",
+			Text:      fmt.Sprintf("breadcrumb-%02d", i),
+		})
+	}
+	audit := AuditState{Breadcrumbs: crumbs}
+
+	result := audit.RenderContext()
+
+	// First 5 (indices 0-4) should be excluded
+	for i := 0; i < 5; i++ {
+		marker := fmt.Sprintf("breadcrumb-%02d", i)
+		if strings.Contains(result, marker) {
+			t.Errorf("breadcrumb %d should have been trimmed", i)
+		}
+	}
+	// Last 10 (indices 5-14) should be present
+	for i := 5; i < 15; i++ {
+		marker := fmt.Sprintf("breadcrumb-%02d", i)
+		if !strings.Contains(result, marker) {
+			t.Errorf("breadcrumb %d should be present", i)
+		}
+	}
+}
+
+func TestAuditRenderContext_Exactly10Breadcrumbs(t *testing.T) {
+	t.Parallel()
+	var crumbs []Breadcrumb
+	base := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	for i := 0; i < 10; i++ {
+		crumbs = append(crumbs, Breadcrumb{
+			Timestamp: base.Add(time.Duration(i) * time.Hour),
+			Task:      "task-0001",
+			Text:      fmt.Sprintf("crumb-%02d", i),
+		})
+	}
+	audit := AuditState{Breadcrumbs: crumbs}
+
+	result := audit.RenderContext()
+
+	// All 10 should be present
+	for i := 0; i < 10; i++ {
+		marker := fmt.Sprintf("crumb-%02d", i)
+		if !strings.Contains(result, marker) {
+			t.Errorf("breadcrumb %d should be present", i)
 		}
 	}
 }
