@@ -6,6 +6,10 @@ Items accumulate here as they surface. Don't process unless directed.
 
 These shape how Wolfcastle plans, executes, and learns from its work.
 
+- **Planning pipeline doesn't populate task References.** Tasks created by the planner have bodies but no References linking back to the originating spec. The executor has to discover the spec by searching. The planner should set References on every task. When no spec exists, the planner should create a spec-writing discovery task first.
+
+- **Spec stubs pass through the pipeline.** During the domains eval, 5 of 7 spec files contained only `[Spec content goes here.]`. The audit model created placeholder files to satisfy its own "spec exists" check. The PromptRepository audit caught and fixed its own stub, but earlier audits didn't. The planning prompt should require populated specs as deliverables, not just file creation.
+
 - **Spec review pipeline.** Specs currently go from draft to implementation with no structured review. The domain repository spec needed 4 revision passes to reach quality (internal audit, external audit, existential review). Wolfcastle should have a review stage: after a spec is created, a separate model audits it for logical gaps, missing method signatures, contradictions, and under-specified behavior before it drives implementation.
 
 - **Structured audit reports with PASS/REMEDIATE verdicts.** Audit tasks should produce a markdown report with a clear verdict. PASS is the expected outcome. REMEDIATE requires concrete, verifiable findings with file:line evidence. The daemon parses the verdict: PASS completes, REMEDIATE spawns tasks plus a re-audit. The template must make "no issues found" a first-class outcome to prevent hallucinated remediation.
@@ -25,6 +29,8 @@ Operational improvements to the daemon's core loop and resilience.
 - **NeedsPlanning inference for re-planning triggers.** The daemon infers initial planning from structure (childless orchestrator), but re-planning (new scope, child blocked, completion review) still depends on explicitly setting a flag. Could be made structural: check whether pending scope exists, whether any child is blocked, or whether all children are complete, rather than relying on a flag set at the right time.
 
 - **CWD resolution for wolfcastle commands.** Commands should require `.wolfcastle/` in CWD and refuse to operate if it isn't there. No walking up the directory tree. Caught when `wolfcastle start` was accidentally run from `~/` with a stray `.wolfcastle/` and silently operated on the wrong project.
+
+- **Execute prompt spec reference.** When the inbox item links to a spec, the iteration context should include the spec path or content. Currently the model gets a task title like "Implement DaemonRepository" and has to discover the spec during Study.
 
 ## User Experience
 
@@ -86,3 +92,7 @@ Things that should be better in the implementation.
 - ~~Decomposition by concern~~ (orchestrator planning handles this, PR #36)
 - ~~Auto-decompose on block~~ (orchestrator-as-unblocker, PR #36)
 - ~~Intake decomposition granularity~~ (orchestrator reads spec, plans at right granularity, PR #36)
+- ~~Planning enabled by default~~ (was dead code at false, fix/low-hanging)
+- ~~Execute prompt: --parent for hierarchical decomposition~~ (fix/low-hanging)
+- ~~Execute prompt: branch/worktree guardrail~~ (fix/low-hanging)
+- ~~Audit prompt: verify spec content not just existence~~ (fix/low-hanging)

@@ -31,7 +31,7 @@ func Defaults() *Config {
 		},
 		Pipeline: PipelineConfig{
 			Planning: PlanningConfig{
-				Enabled:         false,
+				Enabled:         true,
 				Model:           "heavy",
 				MaxChildren:     10,
 				MaxTasksPerLeaf: 8,
