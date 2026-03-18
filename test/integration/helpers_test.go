@@ -17,6 +17,16 @@ import (
 // binaryPath is set by TestMain to the compiled wolfcastle binary.
 var binaryPath string
 
+// testEnv returns a copy of the current environment with WOLFCASTLE_LOCK_DIR
+// set to a directory inside the test working directory. This isolates the
+// daemon lock file so parallel integration tests don't collide.
+func testEnv(dir string) []string {
+	env := os.Environ()
+	lockDir := filepath.Join(dir, ".wolfcastle-lock")
+	_ = os.MkdirAll(lockDir, 0755)
+	return append(env, "WOLFCASTLE_LOCK_DIR="+lockDir)
+}
+
 func TestMain(m *testing.M) {
 	// Build the wolfcastle binary once for all integration tests.
 	tmp, err := os.MkdirTemp("", "wolfcastle-integration-*")
@@ -42,6 +52,7 @@ func run(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 	cmd := exec.Command(binaryPath, args...)
 	cmd.Dir = dir
+	cmd.Env = testEnv(dir)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -57,6 +68,7 @@ func runExpectError(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 	cmd := exec.Command(binaryPath, args...)
 	cmd.Dir = dir
+	cmd.Env = testEnv(dir)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

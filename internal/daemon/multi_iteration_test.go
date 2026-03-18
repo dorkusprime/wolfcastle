@@ -190,6 +190,12 @@ func TestScanTerminalMarker(t *testing.T) {
 		{"skip in json result", `{"type":"result","result":"WOLFCASTLE_SKIP resolved in prior task"}`, "WOLFCASTLE_SKIP"},
 		{"skip priority over blocked", "WOLFCASTLE_BLOCKED\nWOLFCASTLE_SKIP prior work", "WOLFCASTLE_SKIP"},
 		{"complete priority over skip", "WOLFCASTLE_SKIP old\nWOLFCASTLE_COMPLETE", "WOLFCASTLE_COMPLETE"},
+
+		// CONTINUE marker: used when orchestrator completion review finds gaps
+		{"continue standalone", "WOLFCASTLE_CONTINUE", "WOLFCASTLE_CONTINUE"},
+		{"continue in json", `{"type":"result","result":"WOLFCASTLE_CONTINUE"}`, "WOLFCASTLE_CONTINUE"},
+		{"complete priority over continue", "WOLFCASTLE_CONTINUE\nWOLFCASTLE_COMPLETE", "WOLFCASTLE_COMPLETE"},
+		{"continue priority over blocked", "WOLFCASTLE_BLOCKED\nWOLFCASTLE_CONTINUE", "WOLFCASTLE_CONTINUE"},
 	}
 
 	for _, tt := range tests {

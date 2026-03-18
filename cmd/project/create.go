@@ -34,6 +34,7 @@ Examples:
 			parentNode, _ := cmd.Flags().GetString("node")
 			nodeType, _ := cmd.Flags().GetString("type")
 			description, _ := cmd.Flags().GetString("description")
+			scope, _ := cmd.Flags().GetString("scope")
 
 			// Validate slug from name
 			slug := tree.ToSlug(name)
@@ -106,6 +107,23 @@ Examples:
 					return err
 				}
 				addr = createdAddr
+
+				// Set scope and trigger planning for orchestrators.
+				// NeedsPlanning is always set on new orchestrators so the
+				// daemon runs a planning pass. If --scope is provided, it
+				// becomes the orchestrator's scope description. If not, the
+				// orchestrator's name serves as minimal scope context.
+				if nt == state.NodeOrchestrator {
+					ns.NeedsPlanning = true
+					ns.PlanningTrigger = "initial"
+					if scope != "" {
+						ns.Scope = scope
+					} else if description != "" {
+						ns.Scope = description
+					} else {
+						ns.Scope = name
+					}
+				}
 
 				// Write node state (raw save, no nested lock)
 				addrParsed, err := tree.ParseAddress(addr)
@@ -190,6 +208,7 @@ Examples:
 	cmd.Flags().String("node", "", "Parent node address (omit for root-level)")
 	cmd.Flags().String("type", "leaf", "Node type: leaf or orchestrator")
 	cmd.Flags().String("description", "", "Project description (written to the project .md file)")
+	cmd.Flags().String("scope", "", "Planning scope (orchestrators only: sets scope and triggers planning)")
 
 	return cmd
 }

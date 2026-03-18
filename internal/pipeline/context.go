@@ -77,13 +77,42 @@ func buildIterationContext(wolfcastleDir string, nodeDir string, nodeAddr string
 			}
 		}
 
+		if t.TaskType != "" {
+			fmt.Fprintf(&b, "**Task Type:** %s\n", t.TaskType)
+		}
+		if t.Body != "" {
+			b.WriteString("\n## Task Details\n\n")
+			b.WriteString(t.Body + "\n")
+		}
+		if t.Integration != "" {
+			b.WriteString("\n## Integration\n\n")
+			b.WriteString(t.Integration + "\n")
+		}
 		if len(t.Deliverables) > 0 {
-			fmt.Fprintf(&b, "**Deliverables:**\n")
+			fmt.Fprintf(&b, "\n**Deliverables:**\n")
 			for _, d := range t.Deliverables {
 				fmt.Fprintf(&b, "- `%s`\n", d)
 			}
 		}
-		fmt.Fprintf(&b, "**Task State:** %s\n", t.State)
+		if len(t.AcceptanceCriteria) > 0 {
+			fmt.Fprintf(&b, "\n**Acceptance Criteria:**\n")
+			for _, ac := range t.AcceptanceCriteria {
+				fmt.Fprintf(&b, "- %s\n", ac)
+			}
+		}
+		if len(t.Constraints) > 0 {
+			fmt.Fprintf(&b, "\n**Constraints:**\n")
+			for _, c := range t.Constraints {
+				fmt.Fprintf(&b, "- %s\n", c)
+			}
+		}
+		if len(t.References) > 0 {
+			fmt.Fprintf(&b, "\n**Reference Material:**\n")
+			for _, r := range t.References {
+				fmt.Fprintf(&b, "- `%s`\n", r)
+			}
+		}
+		fmt.Fprintf(&b, "\n**Task State:** %s\n", t.State)
 		if t.FailureCount > 0 {
 			fmt.Fprintf(&b, "**Failure Count:** %d\n", t.FailureCount)
 			if t.LastFailureType != "" {

@@ -41,6 +41,12 @@ Examples:
 			body, _ := cmd.Flags().GetString("body")
 			useStdin, _ := cmd.Flags().GetBool("stdin")
 			deliverables, _ := cmd.Flags().GetStringSlice("deliverable")
+			taskType, _ := cmd.Flags().GetString("type")
+			taskClass, _ := cmd.Flags().GetString("class")
+			constraints, _ := cmd.Flags().GetStringSlice("constraint")
+			acceptance, _ := cmd.Flags().GetStringSlice("acceptance")
+			references, _ := cmd.Flags().GetStringSlice("reference")
+			integration, _ := cmd.Flags().GetString("integration")
 
 			if useStdin {
 				data, err := io.ReadAll(os.Stdin)
@@ -50,16 +56,33 @@ Examples:
 				body = string(data)
 			}
 
+			// Validate task type if provided
+			if taskType != "" {
+				validTypes := map[string]bool{
+					"discovery": true, "spec": true, "adr": true,
+					"implementation": true, "integration": true, "cleanup": true,
+				}
+				if !validTypes[taskType] {
+					return fmt.Errorf("invalid task type %q: must be one of discovery, spec, adr, implementation, integration, cleanup", taskType)
+				}
+			}
+
 			addr, err := tree.ParseAddress(nodeAddr)
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
 			nsPath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...))
 
+			parentTask, _ := cmd.Flags().GetString("parent")
+
 			var task *state.Task
 			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				var addErr error
-				task, addErr = state.TaskAdd(ns, title)
+				if parentTask != "" {
+					task, addErr = state.TaskAddChild(ns, parentTask, title)
+				} else {
+					task, addErr = state.TaskAdd(ns, title)
+				}
 				if addErr != nil {
 					return addErr
 				}
@@ -69,6 +92,27 @@ Examples:
 						ns.Tasks[i].Title = title
 						if len(deliverables) > 0 {
 							ns.Tasks[i].Deliverables = deliverables
+						}
+						if body != "" {
+							ns.Tasks[i].Body = body
+						}
+						if taskType != "" {
+							ns.Tasks[i].TaskType = taskType
+						}
+						if taskClass != "" {
+							ns.Tasks[i].Class = taskClass
+						}
+						if len(constraints) > 0 {
+							ns.Tasks[i].Constraints = constraints
+						}
+						if len(acceptance) > 0 {
+							ns.Tasks[i].AcceptanceCriteria = acceptance
+						}
+						if len(references) > 0 {
+							ns.Tasks[i].References = references
+						}
+						if integration != "" {
+							ns.Tasks[i].Integration = integration
 						}
 						break
 					}
@@ -104,6 +148,13 @@ Examples:
 	cmd.Flags().String("body", "", "Detailed task description/body")
 	cmd.Flags().Bool("stdin", false, "Read task body from stdin")
 	cmd.Flags().StringSlice("deliverable", nil, "Expected output file (repeatable)")
+	cmd.Flags().String("type", "", "Task type: discovery, spec, adr, implementation, integration, cleanup")
+	cmd.Flags().String("class", "", "Task class override (e.g., lang-go)")
+	cmd.Flags().StringSlice("constraint", nil, "Constraint: what not to do (repeatable)")
+	cmd.Flags().StringSlice("acceptance", nil, "Acceptance criterion (repeatable)")
+	cmd.Flags().StringSlice("reference", nil, "Reference material path (repeatable)")
+	cmd.Flags().String("integration", "", "How this task connects to other work")
+	cmd.Flags().String("parent", "", "Parent task ID for hierarchical decomposition (e.g., task-0001)")
 	_ = cmd.MarkFlagRequired("node")
 	return cmd
 }

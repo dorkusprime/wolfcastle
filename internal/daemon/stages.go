@@ -163,9 +163,16 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		return nil
 	}
 
-	model, ok := d.Config.Models[stage.Model]
+	// When planning is enabled, use the planning-aware intake prompt
+	// that creates orchestrators instead of full project trees.
+	intakeStage := stage
+	if d.Config.Pipeline.Planning.Enabled {
+		intakeStage.PromptFile = "intake-planning.md"
+	}
+
+	model, ok := d.Config.Models[intakeStage.Model]
 	if !ok {
-		return werrors.Config(fmt.Errorf("model %q not found", stage.Model))
+		return werrors.Config(fmt.Errorf("model %q not found", intakeStage.Model))
 	}
 
 	// Build context with inbox items
@@ -195,7 +202,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		fmt.Fprintf(&itemsCtx, "- **Text:** %s\n\n", item.Text)
 	}
 
-	prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, stage, itemsCtx.String())
+	prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, intakeStage, itemsCtx.String())
 	if err != nil {
 		return err
 	}

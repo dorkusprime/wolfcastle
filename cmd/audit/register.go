@@ -63,6 +63,10 @@ Breadcrumbs and escalations track the per-node audit trail:
 	_ = summaryCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(summaryCmd)
 
+	enrichCmd := newEnrichCmd(app)
+	_ = enrichCmd.RegisterFlagCompletionFunc("node", completeNode)
+	auditCmd.AddCommand(enrichCmd)
+
 	approveCmd := newApproveCmd(app)
 	_ = approveCmd.RegisterFlagCompletionFunc("node", completeNode)
 	auditCmd.AddCommand(approveCmd)

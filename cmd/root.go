@@ -11,6 +11,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/cmd/daemon"
 	"github.com/dorkusprime/wolfcastle/cmd/inbox"
+	"github.com/dorkusprime/wolfcastle/cmd/orchestrator"
 	"github.com/dorkusprime/wolfcastle/cmd/project"
 	"github.com/dorkusprime/wolfcastle/cmd/task"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
@@ -86,6 +87,7 @@ func setupCommands() {
 	audit.Register(app, rootCmd)
 	daemon.Register(app, rootCmd)
 	inbox.Register(app, rootCmd)
+	orchestrator.Register(app, rootCmd)
 	project.Register(app, rootCmd)
 	task.Register(app, rootCmd)
 }

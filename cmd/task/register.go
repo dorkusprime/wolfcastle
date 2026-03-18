@@ -33,6 +33,7 @@ Examples:
 	blockCmd := newBlockCmd(app)
 	unblockCmd := newUnblockCmd(app)
 	deliverableCmd := newDeliverableCmd(app)
+	amendCmd := newAmendCmd(app)
 
 	// Node address completions for task add (takes a node address)
 	_ = addCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
@@ -44,8 +45,9 @@ Examples:
 	_ = blockCmd.RegisterFlagCompletionFunc("node", completeFn)
 	_ = unblockCmd.RegisterFlagCompletionFunc("node", completeFn)
 	_ = deliverableCmd.RegisterFlagCompletionFunc("node", completeFn)
+	_ = amendCmd.RegisterFlagCompletionFunc("node", completeFn)
 
-	taskCmd.AddCommand(addCmd, claimCmd, completeCmd, blockCmd, unblockCmd, deliverableCmd)
+	taskCmd.AddCommand(addCmd, claimCmd, completeCmd, blockCmd, unblockCmd, deliverableCmd, amendCmd)
 	taskCmd.GroupID = "work"
 	rootCmd.AddCommand(taskCmd)
 }

@@ -1,0 +1,250 @@
+package state
+
+import (
+	"testing"
+)
+
+func TestTaskAddChild_CreatesHierarchicalID(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "parent", State: StatusInProgress},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+	}
+
+	child, err := TaskAddChild(ns, "task-0001", "first child")
+	if err != nil {
+		t.Fatalf("TaskAddChild: %v", err)
+	}
+	if child.ID != "task-0001.0001" {
+		t.Errorf("expected task-0001.0001, got %s", child.ID)
+	}
+
+	child2, err := TaskAddChild(ns, "task-0001", "second child")
+	if err != nil {
+		t.Fatalf("TaskAddChild: %v", err)
+	}
+	if child2.ID != "task-0001.0002" {
+		t.Errorf("expected task-0001.0002, got %s", child2.ID)
+	}
+}
+
+func TestTaskAddChild_NestedDecomposition(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "root", State: StatusInProgress},
+		{ID: "task-0001.0001", Description: "child", State: StatusInProgress},
+	}
+
+	grandchild, err := TaskAddChild(ns, "task-0001.0001", "grandchild")
+	if err != nil {
+		t.Fatalf("TaskAddChild: %v", err)
+	}
+	if grandchild.ID != "task-0001.0001.0001" {
+		t.Errorf("expected task-0001.0001.0001, got %s", grandchild.ID)
+	}
+}
+
+func TestTaskAddChild_ParentNotFound(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "exists", State: StatusInProgress},
+	}
+
+	_, err := TaskAddChild(ns, "task-9999", "orphan")
+	if err == nil {
+		t.Fatal("expected error for missing parent")
+	}
+}
+
+func TestTaskAddChild_InsertionOrder(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "first", State: StatusInProgress},
+		{ID: "task-0002", Description: "second", State: StatusNotStarted},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+	}
+
+	_, _ = TaskAddChild(ns, "task-0001", "child A")
+	_, _ = TaskAddChild(ns, "task-0001", "child B")
+
+	// Verify order: task-0001, task-0001.0001, task-0001.0002, task-0002, audit
+	expected := []string{"task-0001", "task-0001.0001", "task-0001.0002", "task-0002", "audit"}
+	if len(ns.Tasks) != len(expected) {
+		t.Fatalf("expected %d tasks, got %d", len(expected), len(ns.Tasks))
+	}
+	for i, id := range expected {
+		if ns.Tasks[i].ID != id {
+			t.Errorf("position %d: expected %s, got %s", i, id, ns.Tasks[i].ID)
+		}
+	}
+}
+
+func TestTaskChildren_DetectsChildren(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "parent", State: StatusInProgress},
+		{ID: "task-0001.0001", Description: "child", State: StatusNotStarted},
+		{ID: "task-0002", Description: "no children", State: StatusNotStarted},
+	}
+
+	if !TaskChildren(ns, "task-0001") {
+		t.Error("task-0001 should have children")
+	}
+	if TaskChildren(ns, "task-0002") {
+		t.Error("task-0002 should not have children")
+	}
+}
+
+func TestDeriveParentStatus_AllComplete(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "parent", State: StatusInProgress},
+		{ID: "task-0001.0001", Description: "child a", State: StatusComplete},
+		{ID: "task-0001.0002", Description: "child b", State: StatusComplete},
+	}
+
+	status, hasChildren := DeriveParentStatus(ns, "task-0001")
+	if !hasChildren {
+		t.Fatal("expected hasChildren=true")
+	}
+	if status != StatusComplete {
+		t.Errorf("expected complete, got %s", status)
+	}
+}
+
+func TestDeriveParentStatus_OneBlocked(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "parent", State: StatusInProgress},
+		{ID: "task-0001.0001", Description: "child a", State: StatusComplete},
+		{ID: "task-0001.0002", Description: "child b", State: StatusBlocked},
+	}
+
+	status, _ := DeriveParentStatus(ns, "task-0001")
+	if status != StatusBlocked {
+		t.Errorf("expected blocked, got %s", status)
+	}
+}
+
+func TestDeriveParentStatus_NoChildren(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "leaf task", State: StatusInProgress},
+	}
+
+	status, hasChildren := DeriveParentStatus(ns, "task-0001")
+	if hasChildren {
+		t.Error("expected hasChildren=false")
+	}
+	if status != StatusInProgress {
+		t.Errorf("expected in_progress, got %s", status)
+	}
+}
+
+func TestDeriveParentStatus_IgnoresGrandchildren(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "root", State: StatusInProgress},
+		{ID: "task-0001.0001", Description: "child", State: StatusComplete},
+		{ID: "task-0001.0001.0001", Description: "grandchild", State: StatusNotStarted},
+	}
+
+	// Root's immediate children are all complete; grandchild doesn't count
+	status, _ := DeriveParentStatus(ns, "task-0001")
+	if status != StatusComplete {
+		t.Errorf("expected complete (grandchild not counted), got %s", status)
+	}
+}
+
+func TestNavigation_HierarchicalDepthFirst(t *testing.T) {
+	// task-0001 has children, task-0002 is a sibling.
+	// Navigation should pick task-0001.0001 before task-0002.
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.State = StatusInProgress
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "parent", State: StatusInProgress},
+		{ID: "task-0001.0001", Description: "child a", State: StatusNotStarted},
+		{ID: "task-0001.0002", Description: "child b", State: StatusNotStarted},
+		{ID: "task-0002", Description: "sibling", State: StatusNotStarted},
+	}
+
+	idx := NewRootIndex()
+	idx.Root = []string{"test"}
+	idx.Nodes["test"] = IndexEntry{
+		Name: "Test", Type: NodeLeaf, State: StatusInProgress, Address: "test",
+	}
+
+	loader := func(addr string) (*NodeState, error) { return ns, nil }
+
+	result, err := FindNextTask(idx, "", loader)
+	if err != nil {
+		t.Fatalf("FindNextTask: %v", err)
+	}
+	if !result.Found {
+		t.Fatal("expected to find a task")
+	}
+	if result.TaskID != "task-0001.0001" {
+		t.Errorf("expected task-0001.0001 (depth-first), got %s", result.TaskID)
+	}
+}
+
+func TestNavigation_SkipsChildOfNotStartedParent(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.State = StatusInProgress
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "not started parent", State: StatusNotStarted},
+		{ID: "task-0001.0001", Description: "child", State: StatusNotStarted},
+	}
+
+	idx := NewRootIndex()
+	idx.Root = []string{"test"}
+	idx.Nodes["test"] = IndexEntry{
+		Name: "Test", Type: NodeLeaf, State: StatusInProgress, Address: "test",
+	}
+
+	loader := func(addr string) (*NodeState, error) { return ns, nil }
+
+	result, err := FindNextTask(idx, "", loader)
+	if err != nil {
+		t.Fatalf("FindNextTask: %v", err)
+	}
+	// task-0001 is a parent (has children), so it's skipped.
+	// task-0001.0001 has a not_started ancestor, so it's skipped.
+	// No actionable task.
+	if result.Found {
+		t.Errorf("expected no actionable task, got %s", result.TaskID)
+	}
+}
+
+func TestNavigation_CrashRecoveryWithHierarchy(t *testing.T) {
+	// task-0003.0002 is in_progress (crashed), task-0001 is not_started.
+	// Crash recovery should pick task-0003.0002 despite ordering.
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.State = StatusInProgress
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "first", State: StatusNotStarted},
+		{ID: "task-0002", Description: "second", State: StatusComplete},
+		{ID: "task-0003", Description: "third parent", State: StatusInProgress},
+		{ID: "task-0003.0001", Description: "done child", State: StatusComplete},
+		{ID: "task-0003.0002", Description: "crashed child", State: StatusInProgress},
+	}
+
+	idx := NewRootIndex()
+	idx.Root = []string{"test"}
+	idx.Nodes["test"] = IndexEntry{
+		Name: "Test", Type: NodeLeaf, State: StatusInProgress, Address: "test",
+	}
+
+	loader := func(addr string) (*NodeState, error) { return ns, nil }
+
+	result, err := FindNextTask(idx, "", loader)
+	if err != nil {
+		t.Fatalf("FindNextTask: %v", err)
+	}
+	if !result.Found {
+		t.Fatal("expected to find crashed task")
+	}
+	if result.TaskID != "task-0003.0002" {
+		t.Errorf("crash recovery should pick task-0003.0002, got %s", result.TaskID)
+	}
+}

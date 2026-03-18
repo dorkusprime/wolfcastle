@@ -70,9 +70,16 @@ Examples:
 			// Recover stale daemon state
 			recoverStaleDaemonState(app.WolfcastleDir)
 
-			// Check for running daemon
+			// Check global daemon lock (one daemon at a time, globally)
+			if err := daemon.AcquireGlobalLock(repoDir, repoDir); err != nil {
+				return err
+			}
+			defer daemon.ReleaseGlobalLock()
+
+			// Check for running daemon (per-project PID, backward compat)
 			pid, err := daemon.ReadPID(app.WolfcastleDir)
 			if err == nil && daemon.IsProcessRunning(pid) {
+				daemon.ReleaseGlobalLock()
 				return fmt.Errorf("already running (PID %d). Use 'wolfcastle stop' first", pid)
 			}
 			daemon.RemovePID(app.WolfcastleDir)

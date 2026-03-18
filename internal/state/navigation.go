@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // NavigationResult is the output of FindNextTask.
@@ -103,64 +104,61 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 
 // findActionableTask loads a node's state and returns the first actionable task.
 // It prefers in_progress tasks (self-healing) over not_started ones.
+// Tasks are sorted lexicographically for depth-first hierarchical ordering.
 // Audit tasks are deferred until all non-audit tasks are complete.
+// Child tasks are skipped if their parent task is not_started.
 func findActionableTask(addr string, loadNode func(addr string) (*NodeState, error)) (*NavigationResult, error) {
 	ns, err := loadNode(addr)
 	if err != nil {
 		return nil, err
 	}
 
+	// Sort tasks lexicographically for depth-first hierarchical ordering.
+	// This ensures task-0001.0001 comes before task-0002.
+	sorted := make([]Task, len(ns.Tasks))
+	copy(sorted, ns.Tasks)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].ID < sorted[j].ID
+	})
+
 	// Check whether all non-audit tasks are finished (complete or blocked).
+	// For parent tasks with children, use derived status.
 	nonAuditCount := 0
 	nonAuditDone := 0
 	nonAuditBlocked := 0
-	nonAuditComplete := 0
-	for _, task := range ns.Tasks {
-		if !task.IsAudit {
-			nonAuditCount++
-			switch task.State {
-			case StatusComplete:
-				nonAuditComplete++
-				nonAuditDone++
-			case StatusBlocked:
-				nonAuditBlocked++
-				nonAuditDone++
-			}
+	for _, task := range sorted {
+		if task.IsAudit {
+			continue
+		}
+		// Skip child tasks in the count; parent status covers them
+		if isChildTask(task.ID) && parentInList(task.ID, sorted) {
+			continue
+		}
+		nonAuditCount++
+		status := task.State
+		if derived, hasChildren := DeriveParentStatus(ns, task.ID); hasChildren {
+			status = derived
+		}
+		switch status {
+		case StatusComplete:
+			nonAuditDone++
+		case StatusBlocked:
+			nonAuditBlocked++
+			nonAuditDone++
 		}
 	}
 	allNonAuditDone := nonAuditDone == nonAuditCount
-	// A leaf node with zero non-audit tasks is not ready for execution.
 	if ns.Type == NodeLeaf && nonAuditCount == 0 {
 		allNonAuditDone = false
 	}
-	// If ALL non-audit tasks are blocked (none completed), there's nothing
-	// for the audit to verify. Pre-block the audit task rather than running
-	// it on empty results.
 	allNonAuditBlocked := nonAuditCount > 0 && nonAuditBlocked == nonAuditCount
 
 	// Return in_progress tasks first (self-healing: resume after crash).
-	// Audit tasks are included here because if one is already in_progress,
-	// it was legitimately claimed and should be resumed.
-	for _, task := range ns.Tasks {
+	for _, task := range sorted {
 		if task.State == StatusInProgress {
-			return &NavigationResult{
-				NodeAddress: addr,
-				TaskID:      task.ID,
-				Description: task.Description,
-				Found:       true,
-			}, nil
-		}
-	}
-	// Then not_started tasks, deferring audit tasks until all others are done.
-	for _, task := range ns.Tasks {
-		if task.State == StatusNotStarted {
-			if task.IsAudit {
-				if !allNonAuditDone {
-					continue // defer: non-audit tasks still running
-				}
-				if allNonAuditBlocked {
-					continue // all tasks blocked, nothing to audit
-				}
+			// Skip parent tasks that have children (their status is derived)
+			if TaskChildren(ns, task.ID) {
+				continue
 			}
 			return &NavigationResult{
 				NodeAddress: addr,
@@ -171,5 +169,75 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 		}
 	}
 
+	// Then not_started leaf tasks in lexicographic (depth-first) order.
+	for _, task := range sorted {
+		if task.State != StatusNotStarted {
+			continue
+		}
+		// Skip parent tasks that have children
+		if TaskChildren(ns, task.ID) {
+			continue
+		}
+		// Skip child tasks whose parent is not_started
+		if hasNotStartedAncestor(task.ID, ns) {
+			continue
+		}
+		if task.IsAudit {
+			if !allNonAuditDone {
+				continue
+			}
+			if allNonAuditBlocked {
+				continue
+			}
+		}
+		return &NavigationResult{
+			NodeAddress: addr,
+			TaskID:      task.ID,
+			Description: task.Description,
+			Found:       true,
+		}, nil
+	}
+
 	return nil, nil
+}
+
+// isChildTask returns true if the task ID contains a dot (hierarchical child).
+func isChildTask(id string) bool {
+	return strings.Contains(id, ".")
+}
+
+// parentInList checks if the immediate parent of a child task exists in the list.
+func parentInList(childID string, tasks []Task) bool {
+	dot := strings.LastIndex(childID, ".")
+	if dot < 0 {
+		return false
+	}
+	parentID := childID[:dot]
+	for _, t := range tasks {
+		if t.ID == parentID {
+			return true
+		}
+	}
+	return false
+}
+
+// hasNotStartedAncestor checks if any ancestor of the task is not_started.
+// An ancestor is a task whose ID is a prefix of this task's ID.
+func hasNotStartedAncestor(taskID string, ns *NodeState) bool {
+	// Walk up the hierarchy: task-0001.0002.0001 → task-0001.0002 → task-0001
+	id := taskID
+	for {
+		dot := strings.LastIndex(id, ".")
+		if dot < 0 {
+			break
+		}
+		parentID := id[:dot]
+		for _, t := range ns.Tasks {
+			if t.ID == parentID && t.State == StatusNotStarted {
+				return true
+			}
+		}
+		id = parentID
+	}
+	return false
 }
