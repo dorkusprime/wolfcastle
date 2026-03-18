@@ -1,6 +1,8 @@
 package pipeline
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -120,6 +122,34 @@ func TestBuildIterationContext_EmptyRichFields(t *testing.T) {
 	}
 	if strings.Contains(ctx, "**Reference Material:**") {
 		t.Error("empty references should not render")
+	}
+}
+
+func TestBuildIterationContext_InlinesSpecReferences(t *testing.T) {
+	tmp := t.TempDir()
+	specPath := filepath.Join(tmp, "spec.md")
+	_ = os.WriteFile(specPath, []byte("# Cache Contract\n\nGet(key) returns (value, bool)."), 0644)
+
+	ns := state.NewNodeState("test", "Test", state.NodeLeaf)
+	ns.Tasks = []state.Task{
+		{
+			ID:          "task-0001",
+			Description: "Implement cache",
+			State:       state.StatusInProgress,
+			References:  []string{specPath},
+		},
+	}
+
+	ctx := BuildIterationContext("test", ns, "task-0001")
+
+	if !strings.Contains(ctx, "### Reference:") {
+		t.Error("context should inline spec content")
+	}
+	if !strings.Contains(ctx, "Cache Contract") {
+		t.Error("context should contain spec body")
+	}
+	if !strings.Contains(ctx, "Get(key) returns") {
+		t.Error("context should contain spec details")
 	}
 }
 

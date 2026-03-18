@@ -34,4 +34,6 @@ Emit WOLFCASTLE_COMPLETE on its own line.
 - Do not disrupt in-progress work.
 - Only modify tasks that are not_started.
 - Do not write application code.
+- New tasks must have `--body` with concrete details and `--deliverable` for implementation tasks.
+- If the scope references a spec, new tasks must include `--reference "path/to/spec.md"`.
 - Always emit exactly one terminal marker: WOLFCASTLE_COMPLETE.

@@ -111,6 +111,17 @@ func buildIterationContext(wolfcastleDir string, nodeDir string, nodeAddr string
 			for _, r := range t.References {
 				fmt.Fprintf(&b, "- `%s`\n", r)
 			}
+			// Inline spec content when references point to readable files
+			for _, r := range t.References {
+				if strings.HasSuffix(r, ".md") {
+					if content, err := os.ReadFile(r); err == nil {
+						trimmed := strings.TrimSpace(string(content))
+						if len(trimmed) > 0 && len(trimmed) < 8000 {
+							fmt.Fprintf(&b, "\n### Reference: %s\n\n%s\n", r, trimmed)
+						}
+					}
+				}
+			}
 		}
 		fmt.Fprintf(&b, "\n**Task State:** %s\n", t.State)
 		if t.FailureCount > 0 {
