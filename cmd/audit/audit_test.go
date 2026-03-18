@@ -39,11 +39,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
+	store := state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
+		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
+		State:         store,
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
 		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout),
+		Store:         store,
 		Clock:         clock.New(),
 	}
 
@@ -179,14 +182,14 @@ func TestBreadcrumb_EmptyText(t *testing.T) {
 	}
 }
 
-func TestBreadcrumb_NoResolver(t *testing.T) {
+func TestBreadcrumb_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "breadcrumb", "--node", "my-project", "text"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error without resolver")
+		t.Error("expected error without identity")
 	}
 }
 

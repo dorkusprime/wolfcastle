@@ -51,6 +51,7 @@ func TestShow_NonexistentNode(t *testing.T) {
 
 func TestShow_NoResolver(t *testing.T) {
 	env := newTestEnv(t)
+	env.App.Identity = nil
 	env.App.Resolver = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "show", "--node", "my-project"})
@@ -64,14 +65,14 @@ func TestShow_NoResolver(t *testing.T) {
 // audit scope — error paths
 // ---------------------------------------------------------------------------
 
-func TestScope_NoResolver(t *testing.T) {
+func TestScope_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "x", "--description", "test"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error without identity")
 	}
 }
 
@@ -271,14 +272,14 @@ func TestFinalizeBatchIfComplete_WithDecidedAt(t *testing.T) {
 // audit gap — no resolver
 // ---------------------------------------------------------------------------
 
-func TestGap_NoResolver(t *testing.T) {
+func TestGap_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "gap desc"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error without identity")
 	}
 }
 
@@ -296,14 +297,14 @@ func TestGap_NonexistentNode(t *testing.T) {
 // audit fix-gap — no resolver
 // ---------------------------------------------------------------------------
 
-func TestFixGap_NoResolver(t *testing.T) {
+func TestFixGap_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "fix-gap", "--node", "my-project", "gap-1"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error without identity")
 	}
 }
 
@@ -321,14 +322,14 @@ func TestFixGap_NonexistentNode(t *testing.T) {
 // audit escalate — no resolver
 // ---------------------------------------------------------------------------
 
-func TestEscalate_NoResolver(t *testing.T) {
+func TestEscalate_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "desc"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error without identity")
 	}
 }
 
@@ -349,14 +350,14 @@ func TestEscalate_NonexistentParent(t *testing.T) {
 // audit resolve — no resolver
 // ---------------------------------------------------------------------------
 
-func TestResolve_NoResolver(t *testing.T) {
+func TestResolve_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "resolve", "--node", "auth", "esc-1"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error without identity")
 	}
 }
 
