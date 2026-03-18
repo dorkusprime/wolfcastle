@@ -306,6 +306,14 @@ func (e *Environment) buildNode(projectsDir string, idx *state.RootIndex, spec N
 	}
 }
 
+// WithClasses loads the given class definitions into the ClassRepository
+// and returns the Environment for chaining.
+func (e *Environment) WithClasses(classes map[string]config.ClassDef) *Environment {
+	e.t.Helper()
+	e.Classes.Reload(classes)
+	return e
+}
+
 // WithPrompt writes a prompt file to system/base/prompts/<relPath> and
 // returns the Environment for chaining.
 func (e *Environment) WithPrompt(relPath string, content string) *Environment {
