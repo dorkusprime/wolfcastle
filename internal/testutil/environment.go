@@ -9,6 +9,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
@@ -64,8 +65,10 @@ type Environment struct {
 	// Daemon provides access to daemon filesystem operations (PID, stop file, logs).
 	Daemon *daemon.DaemonRepository
 
-	// TODO: populate when git.Provider is built
-	// Git git.Provider
+	// Git provides access to git operations for tests that set up a repository.
+	// Not populated by NewEnvironment (temp dirs aren't git repos by default);
+	// use WithGit to supply a provider in tests that need one.
+	Git git.Provider
 
 	// TODO: populate when App is refactored to accept repositories
 	// App *cmdutil.App
@@ -195,6 +198,14 @@ func (e *Environment) WithConfig(overrides map[string]any) *Environment {
 	if err := writeJSON(customPath, merged); err != nil {
 		e.t.Fatalf("writing merged custom config: %v", err)
 	}
+	return e
+}
+
+// WithGit sets the Git provider on the Environment and returns it for
+// chaining. Tests that need git operations should construct a git.Service
+// (or stub) and pass it here.
+func (e *Environment) WithGit(provider git.Provider) *Environment {
+	e.Git = provider
 	return e
 }
 
