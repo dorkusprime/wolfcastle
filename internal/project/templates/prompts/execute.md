@@ -32,7 +32,11 @@ Make the changes needed to complete the task. Focus on one concern at a time.
 
 To decompose: create sub-tasks with `wolfcastle task add --parent <your-task-id>`, then emit WOLFCASTLE_YIELD on its own line. The `--parent` flag creates hierarchical IDs (task-0001.0001, task-0001.0002). The parent auto-completes when all children finish. Each sub-task should be small enough to finish in a single iteration.
 
-**If this is a retry and prior subtasks exist from a failed decomposition**, block them before creating new ones: `wolfcastle task block --node <your-node/old-task-id> "Superseded by new decomposition"`. Do not leave orphaned subtasks in the tree.
+**Before decomposing, check for prior attempts.** Run `wolfcastle status --node <your-node>` and look for existing subtasks from a failed decomposition. Block every one of them before creating new ones:
+```
+wolfcastle task block --node <your-node/old-task-id> "Superseded by new decomposition"
+```
+Orphaned subtasks pollute the tree and confuse auditors. Clean up first, then decompose.
 
 Signs you should decompose rather than continue:
 - The task touches multiple unrelated files or packages with no shared concern
@@ -77,66 +81,60 @@ If scope needs recording (what this node covers), set it:
 wolfcastle audit scope --node <your-node> --description "what this node audits"
 ```
 
-### F. Document decisions and specs
+### F. Document WHY (ADRs) and WHAT/HOW (Specs)
 
-**ADRs are mandatory when you make a technology choice.** If you choose a framework, language, library, architecture pattern, or reject an alternative, record it. No exceptions.
+ADRs and specs work together to explain the system. ADRs record WHY: the decision, the alternatives you considered, and why you chose this path. Specs record WHAT and HOW: contracts, behavior, integration patterns, error semantics. Every non-trivial implementation task should produce at least one of these.
+
+**Write an ADR when you made a choice.** If you chose between alternatives, that's an ADR. Examples:
+- Concrete type vs interface ("Why concrete? Because only one implementation exists and testability doesn't require a seam.")
+- Caching strategy ("Why cache base tier only? Because custom/local change between iterations.")
+- Error handling approach ("Why return wrapped errors instead of sentinel values?")
+- Sync vs async, mutex vs channel, separate package vs inline
+- Any structural decision where a reasonable developer might have done it differently
+
+If you wrote code and nobody would ask "why was it done this way?", you don't need an ADR. If they would ask, you do.
 
 ```
-wolfcastle adr create --stdin "Use Sinatra for the web backend" <<'EOF'
+wolfcastle adr create --stdin "Cache base tier only in PromptRepository" <<'EOF'
 ## Status
 Accepted
 
 ## Context
-The project needs a lightweight web framework for a small bookmark API.
+PromptRepository resolves files across three tiers (base, custom, local). Repeated reads during a single iteration are expensive.
 
 ## Options Considered
-1. **Sinatra**: minimal, well-documented, fits the scope
-2. **Rails**: too heavy for two endpoints
-3. **Roda**: less community support
+1. Cache all tiers with short TTL
+2. Cache base tier only (immutable between rescaffolds)
+3. No caching
 
 ## Decision
-Sinatra. The scope is small, the API surface is two endpoints, and Sinatra's routing DSL maps directly to the requirements.
+Cache base tier only. Custom and local tiers change between iterations (user edits). Base tier only changes on rescaffold, making it safe to cache indefinitely within a daemon run.
 
 ## Consequences
-No ORM included by default. Database access will use raw SQL or a lightweight gem.
+Custom/local reads hit disk on every call. Acceptable because iteration-level caching would add complexity for minimal gain.
 EOF
 ```
 
-Every ADR needs: Status, Context, Options Considered, Decision, Consequences. Fill in real content, not placeholders.
-
-**Specs go through the CLI**, not as files in `docs/`:
+**Write a spec when you defined a contract.** If you created a type, interface, or package that other code depends on, that's a spec. The spec documents what it does, how to use it, and how it handles errors.
 
 ```
-wolfcastle spec create "API Design" --node <your-node> --body "## Overview
-The API exposes two endpoints: GET /bookmarks (list all) and POST /bookmarks (create).
+wolfcastle spec create "PromptRepository Contract" --node <your-node> --body "## Overview
+PromptRepository provides three-tier prompt file access (base < custom < local).
 
-## Data Model
-Bookmark: id, url, title, created_at
+## Methods
+- Resolve(relPath) ([]byte, error): returns highest-tier content
+- ResolveRaw(relPath) ([]byte, error): returns content without template expansion
+- ListFragments(subdir) ([]string, error): returns fragment paths across all tiers
 
-## Endpoints
-GET /bookmarks → 200 JSON array
-POST /bookmarks → 201 JSON object"
+## Error Behavior
+- Returns os.ErrNotExist when no tier has the file
+- Permission errors propagate (not swallowed)
+
+## Thread Safety
+Base tier reads are cached behind sync.RWMutex. Safe for concurrent use."
 ```
 
-This creates a properly named file in `.wolfcastle/docs/specs/` and links it to the node. Never write specs directly to `docs/` or other locations.
-
-**Specs for new contracts.** If you create a new package or define an interface that other packages depend on, create a spec via `wolfcastle spec create` documenting the contract, error behavior, and usage patterns.
-
-Skip this phase if your task is pure implementation with no design choices.
-
-### G. Document decisions
-
-Review the work you just did. If you made decisions, document them.
-
-**ADRs record decisions, not packages.** An ADR answers "what did we decide, what alternatives did we consider, and why did we choose this one?" Create an ADR via `wolfcastle adr create` when:
-- You chose one approach over another (stdlib vs third-party library, interface vs concrete type, sync vs async, mutex vs channel)
-- You defined a contract that other packages will depend on
-- You made a structural choice (separate package vs inline, handler pattern vs middleware pattern)
-- Someone reading this code later would ask "why was it done this way?"
-
-Do not create an ADR for trivial or forced choices (there's only one reasonable way to do it) or for decisions the orchestrator already documented.
-
-**Specs document contracts.** If you created an interface or a type that other packages depend on, create a spec via `wolfcastle spec create` documenting: what methods exist, what they return, how errors behave, and what callers can assume.
+Both go through the CLI. Never write specs or ADRs as files directly.
 
 ### H. Commit
 Commit your changes with a clear message.

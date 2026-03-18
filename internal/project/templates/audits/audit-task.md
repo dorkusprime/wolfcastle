@@ -46,12 +46,13 @@ Read the code changes made by tasks in this node. For each file changed:
 - [ ] **Consistent patterns.** Similar problems are solved the same way throughout the codebase. If a new pattern was introduced, verify it doesn't contradict an existing one without good reason.
 - [ ] **Clean interfaces.** Interfaces have the minimal set of methods their consumers need. No "god interfaces" with 10+ methods when callers use 2.
 
-## 6. Documentation and specs
+## 6. Documentation: ADRs (WHY) and Specs (WHAT/HOW)
 
-- [ ] **Specs are populated.** Check `.wolfcastle/docs/specs/`. If any spec contains only a title and placeholder text, or is shorter than 10 lines, delete it and create a proper spec via `wolfcastle spec create` with actual signatures, error behavior, and usage patterns.
-- [ ] **Decisions are documented.** Read the code changes. Identify decisions where alternatives existed. For each undocumented non-trivial decision, create an ADR via `wolfcastle adr create`. A "non-trivial decision" is one where a reasonable developer might have chosen differently.
-- [ ] **Contracts are specified.** If a task created an interface or type that other packages depend on, a spec should exist describing the contract.
-- [ ] **Specs and ADRs are in the right place.** Specs go in `.wolfcastle/docs/specs/`, ADRs in `.wolfcastle/docs/decisions/`, research in `.wolfcastle/artifacts/`.
+ADRs and specs together explain the system. Missing documentation is a REMEDIATE finding.
+
+- [ ] **Every choice has an ADR.** Read the code changes. For each place where the developer chose between alternatives (concrete type vs interface, caching strategy, error handling approach, sync vs async, package structure), an ADR should exist in `.wolfcastle/docs/decisions/`. If a reasonable developer would ask "why was it done this way?" and there's no ADR answering that question, the verdict is REMEDIATE. Create the ADR yourself if you can determine the reasoning from the code; otherwise record it as a gap.
+- [ ] **Every contract has a spec.** If a task created a type, interface, or package that other code depends on, a spec should exist in `.wolfcastle/docs/specs/` documenting: what it does, its methods/API, error behavior, and usage patterns. Placeholder specs (title only, fewer than 10 lines) count as missing. Delete placeholders and create real specs.
+- [ ] **Specs and ADRs are in the right place.** Specs in `.wolfcastle/docs/specs/`, ADRs in `.wolfcastle/docs/decisions/`, research in `.wolfcastle/artifacts/`.
 
 ## Verdicts
 
