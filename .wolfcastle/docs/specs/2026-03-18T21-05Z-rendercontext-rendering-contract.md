@@ -160,6 +160,14 @@ Templates are resolved via `ResolvePromptTemplate(wolfcastleDir, name, ctx)`. Wh
 
 The domain methods provide a self-contained, dependency-free rendering path suitable for testing and simple consumers. ContextBuilder provides the full, production-grade composition with filesystem and config access. The duplication is intentional: domain types stay pure (no config, no filesystem beyond reference inlining), while ContextBuilder owns the orchestration concerns.
 
+## Audit Gap Resolution
+
+This spec, together with ADR 078 (Task.RenderContext parameterless refactoring) and the phantom taskID ADR, resolves three gaps originally recorded on the render-context-methods node:
+
+- **gap-render-context-methods-1**: Missing documentation for the parameterless Task.RenderContext decision. Resolved by ADR 078.
+- **gap-render-context-methods-2**: Missing documentation for the phantom taskID parameter on NodeState.RenderContext. Resolved by the phantom taskID ADR.
+- **gap-render-context-methods-3**: Missing spec for the rendering contract (section ordering, edge cases, ContextBuilder assembly). Resolved by this spec.
+
 ## Edge Cases Summary
 
 | Behavior | Threshold / Condition | Effect |
