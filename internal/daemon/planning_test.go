@@ -452,3 +452,167 @@ func TestIncrementReplanCount_ExhaustsBudget(t *testing.T) {
 		t.Error("NeedsPlanning should be cleared when budget exhausted")
 	}
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// truncateOutput
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestTruncateOutput_ShortString(t *testing.T) {
+	t.Parallel()
+	got := truncateOutput("hello", 200)
+	if got != "hello" {
+		t.Errorf("expected unchanged string, got %q", got)
+	}
+}
+
+func TestTruncateOutput_LongString(t *testing.T) {
+	t.Parallel()
+	long := ""
+	for i := 0; i < 50; i++ {
+		long += "abcde"
+	}
+	got := truncateOutput(long, 10)
+	if got != "abcdeabcde..." {
+		t.Errorf("expected truncated string with '...', got %q", got)
+	}
+}
+
+func TestTruncateOutput_EmptyString(t *testing.T) {
+	t.Parallel()
+	got := truncateOutput("", 200)
+	if got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+func TestTruncateOutput_ExactlyAtLimit(t *testing.T) {
+	t.Parallel()
+	s := "12345"
+	got := truncateOutput(s, 5)
+	if got != "12345" {
+		t.Errorf("expected unchanged string at exact limit, got %q", got)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// deliverPendingScope
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestDeliverPendingScope_SetsNeedsPlanning(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Resolver.ProjectsDir()
+	idx := state.NewRootIndex()
+	idx.Root = []string{"orch-node"}
+	idx.Nodes["orch-node"] = state.IndexEntry{
+		Name: "Orch", Type: state.NodeOrchestrator, State: state.StatusInProgress, Address: "orch-node",
+	}
+	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+
+	ns := state.NewNodeState("orch-node", "Orch", state.NodeOrchestrator)
+	ns.NeedsPlanning = false
+	ns.PendingScope = []string{"new requirement"}
+	writeJSON(t, filepath.Join(projDir, "orch-node", "state.json"), ns)
+
+	d.deliverPendingScope(idx)
+
+	updated, err := d.Store.ReadNode("orch-node")
+	if err != nil {
+		t.Fatalf("failed to read node state: %v", err)
+	}
+	if !updated.NeedsPlanning {
+		t.Error("NeedsPlanning should be true after delivering pending scope")
+	}
+	if updated.PlanningTrigger != "new_scope" {
+		t.Errorf("expected trigger 'new_scope', got %q", updated.PlanningTrigger)
+	}
+}
+
+func TestDeliverPendingScope_AlreadyNeedsPlanning(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Resolver.ProjectsDir()
+	idx := state.NewRootIndex()
+	idx.Root = []string{"orch-node"}
+	idx.Nodes["orch-node"] = state.IndexEntry{
+		Name: "Orch", Type: state.NodeOrchestrator, State: state.StatusInProgress, Address: "orch-node",
+	}
+	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+
+	ns := state.NewNodeState("orch-node", "Orch", state.NodeOrchestrator)
+	ns.NeedsPlanning = true
+	ns.PlanningTrigger = "initial"
+	ns.PendingScope = []string{"new requirement"}
+	writeJSON(t, filepath.Join(projDir, "orch-node", "state.json"), ns)
+
+	d.deliverPendingScope(idx)
+
+	updated, err := d.Store.ReadNode("orch-node")
+	if err != nil {
+		t.Fatalf("failed to read node state: %v", err)
+	}
+	// Should remain unchanged since NeedsPlanning was already true
+	if updated.PlanningTrigger != "initial" {
+		t.Errorf("expected trigger to remain 'initial', got %q", updated.PlanningTrigger)
+	}
+}
+
+func TestDeliverPendingScope_PlanningDisabled(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	// Planning disabled by default in testDaemon
+
+	projDir := d.Resolver.ProjectsDir()
+	idx := state.NewRootIndex()
+	idx.Root = []string{"orch-node"}
+	idx.Nodes["orch-node"] = state.IndexEntry{
+		Name: "Orch", Type: state.NodeOrchestrator, State: state.StatusInProgress, Address: "orch-node",
+	}
+	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+
+	ns := state.NewNodeState("orch-node", "Orch", state.NodeOrchestrator)
+	ns.PendingScope = []string{"new requirement"}
+	writeJSON(t, filepath.Join(projDir, "orch-node", "state.json"), ns)
+
+	d.deliverPendingScope(idx)
+
+	updated, err := d.Store.ReadNode("orch-node")
+	if err != nil {
+		t.Fatalf("failed to read node state: %v", err)
+	}
+	if updated.NeedsPlanning {
+		t.Error("NeedsPlanning should remain false when planning is disabled")
+	}
+}
+
+func TestDeliverPendingScope_SkipsLeafNodes(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Resolver.ProjectsDir()
+	idx := state.NewRootIndex()
+	idx.Root = []string{"leaf-node"}
+	idx.Nodes["leaf-node"] = state.IndexEntry{
+		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "leaf-node",
+	}
+	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+
+	ns := state.NewNodeState("leaf-node", "Leaf", state.NodeLeaf)
+	ns.PendingScope = []string{"new requirement"}
+	writeJSON(t, filepath.Join(projDir, "leaf-node", "state.json"), ns)
+
+	d.deliverPendingScope(idx)
+
+	updated, err := d.Store.ReadNode("leaf-node")
+	if err != nil {
+		t.Fatalf("failed to read node state: %v", err)
+	}
+	if updated.NeedsPlanning {
+		t.Error("leaf nodes should not get NeedsPlanning set")
+	}
+}
