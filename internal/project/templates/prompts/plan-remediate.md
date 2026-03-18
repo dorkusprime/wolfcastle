@@ -20,9 +20,10 @@ Determine the remediation strategy:
 ### C. Execute
 Apply the strategy using wolfcastle CLI commands:
 - Create new leaves: `wolfcastle project create` + `wolfcastle task add`
-- Unblock children: `wolfcastle task unblock --node <child/task-id>`
 - Amend unstarted tasks: `wolfcastle task amend`
 - Block yourself: `wolfcastle task block --node <your-node> "reason"` (only if escalating)
+
+**The last task in every remediation leaf must unblock the original blocked task.** Add a final task whose body says: "Call `wolfcastle task unblock --node <blocked-node/task-id>` to re-enable the blocked task after remediation work is complete." Without this step, the blocked node stays blocked forever and the orchestrator can never complete.
 
 ### D. Record
 Write a planning breadcrumb:
