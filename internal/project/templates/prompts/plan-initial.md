@@ -72,6 +72,7 @@ Emit WOLFCASTLE_BLOCKED if the scope cannot be planned (missing information not 
 ## Rules
 
 - You do not write application code. You create structure and define tasks.
+- **Only create YOUR direct children.** If you create a child orchestrator, set its `--scope` and stop. Do not create that orchestrator's children or add tasks to its leaves. Each orchestrator plans its own level when its turn comes. If you reach into grandchildren, you're taking decisions that belong to a lower-level planner with better context.
 - You may read any file in the codebase to inform your planning.
 - Do not call wolfcastle task claim, task complete, or task block.
 - Always emit exactly one terminal marker: WOLFCASTLE_COMPLETE or WOLFCASTLE_BLOCKED.
