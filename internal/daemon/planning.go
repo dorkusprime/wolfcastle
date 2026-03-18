@@ -50,14 +50,23 @@ func (d *Daemon) dfsFindPlanning(idx *state.RootIndex, addr string) (string, *st
 		}
 		// An orchestrator needs planning if:
 		// 1. NeedsPlanning is explicitly set (re-planning triggers, intake), or
-		// 2. It has no children and no tasks (newly created, never planned).
+		// 2. It has no children and no non-audit tasks (never planned).
 		// Case 2 means the daemon infers the need from structure rather than
-		// requiring the creator to set a flag.
+		// requiring the creator to set a flag. Audit tasks don't count as
+		// "real" tasks since they're created automatically on all nodes.
 		needsPlanning := ns.NeedsPlanning
-		if !needsPlanning && len(ns.Children) == 0 && len(ns.Tasks) == 0 {
-			needsPlanning = true
-			// Set the trigger so the planning pass knows this is initial
-			ns.PlanningTrigger = "initial"
+		if !needsPlanning && len(ns.Children) == 0 {
+			hasNonAuditTasks := false
+			for _, t := range ns.Tasks {
+				if !t.IsAudit {
+					hasNonAuditTasks = true
+					break
+				}
+			}
+			if !hasNonAuditTasks {
+				needsPlanning = true
+				ns.PlanningTrigger = "initial"
+			}
 		}
 		if needsPlanning {
 			return addr, ns
