@@ -99,6 +99,28 @@ func (t *Task) RenderContext(nodeAddr string, nodeDir string) string {
 	return b.String()
 }
 
+// RenderContext renders node-level context as a formatted string suitable for
+// inclusion in an iteration prompt. It emits node metadata (type and state)
+// and any linked specs. The full node address is not rendered here; the
+// ContextBuilder provides it when composing the final context. The taskID
+// parameter identifies the active task so the caller can pair this output
+// with the corresponding Task.RenderContext and AuditState.RenderContext.
+func (ns *NodeState) RenderContext(taskID string) string {
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "**Node Type:** %s\n", ns.Type)
+	fmt.Fprintf(&b, "**Node State:** %s\n", ns.State)
+
+	if len(ns.Specs) > 0 {
+		b.WriteString("\n## Linked Specs\n\n")
+		for _, s := range ns.Specs {
+			fmt.Fprintf(&b, "- %s\n", s)
+		}
+	}
+
+	return b.String()
+}
+
 // RenderContext renders the audit state (breadcrumbs and scope) as a formatted
 // string for inclusion in an iteration prompt. Returns empty string when there
 // are no breadcrumbs and no scope.

@@ -434,6 +434,121 @@ func TestRenderContext_FullTask(t *testing.T) {
 	}
 }
 
+// --- NodeState.RenderContext tests ---
+
+func TestNodeRenderContext_BasicMetadata(t *testing.T) {
+	t.Parallel()
+	ns := &NodeState{
+		ID:    "auth",
+		Name:  "Authentication Module",
+		Type:  NodeLeaf,
+		State: StatusInProgress,
+	}
+
+	result := ns.RenderContext("task-0001")
+
+	if !strings.Contains(result, "**Node Type:** leaf") {
+		t.Error("expected node type")
+	}
+	if !strings.Contains(result, "**Node State:** in_progress") {
+		t.Error("expected node state")
+	}
+}
+
+func TestNodeRenderContext_OrchestratorType(t *testing.T) {
+	t.Parallel()
+	ns := &NodeState{
+		ID:    "api",
+		Name:  "API Gateway",
+		Type:  NodeOrchestrator,
+		State: StatusNotStarted,
+	}
+
+	result := ns.RenderContext("task-0001")
+
+	if !strings.Contains(result, "**Node Type:** orchestrator") {
+		t.Error("expected orchestrator type")
+	}
+	if !strings.Contains(result, "**Node State:** not_started") {
+		t.Error("expected not_started state")
+	}
+}
+
+func TestNodeRenderContext_WithSpecs(t *testing.T) {
+	t.Parallel()
+	ns := &NodeState{
+		ID:    "auth",
+		Name:  "Auth",
+		Type:  NodeLeaf,
+		State: StatusInProgress,
+		Specs: []string{"2026-03-10T00-00Z-auth-spec.md", "2026-03-12T00-00Z-api-contract.md"},
+	}
+
+	result := ns.RenderContext("task-0002")
+
+	if !strings.Contains(result, "## Linked Specs") {
+		t.Error("expected linked specs header")
+	}
+	if !strings.Contains(result, "- 2026-03-10T00-00Z-auth-spec.md") {
+		t.Error("expected first spec")
+	}
+	if !strings.Contains(result, "- 2026-03-12T00-00Z-api-contract.md") {
+		t.Error("expected second spec")
+	}
+}
+
+func TestNodeRenderContext_NoSpecsSection_WhenEmpty(t *testing.T) {
+	t.Parallel()
+	ns := &NodeState{
+		ID:    "auth",
+		Name:  "Auth",
+		Type:  NodeLeaf,
+		State: StatusInProgress,
+	}
+
+	result := ns.RenderContext("task-0001")
+
+	if strings.Contains(result, "## Linked Specs") {
+		t.Error("specs section should not appear when specs is nil")
+	}
+}
+
+func TestNodeRenderContext_NoSpecsSection_WhenEmptySlice(t *testing.T) {
+	t.Parallel()
+	ns := &NodeState{
+		ID:    "auth",
+		Name:  "Auth",
+		Type:  NodeLeaf,
+		State: StatusInProgress,
+		Specs: []string{},
+	}
+
+	result := ns.RenderContext("task-0001")
+
+	if strings.Contains(result, "## Linked Specs") {
+		t.Error("specs section should not appear when specs is empty slice")
+	}
+}
+
+func TestNodeRenderContext_SpecsAfterMetadata(t *testing.T) {
+	t.Parallel()
+	ns := &NodeState{
+		ID:    "auth",
+		Name:  "Auth",
+		Type:  NodeLeaf,
+		State: StatusInProgress,
+		Specs: []string{"spec.md"},
+	}
+
+	result := ns.RenderContext("task-0001")
+
+	typeIdx := strings.Index(result, "**Node Type:**")
+	specsIdx := strings.Index(result, "## Linked Specs")
+	if typeIdx >= specsIdx {
+		t.Error("node metadata should appear before linked specs")
+	}
+}
+
 // --- AuditState.RenderContext tests ---
 
 func TestAuditRenderContext_Empty(t *testing.T) {
