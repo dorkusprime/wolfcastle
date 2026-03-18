@@ -24,7 +24,7 @@ type promptWriter interface {
 type ScaffoldService struct {
 	config  *config.ConfigRepository
 	prompts promptWriter
-	daemon  any // *daemon.DaemonRepository; stored for future use, typed as any to avoid import cycle
+	daemon  any    // *daemon.DaemonRepository; stored for future use, typed as any to avoid import cycle
 	root    string // path to .wolfcastle/
 }
 
