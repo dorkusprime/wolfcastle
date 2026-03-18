@@ -127,9 +127,11 @@ func TestProjectCreate_OrchestratorProject(t *testing.T) {
 	if ns.Type != state.NodeOrchestrator {
 		t.Errorf("expected orchestrator type, got %s", ns.Type)
 	}
-	// Orchestrators should not have tasks
-	if len(ns.Tasks) > 0 {
-		t.Error("orchestrator should not have tasks")
+	// Orchestrators should have exactly one task: the audit
+	if len(ns.Tasks) != 1 {
+		t.Errorf("orchestrator should have 1 audit task, got %d", len(ns.Tasks))
+	} else if !ns.Tasks[0].IsAudit {
+		t.Error("orchestrator's task should be an audit")
 	}
 }
 

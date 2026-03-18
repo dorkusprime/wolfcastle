@@ -387,14 +387,31 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// Deliver any buffered pending scope from intake (between passes, never during).
 	d.deliverPendingScope(idx)
 
-	// Check for orchestrators needing planning (unified DFS with task navigation).
-	// Planning runs before task execution when an orchestrator needs it.
+	// Check for orchestrators needing planning. Planning and execution
+	// alternate: one planning pass per iteration, then look for tasks.
+	// This prevents long planning passes from starving execution.
 	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
-		if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
-			output.PrintHuman("Planning error: %v", err)
-			return IterationError, nil
+		// Only plan if there's no actionable task waiting. This gives
+		// execution priority over planning when both are available.
+		nodeLoader := func(addr string) (*state.NodeState, error) {
+			a, parseErr := tree.ParseAddress(addr)
+			if parseErr != nil {
+				return nil, fmt.Errorf("parsing address %q: %w", addr, parseErr)
+			}
+			return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
 		}
-		return IterationDidWork, nil
+		navResult, navErr := state.FindNextTask(idx, d.ScopeNode, nodeLoader)
+		hasTask := navErr == nil && navResult.Found
+
+		if !hasTask {
+			if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
+				output.PrintHuman("Planning error: %v", err)
+				return IterationError, nil
+			}
+			return IterationDidWork, nil
+		}
+		// Task is available; fall through to execution.
+		// Planning will run on the next iteration when no task is ready.
 	}
 
 	nodeLoader := func(addr string) (*state.NodeState, error) {

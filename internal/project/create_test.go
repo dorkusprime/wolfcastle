@@ -63,11 +63,15 @@ func TestCreateProject_RootLevelOrchestrator(t *testing.T) {
 		t.Errorf("expected type orchestrator, got %q", ns.Type)
 	}
 
-	// Orchestrators should NOT get audit tasks
+	// Orchestrators should get an audit task (verifies aggregate quality)
+	auditFound := false
 	for _, task := range ns.Tasks {
 		if task.IsAudit {
-			t.Error("orchestrator should not have audit task")
+			auditFound = true
 		}
+	}
+	if !auditFound {
+		t.Error("orchestrator should have an audit task")
 	}
 }
 

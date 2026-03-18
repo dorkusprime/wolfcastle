@@ -81,6 +81,11 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 		trigger = "initial"
 	}
 
+	// Snapshot pending scope count before invocation. Scope items that
+	// arrive during the pass (from intake OVERLAP delivery) must survive;
+	// we only clear items that existed when the pass started.
+	prePlanScopeCount := len(ns.PendingScope)
+
 	d.iteration++
 	output.PrintHuman("--- Planning %d: %s (%s) ---", d.iteration, nodeAddr, trigger)
 
@@ -143,12 +148,16 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	switch marker {
 	case "WOLFCASTLE_COMPLETE":
 		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": "WOLFCASTLE_COMPLETE"})
-		// Clear planning state
+		// Clear planning state. Only remove scope items that existed before
+		// the pass started; items delivered during the pass are preserved.
 		_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 			ns.NeedsPlanning = false
 			ns.PlanningTrigger = ""
-			// Clear pending scope that was consumed
-			ns.PendingScope = nil
+			if len(ns.PendingScope) > prePlanScopeCount {
+				ns.PendingScope = ns.PendingScope[prePlanScopeCount:]
+			} else {
+				ns.PendingScope = nil
+			}
 			return nil
 		})
 

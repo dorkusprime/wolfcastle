@@ -59,6 +59,7 @@ Emit WOLFCASTLE_BLOCKED if the scope cannot be planned (missing information not 
 ## Guardrails
 
 - Maximum 10 direct children per orchestrator. If more are needed, group them under child orchestrators.
+- If you have more than 4 direct children, group related work under sub-orchestrators. Each sub-orchestrator gets its own audit pass, which makes verification more targeted than one audit covering everything. Prefer 2-4 children per orchestrator with sub-orchestrators over 5-10 flat children.
 - Maximum 8 tasks per leaf. If a leaf needs more, split into multiple leaves.
 - Spec and ADR tasks must precede implementation tasks within a leaf.
 - Discovery tasks must precede spec tasks when you lack information.
