@@ -37,16 +37,30 @@ func Scaffold(wolfcastleDir string) error {
 	}
 
 	// Write .gitignore
-	gitignore := `*
+	gitignore := `# Ignore everything by default, then whitelist tracked directories.
+# Git requires each directory level to be explicitly unignored.
+*
 !.gitignore
+
+# Custom config overrides (user-editable)
 !system/
 !system/custom/
+!system/custom/**/
 !system/custom/**
+
+# Project state (task trees, inbox, specs, ADRs)
 !system/projects/
+!system/projects/**/
 !system/projects/**
+
+# Archived projects
 !archive/
+!archive/**/
 !archive/**
+
+# Specs and ADRs
 !docs/
+!docs/**/
 !docs/**
 `
 	if err := os.WriteFile(filepath.Join(wolfcastleDir, ".gitignore"), []byte(gitignore), 0644); err != nil {
