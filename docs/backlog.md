@@ -1,55 +1,88 @@
-# User items as they come up. Don't process these until directed.
+# Backlog
 
-# New
+Items accumulate here as they surface. Don't process unless directed.
 
-- Task descriptions need more detail. Current titles like "Implement PromptRepository" tell the model what but not how. When intake decomposes from a spec, tasks should include: spec reference (path), acceptance criteria (method signatures, behavioral requirements), and what existing code they replace. This requires an intake prompt change to generate richer task bodies, and possibly a `Description` template or structured acceptance criteria field on the Task type.
-- `wolfcastle log` needs a full design pass and spec. Current issues: (1) reads intake log (10001-*) instead of execute log because filename sort puts 10001 > 0024, (2) follow mode has no awareness of which iteration is active, (3) no filtering by stage, (4) no human-readable formatting. Design goals: multiple verbosity levels from daemon output (what happened) through info (stage starts/stops, markers, failures) through debug (model tool calls and reasoning) to raw (full NDJSON stream). `--follow` should work at all levels. All log data should consolidate into the same files so a single follow stream captures everything. Current split between intake and execute logs in separate files (with colliding iteration numbers) is broken. May need to merge intake and execute logs into a single per-iteration file, or use a unified log stream with stage tags. Iteration addressing (`wolfcastle log --iteration 24`) and stage filtering (`wolfcastle log --stage execute`) are both needed. This is a spec-level design problem, not a quick fix.
-- After Action Review (AAR) per task. Every task should produce an AAR in the leaf's project directory following the standard AAR template: (1) What was the objective? (2) What actually happened? (3) What went well? (4) What can be improved? (5) Action items for subsequent tasks. The next task reads prior AARs to understand full context. Replaces terse breadcrumbs with actionable narrative. The execute prompt should require writing the AAR before signaling COMPLETE. AARs accumulate in the leaf directory, giving audits and humans a complete record of the project's execution. The audit reads all AARs as its primary input.
-- Eval framework using task commits as regression tests. The commit history includes both failures and successes. The failures are the most valuable: roll back to the commit before a known-bad decision (model moved cmd/cmdutil to internal/cmdutil, model formatted marker as markdown bold, model scope-crept across task boundaries), apply a prompt or daemon fix, replay the same task, and verify the fix prevents the original mistake. This is regression testing for the AI pipeline itself. The domain repository run has ~20 task commits including several documented failures that make ideal regression cases.
-- Domain refactor follow-up: migrate remaining callers to repositories. 17 files still use `app.WolfcastleDir`, 9 use `app.Cfg`, 15 use `app.Store`. These backward-compat fields need migration to repository methods before `tree.Resolver` can be deleted. The first run's follow-up items about `AssemblePrompt`, `buildIterationContext`, and `project.Scaffold` are partially addressed (ContextBuilder replaced buildIterationContext, ScaffoldService exists) but old code paths remain alongside new ones.
-- Domain refactor follow-up: ContextBuilder null-safety. Docstring claims nil repositories degrade gracefully, but findTask() returns nil silently causing context truncation. Should error. Template re-parsing on every Build() call with no caching.
-- Domain refactor follow-up: git.CreateWorktree loses first error on fallback. Only the fallback error is returned; the original (potentially more informative) error is discarded.
-- Domain refactor follow-up: ScaffoldService.Reinit silently ignores migration errors (`_ = migrator.Migrate...()`). Should at least log.
-- Intake decomposition should reference spec granularity. When decomposing from a spec that has a migration path or numbered steps, the intake model should match the spec's granularity, not compress multiple steps into one task. The domain repository spec had 13 steps; intake created 14 tasks (good for A-D, too coarse for E). The intake prompt should say: "If the spec defines implementation steps, create one task per step. Do not bundle steps."
-- Execute prompt should reference the spec by path when the inbox item links to one. Currently the model gets a task title like "Implement DaemonRepository" but has to discover the spec itself during Study. The iteration context should include the spec path or content when the originating inbox item referenced a spec.
-- `wolfcastle status` needs more detail: task descriptions (not just titles), failure reasons from the last attempt, deliverable declarations, and breadcrumbs. Currently only shows title + failure count. A user watching the daemon can't tell WHY something failed without reading raw logs.
-- Every directory in `.wolfcastle/` needs a README.md explaining what it contains and what users can do with it. `system/` should explain the three-tier system. `system/base/prompts/` should explain how to override prompts. `docs/` should explain what goes there. These READMEs are the discoverability layer for humans browsing the directory.
-- Prompts should be organized in logical subdirectories for human navigation. Current flat `system/base/prompts/` mixes stage prompts, class prompts, audit prompts, and templates. Better structure: `prompts/stages/` (execute.md, intake.md), `prompts/classes/` (lang-go.md, etc.), `prompts/audits/` (audit-task.md), `prompts/templates/` (context headers, decomposition, summary). Users should be able to browse and understand what's available without reading source code.
-- Prompts should be fully user-configurable via the tier system. Currently embedded in the binary via go:embed and extracted to system/base/ at scaffold time. Users can override in custom/local but can't easily see or fork the defaults. Move all prompt .md files to system/base/ as the source of truth. init populates defaults, init --force regenerates. The PromptRepository's WriteAllBase already supports this; the change is making base/ prompts the authoritative reference rather than compiled Go source. Connects to the domain repository architecture (PromptRepository owns the lifecycle).
-- Spec review pipeline. The domain repository spec went through 4 revision passes (initial draft, internal audit finding 13 issues, external audit finding 6 more, existential review questioning whether each piece earned its place). Each pass caught real problems: duplicate sections, missing method signatures, nil-safety gaps, contradictions between prose and code samples, under-specified fallback chains, missing interfaces. Wolfcastle's intake creates specs during discovery tasks, but there's no review step before those specs drive implementation. Add a spec review stage to the pipeline: after a spec is created, a separate model (or the same model in a review role) audits it for logical inconsistencies, structural gaps, missing detail for implementation, and contradictions. The audit prompt for spec review should check: all methods have defined signatures, error behavior is specified, dependencies between components are explicit, migration/transition paths exist, test strategies are described, and nothing contradicts other specs or ADRs.
-- TTL-based caching in tierfs. Current spec says PromptRepository caches base tier forever, reads custom/local fresh. Better: tierfs.FS caches all reads with short TTL (1-5s) for custom/local (so rapid-fire reads during a single iteration hit cache, but human edits between iterations are fresh) and long/infinite TTL for base (only changes on rescaffold). All repositories benefit from the same caching layer. Implementation: `sync.Map` with timestamps in `tierfs.FS`, checked on each `Resolve`/`ResolveAll` call.
-- Audit tasks should produce a structured report (markdown in the leaf's project directory) with a PASS/REMEDIATE verdict. Template must make "no issues found" a first-class outcome to prevent hallucinated remediation. Key prompt constraints: "PASS is the expected outcome. Only REMEDIATE for concrete, verifiable issues with file:line evidence. No hypothetical improvements, style preferences, or could-be-betters. Every remediation step must cite a finding." Daemon parses the verdict: PASS completes, REMEDIATE spawns tasks. If the report has no remediation steps, the audit completes. If it has remediation steps, the audit spawns remediation tasks + a re-audit task, then completes. The daemon picks up the remediation tasks, then the re-audit verifies the fixes. The report is the auditable artifact: humans and the daemon can both read it. Requires: (1) audit prompt to write a structured report file, (2) daemon logic to parse the report and conditionally create tasks, (3) a re-audit task that references the original report to know what to verify.
-- Audit task prompt needs code quality checks beyond structural completeness. Current prompt only verifies files exist and are in the right place. Should check: error wrapping, doc comments on exports, test coverage, Go idiom, naming conventions, no dead code. The task-classes spec (`docs/specs/2026-03-15T00-04Z-task-classes.md`) defines a `discipline-audit` class whose behavioral prompt should carry these quality criteria. Implement as part of the task-classes feature, not separately.
-- Hierarchical task IDs for decomposition. Currently subtasks are appended as flat `task-NNNN` entries at the end of the task list, with the parent-child relationship encoded in a block reason string. This causes navigation to pick siblings before children (task-0005 runs before task-0008 even though 0008 is a child of 0004, which is a sibling of 0005). Subtasks should use hierarchical IDs: `task-0002.0001`, `task-0002.0002`, etc. Navigation becomes depth-first: finish all children before moving past the parent. Auto-completion falls out naturally (all `task-0002.*` done means `task-0002` is done). Deletion/cleanup subtasks sort last within their parent. The "decomposed" block reason hack and the auto-complete-decomposed-parents logic become unnecessary. This is a structural change to `state.Task`, the navigation algorithm, and the CLI's `task add` command. Supersedes the decomposed-status and navigation-priority items.
-- Decomposition should scope by concern, not by directory. The domain refactor decomposed "Remove Resolver" into per-directory migration subtasks (cmd/cmdutil, cmd/project, etc.) but missed that `WolfcastleDir`, `Cfg`, and `Store` are independent concerns from `Resolver`. A concern-oriented decomposition would have created subtasks per-field (migrate Resolver callers, migrate WolfcastleDir callers, migrate Cfg callers, migrate Store callers, then delete). The execute prompt's decomposition guidance should say: "List every distinct concern you're changing, not just every file."
-- Deletion tasks should auto-decompose on block. When a model blocks a task because preconditions aren't met (e.g., "31 files still reference old fields"), the daemon could create follow-up subtasks for the remaining work rather than freezing the tree. This turns a dead-end block into a decomposition, keeping the project alive.
-- NeedsPlanning inference for re-planning triggers. The daemon infers initial planning from structure (childless orchestrator), but re-planning (new scope, child blocked, completion review) still depends on the daemon explicitly setting NeedsPlanning after events. Could be made more structural: the daemon checks whether pending scope exists, whether any child is blocked, or whether all children are complete, rather than relying on a flag that must be set at the right time.
-- Stall detector for model invocations. When the model produces no output for N seconds (e.g., 120s), kill the process and retry. The current invocation timeout is 3600s, which is far too long when the model has already committed its work and is hung waiting to emit a marker. Caught during eval when the claude process hung for 10+ minutes on post-commit work due to API instability.
-- Wolfcastle commands use the process CWD to find `.wolfcastle/`, not the terminal's CWD. When `wolfcastle start` was run from `~/` (which had an accidental `.wolfcastle/` from a stray init), the daemon happily operated there instead of erroring. The fix: commands should resolve `.wolfcastle/` from the terminal's CWD, and refuse to operate if it isn't there.
+## Pipeline Architecture
 
-## Done
+These shape how Wolfcastle plans, executes, and learns from its work.
 
-- ~~Requirements in README~~ — Go 1.26+ (source only), Git, a coding agent
-- ~~Terminal marker not detected~~ — misdiagnosis; deliverable check was clearing valid markers
-- ~~Deliverable globs don't recurse~~ — `globRecursive` walks subdirs
-- ~~Deliverable unchanged false failures~~ — replaced hash approach with git-diff progress detection
-- ~~Git progress fails on committed work~~ — `checkGitProgress` checks HEAD moved OR uncommitted changes
-- ~~Spinner during execution~~ — stop spinner before RunOnce, not after
-- ~~.wolfcastle/system/ restructure (ADR-077)~~ — system internals under system/, model outputs at top level
-- ~~Boundary rules in prompts~~ — execute and intake prompts forbid writing to system/
-- ~~CLI header cleanup~~ — [INFO] lines suppressed, version deduped, banner reordered
-- ~~Status detail for completed tasks~~ — summary shown for completed tasks
-- ~~Stale ADR-070~~ — marked superseded, hash approach replaced by git-diff
-- ~~Stale daemon agent guide~~ — updated spinner, progress detection, removed hash references
-- ~~Git progress check fails on audit tasks~~ — skip progress check for IsAudit tasks (PR #35)
-- ~~Terminal marker scanner doesn't match markdown-formatted markers~~ — strip `*_\`` before matching (PR #35)
-- ~~No concept of "work already done"~~ — WOLFCASTLE_SKIP marker bypasses progress check (PR #35)
-- ~~YIELD + self-decomposition is broken~~ — block parent on YIELD with new tasks, auto-complete when done (PR #35)
-- ~~Deliverable missing = permanent failure loop~~ — downgraded to warning, git progress is the hard gate (PR #35)
-- ~~`wolfcastle task deliverable` doesn't validate paths~~ — warns and suggests alternatives at declaration time (PR #35)
-- ~~Failure context in iteration prompt~~ — LastFailureType field on Task, injected into retry context (PR #35)
-- ~~Stronger decomposition trigger~~ — "list files, decompose if >8" in execute prompt (PR #35)
-- ~~Model scope creep across task boundaries~~ — auto-commit partial work on failure (PR #35)
-- ~~Audit prompt compliance for ADRs/specs~~ — MANDATORY checks with REMEDIATE verdict (PR #35)
-- ~~Git progress check fails on already-done work~~ — WOLFCASTLE_SKIP handles this (PR #35)
-- ~~Deliverable path validation~~ — warns at declaration time, suggests correct paths (PR #35)
+- **Spec review pipeline.** Specs currently go from draft to implementation with no structured review. The domain repository spec needed 4 revision passes to reach quality (internal audit, external audit, existential review). Wolfcastle should have a review stage: after a spec is created, a separate model audits it for logical gaps, missing method signatures, contradictions, and under-specified behavior before it drives implementation.
+
+- **Structured audit reports with PASS/REMEDIATE verdicts.** Audit tasks should produce a markdown report with a clear verdict. PASS is the expected outcome. REMEDIATE requires concrete, verifiable findings with file:line evidence. The daemon parses the verdict: PASS completes, REMEDIATE spawns tasks plus a re-audit. The template must make "no issues found" a first-class outcome to prevent hallucinated remediation.
+
+- **Audit quality beyond structural checks.** The current audit prompt only verifies files exist and are in the right place. It should also check error wrapping, doc comments on exports, test coverage, Go idiom, naming conventions, and dead code. The task-classes spec defines a `discipline-audit` class whose behavioral prompt should carry these criteria. Implement as part of task-classes, not separately.
+
+- **After Action Reviews per task.** Every task should produce an AAR following the standard template: objective, what happened, what went well, what can be improved, action items. The next task reads prior AARs for full context. Replaces terse breadcrumbs with actionable narrative. AARs accumulate in the leaf directory and become the audit's primary input.
+
+- **Eval framework using task commits as regression tests.** The domain repository runs produced both failures and successes. Roll back to the commit before a known-bad decision, apply a fix, replay the task, verify the fix prevents the original mistake. Regression testing for the AI pipeline itself.
+
+## Daemon Mechanics
+
+Operational improvements to the daemon's core loop and resilience.
+
+- **Stall detector for model invocations.** When the model produces no output for N seconds (e.g., 120s), kill the process and retry. The current 3600s invocation timeout is far too generous when the model has already committed its work and is hung on post-commit steps. Caught during eval when a claude process hung for 10+ minutes due to API instability.
+
+- **NeedsPlanning inference for re-planning triggers.** The daemon infers initial planning from structure (childless orchestrator), but re-planning (new scope, child blocked, completion review) still depends on explicitly setting a flag. Could be made structural: check whether pending scope exists, whether any child is blocked, or whether all children are complete, rather than relying on a flag set at the right time.
+
+- **CWD resolution for wolfcastle commands.** Commands should require `.wolfcastle/` in CWD and refuse to operate if it isn't there. No walking up the directory tree. Caught when `wolfcastle start` was accidentally run from `~/` with a stray `.wolfcastle/` and silently operated on the wrong project.
+
+## User Experience
+
+How the tool feels to use.
+
+- **`wolfcastle log` design pass.** The log command needs a full spec. Current issues: intake log (10001-*) sorts after execute logs, follow mode doesn't know which iteration is active, no stage filtering, no human-readable formatting. Design goals: multiple verbosity levels (daemon output, info, debug, raw NDJSON), `--follow` at all levels, unified log stream with stage tags, iteration addressing (`--iteration 24`), stage filtering (`--stage execute`).
+
+- **`wolfcastle status` detail.** Show task descriptions (not just titles), failure reasons from the last attempt, deliverable declarations, and breadcrumbs. A user watching the daemon should understand what's happening without reading raw logs.
+
+- **README files in every `.wolfcastle/` directory.** `system/` should explain the three-tier system. `system/base/prompts/` should explain how to override prompts. `docs/` should explain what goes there. These are the discoverability layer for humans browsing the directory.
+
+- **Prompt subdirectories for human navigation.** The flat `system/base/prompts/` mixes stage prompts, class prompts, audit prompts, and templates. Better: `prompts/stages/`, `prompts/classes/`, `prompts/audits/`, `prompts/templates/`. Users should browse and understand what's available without reading source code.
+
+- **Fully user-configurable prompts via the tier system.** Prompts are currently embedded in the binary via go:embed and extracted at scaffold time. Users can override in custom/local but can't easily see the defaults. Make base/ prompts the authoritative reference. `init` populates, `init --force` regenerates.
+
+## Code Quality
+
+Things that should be better in the implementation.
+
+- **Domain refactor: migrate remaining backward-compat callers.** 17 files still use `app.WolfcastleDir`, 9 use `app.Cfg`, 15 use `app.Store`. These need migration to repository methods before `tree.Resolver` can be deleted. Old code paths (`AssemblePrompt`, `project.Scaffold`) exist alongside new ones and will drift.
+
+- **ContextBuilder null-safety.** Docstring claims nil repositories degrade gracefully, but `findTask()` returns nil silently causing context truncation. Should error. Template re-parsing on every `Build()` call with no caching.
+
+- **git.CreateWorktree loses the first error.** When the primary `git worktree add -b` fails, the fallback runs without `-b`. If both fail, only the fallback error surfaces. The original (potentially more informative) error is discarded.
+
+- **ScaffoldService.Reinit silently ignores migration errors.** Three `_ = migrator.Migrate...()` calls. If migration fails for a real reason (permissions, corruption), the operator never knows.
+
+- **TTL-based caching in tierfs.** Short TTL (1-5s) for custom/local tiers (rapid-fire reads during a single iteration hit cache, human edits between iterations are fresh). Long/infinite TTL for base (only changes on rescaffold). All repositories benefit from the same caching layer.
+
+## Completed
+
+- ~~Requirements in README~~ (Go 1.26+, Git, a coding agent)
+- ~~Terminal marker detection~~ (deliverable check was clearing valid markers)
+- ~~Deliverable globs don't recurse~~ (`globRecursive` walks subdirs)
+- ~~Deliverable unchanged false failures~~ (replaced hashing with git-diff progress)
+- ~~Git progress fails on committed work~~ (`checkGitProgress` checks HEAD moved OR uncommitted)
+- ~~Spinner during execution~~ (stop before RunOnce)
+- ~~.wolfcastle/system/ restructure (ADR-077)~~ (system internals under system/)
+- ~~Boundary rules in prompts~~ (execute and intake forbid writing to system/)
+- ~~CLI header cleanup~~ ([INFO] suppressed, version deduped)
+- ~~Status detail for completed tasks~~ (summary shown)
+- ~~Stale ADR-070~~ (marked superseded)
+- ~~Stale daemon agent guide~~ (updated for new patterns)
+- ~~Audit progress check~~ (skip for IsAudit tasks, PR #35)
+- ~~Markdown terminal markers~~ (strip formatting before matching, PR #35)
+- ~~Work-already-done concept~~ (WOLFCASTLE_SKIP marker, PR #35)
+- ~~YIELD + self-decomposition~~ (block parent, auto-complete, PR #35)
+- ~~Deliverable missing = failure loop~~ (downgraded to warning, PR #35)
+- ~~Deliverable path validation~~ (warns and suggests at declaration, PR #35)
+- ~~Failure context in retry prompt~~ (LastFailureType injected, PR #35)
+- ~~Decomposition trigger~~ ("list files, decompose if >8", PR #35)
+- ~~Scope creep across task boundaries~~ (auto-commit partial work, PR #35)
+- ~~ADR/spec audit enforcement~~ (reframed as descriptive, PR #35 + PR #36)
+- ~~Rich task definitions~~ (Body, TaskType, Constraints, AcceptanceCriteria, References, PR #36)
+- ~~Hierarchical task IDs~~ (depth-first navigation, derived parent status, PR #36)
+- ~~Single daemon enforcement~~ (global lock, CWD-only resolution, PR #36)
+- ~~Orchestrator planning pipeline~~ (active planning agents, re-planning, completion review, PR #36)
+- ~~Task descriptions need more detail~~ (rich fields on Task struct, PR #36)
+- ~~Decomposition by concern~~ (orchestrator planning handles this, PR #36)
+- ~~Auto-decompose on block~~ (orchestrator-as-unblocker, PR #36)
+- ~~Intake decomposition granularity~~ (orchestrator reads spec, plans at right granularity, PR #36)
