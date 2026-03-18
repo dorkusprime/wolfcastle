@@ -149,7 +149,21 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 	}
 	allNonAuditDone := nonAuditDone == nonAuditCount
 	if ns.Type == NodeLeaf && nonAuditCount == 0 {
+		// Leaf with no real tasks yet. Don't run audit on empty leaves.
 		allNonAuditDone = false
+	}
+	if ns.Type == NodeOrchestrator {
+		// Orchestrator audits require all children to be complete,
+		// and at least one child must exist (otherwise planning
+		// hasn't run yet).
+		allChildrenComplete := len(ns.Children) > 0
+		for _, child := range ns.Children {
+			if child.State != StatusComplete {
+				allChildrenComplete = false
+				break
+			}
+		}
+		allNonAuditDone = allChildrenComplete
 	}
 	allNonAuditBlocked := nonAuditCount > 0 && nonAuditBlocked == nonAuditCount
 

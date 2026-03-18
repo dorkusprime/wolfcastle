@@ -81,6 +81,9 @@ func TestDfs_OrchestratorAuditTaskAfterChildrenComplete(t *testing.T) {
 	}
 
 	orchState := NewNodeState("orch", "Orchestrator", NodeOrchestrator)
+	orchState.Children = []ChildRef{
+		{ID: "leaf-a", Address: "orch/leaf-a", State: StatusComplete},
+	}
 	orchState.Tasks = []Task{
 		{ID: "audit-1", Description: "audit the orchestrator", State: StatusNotStarted, IsAudit: true},
 	}
