@@ -234,6 +234,11 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		return nil
 	}
 
+	// Parse OVERLAP markers from intake output and deliver as pending scope.
+	if d.Config.Pipeline.Planning.Enabled {
+		d.parseOverlapMarkers(result.Stdout)
+	}
+
 	// Mark processed items as filed under a lock. We re-read the inbox
 	// because new items may have been added while the model was running.
 	// We match by timestamp+text to find the items we processed.
@@ -263,6 +268,56 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 	}
 
 	return nil
+}
+
+// parseOverlapMarkers scans intake output for OVERLAP markers and delivers
+// the overlapping scope as pending scope to the target orchestrator.
+// Format: OVERLAP: "item summary" overlaps with Project Name (address)
+func (d *Daemon) parseOverlapMarkers(output string) {
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "OVERLAP:") {
+			continue
+		}
+
+		// Extract the quoted scope text
+		quoteStart := strings.Index(line, "\"")
+		if quoteStart < 0 {
+			continue
+		}
+		quoteEnd := strings.Index(line[quoteStart+1:], "\"")
+		if quoteEnd < 0 {
+			continue
+		}
+		scopeText := line[quoteStart+1 : quoteStart+1+quoteEnd]
+
+		// Extract the address in parentheses at the end
+		parenStart := strings.LastIndex(line, "(")
+		parenEnd := strings.LastIndex(line, ")")
+		if parenStart < 0 || parenEnd <= parenStart {
+			continue
+		}
+		targetAddr := line[parenStart+1 : parenEnd]
+
+		// Deliver as pending scope
+		if err := d.Store.MutateNode(targetAddr, func(ns *state.NodeState) error {
+			ns.PendingScope = append(ns.PendingScope, scopeText)
+			return nil
+		}); err != nil {
+			_ = d.InboxLogger.Log(map[string]any{
+				"type":   "overlap_delivery_failed",
+				"target": targetAddr,
+				"error":  err.Error(),
+			})
+			continue
+		}
+
+		_ = d.InboxLogger.Log(map[string]any{
+			"type":   "overlap_delivered",
+			"target": targetAddr,
+			"scope":  scopeText,
+		})
+	}
 }
 
 // resolveContextHeader loads a context header prompt from the three-tier

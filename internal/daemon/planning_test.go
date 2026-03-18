@@ -616,3 +616,52 @@ func TestDeliverPendingScope_SkipsLeafNodes(t *testing.T) {
 		t.Error("leaf nodes should not get NeedsPlanning set")
 	}
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// parseOverlapMarkers
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestParseOverlapMarkers_DeliversScope(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Resolver.ProjectsDir()
+	ns := state.NewNodeState("my-project", "My Project", state.NodeOrchestrator)
+	writeJSON(t, filepath.Join(projDir, "my-project", "state.json"), ns)
+
+	output := `OVERLAP: "Add unit tests for 94% coverage" overlaps with My Project (my-project)
+
+WOLFCASTLE_COMPLETE`
+
+	d.parseOverlapMarkers(output)
+
+	updated, err := d.Store.ReadNode("my-project")
+	if err != nil {
+		t.Fatalf("failed to read node: %v", err)
+	}
+	if len(updated.PendingScope) != 1 {
+		t.Fatalf("expected 1 pending scope item, got %d", len(updated.PendingScope))
+	}
+	if updated.PendingScope[0] != "Add unit tests for 94% coverage" {
+		t.Errorf("unexpected scope text: %q", updated.PendingScope[0])
+	}
+}
+
+func TestParseOverlapMarkers_NoOverlap(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+
+	// No OVERLAP lines, should be a no-op
+	d.parseOverlapMarkers("WOLFCASTLE_COMPLETE\n")
+}
+
+func TestParseOverlapMarkers_BadAddress(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	// Target doesn't exist; should log error but not panic
+	output := `OVERLAP: "some work" overlaps with Ghost (nonexistent-node)`
+	d.parseOverlapMarkers(output)
+}
