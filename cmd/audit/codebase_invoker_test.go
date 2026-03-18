@@ -37,13 +37,18 @@ func newInvokerTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	env := newTestEnv(t)
 
-	// Set up an audit model in config
+	// Set up an audit model in config (both in-memory and on disk)
 	env.App.Cfg.Audit.Model = "test-model"
 	env.App.Cfg.Models["test-model"] = config.ModelDef{
 		Command: "echo",
 		Args:    []string{"test"},
 	}
-	env.App.Cfg.Daemon.InvocationTimeoutSeconds = 30
+	env.App.Cfg.Daemon.InvocationTimeoutSeconds = 60
+
+	// Write config to disk so app.Config.Load() picks it up
+	if err := env.App.Config.WriteBase(env.App.Cfg); err != nil {
+		t.Fatalf("writing base config: %v", err)
+	}
 
 	return env
 }
@@ -231,8 +236,11 @@ func TestRunCodebaseAudit_ModelNotFound(t *testing.T) {
 	t.Parallel()
 	env := newInvokerTestEnv(t)
 
-	// Point to a model that doesn't exist
+	// Point to a model that doesn't exist and write to disk
 	env.App.Cfg.Audit.Model = "nonexistent-model"
+	if err := env.App.Config.WriteBase(env.App.Cfg); err != nil {
+		t.Fatalf("writing config: %v", err)
+	}
 
 	scopes := []auditScope{
 		{ID: "test", Description: "Test"},
@@ -364,7 +372,13 @@ Description.
 		},
 	}
 
+	configRepo := config.NewConfigRepository(wcDir)
+	if err := configRepo.WriteBase(cfg); err != nil {
+		t.Fatalf("writing base config: %v", err)
+	}
+
 	testApp := &cmdutil.App{
+		Config:        configRepo,
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
 		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},

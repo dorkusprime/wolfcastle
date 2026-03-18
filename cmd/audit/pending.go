@@ -20,7 +20,7 @@ Examples:
   wolfcastle audit pending
   wolfcastle audit pending --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+			batchPath := filepath.Join(app.Config.Root(), "audit-state.json")
 			batch, err := state.LoadBatch(batchPath)
 			if err != nil {
 				return err

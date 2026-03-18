@@ -76,14 +76,14 @@ func TestHistory_WithEntries_JSON(t *testing.T) {
 // audit run - edge cases (without model invocation)
 // ---------------------------------------------------------------------------
 
-func TestRunCmd_NoResolver(t *testing.T) {
+func TestRunCmd_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "run"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 

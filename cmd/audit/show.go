@@ -23,7 +23,7 @@ Examples:
   wolfcastle audit show --node my-project
   wolfcastle audit show --node my-project --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
@@ -35,7 +35,7 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
-			statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
+			statePath := filepath.Join(app.State.Dir(), filepath.Join(addr.Parts...), "state.json")
 
 			ns, err := state.LoadNodeState(statePath)
 			if err != nil {

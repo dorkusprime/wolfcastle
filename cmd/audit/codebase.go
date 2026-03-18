@@ -32,7 +32,7 @@ Examples:
   wolfcastle audit run --scope security,performance
   wolfcastle audit run --list`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			scopeFlag, _ := cmd.Flags().GetString("scope")
@@ -59,7 +59,7 @@ Examples:
 			}
 
 			// Check for existing pending batch
-			batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+			batchPath := filepath.Join(app.Config.Root(), "audit-state.json")
 			existing, err := state.LoadBatch(batchPath)
 			if err != nil {
 				return err
@@ -151,7 +151,7 @@ func discoverScopes(app *cmdutil.App) ([]auditScope, error) {
 
 	// Scan tiers in reverse priority (base first, local last overwrites)
 	for _, tier := range pipeline.Tiers {
-		dir := filepath.Join(app.WolfcastleDir, tier, "audits")
+		dir := filepath.Join(app.Config.Root(), tier, "audits")
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue
@@ -198,16 +198,21 @@ func discoverScopes(app *cmdutil.App) ([]auditScope, error) {
 }
 
 func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope) error {
-	model, ok := app.Cfg.Models[app.Cfg.Audit.Model]
+	cfg, err := app.Config.Load()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	model, ok := cfg.Models[cfg.Audit.Model]
 	if !ok {
-		return fmt.Errorf("audit model %q not found", app.Cfg.Audit.Model)
+		return fmt.Errorf("audit model %q not found", cfg.Audit.Model)
 	}
 
 	// Build combined prompt from selected scopes
 	var promptParts []string
 
 	// Base audit prompt
-	basePrompt, err := pipeline.ResolveFragment(app.WolfcastleDir, "prompts/"+app.Cfg.Audit.PromptFile)
+	basePrompt, err := pipeline.ResolveFragment(app.Config.Root(), "prompts/"+cfg.Audit.PromptFile)
 	if err == nil {
 		promptParts = append(promptParts, basePrompt)
 	}
@@ -225,8 +230,8 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 
 	output.PrintHuman("Auditing %d scope(s): %s", len(scopes), strings.Join(scopeIDs(scopes), ", "))
 
-	repoDir := filepath.Dir(app.WolfcastleDir)
-	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(app.Cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
+	repoDir := filepath.Dir(app.Config.Root())
+	invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
 	defer cancel()
 
 	result, err := app.Invoker.Invoke(invokeCtx, model, prompt, repoDir, nil, nil)
@@ -259,7 +264,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 	}
 
 	// Save the batch
-	batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+	batchPath := filepath.Join(app.Config.Root(), "audit-state.json")
 	if err := state.SaveBatch(batchPath, batch); err != nil {
 		return err
 	}

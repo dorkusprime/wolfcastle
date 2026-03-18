@@ -180,14 +180,14 @@ func TestApprove_JSONOutput(t *testing.T) {
 	}
 }
 
-func TestApprove_NoResolver(t *testing.T) {
+func TestApprove_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "approve", "f-1"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 

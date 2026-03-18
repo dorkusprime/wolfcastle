@@ -19,7 +19,7 @@ Examples:
   wolfcastle audit history
   wolfcastle audit history --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			historyPath := filepath.Join(app.WolfcastleDir, "audit-review-history.json")
+			historyPath := filepath.Join(app.Config.Root(), "audit-review-history.json")
 			history, err := state.LoadHistory(historyPath)
 			if err != nil {
 				return err

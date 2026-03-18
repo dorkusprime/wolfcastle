@@ -49,15 +49,14 @@ func TestShow_NonexistentNode(t *testing.T) {
 	}
 }
 
-func TestShow_NoResolver(t *testing.T) {
+func TestShow_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
 	env.App.Identity = nil
-	env.App.Resolver = nil
 
 	env.RootCmd.SetArgs([]string{"audit", "show", "--node", "my-project"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 

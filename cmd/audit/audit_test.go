@@ -41,6 +41,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	store := state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
+		Config:        config.NewConfigRepository(wcDir),
 		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
 		State:         store,
 		WolfcastleDir: wcDir,

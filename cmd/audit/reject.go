@@ -27,7 +27,7 @@ Examples:
 				return fmt.Errorf("provide a finding ID or use --all")
 			}
 
-			batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+			batchPath := filepath.Join(app.Config.Root(), "audit-state.json")
 			batch, err := state.LoadBatch(batchPath)
 			if err != nil {
 				return err

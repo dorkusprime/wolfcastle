@@ -32,6 +32,11 @@ func NewConfigRepositoryWithTiers(tiers tierfs.Resolver, root string) *ConfigRep
 	return &ConfigRepository{tiers: tiers, root: root}
 }
 
+// Root returns the wolfcastle root directory path (the .wolfcastle directory).
+func (r *ConfigRepository) Root() string {
+	return r.root
+}
+
 // Load resolves the merged configuration across all tiers. Missing tier
 // files are silently skipped; permission and parse errors propagate.
 func (r *ConfigRepository) Load() (*Config, error) {
