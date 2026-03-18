@@ -69,6 +69,9 @@ type Environment struct {
 	// TODO: populate when App is refactored to accept repositories
 	// App *cmdutil.App
 
+	// t is the test handle, used by With* methods to fatal on setup errors.
+	t *testing.T
+
 	// namespace holds the identity namespace used for the projects directory.
 	namespace string
 }
@@ -153,6 +156,7 @@ func NewEnvironment(t *testing.T) *Environment {
 		Root:      wolfcastleDir,
 		Tiers:     tiers,
 		State:     store,
+		t:         t,
 		namespace: namespace,
 	}
 }
@@ -166,6 +170,141 @@ func (e *Environment) Namespace() string {
 // the namespace.
 func (e *Environment) ProjectsDir() string {
 	return filepath.Join(e.Root, "system", "projects", e.namespace)
+}
+
+// WithConfig deep-merges overrides into the custom tier config file
+// (system/custom/config.json) and returns the Environment for chaining.
+func (e *Environment) WithConfig(overrides map[string]any) *Environment {
+	e.t.Helper()
+
+	customPath := filepath.Join(e.Root, "system", "custom", "config.json")
+
+	// Read existing custom config.
+	data, err := os.ReadFile(customPath)
+	if err != nil {
+		e.t.Fatalf("reading custom config: %v", err)
+	}
+	var existing map[string]any
+	if err := json.Unmarshal(data, &existing); err != nil {
+		e.t.Fatalf("unmarshaling custom config: %v", err)
+	}
+
+	merged := config.DeepMerge(existing, overrides)
+	if err := writeJSON(customPath, merged); err != nil {
+		e.t.Fatalf("writing merged custom config: %v", err)
+	}
+	return e
+}
+
+// WithProject creates a project in the state tree using the NodeSpec
+// structure and returns the Environment for chaining. The name argument
+// becomes both the root node ID and display name. Orchestrator specs
+// recurse into children; leaf specs generate tasks with auto-descriptions.
+// Every node receives an audit task, matching SetupTree behavior.
+func (e *Environment) WithProject(name string, root NodeSpec) *Environment {
+	e.t.Helper()
+
+	projectsDir := e.ProjectsDir()
+	idx, err := e.State.ReadIndex()
+	if err != nil {
+		e.t.Fatalf("reading root index: %v", err)
+	}
+
+	// Use the NodeSpec name as the root address.
+	rootAddr := root.Name
+	idx.RootID = rootAddr
+	idx.RootName = name
+	idx.RootState = state.StatusNotStarted
+	idx.Root = append(idx.Root, rootAddr)
+
+	// Recursively build the tree.
+	e.buildNode(projectsDir, idx, root, "", rootAddr, name)
+
+	// Persist root index.
+	if err := writeJSON(filepath.Join(projectsDir, "state.json"), idx); err != nil {
+		e.t.Fatalf("writing root index: %v", err)
+	}
+	return e
+}
+
+// buildNode recursively creates node state files and index entries
+// for a NodeSpec and all its descendants.
+func (e *Environment) buildNode(projectsDir string, idx *state.RootIndex, spec NodeSpec, parentAddr, addr, displayName string) {
+	e.t.Helper()
+
+	nodeDir := filepath.Join(projectsDir, filepath.FromSlash(addr))
+	if err := os.MkdirAll(nodeDir, 0o755); err != nil {
+		e.t.Fatalf("creating node dir %s: %v", addr, err)
+	}
+
+	ns := state.NewNodeState(spec.Name, displayName, spec.Type)
+
+	// Index entry for this node.
+	entry := state.IndexEntry{
+		Name:     displayName,
+		Type:     spec.Type,
+		State:    state.StatusNotStarted,
+		Address:  addr,
+		Parent:   parentAddr,
+		Children: []string{},
+	}
+
+	if spec.Type == state.NodeOrchestrator {
+		// Build children.
+		for _, child := range spec.Children {
+			childAddr := addr + "/" + child.Name
+			childName := child.Name
+			entry.Children = append(entry.Children, childAddr)
+			ns.Children = append(ns.Children, state.ChildRef{
+				ID:      child.Name,
+				Address: childAddr,
+				State:   state.StatusNotStarted,
+			})
+			e.buildNode(projectsDir, idx, child, addr, childAddr, childName)
+		}
+	} else {
+		// Leaf: create tasks from the spec's Tasks list.
+		for _, taskID := range spec.Tasks {
+			ns.Tasks = append(ns.Tasks, state.Task{
+				ID:          taskID,
+				Description: "Task: " + taskID,
+				State:       state.StatusNotStarted,
+			})
+		}
+		// Every leaf gets an audit task.
+		ns.Tasks = append(ns.Tasks, state.Task{
+			ID:          "audit",
+			Description: "Verify work",
+			State:       state.StatusNotStarted,
+			IsAudit:     true,
+		})
+	}
+
+	idx.Nodes[addr] = entry
+
+	if err := writeJSON(filepath.Join(nodeDir, "state.json"), ns); err != nil {
+		e.t.Fatalf("writing node state %s: %v", addr, err)
+	}
+}
+
+// WithPrompt writes a prompt file to system/base/prompts/<relPath> and
+// returns the Environment for chaining.
+func (e *Environment) WithPrompt(relPath string, content string) *Environment {
+	e.t.Helper()
+	if err := e.Tiers.WriteBase(filepath.Join("prompts", relPath), []byte(content)); err != nil {
+		e.t.Fatalf("writing prompt %s: %v", relPath, err)
+	}
+	return e
+}
+
+// WithRule writes a rule fragment to system/base/rules/<name> and returns
+// the Environment for chaining.
+func (e *Environment) WithRule(name string, content string) *Environment {
+	e.t.Helper()
+	if err := e.Tiers.WriteBase(filepath.Join("rules", name), []byte(content)); err != nil {
+		e.t.Fatalf("writing rule %s: %v", name, err)
+	}
+	return e
 }
 
 // writeJSON marshals v to indented JSON and writes it to path, creating
