@@ -1,16 +1,17 @@
-package daemon
+package daemon_test
 
 import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
 )
 
 func TestDaemonRepository_PIDLifecycle(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := NewDaemonRepository(env.Root)
+	repo := daemon.NewDaemonRepository(env.Root)
 
 	const pid = 42
 
@@ -39,7 +40,7 @@ func TestDaemonRepository_PIDLifecycle(t *testing.T) {
 func TestDaemonRepository_StopFile(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := NewDaemonRepository(env.Root)
+	repo := daemon.NewDaemonRepository(env.Root)
 
 	if repo.HasStopFile() {
 		t.Error("HasStopFile: expected false before write")
@@ -65,7 +66,7 @@ func TestDaemonRepository_StopFile(t *testing.T) {
 func TestDaemonRepository_LogDir(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := NewDaemonRepository(env.Root)
+	repo := daemon.NewDaemonRepository(env.Root)
 
 	want := filepath.Join(env.Root, "system", "logs")
 	if got := repo.LogDir(); got != want {
@@ -76,7 +77,7 @@ func TestDaemonRepository_LogDir(t *testing.T) {
 func TestDaemonRepository_ReadPID_Missing(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := NewDaemonRepository(env.Root)
+	repo := daemon.NewDaemonRepository(env.Root)
 
 	_, err := repo.ReadPID()
 	if err == nil {
@@ -87,7 +88,7 @@ func TestDaemonRepository_ReadPID_Missing(t *testing.T) {
 func TestDaemonRepository_RemovePID_Idempotent(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := NewDaemonRepository(env.Root)
+	repo := daemon.NewDaemonRepository(env.Root)
 
 	// No PID file exists; RemovePID should succeed silently.
 	if err := repo.RemovePID(); err != nil {
@@ -98,7 +99,7 @@ func TestDaemonRepository_RemovePID_Idempotent(t *testing.T) {
 func TestDaemonRepository_RemoveStopFile_Idempotent(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := NewDaemonRepository(env.Root)
+	repo := daemon.NewDaemonRepository(env.Root)
 
 	// No stop file exists; RemoveStopFile should succeed silently.
 	if err := repo.RemoveStopFile(); err != nil {

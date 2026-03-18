@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
@@ -60,8 +61,8 @@ type Environment struct {
 	// TODO: populate when ClassRepository is built
 	// Classes *pipeline.ClassRepository
 
-	// TODO: populate when DaemonRepository is built
-	// Daemon *daemon.DaemonRepository
+	// Daemon provides access to daemon filesystem operations (PID, stop file, logs).
+	Daemon *daemon.DaemonRepository
 
 	// TODO: populate when git.Provider is built
 	// Git git.Provider
@@ -156,6 +157,7 @@ func NewEnvironment(t *testing.T) *Environment {
 		Root:      wolfcastleDir,
 		Tiers:     tiers,
 		State:     store,
+		Daemon:    daemon.NewDaemonRepository(wolfcastleDir),
 		t:         t,
 		namespace: namespace,
 	}
