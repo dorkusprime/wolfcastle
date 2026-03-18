@@ -10,10 +10,8 @@ import (
 
 func TestAcquireGlobalLock_CreatesLockFile(t *testing.T) {
 	// Use a temp dir as HOME to avoid touching the real ~/.wolfcastle
-	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
 
 	err := AcquireGlobalLock("/repo", "/repo/worktree")
 	if err != nil {
@@ -40,10 +38,8 @@ func TestAcquireGlobalLock_CreatesLockFile(t *testing.T) {
 }
 
 func TestAcquireGlobalLock_FailsWhenAlreadyRunning(t *testing.T) {
-	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
 
 	// Write a lock file with the current PID (simulating a running daemon)
 	lockDir := filepath.Join(tmpHome, ".wolfcastle")
@@ -70,10 +66,8 @@ func TestAcquireGlobalLock_FailsWhenAlreadyRunning(t *testing.T) {
 }
 
 func TestAcquireGlobalLock_RemovesStaleLock(t *testing.T) {
-	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
 
 	// Write a lock with a PID that doesn't exist
 	lockDir := filepath.Join(tmpHome, ".wolfcastle")
@@ -102,10 +96,8 @@ func TestAcquireGlobalLock_RemovesStaleLock(t *testing.T) {
 }
 
 func TestReleaseGlobalLock_OnlyRemovesOwnLock(t *testing.T) {
-	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
 
 	// Write a lock with a different PID
 	lockDir := filepath.Join(tmpHome, ".wolfcastle")
@@ -129,10 +121,8 @@ func TestReleaseGlobalLock_OnlyRemovesOwnLock(t *testing.T) {
 }
 
 func TestReadGlobalLock_MissingFile(t *testing.T) {
-	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
 
 	_, err := ReadGlobalLock()
 	if err == nil {

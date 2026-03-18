@@ -3,15 +3,12 @@ package daemon
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
 // findPlanningTarget searches the tree depth-first for an orchestrator
@@ -298,10 +295,8 @@ func (d *Daemon) checkReplanningTriggers(nodeAddr, taskID string, idx *state.Roo
 			"node":    parentAddr,
 			"trigger": "completion_review",
 		})
-	} else if allComplete && len(parentNS.SuccessCriteria) == 0 {
-		// Auto-complete orchestrators without success criteria
-		// (current behavior preserved)
 	}
+	// Orchestrators without success criteria auto-complete via existing logic.
 
 	if anyBlocked {
 		// Trigger remediation
@@ -358,20 +353,3 @@ func (d *Daemon) deliverPendingScope(idx *state.RootIndex) {
 	}
 }
 
-// nodeAddrParts splits a node address like "parent/child" and returns the parent.
-func nodeAddrParent(addr string) string {
-	parts := strings.Split(addr, "/")
-	if len(parts) <= 1 {
-		return ""
-	}
-	return strings.Join(parts[:len(parts)-1], "/")
-}
-
-// resolveNodeDir returns the filesystem path for a node address.
-func (d *Daemon) resolveNodeDir(addr string) string {
-	a, err := tree.ParseAddress(addr)
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...))
-}

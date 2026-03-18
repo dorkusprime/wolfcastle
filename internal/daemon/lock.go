@@ -17,13 +17,25 @@ type GlobalLock struct {
 	Started  time.Time `json:"started"`
 }
 
-// globalLockPath returns ~/.wolfcastle/daemon.lock.
+// GlobalLockDir overrides the lock directory for testing.
+// When empty, defaults to ~/.wolfcastle/.
+var GlobalLockDir string
+
+// globalLockPath returns the path to daemon.lock. It checks GlobalLockDir
+// first, then WOLFCASTLE_LOCK_DIR, then falls back to ~/.wolfcastle/.
 func globalLockPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolving home directory: %w", err)
+	dir := GlobalLockDir
+	if dir == "" {
+		dir = os.Getenv("WOLFCASTLE_LOCK_DIR")
 	}
-	return filepath.Join(home, ".wolfcastle", "daemon.lock"), nil
+	if dir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("resolving home directory: %w", err)
+		}
+		dir = filepath.Join(home, ".wolfcastle")
+	}
+	return filepath.Join(dir, "daemon.lock"), nil
 }
 
 // AcquireGlobalLock checks for an existing daemon and creates the lock file.
