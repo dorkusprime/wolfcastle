@@ -244,9 +244,9 @@ func TestPromptRepository_WriteAllBase_WritesFromFS(t *testing.T) {
 	env := testutil.NewEnvironment(t)
 
 	templates := fstest.MapFS{
-		"prompts/one.md":  {Data: []byte("first prompt")},
-		"prompts/two.md":  {Data: []byte("second prompt")},
-		"rules/style.md":  {Data: []byte("style rule")},
+		"prompts/one.md": {Data: []byte("first prompt")},
+		"prompts/two.md": {Data: []byte("second prompt")},
+		"rules/style.md": {Data: []byte("style rule")},
 	}
 
 	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)

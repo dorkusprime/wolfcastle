@@ -2,7 +2,7 @@
 
 ## Overview
 
-`PromptRepository` in `internal/prompts` owns three-tier prompt and fragment resolution. Callers request prompt templates by short name and fragments by category; the repository handles tier lookup, override semantics, include/exclude filtering, and optional Go `text/template` execution. It replaces the standalone `ResolveFragment`, `ResolveAllFragments`, and `ResolvePromptTemplate` functions in `internal/pipeline/fragments.go` with a struct-based design backed by `tierfs.Resolver`.
+`PromptRepository` in `internal/pipeline` owns three-tier prompt and fragment resolution. Callers request prompt templates by short name and fragments by category; the repository handles tier lookup, override semantics, include/exclude filtering, and optional Go `text/template` execution. It replaces the standalone `ResolveFragment`, `ResolveAllFragments`, and `ResolvePromptTemplate` functions in `internal/pipeline/fragments.go` with a struct-based design backed by `tierfs.Resolver`.
 
 ## Type
 
