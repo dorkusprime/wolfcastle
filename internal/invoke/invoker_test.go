@@ -246,6 +246,26 @@ echo "WOLFCASTLE_COMPLETE"`
 	}
 }
 
+func TestMarkerDetection_Skip(t *testing.T) {
+	result, err := Invoke(context.Background(), echoModel("WOLFCASTLE_SKIP reason here"), "", ".")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.TerminalMarker != MarkerSkip {
+		t.Errorf("TerminalMarker = %v, want MarkerSkip", result.TerminalMarker)
+	}
+}
+
+func TestMarkerDetection_Continue(t *testing.T) {
+	result, err := Invoke(context.Background(), echoModel("WOLFCASTLE_CONTINUE"), "", ".")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.TerminalMarker != MarkerContinue {
+		t.Errorf("TerminalMarker = %v, want MarkerContinue", result.TerminalMarker)
+	}
+}
+
 func TestMarkerDetection_NoMarker(t *testing.T) {
 	result, err := Invoke(context.Background(), echoModel("just some output"), "", ".")
 	if err != nil {
@@ -294,6 +314,8 @@ func TestMarkerString(t *testing.T) {
 		{MarkerComplete, "WOLFCASTLE_COMPLETE"},
 		{MarkerYield, "WOLFCASTLE_YIELD"},
 		{MarkerBlocked, "WOLFCASTLE_BLOCKED"},
+		{MarkerSkip, "WOLFCASTLE_SKIP"},
+		{MarkerContinue, "WOLFCASTLE_CONTINUE"},
 	}
 	for _, tt := range tests {
 		if got := tt.marker.String(); got != tt.want {

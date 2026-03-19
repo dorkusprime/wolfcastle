@@ -316,6 +316,59 @@ func TestRecoverRootIndex_Truncated(t *testing.T) {
 	}
 }
 
+func TestRecoverRootIndex_TrailingGarbageWithNilNodes(t *testing.T) {
+	// Data where tryStripTrailing succeeds but the valid prefix has no "nodes"
+	// key, so idx.Nodes is nil and must be initialized.
+	data := []byte(`{"version":1,"root":[]}EXTRAGARBAGEHERE`)
+	recovered, _, err := RecoverRootIndex(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if recovered.Nodes == nil {
+		t.Error("expected Nodes to be initialized (non-nil)")
+	}
+}
+
+func TestRecoverRootIndex_TruncatedWithNilNodes(t *testing.T) {
+	// Data where tryCloseTruncated succeeds but the repaired JSON has no "nodes"
+	// key, so idx.Nodes is nil and must be initialized.
+	data := []byte(`{"version":1,"root":[`)
+	recovered, _, err := RecoverRootIndex(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if recovered.Nodes == nil {
+		t.Error("expected Nodes to be initialized (non-nil)")
+	}
+}
+
+func TestTryCloseTruncated_EscapedCharsInString(t *testing.T) {
+	// Truncated JSON where the truncation point is inside a string that
+	// contains escaped characters (backslash sequences). This exercises the
+	// escape-tracking paths in tryCloseTruncated.
+	data := []byte(`{"key":"value with \"escaped\" quote`)
+	result, ok := tryCloseTruncated(data)
+	if !ok {
+		t.Fatal("expected tryCloseTruncated to succeed")
+	}
+	if len(result) == 0 {
+		t.Error("expected non-empty result")
+	}
+}
+
+func TestTryCloseTruncated_TruncatedInsideStringNoComma(t *testing.T) {
+	// Truncated inside the very first string value with no commas present,
+	// exercising the no-comma fallback that rewinds to the opening brace.
+	data := []byte(`{"key`)
+	result, ok := tryCloseTruncated(data)
+	if !ok {
+		t.Fatal("expected tryCloseTruncated to succeed")
+	}
+	if len(result) == 0 {
+		t.Error("expected non-empty result")
+	}
+}
+
 // ── sanitizeJSON unit tests ──────────────────────────────────────────────
 
 func TestSanitizeJSON_NoChanges(t *testing.T) {
