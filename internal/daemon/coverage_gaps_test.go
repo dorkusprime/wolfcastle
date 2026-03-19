@@ -298,13 +298,12 @@ func TestCheckGitProgress_GitStatusFailure(t *testing.T) {
 func TestCheckGitProgress_RenamedFile(t *testing.T) {
 	t.Parallel()
 	dir := initGitRepo(t)
-	head := gitHEAD(dir)
 
 	// Create and commit a file, then rename it so git status shows "R".
 	_ = os.WriteFile(filepath.Join(dir, "original.txt"), []byte("content"), 0644)
 	gitRun(t, dir, "add", ".")
 	gitRun(t, dir, "commit", "-m", "add original")
-	head = gitHEAD(dir)
+	head := gitHEAD(dir)
 
 	// Rename via git mv so porcelain output includes " -> ".
 	gitRun(t, dir, "mv", "original.txt", "renamed.txt")
