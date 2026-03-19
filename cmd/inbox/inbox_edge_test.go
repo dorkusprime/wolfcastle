@@ -34,14 +34,14 @@ func TestInboxAdd_JSONOutput_Multiple(t *testing.T) {
 // inbox list — error paths
 // ---------------------------------------------------------------------------
 
-func TestInboxList_NoResolver(t *testing.T) {
+func TestInboxList_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"inbox", "list"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -49,14 +49,14 @@ func TestInboxList_NoResolver(t *testing.T) {
 // inbox clear — error paths
 // ---------------------------------------------------------------------------
 
-func TestInboxClear_NoResolver(t *testing.T) {
+func TestInboxClear_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"inbox", "clear"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 

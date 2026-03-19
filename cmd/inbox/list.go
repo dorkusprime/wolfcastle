@@ -20,10 +20,10 @@ Examples:
   wolfcastle inbox list
   wolfcastle inbox list --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
-			inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
+			inboxPath := filepath.Join(app.State.Dir(), "inbox.json")
 
 			inboxData, err := state.LoadInbox(inboxPath)
 			if err != nil {

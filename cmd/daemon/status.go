@@ -14,7 +14,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +39,7 @@ Examples:
 			interval, _ := cmd.Flags().GetFloat64("interval")
 
 			if !showAll {
-				if err := app.RequireResolver(); err != nil {
+				if err := app.RequireIdentity(); err != nil {
 					return err
 				}
 			}
@@ -55,7 +54,7 @@ Examples:
 				return showAllStatus(app)
 			}
 
-			idx, err := app.Resolver.LoadRootIndex()
+			idx, err := app.State.ReadIndex()
 			if err != nil {
 				return err
 			}
@@ -89,11 +88,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 		details[addr] = nd
 
 		if entry.Type == state.NodeLeaf {
-			a, err := tree.ParseAddress(addr)
-			if err != nil {
-				continue
-			}
-			ns, err := state.LoadNodeState(app.Resolver.NodeStatePath(a))
+			ns, err := app.State.ReadNode(addr)
 			if err != nil {
 				continue
 			}
@@ -114,7 +109,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 
 	total := len(details)
 
-	daemonStatus := getDaemonStatus(app.WolfcastleDir)
+	daemonStatus := getDaemonStatus(app.Config.Root())
 
 	if app.JSONOutput {
 		output.Print(output.Ok("status", map[string]any{
@@ -168,7 +163,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 	}
 
 	// Inbox count
-	inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(app.State.Dir(), "inbox.json")
 	if inboxData, err := state.LoadInbox(inboxPath); err == nil {
 		newCount, filedCount := 0, 0
 		for _, item := range inboxData.Items {
@@ -329,7 +324,7 @@ func getDaemonStatus(wolfcastleDir string) string {
 }
 
 func showAllStatus(app *cmdutil.App) error {
-	projectsDir := filepath.Join(app.WolfcastleDir, "system", "projects")
+	projectsDir := filepath.Join(app.Config.Root(), "system", "projects")
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
 		return fmt.Errorf("reading projects dir: %w", err)
@@ -403,7 +398,7 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 				output.PrintError("%v", err)
 			}
 		} else {
-			idx, err := app.Resolver.LoadRootIndex()
+			idx, err := app.State.ReadIndex()
 			if err != nil {
 				output.PrintError("%v", err)
 			} else {

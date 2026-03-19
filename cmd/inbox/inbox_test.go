@@ -10,7 +10,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -38,11 +37,12 @@ func newTestEnv(t *testing.T) *testEnv {
 	data, _ := json.MarshalIndent(idx, "", "  ")
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
 
-	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
+	id, _ := config.IdentityFromConfig(cfg)
 	testApp := &cmdutil.App{
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
-		Resolver:      resolver,
+		Identity:      id,
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 		Clock:         clock.New(),
 	}
 
@@ -127,14 +127,14 @@ func TestInboxAdd_EmptyText(t *testing.T) {
 	}
 }
 
-func TestInboxAdd_NoResolver(t *testing.T) {
+func TestInboxAdd_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"inbox", "add", "test"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 

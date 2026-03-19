@@ -13,6 +13,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -44,10 +45,15 @@ func newTestEnv(t *testing.T) *testEnv {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
+	id, _ := config.IdentityFromConfig(cfg)
 	testApp := &cmdutil.App{
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
 		Resolver:      resolver,
+		Identity:      id,
+		Config:        config.NewConfigRepository(wcDir),
+		Daemon:        dmn.NewDaemonRepository(wcDir),
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -190,14 +196,14 @@ func TestRecoverStaleDaemonState_DeadProcess(t *testing.T) {
 // status command (no resolver)
 // ---------------------------------------------------------------------------
 
-func TestStatusCmd_NoResolver(t *testing.T) {
+func TestStatusCmd_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"status"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -659,13 +665,13 @@ func TestRecoverStaleDaemonState_RunningProcess(t *testing.T) {
 // start command edge cases
 // ---------------------------------------------------------------------------
 
-func TestStartCmd_NoResolver(t *testing.T) {
+func TestStartCmd_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 

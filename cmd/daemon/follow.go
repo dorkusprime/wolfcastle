@@ -33,7 +33,7 @@ Examples:
   wolfcastle log -f -l debug`,
 		Aliases: []string{"follow"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logDir := filepath.Join(app.WolfcastleDir, "system", "logs")
+			logDir := app.Daemon.LogDir()
 			lines, _ := cmd.Flags().GetInt("lines")
 			follow, _ := cmd.Flags().GetBool("follow")
 			levelFilter, _ := cmd.Flags().GetString("level")

@@ -11,7 +11,7 @@ import (
 	"syscall"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/daemon"
+	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/validate"
 	"github.com/spf13/cobra"
@@ -37,17 +37,22 @@ Examples:
 			worktreeBranch, _ := cmd.Flags().GetString("worktree")
 			verbose, _ := cmd.Flags().GetBool("verbose")
 
-			// ADR-046: --verbose overrides daemon.log_level to debug.
-			if verbose {
-				app.Cfg.Daemon.LogLevel = "debug"
+			cfg, err := app.Config.Load()
+			if err != nil {
+				return err
 			}
 
-			if err := app.RequireResolver(); err != nil {
+			// ADR-046: --verbose overrides daemon.log_level to debug.
+			if verbose {
+				cfg.Daemon.LogLevel = "debug"
+			}
+
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 
 			// Find repo root (parent of .wolfcastle)
-			repoDir := filepath.Dir(app.WolfcastleDir)
+			repoDir := filepath.Dir(app.Config.Root())
 			originalRepoDir := repoDir
 
 			// Handle worktree mode
@@ -68,26 +73,26 @@ Examples:
 			}()
 
 			// Recover stale daemon state
-			recoverStaleDaemonState(app.WolfcastleDir)
+			recoverStaleDaemonState(app.Config.Root())
 
 			// Check global daemon lock (one daemon at a time, globally)
-			if err := daemon.AcquireGlobalLock(repoDir, repoDir); err != nil {
+			if err := dmn.AcquireGlobalLock(repoDir, repoDir); err != nil {
 				return err
 			}
-			defer daemon.ReleaseGlobalLock()
+			defer dmn.ReleaseGlobalLock()
 
 			// Check for running daemon (per-project PID, backward compat)
-			pid, err := daemon.ReadPID(app.WolfcastleDir)
-			if err == nil && daemon.IsProcessRunning(pid) {
-				daemon.ReleaseGlobalLock()
+			pid, pidErr := app.Daemon.ReadPID()
+			if pidErr == nil && dmn.IsProcessRunning(pid) {
+				dmn.ReleaseGlobalLock()
 				return fmt.Errorf("already running (PID %d). Use 'wolfcastle stop' first", pid)
 			}
-			daemon.RemovePID(app.WolfcastleDir)
+			_ = app.Daemon.RemovePID()
 
 			// Startup validation gate — block on error-severity issues
-			idx, idxErr := app.Resolver.LoadRootIndex()
+			idx, idxErr := app.State.ReadIndex()
 			if idxErr == nil {
-				engine := validate.NewEngine(app.Resolver.ProjectsDir(), validate.DefaultNodeLoader(app.Resolver.ProjectsDir()), app.WolfcastleDir)
+				engine := validate.NewEngine(app.State.Dir(), validate.DefaultNodeLoader(app.State.Dir()), app.Config.Root())
 				report := engine.ValidateStartup(idx)
 				if report.HasErrors() {
 					output.PrintHuman("Startup blocked. %d error(s):", report.Errors)
@@ -104,19 +109,20 @@ Examples:
 			}
 
 			if background {
-				return startBackground(app.WolfcastleDir, nodeScope, worktreeBranch, "")
+				return startBackground(app.Config.Root(), nodeScope, worktreeBranch, "")
 			}
 
-			d, err := daemon.New(app.Cfg, app.WolfcastleDir, app.Resolver, nodeScope, repoDir)
+			d, err := dmn.New(cfg, app.Config.Root(), app.Resolver, nodeScope, repoDir)
 			if err != nil {
 				return err
 			}
 
 			// Write PID file for foreground mode too, so `wolfcastle status`
 			// can detect a running daemon regardless of how it was started.
-			pidFile := filepath.Join(app.WolfcastleDir, "system", "wolfcastle.pid")
-			_ = os.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644)
-			defer func() { _ = os.Remove(pidFile) }()
+			if err := app.Daemon.WritePID(os.Getpid()); err != nil {
+				return fmt.Errorf("writing PID file: %w", err)
+			}
+			defer func() { _ = app.Daemon.RemovePID() }()
 
 			return d.RunWithSupervisor(context.Background())
 		},
