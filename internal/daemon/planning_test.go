@@ -432,8 +432,8 @@ func TestIncrementReplanCount_ExhaustsBudget(t *testing.T) {
 	if after1.State == state.StatusBlocked {
 		t.Error("node should not be blocked after first increment")
 	}
-	if after1.ReplanCount["initial"] != 1 {
-		t.Errorf("expected replan count 1, got %d", after1.ReplanCount["initial"])
+	if after1.TotalReplans != 1 {
+		t.Errorf("expected total replans 1, got %d", after1.TotalReplans)
 	}
 
 	// Second increment: should exhaust budget and block
@@ -445,8 +445,8 @@ func TestIncrementReplanCount_ExhaustsBudget(t *testing.T) {
 	if after2.State != state.StatusBlocked {
 		t.Errorf("expected StatusBlocked after exhausting budget, got %s", after2.State)
 	}
-	if after2.ReplanCount["initial"] != 2 {
-		t.Errorf("expected replan count 2, got %d", after2.ReplanCount["initial"])
+	if after2.TotalReplans != 2 {
+		t.Errorf("expected total replans 2, got %d", after2.TotalReplans)
 	}
 	if after2.NeedsPlanning {
 		t.Error("NeedsPlanning should be cleared when budget exhausted")

@@ -30,7 +30,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -113,9 +112,48 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 	}, nil
 }
 
-// selfHeal resets stale in_progress tasks on startup (ADR-020).
-// All node types are scanned, not just leaves, because orchestrator
-// tasks can also be left in_progress after a crash.
+// PreStartSelfHeal runs before validation to fix stale in_progress tasks.
+// Called from the start command before the daemon is constructed.
+func PreStartSelfHeal(resolver *tree.Resolver, wolfcastleDir string) {
+	idx, err := resolver.LoadRootIndex()
+	if err != nil {
+		return
+	}
+	projDir := resolver.ProjectsDir()
+	for addr, entry := range idx.Nodes {
+		if entry.Type != state.NodeLeaf && entry.Type != state.NodeOrchestrator {
+			continue
+		}
+		a, parseErr := tree.ParseAddress(addr)
+		if parseErr != nil {
+			continue
+		}
+		statePath := filepath.Join(projDir, filepath.Join(a.Parts...), "state.json")
+		ns, loadErr := state.LoadNodeState(statePath)
+		if loadErr != nil {
+			continue
+		}
+		changed := false
+		for i := range ns.Tasks {
+			if ns.Tasks[i].State == state.StatusInProgress {
+				if derived, hasChildren := state.DeriveParentStatus(ns, ns.Tasks[i].ID); hasChildren {
+					ns.Tasks[i].State = derived
+				} else {
+					ns.Tasks[i].State = state.StatusNotStarted
+				}
+				changed = true
+			}
+		}
+		if changed {
+			_ = state.SaveNodeState(statePath, ns)
+		}
+	}
+}
+
+// selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
+// Resets all in_progress tasks to not_started (they'll be re-claimed next
+// iteration). Also derives parent task status from children so hierarchical
+// tasks don't stay in_progress when all children are complete.
 func (d *Daemon) selfHeal() error {
 	output.PrintHuman("Scanning for casualties...")
 	idx, err := d.Resolver.LoadRootIndex()
@@ -124,44 +162,47 @@ func (d *Daemon) selfHeal() error {
 		return nil
 	}
 
-	var healed []string
-	for addr := range idx.Nodes {
-		a, err := tree.ParseAddress(addr)
-		if err != nil {
+	healed := 0
+	for addr, entry := range idx.Nodes {
+		if entry.Type != state.NodeLeaf && entry.Type != state.NodeOrchestrator {
+			continue
+		}
+		a, parseErr := tree.ParseAddress(addr)
+		if parseErr != nil {
 			continue
 		}
 		statePath := filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json")
-		ns, err := state.LoadNodeState(statePath)
-		if err != nil {
+		ns, loadErr := state.LoadNodeState(statePath)
+		if loadErr != nil {
 			continue
 		}
-		modified := false
+
+		changed := false
 		for i := range ns.Tasks {
-			if ns.Tasks[i].State == state.StatusInProgress {
-				ns.Tasks[i].State = state.StatusNotStarted
-				healed = append(healed, addr+"/"+ns.Tasks[i].ID)
-				modified = true
+			t := &ns.Tasks[i]
+			// Reset stale in_progress to not_started
+			if t.State == state.StatusInProgress {
+				// Check if this is a parent with all children complete
+				if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren {
+					t.State = derived
+					output.PrintHuman("  Derived %s/%s → %s", addr, t.ID, derived)
+				} else {
+					t.State = state.StatusNotStarted
+					output.PrintHuman("  Reset %s/%s → not_started", addr, t.ID)
+				}
+				changed = true
+				healed++
 			}
 		}
-		if modified {
-			// Derive node state from task states
-			ns.State = state.StatusNotStarted
-			if err := state.SaveNodeState(statePath, ns); err != nil {
-				output.PrintError("self-heal: failed to save %s: %v", addr, err)
-			}
-			// Update index
-			if entry, ok := idx.Nodes[addr]; ok {
-				entry.State = ns.State
-				idx.Nodes[addr] = entry
+		if changed {
+			if saveErr := state.SaveNodeState(statePath, ns); saveErr != nil {
+				output.PrintHuman("  Warning: could not save %s: %v", addr, saveErr)
 			}
 		}
 	}
 
-	if len(healed) > 0 {
-		output.PrintHuman("Reset %d stale task(s): %s", len(healed), strings.Join(healed, ", "))
-		if err := state.SaveRootIndex(d.Resolver.RootIndexPath(), idx); err != nil {
-			return fmt.Errorf("self-heal: failed to save index: %w", err)
-		}
+	if healed > 0 {
+		output.PrintHuman("Healed %d interrupted task(s).", healed)
 	} else {
 		output.PrintHuman("All clear. No interrupted tasks.")
 	}

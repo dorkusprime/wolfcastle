@@ -65,17 +65,6 @@ func TestSelfHeal_MultipleInProgress_ResetsAll(t *testing.T) {
 		t.Errorf("node-b task should be not_started, got %s", nsB2.Tasks[0].State)
 	}
 
-	// Verify index was updated
-	idx2, err := d.Resolver.LoadRootIndex()
-	if err != nil {
-		t.Fatalf("loading index: %v", err)
-	}
-	if idx2.Nodes["node-a"].State != state.StatusNotStarted {
-		t.Errorf("index node-a should be not_started, got %s", idx2.Nodes["node-a"].State)
-	}
-	if idx2.Nodes["node-b"].State != state.StatusNotStarted {
-		t.Errorf("index node-b should be not_started, got %s", idx2.Nodes["node-b"].State)
-	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

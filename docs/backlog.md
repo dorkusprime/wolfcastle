@@ -2,6 +2,13 @@
 
 Items accumulate here as they surface. Don't process unless directed.
 
+## Added by User
+
+- `wolfcastle doctor` seems useless.
+  - It always surfaces a bunch of warnings (why would we ever have gotten into a warning state in the first place??) but doesn't fix them with `--fix`
+  - If there are any actual issues, it just says it can't fix them with "model-assisted fix requires a node address. Model could not fix any of them.". Isn't that what we use the LLM for, to fix this sort of thing?
+  - The "help" test says that `--fix` will "Attempt to fix deterministic issues" but how do I escalate to nondeterministic issues?
+
 ## Pipeline Architecture
 
 These shape how Wolfcastle plans, executes, and learns from its work.
@@ -26,7 +33,7 @@ Operational improvements to the daemon's core loop and resilience.
 
 How the tool feels to use.
 
-- **`wolfcastle log` design pass.** Current issues: intake log (10001-*) sorts after execute logs, follow mode doesn't know which iteration is active, no stage filtering, no human-readable formatting. Design goals: multiple verbosity levels, `--follow` at all levels, unified log stream with stage tags, iteration addressing, stage filtering.
+- **`wolfcastle log` design pass.** Current issues: intake log (10001-\*) sorts after execute logs, follow mode doesn't know which iteration is active, no stage filtering, no human-readable formatting. Design goals: multiple verbosity levels, `--follow` at all levels, unified log stream with stage tags, iteration addressing, stage filtering.
 
 - **`wolfcastle status` detail.** Show task descriptions (not just titles), failure reasons from the last attempt, deliverable declarations, and breadcrumbs. A user watching the daemon should understand what's happening without reading raw logs.
 
@@ -39,8 +46,6 @@ How the tool feels to use.
 ## Code Quality
 
 Things that should be better in the implementation.
-
-- **Domain refactor: migrate remaining backward-compat callers.** 17 files still use `app.WolfcastleDir`, 9 use `app.Cfg`, 15 use `app.Store`. These need migration to repository methods before `tree.Resolver` can be deleted.
 
 - **ContextBuilder null-safety.** `findTask()` returns nil silently causing context truncation. Should error. Template re-parsing on every `Build()` call with no caching.
 
@@ -106,3 +111,11 @@ Things that should be better in the implementation.
 - ~~NeedsPlanning inference~~ (structural detection of childless orchestrators, PR #42 + PR #47)
 - ~~Spec stubs pass through pipeline~~ (audit checks content not existence, PR #40 + PR #43)
 - ~~Structured audit PASS/REMEDIATE~~ (verdicts, daemon handles BLOCKED, PR #43 + PR #44 + PR #50)
+- ~~Domain refactor: migrate backward-compat callers~~ (App Refactor in eval #6, test/domains run)
+- ~~Spec-first ordering codified~~ (planning prompt, PR #52)
+- ~~Remediation unblock step~~ (remediate prompt, PR #52)
+- ~~Status -n flag~~ (shorthand for --interval, PR #53)
+- ~~Status watch interval header~~ (PR #53)
+- ~~Status subtask indentation~~ (hierarchical IDs nested by depth, PR #53)
+- ~~Status collapse completed nodes~~ (--expand flag, PR #54)
+- ~~Status watch jitter~~ (alternate screen buffer, cursor reposition, PR #54)
