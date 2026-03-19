@@ -90,25 +90,19 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 		nd := &nodeDetail{entry: entry}
 		details[addr] = nd
 
-		if entry.Type == state.NodeLeaf {
-			a, err := tree.ParseAddress(addr)
-			if err != nil {
-				continue
-			}
-			ns, err := state.LoadNodeState(app.Resolver.NodeStatePath(a))
-			if err != nil {
-				continue
-			}
-			nd.ns = ns
-			auditCounts[ns.Audit.Status]++
-			for _, g := range ns.Audit.Gaps {
-				if g.Status == state.GapOpen {
-					openGaps++
+		if a, err := tree.ParseAddress(addr); err == nil {
+			if ns, err := state.LoadNodeState(app.Resolver.NodeStatePath(a)); err == nil {
+				nd.ns = ns
+				auditCounts[ns.Audit.Status]++
+				for _, g := range ns.Audit.Gaps {
+					if g.Status == state.GapOpen {
+						openGaps++
+					}
 				}
-			}
-			for _, e := range ns.Audit.Escalations {
-				if e.Status == state.EscalationOpen {
-					openEscalations++
+				for _, e := range ns.Audit.Escalations {
+					if e.Status == state.EscalationOpen {
+						openEscalations++
+					}
 				}
 			}
 		}
@@ -234,10 +228,18 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	glyph := nodeGlyph(nd.entry.State)
 	output.PrintHuman("%s%s %s  (%s)", indent, glyph, nd.entry.Name, addr)
 
-	// For orchestrators, print children
+	// For orchestrators, print children then show audit task if active
 	if nd.entry.Type == state.NodeOrchestrator {
 		for _, childAddr := range nd.entry.Children {
 			printNodeTree(app, idx, details, childAddr, indent+"  ", expand)
+		}
+		if nd.ns != nil {
+			for _, t := range nd.ns.Tasks {
+				if t.IsAudit && (t.State == state.StatusInProgress || t.State == state.StatusBlocked) {
+					tGlyph := taskGlyph(t.State)
+					output.PrintHuman("%s  %s %s  %s", indent, tGlyph, t.ID, t.Description)
+				}
+			}
 		}
 		return
 	}
