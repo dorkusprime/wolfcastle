@@ -142,6 +142,9 @@ func PreStartSelfHeal(resolver *tree.Resolver, wolfcastleDir string) {
 					ns.Tasks[i].State = state.StatusNotStarted
 				}
 				changed = true
+			} else if derived, hasChildren := state.DeriveParentStatus(ns, ns.Tasks[i].ID); hasChildren && derived != ns.Tasks[i].State {
+				ns.Tasks[i].State = derived
+				changed = true
 			}
 		}
 		if changed {
@@ -180,9 +183,8 @@ func (d *Daemon) selfHeal() error {
 		changed := false
 		for i := range ns.Tasks {
 			t := &ns.Tasks[i]
-			// Reset stale in_progress to not_started
 			if t.State == state.StatusInProgress {
-				// Check if this is a parent with all children complete
+				// Stale in_progress: derive from children or reset
 				if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren {
 					t.State = derived
 					output.PrintHuman("  Derived %s/%s → %s", addr, t.ID, derived)
@@ -190,6 +192,14 @@ func (d *Daemon) selfHeal() error {
 					t.State = state.StatusNotStarted
 					output.PrintHuman("  Reset %s/%s → not_started", addr, t.ID)
 				}
+				changed = true
+				healed++
+			} else if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren && derived != t.State {
+				// Parent task disagrees with its children. Write the
+				// derived status so the on-disk state matches what
+				// navigation computes on the fly.
+				output.PrintHuman("  Derived %s/%s → %s (was %s)", addr, t.ID, derived, t.State)
+				t.State = derived
 				changed = true
 				healed++
 			}
