@@ -167,6 +167,57 @@ func TestService_IsDirty(t *testing.T) {
 	}
 }
 
+func TestService_CurrentBranch_NonRepo(t *testing.T) {
+	t.Parallel()
+
+	plainDir := t.TempDir()
+	svc := NewService(plainDir)
+
+	_, err := svc.CurrentBranch()
+	if err == nil {
+		t.Error("expected error from CurrentBranch on non-repo directory")
+	}
+}
+
+func TestService_IsDirty_NonRepo(t *testing.T) {
+	t.Parallel()
+
+	plainDir := t.TempDir()
+	svc := NewService(plainDir)
+
+	if svc.IsDirty() {
+		t.Error("expected IsDirty=false for non-repo directory")
+	}
+}
+
+func TestService_IsDirty_Rename(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "old-name.txt", "content", "add file")
+
+	// Stage a rename so porcelain shows "R  old-name.txt -> new-name.txt".
+	run(t, repoDir, "git", "mv", "old-name.txt", "new-name.txt")
+
+	svc := NewService(repoDir)
+
+	// The rename should make the tree dirty.
+	if !svc.IsDirty() {
+		t.Error("expected dirty after staged rename")
+	}
+
+	// Excluding the new name (the parsed rename target) should hide it.
+	if svc.IsDirty("new-name") {
+		t.Error("expected clean when renamed path's new name is excluded")
+	}
+
+	// Excluding the old name should NOT hide it (parser extracts the new path).
+	if !svc.IsDirty("old-name") {
+		t.Error("expected dirty when only old rename path is excluded")
+	}
+}
+
 func TestService_HasProgress(t *testing.T) {
 	t.Parallel()
 
