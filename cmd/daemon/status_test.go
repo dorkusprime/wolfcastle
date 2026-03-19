@@ -203,3 +203,27 @@ func TestShowAllStatus_WithMultipleNamespaces(t *testing.T) {
 		t.Fatalf("showAllStatus JSON with multiple namespaces failed: %v", err)
 	}
 }
+
+func TestShowTreeStatus_SubtaskIndentation(t *testing.T) {
+	env := newStatusTestEnv(t)
+
+	// Add hierarchical tasks to the leaf node
+	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
+	ns := state.NewNodeState("my-project", "My Project", state.NodeLeaf)
+	ns.State = state.StatusInProgress
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Description: "Parent task", State: state.StatusInProgress},
+		{ID: "task-0001.0001", Description: "First subtask", State: state.StatusComplete},
+		{ID: "task-0001.0002", Description: "Second subtask", State: state.StatusNotStarted},
+		{ID: "task-0002", Description: "Top-level task", State: state.StatusNotStarted},
+		{ID: "audit", Description: "Audit", State: state.StatusNotStarted, IsAudit: true},
+	}
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	// Should not panic and should render hierarchical tasks
+	if err := showTreeStatus(env.App, idx, ""); err != nil {
+		t.Fatalf("showTreeStatus with subtasks failed: %v", err)
+	}
+}
