@@ -14,9 +14,13 @@ Loads the root index and runs 17 structural checks against the [distributed stat
 - Missing [audit tasks](../audits.md#the-audit-system) on leaves.
 - Missing description files.
 
-Reports findings with severity (error, warning, info), location, and fix type. Without `--fix`, it reports only. With `--fix`, it applies deterministic repairs and attempts model-assisted fixes for ambiguous cases.
+Reports findings with severity (error, warning, info), location, and fix type. Without `--fix`, it reports only. With `--fix`, it runs multi-pass repair: each pass validates, fixes, and re-validates until no fixable issues remain or 5 passes complete. Cascading fixes (e.g. resetting stale tasks changes propagation, which changes audit status) are handled automatically across passes. After deterministic fixes, it attempts model-assisted repair if `doctor.model` is configured.
 
-Fixes come in two categories. **Deterministic fixes** (9 of 17 issue types) are applied directly by Go code: missing index entries, stale entries, missing audit tasks, reset orphaned in-progress tasks, create missing state files. **Model-assisted fixes** (5 types) handle ambiguous cases like conflicting state or unclear resolution. These invoke a [model you configure](../configuration.md#models) to reason about the fix, with Go validating the result before applying it.
+Fixes come in two categories. **Deterministic fixes** (11 of 17 issue types) are applied directly by Go code: missing index entries, stale entries, missing audit tasks, reset orphaned in-progress tasks, create missing state files, STALE_IN_PROGRESS (reset to not_started), and MULTIPLE_IN_PROGRESS (reset to not_started). **Model-assisted fixes** (3 types) handle ambiguous cases like conflicting state or unclear resolution. These invoke a [model you configure](../configuration.md#models) to reason about the fix, with Go validating the result before applying it.
+
+INVALID_AUDIT_SCOPE only fires when the scope has criteria or files but no description after audit completed. Default empty scopes are normal and do not trigger this check.
+
+Issues that survive all fix passes get escalation guidance: the exact `wolfcastle task update` and `wolfcastle unblock` commands you need to resolve them manually.
 
 A subset of these checks also runs automatically on [daemon startup](start.md). If the tree is corrupted, the daemon refuses to start.
 

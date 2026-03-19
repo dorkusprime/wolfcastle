@@ -55,6 +55,20 @@ Always use typed constants from `internal/state/types.go`:
 | Gap status | `GapOpen`, `GapFixed` |
 | Escalation status | `EscalationOpen`, `EscalationResolved` |
 
+## Hierarchical Task IDs
+
+Task IDs use a dot-separated hierarchy. `task-0001.0001` is a child of `task-0001`. Parent ID is derived by stripping the last `.NNNN` segment (see `parentTaskID()` in `navigation.go`). `TaskAddChild(ns, parentID, description)` creates a child task with the next available sequence number under the parent.
+
+Navigation skips parent tasks that have children (their status is derived, not directly actionable). Child tasks whose parent is not_started are also skipped; the parent must be claimed first.
+
+## DeriveParentStatus
+
+`DeriveParentStatus(ns, taskID)` in `internal/state/mutations.go` computes a parent task's status from its immediate children (one level deep). Returns `(derivedStatus, true)` if children exist, or `(task.State, false)` if the task has no children.
+
+The derivation rules: all children complete → complete; any child in_progress → in_progress; any child blocked (none in_progress) → blocked; otherwise → not_started.
+
+Used by `selfHeal`, `PreStartSelfHeal`, `TaskComplete` (auto-completes parent when siblings finish), and navigation (skips parent tasks, uses derived status for audit deferral).
+
 ## State Mutations
 
 All mutations go through functions in `internal/state/mutations.go`:
@@ -63,6 +77,8 @@ All mutations go through functions in `internal/state/mutations.go`:
 - `TaskComplete(ns, taskID)`: in_progress → complete
 - `TaskBlock(ns, taskID, reason)`: → blocked
 - `TaskUnblock(ns, taskID)`: blocked → not_started
+- `TaskAddChild(ns, parentID, description)`: creates a child task under a parent
+- `DeriveParentStatus(ns, taskID)`: computes parent status from immediate children
 - `AddBreadcrumb(ns, task, text)`
 - `AddEscalation(ns, id, desc, source, gapID)`
 - `IncrementFailure(ns, taskID)`
@@ -88,6 +104,14 @@ When a node's state changes, it must propagate up through all ancestors to the r
 - Node complete + no open gaps → audit passed
 - Node complete + open gaps → audit failed
 - Node blocked → audit failed
+
+## In-Progress Tracking
+
+In-progress tracking applies to all node types. Orchestrators have tasks too (audit tasks, at minimum), and those tasks follow the same in_progress rules as leaf tasks. The serial execution invariant (at most one in_progress task globally) applies across both orchestrators and leaves.
+
+## Orchestrator Audit Deferral
+
+Audit tasks on orchestrators are actionable only when all children are complete AND at least one child exists. If no children exist, the orchestrator hasn't been planned yet, so the audit has nothing to verify. Navigation enforces this in `findActionableTask`: it checks `len(ns.Children) > 0` and every child's state before allowing the orchestrator's audit task into the work queue.
 
 ## Navigation
 
