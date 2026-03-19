@@ -86,6 +86,9 @@ Examples:
 
 			// Self-heal before validation: fix deterministic issues so
 			// startup validation doesn't block on repairable state.
+			// Omit wolfcastleDir so the fix pass skips daemon artifact
+			// checks (PID file, stop file) — those are intentional at
+			// startup, not stale.
 			idx, idxErr := app.Resolver.LoadRootIndex()
 			if idxErr == nil {
 				nodeLoader := validate.DefaultNodeLoader(app.Resolver.ProjectsDir())
@@ -93,7 +96,6 @@ Examples:
 					app.Resolver.ProjectsDir(),
 					app.Resolver.RootIndexPath(),
 					nodeLoader,
-					app.WolfcastleDir,
 				)
 				if healErr != nil {
 					output.PrintHuman("Pre-start self-heal error: %v", healErr)
