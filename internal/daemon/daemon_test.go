@@ -1192,8 +1192,9 @@ func TestRunWithSupervisor_MaxRestartsExceeded(t *testing.T) {
 	var sleepCalls int
 	d.SleepFunc = func(dur time.Duration) { sleepCalls++ }
 
-	// No root index written: Run will fail with a navigation error on every
+	// Corrupt root index: Run will fail with a navigation error on every
 	// attempt, driving the supervisor through its restart budget.
+	corruptRootIndex(t, d)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -1221,8 +1222,9 @@ func TestRunWithSupervisor_RestartAndRecover(t *testing.T) {
 	d.Config.Daemon.RestartDelaySeconds = 0
 	d.Config.Daemon.MaxIterations = 1
 
-	// First Run call will fail (no root index). During the sleep between
+	// First Run call will fail (corrupt root index). During the sleep between
 	// restarts, write a valid tree so the second Run succeeds.
+	corruptRootIndex(t, d)
 	d.SleepFunc = func(dur time.Duration) {
 		setupLeafNode(t, d, "my-node", []state.Task{
 			{ID: "task-0001", State: state.StatusComplete},
@@ -1246,20 +1248,19 @@ func TestRunWithSupervisor_RestartAndRecover(t *testing.T) {
 func TestRunWithSupervisor_StateResetBetweenRestarts(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = false
-	d.Config.Daemon.MaxRestarts = 1
+	d.Config.Daemon.MaxRestarts = 2
 	d.Config.Daemon.RestartDelaySeconds = 0
 
-	// Track whether the daemon state was reset between restarts by checking
-	// that shutdown is a fresh open channel after the sleep callback fires.
-	var shutdownOpen bool
+	// Capture the shutdown channel identity across sleep calls to verify
+	// that RunWithSupervisor creates a fresh channel between restarts.
+	// The reset happens after sleepFn returns, so the second sleep call
+	// observes the channel created after the first restart.
+	var channels []chan struct{}
+	corruptRootIndex(t, d)
 	d.SleepFunc = func(dur time.Duration) {
-		// After the sleep call, RunWithSupervisor resets d.shutdown etc.
-		// We can't check here because reset happens after sleep returns.
-		// Instead, flag that we entered sleep. The restart's second Run
-		// will verify the channels work (Run calls selfHeal, etc.).
+		channels = append(channels, d.shutdown)
 	}
 
-	// No root index: both Run calls fail, hitting max restarts.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -1268,23 +1269,21 @@ func TestRunWithSupervisor_StateResetBetweenRestarts(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	// After RunWithSupervisor returns, verify that the state was reset
-	// during the last restart attempt. The iteration counter should be 0
-	// because Run resets it on entry (line 251), and the run after restart
-	// also resets it via the supervisor (line 188).
-	if d.iteration != 0 {
-		t.Errorf("expected iteration reset to 0, got %d", d.iteration)
+	if len(channels) != 2 {
+		t.Fatalf("expected 2 sleep calls, got %d", len(channels))
 	}
 
-	// Verify that shutdown channel was recreated (should be open, not closed).
-	select {
-	case <-d.shutdown:
-		shutdownOpen = false
-	default:
-		shutdownOpen = true
+	// The second sleep should see a different shutdown channel than the
+	// first, proving the supervisor reset daemon state between restarts.
+	if channels[0] == channels[1] {
+		t.Error("shutdown channel was not recreated between restarts")
 	}
-	if !shutdownOpen {
-		t.Error("shutdown channel should be open after state reset")
+
+	// Iteration counter is reset to 0 by the supervisor between restarts.
+	// Run also sets it to 0 on entry, so after the final Run returns it
+	// should still be 0.
+	if d.iteration != 0 {
+		t.Errorf("expected iteration reset to 0, got %d", d.iteration)
 	}
 }
 
@@ -1297,6 +1296,7 @@ func TestRunWithSupervisor_SleepCalledWithConfiguredDelay(t *testing.T) {
 	var observedDelay time.Duration
 	d.SleepFunc = func(dur time.Duration) { observedDelay = dur }
 
+	corruptRootIndex(t, d)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -1315,6 +1315,7 @@ func TestRunWithSupervisor_ContextCancelDuringSleep(t *testing.T) {
 	d.Config.Daemon.RestartDelaySeconds = 0
 	d.Config.Daemon.MaxIterations = 1
 
+	corruptRootIndex(t, d)
 	ctx, cancel := context.WithCancel(context.Background())
 	var sleepCalls int
 	d.SleepFunc = func(dur time.Duration) {
@@ -1352,7 +1353,8 @@ func TestRunWithSupervisor_NilSleepFuncDefaultsToTimeSleep(t *testing.T) {
 	d.Config.Daemon.RestartDelaySeconds = 0
 	d.SleepFunc = nil // explicit nil
 
-	// No root index: Run fails, restart 0 >= maxRestarts(0), returns error.
+	// Corrupt root index: Run fails, restart 0 >= maxRestarts(0), returns error.
+	corruptRootIndex(t, d)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -1362,6 +1364,21 @@ func TestRunWithSupervisor_NilSleepFuncDefaultsToTimeSleep(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "exceeded max restarts") {
 		t.Errorf("expected max restarts error, got: %v", err)
+	}
+}
+
+// corruptRootIndex writes invalid JSON to the root state.json so that
+// ReadIndex returns a parse error (not os.ErrNotExist). This causes RunOnce
+// to fail with a Navigation error, giving RunWithSupervisor something to
+// restart from.
+func corruptRootIndex(t *testing.T, d *Daemon) {
+	t.Helper()
+	p := filepath.Join(d.Store.Dir(), "state.json")
+	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte("{corrupt"), 0644); err != nil {
+		t.Fatal(err)
 	}
 }
 
