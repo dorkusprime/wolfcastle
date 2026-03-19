@@ -38,6 +38,10 @@ var (
 	activeSpinner *Spinner
 )
 
+// isTerminal is the internal check used by Start. It is a variable so
+// tests can override it to exercise the goroutine path without a real tty.
+var isTerminal = IsTerminal
+
 // PauseSpinner temporarily clears the spinner so other output can
 // print cleanly. Call ResumeSpinner after writing. Safe to call
 // when no spinner is active (no-op).
@@ -65,7 +69,7 @@ func ResumeSpinner() {
 // NewSpinner creates a spinner but does not start it.
 func NewSpinner() *Spinner {
 	return &Spinner{
-		stop: make(chan struct{}),
+		stop: make(chan struct{}, 1),
 		done: make(chan struct{}),
 	}
 }
@@ -81,7 +85,7 @@ func (s *Spinner) Start() {
 	}
 	s.started = true
 
-	if !IsTerminal() {
+	if !isTerminal() {
 		close(s.done)
 		return
 	}
