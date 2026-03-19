@@ -38,6 +38,7 @@ Examples:
 			scopeNode, _ := cmd.Flags().GetString("node")
 			watch, _ := cmd.Flags().GetBool("watch")
 			interval, _ := cmd.Flags().GetFloat64("interval")
+			expand, _ := cmd.Flags().GetBool("expand")
 
 			if !showAll {
 				if err := app.RequireResolver(); err != nil {
@@ -48,7 +49,7 @@ Examples:
 			if watch {
 				ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 				defer stop()
-				return watchStatus(ctx, app, scopeNode, showAll, interval)
+				return watchStatus(ctx, app, scopeNode, showAll, interval, expand)
 			}
 
 			if showAll {
@@ -60,7 +61,7 @@ Examples:
 				return err
 			}
 
-			return showTreeStatus(app, idx, scopeNode)
+			return showTreeStatus(app, idx, scopeNode, expand)
 		},
 	}
 }
@@ -72,7 +73,7 @@ type nodeDetail struct {
 	ns    *state.NodeState // nil for orchestrators or load failures
 }
 
-func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error {
+func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expandAll ...bool) error {
 	counts := map[state.NodeStatus]int{}
 	auditCounts := map[state.AuditStatus]int{}
 	openGaps := 0
@@ -160,11 +161,12 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 	output.PrintHuman("")
 
 	// Tree view: walk root nodes in order
+	expand := len(expandAll) > 0 && expandAll[0]
 	for _, rootAddr := range idx.Root {
 		if scope != "" && !isInSubtree(idx, rootAddr, scope) {
 			continue
 		}
-		printNodeTree(app, idx, details, rootAddr, "  ")
+		printNodeTree(app, idx, details, rootAddr, "  ", expand)
 	}
 
 	// Inbox count
@@ -190,10 +192,20 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 }
 
 // printNodeTree recursively prints a node and its children/tasks.
-func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*nodeDetail, addr string, indent string) {
+func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*nodeDetail, addr string, indent string, expand bool) {
 	nd, ok := details[addr]
 	if !ok {
 		return
+	}
+
+	// Collapse completed nodes unless --expand is set.
+	if nd.entry.State == state.StatusComplete && !expand {
+		childCount := countDescendants(idx, addr)
+		if childCount > 0 {
+			glyph := nodeGlyph(nd.entry.State)
+			output.PrintHuman("%s%s %s  (%d nodes)", indent, glyph, nd.entry.Name, childCount+1)
+			return
+		}
 	}
 
 	glyph := nodeGlyph(nd.entry.State)
@@ -202,7 +214,7 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	// For orchestrators, print children
 	if nd.entry.Type == state.NodeOrchestrator {
 		for _, childAddr := range nd.entry.Children {
-			printNodeTree(app, idx, details, childAddr, indent+"  ")
+			printNodeTree(app, idx, details, childAddr, indent+"  ", expand)
 		}
 		return
 	}
@@ -218,9 +230,17 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 			label = t.Description
 		}
 
+		// Indent subtasks by depth. task-0001.0002 gets one extra
+		// level, task-0001.0002.0003 gets two, etc.
+		taskIndent := indent + "  "
+		depth := strings.Count(t.ID, ".")
+		for i := 0; i < depth; i++ {
+			taskIndent += "  "
+		}
+
 		extra := ""
 		if t.State == state.StatusBlocked && t.BlockedReason != "" {
-			extra = "\n" + indent + "         " + t.BlockedReason
+			extra = "\n" + taskIndent + "       " + t.BlockedReason
 		}
 		if t.FailureCount > 0 && t.State != state.StatusComplete {
 			extra += fmt.Sprintf("  (%d failures)", t.FailureCount)
@@ -228,10 +248,10 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		// Show description detail for completed tasks when a title is
 		// the primary label and the description adds information.
 		if t.State == state.StatusComplete && t.Title != "" && t.Description != "" && t.Description != t.Title {
-			extra += "\n" + indent + "         " + t.Description
+			extra += "\n" + taskIndent + "       " + t.Description
 		}
 
-		output.PrintHuman("%s  %s %s  %s%s", indent, tGlyph, t.ID, label, extra)
+		output.PrintHuman("%s%s %s  %s%s", taskIndent, tGlyph, t.ID, label, extra)
 	}
 
 	// Gaps
@@ -387,16 +407,30 @@ func showAllStatus(app *cmdutil.App) error {
 	return nil
 }
 
-// watchStatus refreshes the status display on an interval, clearing the
-// screen between refreshes. Returns when context is cancelled.
-func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64) error {
+// watchStatus refreshes the status display on an interval. Uses the
+// alternate screen buffer and cursor repositioning for flicker-free
+// updates (no clear-then-redraw flash).
+func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64, expand bool) error {
 	if intervalSec < 0.1 {
 		intervalSec = 0.1
 	}
 	d := time.Duration(intervalSec * float64(time.Second))
+
+	// Enter alternate screen buffer
+	if output.IsTerminal() {
+		_, _ = fmt.Fprint(os.Stdout, "\033[?1049h")
+		defer func() { _, _ = fmt.Fprint(os.Stdout, "\033[?1049l") }()
+	}
+
 	for {
-		// Clear screen and move cursor to top-left
-		_, _ = fmt.Fprint(os.Stdout, "\033[2J\033[H")
+		// Move cursor home (no clear). Overwrite previous output in place.
+		_, _ = fmt.Fprint(os.Stdout, "\033[H")
+
+		// Show interval header
+		if output.IsTerminal() {
+			output.PrintHuman("%sEvery %.1fs: wolfcastle status%s", colorDim, intervalSec, colorReset)
+			output.PrintHuman("")
+		}
 
 		if showAll {
 			if err := showAllStatus(app); err != nil {
@@ -407,11 +441,18 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 			if err != nil {
 				output.PrintError("%v", err)
 			} else {
-				if err := showTreeStatus(app, idx, scope); err != nil {
+				if err := showTreeStatus(app, idx, scope, expand); err != nil {
 					output.PrintError("%v", err)
 				}
 			}
 		}
+
+		// Clear from cursor to end of screen. This erases any leftover
+		// lines from the previous frame (e.g., when the tree shrinks
+		// because nodes completed and collapsed).
+		// Clear from cursor to end of screen, erasing leftover lines
+		// from the previous frame.
+		_, _ = fmt.Fprint(os.Stdout, "\033[J")
 
 		select {
 		case <-ctx.Done():
@@ -419,6 +460,20 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 		case <-time.After(d):
 		}
 	}
+}
+
+// countDescendants returns the total number of descendant nodes under addr.
+func countDescendants(idx *state.RootIndex, addr string) int {
+	entry, ok := idx.Nodes[addr]
+	if !ok {
+		return 0
+	}
+	count := 0
+	for _, child := range entry.Children {
+		count++ // the child itself
+		count += countDescendants(idx, child)
+	}
+	return count
 }
 
 // isInSubtree checks whether addr is the scope node or a descendant of it.

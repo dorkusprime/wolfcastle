@@ -203,3 +203,56 @@ func TestShowAllStatus_WithMultipleNamespaces(t *testing.T) {
 		t.Fatalf("showAllStatus JSON with multiple namespaces failed: %v", err)
 	}
 }
+
+func TestCountDescendants(t *testing.T) {
+	idx := state.NewRootIndex()
+	idx.Nodes["root"] = state.IndexEntry{
+		Name: "Root", Type: state.NodeOrchestrator, Children: []string{"root/a", "root/b"},
+	}
+	idx.Nodes["root/a"] = state.IndexEntry{
+		Name: "A", Type: state.NodeOrchestrator, Parent: "root", Children: []string{"root/a/x"},
+	}
+	idx.Nodes["root/a/x"] = state.IndexEntry{
+		Name: "X", Type: state.NodeLeaf, Parent: "root/a",
+	}
+	idx.Nodes["root/b"] = state.IndexEntry{
+		Name: "B", Type: state.NodeLeaf, Parent: "root",
+	}
+
+	if got := countDescendants(idx, "root"); got != 3 {
+		t.Errorf("expected 3 descendants, got %d", got)
+	}
+	if got := countDescendants(idx, "root/a"); got != 1 {
+		t.Errorf("expected 1 descendant, got %d", got)
+	}
+	if got := countDescendants(idx, "root/b"); got != 0 {
+		t.Errorf("expected 0 descendants for leaf, got %d", got)
+	}
+	if got := countDescendants(idx, "nonexistent"); got != 0 {
+		t.Errorf("expected 0 for missing node, got %d", got)
+	}
+}
+
+func TestShowTreeStatus_SubtaskIndentation(t *testing.T) {
+	env := newStatusTestEnv(t)
+
+	// Add hierarchical tasks to the leaf node
+	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
+	ns := state.NewNodeState("my-project", "My Project", state.NodeLeaf)
+	ns.State = state.StatusInProgress
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Description: "Parent task", State: state.StatusInProgress},
+		{ID: "task-0001.0001", Description: "First subtask", State: state.StatusComplete},
+		{ID: "task-0001.0002", Description: "Second subtask", State: state.StatusNotStarted},
+		{ID: "task-0002", Description: "Top-level task", State: state.StatusNotStarted},
+		{ID: "audit", Description: "Audit", State: state.StatusNotStarted, IsAudit: true},
+	}
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	// Should not panic and should render hierarchical tasks
+	if err := showTreeStatus(env.App, idx, ""); err != nil {
+		t.Fatalf("showTreeStatus with subtasks failed: %v", err)
+	}
+}
