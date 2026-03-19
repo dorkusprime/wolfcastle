@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/chzyer/readline"
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
@@ -135,7 +136,19 @@ func buildDiagnostic(nodeAddr, taskID string, ns *state.NodeState, task *state.T
 	return b.String()
 }
 
+// unblockOpts allows injection of dependencies for testing. When nil or
+// when individual fields are nil, production defaults are used.
+type unblockOpts struct {
+	invokeFn func(ctx context.Context, model config.ModelDef, prompt, workDir string) (*invoke.Result, error)
+	stdin    io.ReadCloser
+	stdout   io.Writer
+}
+
 func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic string) error {
+	return runInteractiveUnblockWith(ctx, taskAddr, diagnostic, nil)
+}
+
+func runInteractiveUnblockWith(ctx context.Context, taskAddr, diagnostic string, opts *unblockOpts) error {
 	cfg, err := app.Config.Load()
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
@@ -143,6 +156,17 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	model, ok := cfg.Models[cfg.Unblock.Model]
 	if !ok {
 		return fmt.Errorf("unblock model %q not found", cfg.Unblock.Model)
+	}
+
+	invokeFn := invoke.Invoke
+	var rlStdin io.ReadCloser
+	var rlStdout io.Writer
+	if opts != nil {
+		if opts.invokeFn != nil {
+			invokeFn = opts.invokeFn
+		}
+		rlStdin = opts.stdin
+		rlStdout = opts.stdout
 	}
 
 	// Load unblock prompt from externalized template (falls back to inline text)
@@ -154,10 +178,18 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	output.PrintHuman("")
 
 	// Set up readline for proper line editing, history, and terminal handling
-	rl, err := readline.NewEx(&readline.Config{
+	rlCfg := &readline.Config{
 		Prompt:      "wolfcastle> ",
 		HistoryFile: "", // In-memory only (sessions are short-lived)
-	})
+	}
+	if rlStdin != nil {
+		rlCfg.Stdin = rlStdin
+	}
+	if rlStdout != nil {
+		rlCfg.Stdout = rlStdout
+		rlCfg.Stderr = rlStdout
+	}
+	rl, err := readline.NewEx(rlCfg)
 	if err != nil {
 		return fmt.Errorf("initializing readline: %w", err)
 	}
@@ -172,7 +204,7 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	for {
 		output.PrintHuman("  thinking...")
 		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
-		result, invokeErr := invoke.Invoke(invokeCtx, model, conversation, repoDir)
+		result, invokeErr := invokeFn(invokeCtx, model, conversation, repoDir)
 		cancel()
 
 		// Clear the "thinking..." line
