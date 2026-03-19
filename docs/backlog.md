@@ -39,7 +39,6 @@ How the tool feels to use.
 - **`wolfcastle status -w` refresh is jumpy.** Each refresh hops the screen for a millisecond or two. Should clear and redraw smoothly (terminal alternate screen buffer or cursor repositioning).
 
 
-- **`wolfcastle status` should collapse completed nodes.** Show completed leaves/orchestrators as a single line with a count of collapsed children. Flag to expand (e.g., `--all`). Keeps the tree readable as it grows.
 
 
 ## Code Quality
@@ -116,3 +115,4 @@ Things that should be better in the implementation.
 - ~~Status -n flag~~ (shorthand for --interval, PR #53)
 - ~~Status watch interval header~~ (PR #53)
 - ~~Status subtask indentation~~ (hierarchical IDs nested by depth, PR #53)
+- ~~Status collapse completed nodes~~ (--expand flag, PR #53)
