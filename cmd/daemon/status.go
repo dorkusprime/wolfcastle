@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"os/signal"
 	"path/filepath"
 	"strconv"
@@ -187,18 +188,20 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 		}
 	}
 
-	// Planning indicator: if daemon is running but no task is in_progress,
-	// check for orchestrators that need planning (no children yet).
-	if strings.HasPrefix(daemonStatus, "running") && counts[state.StatusInProgress] > 0 {
-		for addr, entry := range idx.Nodes {
-			if entry.Type != state.NodeOrchestrator {
-				continue
-			}
-			if len(entry.Children) == 0 && entry.State != state.StatusComplete {
-				output.PrintHuman("  Planning: %s", addr)
-				break
-			}
+	// Planning queue: orchestrators that still need planning (no children,
+	// not complete). These get planned when the daemon has no tasks to execute.
+	var planQueue []string
+	for addr, entry := range idx.Nodes {
+		if entry.Type != state.NodeOrchestrator {
+			continue
 		}
+		if len(entry.Children) == 0 && entry.State != state.StatusComplete {
+			planQueue = append(planQueue, addr)
+		}
+	}
+	if len(planQueue) > 0 {
+		sort.Strings(planQueue)
+		output.PrintHuman("  Planning queue: %s", strings.Join(planQueue, ", "))
 	}
 
 	output.PrintHuman("  Daemon: %s", daemonStatus)
