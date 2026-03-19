@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -239,6 +241,139 @@ func TestWriteBase(t *testing.T) {
 				t.Errorf("got %q, want %q", got, tt.content)
 			}
 		})
+	}
+}
+
+// skipIfRootOrWindows skips permission-based tests that won't behave
+// correctly when running as root (permissions ignored) or on Windows.
+func skipIfRootOrWindows(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("permission tests not reliable on Windows")
+	}
+	if os.Getuid() == 0 {
+		t.Skip("permission tests not reliable as root")
+	}
+}
+
+func TestResolve_PermissionError(t *testing.T) {
+	skipIfRootOrWindows(t)
+
+	root := t.TempDir()
+	// Place a file in the local tier with unreadable permissions.
+	path := filepath.Join(root, "local", "secret.md")
+	writeFile(t, path, "locked")
+	if err := os.Chmod(path, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(path, 0o644) })
+
+	fs := New(root)
+	_, err := fs.Resolve("secret.md")
+	if err == nil {
+		t.Fatal("expected permission error, got nil")
+	}
+	if !strings.Contains(err.Error(), "tierfs: resolve secret.md in tier local") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		t.Error("error should not be ErrNotExist")
+	}
+}
+
+func TestResolveAll_ReadDirPermissionError(t *testing.T) {
+	skipIfRootOrWindows(t)
+
+	root := t.TempDir()
+	// Create an unreadable directory in the base tier.
+	dir := filepath.Join(root, "base", "prompts")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(dir, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(dir, 0o755) })
+
+	fs := New(root)
+	_, err := fs.ResolveAll("prompts")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "tierfs: resolve-all prompts in tier base") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestResolveAll_ReadFilePermissionError(t *testing.T) {
+	skipIfRootOrWindows(t)
+
+	root := t.TempDir()
+	// Create a readable directory with an unreadable .md file.
+	dir := filepath.Join(root, "base", "prompts")
+	writeFile(t, filepath.Join(dir, "good.md"), "fine")
+	unreadable := filepath.Join(dir, "bad.md")
+	writeFile(t, unreadable, "locked")
+	if err := os.Chmod(unreadable, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(unreadable, 0o644) })
+
+	fs := New(root)
+	_, err := fs.ResolveAll("prompts")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "tierfs: resolve-all read prompts/bad.md") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestWriteBase_MkdirError(t *testing.T) {
+	skipIfRootOrWindows(t)
+
+	root := t.TempDir()
+	// Make the root itself read-only so MkdirAll for "base/sub/" fails.
+	base := filepath.Join(root, "base")
+	if err := os.MkdirAll(base, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(base, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(base, 0o755) })
+
+	fs := New(root)
+	err := fs.WriteBase("sub/file.md", []byte("data"))
+	if err == nil {
+		t.Fatal("expected mkdir error, got nil")
+	}
+	if !strings.Contains(err.Error(), "tierfs: write-base mkdir") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestWriteBase_WriteFileError(t *testing.T) {
+	skipIfRootOrWindows(t)
+
+	root := t.TempDir()
+	// Create the target directory, then make it read-only so WriteFile fails.
+	target := filepath.Join(root, "base")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(target, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(target, 0o755) })
+
+	fs := New(root)
+	err := fs.WriteBase("file.md", []byte("data"))
+	if err == nil {
+		t.Fatal("expected write error, got nil")
+	}
+	if !strings.Contains(err.Error(), "tierfs: write-base file.md") {
+		t.Errorf("unexpected error message: %v", err)
 	}
 }
 
