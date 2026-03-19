@@ -38,13 +38,9 @@ How the tool feels to use.
 
 - **`wolfcastle status -w` refresh is jumpy.** Each refresh hops the screen for a millisecond or two. Should clear and redraw smoothly (terminal alternate screen buffer or cursor repositioning).
 
-- **`wolfcastle status -w` should show the interval.** Display the refresh interval at the top, like `watch` does ("Every 5.0s: wolfcastle status").
-
-- **`wolfcastle status -w --interval` should accept `-n`.** Match `watch` convention: `-n 2` as shorthand for `--interval 2`.
 
 - **`wolfcastle status` should collapse completed nodes.** Show completed leaves/orchestrators as a single line with a count of collapsed children. Flag to expand (e.g., `--all`). Keeps the tree readable as it grows.
 
-- **`wolfcastle status` should indent subtasks by depth.** Hierarchical task IDs (task-0001.0001) should be visually nested under their parent task, not displayed at the same level.
 
 ## Code Quality
 
@@ -117,3 +113,6 @@ Things that should be better in the implementation.
 - ~~Domain refactor: migrate backward-compat callers~~ (App Refactor in eval #6, test/domains run)
 - ~~Spec-first ordering codified~~ (planning prompt, PR #52)
 - ~~Remediation unblock step~~ (remediate prompt, PR #52)
+- ~~Status -n flag~~ (shorthand for --interval, PR #53)
+- ~~Status watch interval header~~ (PR #53)
+- ~~Status subtask indentation~~ (hierarchical IDs nested by depth, PR #53)
