@@ -315,7 +315,7 @@ func TestWatchStatus_ImmediateCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "", false, 0.1); err != nil {
+	if err := watchStatus(ctx, env.App, "", false, 0.1, false); err != nil {
 		t.Fatalf("watchStatus cancelled: %v", err)
 	}
 }
@@ -327,7 +327,7 @@ func TestWatchStatus_ShowAllWithCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "", true, 0.1); err != nil {
+	if err := watchStatus(ctx, env.App, "", true, 0.1, false); err != nil {
 		t.Fatalf("watchStatus showAll cancelled: %v", err)
 	}
 }
@@ -340,7 +340,7 @@ func TestWatchStatus_IntervalFloor(t *testing.T) {
 	defer cancel()
 
 	// Interval below the 0.1s floor should be clamped.
-	if err := watchStatus(ctx, env.App, "", false, 0.01); err != nil {
+	if err := watchStatus(ctx, env.App, "", false, 0.01, false); err != nil {
 		t.Fatalf("watchStatus min interval: %v", err)
 	}
 }
@@ -352,7 +352,7 @@ func TestWatchStatus_TreeReadError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "", false, 0.1); err != nil {
+	if err := watchStatus(ctx, env.App, "", false, 0.1, false); err != nil {
 		t.Fatalf("watchStatus read error: %v", err)
 	}
 }
@@ -364,7 +364,7 @@ func TestWatchStatus_ShowAllReadError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "", true, 0.1); err != nil {
+	if err := watchStatus(ctx, env.App, "", true, 0.1, false); err != nil {
 		t.Fatalf("watchStatus showAll error: %v", err)
 	}
 }
@@ -376,7 +376,7 @@ func TestWatchStatus_ScopedWithCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "proj", false, 0.1); err != nil {
+	if err := watchStatus(ctx, env.App, "proj", false, 0.1, false); err != nil {
 		t.Fatalf("watchStatus scoped cancelled: %v", err)
 	}
 }
