@@ -1,6 +1,7 @@
 package cmdutil
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -131,5 +132,163 @@ func TestCompleteTaskAddresses_IndexSucceedsResolverFails(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected node address in completions")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// app.go: RequireIdentity
+// ---------------------------------------------------------------------------
+
+func TestRequireIdentity_NilIdentity(t *testing.T) {
+	a := &App{}
+	err := a.RequireIdentity()
+	if err == nil {
+		t.Error("expected error when Identity is nil")
+	}
+}
+
+func TestRequireIdentity_WithIdentity(t *testing.T) {
+	a := &App{
+		Identity: &config.Identity{User: "test", Machine: "dev", Namespace: "test-dev"},
+	}
+	err := a.RequireIdentity()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// completions.go: storeForCompletion fallback paths
+// ---------------------------------------------------------------------------
+
+func TestStoreForCompletion_AlreadyLoaded(t *testing.T) {
+	tmp := t.TempDir()
+	projDir := filepath.Join(tmp, "projects")
+	_ = os.MkdirAll(projDir, 0755)
+
+	ss := state.NewStateStore(projDir, state.DefaultLockTimeout)
+	a := &App{State: ss}
+	got, err := storeForCompletion(a)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != ss {
+		t.Error("expected same StateStore back")
+	}
+}
+
+func TestStoreForCompletion_FallbackConfigFails(t *testing.T) {
+	tmp := t.TempDir()
+	origDir, _ := os.Getwd()
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
+
+	a := &App{}
+	_, err := storeForCompletion(a)
+	if err == nil {
+		t.Error("expected error when LoadConfig fails")
+	}
+}
+
+func TestStoreForCompletion_FallbackStateNil(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+
+	// Config loads but no identity => State stays nil
+	cfg := config.Defaults()
+	cfgData, _ := json.Marshal(cfg)
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), cfgData, 0644)
+
+	origDir, _ := os.Getwd()
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
+
+	a := &App{}
+	_, err := storeForCompletion(a)
+	if err == nil {
+		t.Error("expected error when State stays nil after config load")
+	}
+}
+
+func TestStoreForCompletion_FallbackSuccess(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "tester-box"
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
+	_ = os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "local"), 0755)
+
+	cfgJSON := `{"identity": {"user": "tester", "machine": "box"}}`
+	_ = os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), []byte(cfgJSON), 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
+
+	origDir, _ := os.Getwd()
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Chdir(tmp)
+
+	a := &App{}
+	got, err := storeForCompletion(a)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got == nil {
+		t.Error("expected non-nil StateStore")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// completions.go: CompleteTaskAddresses with invalid address in index
+// ---------------------------------------------------------------------------
+
+func TestCompleteTaskAddresses_InvalidAddressInIndex(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	ns := "test-dev"
+	projDir := filepath.Join(wcDir, "system", "projects", ns)
+	_ = os.MkdirAll(projDir, 0755)
+
+	// Address with uppercase chars fails ParseAddress (invalid slug)
+	idxJSON := `{"nodes":{"INVALID NODE":{"name":"Bad","type":"leaf","state":"not_started","address":"INVALID NODE","children":[]}}}`
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
+
+	a := &App{
+		WolfcastleDir: wcDir,
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
+	}
+	fn := CompleteTaskAddresses(a)
+	addrs, _ := fn(nil, nil, "")
+
+	// The invalid address still shows up in node listing (it's from the index),
+	// but no task sub-addresses should appear since ParseAddress fails
+	for _, addr := range addrs {
+		if addr != "INVALID NODE" {
+			t.Errorf("unexpected address %q; only the raw node address expected", addr)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// app.go: compareNamespace with unreadable .md file
+// ---------------------------------------------------------------------------
+
+func TestCompareNamespace_UnreadableMdFile(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Create a .md file that can't be read
+	mdPath := filepath.Join(tmp, "secret.md")
+	_ = os.WriteFile(mdPath, []byte("database migration"), 0644)
+	_ = os.Chmod(mdPath, 0000)
+	defer func() { _ = os.Chmod(mdPath, 0644) }()
+
+	newBigrams := bigrams(tokenize("database migration"))
+	newTerms := significantTerms(tokenize("database migration"))
+
+	var matches []overlapMatch
+	compareNamespace(tmp, "alice", newBigrams, newTerms, 0.0, &matches)
+
+	// Should skip unreadable files without panicking
+	if len(matches) != 0 {
+		t.Errorf("expected no matches for unreadable file, got %d", len(matches))
 	}
 }
