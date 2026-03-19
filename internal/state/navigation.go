@@ -247,6 +247,8 @@ func parentInList(childID string, tasks []Task) bool {
 
 // hasNotStartedAncestor checks if any ancestor of the task is not_started.
 // An ancestor is a task whose ID is a prefix of this task's ID.
+// Audit ancestors are exempt: when an audit is reset to not_started for
+// re-verification, its remediation children must still be runnable.
 func hasNotStartedAncestor(taskID string, ns *NodeState) bool {
 	// Walk up the hierarchy: task-0001.0002.0001 → task-0001.0002 → task-0001
 	id := taskID
@@ -257,7 +259,7 @@ func hasNotStartedAncestor(taskID string, ns *NodeState) bool {
 		}
 		parentID := id[:dot]
 		for _, t := range ns.Tasks {
-			if t.ID == parentID && t.State == StatusNotStarted {
+			if t.ID == parentID && t.State == StatusNotStarted && !t.IsAudit {
 				return true
 			}
 		}
