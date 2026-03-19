@@ -14,10 +14,10 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// selfHeal — multiple in-progress tasks (corruption error)
+// selfHeal — multiple in-progress tasks are healed (reset to not_started)
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestSelfHeal_MultipleInProgress_ReturnsCorruptionError(t *testing.T) {
+func TestSelfHeal_MultipleInProgress_ResetsAll(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	projDir := d.Resolver.ProjectsDir()
@@ -42,17 +42,29 @@ func TestSelfHeal_MultipleInProgress_ReturnsCorruptionError(t *testing.T) {
 
 	err := d.selfHeal()
 	if err != nil {
-		t.Fatalf("selfHeal should heal multiple in-progress tasks, got error: %v", err)
+		t.Fatalf("selfHeal should not error, got: %v", err)
 	}
-	// Both tasks should be reset to not_started
-	healedA, _ := state.LoadNodeState(filepath.Join(projDir, "node-a", "state.json"))
-	healedB, _ := state.LoadNodeState(filepath.Join(projDir, "node-b", "state.json"))
-	if healedA.Tasks[0].State != state.StatusNotStarted {
-		t.Errorf("node-a task should be not_started, got %s", healedA.Tasks[0].State)
+
+	// Verify both nodes were reset
+	nsA2, err := state.LoadNodeState(filepath.Join(projDir, "node-a", "state.json"))
+	if err != nil {
+		t.Fatalf("loading node-a: %v", err)
 	}
-	if healedB.Tasks[0].State != state.StatusNotStarted {
-		t.Errorf("node-b task should be not_started, got %s", healedB.Tasks[0].State)
+	if nsA2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-a task should be not_started, got %s", nsA2.Tasks[0].State)
 	}
+	if nsA2.State != state.StatusNotStarted {
+		t.Errorf("node-a state should be not_started, got %s", nsA2.State)
+	}
+
+	nsB2, err := state.LoadNodeState(filepath.Join(projDir, "node-b", "state.json"))
+	if err != nil {
+		t.Fatalf("loading node-b: %v", err)
+	}
+	if nsB2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-b task should be not_started, got %s", nsB2.Tasks[0].State)
+	}
+
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -747,7 +747,8 @@ func TestValidateAll_DetectsInvalidAuditScope(t *testing.T) {
 	leafDir := filepath.Join(dir, "bad-scope")
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("bad-scope", "Bad Scope", state.NodeLeaf)
-	ns.Audit.Scope = &state.AuditScope{Description: ""} // empty description
+	ns.Audit.Scope = &state.AuditScope{Description: "", Criteria: []string{"builds"}}
+	ns.Audit.Status = state.AuditFailed // completed audit with criteria but no description
 	ns.Tasks = []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},

@@ -388,7 +388,10 @@ func TestRun_AllComplete_ExitsCleanly(t *testing.T) {
 	idx.Nodes["my-node"] = entry
 	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// With all work complete and MaxIterations=-1, the daemon idles
+	// waiting for new inbox items. Signal shutdown after a brief delay
+	// to exit cleanly without waiting for a full timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err := d.Run(ctx)
@@ -409,7 +412,9 @@ func TestRun_WorkThenComplete(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// After 2 iterations the daemon idles (no more work). The 1s timeout
+	// is a safety net; the daemon should complete both iterations in <1s.
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err := d.Run(ctx)
@@ -418,12 +423,13 @@ func TestRun_WorkThenComplete(t *testing.T) {
 	}
 }
 
-func TestRun_SelfHealFails(t *testing.T) {
+func TestRun_SelfHealResetsMultipleInProgress(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = false
 	projDir := d.Resolver.ProjectsDir()
 
-	// Create two in-progress leaves to trigger selfHeal corruption error
+	// Create two in-progress leaves; selfHeal should reset them so Run
+	// starts without erroring from state corruption.
 	idx := state.NewRootIndex()
 	idx.Root = []string{"node-a", "node-b"}
 	idx.Nodes["node-a"] = state.IndexEntry{Name: "A", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "node-a"}
@@ -438,15 +444,18 @@ func TestRun_SelfHealFails(t *testing.T) {
 	nsB.Tasks = []state.Task{{ID: "t1", State: state.StatusInProgress}}
 	writeJSON(t, filepath.Join(projDir, "node-b", "state.json"), nsB)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// Cancel immediately after selfHeal runs. We only care that it
+	// doesn't return a corruption error.
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		// Give selfHeal time to run, then cancel so Run exits.
+		time.Sleep(200 * time.Millisecond)
+		cancel()
+	}()
 
 	err := d.Run(ctx)
-	// selfHeal now heals multiple in-progress tasks instead of erroring.
-	// Run should proceed (and likely fail on prompt assembly since this is
-	// a test env without scaffolded prompts, but that's not a selfHeal error).
-	if err != nil {
-		t.Fatalf("Run should not error after self-heal, got: %v", err)
+	if err != nil && strings.Contains(err.Error(), "self-healing") {
+		t.Fatalf("selfHeal should not error for multiple in-progress: %v", err)
 	}
 }
 
@@ -465,7 +474,7 @@ func TestRun_BranchVerifyEnabled(t *testing.T) {
 	idx.Nodes["my-node"] = entry
 	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	// Should succeed — branch won't change during the test

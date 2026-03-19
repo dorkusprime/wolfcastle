@@ -84,12 +84,33 @@ Examples:
 			}
 			daemon.RemovePID(app.WolfcastleDir)
 
-			// Self-heal stale tasks BEFORE validation. Without this,
-			// validation blocks startup for conditions self-heal would fix.
-			daemon.PreStartSelfHeal(app.Resolver, app.WolfcastleDir)
+			// Self-heal before validation: fix deterministic issues so
+			// startup validation doesn't block on repairable state.
+			// Omit wolfcastleDir so the fix pass skips daemon artifact
+			// checks (PID file, stop file) — those are intentional at
+			// startup, not stale.
+			idx, idxErr := app.Resolver.LoadRootIndex()
+			if idxErr == nil {
+				nodeLoader := validate.DefaultNodeLoader(app.Resolver.ProjectsDir())
+				healFixes, _, healErr := validate.FixWithVerification(
+					app.Resolver.ProjectsDir(),
+					app.Resolver.RootIndexPath(),
+					nodeLoader,
+				)
+				if healErr != nil {
+					output.PrintHuman("Pre-start self-heal error: %v", healErr)
+				}
+				if len(healFixes) > 0 {
+					output.PrintHuman("Self-healed %d issue(s) before startup:", len(healFixes))
+					for _, f := range healFixes {
+						output.PrintHuman("  FIXED [%s] %s: %s", f.Category, f.Node, f.Description)
+					}
+					// Reload index after healing
+					idx, idxErr = app.Resolver.LoadRootIndex()
+				}
+			}
 
 			// Startup validation gate — block on error-severity issues
-			idx, idxErr := app.Resolver.LoadRootIndex()
 			if idxErr == nil {
 				engine := validate.NewEngine(app.Resolver.ProjectsDir(), validate.DefaultNodeLoader(app.Resolver.ProjectsDir()), app.WolfcastleDir)
 				report := engine.ValidateStartup(idx)

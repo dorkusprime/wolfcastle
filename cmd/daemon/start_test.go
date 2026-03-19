@@ -17,31 +17,36 @@ import (
 func TestStartCmd_ValidationErrors(t *testing.T) {
 	env := newStatusTestEnv(t)
 
-	// Create a validation error by making a node state invalid
-	// (e.g., a leaf with no audit task)
+	// Set node to "complete" with incomplete tasks. This is
+	// COMPLETE_WITH_INCOMPLETE (model-assisted), which pre-start
+	// self-heal cannot fix deterministically. Validation blocks startup.
 	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
 	ns, _ := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
-	ns.Tasks = nil // Remove tasks including audit task
+	ns.State = state.StatusComplete
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", State: state.StatusNotStarted},
+		{ID: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
 	nsData, _ := json.MarshalIndent(ns, "", "  ")
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
-	// The start will likely fail because of validation errors or daemon errors,
-	// just verify it doesn't panic
-	_ = err
+	if err == nil {
+		t.Error("expected validation error")
+	}
 }
 
 func TestStartCmd_ValidationWarnings(t *testing.T) {
 	env := newStatusTestEnv(t)
-	// Just run start; with a valid tree it should reach the daemon creation.
-	// Daemon creation creates a logger in the logs dir, then RunWithSupervisor
-	// starts the loop. We verify the start path exercises daemon.New.
+
+	// Place a stop file so the daemon exits after starting. Pre-start
+	// self-heal omits wolfcastleDir so it won't remove stop files.
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
+
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
-	// Expected: daemon creation succeeds but RunWithSupervisor fails
-	// because the model command doesn't exist, or it runs one iteration
-	// and finds no work.
+	// Expected: daemon starts, sees stop file, exits cleanly.
 	_ = err
 }
 
@@ -115,9 +120,12 @@ func TestShowAllStatus_MissingProjectsDir(t *testing.T) {
 
 func TestStartCmd_VerboseFlag(t *testing.T) {
 	env := newStatusTestEnv(t)
+
+	// Place a stop file so the daemon exits immediately.
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
+
 	env.RootCmd.SetArgs([]string{"start", "--verbose"})
 	err := env.RootCmd.Execute()
-	// Will fail at daemon creation (no model config), but exercises the verbose path
 	_ = err
 	if env.App.Cfg.Daemon.LogLevel != "debug" {
 		t.Error("--verbose should set log level to debug")
