@@ -84,8 +84,31 @@ Examples:
 			}
 			daemon.RemovePID(app.WolfcastleDir)
 
-			// Startup validation gate — block on error-severity issues
+			// Self-heal before validation: fix deterministic issues so
+			// startup validation doesn't block on repairable state.
 			idx, idxErr := app.Resolver.LoadRootIndex()
+			if idxErr == nil {
+				nodeLoader := validate.DefaultNodeLoader(app.Resolver.ProjectsDir())
+				healFixes, _, healErr := validate.FixWithVerification(
+					app.Resolver.ProjectsDir(),
+					app.Resolver.RootIndexPath(),
+					nodeLoader,
+					app.WolfcastleDir,
+				)
+				if healErr != nil {
+					output.PrintHuman("Pre-start self-heal error: %v", healErr)
+				}
+				if len(healFixes) > 0 {
+					output.PrintHuman("Self-healed %d issue(s) before startup:", len(healFixes))
+					for _, f := range healFixes {
+						output.PrintHuman("  FIXED [%s] %s: %s", f.Category, f.Node, f.Description)
+					}
+					// Reload index after healing
+					idx, idxErr = app.Resolver.LoadRootIndex()
+				}
+			}
+
+			// Startup validation gate — block on error-severity issues
 			if idxErr == nil {
 				engine := validate.NewEngine(app.Resolver.ProjectsDir(), validate.DefaultNodeLoader(app.Resolver.ProjectsDir()), app.WolfcastleDir)
 				report := engine.ValidateStartup(idx)

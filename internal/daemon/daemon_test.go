@@ -283,12 +283,21 @@ func TestSelfHeal_NoInterruptedTasks(t *testing.T) {
 
 func TestSelfHeal_OneInterruptedTask(t *testing.T) {
 	d := testDaemon(t)
+	projDir := d.Resolver.ProjectsDir()
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", State: state.StatusInProgress},
 		{ID: "task-0002", State: state.StatusNotStarted},
 	})
 	if err := d.selfHeal(); err != nil {
 		t.Errorf("selfHeal should succeed with one in-progress task: %v", err)
+	}
+	// Verify the task was reset
+	ns, err := state.LoadNodeState(filepath.Join(projDir, "my-node", "state.json"))
+	if err != nil {
+		t.Fatalf("loading node: %v", err)
+	}
+	if ns.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("task should be reset to not_started, got %s", ns.Tasks[0].State)
 	}
 }
 
@@ -311,25 +320,41 @@ func TestSelfHeal_MultipleInterruptedTasks(t *testing.T) {
 	writeJSON(t, filepath.Join(projDir, "node-b", "state.json"), nsB)
 
 	err := d.selfHeal()
-	if err == nil {
-		t.Fatal("selfHeal should fail with multiple in-progress tasks")
+	if err != nil {
+		t.Fatalf("selfHeal should reset multiple in-progress tasks, got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "state corruption") {
-		t.Errorf("error should mention state corruption: %v", err)
+
+	// Verify both were reset
+	nsA2, _ := state.LoadNodeState(filepath.Join(projDir, "node-a", "state.json"))
+	nsB2, _ := state.LoadNodeState(filepath.Join(projDir, "node-b", "state.json"))
+	if nsA2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-a task should be not_started, got %s", nsA2.Tasks[0].State)
+	}
+	if nsB2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-b task should be not_started, got %s", nsB2.Tasks[0].State)
 	}
 }
 
-func TestSelfHeal_SkipsOrchestrators(t *testing.T) {
+func TestSelfHeal_HealsOrchestrators(t *testing.T) {
 	d := testDaemon(t)
-	// Orchestrator nodes with in-progress state should be ignored by selfHeal,
-	// which only looks at NodeLeaf entries.
+	projDir := d.Resolver.ProjectsDir()
+
 	idx := state.NewRootIndex()
 	idx.Root = []string{"parent"}
 	idx.Nodes["parent"] = state.IndexEntry{Name: "Parent", Type: state.NodeOrchestrator, State: state.StatusInProgress, Address: "parent"}
 	writeJSON(t, d.Resolver.RootIndexPath(), idx)
 
+	ns := state.NewNodeState("parent", "Parent", state.NodeOrchestrator)
+	ns.Tasks = []state.Task{{ID: "audit", State: state.StatusInProgress, IsAudit: true}}
+	writeJSON(t, filepath.Join(projDir, "parent", "state.json"), ns)
+
 	if err := d.selfHeal(); err != nil {
-		t.Errorf("selfHeal should skip orchestrators: %v", err)
+		t.Errorf("selfHeal should heal orchestrators: %v", err)
+	}
+
+	ns2, _ := state.LoadNodeState(filepath.Join(projDir, "parent", "state.json"))
+	if ns2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("orchestrator task should be not_started, got %s", ns2.Tasks[0].State)
 	}
 }
 

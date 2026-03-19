@@ -418,12 +418,13 @@ func TestRun_WorkThenComplete(t *testing.T) {
 	}
 }
 
-func TestRun_SelfHealFails(t *testing.T) {
+func TestRun_SelfHealResetsMultipleInProgress(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = false
 	projDir := d.Resolver.ProjectsDir()
 
-	// Create two in-progress leaves to trigger selfHeal corruption error
+	// Create two in-progress leaves; selfHeal should reset them so Run
+	// starts without erroring from state corruption.
 	idx := state.NewRootIndex()
 	idx.Root = []string{"node-a", "node-b"}
 	idx.Nodes["node-a"] = state.IndexEntry{Name: "A", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "node-a"}
@@ -438,15 +439,18 @@ func TestRun_SelfHealFails(t *testing.T) {
 	nsB.Tasks = []state.Task{{ID: "t1", State: state.StatusInProgress}}
 	writeJSON(t, filepath.Join(projDir, "node-b", "state.json"), nsB)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// Cancel immediately after selfHeal runs. We only care that it
+	// doesn't return a corruption error.
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		// Give selfHeal time to run, then cancel so Run exits.
+		time.Sleep(200 * time.Millisecond)
+		cancel()
+	}()
 
 	err := d.Run(ctx)
-	if err == nil {
-		t.Fatal("expected selfHeal error")
-	}
-	if !strings.Contains(err.Error(), "self-healing") {
-		t.Errorf("expected self-healing error, got: %v", err)
+	if err != nil && strings.Contains(err.Error(), "self-healing") {
+		t.Fatalf("selfHeal should not error for multiple in-progress: %v", err)
 	}
 }
 

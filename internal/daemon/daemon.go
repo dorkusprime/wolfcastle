@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -112,7 +113,9 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 	}, nil
 }
 
-// selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
+// selfHeal resets stale in_progress tasks on startup (ADR-020).
+// All node types are scanned, not just leaves, because orchestrator
+// tasks can also be left in_progress after a crash.
 func (d *Daemon) selfHeal() error {
 	output.PrintHuman("Scanning for casualties...")
 	idx, err := d.Resolver.LoadRootIndex()
@@ -121,32 +124,44 @@ func (d *Daemon) selfHeal() error {
 		return nil
 	}
 
-	var inProgress []struct{ addr, taskID string }
-	for addr, entry := range idx.Nodes {
-		if entry.Type != state.NodeLeaf {
-			continue
-		}
+	var healed []string
+	for addr := range idx.Nodes {
 		a, err := tree.ParseAddress(addr)
 		if err != nil {
 			continue
 		}
-		ns, err := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+		statePath := filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json")
+		ns, err := state.LoadNodeState(statePath)
 		if err != nil {
 			continue
 		}
-		for _, t := range ns.Tasks {
-			if t.State == state.StatusInProgress {
-				inProgress = append(inProgress, struct{ addr, taskID string }{addr, t.ID})
+		modified := false
+		for i := range ns.Tasks {
+			if ns.Tasks[i].State == state.StatusInProgress {
+				ns.Tasks[i].State = state.StatusNotStarted
+				healed = append(healed, addr+"/"+ns.Tasks[i].ID)
+				modified = true
+			}
+		}
+		if modified {
+			// Derive node state from task states
+			ns.State = state.StatusNotStarted
+			if err := state.SaveNodeState(statePath, ns); err != nil {
+				output.PrintError("self-heal: failed to save %s: %v", addr, err)
+			}
+			// Update index
+			if entry, ok := idx.Nodes[addr]; ok {
+				entry.State = ns.State
+				idx.Nodes[addr] = entry
 			}
 		}
 	}
 
-	if len(inProgress) > 1 {
-		return werrors.State(fmt.Errorf("state corruption: %d tasks in progress (serial execution requires at most 1)", len(inProgress)))
-	}
-	if len(inProgress) == 1 {
-		output.PrintHuman("Interrupted task found: %s/%s. Resuming next iteration.",
-			inProgress[0].addr, inProgress[0].taskID)
+	if len(healed) > 0 {
+		output.PrintHuman("Reset %d stale task(s): %s", len(healed), strings.Join(healed, ", "))
+		if err := state.SaveRootIndex(d.Resolver.RootIndexPath(), idx); err != nil {
+			return fmt.Errorf("self-heal: failed to save index: %w", err)
+		}
 	} else {
 		output.PrintHuman("All clear. No interrupted tasks.")
 	}
