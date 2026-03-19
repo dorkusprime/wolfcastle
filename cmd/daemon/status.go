@@ -206,6 +206,12 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 			output.PrintHuman("%s%s %s  (%d nodes)", indent, glyph, nd.entry.Name, childCount+1)
 			return
 		}
+		// Completed leaf: show node name only, no task details.
+		if nd.ns != nil && len(nd.ns.Tasks) > 0 {
+			glyph := nodeGlyph(nd.entry.State)
+			output.PrintHuman("%s%s %s", indent, glyph, nd.entry.Name)
+			return
+		}
 	}
 
 	glyph := nodeGlyph(nd.entry.State)
