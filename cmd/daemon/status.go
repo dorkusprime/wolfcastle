@@ -38,6 +38,7 @@ Examples:
 			scopeNode, _ := cmd.Flags().GetString("node")
 			watch, _ := cmd.Flags().GetBool("watch")
 			interval, _ := cmd.Flags().GetFloat64("interval")
+			expand, _ := cmd.Flags().GetBool("expand")
 
 			if !showAll {
 				if err := app.RequireResolver(); err != nil {
@@ -48,7 +49,7 @@ Examples:
 			if watch {
 				ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 				defer stop()
-				return watchStatus(ctx, app, scopeNode, showAll, interval)
+				return watchStatus(ctx, app, scopeNode, showAll, interval, expand)
 			}
 
 			if showAll {
@@ -60,7 +61,7 @@ Examples:
 				return err
 			}
 
-			return showTreeStatus(app, idx, scopeNode)
+			return showTreeStatus(app, idx, scopeNode, expand)
 		},
 	}
 }
@@ -72,7 +73,7 @@ type nodeDetail struct {
 	ns    *state.NodeState // nil for orchestrators or load failures
 }
 
-func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error {
+func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expandAll ...bool) error {
 	counts := map[state.NodeStatus]int{}
 	auditCounts := map[state.AuditStatus]int{}
 	openGaps := 0
@@ -160,11 +161,12 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 	output.PrintHuman("")
 
 	// Tree view: walk root nodes in order
+	expand := len(expandAll) > 0 && expandAll[0]
 	for _, rootAddr := range idx.Root {
 		if scope != "" && !isInSubtree(idx, rootAddr, scope) {
 			continue
 		}
-		printNodeTree(app, idx, details, rootAddr, "  ")
+		printNodeTree(app, idx, details, rootAddr, "  ", expand)
 	}
 
 	// Inbox count
@@ -190,10 +192,20 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error 
 }
 
 // printNodeTree recursively prints a node and its children/tasks.
-func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*nodeDetail, addr string, indent string) {
+func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*nodeDetail, addr string, indent string, expand bool) {
 	nd, ok := details[addr]
 	if !ok {
 		return
+	}
+
+	// Collapse completed nodes unless --expand is set.
+	if nd.entry.State == state.StatusComplete && !expand {
+		childCount := countDescendants(idx, addr)
+		if childCount > 0 {
+			glyph := nodeGlyph(nd.entry.State)
+			output.PrintHuman("%s%s %s  (%d nodes)", indent, glyph, nd.entry.Name, childCount+1)
+			return
+		}
 	}
 
 	glyph := nodeGlyph(nd.entry.State)
@@ -202,7 +214,7 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	// For orchestrators, print children
 	if nd.entry.Type == state.NodeOrchestrator {
 		for _, childAddr := range nd.entry.Children {
-			printNodeTree(app, idx, details, childAddr, indent+"  ")
+			printNodeTree(app, idx, details, childAddr, indent+"  ", expand)
 		}
 		return
 	}
@@ -397,7 +409,7 @@ func showAllStatus(app *cmdutil.App) error {
 
 // watchStatus refreshes the status display on an interval, clearing the
 // screen between refreshes. Returns when context is cancelled.
-func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64) error {
+func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64, expand bool) error {
 	if intervalSec < 0.1 {
 		intervalSec = 0.1
 	}
@@ -421,7 +433,7 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 			if err != nil {
 				output.PrintError("%v", err)
 			} else {
-				if err := showTreeStatus(app, idx, scope); err != nil {
+				if err := showTreeStatus(app, idx, scope, expand); err != nil {
 					output.PrintError("%v", err)
 				}
 			}
@@ -433,6 +445,20 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 		case <-time.After(d):
 		}
 	}
+}
+
+// countDescendants returns the total number of descendant nodes under addr.
+func countDescendants(idx *state.RootIndex, addr string) int {
+	entry, ok := idx.Nodes[addr]
+	if !ok {
+		return 0
+	}
+	count := 0
+	for _, child := range entry.Children {
+		count++ // the child itself
+		count += countDescendants(idx, child)
+	}
+	return count
 }
 
 // isInSubtree checks whether addr is the scope node or a descendant of it.
