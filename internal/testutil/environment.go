@@ -41,6 +41,21 @@ func Orchestrator(name string, children ...NodeSpec) NodeSpec {
 	}
 }
 
+// AppFields holds the raw values needed to construct a cmdutil.App in tests.
+// Since testutil (internal/) cannot import cmdutil (cmd/), this struct carries
+// the fields that callers can spread into an App literal themselves.
+type AppFields struct {
+	Config        *config.ConfigRepository
+	Identity      *config.Identity
+	Prompts       *pipeline.PromptRepository
+	Classes       *pipeline.ClassRepository
+	Daemon        *daemon.DaemonRepository
+	State         *state.StateStore
+	Git           git.Provider
+	WolfcastleDir string
+	Cfg           *config.Config
+}
+
 // Environment provides a fully constructed .wolfcastle/ directory for tests.
 // It starts with tierfs, Root, and State; repository fields will be populated
 // as their packages are built during the domain-repository migration.
@@ -66,13 +81,13 @@ type Environment struct {
 	// Daemon provides access to daemon filesystem operations (PID, stop file, logs).
 	Daemon *daemon.DaemonRepository
 
+	// Identity holds the resolved user+machine identity extracted from config.
+	Identity *config.Identity
+
 	// Git provides access to git operations for tests that set up a repository.
 	// Not populated by NewEnvironment (temp dirs aren't git repos by default);
 	// use WithGit to supply a provider in tests that need one.
 	Git git.Provider
-
-	// TODO: populate when App is refactored to accept repositories
-	// App *cmdutil.App
 
 	// t is the test handle, used by With* methods to fatal on setup errors.
 	t *testing.T
@@ -159,14 +174,28 @@ func NewEnvironment(t *testing.T) *Environment {
 
 	prompts := pipeline.NewPromptRepositoryWithTiers(tiers)
 
+	cfgRepo := config.NewConfigRepositoryWithTiers(tiers, wolfcastleDir)
+
+	// Load merged config and extract identity so tests can construct App
+	// without repeating the load-and-extract dance.
+	loadedCfg, err := cfgRepo.Load()
+	if err != nil {
+		t.Fatalf("loading config in NewEnvironment: %v", err)
+	}
+	identity, err := config.IdentityFromConfig(loadedCfg)
+	if err != nil {
+		t.Fatalf("extracting identity in NewEnvironment: %v", err)
+	}
+
 	return &Environment{
 		Root:      wolfcastleDir,
 		Tiers:     tiers,
 		State:     store,
-		Config:    config.NewConfigRepositoryWithTiers(tiers, wolfcastleDir),
+		Config:    cfgRepo,
 		Prompts:   prompts,
 		Classes:   pipeline.NewClassRepository(prompts),
 		Daemon:    daemon.NewDaemonRepository(wolfcastleDir),
+		Identity:  identity,
 		t:         t,
 		namespace: namespace,
 	}
@@ -175,6 +204,33 @@ func NewEnvironment(t *testing.T) *Environment {
 // Namespace returns the identity namespace (e.g. "test-machine").
 func (e *Environment) Namespace() string {
 	return e.namespace
+}
+
+// ParentDir returns the directory that contains .wolfcastle (i.e. the
+// simulated working directory for commands that call FindWolfcastleDir).
+func (e *Environment) ParentDir() string {
+	return filepath.Dir(e.Root)
+}
+
+// ToAppFields returns the raw values needed to construct a cmdutil.App.
+// Callers in cmd/ can spread these into an App literal, then set any
+// retained or deprecated fields they still need.
+func (e *Environment) ToAppFields() AppFields {
+	cfg, err := e.Config.Load()
+	if err != nil {
+		e.t.Fatalf("loading config in ToAppFields: %v", err)
+	}
+	return AppFields{
+		Config:        e.Config,
+		Identity:      e.Identity,
+		Prompts:       e.Prompts,
+		Classes:       e.Classes,
+		Daemon:        e.Daemon,
+		State:         e.State,
+		Git:           e.Git,
+		WolfcastleDir: e.Root,
+		Cfg:           cfg,
+	}
 }
 
 // ProjectsDir returns the absolute path to the projects directory within
