@@ -1,6 +1,9 @@
 package orchestrator
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // ---------------------------------------------------------------------------
 // JSON output: criteria add
@@ -64,5 +67,42 @@ func TestCriteria_ListEmptyJSON(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "--list"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("criteria list empty (JSON) failed: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Internal guard: nodeAddr == "" (bypasses cobra's MarkFlagRequired)
+// ---------------------------------------------------------------------------
+
+func TestCriteria_EmptyNodeAddr(t *testing.T) {
+	env := newTestEnv(t)
+
+	// Build the criteria subcommand directly so we can call RunE without
+	// cobra's required-flag validation intercepting the empty value.
+	criteriaCmd := newCriteriaCmd(env.App)
+	criteriaCmd.SetArgs([]string{"some criterion"})
+
+	err := criteriaCmd.RunE(criteriaCmd, []string{"some criterion"})
+	if err == nil {
+		t.Fatal("expected error for empty --node value")
+	}
+	if !strings.Contains(err.Error(), "--node is required") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// List mode with invalid address triggers ReadNode error
+// ---------------------------------------------------------------------------
+
+func TestCriteria_ListReadNodeError(t *testing.T) {
+	env := newTestEnv(t)
+
+	// An address containing ".." is rejected by the state store's path
+	// validation, producing a ReadNode error inside the --list branch.
+	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "bad/../addr", "--list"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when ReadNode fails on invalid address in list mode")
 	}
 }
