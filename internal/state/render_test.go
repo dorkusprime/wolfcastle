@@ -431,3 +431,26 @@ func TestRenderContext_FullTask(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderContext_PathTraversalBlocked(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	secret := filepath.Join(tmpDir, "secret.md")
+	_ = os.WriteFile(secret, []byte("top secret content"), 0644)
+
+	task := Task{
+		ID:          "task-0001",
+		Description: "test",
+		State:       StatusNotStarted,
+		References:  []string{"../../" + secret},
+	}
+
+	result := task.RenderContext("some/node", "")
+
+	if strings.Contains(result, "top secret content") {
+		t.Error("path traversal reference should not be inlined")
+	}
+	if !strings.Contains(result, "../../") {
+		t.Error("reference path should still appear in the listing")
+	}
+}
