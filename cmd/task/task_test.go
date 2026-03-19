@@ -37,11 +37,15 @@ func newTestEnv(t *testing.T) *testEnv {
 	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
+	store := state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
+		Config:        config.NewConfigRepository(wcDir),
+		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
+		State:         store,
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
 		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout),
+		Store:         store,
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -182,14 +186,14 @@ func TestTaskAdd_EmptyDescription(t *testing.T) {
 	}
 }
 
-func TestTaskAdd_NoResolver(t *testing.T) {
+func TestTaskAdd_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "test"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -344,9 +348,14 @@ func TestTaskComplete_WithValidation(t *testing.T) {
 	env := newTestEnv(t)
 	createLeafNode(t, env, "my-project", "My Project")
 
-	// Add a validation command that succeeds
-	env.App.Cfg.Validation.Commands = []config.ValidationCommand{
+	// Add a validation command that succeeds via config repository
+	cfg := config.Defaults()
+	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
+	cfg.Validation.Commands = []config.ValidationCommand{
 		{Name: "true check", Run: "true", TimeoutSeconds: 5},
+	}
+	if err := env.App.Config.WriteBase(cfg); err != nil {
+		t.Fatal(err)
 	}
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "validated task"})
@@ -364,9 +373,14 @@ func TestTaskComplete_ValidationFails(t *testing.T) {
 	env := newTestEnv(t)
 	createLeafNode(t, env, "my-project", "My Project")
 
-	// Add a validation command that fails
-	env.App.Cfg.Validation.Commands = []config.ValidationCommand{
+	// Add a validation command that fails via config repository
+	cfg := config.Defaults()
+	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
+	cfg.Validation.Commands = []config.ValidationCommand{
 		{Name: "fail check", Run: "false", TimeoutSeconds: 5},
+	}
+	if err := env.App.Config.WriteBase(cfg); err != nil {
+		t.Fatal(err)
 	}
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "validated task"})

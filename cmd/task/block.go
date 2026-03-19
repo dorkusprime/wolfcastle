@@ -23,7 +23,7 @@ Examples:
   wolfcastle task block --node auth/login/task-2 "needs design review"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			reason := args[0]
@@ -41,7 +41,7 @@ Examples:
 			}
 
 			// MutateNode handles save + propagation automatically.
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				return state.TaskBlock(ns, taskID, reason)
 			}); err != nil {
 				return err

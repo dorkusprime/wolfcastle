@@ -14,14 +14,14 @@ import (
 // task block — error paths
 // ---------------------------------------------------------------------------
 
-func TestTaskBlock_NoResolver(t *testing.T) {
+func TestTaskBlock_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -49,14 +49,14 @@ func TestTaskBlock_NonexistentNode(t *testing.T) {
 // task claim — error paths
 // ---------------------------------------------------------------------------
 
-func TestTaskClaim_NoResolver(t *testing.T) {
+func TestTaskClaim_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -74,14 +74,14 @@ func TestTaskClaim_NonexistentNode(t *testing.T) {
 // task complete — error paths
 // ---------------------------------------------------------------------------
 
-func TestTaskComplete_NoResolver(t *testing.T) {
+func TestTaskComplete_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -89,14 +89,14 @@ func TestTaskComplete_NoResolver(t *testing.T) {
 // task unblock — error paths
 // ---------------------------------------------------------------------------
 
-func TestTaskUnblock_NoResolver(t *testing.T) {
+func TestTaskUnblock_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-0001"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -182,8 +182,13 @@ func TestTaskComplete_ValidationDefaultTimeout(t *testing.T) {
 	createLeafNode(t, env, "my-project", "My Project")
 
 	// Validation with TimeoutSeconds == 0 (should use default 30s)
-	env.App.Cfg.Validation.Commands = []config.ValidationCommand{
+	cfg := config.Defaults()
+	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
+	cfg.Validation.Commands = []config.ValidationCommand{
 		{Name: "default timeout", Run: "true"},
+	}
+	if err := env.App.Config.WriteBase(cfg); err != nil {
+		t.Fatal(err)
 	}
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})

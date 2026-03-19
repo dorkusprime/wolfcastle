@@ -26,7 +26,7 @@ Examples:
   wolfcastle task deliverable "src/api/handler.go" --node my-project/task-0002`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			delivPath := args[0]
@@ -49,7 +49,7 @@ Examples:
 				return fmt.Errorf("--node must be a task address: %w", err)
 			}
 
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				for i := range ns.Tasks {
 					if ns.Tasks[i].ID == taskID {
 						// Avoid duplicates
@@ -68,7 +68,7 @@ Examples:
 			}
 
 			// Warn if the declared path doesn't exist yet (may be a typo)
-			repoDir := filepath.Dir(app.WolfcastleDir)
+			repoDir := filepath.Dir(app.Config.Root())
 			if !isGlobPath(delivPath) {
 				fullPath := filepath.Join(repoDir, delivPath)
 				if _, statErr := os.Stat(fullPath); os.IsNotExist(statErr) {

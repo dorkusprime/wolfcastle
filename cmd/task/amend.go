@@ -23,7 +23,7 @@ Examples:
   wolfcastle task amend --node my-project/task-0001 --add-deliverable "docs/api.md"
   wolfcastle task amend --node my-project/task-0001 --type implementation --integration "feeds into auth module"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			nodeFlag, _ := cmd.Flags().GetString("node")
@@ -55,7 +55,7 @@ Examples:
 				}
 			}
 
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				for i := range ns.Tasks {
 					if ns.Tasks[i].ID != taskID {
 						continue
