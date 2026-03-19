@@ -358,6 +358,38 @@ func TestSelfHeal_HealsOrchestrators(t *testing.T) {
 	}
 }
 
+func TestSelfHeal_DerivesStaleParentStatus(t *testing.T) {
+	d := testDaemon(t)
+	projDir := d.Resolver.ProjectsDir()
+
+	// Parent task is not_started but all children are complete.
+	// selfHeal should derive the parent to complete.
+	setupLeafNode(t, d, "my-node", []state.Task{
+		{ID: "task-0001", State: state.StatusComplete},
+		{ID: "task-0002", State: state.StatusNotStarted},
+		{ID: "task-0002.0001", State: state.StatusComplete},
+		{ID: "task-0002.0002", State: state.StatusComplete},
+		{ID: "task-0002.0003", State: state.StatusComplete},
+		{ID: "audit", State: state.StatusNotStarted, IsAudit: true},
+	})
+
+	if err := d.selfHeal(); err != nil {
+		t.Fatalf("selfHeal error: %v", err)
+	}
+
+	ns, _ := state.LoadNodeState(filepath.Join(projDir, "my-node", "state.json"))
+	// task-0002 should be derived to complete from its children
+	for _, t2 := range ns.Tasks {
+		if t2.ID == "task-0002" {
+			if t2.State != state.StatusComplete {
+				t.Errorf("parent task-0002 should be complete, got %s", t2.State)
+			}
+			return
+		}
+	}
+	t.Fatal("task-0002 not found")
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // RunOnce
 // ═══════════════════════════════════════════════════════════════════════════
