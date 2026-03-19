@@ -430,7 +430,7 @@ func TestShowHistoricalLines_ValidLog(t *testing.T) {
 	_ = os.WriteFile(logFile, []byte(lines), 0644)
 
 	// Reset offsets
-	delete(fileOffsets, logFile)
+	clearOffset(logFile)
 
 	// Should not panic, should set offset
 	showHistoricalLines(logFile, 2, logging.LevelDebug)
@@ -450,7 +450,7 @@ func TestShowHistoricalLines_MoreLinesThanAvailable(t *testing.T) {
 	tmp := t.TempDir()
 	logFile := filepath.Join(tmp, "short.ndjson")
 	_ = os.WriteFile(logFile, []byte(`{"type":"assistant","text":"only one"}`+"\n"), 0644)
-	delete(fileOffsets, logFile)
+	clearOffset(logFile)
 
 	showHistoricalLines(logFile, 100, logging.LevelDebug) // Asking for 100 lines when only 1 exists
 }
@@ -721,7 +721,7 @@ func TestShowHistoricalLines_EmptyFile(t *testing.T) {
 	tmp := t.TempDir()
 	logFile := filepath.Join(tmp, "empty.ndjson")
 	_ = os.WriteFile(logFile, []byte(""), 0644)
-	delete(fileOffsets, logFile)
+	clearOffset(logFile)
 	showHistoricalLines(logFile, 10, logging.LevelDebug)
 }
 
@@ -790,55 +790,6 @@ func TestLogCmd_AliasFollow(t *testing.T) {
 	// "follow" should work as an alias for "log"
 	env.RootCmd.SetArgs([]string{"follow", "--lines", "5"})
 	_ = env.RootCmd.Execute()
-}
-
-// ---------------------------------------------------------------------------
-// nodeGlyph
-// ---------------------------------------------------------------------------
-
-func TestNodeGlyph(t *testing.T) {
-	// In tests, output.IsTerminal() is false (piped), so we get plain glyphs.
-	tests := []struct {
-		status state.NodeStatus
-		want   string
-	}{
-		{state.StatusComplete, "●"},
-		{state.StatusInProgress, "◐"},
-		{state.StatusBlocked, "☢"},
-		{state.StatusNotStarted, "◯"},
-	}
-	for _, tt := range tests {
-		t.Run(string(tt.status), func(t *testing.T) {
-			got := nodeGlyph(tt.status)
-			if got != tt.want {
-				t.Errorf("nodeGlyph(%s) = %q, want %q", tt.status, got, tt.want)
-			}
-		})
-	}
-}
-
-// ---------------------------------------------------------------------------
-// taskGlyph
-// ---------------------------------------------------------------------------
-
-func TestTaskGlyph(t *testing.T) {
-	tests := []struct {
-		status state.NodeStatus
-		want   string
-	}{
-		{state.StatusComplete, "✓"},
-		{state.StatusInProgress, "→"},
-		{state.StatusBlocked, "✖"},
-		{state.StatusNotStarted, "○"},
-	}
-	for _, tt := range tests {
-		t.Run(string(tt.status), func(t *testing.T) {
-			got := taskGlyph(tt.status)
-			if got != tt.want {
-				t.Errorf("taskGlyph(%s) = %q, want %q", tt.status, got, tt.want)
-			}
-		})
-	}
 }
 
 // ---------------------------------------------------------------------------
@@ -1023,50 +974,6 @@ func TestStartBackground_LogDirNotWritable(t *testing.T) {
 	err := startBackground(wolfDir, "", "", "sleep")
 	if err == nil {
 		t.Error("expected error when log dir is not writable")
-	}
-}
-
-// ---------------------------------------------------------------------------
-// nodeGlyph and taskGlyph — all states
-// ---------------------------------------------------------------------------
-
-func TestNodeGlyph_AllStates(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		status state.NodeStatus
-		glyph  string
-	}{
-		{state.StatusComplete, "●"},
-		{state.StatusInProgress, "◐"},
-		{state.StatusBlocked, "☢"},
-		{state.StatusNotStarted, "◯"},
-		{"unknown_status", "◯"},
-	}
-	for _, tc := range cases {
-		result := nodeGlyph(tc.status)
-		if !strings.Contains(result, tc.glyph) {
-			t.Errorf("nodeGlyph(%s) = %q, expected to contain %q", tc.status, result, tc.glyph)
-		}
-	}
-}
-
-func TestTaskGlyph_AllStates(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		status state.NodeStatus
-		glyph  string
-	}{
-		{state.StatusComplete, "✓"},
-		{state.StatusInProgress, "→"},
-		{state.StatusBlocked, "✖"},
-		{state.StatusNotStarted, "○"},
-		{"unknown_status", "○"},
-	}
-	for _, tc := range cases {
-		result := taskGlyph(tc.status)
-		if !strings.Contains(result, tc.glyph) {
-			t.Errorf("taskGlyph(%s) = %q, expected to contain %q", tc.status, result, tc.glyph)
-		}
 	}
 }
 

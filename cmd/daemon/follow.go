@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -277,12 +278,25 @@ func formatAndPrintLogLine(line string, minLevel logging.Level) {
 }
 
 // Simple offset tracking for tail -f behavior
-var fileOffsets = make(map[string]int64)
+var (
+	fileOffsetsMu sync.Mutex
+	fileOffsets   = make(map[string]int64)
+)
 
 func getOffset(path string) int64 {
+	fileOffsetsMu.Lock()
+	defer fileOffsetsMu.Unlock()
 	return fileOffsets[path]
 }
 
 func setOffset(path string, offset int64) {
+	fileOffsetsMu.Lock()
+	defer fileOffsetsMu.Unlock()
 	fileOffsets[path] = offset
+}
+
+func clearOffset(path string) {
+	fileOffsetsMu.Lock()
+	defer fileOffsetsMu.Unlock()
+	delete(fileOffsets, path)
 }

@@ -116,7 +116,7 @@ func TestFollowLogs_FileRotation(t *testing.T) {
 	), 0644)
 
 	// Reset offsets so the historical lines path fires.
-	delete(fileOffsets, first)
+	clearOffset(first)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
@@ -232,7 +232,7 @@ func TestTailFileStreaming_OffsetBeyondFileSize(t *testing.T) {
 
 	// Set offset well past the file size — should return nil with no output.
 	setOffset(logFile, 99999)
-	defer delete(fileOffsets, logFile)
+	defer clearOffset(logFile)
 
 	err := tailFileStreaming(logFile, logging.LevelDebug)
 	if err != nil {
@@ -248,7 +248,7 @@ func TestTailFileStreaming_ZeroOffset(t *testing.T) {
 		`{"level":"info","type":"daemon_stop","reason":"done"}` + "\n"
 	_ = os.WriteFile(logFile, []byte(content), 0644)
 
-	delete(fileOffsets, logFile)
+	clearOffset(logFile)
 
 	err := tailFileStreaming(logFile, logging.LevelDebug)
 	if err != nil {
@@ -269,7 +269,7 @@ func TestTailFileStreaming_LevelFiltering(t *testing.T) {
 		`{"level":"error","type":"stage_error","stage":"x","error":"fail"}` + "\n"
 	_ = os.WriteFile(logFile, []byte(content), 0644)
 
-	delete(fileOffsets, logFile)
+	clearOffset(logFile)
 
 	// With minLevel=error, the debug line is silently dropped.
 	err := tailFileStreaming(logFile, logging.LevelError)
@@ -290,7 +290,7 @@ func TestShowHistoricalLines_LevelFilter(t *testing.T) {
 		`{"level":"error","type":"stage_error","stage":"x","error":"critical"}` + "\n"
 	_ = os.WriteFile(logFile, []byte(content), 0644)
 
-	delete(fileOffsets, logFile)
+	clearOffset(logFile)
 
 	// Only error-level lines should format (debug is silently dropped).
 	showHistoricalLines(logFile, 10, logging.LevelError)
