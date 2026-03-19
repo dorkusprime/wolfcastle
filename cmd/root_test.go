@@ -11,6 +11,11 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
+// nodeStatePath constructs the path to a node's state.json for test setup.
+func nodeStatePath(projectsDir string, parsed tree.Address) string {
+	return filepath.Join(projectsDir, filepath.Join(parsed.Parts...), "state.json")
+}
+
 func TestInitCmd_JSONOutput(t *testing.T) {
 	tmp := t.TempDir()
 	origDir, _ := os.Getwd()
@@ -121,18 +126,18 @@ func TestArchiveAddCmd_NotComplete(t *testing.T) {
 	}
 }
 
-func TestArchiveAddCmd_NoResolver(t *testing.T) {
+func TestArchiveAddCmd_NoIdentity(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 
 	env := newTestEnv(t)
 	app = env.App
-	app.Resolver = nil
+	app.Identity = nil
 
 	rootCmd.SetArgs([]string{"archive", "add", "--node", "my-project"})
 	err := rootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -487,7 +492,7 @@ func TestArchiveAddCmd_SuccessComplete(t *testing.T) {
 	parsed, _ := tree.ParseAddress("done-project")
 	ns := env.loadNodeState(t, "done-project")
 	ns.State = state.StatusComplete
-	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_ = state.SaveNodeState(nodeStatePath(env.ProjectsDir, parsed), ns)
 
 	rootCmd.SetArgs([]string{"archive", "add", "--node", "done-project"})
 	if err := rootCmd.Execute(); err != nil {
@@ -518,7 +523,7 @@ func TestArchiveAddCmd_SuccessComplete_JSON(t *testing.T) {
 	parsed, _ := tree.ParseAddress("done-json")
 	ns := env.loadNodeState(t, "done-json")
 	ns.State = state.StatusComplete
-	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_ = state.SaveNodeState(nodeStatePath(env.ProjectsDir, parsed), ns)
 
 	rootCmd.SetArgs([]string{"archive", "add", "--node", "done-json"})
 	if err := rootCmd.Execute(); err != nil {
@@ -612,7 +617,7 @@ func TestArchiveAddCmd_SuccessWithGitBranch(t *testing.T) {
 	parsed, _ := tree.ParseAddress("git-project")
 	ns := env.loadNodeState(t, "git-project")
 	ns.State = state.StatusComplete
-	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_ = state.SaveNodeState(nodeStatePath(env.ProjectsDir, parsed), ns)
 
 	rootCmd.SetArgs([]string{"archive", "add", "--node", "git-project"})
 	if err := rootCmd.Execute(); err != nil {
@@ -636,7 +641,7 @@ func TestDoctorCmd_Fix_WithFixableIssues(t *testing.T) {
 	parsed, _ := tree.ParseAddress("broken-node")
 	ns := env.loadNodeState(t, "broken-node")
 	ns.Tasks = nil // Remove all tasks including audit
-	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_ = state.SaveNodeState(nodeStatePath(env.ProjectsDir, parsed), ns)
 
 	rootCmd.SetArgs([]string{"doctor", "--fix"})
 	// Should not error — it reports and fixes

@@ -34,7 +34,7 @@ func TestNavigate_FindsTask(t *testing.T) {
 	parsed, _ := tree.ParseAddress("my-project")
 	ns := env.loadNodeState(t, "my-project")
 	task, _ := state.TaskAdd(ns, "implement API")
-	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_ = state.SaveNodeState(nodeStatePath(env.ProjectsDir, parsed), ns)
 
 	rootCmd.SetArgs([]string{"navigate"})
 	if err := rootCmd.Execute(); err != nil {
@@ -107,7 +107,7 @@ func TestNavigate_JSONWithTask(t *testing.T) {
 	parsed, _ := tree.ParseAddress("my-project")
 	ns := env.loadNodeState(t, "my-project")
 	_, _ = state.TaskAdd(ns, "implement API")
-	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_ = state.SaveNodeState(nodeStatePath(env.ProjectsDir, parsed), ns)
 
 	rootCmd.SetArgs([]string{"navigate", "--json"})
 	if err := rootCmd.Execute(); err != nil {

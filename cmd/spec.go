@@ -49,9 +49,14 @@ Examples:
 		useStdin, _ := cmd.Flags().GetBool("stdin")
 
 		if nodeAddr != "" {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
+		}
+
+		cfg, err := app.Config.Load()
+		if err != nil {
+			return fmt.Errorf("loading config: %w", err)
 		}
 
 		now := app.Clock.Now()
@@ -59,7 +64,7 @@ Examples:
 		slug := tree.ToSlug(title)
 		filename := fmt.Sprintf("%s-%s.md", timestamp, slug)
 
-		docsDir := filepath.Join(app.WolfcastleDir, app.Cfg.Docs.Directory, "specs")
+		docsDir := filepath.Join(app.Config.Root(), cfg.Docs.Directory, "specs")
 		if err := os.MkdirAll(docsDir, 0755); err != nil {
 			return fmt.Errorf("creating specs directory: %w", err)
 		}
@@ -83,18 +88,11 @@ Examples:
 
 		// Link to node if specified
 		if nodeAddr != "" {
-			addr, err := tree.ParseAddress(nodeAddr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-			statePath := app.Resolver.NodeStatePath(addr)
-			ns, err := state.LoadNodeState(statePath)
-			if err != nil {
-				return fmt.Errorf("loading node state: %w", err)
-			}
-			ns.Specs = append(ns.Specs, filename)
-			if err := state.SaveNodeState(statePath, ns); err != nil {
-				return fmt.Errorf("saving node state: %w", err)
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+				ns.Specs = append(ns.Specs, filename)
+				return nil
+			}); err != nil {
+				return fmt.Errorf("linking spec to node: %w", err)
 			}
 		}
 
@@ -126,7 +124,7 @@ Examples:
   wolfcastle spec link 2025-01-15T10-30Z-auth-flow.md --node auth-system`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := app.RequireResolver(); err != nil {
+		if err := app.RequireIdentity(); err != nil {
 			return err
 		}
 		filename := args[0]
@@ -135,33 +133,29 @@ Examples:
 			return fmt.Errorf("--node is required: specify the target node to link the spec to")
 		}
 
+		cfg, err := app.Config.Load()
+		if err != nil {
+			return fmt.Errorf("loading config: %w", err)
+		}
+
 		// Verify spec exists
-		docsDir := filepath.Join(app.WolfcastleDir, app.Cfg.Docs.Directory, "specs")
+		docsDir := filepath.Join(app.Config.Root(), cfg.Docs.Directory, "specs")
 		specPath := filepath.Join(docsDir, filename)
 		if _, err := os.Stat(specPath); err != nil {
 			return fmt.Errorf("spec file not found: %s", specPath)
 		}
 
-		addr, err := tree.ParseAddress(nodeAddr)
-		if err != nil {
-			return fmt.Errorf("invalid node address: %w", err)
-		}
-		statePath := app.Resolver.NodeStatePath(addr)
-		ns, err := state.LoadNodeState(statePath)
-		if err != nil {
-			return fmt.Errorf("loading node state: %w", err)
-		}
-
-		// Check for duplicates
-		for _, s := range ns.Specs {
-			if s == filename {
-				return fmt.Errorf("spec %s is already linked to %s", filename, nodeAddr)
+		if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			// Check for duplicates
+			for _, s := range ns.Specs {
+				if s == filename {
+					return fmt.Errorf("spec %s is already linked to %s", filename, nodeAddr)
+				}
 			}
-		}
-
-		ns.Specs = append(ns.Specs, filename)
-		if err := state.SaveNodeState(statePath, ns); err != nil {
-			return fmt.Errorf("saving node state: %w", err)
+			ns.Specs = append(ns.Specs, filename)
+			return nil
+		}); err != nil {
+			return fmt.Errorf("linking spec to node: %w", err)
 		}
 
 		if app.JSONOutput {
@@ -190,12 +184,17 @@ Examples:
 		nodeAddr, _ := cmd.Flags().GetString("node")
 
 		if nodeAddr != "" {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 		}
 
-		docsDir := filepath.Join(app.WolfcastleDir, app.Cfg.Docs.Directory, "specs")
+		cfg, err := app.Config.Load()
+		if err != nil {
+			return fmt.Errorf("loading config: %w", err)
+		}
+
+		docsDir := filepath.Join(app.Config.Root(), cfg.Docs.Directory, "specs")
 		entries, err := os.ReadDir(docsDir)
 		if err != nil {
 			return fmt.Errorf("reading specs dir: %w", err)
@@ -204,11 +203,7 @@ Examples:
 		// If filtering by node, get linked specs
 		var linkedSpecs map[string]bool
 		if nodeAddr != "" {
-			addr, err := tree.ParseAddress(nodeAddr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-			ns, err := state.LoadNodeState(app.Resolver.NodeStatePath(addr))
+			ns, err := app.State.ReadNode(nodeAddr)
 			if err != nil {
 				return fmt.Errorf("loading node state: %w", err)
 			}

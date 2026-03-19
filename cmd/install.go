@@ -28,12 +28,13 @@ var installSkillCmd = &cobra.Command{
 interaction from a Claude Code session. Symlinks where possible,
 copies on Windows.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repoDir := filepath.Dir(app.WolfcastleDir)
+		root := app.Config.Root()
+		repoDir := filepath.Dir(root)
 		claudeDir := filepath.Join(repoDir, ".claude")
 		skillDir := filepath.Join(claudeDir, "wolfcastle")
 
 		// Source: base/skills/ in .wolfcastle
-		sourceDir := filepath.Join(app.WolfcastleDir, "system", "base", "skills")
+		sourceDir := filepath.Join(root, "system", "base", "skills")
 
 		// Ensure source exists and has content
 		if err := ensureSkillSource(sourceDir); err != nil {

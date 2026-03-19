@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -26,16 +27,19 @@ Examples:
   wolfcastle doctor --fix
   wolfcastle doctor --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := app.RequireResolver(); err != nil {
+		if err := app.RequireIdentity(); err != nil {
 			return err
 		}
 
 		fix, _ := cmd.Flags().GetBool("fix")
+		root := app.Config.Root()
+		projectsDir := app.State.Dir()
+		indexPath := filepath.Join(projectsDir, "state.json")
 
 		// Load root index, attempting recovery on failure.
-		idx, err := app.Resolver.LoadRootIndex()
+		idx, err := app.State.ReadIndex()
 		if err != nil {
-			idx, err = tryRecoverRootIndex(app.Resolver.RootIndexPath(), fix)
+			idx, err = tryRecoverRootIndex(indexPath, fix)
 			if err != nil {
 				issues := []validate.Issue{{
 					Severity:    validate.SeverityError,
@@ -52,10 +56,10 @@ Examples:
 		// node state files are parsed on a best-effort basis rather than
 		// causing the entire check to bail out.
 		var recoveredNodes []validate.RecoveredNode
-		nodeLoader := validate.RecoveringNodeLoader(app.Resolver.ProjectsDir(), func(addr string, report *validate.RecoveryReport) {
+		nodeLoader := validate.RecoveringNodeLoader(projectsDir, func(addr string, report *validate.RecoveryReport) {
 			recoveredNodes = append(recoveredNodes, validate.RecoveredNode{Address: addr, Report: report})
 		})
-		engine := validate.NewEngine(app.Resolver.ProjectsDir(), nodeLoader, app.WolfcastleDir)
+		engine := validate.NewEngine(projectsDir, nodeLoader, root)
 		report := engine.ValidateAll(idx)
 
 		// Inject MALFORMED_JSON issues for any nodes that required recovery.
@@ -85,7 +89,7 @@ Examples:
 		}
 
 		// Apply deterministic fixes
-		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, app.Resolver.ProjectsDir(), app.Resolver.RootIndexPath(), app.WolfcastleDir)
+		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, projectsDir, indexPath, root)
 
 		if len(fixes) == 0 {
 			output.PrintHuman("\nNothing to fix automatically.")
@@ -108,8 +112,9 @@ Examples:
 		}
 
 		// Model-assisted fixes for issues that deterministic repair cannot resolve
-		if app.Cfg != nil && app.Cfg.Doctor.Model != "" {
-			model, ok := app.Cfg.Models[app.Cfg.Doctor.Model]
+		cfg, cfgErr := app.Config.Load()
+		if cfgErr == nil && cfg.Doctor.Model != "" {
+			model, ok := cfg.Models[cfg.Doctor.Model]
 			if ok {
 				var modelIssues []validate.Issue
 				for _, issue := range report.Issues {
@@ -123,7 +128,7 @@ Examples:
 					defer cancel()
 					modelFixed := 0
 					for _, issue := range modelIssues {
-						applied, err := validate.TryModelAssistedFix(ctx, app.Invoker, model, issue, app.Resolver.ProjectsDir(), app.WolfcastleDir)
+						applied, err := validate.TryModelAssistedFix(ctx, app.Invoker, model, issue, projectsDir, root)
 						if err != nil {
 							output.PrintHuman("  SKIP  [%s] %s: %v", issue.Category, issue.Node, err)
 							continue

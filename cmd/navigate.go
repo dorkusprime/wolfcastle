@@ -1,12 +1,8 @@
 package cmd
 
 import (
-	"fmt"
-	"path/filepath"
-
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -22,22 +18,18 @@ Examples:
   wolfcastle navigate --node auth-system
   wolfcastle navigate --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := app.RequireResolver(); err != nil {
+		if err := app.RequireIdentity(); err != nil {
 			return err
 		}
 		scopeNode, _ := cmd.Flags().GetString("node")
 
-		idx, err := app.Resolver.LoadRootIndex()
+		idx, err := app.State.ReadIndex()
 		if err != nil {
 			return err
 		}
 
 		result, err := state.FindNextTask(idx, scopeNode, func(addr string) (*state.NodeState, error) {
-			a, err := tree.ParseAddress(addr)
-			if err != nil {
-				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
-			}
-			return state.LoadNodeState(filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+			return app.State.ReadNode(addr)
 		})
 		if err != nil {
 			return err

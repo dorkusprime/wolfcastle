@@ -73,7 +73,11 @@ Examples:
 		}
 
 		// Resolve docs directory
-		docsDir := filepath.Join(app.WolfcastleDir, app.Cfg.Docs.Directory, "decisions")
+		cfg, err := app.Config.Load()
+		if err != nil {
+			return fmt.Errorf("loading config: %w", err)
+		}
+		docsDir := filepath.Join(app.Config.Root(), cfg.Docs.Directory, "decisions")
 		if err := os.MkdirAll(docsDir, 0755); err != nil {
 			return fmt.Errorf("creating decisions directory: %w", err)
 		}

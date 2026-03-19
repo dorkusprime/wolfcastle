@@ -48,7 +48,7 @@ All commands support --json for machine-readable output.`,
 		case "init", "version", "help":
 			return nil
 		}
-		return app.LoadConfig()
+		return app.Init()
 	},
 }
 

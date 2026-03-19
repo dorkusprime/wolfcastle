@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/output"
-	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/project"
 	"github.com/dorkusprime/wolfcastle/internal/selfupdate"
 	"github.com/spf13/cobra"
@@ -35,9 +33,8 @@ Examples:
 		}
 
 		// Regenerate base tier (prompts, rules, configs, identity)
-		cfgRepo := config.NewConfigRepository(app.WolfcastleDir)
-		promptRepo := pipeline.NewPromptRepository(app.WolfcastleDir)
-		svc := project.NewScaffoldService(cfgRepo, promptRepo, nil, app.WolfcastleDir)
+		root := app.Config.Root()
+		svc := project.NewScaffoldService(app.Config, app.Prompts, nil, root)
 		if err := svc.Reinit(); err != nil {
 			return fmt.Errorf("regenerating system/base/: %w", err)
 		}
@@ -50,12 +47,12 @@ Examples:
 				updateStatus = "updated"
 			}
 			output.Print(output.Ok("update", map[string]string{
-				"path":          app.WolfcastleDir,
+				"path":          root,
 				"version":       Version,
 				"update_status": updateStatus,
 			}))
 		} else {
-			output.PrintHuman("system/base/ regenerated in %s", app.WolfcastleDir)
+			output.PrintHuman("system/base/ regenerated in %s", root)
 		}
 		return nil
 	},

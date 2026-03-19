@@ -79,11 +79,18 @@ func newTestEnv(t *testing.T) *testEnv {
 		t.Fatalf("loading test config: %v", err)
 	}
 
+	cfgRepo := config.NewConfigRepository(wcDir)
+	identity, _ := config.IdentityFromConfig(loadedCfg)
+	stateStore := state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout)
+
 	testApp := &cmdutil.App{
+		Config:        cfgRepo,
+		Identity:      identity,
+		State:         stateStore,
 		WolfcastleDir: wcDir,
 		Cfg:           loadedCfg,
 		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout),
+		Store:         stateStore,
 		Clock:         clock.New(),
 	}
 
