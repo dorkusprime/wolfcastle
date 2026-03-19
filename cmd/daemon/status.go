@@ -455,7 +455,6 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 			}
 		}
 
-
 		select {
 		case <-ctx.Done():
 			return nil
