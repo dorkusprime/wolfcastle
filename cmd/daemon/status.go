@@ -407,18 +407,26 @@ func showAllStatus(app *cmdutil.App) error {
 	return nil
 }
 
-// watchStatus refreshes the status display on an interval, clearing the
-// screen between refreshes. Returns when context is cancelled.
+// watchStatus refreshes the status display on an interval. Uses the
+// alternate screen buffer and cursor repositioning for flicker-free
+// updates (no clear-then-redraw flash).
 func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64, expand bool) error {
 	if intervalSec < 0.1 {
 		intervalSec = 0.1
 	}
 	d := time.Duration(intervalSec * float64(time.Second))
-	for {
-		// Clear screen and move cursor to top-left
-		_, _ = fmt.Fprint(os.Stdout, "\033[2J\033[H")
 
-		// Show interval like watch(1) does
+	// Enter alternate screen buffer
+	if output.IsTerminal() {
+		_, _ = fmt.Fprint(os.Stdout, "\033[?1049h")
+		defer func() { _, _ = fmt.Fprint(os.Stdout, "\033[?1049l") }()
+	}
+
+	for {
+		// Move cursor home (no clear). Overwrite previous output in place.
+		_, _ = fmt.Fprint(os.Stdout, "\033[H")
+
+		// Show interval header
 		if output.IsTerminal() {
 			output.PrintHuman("%sEvery %.1fs: wolfcastle status%s", colorDim, intervalSec, colorReset)
 			output.PrintHuman("")
@@ -438,6 +446,13 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 				}
 			}
 		}
+
+		// Clear from cursor to end of screen. This erases any leftover
+		// lines from the previous frame (e.g., when the tree shrinks
+		// because nodes completed and collapsed).
+		// Clear from cursor to end of screen, erasing leftover lines
+		// from the previous frame.
+		_, _ = fmt.Fprint(os.Stdout, "\033[J")
 
 		select {
 		case <-ctx.Done():
