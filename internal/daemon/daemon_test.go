@@ -1013,7 +1013,7 @@ func TestRunWithSupervisor_SuccessfulRun(t *testing.T) {
 	idx.Nodes["my-node"] = entry
 	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	if err := d.RunWithSupervisor(ctx); err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -388,7 +388,10 @@ func TestRun_AllComplete_ExitsCleanly(t *testing.T) {
 	idx.Nodes["my-node"] = entry
 	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// With all work complete and MaxIterations=-1, the daemon idles
+	// waiting for new inbox items. Signal shutdown after a brief delay
+	// to exit cleanly without waiting for a full timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err := d.Run(ctx)
@@ -409,7 +412,9 @@ func TestRun_WorkThenComplete(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// After 2 iterations the daemon idles (no more work). The 1s timeout
+	// is a safety net; the daemon should complete both iterations in <1s.
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err := d.Run(ctx)
@@ -469,7 +474,7 @@ func TestRun_BranchVerifyEnabled(t *testing.T) {
 	idx.Nodes["my-node"] = entry
 	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	// Should succeed — branch won't change during the test

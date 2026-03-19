@@ -532,7 +532,7 @@ func TestRunIteration_ContextCancelledDuringExecution(t *testing.T) {
 	// producing a marker, the iteration increments the failure count.
 	d.Config.Models["slow"] = config.ModelDef{
 		Command: "sh",
-		Args:    []string{"-c", "cat > /dev/null; sleep 30; echo WOLFCASTLE_COMPLETE"},
+		Args:    []string{"-c", "cat > /dev/null; sleep 1; echo WOLFCASTLE_COMPLETE"},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
 		{Name: "execute", Model: "slow", PromptFile: "execute.md"},
