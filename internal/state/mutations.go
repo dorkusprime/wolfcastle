@@ -159,11 +159,12 @@ func DeriveParentStatus(ns *NodeState, taskID string) (NodeStatus, bool) {
 	}
 
 	if allComplete {
-		// Audit tasks reset to not_started when remediation children
-		// complete so the audit re-runs to verify the fixes. Regular
-		// parent tasks derive to complete normally.
+		// Audit tasks with remediation children: if the audit itself
+		// is complete (re-verification passed), derive complete. If
+		// the audit hasn't re-run yet (not_started/blocked), derive
+		// not_started so it gets picked up for re-verification.
 		for _, t := range ns.Tasks {
-			if t.ID == taskID && t.IsAudit {
+			if t.ID == taskID && t.IsAudit && t.State != StatusComplete {
 				return StatusNotStarted, true
 			}
 		}
