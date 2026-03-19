@@ -530,7 +530,7 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 	var created int
 	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 		// Find the audit task
-		var auditIdx int = -1
+		auditIdx := -1
 		for i, t := range ns.Tasks {
 			if t.ID == taskID && t.IsAudit {
 				auditIdx = i
