@@ -178,7 +178,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			// not_started so it re-runs to verify the fixes.
 			if created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID); created > 0 {
 				_ = d.Logger.Log(map[string]any{"type": "audit_remediation", "task": nav.TaskID, "subtasks": created})
-				output.PrintHuman("  Created %d remediation subtask(s) from audit gaps", created)
+				output.PrintHuman("  Audit: %d gap(s), remediating.", created)
 				return nil
 			}
 
@@ -561,7 +561,6 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 				State:       state.StatusNotStarted,
 			})
 			created++
-			output.PrintHuman("  %s: %s", childID, g.Description)
 		}
 
 		// Reset the audit task to not_started so it doesn't stay blocked.
