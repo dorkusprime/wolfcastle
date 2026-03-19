@@ -918,7 +918,7 @@ func TestPrintNodeTree(t *testing.T) {
 
 	// Should not panic; exercises orchestrator recursion, leaf task rendering,
 	// blocked reason display, failure count display, and title/description fallback.
-	printNodeTree(env.App, idx, details, "orch", "  ")
+	printNodeTree(env.App, idx, details, "orch", "  ", true)
 }
 
 func TestPrintNodeTree_MissingAddr(t *testing.T) {
@@ -927,7 +927,7 @@ func TestPrintNodeTree_MissingAddr(t *testing.T) {
 	details := map[string]*nodeDetail{}
 
 	// Calling with an address not in details should return silently.
-	printNodeTree(env.App, idx, details, "nonexistent", "  ")
+	printNodeTree(env.App, idx, details, "nonexistent", "  ", true)
 }
 
 func TestPrintNodeTree_LeafWithNilNodeState(t *testing.T) {
@@ -944,7 +944,7 @@ func TestPrintNodeTree_LeafWithNilNodeState(t *testing.T) {
 	}
 
 	// Should not panic when ns is nil (no tasks to print).
-	printNodeTree(env.App, idx, details, "leaf", "  ")
+	printNodeTree(env.App, idx, details, "leaf", "  ", true)
 }
 
 // ---------------------------------------------------------------------------
@@ -1096,7 +1096,7 @@ func TestWatchStatus_SingleCycle(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- watchStatus(ctx, env.App, "", false, 0.1)
+		done <- watchStatus(ctx, env.App, "", false, 0.1, false)
 	}()
 
 	select {
@@ -1118,7 +1118,7 @@ func TestWatchStatus_WithScope(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- watchStatus(ctx, env.App, "my-project", false, 0.1)
+		done <- watchStatus(ctx, env.App, "my-project", false, 0.1, false)
 	}()
 
 	select {
