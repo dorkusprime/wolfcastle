@@ -39,11 +39,15 @@ func newTestEnv(t *testing.T) *testEnv {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
+	store := state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
+		Config:        config.NewConfigRepository(wcDir),
+		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
+		State:         store,
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
 		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout),
+		Store:         store,
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -195,13 +199,13 @@ func TestProjectCreate_InvalidType(t *testing.T) {
 	}
 }
 
-func TestProjectCreate_NoResolver(t *testing.T) {
+func TestProjectCreate_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "test"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -242,8 +246,8 @@ func TestProjectCreate_SetsRootMetadata(t *testing.T) {
 
 func TestProjectCreate_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "json-proj"})
 	if err := env.RootCmd.Execute(); err != nil {

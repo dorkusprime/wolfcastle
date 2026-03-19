@@ -37,11 +37,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
 
 	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
+	store := state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
+		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
+		State:         store,
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
 		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout),
+		Store:         store,
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -255,13 +258,13 @@ func TestCriteria_ListOnMissingNodeReturnsEmpty(t *testing.T) {
 // no resolver
 // ---------------------------------------------------------------------------
 
-func TestCriteria_NoResolver(t *testing.T) {
+func TestCriteria_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "test"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }

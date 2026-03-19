@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -14,8 +15,11 @@ import (
 
 func TestProjectCreate_OverlapEnabled(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Cfg.OverlapAdvisory.Enabled = true
-	env.App.Cfg.OverlapAdvisory.Threshold = 0.1
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system", "base"), 0755)
+	_ = env.App.Config.WriteBase(cfg)
 
 	// Create another engineer's namespace with similar project
 	otherDir := filepath.Join(env.WolfcastleDir, "system", "projects", "alice-dev")
@@ -156,8 +160,11 @@ func TestProjectCreate_SecondRootProjectNoMetadataOverwrite(t *testing.T) {
 
 func TestProjectCreate_OverlapWithMultipleEngineers(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Cfg.OverlapAdvisory.Enabled = true
-	env.App.Cfg.OverlapAdvisory.Threshold = 0.1
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system", "base"), 0755)
+	_ = env.App.Config.WriteBase(cfg)
 
 	// Create two other engineers with similar projects
 	for _, engineer := range []string{"alice-dev", "bob-dev"} {
@@ -224,8 +231,8 @@ func TestProjectCreate_ChildJSONOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "orchestrator", "parent-json"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "--node", "parent-json", "child-json"})
 	if err := env.RootCmd.Execute(); err != nil {

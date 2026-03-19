@@ -438,27 +438,40 @@ func TestLoadConfig_NoWolfcastleDir(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCheckOverlap_DisabledConfig(t *testing.T) {
-	a := &App{} // nil Cfg
+	a := &App{} // nil Config
 	// Should not panic
 	a.CheckOverlap("test", "description")
 }
 
-func TestCheckOverlap_NilResolver(t *testing.T) {
+func TestCheckOverlap_NilIdentity(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.3
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.3},
-		},
+		Config: cfgRepo,
 	}
-	// Should return silently when resolver is nil
+	// Should return silently when identity is nil
 	a.CheckOverlap("test", "description")
 }
 
 func TestCheckOverlap_NotEnabled(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = false
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: false},
-		},
-		Resolver: &tree.Resolver{WolfcastleDir: "/tmp/fake", Namespace: "test"},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "test", Machine: "dev", Namespace: "test-dev"},
 	}
 	// Should return without error
 	a.CheckOverlap("test", "description")
@@ -469,13 +482,16 @@ func TestCheckOverlap_EmptyProject(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.3
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
 
 	a := &App{
-		WolfcastleDir: wcDir,
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.3},
-		},
-		Resolver: &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: ns},
 	}
 	// No other namespaces, should not panic
 	a.CheckOverlap("database migration", "migrate the database schema")
@@ -486,6 +502,7 @@ func TestCheckOverlap_FindsMatch(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
 
 	// Create another engineer's namespace with similar project
 	otherDir := filepath.Join(wcDir, "system", "projects", "alice-dev")
@@ -493,12 +510,15 @@ func TestCheckOverlap_FindsMatch(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(otherDir, "database-migration.md"),
 		[]byte("database migration schema upgrade postgresql"), 0644)
 
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		WolfcastleDir: wcDir,
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.1},
-		},
-		Resolver: &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: ns},
 	}
 	// Should not panic, should detect overlap silently
 	a.CheckOverlap("database migration", "database migration schema upgrade postgresql")

@@ -141,11 +141,15 @@ func (a *App) RequireResolver() error {
 // bigram Jaccard similarity — no model invocation required (ADR-041).
 // Purely informational — failures are silently ignored (ADR-027).
 func (a *App) CheckOverlap(projectName, description string) {
-	if a.Cfg == nil || a.Resolver == nil || !a.Cfg.OverlapAdvisory.Enabled {
+	if a.Config == nil || a.Identity == nil {
+		return
+	}
+	cfg, err := a.Config.Load()
+	if err != nil || !cfg.OverlapAdvisory.Enabled {
 		return
 	}
 
-	threshold := a.Cfg.OverlapAdvisory.Threshold
+	threshold := cfg.OverlapAdvisory.Threshold
 
 	// Tokenize the new project
 	newText := projectName + " " + description
@@ -157,7 +161,7 @@ func (a *App) CheckOverlap(projectName, description string) {
 	}
 
 	// Collect and compare against other engineers' projects
-	projectsRoot := filepath.Join(a.WolfcastleDir, "system", "projects")
+	projectsRoot := filepath.Join(a.Config.Root(), "system", "projects")
 	entries, err := os.ReadDir(projectsRoot)
 	if err != nil {
 		return
@@ -165,7 +169,7 @@ func (a *App) CheckOverlap(projectName, description string) {
 
 	var matches []overlapMatch
 	for _, entry := range entries {
-		if !entry.IsDir() || entry.Name() == a.Resolver.Namespace {
+		if !entry.IsDir() || entry.Name() == a.Identity.Namespace {
 			continue
 		}
 		nsDir := filepath.Join(projectsRoot, entry.Name())

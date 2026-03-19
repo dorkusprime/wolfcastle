@@ -22,7 +22,7 @@ Examples:
   wolfcastle orchestrator criteria --node my-project --list`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
@@ -32,11 +32,11 @@ Examples:
 			listMode, _ := cmd.Flags().GetBool("list")
 
 			if listMode {
-				ns, err := app.Store.ReadNode(nodeAddr)
+				ns, err := app.State.ReadNode(nodeAddr)
 				if err != nil {
 					return err
 				}
-				if app.JSONOutput {
+				if app.JSON {
 					output.Print(output.Ok("success_criteria", map[string]any{
 						"node":     nodeAddr,
 						"criteria": ns.SuccessCriteria,
@@ -62,7 +62,7 @@ Examples:
 				return fmt.Errorf("criterion text cannot be empty")
 			}
 
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				for _, existing := range ns.SuccessCriteria {
 					if existing == criterion {
 						return nil
@@ -74,7 +74,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("success_criteria_add", map[string]string{
 					"node":      nodeAddr,
 					"criterion": criterion,
