@@ -6,7 +6,9 @@ Launches the daemon. This is where work gets done.
 
 Loads and [deep-merges configuration](../configuration.md#three-tiers) from all three tiers. Checks for an existing daemon via PID file; refuses to start if one is already running. Records the current git branch name for [branch safety checks](../collaboration.md#default-behavior).
 
-Runs a startup validation subset (orphaned files, missing indices, stale in-progress states) and blocks on errors. If a task was left `in_progress` from a previous crash, the [self-healing](../failure-and-recovery.md#self-healing) system picks it up first.
+Before validation, the daemon runs a pre-start self-heal pass. It fixes deterministic issues automatically: stale tasks, propagation mismatches, missing audit tasks. It also derives parent task status from children; if `task-0002` has subtasks `task-0002.0001` through `task-0002.0003` all complete, `task-0002` is auto-completed. If self-heal fixes anything, it prints what it fixed. Issues that survive self-heal block startup with an error pointing to `wolfcastle doctor --fix`.
+
+After self-heal, the startup validation subset (orphaned files, missing indices, remaining structural checks) runs and blocks on errors. If a task was left `in_progress` from a previous crash, the [self-healing](../failure-and-recovery.md#self-healing) system picks it up first.
 
 Then the loop begins: [navigate](navigate.md) to the next task, run the [pipeline stages](../how-it-works.md#the-pipeline), stream output to NDJSON [logs](../collaboration.md#logging), parse script calls, check for stop signals, repeat. One task at a time. Depth-first. Until the tree is conquered or you tell it to stop.
 

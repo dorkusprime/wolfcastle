@@ -7,25 +7,34 @@ The daemon (`internal/daemon/daemon.go`) is the heart of Wolfcastle. It runs a s
 ```
 RunWithSupervisor
   └── Run (main loop)
-       ├── selfHeal (ADR-020: find interrupted tasks)
+       ├── selfHeal (ADR-020: find interrupted tasks, derive parents)
        ├── branch check (ADR-015)
        ├── snapshotDeliverables (baseline hashes for change detection)
        ├── start inbox goroutine (ADR-064: parallel intake)
        ├── start spinner goroutine
        └── for each iteration:
-            └── RunOnce
+            └── RunOnce (three-step iteration)
                  ├── check shutdown/stop-file/iteration-cap
-                 ├── navigate to find work (state.FindNextTask)
-                 └── runIteration
-                      ├── claim task
-                      ├── PauseSpinner
-                      ├── run execute stage
-                      ├── ResumeSpinner
-                      ├── reclaim foreground process group
-                      ├── reload state from disk (model CLI calls may have mutated it)
-                      ├── scan for terminal markers (COMPLETE/YIELD/BLOCKED)
-                      ├── checkDeliverablesChanged
-                      └── handle failure thresholds
+                 ├── Step 1 (Execute): navigate via FindNextTask, run pipeline if found
+                 ├── Step 2 (Plan): if no task, find childless orchestrator, plan it
+                 └── Step 3 (Idle): report status, wait for inbox or poll timeout
+```
+
+Each `RunOnce` call follows this three-step sequence. Step 1 always runs first: find a task via navigation and execute it. Only when navigation returns nothing does the daemon fall through to Step 2, which looks for an orchestrator with no children and runs the planning stage against it. If neither step finds work, Step 3 reports the idle reason and blocks on either an inbox signal or the poll interval. Planning is lazy; it fires on demand, right before a subtree needs work.
+
+When Step 1 does find a task, `runIteration` handles it:
+
+```
+runIteration
+  ├── claim task
+  ├── PauseSpinner
+  ├── run execute stage
+  ├── ResumeSpinner
+  ├── reclaim foreground process group
+  ├── reload state from disk (model CLI calls may have mutated it)
+  ├── scan for terminal markers (COMPLETE/YIELD/BLOCKED)
+  ├── checkDeliverablesChanged
+  └── handle failure thresholds
 ```
 
 ## Spinner Coordination
@@ -47,6 +56,23 @@ Inbox processing uses a discovery-first approach: new inbox items are scanned an
 ## Parallel Inbox Processing (ADR-064)
 
 Inbox processing runs in a background goroutine started by `Run()`. The goroutine polls `inbox.json` at the configured interval and runs the intake stage when new items are found. This decouples inbox processing from task execution so neither blocks the other.
+
+## Self-Healing
+
+`selfHeal()` runs at the start of every `Run()` call. It walks all nodes in the root index and does two things:
+
+1. **Reset stale in_progress tasks.** If a task is in_progress and has children, derive the correct status via `DeriveParentStatus`. If it has no children, reset to not_started (it will be re-claimed next iteration).
+2. **Derive parent status from children.** For any task that has children, if the current state disagrees with what the children say, overwrite it with the derived status. This catches parents stuck in not_started or blocked when their children tell a different story. The check applies to all parent tasks, not just in_progress ones.
+
+### PreStartSelfHeal
+
+`PreStartSelfHeal(resolver, wolfcastleDir)` is a standalone function that runs the same two-pass logic (reset stale in_progress, derive parents) without needing a Daemon instance. It can be called before the Daemon is constructed to ensure stale state is corrected before validation gates the startup.
+
+### Pre-start FixWithVerification
+
+Before validation, the start command runs `validate.FixWithVerification` in multi-pass mode (up to 5 passes per ADR-051). Each pass validates the tree, applies deterministic fixes, and re-validates until no fixable issues remain. The call omits `wolfcastleDir` so the engine skips daemon artifact checks (PID file, stop file); those are intentional at startup, not stale leftovers.
+
+The sequence in `cmd/daemon/start.go` is: recover stale PID → `FixWithVerification` → startup validation gate → construct Daemon → `RunWithSupervisor`. The Daemon's own `selfHeal` runs inside `Run()` after construction.
 
 ## Key Invariants
 

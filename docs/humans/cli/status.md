@@ -15,6 +15,8 @@ Loads the root [state index](../how-it-works.md#distributed-state) and walks the
 
 Node addresses are shown in parentheses after the node name. Each task within a node is listed with its state and description. Blocked tasks include their block reason. Tasks that have failed show the failure count. Open [audit gaps](../audits.md) are printed inline beneath the node they belong to.
 
+Subtasks indent by depth within the tree. A task like `task-0001.0001` nests visually under `task-0001`. Completed orchestrators display a "(N nodes)" count next to their name; completed leaves show just their name.
+
 At the bottom, an inbox summary shows the count of new and filed items.
 
 Without `--watch`, prints once and exits. With `--watch`, holds the screen and refreshes at the configured interval.
@@ -25,8 +27,9 @@ Without `--watch`, prints once and exits. With `--watch`, holds the screen and r
 |------|-------------|
 | `--node <path>` | Show status for a specific subtree only. |
 | `--all` | Aggregate status across all engineer namespaces. |
-| `--watch`, `-w` | Continuously refresh the tree view. |
-| `--interval <seconds>` | Refresh interval for `--watch`, in seconds. Accepts float64. Default: `5`. |
+| `--watch`, `-w` | Continuously refresh the tree view. Uses the alternate screen buffer for flicker-free updates. |
+| `--interval <seconds>`, `-n` | Refresh interval for `--watch`, in seconds. Accepts float64. Default: `5`. |
+| `--expand` | Show all task details for completed nodes. By default, completed nodes collapse to just their name. |
 | `--json` | Output as structured JSON. |
 
 ## Exit Codes
