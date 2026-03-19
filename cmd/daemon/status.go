@@ -218,9 +218,17 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 			label = t.Description
 		}
 
+		// Indent subtasks by depth. task-0001.0002 gets one extra
+		// level, task-0001.0002.0003 gets two, etc.
+		taskIndent := indent + "  "
+		depth := strings.Count(t.ID, ".")
+		for i := 0; i < depth; i++ {
+			taskIndent += "  "
+		}
+
 		extra := ""
 		if t.State == state.StatusBlocked && t.BlockedReason != "" {
-			extra = "\n" + indent + "         " + t.BlockedReason
+			extra = "\n" + taskIndent + "       " + t.BlockedReason
 		}
 		if t.FailureCount > 0 && t.State != state.StatusComplete {
 			extra += fmt.Sprintf("  (%d failures)", t.FailureCount)
@@ -228,10 +236,10 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		// Show description detail for completed tasks when a title is
 		// the primary label and the description adds information.
 		if t.State == state.StatusComplete && t.Title != "" && t.Description != "" && t.Description != t.Title {
-			extra += "\n" + indent + "         " + t.Description
+			extra += "\n" + taskIndent + "       " + t.Description
 		}
 
-		output.PrintHuman("%s  %s %s  %s%s", indent, tGlyph, t.ID, label, extra)
+		output.PrintHuman("%s%s %s  %s%s", taskIndent, tGlyph, t.ID, label, extra)
 	}
 
 	// Gaps
@@ -397,6 +405,12 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 	for {
 		// Clear screen and move cursor to top-left
 		_, _ = fmt.Fprint(os.Stdout, "\033[2J\033[H")
+
+		// Show interval like watch(1) does
+		if output.IsTerminal() {
+			output.PrintHuman("%sEvery %.1fs: wolfcastle status%s", colorDim, intervalSec, colorReset)
+			output.PrintHuman("")
+		}
 
 		if showAll {
 			if err := showAllStatus(app); err != nil {

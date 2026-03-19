@@ -776,6 +776,16 @@ func TestStatusCmd_IntervalAcceptsSubSecond(t *testing.T) {
 	}
 }
 
+func TestStatusCmd_ShortIntervalFlag(t *testing.T) {
+	env := newTestEnv(t)
+	// -n should work as shorthand for --interval
+	env.RootCmd.SetArgs([]string{"status", "-n", "2"})
+	err := env.RootCmd.Execute()
+	if err != nil && strings.Contains(err.Error(), "unknown shorthand flag") {
+		t.Errorf("-n should be accepted as shorthand for --interval: %v", err)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // log command has --follow flag
 // ---------------------------------------------------------------------------

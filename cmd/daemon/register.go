@@ -30,7 +30,7 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	statusCmd.Flags().Bool("all", false, "Show status across all engineers")
 	statusCmd.Flags().String("node", "", "Show status for a specific subtree")
 	statusCmd.Flags().BoolP("watch", "w", false, "Refresh status on an interval")
-	statusCmd.Flags().Float64("interval", 5, "Refresh interval in seconds (with --watch)")
+	statusCmd.Flags().Float64P("interval", "n", 5, "Refresh interval in seconds (with --watch)")
 	_ = statusCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 
 	startCmd.GroupID = "lifecycle"
