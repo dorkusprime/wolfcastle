@@ -204,6 +204,35 @@ func TestShowAllStatus_WithMultipleNamespaces(t *testing.T) {
 	}
 }
 
+func TestCountDescendants(t *testing.T) {
+	idx := state.NewRootIndex()
+	idx.Nodes["root"] = state.IndexEntry{
+		Name: "Root", Type: state.NodeOrchestrator, Children: []string{"root/a", "root/b"},
+	}
+	idx.Nodes["root/a"] = state.IndexEntry{
+		Name: "A", Type: state.NodeOrchestrator, Parent: "root", Children: []string{"root/a/x"},
+	}
+	idx.Nodes["root/a/x"] = state.IndexEntry{
+		Name: "X", Type: state.NodeLeaf, Parent: "root/a",
+	}
+	idx.Nodes["root/b"] = state.IndexEntry{
+		Name: "B", Type: state.NodeLeaf, Parent: "root",
+	}
+
+	if got := countDescendants(idx, "root"); got != 3 {
+		t.Errorf("expected 3 descendants, got %d", got)
+	}
+	if got := countDescendants(idx, "root/a"); got != 1 {
+		t.Errorf("expected 1 descendant, got %d", got)
+	}
+	if got := countDescendants(idx, "root/b"); got != 0 {
+		t.Errorf("expected 0 descendants for leaf, got %d", got)
+	}
+	if got := countDescendants(idx, "nonexistent"); got != 0 {
+		t.Errorf("expected 0 for missing node, got %d", got)
+	}
+}
+
 func TestShowTreeStatus_SubtaskIndentation(t *testing.T) {
 	env := newStatusTestEnv(t)
 
