@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -202,10 +203,15 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		output.PrintHuman("Crash (attempt %d/%d): %v. Restarting in %v.", restart+1, maxRestarts, err, delay)
 		sleepFn(delay)
 
-		// Reset daemon state for next Run() invocation.
-		// Resetting sync.Once is safe here because all goroutines from
-		// the previous Run() have exited — the signal-forwarding goroutine
-		// terminates when ctx.Done() closes, and Run() has returned.
+		// Ensure previous goroutines see shutdown before we reset.
+		// The signal goroutine and context-cancel goroutine both
+		// select on d.shutdown; closing it lets them exit cleanly.
+		d.shutdownOnce.Do(func() { close(d.shutdown) })
+
+		// Brief yield so goroutines from the previous Run() can
+		// observe the closed channel and exit before we replace it.
+		runtime.Gosched()
+
 		d.shutdown = make(chan struct{})
 		d.shutdownOnce = sync.Once{}
 		d.workAvailable = make(chan struct{}, 1)
