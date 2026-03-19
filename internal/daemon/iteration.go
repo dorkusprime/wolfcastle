@@ -171,6 +171,17 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 		if marker == "WOLFCASTLE_BLOCKED" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
+
+			// For audit tasks with gaps, create remediation subtasks
+			// instead of blocking. The subtasks fix each gap, and when
+			// they all complete, DeriveParentStatus resets the audit to
+			// not_started so it re-runs to verify the fixes.
+			if created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID); created > 0 {
+				_ = d.Logger.Log(map[string]any{"type": "audit_remediation", "task": nav.TaskID, "subtasks": created})
+				output.PrintHuman("  Created %d remediation subtask(s) from audit gaps", created)
+				return nil
+			}
+
 			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 				return state.TaskBlock(ns, nav.TaskID, "blocked by model")
 			}); err != nil {
@@ -510,4 +521,57 @@ func findNewTasks(before, after *state.NodeState) []string {
 		}
 	}
 	return newIDs
+}
+
+// createRemediationSubtasks checks if the given task is an audit with
+// open gaps and, if so, creates a subtask for each gap. Returns the
+// number of subtasks created (0 if the task isn't an audit or has no gaps).
+func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
+	var created int
+	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+		// Find the audit task
+		auditIdx := -1
+		for i, t := range ns.Tasks {
+			if t.ID == taskID && t.IsAudit {
+				auditIdx = i
+				break
+			}
+		}
+		if auditIdx < 0 {
+			return nil
+		}
+
+		// Collect open gaps
+		var openGaps []state.Gap
+		for _, g := range ns.Audit.Gaps {
+			if g.Status == state.GapOpen {
+				openGaps = append(openGaps, g)
+			}
+		}
+		if len(openGaps) == 0 {
+			return nil
+		}
+
+		// Create a subtask for each open gap
+		for i, g := range openGaps {
+			childID := fmt.Sprintf("%s.%04d", taskID, i+1)
+			ns.Tasks = append(ns.Tasks, state.Task{
+				ID:          childID,
+				Description: fmt.Sprintf("Fix: %s", g.Description),
+				State:       state.StatusNotStarted,
+			})
+			created++
+			output.PrintHuman("  %s: %s", childID, g.Description)
+		}
+
+		// Reset the audit task to not_started so it doesn't stay blocked.
+		// Navigation will pick up the children first (depth-first), and
+		// when they complete, DeriveParentStatus resets the audit to
+		// not_started for re-verification.
+		ns.Tasks[auditIdx].State = state.StatusNotStarted
+		ns.Tasks[auditIdx].BlockedReason = ""
+
+		return nil
+	})
+	return created
 }

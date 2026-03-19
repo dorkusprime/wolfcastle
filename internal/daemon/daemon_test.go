@@ -391,6 +391,90 @@ func TestSelfHeal_DerivesStaleParentStatus(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// createRemediationSubtasks
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestCreateRemediationSubtasks_AuditWithGaps(t *testing.T) {
+	d := testDaemon(t)
+	projDir := d.Resolver.ProjectsDir()
+
+	ns := state.NewNodeState("my-node", "My Node", state.NodeLeaf)
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", State: state.StatusComplete},
+		{ID: "audit", State: state.StatusBlocked, IsAudit: true, BlockedReason: "blocked by model"},
+	}
+	ns.Audit.Gaps = []state.Gap{
+		{ID: "gap-1", Description: "Race condition in follow.go", Status: state.GapOpen},
+		{ID: "gap-2", Description: "Duplicate tests", Status: state.GapOpen},
+		{ID: "gap-3", Description: "Already resolved", Status: state.GapFixed},
+	}
+	setupLeafNode(t, d, "my-node", ns.Tasks)
+
+	// Write the audit state with gaps
+	nsPath := filepath.Join(projDir, "my-node", "state.json")
+	ns2, _ := state.LoadNodeState(nsPath)
+	ns2.Audit = ns.Audit
+	writeJSON(t, nsPath, ns2)
+
+	created := d.createRemediationSubtasks("my-node", "audit")
+	if created != 2 {
+		t.Fatalf("expected 2 subtasks (only open gaps), got %d", created)
+	}
+
+	// Verify subtasks were created
+	after, _ := state.LoadNodeState(nsPath)
+	var childIDs []string
+	for _, task := range after.Tasks {
+		if strings.HasPrefix(task.ID, "audit.") {
+			childIDs = append(childIDs, task.ID)
+		}
+	}
+	if len(childIDs) != 2 {
+		t.Fatalf("expected 2 audit subtasks, got %d: %v", len(childIDs), childIDs)
+	}
+	if childIDs[0] != "audit.0001" || childIDs[1] != "audit.0002" {
+		t.Errorf("expected audit.0001 and audit.0002, got %v", childIDs)
+	}
+
+	// Verify audit task was reset to not_started
+	for _, task := range after.Tasks {
+		if task.ID == "audit" {
+			if task.State != state.StatusNotStarted {
+				t.Errorf("audit should be reset to not_started, got %s", task.State)
+			}
+			if task.BlockedReason != "" {
+				t.Errorf("blocked reason should be cleared, got %q", task.BlockedReason)
+			}
+			break
+		}
+	}
+}
+
+func TestCreateRemediationSubtasks_NonAuditReturnsZero(t *testing.T) {
+	d := testDaemon(t)
+	setupLeafNode(t, d, "my-node", []state.Task{
+		{ID: "task-0001", State: state.StatusBlocked, BlockedReason: "stuck"},
+	})
+
+	created := d.createRemediationSubtasks("my-node", "task-0001")
+	if created != 0 {
+		t.Errorf("non-audit task should not create subtasks, got %d", created)
+	}
+}
+
+func TestCreateRemediationSubtasks_AuditNoGapsReturnsZero(t *testing.T) {
+	d := testDaemon(t)
+	setupLeafNode(t, d, "my-node", []state.Task{
+		{ID: "audit", State: state.StatusBlocked, IsAudit: true},
+	})
+
+	created := d.createRemediationSubtasks("my-node", "audit")
+	if created != 0 {
+		t.Errorf("audit without gaps should not create subtasks, got %d", created)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // RunOnce
 // ═══════════════════════════════════════════════════════════════════════════
 

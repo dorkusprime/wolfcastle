@@ -159,6 +159,14 @@ func DeriveParentStatus(ns *NodeState, taskID string) (NodeStatus, bool) {
 	}
 
 	if allComplete {
+		// Audit tasks reset to not_started when remediation children
+		// complete so the audit re-runs to verify the fixes. Regular
+		// parent tasks derive to complete normally.
+		for _, t := range ns.Tasks {
+			if t.ID == taskID && t.IsAudit {
+				return StatusNotStarted, true
+			}
+		}
 		return StatusComplete, true
 	}
 	if anyInProgress {
