@@ -256,12 +256,9 @@ func TestRunInteractiveUnblock_ModelNotFound(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	// Write through ConfigRepository so both app.Cfg and Config.Load() agree.
 	_ = app.Config.WriteCustom(map[string]any{
 		"unblock": map[string]any{"model": "nonexistent-model"},
 	})
-	cfg, _ := app.Config.Load()
-	app.Cfg = cfg
 
 	err := runInteractiveUnblock(t.Context(), "my-project/task-0001", "diagnostic text")
 	if err == nil {

@@ -136,9 +136,13 @@ func buildDiagnostic(nodeAddr, taskID string, ns *state.NodeState, task *state.T
 }
 
 func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic string) error {
-	model, ok := app.Cfg.Models[app.Cfg.Unblock.Model]
+	cfg, err := app.Config.Load()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+	model, ok := cfg.Models[cfg.Unblock.Model]
 	if !ok {
-		return fmt.Errorf("unblock model %q not found", app.Cfg.Unblock.Model)
+		return fmt.Errorf("unblock model %q not found", cfg.Unblock.Model)
 	}
 
 	// Load unblock prompt from externalized template (falls back to inline text)
@@ -162,12 +166,12 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	// Multi-turn: invoke model, show response, get user input, repeat.
 	// Keep a sliding window of conversation history to avoid unbounded growth.
 	const maxConversationBytes = 100_000
-	repoDir := filepath.Dir(app.WolfcastleDir)
+	repoDir := filepath.Dir(app.Config.Root())
 	conversation := prompt
 
 	for {
 		output.PrintHuman("  thinking...")
-		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(app.Cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
+		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
 		result, invokeErr := invoke.Invoke(invokeCtx, model, conversation, repoDir)
 		cancel()
 
@@ -238,8 +242,8 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 // loadUnblockPreamble loads the unblock.md prompt via the three-tier
 // resolution system, falling back to a hardcoded default.
 func loadUnblockPreamble() string {
-	if app.WolfcastleDir != "" {
-		content, err := pipeline.ResolvePromptTemplate(app.WolfcastleDir, "unblock.md", nil)
+	if app.Config != nil {
+		content, err := pipeline.ResolvePromptTemplate(app.Config.Root(), "unblock.md", nil)
 		if err == nil {
 			return content
 		}

@@ -65,15 +65,12 @@ func TestDoctorCmd_ModelAssistedFixBlock(t *testing.T) {
 	app = env.App
 	app.Invoker = invoke.NewProcessInvoker()
 
-	// Write doctor config through ConfigRepository so both app.Cfg and Config.Load() agree.
 	_ = app.Config.WriteCustom(map[string]any{
 		"doctor": map[string]any{"model": "test-model"},
 		"models": map[string]any{
 			"test-model": map[string]any{"command": "echo", "args": []any{"test"}},
 		},
 	})
-	cfg, _ := app.Config.Load()
-	app.Cfg = cfg
 
 	rootCmd.SetArgs([]string{"doctor", "--fix"})
 	if err := rootCmd.Execute(); err != nil {
@@ -89,15 +86,12 @@ func TestDoctorCmd_ModelAssistedFixWithIssues(t *testing.T) {
 	app = env.App
 	app.Invoker = invoke.NewProcessInvoker()
 
-	// Write doctor config through ConfigRepository so both app.Cfg and Config.Load() agree.
 	_ = app.Config.WriteCustom(map[string]any{
 		"doctor": map[string]any{"model": "test-model"},
 		"models": map[string]any{
 			"test-model": map[string]any{"command": "echo", "args": []any{"test"}},
 		},
 	})
-	cfg, _ := app.Config.Load()
-	app.Cfg = cfg
 
 	// Create a node with issues that have FixType model-assisted to exercise
 	// the code block (the actual invoke will fail, but the code path is covered)
