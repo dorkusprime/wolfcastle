@@ -54,11 +54,20 @@ ADRs and specs together explain the system. Missing documentation is a REMEDIATE
 - [ ] **Every contract has a spec.** If a task created a type, interface, or package that other code depends on, a spec should exist in `.wolfcastle/docs/specs/` documenting: what it does, its methods/API, error behavior, and usage patterns. Placeholder specs (title only, fewer than 10 lines) count as missing. Delete placeholders and create real specs.
 - [ ] **Specs and ADRs are in the right place.** Specs in `.wolfcastle/docs/specs/`, ADRs in `.wolfcastle/docs/decisions/`, research in `.wolfcastle/artifacts/`.
 
+## Pre-existing vs introduced issues
+
+Not everything you find is this node's fault. Before recording a gap, check whether the issue existed before this node's work started. Look at git blame, the commit history, or whether the file was modified by any task in this node.
+
+- **Introduced by this node's work**: record as an audit gap. This blocks the audit and triggers remediation.
+- **Pre-existing (not introduced or modified by this node)**: record as an escalation with `wolfcastle audit escalate`, not a gap. Escalations are informational. They do not block the audit. The issue is real, but fixing it is someone else's job.
+
+If a test fails but the failing code was never touched by this node, that's an escalation. If the race detector flags code this node didn't write, that's an escalation. If a linter warns about a file this node didn't modify, that's an escalation.
+
 ## Verdicts
 
 After completing all checks:
 
-- **PASS**: Everything checks out. No findings. Emit WOLFCASTLE_COMPLETE.
-- **REMEDIATE**: You found concrete, verifiable issues. Record each one as an audit gap with `wolfcastle audit gap`, then emit WOLFCASTLE_BLOCKED with a summary of what needs fixing. Every remediation must cite specific evidence (file, line, or test output). No hypothetical improvements, style preferences, or "could-be-betters."
+- **PASS**: No findings introduced by this node's work. Pre-existing escalations are fine; they don't prevent PASS. Emit WOLFCASTLE_COMPLETE.
+- **REMEDIATE**: You found concrete, verifiable issues introduced by this node's work. Record each one as an audit gap with `wolfcastle audit gap`, then emit WOLFCASTLE_BLOCKED with a summary of what needs fixing. Every remediation must cite specific evidence (file, line, or test output). No hypothetical improvements, style preferences, or "could-be-betters."
 
-PASS is the expected outcome for well-executed work. Only REMEDIATE when you have evidence.
+PASS is the expected outcome for well-executed work. Only REMEDIATE for issues this node caused.
