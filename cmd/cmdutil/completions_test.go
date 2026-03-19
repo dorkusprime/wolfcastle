@@ -117,17 +117,22 @@ func TestCheckOverlap_ShortText(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
 
 	// Create another namespace with a project
 	otherDir := filepath.Join(wcDir, "system", "projects", "other-dev")
 	_ = os.MkdirAll(otherDir, 0755)
 	_ = os.WriteFile(filepath.Join(otherDir, "proj.md"), []byte("some content"), 0644)
 
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		WolfcastleDir: wcDir,
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.1},
-		},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: ns},
 	}
 	// Use all stop words, should produce empty bigrams and bail early
 	a.CheckOverlap("the", "the and for")
@@ -218,13 +223,21 @@ func TestLoadConfig_MalformedConfig(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCheckOverlap_NonexistentProjectsDir(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		WolfcastleDir: "/nonexistent/path",
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.1},
-		},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: "me-dev"},
 	}
-	// Should not panic, just silently return
+	// No projects dir for this namespace, should not panic
 	a.CheckOverlap("database migration", "migrate the schema")
 }
 
@@ -237,6 +250,7 @@ func TestCheckOverlap_NoMatchesBelowThreshold(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
 
 	// Another engineer with completely different topic
 	otherDir := filepath.Join(wcDir, "system", "projects", "alice-dev")
@@ -244,11 +258,15 @@ func TestCheckOverlap_NoMatchesBelowThreshold(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(otherDir, "quantum.md"),
 		[]byte("quantum entanglement photon superposition"), 0644)
 
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.9
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		WolfcastleDir: wcDir,
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.9},
-		},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: ns},
 	}
 	// High threshold means no match
 	a.CheckOverlap("database migration", "migrate postgresql schema")

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -66,12 +65,15 @@ func TestDoctorCmd_ModelAssistedFixBlock(t *testing.T) {
 	app = env.App
 	app.Invoker = invoke.NewProcessInvoker()
 
-	// Set up config with a doctor model reference (the model won't actually
-	// be invoked because there are no model-assisted issues)
-	app.Cfg.Doctor.Model = "test-model"
-	app.Cfg.Models = map[string]config.ModelDef{
-		"test-model": {Command: "echo", Args: []string{"test"}},
-	}
+	// Write doctor config through ConfigRepository so both app.Cfg and Config.Load() agree.
+	_ = app.Config.WriteCustom(map[string]any{
+		"doctor": map[string]any{"model": "test-model"},
+		"models": map[string]any{
+			"test-model": map[string]any{"command": "echo", "args": []any{"test"}},
+		},
+	})
+	cfg, _ := app.Config.Load()
+	app.Cfg = cfg
 
 	rootCmd.SetArgs([]string{"doctor", "--fix"})
 	if err := rootCmd.Execute(); err != nil {
@@ -87,11 +89,15 @@ func TestDoctorCmd_ModelAssistedFixWithIssues(t *testing.T) {
 	app = env.App
 	app.Invoker = invoke.NewProcessInvoker()
 
-	// Set up config with a doctor model
-	app.Cfg.Doctor.Model = "test-model"
-	app.Cfg.Models = map[string]config.ModelDef{
-		"test-model": {Command: "echo", Args: []string{"test"}},
-	}
+	// Write doctor config through ConfigRepository so both app.Cfg and Config.Load() agree.
+	_ = app.Config.WriteCustom(map[string]any{
+		"doctor": map[string]any{"model": "test-model"},
+		"models": map[string]any{
+			"test-model": map[string]any{"command": "echo", "args": []any{"test"}},
+		},
+	})
+	cfg, _ := app.Config.Load()
+	app.Cfg = cfg
 
 	// Create a node with issues that have FixType model-assisted to exercise
 	// the code block (the actual invoke will fail, but the code path is covered)

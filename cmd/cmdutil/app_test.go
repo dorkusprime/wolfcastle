@@ -387,6 +387,18 @@ func TestLoadConfig_Success(t *testing.T) {
 	if a.Cfg == nil {
 		t.Error("expected config to be loaded")
 	}
+	// Verify new repository fields are populated.
+	if a.Config == nil {
+		t.Error("expected Config repository to be set")
+	}
+	if a.Identity == nil {
+		t.Error("expected Identity to be set")
+	} else if a.Identity.Namespace != "tester-box" {
+		t.Errorf("Identity.Namespace = %q, want %q", a.Identity.Namespace, "tester-box")
+	}
+	if a.State == nil {
+		t.Error("expected State store to be set")
+	}
 	// Resolver may or may not init depending on identity; at minimum WolfcastleDir is set
 	resolvedWC, _ := filepath.EvalSymlinks(wcDir)
 	resolvedApp, _ := filepath.EvalSymlinks(a.WolfcastleDir)

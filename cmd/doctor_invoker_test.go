@@ -273,12 +273,15 @@ func TestDoctorCmd_ModelAssistedFix_WithMockInvoker(t *testing.T) {
 	env := newTestEnv(t)
 	app = env.App
 
-	// Configure doctor model
-	app.Cfg.Doctor.Model = "doctor-model"
-	app.Cfg.Models["doctor-model"] = config.ModelDef{
-		Command: "test-doctor",
-		Args:    []string{},
-	}
+	// Write doctor config through ConfigRepository so both app.Cfg and Config.Load() agree.
+	_ = app.Config.WriteCustom(map[string]any{
+		"doctor": map[string]any{"model": "doctor-model"},
+		"models": map[string]any{
+			"doctor-model": map[string]any{"command": "test-doctor", "args": []any{}},
+		},
+	})
+	cfg, _ := app.Config.Load()
+	app.Cfg = cfg
 
 	// Set up mock invoker that returns a valid fix
 	mock := &mockInvoker{
