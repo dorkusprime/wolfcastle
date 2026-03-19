@@ -1,73 +1,93 @@
 # Audit
 
-Verify all work in this node is complete, correct, and high-quality. This audit covers both leaf nodes (verifying specific tasks) and orchestrator nodes (verifying the aggregate of all children).
+Verify all work in this node is complete, correct, and high-quality.
 
 For leaf nodes, your scope is the files touched by tasks in this node.
 For orchestrator nodes, your scope is everything touched by all descendant nodes.
 
-## 1. Completeness
+## Phase 1: Read the code
 
-- [ ] All tasks marked complete actually did what they claimed
-- [ ] Deliverables exist and contain meaningful content
-- [ ] No files were left in a broken state
-- [ ] Breadcrumbs describe what was done and why
-- [ ] No gaps remain open
+Read every file this node touched. Don't check boxes yet. Just read, and write down what you notice. What feels wrong? What would you question in a code review? What makes you uneasy? Follow your instincts before following the rubric.
 
-## 2. Build and test verification
+Look for things like:
+- An `os.ReadFile` that takes a user-controlled path without validation
+- A `_ = someFunc()` that silently drops an error that matters
+- A function that's doing two unrelated things
+- A race condition hiding behind "this probably won't happen concurrently"
+- Dead code that nobody calls
+- A test that tests the mock, not the behavior
 
-Run the project's build and test commands. If you don't know what they are, look for a Makefile, package.json, Cargo.toml, go.mod, or equivalent. At minimum:
+Write your findings as a numbered list before moving to Phase 2.
 
-- [ ] **The project builds without errors.** Run the build command. If it fails, the audit verdict is REMEDIATE.
-- [ ] **All tests pass.** Run the test suite. If any test fails, the audit verdict is REMEDIATE. Include the failing test name and error in your gap report.
-- [ ] **No formatting violations.** Run the project's formatter (gofmt, prettier, rustfmt, clang-format, etc.). If files need formatting, fix them and commit.
-- [ ] **Static analysis clean.** Run the project's linter if one is configured. New warnings introduced by this node's work are audit findings.
+## Phase 2: Rubric deep dive
 
-## 3. Correctness
+Now work through each rubric section. The rubric may surface issues your initial read missed. Add any new findings to your list.
 
-Read the code changes made by tasks in this node. For each file changed:
+### Build and test verification
 
-- [ ] **Nil/null safety.** Every pointer, optional, or interface field is checked or initialized before use. Struct constructors and Init methods set all fields. No nil dereference paths exist.
-- [ ] **Error handling.** Every error is either returned with context, logged, or explicitly discarded with a comment explaining why. Bare `_ = someFunc()` without justification is a finding. Errors from I/O operations (file writes, network calls, directory creation) are never silently ignored.
-- [ ] **Edge cases.** Empty inputs, zero values, nil collections, boundary conditions. Functions handle these gracefully rather than panicking.
-- [ ] **Concurrency safety.** Shared mutable state is protected by locks or channels. No race conditions are introduced. If the project has a race detector, run it.
+Run the project's build and test commands. Look for a Makefile, go.mod, package.json, or equivalent.
 
-## 4. Code quality
+- The project builds without errors
+- All tests pass (include failing test name and error if not)
+- No formatting violations (run gofmt, prettier, rustfmt, etc.; fix and commit if needed)
+- Static analysis clean (run the linter if configured; new warnings from this node's work are findings)
 
-- [ ] **No duplication.** Search for logic that appears in more than one place. If two functions render the same output, format the same data, or implement the same algorithm, one should delegate to the other. Copy-paste with minor variations is a finding.
-- [ ] **No dead code.** Functions, variables, or imports that are never called or used. Commented-out code blocks. Unreachable branches. Remove them.
-- [ ] **No overly complex functions.** Functions longer than 50 lines or with deeply nested conditionals (3+ levels) should be decomposed. High cyclomatic complexity is a finding.
-- [ ] **Clear naming.** Types, functions, and variables have descriptive names. No abbreviations that obscure meaning. No stuttering (e.g., a package named `config` with a type named `ConfigManager`).
-- [ ] **Minimal public surface.** Only export what callers need. Unexported helpers should stay unexported. If a type or function was exported but has no external callers, it should be unexported.
+### Correctness
 
-## 5. Modularity and architecture
+For each file this node changed:
 
-- [ ] **Single responsibility.** Each file, function, and type does one thing. Files that mix unrelated concerns are a finding.
-- [ ] **No circular dependencies.** Packages/modules do not import each other. If a dependency needs to flow both ways, an interface should break the cycle.
-- [ ] **Consistent patterns.** Similar problems are solved the same way throughout the codebase. If a new pattern was introduced, verify it doesn't contradict an existing one without good reason.
-- [ ] **Clean interfaces.** Interfaces have the minimal set of methods their consumers need. No "god interfaces" with 10+ methods when callers use 2.
+- Nil/null safety: every pointer, optional, or interface field is checked or initialized before use
+- Error handling: every error is returned with context, logged, or explicitly discarded with justification. Grep for `_ =` in files this node wrote or modified; each one needs a reason
+- Edge cases: empty inputs, zero values, nil collections, boundary conditions
+- Concurrency safety: shared mutable state is protected. Run the race detector if available
+- Security: inputs from external sources (file paths, user input, model output) are validated. No path traversal, injection, or unescaped interpolation
 
-## 6. Documentation: ADRs (WHY) and Specs (WHAT/HOW)
+### Code quality
 
-ADRs and specs together explain the system. Missing documentation is a REMEDIATE finding.
+- No duplication: search for copy-pasted logic across files
+- No dead code: unused functions, variables, imports, commented-out blocks
+- No overly complex functions: 50+ lines or 3+ levels of nesting should be decomposed
+- Clear naming: no abbreviations that obscure meaning, no stuttering (config.ConfigManager)
+- Minimal public surface: only export what callers need
 
-- [ ] **Every choice has an ADR.** Read the code changes. For each place where the developer chose between alternatives (concrete type vs interface, caching strategy, error handling approach, sync vs async, package structure), an ADR should exist in `.wolfcastle/docs/decisions/`. If a reasonable developer would ask "why was it done this way?" and there's no ADR answering that question, the verdict is REMEDIATE. Create the ADR yourself if you can determine the reasoning from the code; otherwise record it as a gap.
-- [ ] **Every contract has a spec.** If a task created a type, interface, or package that other code depends on, a spec should exist in `.wolfcastle/docs/specs/` documenting: what it does, its methods/API, error behavior, and usage patterns. Placeholder specs (title only, fewer than 10 lines) count as missing. Delete placeholders and create real specs.
-- [ ] **Specs and ADRs are in the right place.** Specs in `.wolfcastle/docs/specs/`, ADRs in `.wolfcastle/docs/decisions/`, research in `.wolfcastle/artifacts/`.
+### Modularity and architecture
 
-## Pre-existing vs introduced issues
+- Single responsibility: each file, function, type does one thing
+- No circular dependencies
+- Consistent patterns: similar problems solved the same way
+- Clean interfaces: minimal method sets, no god interfaces
 
-Not everything you find is this node's fault. Before recording a gap, check whether the issue existed before this node's work started. Look at git blame, the commit history, or whether the file was modified by any task in this node.
+### Documentation
 
-- **Introduced by this node's work**: record as an audit gap. This blocks the audit and triggers remediation.
-- **Pre-existing (not introduced or modified by this node)**: record as an escalation with `wolfcastle audit escalate`, not a gap. Escalations are informational. They do not block the audit. The issue is real, but fixing it is someone else's job.
+- Every non-obvious choice has an ADR in `.wolfcastle/docs/decisions/`
+- Every contract (type, interface, package API) has a spec in `.wolfcastle/docs/specs/`
+- Placeholder specs (title only, fewer than 10 lines) count as missing
 
-If a test fails but the failing code was never touched by this node, that's an escalation. If the race detector flags code this node didn't write, that's an escalation. If a linter warns about a file this node didn't modify, that's an escalation.
+## Phase 3: Weigh the findings
+
+You now have a combined list from Phase 1 and Phase 2. For each finding, decide:
+
+**Is it introduced by this node's work, or pre-existing?**
+
+Check git blame, commit history, or whether the file was modified by any task in this node.
+
+- Introduced by this node: could be a gap (blocks audit) or acceptable (document and move on)
+- Pre-existing: record as an escalation with `wolfcastle audit escalate`. Escalations don't block the audit.
+
+**For issues introduced by this node, is it worth remediating?**
+
+- Security vulnerabilities, data loss, crash paths: always remediate
+- Silent error swallowing on I/O operations: remediate
+- Race conditions in production code: remediate
+- Dead code, naming issues, minor style: fix it yourself during the audit if quick, otherwise accept
+- Coverage ceilings from untestable code paths: document and accept
+- Hypothetical improvements with no concrete evidence: discard
+
+Record remediations as gaps with `wolfcastle audit gap`. Record escalations with `wolfcastle audit escalate`. Fix trivial issues directly and commit.
 
 ## Verdicts
 
-After completing all checks:
+- **PASS**: No findings that warrant remediation. Escalations and accepted tradeoffs are fine. Emit WOLFCASTLE_COMPLETE.
+- **REMEDIATE**: Concrete, verifiable issues introduced by this node that need fixing. Record each as a gap, then emit WOLFCASTLE_BLOCKED. Every gap must cite specific evidence (file, line, test output).
 
-- **PASS**: No findings introduced by this node's work. Pre-existing escalations are fine; they don't prevent PASS. Emit WOLFCASTLE_COMPLETE.
-- **REMEDIATE**: You found concrete, verifiable issues introduced by this node's work. Record each one as an audit gap with `wolfcastle audit gap`, then emit WOLFCASTLE_BLOCKED with a summary of what needs fixing. Every remediation must cite specific evidence (file, line, or test output). No hypothetical improvements, style preferences, or "could-be-betters."
-
-PASS is the expected outcome for well-executed work. Only REMEDIATE for issues this node caused.
+PASS is the expected outcome for well-executed work. Only REMEDIATE when you have evidence of real problems this node caused.
