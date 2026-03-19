@@ -72,7 +72,9 @@ func (m *MigrationService) MigrateOldConfig() error {
 	oldCfgPath := filepath.Join(m.root, "config.json")
 	if _, err := os.Stat(oldCfgPath); err == nil {
 		customDir := filepath.Join(m.root, "system", "custom")
-		_ = os.MkdirAll(customDir, 0755)
+		if err := os.MkdirAll(customDir, 0755); err != nil {
+			return fmt.Errorf("creating system/custom/: %w", err)
+		}
 		customCfgPath := filepath.Join(customDir, "config.json")
 		if _, err := os.Stat(customCfgPath); os.IsNotExist(err) {
 			data, err := os.ReadFile(oldCfgPath)
@@ -90,7 +92,9 @@ func (m *MigrationService) MigrateOldConfig() error {
 	oldLocalPath := filepath.Join(m.root, "config.local.json")
 	if _, err := os.Stat(oldLocalPath); err == nil {
 		localDir := filepath.Join(m.root, "system", "local")
-		_ = os.MkdirAll(localDir, 0755)
+		if err := os.MkdirAll(localDir, 0755); err != nil {
+			return fmt.Errorf("creating system/local/: %w", err)
+		}
 		localCfgPath := filepath.Join(localDir, "config.json")
 
 		oldData, err := os.ReadFile(oldLocalPath)
@@ -104,7 +108,9 @@ func (m *MigrationService) MigrateOldConfig() error {
 
 		existing := map[string]any{}
 		if data, readErr := os.ReadFile(localCfgPath); readErr == nil {
-			_ = json.Unmarshal(data, &existing)
+			if err := json.Unmarshal(data, &existing); err != nil {
+				return fmt.Errorf("system/local/config.json is not valid JSON: %w", err)
+			}
 		}
 
 		merged := config.DeepMerge(existing, oldLocal)

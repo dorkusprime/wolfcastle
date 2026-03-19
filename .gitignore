@@ -2,6 +2,7 @@ wolfcastle
 dist/
 .DS_Store
 coverage.out
+cover*.out
 *.coverprofile
 *.test
 .claude/

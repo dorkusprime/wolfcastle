@@ -103,3 +103,7 @@ Wolfcastle [commits code to your current branch](docs/humans/collaboration.md#gi
 ## Design Documents
 
 The [Architecture Decision Records](docs/decisions/INDEX.md) document every major design choice. The [Specifications](docs/specs/) provide detailed formal specs for the state machine, configuration system, pipelines, CLI surface, and validation engine. For developer and agent guides covering code standards, architecture, and internals, see [AGENTS.md](AGENTS.md) and [docs/agents/](docs/agents/).
+
+<p align="center">
+  <img src="assets/neon-wolf.png" width="150" />
+</p>

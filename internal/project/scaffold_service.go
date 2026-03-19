@@ -150,10 +150,14 @@ func (s *ScaffoldService) Init(identity *config.Identity) error {
 // first so users upgrading from older directory structures land in the
 // correct layout before regeneration begins.
 func (s *ScaffoldService) Reinit() error {
-	// Run migrations (best-effort; errors logged but not propagated)
+	// Run migrations before regeneration begins.
 	m := &MigrationService{config: s.config, root: s.root}
-	_ = m.MigrateDirectoryLayout()
-	_ = m.MigrateOldConfig()
+	if err := m.MigrateDirectoryLayout(); err != nil {
+		return fmt.Errorf("scaffold: migrating directory layout: %w", err)
+	}
+	if err := m.MigrateOldConfig(); err != nil {
+		return fmt.Errorf("scaffold: migrating old config: %w", err)
+	}
 
 	// Remove and recreate system/base/
 	baseDir := filepath.Join(s.root, "system", "base")

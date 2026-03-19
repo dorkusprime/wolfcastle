@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -57,9 +58,11 @@ func (t *Task) RenderContext() string {
 		for _, r := range t.References {
 			fmt.Fprintf(&b, "- `%s`\n", r)
 		}
-		// Inline spec content when references point to readable files
+		// Inline spec content when references point to readable .md files.
+		// Reject paths containing ".." to prevent traversal outside the
+		// project directory.
 		for _, r := range t.References {
-			if strings.HasSuffix(r, ".md") {
+			if strings.HasSuffix(r, ".md") && !strings.Contains(filepath.Clean(r), "..") {
 				if content, err := os.ReadFile(r); err == nil {
 					trimmed := strings.TrimSpace(string(content))
 					if len(trimmed) > 0 && len(trimmed) < 8000 {
