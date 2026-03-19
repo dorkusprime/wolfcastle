@@ -84,6 +84,10 @@ Examples:
 			}
 			daemon.RemovePID(app.WolfcastleDir)
 
+			// Self-heal stale tasks BEFORE validation. Without this,
+			// validation blocks startup for conditions self-heal would fix.
+			daemon.PreStartSelfHeal(app.Resolver, app.WolfcastleDir)
+
 			// Startup validation gate — block on error-severity issues
 			idx, idxErr := app.Resolver.LoadRootIndex()
 			if idxErr == nil {

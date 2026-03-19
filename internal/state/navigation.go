@@ -220,6 +220,16 @@ func isChildTask(id string) bool {
 	return strings.Contains(id, ".")
 }
 
+// parentTaskID returns the parent portion of a hierarchical task ID.
+// e.g., "task-0001.0002" → "task-0001"
+func parentTaskID(childID string) string {
+	dot := strings.LastIndex(childID, ".")
+	if dot < 0 {
+		return ""
+	}
+	return childID[:dot]
+}
+
 // parentInList checks if the immediate parent of a child task exists in the list.
 func parentInList(childID string, tasks []Task) bool {
 	dot := strings.LastIndex(childID, ".")

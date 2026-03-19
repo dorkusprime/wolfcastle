@@ -311,11 +311,16 @@ func TestSelfHeal_MultipleInterruptedTasks(t *testing.T) {
 	writeJSON(t, filepath.Join(projDir, "node-b", "state.json"), nsB)
 
 	err := d.selfHeal()
-	if err == nil {
-		t.Fatal("selfHeal should fail with multiple in-progress tasks")
+	if err != nil {
+		t.Fatalf("selfHeal should heal multiple in-progress tasks, got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "state corruption") {
-		t.Errorf("error should mention state corruption: %v", err)
+	healedA, _ := state.LoadNodeState(filepath.Join(projDir, "node-a", "state.json"))
+	healedB, _ := state.LoadNodeState(filepath.Join(projDir, "node-b", "state.json"))
+	if healedA.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-a task should be not_started, got %s", healedA.Tasks[0].State)
+	}
+	if healedB.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-b task should be not_started, got %s", healedB.Tasks[0].State)
 	}
 }
 

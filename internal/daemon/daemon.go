@@ -112,7 +112,48 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 	}, nil
 }
 
+// PreStartSelfHeal runs before validation to fix stale in_progress tasks.
+// Called from the start command before the daemon is constructed.
+func PreStartSelfHeal(resolver *tree.Resolver, wolfcastleDir string) {
+	idx, err := resolver.LoadRootIndex()
+	if err != nil {
+		return
+	}
+	projDir := resolver.ProjectsDir()
+	for addr, entry := range idx.Nodes {
+		if entry.Type != state.NodeLeaf && entry.Type != state.NodeOrchestrator {
+			continue
+		}
+		a, parseErr := tree.ParseAddress(addr)
+		if parseErr != nil {
+			continue
+		}
+		statePath := filepath.Join(projDir, filepath.Join(a.Parts...), "state.json")
+		ns, loadErr := state.LoadNodeState(statePath)
+		if loadErr != nil {
+			continue
+		}
+		changed := false
+		for i := range ns.Tasks {
+			if ns.Tasks[i].State == state.StatusInProgress {
+				if derived, hasChildren := state.DeriveParentStatus(ns, ns.Tasks[i].ID); hasChildren {
+					ns.Tasks[i].State = derived
+				} else {
+					ns.Tasks[i].State = state.StatusNotStarted
+				}
+				changed = true
+			}
+		}
+		if changed {
+			_ = state.SaveNodeState(statePath, ns)
+		}
+	}
+}
+
 // selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
+// Resets all in_progress tasks to not_started (they'll be re-claimed next
+// iteration). Also derives parent task status from children so hierarchical
+// tasks don't stay in_progress when all children are complete.
 func (d *Daemon) selfHeal() error {
 	output.PrintHuman("Scanning for casualties...")
 	idx, err := d.Resolver.LoadRootIndex()
@@ -121,32 +162,47 @@ func (d *Daemon) selfHeal() error {
 		return nil
 	}
 
-	var inProgress []struct{ addr, taskID string }
+	healed := 0
 	for addr, entry := range idx.Nodes {
-		if entry.Type != state.NodeLeaf {
+		if entry.Type != state.NodeLeaf && entry.Type != state.NodeOrchestrator {
 			continue
 		}
-		a, err := tree.ParseAddress(addr)
-		if err != nil {
+		a, parseErr := tree.ParseAddress(addr)
+		if parseErr != nil {
 			continue
 		}
-		ns, err := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
-		if err != nil {
+		statePath := filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json")
+		ns, loadErr := state.LoadNodeState(statePath)
+		if loadErr != nil {
 			continue
 		}
-		for _, t := range ns.Tasks {
+
+		changed := false
+		for i := range ns.Tasks {
+			t := &ns.Tasks[i]
+			// Reset stale in_progress to not_started
 			if t.State == state.StatusInProgress {
-				inProgress = append(inProgress, struct{ addr, taskID string }{addr, t.ID})
+				// Check if this is a parent with all children complete
+				if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren {
+					t.State = derived
+					output.PrintHuman("  Derived %s/%s → %s", addr, t.ID, derived)
+				} else {
+					t.State = state.StatusNotStarted
+					output.PrintHuman("  Reset %s/%s → not_started", addr, t.ID)
+				}
+				changed = true
+				healed++
+			}
+		}
+		if changed {
+			if saveErr := state.SaveNodeState(statePath, ns); saveErr != nil {
+				output.PrintHuman("  Warning: could not save %s: %v", addr, saveErr)
 			}
 		}
 	}
 
-	if len(inProgress) > 1 {
-		return werrors.State(fmt.Errorf("state corruption: %d tasks in progress (serial execution requires at most 1)", len(inProgress)))
-	}
-	if len(inProgress) == 1 {
-		output.PrintHuman("Interrupted task found: %s/%s. Resuming next iteration.",
-			inProgress[0].addr, inProgress[0].taskID)
+	if healed > 0 {
+		output.PrintHuman("Healed %d interrupted task(s).", healed)
 	} else {
 		output.PrintHuman("All clear. No interrupted tasks.")
 	}

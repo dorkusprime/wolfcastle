@@ -2,6 +2,13 @@
 
 Items accumulate here as they surface. Don't process unless directed.
 
+## Added by User
+
+- `wolfcastle doctor` seems useless.
+  - It always surfaces a bunch of warnings (why would we ever have gotten into a warning state in the first place??) but doesn't fix them with `--fix`
+  - If there are any actual issues, it just says it can't fix them with "model-assisted fix requires a node address. Model could not fix any of them.". Isn't that what we use the LLM for, to fix this sort of thing?
+  - The "help" test says that `--fix` will "Attempt to fix deterministic issues" but how do I escalate to nondeterministic issues?
+
 ## Pipeline Architecture
 
 These shape how Wolfcastle plans, executes, and learns from its work.
@@ -35,10 +42,6 @@ How the tool feels to use.
 - **Prompt subdirectories for human navigation.** The flat `system/base/prompts/` mixes stage prompts, class prompts, audit prompts, and templates. Better: `prompts/stages/`, `prompts/classes/`, `prompts/audits/`, `prompts/templates/`.
 
 - **Fully user-configurable prompts via the tier system.** Prompts are embedded via go:embed and extracted at scaffold time. Users can override in custom/local but can't easily see the defaults. Make base/ prompts the authoritative reference. `init` populates, `init --force` regenerates.
-
-
-
-
 
 ## Code Quality
 
