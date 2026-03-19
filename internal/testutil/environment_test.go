@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -396,6 +397,117 @@ func TestWithRule_ResolvableAcrossTiers(t *testing.T) {
 	}
 	if string(content) != "use gofmt" {
 		t.Errorf("unexpected content: %q", string(content))
+	}
+}
+
+// ── ParentDir ───────────────────────────────────────────────────────────
+
+func TestParentDir_ReturnsContainingDirectory(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	parent := env.ParentDir()
+	// env.Root is <tmpdir>/.wolfcastle, so ParentDir should be <tmpdir>.
+	if filepath.Base(env.Root) != ".wolfcastle" {
+		t.Fatalf("expected Root to end in .wolfcastle, got %q", env.Root)
+	}
+	if parent != filepath.Dir(env.Root) {
+		t.Errorf("expected %q, got %q", filepath.Dir(env.Root), parent)
+	}
+	// The parent directory should actually exist on disk.
+	info, err := os.Stat(parent)
+	if err != nil {
+		t.Fatalf("Stat parent dir: %v", err)
+	}
+	if !info.IsDir() {
+		t.Error("parent dir is not a directory")
+	}
+}
+
+// ── ToAppFields ─────────────────────────────────────────────────────────
+
+func TestToAppFields_PopulatesAllFields(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	fields := env.ToAppFields()
+
+	if fields.Config == nil {
+		t.Error("Config should not be nil")
+	}
+	if fields.Identity == nil {
+		t.Error("Identity should not be nil")
+	}
+	if fields.Prompts == nil {
+		t.Error("Prompts should not be nil")
+	}
+	if fields.Classes == nil {
+		t.Error("Classes should not be nil")
+	}
+	if fields.Daemon == nil {
+		t.Error("Daemon should not be nil")
+	}
+	if fields.State == nil {
+		t.Error("State should not be nil")
+	}
+	if fields.WolfcastleDir == "" {
+		t.Error("WolfcastleDir should not be empty")
+	}
+	if fields.Cfg == nil {
+		t.Error("Cfg should not be nil")
+	}
+	if fields.WolfcastleDir != env.Root {
+		t.Errorf("WolfcastleDir: expected %q, got %q", env.Root, fields.WolfcastleDir)
+	}
+}
+
+// ── WithGit ─────────────────────────────────────────────────────────────
+
+func TestWithGit_SetsProviderAndChains(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	if env.Git != nil {
+		t.Fatal("Git should be nil before WithGit")
+	}
+
+	svc := git.NewService(t.TempDir())
+	returned := env.WithGit(svc)
+
+	if returned != env {
+		t.Error("WithGit should return the same Environment for chaining")
+	}
+	if env.Git == nil {
+		t.Error("Git should be set after WithGit")
+	}
+	if env.Git != svc {
+		t.Error("Git should be the provider passed to WithGit")
+	}
+}
+
+// ── WithClasses ─────────────────────────────────────────────────────────
+
+func TestWithClasses_LoadsDefinitions(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	defs := map[string]config.ClassDef{
+		"coding": {Description: "Write code"},
+		"review": {Description: "Review code"},
+	}
+	returned := env.WithClasses(defs)
+
+	if returned != env {
+		t.Error("WithClasses should return the same Environment for chaining")
+	}
+
+	keys := env.Classes.List()
+	if len(keys) != 2 {
+		t.Fatalf("expected 2 classes, got %d", len(keys))
+	}
+	// List returns sorted keys.
+	if keys[0] != "coding" || keys[1] != "review" {
+		t.Errorf("unexpected class keys: %v", keys)
 	}
 }
 
