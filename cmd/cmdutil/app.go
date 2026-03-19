@@ -41,9 +41,7 @@ type App struct {
 	// Task-0002 will migrate all callers, then these are removed.
 	WolfcastleDir string
 	Cfg           *config.Config
-	Store         *state.StateStore
 	JSONOutput    bool
-	Commit        string
 }
 
 // FindWolfcastleDir checks the current working directory for a .wolfcastle
@@ -100,7 +98,6 @@ func (a *App) Init() error {
 	// Populate deprecated fields for backward compatibility.
 	a.WolfcastleDir = root
 	a.Cfg = cfg
-	a.Store = a.State
 
 	return nil
 }

@@ -21,7 +21,7 @@ import (
 )
 
 // app is the shared runtime state for the CLI.
-var app = &cmdutil.App{Clock: clock.New(), Invoker: invoke.NewProcessInvoker(), Version: Version, Commit: Commit}
+var app = &cmdutil.App{Clock: clock.New(), Invoker: invoke.NewProcessInvoker(), Version: Version}
 
 var rootCmd = &cobra.Command{
 	Use:     "wolfcastle",

@@ -40,7 +40,6 @@ func newTestEnv(t *testing.T) *testEnv {
 		// Deprecated fields, kept while production code still reads them.
 		WolfcastleDir: af.WolfcastleDir,
 		Cfg:           af.Cfg,
-		Store:         af.State,
 	}
 
 	// Commands call FindWolfcastleDir, which checks cwd for .wolfcastle.

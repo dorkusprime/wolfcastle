@@ -39,7 +39,6 @@ func newTestEnv(t *testing.T) *testEnv {
 		Clock:         clock.New(),
 		WolfcastleDir: af.WolfcastleDir,
 		Cfg:           af.Cfg,
-		Store:         af.State,
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
