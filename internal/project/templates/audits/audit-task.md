@@ -10,8 +10,8 @@ For orchestrator nodes, your scope is everything touched by all descendant nodes
 Read every file this node touched. Don't check boxes yet. Just read, and write down what you notice. What feels wrong? What would you question in a code review? What makes you uneasy? Follow your instincts before following the rubric.
 
 Look for things like:
-- An `os.ReadFile` that takes a user-controlled path without validation
-- A `_ = someFunc()` that silently drops an error that matters
+- A file read or database query that takes an unvalidated path or input
+- A discarded error or ignored return value that could mask a real failure
 - A function that's doing two unrelated things
 - A race condition hiding behind "this probably won't happen concurrently"
 - Dead code that nobody calls
@@ -25,11 +25,11 @@ Now work through each rubric section. The rubric may surface issues your initial
 
 ### Build and test verification
 
-Run the project's build and test commands. Look for a Makefile, go.mod, package.json, or equivalent.
+Run the project's build and test commands. Look for whatever build system the project uses (Makefile, go.mod, package.json, Cargo.toml, pyproject.toml, etc.).
 
 - The project builds without errors
 - All tests pass (include failing test name and error if not)
-- No formatting violations (run gofmt, prettier, rustfmt, etc.; fix and commit if needed)
+- No formatting violations (run the project's formatter; fix and commit if needed)
 - Static analysis clean (run the linter if configured; new warnings from this node's work are findings)
 
 ### Correctness
@@ -37,7 +37,7 @@ Run the project's build and test commands. Look for a Makefile, go.mod, package.
 For each file this node changed:
 
 - Nil/null safety: every pointer, optional, or interface field is checked or initialized before use
-- Error handling: every error is returned with context, logged, or explicitly discarded with justification. Grep for `_ =` in files this node wrote or modified; each one needs a reason
+- Error handling: every error or exception is returned with context, logged, or explicitly discarded with justification. Search for discarded errors in files this node wrote or modified (e.g. `_ =` in Go, bare `except: pass` in Python, unchecked promises in JS); each one needs a reason
 - Edge cases: empty inputs, zero values, nil collections, boundary conditions
 - Concurrency safety: shared mutable state is protected. Run the race detector if available
 - Security: inputs from external sources (file paths, user input, model output) are validated. No path traversal, injection, or unescaped interpolation
@@ -47,8 +47,8 @@ For each file this node changed:
 - No duplication: search for copy-pasted logic across files
 - No dead code: unused functions, variables, imports, commented-out blocks
 - No overly complex functions: 50+ lines or 3+ levels of nesting should be decomposed
-- Clear naming: no abbreviations that obscure meaning, no stuttering (config.ConfigManager)
-- Minimal public surface: only export what callers need
+- Clear naming: no abbreviations that obscure meaning, no stuttering (a `config` module with a `ConfigManager` class)
+- Minimal public surface: only expose what callers need
 
 ### Modularity and architecture
 
