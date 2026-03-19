@@ -34,14 +34,12 @@ func TestStartCmd_ValidationErrors(t *testing.T) {
 
 func TestStartCmd_ValidationWarnings(t *testing.T) {
 	env := newStatusTestEnv(t)
-	// Just run start; with a valid tree it should reach the daemon creation.
-	// Daemon creation creates a logger in the logs dir, then RunWithSupervisor
-	// starts the loop. We verify the start path exercises daemon.New.
+
+	// Place a stop file so the daemon exits after starting.
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
+
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
-	// Expected: daemon creation succeeds but RunWithSupervisor fails
-	// because the model command doesn't exist, or it runs one iteration
-	// and finds no work.
 	_ = err
 }
 
@@ -115,11 +113,12 @@ func TestShowAllStatus_MissingProjectsDir(t *testing.T) {
 
 func TestStartCmd_VerboseFlag(t *testing.T) {
 	env := newStatusTestEnv(t)
+
+	// Place a stop file so the daemon exits immediately.
+	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
+
 	env.RootCmd.SetArgs([]string{"start", "--verbose"})
 	err := env.RootCmd.Execute()
-	// Will fail at daemon lock or creation, but exercises the verbose code path.
-	// The verbose flag sets cfg.Daemon.LogLevel in memory for the daemon
-	// constructor; we verify it doesn't panic or reject the flag.
 	_ = err
 }
 

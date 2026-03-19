@@ -43,7 +43,7 @@ func TestRun_StopFileMidLoop(t *testing.T) {
 		_ = os.WriteFile(stopPath, []byte("stop"), 0644)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err := d.Run(ctx)
@@ -72,7 +72,7 @@ func TestRun_ShutdownDuringIdle(t *testing.T) {
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err := d.Run(ctx)
@@ -124,7 +124,7 @@ func TestRun_WorkAvailableWakesIdleLoop(t *testing.T) {
 		}
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err := d.Run(ctx)
@@ -194,7 +194,7 @@ func TestRun_IterationErrorSleepsAndRetries(t *testing.T) {
 		_ = os.WriteFile(stopPath, []byte("stop"), 0644)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err := d.Run(ctx)
@@ -249,7 +249,7 @@ func TestRun_DidWorkEnforcesLogRetention(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err := d.Run(ctx)
