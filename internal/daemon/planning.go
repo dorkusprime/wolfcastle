@@ -236,14 +236,11 @@ func (d *Daemon) recordPlanningPass(nodeAddr, trigger, marker string) {
 	})
 }
 
-// incrementReplanCount tracks consecutive same-trigger replans.
+// incrementReplanCount tracks cumulative replans across all triggers.
 // If the budget is exceeded, the orchestrator blocks itself.
 func (d *Daemon) incrementReplanCount(nodeAddr, trigger string) {
 	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
-		if ns.ReplanCount == nil {
-			ns.ReplanCount = make(map[string]int)
-		}
-		ns.ReplanCount[trigger]++
+		ns.TotalReplans++
 
 		maxReplans := ns.MaxReplans
 		if maxReplans == 0 {
@@ -253,14 +250,14 @@ func (d *Daemon) incrementReplanCount(nodeAddr, trigger string) {
 			maxReplans = 3
 		}
 
-		if ns.ReplanCount[trigger] >= maxReplans {
+		if ns.TotalReplans >= maxReplans {
 			ns.NeedsPlanning = false
 			ns.State = state.StatusBlocked
 			_ = d.Logger.Log(map[string]any{
 				"type":    "planning_budget_exhausted",
 				"node":    nodeAddr,
 				"trigger": trigger,
-				"count":   ns.ReplanCount[trigger],
+				"count":   ns.TotalReplans,
 			})
 		}
 		return nil
@@ -315,10 +312,6 @@ func (d *Daemon) checkReplanningTriggers(nodeAddr, taskID string, idx *state.Roo
 		_ = d.Store.MutateNode(parentAddr, func(ns *state.NodeState) error {
 			ns.NeedsPlanning = true
 			ns.PlanningTrigger = "completion_review"
-			// Reset replan count for this trigger
-			if ns.ReplanCount != nil {
-				delete(ns.ReplanCount, "completion_review")
-			}
 			return nil
 		})
 		_ = d.Logger.Log(map[string]any{
