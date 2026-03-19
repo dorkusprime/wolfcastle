@@ -195,7 +195,7 @@ func TestApprove_ExistingProject(t *testing.T) {
 	env := newTestEnv(t)
 
 	// Create a node that matches the slug of the finding title
-	createLeafNode(t, env, "rate-limiting-issue", "Rate Limiting Issue")
+	env.createLeafNode(t, "rate-limiting-issue", "Rate Limiting Issue")
 
 	batch := &state.Batch{
 		ID:     "test",

@@ -17,7 +17,7 @@ func TestBreadcrumb_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createLeafNode(t, env, "bc-proj", "BC Project")
+	env.createLeafNode(t, "bc-proj", "BC Project")
 
 	nodeDir := filepath.Join(env.ProjectsDir, "bc-proj")
 	_ = os.Chmod(nodeDir, 0555)
@@ -38,7 +38,7 @@ func TestEscalate_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createOrchestratorWithChild(t, env, "esc-parent", "esc-parent/esc-child")
+	env.createOrchestratorWithChild(t, "esc-parent", "esc-parent/esc-child")
 
 	parentDir := filepath.Join(env.ProjectsDir, "esc-parent")
 	_ = os.Chmod(parentDir, 0555)
@@ -59,13 +59,13 @@ func TestFixGap_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createLeafNode(t, env, "fg-proj", "FG Project")
+	env.createLeafNode(t, "fg-proj", "FG Project")
 
 	// Add a gap first.
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "fg-proj", "a gap"})
 	_ = env.RootCmd.Execute()
 
-	ns := loadNodeState(t, env, "fg-proj")
+	ns := env.loadNodeState(t, "fg-proj")
 	gapID := ns.Audit.Gaps[0].ID
 
 	// Lock so SaveNodeState fails.
@@ -88,7 +88,7 @@ func TestGap_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createLeafNode(t, env, "gap-proj", "Gap Project")
+	env.createLeafNode(t, "gap-proj", "Gap Project")
 
 	nodeDir := filepath.Join(env.ProjectsDir, "gap-proj")
 	_ = os.Chmod(nodeDir, 0555)
@@ -109,13 +109,13 @@ func TestResolve_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createOrchestratorWithChild(t, env, "res-parent", "res-parent/res-child")
+	env.createOrchestratorWithChild(t, "res-parent", "res-parent/res-child")
 
 	// Add escalation.
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "res-parent/res-child", "issue"})
 	_ = env.RootCmd.Execute()
 
-	parentNs := loadNodeState(t, env, "res-parent")
+	parentNs := env.loadNodeState(t, "res-parent")
 	escID := parentNs.Audit.Escalations[0].ID
 
 	parentDir := filepath.Join(env.ProjectsDir, "res-parent")

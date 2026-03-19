@@ -8,10 +8,8 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
-	"github.com/dorkusprime/wolfcastle/internal/config"
-
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/dorkusprime/wolfcastle/internal/testutil"
 	"github.com/spf13/cobra"
 )
 
@@ -20,33 +18,27 @@ type testEnv struct {
 	ProjectsDir   string
 	App           *cmdutil.App
 	RootCmd       *cobra.Command
+	env           *testutil.Environment
 }
 
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
-	tmp := t.TempDir()
-	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wcDir, 0755)
 
-	cfg := config.Defaults()
-	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
+	env := testutil.NewEnvironment(t)
+	af := env.ToAppFields()
 
-	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "system", "projects", ns)
-	_ = os.MkdirAll(projDir, 0755)
-
-	idx := state.NewRootIndex()
-	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
-
-	store := state.NewStateStore(projDir, state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
-		Config:        config.NewConfigRepository(wcDir),
-		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
-		State:         store,
-		WolfcastleDir: wcDir,
-		Cfg:           cfg,
-		Store:         store,
+		Config:        af.Config,
+		Identity:      af.Identity,
+		State:         af.State,
+		Prompts:       af.Prompts,
+		Classes:       af.Classes,
+		Daemon:        af.Daemon,
+		Git:           af.Git,
 		Clock:         clock.New(),
+		WolfcastleDir: af.WolfcastleDir,
+		Cfg:           af.Cfg,
+		Store:         af.State,
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -61,87 +53,40 @@ func newTestEnv(t *testing.T) *testEnv {
 	Register(testApp, rootCmd)
 
 	return &testEnv{
-		WolfcastleDir: wcDir,
-		ProjectsDir:   projDir,
+		WolfcastleDir: env.Root,
+		ProjectsDir:   env.ProjectsDir(),
 		App:           testApp,
 		RootCmd:       rootCmd,
+		env:           env,
 	}
+}
+
+func (e *testEnv) createLeafNode(t *testing.T, addr, name string) {
+	t.Helper()
+	e.env.WithProject(name, testutil.Leaf(addr))
+}
+
+func (e *testEnv) createOrchestratorWithChild(t *testing.T, parentAddr, childAddr string) {
+	t.Helper()
+	childName := childAddr[len(parentAddr)+1:]
+	e.env.WithProject(parentAddr, testutil.Orchestrator(parentAddr, testutil.Leaf(childName)))
 }
 
 func saveJSON(t *testing.T, path string, v any) {
 	t.Helper()
-	data, _ := json.MarshalIndent(v, "", "  ")
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
 	_ = os.MkdirAll(filepath.Dir(path), 0755)
-	_ = os.WriteFile(path, data, 0644)
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		t.Fatal(err)
+	}
 }
 
-func createLeafNode(t *testing.T, env *testEnv, addr, name string) {
+func (e *testEnv) loadNodeState(t *testing.T, addr string) *state.NodeState {
 	t.Helper()
-	parsed, _ := tree.ParseAddress(addr)
-	nodeDir := filepath.Join(env.ProjectsDir, filepath.Join(parsed.Parts...))
-	_ = os.MkdirAll(nodeDir, 0755)
-
-	ns := state.NewNodeState(parsed.Leaf(), name, state.NodeLeaf)
-	ns.Tasks = []state.Task{
-		{ID: "audit", Description: "Audit", State: state.StatusNotStarted, IsAudit: true},
-	}
-	saveJSON(t, filepath.Join(nodeDir, "state.json"), ns)
-
-	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
-	idx.Nodes[addr] = state.IndexEntry{
-		Name:     name,
-		Type:     state.NodeLeaf,
-		State:    state.StatusNotStarted,
-		Address:  addr,
-		Children: []string{},
-	}
-	_ = state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
-}
-
-func createOrchestratorWithChild(t *testing.T, env *testEnv, parentAddr, childAddr string) {
-	t.Helper()
-	// Create parent
-	parentParsed, _ := tree.ParseAddress(parentAddr)
-	parentDir := filepath.Join(env.ProjectsDir, filepath.Join(parentParsed.Parts...))
-	_ = os.MkdirAll(parentDir, 0755)
-
-	parentNs := state.NewNodeState(parentParsed.Leaf(), parentAddr, state.NodeOrchestrator)
-	saveJSON(t, filepath.Join(parentDir, "state.json"), parentNs)
-
-	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
-	idx.Nodes[parentAddr] = state.IndexEntry{
-		Name:     parentAddr,
-		Type:     state.NodeOrchestrator,
-		State:    state.StatusNotStarted,
-		Address:  parentAddr,
-		Children: []string{childAddr},
-	}
-
-	// Create child
-	childParsed, _ := tree.ParseAddress(childAddr)
-	childDir := filepath.Join(env.ProjectsDir, filepath.Join(childParsed.Parts...))
-	_ = os.MkdirAll(childDir, 0755)
-
-	childNs := state.NewNodeState(childParsed.Leaf(), childAddr, state.NodeLeaf)
-	saveJSON(t, filepath.Join(childDir, "state.json"), childNs)
-
-	idx.Nodes[childAddr] = state.IndexEntry{
-		Name:     childAddr,
-		Type:     state.NodeLeaf,
-		State:    state.StatusNotStarted,
-		Address:  childAddr,
-		Parent:   parentAddr,
-		Children: []string{},
-	}
-
-	_ = state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
-}
-
-func loadNodeState(t *testing.T, env *testEnv, addr string) *state.NodeState {
-	t.Helper()
-	parsed, _ := tree.ParseAddress(addr)
-	statePath := filepath.Join(env.ProjectsDir, filepath.Join(parsed.Parts...), "state.json")
-	ns, err := state.LoadNodeState(statePath)
+	ns, err := e.env.State.ReadNode(addr)
 	if err != nil {
 		t.Fatalf("loading node state for %s: %v", addr, err)
 	}
@@ -154,14 +99,14 @@ func loadNodeState(t *testing.T, env *testEnv, addr string) *state.NodeState {
 
 func TestBreadcrumb_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "breadcrumb", "--node", "my-project", "refactored auth module"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("breadcrumb failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.Audit.Breadcrumbs) != 1 {
 		t.Fatalf("expected 1 breadcrumb, got %d", len(ns.Audit.Breadcrumbs))
 	}
@@ -172,7 +117,7 @@ func TestBreadcrumb_Success(t *testing.T) {
 
 func TestBreadcrumb_EmptyText(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "breadcrumb", "--node", "my-project", "   "})
 	err := env.RootCmd.Execute()
@@ -198,7 +143,7 @@ func TestBreadcrumb_NoIdentity(t *testing.T) {
 
 func TestEscalate_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorWithChild(t, env, "auth", "auth/login")
+	env.createOrchestratorWithChild(t, "auth", "auth/login")
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "missing error handling"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -206,7 +151,7 @@ func TestEscalate_Success(t *testing.T) {
 	}
 
 	// Check parent has escalation
-	parentNs := loadNodeState(t, env, "auth")
+	parentNs := env.loadNodeState(t, "auth")
 	if len(parentNs.Audit.Escalations) != 1 {
 		t.Fatalf("expected 1 escalation, got %d", len(parentNs.Audit.Escalations))
 	}
@@ -220,7 +165,7 @@ func TestEscalate_Success(t *testing.T) {
 
 func TestEscalate_RootNode(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "my-project", "some gap"})
 	err := env.RootCmd.Execute()
@@ -231,7 +176,7 @@ func TestEscalate_RootNode(t *testing.T) {
 
 func TestEscalate_EmptyDescription(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorWithChild(t, env, "auth", "auth/login")
+	env.createOrchestratorWithChild(t, "auth", "auth/login")
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "   "})
 	err := env.RootCmd.Execute()
@@ -246,14 +191,14 @@ func TestEscalate_EmptyDescription(t *testing.T) {
 
 func TestGap_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "missing error handling"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("gap failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.Audit.Gaps) != 1 {
 		t.Fatalf("expected 1 gap, got %d", len(ns.Audit.Gaps))
 	}
@@ -264,7 +209,7 @@ func TestGap_Success(t *testing.T) {
 
 func TestGap_EmptyDescription(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "  "})
 	err := env.RootCmd.Execute()
@@ -279,13 +224,13 @@ func TestGap_EmptyDescription(t *testing.T) {
 
 func TestFixGap_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Add a gap first
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "some gap"})
 	_ = env.RootCmd.Execute()
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	gapID := ns.Audit.Gaps[0].ID
 
 	env.RootCmd.SetArgs([]string{"audit", "fix-gap", "--node", "my-project", gapID})
@@ -293,7 +238,7 @@ func TestFixGap_Success(t *testing.T) {
 		t.Fatalf("fix-gap failed: %v", err)
 	}
 
-	ns = loadNodeState(t, env, "my-project")
+	ns = env.loadNodeState(t, "my-project")
 	if ns.Audit.Gaps[0].Status != state.GapFixed {
 		t.Errorf("expected fixed, got %s", ns.Audit.Gaps[0].Status)
 	}
@@ -301,7 +246,7 @@ func TestFixGap_Success(t *testing.T) {
 
 func TestFixGap_NotFound(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "fix-gap", "--node", "my-project", "nonexistent-gap"})
 	err := env.RootCmd.Execute()
@@ -312,12 +257,12 @@ func TestFixGap_NotFound(t *testing.T) {
 
 func TestFixGap_AlreadyFixed(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "a gap"})
 	_ = env.RootCmd.Execute()
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	gapID := ns.Audit.Gaps[0].ID
 
 	// Fix it
@@ -338,13 +283,13 @@ func TestFixGap_AlreadyFixed(t *testing.T) {
 
 func TestResolve_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorWithChild(t, env, "auth", "auth/login")
+	env.createOrchestratorWithChild(t, "auth", "auth/login")
 
 	// Add escalation
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "some issue"})
 	_ = env.RootCmd.Execute()
 
-	parentNs := loadNodeState(t, env, "auth")
+	parentNs := env.loadNodeState(t, "auth")
 	escID := parentNs.Audit.Escalations[0].ID
 
 	env.RootCmd.SetArgs([]string{"audit", "resolve", "--node", "auth", escID})
@@ -352,7 +297,7 @@ func TestResolve_Success(t *testing.T) {
 		t.Fatalf("resolve failed: %v", err)
 	}
 
-	parentNs = loadNodeState(t, env, "auth")
+	parentNs = env.loadNodeState(t, "auth")
 	if parentNs.Audit.Escalations[0].Status != state.EscalationResolved {
 		t.Errorf("expected resolved, got %s", parentNs.Audit.Escalations[0].Status)
 	}
@@ -360,7 +305,7 @@ func TestResolve_Success(t *testing.T) {
 
 func TestResolve_NotFound(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "resolve", "--node", "my-project", "nonexistent"})
 	err := env.RootCmd.Execute()
@@ -371,12 +316,12 @@ func TestResolve_NotFound(t *testing.T) {
 
 func TestResolve_AlreadyResolved(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorWithChild(t, env, "auth", "auth/login")
+	env.createOrchestratorWithChild(t, "auth", "auth/login")
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "issue"})
 	_ = env.RootCmd.Execute()
 
-	parentNs := loadNodeState(t, env, "auth")
+	parentNs := env.loadNodeState(t, "auth")
 	escID := parentNs.Audit.Escalations[0].ID
 
 	env.RootCmd.SetArgs([]string{"audit", "resolve", "--node", "auth", escID})
@@ -395,7 +340,7 @@ func TestResolve_AlreadyResolved(t *testing.T) {
 
 func TestShow_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "show", "--node", "my-project"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -418,14 +363,14 @@ func TestShow_NoNode(t *testing.T) {
 
 func TestScope_SetDescription(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "my-project", "--description", "verify auth module"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("scope failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if ns.Audit.Scope == nil {
 		t.Fatal("scope should not be nil")
 	}
@@ -436,14 +381,14 @@ func TestScope_SetDescription(t *testing.T) {
 
 func TestScope_SetFiles(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "my-project", "--files", "auth.go|login.go"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("scope failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.Audit.Scope.Files) != 2 {
 		t.Fatalf("expected 2 files, got %d", len(ns.Audit.Scope.Files))
 	}
@@ -451,7 +396,7 @@ func TestScope_SetFiles(t *testing.T) {
 
 func TestScope_NoFields(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "my-project"})
 	err := env.RootCmd.Execute()

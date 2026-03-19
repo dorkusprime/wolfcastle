@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/dorkusprime/wolfcastle/internal/testutil"
 	"github.com/spf13/cobra"
 )
 
@@ -18,32 +19,27 @@ type testEnv struct {
 	ProjectsDir   string
 	App           *cmdutil.App
 	RootCmd       *cobra.Command
+	env           *testutil.Environment
 }
 
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
-	tmp := t.TempDir()
-	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wcDir, 0755)
 
-	cfg := config.Defaults()
-	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
+	env := testutil.NewEnvironment(t)
+	af := env.ToAppFields()
 
-	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "system", "projects", ns)
-	_ = os.MkdirAll(projDir, 0755)
-
-	idx := state.NewRootIndex()
-	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
-
-	store := state.NewStateStore(projDir, state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
-		Config:        config.NewConfigRepository(wcDir),
-		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
-		State:         store,
-		WolfcastleDir: wcDir,
-		Cfg:           cfg,
-		Store:         store,
+		Config:        af.Config,
+		Identity:      af.Identity,
+		State:         af.State,
+		Prompts:       af.Prompts,
+		Classes:       af.Classes,
+		Daemon:        af.Daemon,
+		Git:           af.Git,
+		Clock:         clock.New(),
+		WolfcastleDir: af.WolfcastleDir,
+		Cfg:           af.Cfg,
+		Store:         af.State,
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -58,11 +54,17 @@ func newTestEnv(t *testing.T) *testEnv {
 	Register(testApp, rootCmd)
 
 	return &testEnv{
-		WolfcastleDir: wcDir,
-		ProjectsDir:   projDir,
+		WolfcastleDir: env.Root,
+		ProjectsDir:   env.ProjectsDir(),
 		App:           testApp,
 		RootCmd:       rootCmd,
+		env:           env,
 	}
+}
+
+func (e *testEnv) createLeafNode(t *testing.T, addr, name string) {
+	t.Helper()
+	e.env.WithProject(name, testutil.Leaf(addr))
 }
 
 func saveJSON(t *testing.T, path string, v any) {
@@ -77,34 +79,9 @@ func saveJSON(t *testing.T, path string, v any) {
 	}
 }
 
-func createLeafNode(t *testing.T, env *testEnv, addr, name string) {
+func (e *testEnv) loadNodeState(t *testing.T, addr string) *state.NodeState {
 	t.Helper()
-	parsed, _ := tree.ParseAddress(addr)
-	nodeDir := filepath.Join(env.ProjectsDir, filepath.Join(parsed.Parts...))
-	_ = os.MkdirAll(nodeDir, 0755)
-
-	ns := state.NewNodeState(parsed.Leaf(), name, state.NodeLeaf)
-	ns.Tasks = []state.Task{
-		{ID: "audit", Description: "Audit", State: state.StatusNotStarted, IsAudit: true},
-	}
-	saveJSON(t, filepath.Join(nodeDir, "state.json"), ns)
-
-	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
-	idx.Nodes[addr] = state.IndexEntry{
-		Name:     name,
-		Type:     state.NodeLeaf,
-		State:    state.StatusNotStarted,
-		Address:  addr,
-		Children: []string{},
-	}
-	_ = state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
-}
-
-func loadNodeState(t *testing.T, env *testEnv, addr string) *state.NodeState {
-	t.Helper()
-	parsed, _ := tree.ParseAddress(addr)
-	statePath := filepath.Join(env.ProjectsDir, filepath.Join(parsed.Parts...), "state.json")
-	ns, err := state.LoadNodeState(statePath)
+	ns, err := e.env.State.ReadNode(addr)
 	if err != nil {
 		t.Fatalf("loading node state for %s: %v", addr, err)
 	}
@@ -117,14 +94,14 @@ func loadNodeState(t *testing.T, env *testEnv, addr string) *state.NodeState {
 
 func TestTaskAdd_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "implement the API"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("task add failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.Tasks) != 2 {
 		t.Fatalf("expected 2 tasks (1 added + audit), got %d", len(ns.Tasks))
 	}
@@ -145,7 +122,7 @@ func TestTaskAdd_Success(t *testing.T) {
 
 func TestTaskAdd_MultipleAdds(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	for i := 0; i < 3; i++ {
 		env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "task desc"})
@@ -154,7 +131,7 @@ func TestTaskAdd_MultipleAdds(t *testing.T) {
 		}
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	// 3 added + 1 audit
 	if len(ns.Tasks) != 4 {
 		t.Fatalf("expected 4 tasks, got %d", len(ns.Tasks))
@@ -175,7 +152,7 @@ func TestTaskAdd_MissingNode(t *testing.T) {
 
 func TestTaskAdd_EmptyDescription(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "   "})
 	err := env.RootCmd.Execute()
@@ -201,7 +178,7 @@ func TestTaskAdd_NoIdentity(t *testing.T) {
 
 func TestTaskClaim_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Add a task first
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "do something"})
@@ -213,7 +190,7 @@ func TestTaskClaim_Success(t *testing.T) {
 		t.Fatalf("task claim failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if ns.Tasks[0].State != state.StatusInProgress {
 		t.Errorf("expected in_progress, got %s", ns.Tasks[0].State)
 	}
@@ -237,7 +214,7 @@ func TestTaskClaim_InvalidAddress(t *testing.T) {
 
 func TestTaskComplete_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "do work"})
 	_ = env.RootCmd.Execute()
@@ -250,7 +227,7 @@ func TestTaskComplete_Success(t *testing.T) {
 		t.Fatalf("task complete failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if ns.Tasks[0].State != state.StatusComplete {
 		t.Errorf("expected complete, got %s", ns.Tasks[0].State)
 	}
@@ -262,7 +239,7 @@ func TestTaskComplete_Success(t *testing.T) {
 
 func TestTaskBlock_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work item"})
 	_ = env.RootCmd.Execute()
@@ -275,7 +252,7 @@ func TestTaskBlock_Success(t *testing.T) {
 		t.Fatalf("task block failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if ns.Tasks[0].State != state.StatusBlocked {
 		t.Errorf("expected blocked, got %s", ns.Tasks[0].State)
 	}
@@ -286,7 +263,7 @@ func TestTaskBlock_Success(t *testing.T) {
 
 func TestTaskBlock_EmptyReason(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -306,7 +283,7 @@ func TestTaskBlock_EmptyReason(t *testing.T) {
 
 func TestTaskUnblock_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -320,7 +297,7 @@ func TestTaskUnblock_Success(t *testing.T) {
 		t.Fatalf("task unblock failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if ns.Tasks[0].State != state.StatusNotStarted {
 		t.Errorf("expected not_started after unblock, got %s", ns.Tasks[0].State)
 	}
@@ -344,7 +321,7 @@ func TestTaskUnblock_MissingNode(t *testing.T) {
 
 func TestTaskComplete_WithValidation(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Add a validation command that succeeds via config repository
 	cfg := config.Defaults()
@@ -369,7 +346,7 @@ func TestTaskComplete_WithValidation(t *testing.T) {
 
 func TestTaskComplete_ValidationFails(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Add a validation command that fails via config repository
 	cfg := config.Defaults()
@@ -417,7 +394,7 @@ func TestTaskComplete_NonexistentNode(t *testing.T) {
 
 func TestTaskLifecycle_FullFlow(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Add
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "implement feature"})
@@ -448,7 +425,7 @@ func TestTaskLifecycle_FullFlow(t *testing.T) {
 		t.Fatalf("complete audit: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if ns.State != state.StatusComplete {
 		t.Errorf("node should be complete when all tasks done, got %s", ns.State)
 	}
@@ -460,7 +437,7 @@ func TestTaskLifecycle_FullFlow(t *testing.T) {
 
 func TestTaskAdd_WithDeliverables(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{
 		"task", "add", "--node", "my-project",
@@ -472,7 +449,7 @@ func TestTaskAdd_WithDeliverables(t *testing.T) {
 		t.Fatalf("task add with deliverables failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	found := false
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" {
@@ -496,14 +473,14 @@ func TestTaskAdd_WithDeliverables(t *testing.T) {
 
 func TestTaskAdd_NoDeliverables(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "plain task"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("task add failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" {
 			if len(task.Deliverables) != 0 {
@@ -521,7 +498,7 @@ func TestTaskAdd_NoDeliverables(t *testing.T) {
 
 func TestTaskDeliverable_Success(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Add a task
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "do work"})
@@ -535,7 +512,7 @@ func TestTaskDeliverable_Success(t *testing.T) {
 		t.Fatalf("deliverable: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" {
 			if len(task.Deliverables) != 1 || task.Deliverables[0] != "docs/output.md" {
@@ -549,7 +526,7 @@ func TestTaskDeliverable_Success(t *testing.T) {
 
 func TestTaskDeliverable_NoDuplicates(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "do work"})
 	_ = env.RootCmd.Execute()
@@ -562,7 +539,7 @@ func TestTaskDeliverable_NoDuplicates(t *testing.T) {
 		}
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" {
 			if len(task.Deliverables) != 1 {
@@ -576,7 +553,7 @@ func TestTaskDeliverable_NoDuplicates(t *testing.T) {
 
 func TestTaskDeliverable_TaskNotFound(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "deliverable", "docs/output.md", "--node", "my-project/task-9999"})
 	err := env.RootCmd.Execute()

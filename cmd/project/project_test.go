@@ -1,14 +1,14 @@
 package project
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/testutil"
 	"github.com/spf13/cobra"
 )
 
@@ -17,34 +17,27 @@ type testEnv struct {
 	ProjectsDir   string
 	App           *cmdutil.App
 	RootCmd       *cobra.Command
+	env           *testutil.Environment
 }
 
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
-	tmp := t.TempDir()
-	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wcDir, 0755)
 
-	cfg := config.Defaults()
-	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
-	cfg.OverlapAdvisory.Enabled = false // disable for tests
+	env := testutil.NewEnvironment(t)
+	af := env.ToAppFields()
 
-	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "system", "projects", ns)
-	_ = os.MkdirAll(projDir, 0755)
-
-	idx := state.NewRootIndex()
-	data, _ := json.MarshalIndent(idx, "", "  ")
-	_ = os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
-
-	store := state.NewStateStore(projDir, state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
-		Config:        config.NewConfigRepository(wcDir),
-		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
-		State:         store,
-		WolfcastleDir: wcDir,
-		Cfg:           cfg,
-		Store:         store,
+		Config:        af.Config,
+		Identity:      af.Identity,
+		State:         af.State,
+		Prompts:       af.Prompts,
+		Classes:       af.Classes,
+		Daemon:        af.Daemon,
+		Git:           af.Git,
+		Clock:         clock.New(),
+		WolfcastleDir: af.WolfcastleDir,
+		Cfg:           af.Cfg,
+		Store:         af.State,
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -59,10 +52,11 @@ func newTestEnv(t *testing.T) *testEnv {
 	Register(testApp, rootCmd)
 
 	return &testEnv{
-		WolfcastleDir: wcDir,
-		ProjectsDir:   projDir,
+		WolfcastleDir: env.Root,
+		ProjectsDir:   env.ProjectsDir(),
 		App:           testApp,
 		RootCmd:       rootCmd,
+		env:           env,
 	}
 }
 

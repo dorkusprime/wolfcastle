@@ -11,7 +11,7 @@ import (
 
 func TestTaskAdd_EmptyNodeGuard(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "", "description"})
 	err := env.RootCmd.Execute()

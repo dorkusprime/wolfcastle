@@ -13,7 +13,7 @@ func TestBreadcrumb_JSONOutput(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "breadcrumb", "--node", "my-project", "did something"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -26,7 +26,7 @@ func TestEscalate_JSONOutput(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	createOrchestratorWithChild(t, env, "auth", "auth/login")
+	env.createOrchestratorWithChild(t, "auth", "auth/login")
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "gap found"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -39,7 +39,7 @@ func TestGap_JSONOutput(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "some gap"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -52,7 +52,7 @@ func TestShow_JSONOutput(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "show", "--node", "my-project"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -65,7 +65,7 @@ func TestScope_JSONOutput(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "my-project", "--description", "test"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -140,12 +140,12 @@ func TestReject_JSONOutput(t *testing.T) {
 
 func TestFixGap_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "test gap"})
 	_ = env.RootCmd.Execute()
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	gapID := ns.Audit.Gaps[0].ID
 
 	env.App.JSONOutput = true
@@ -159,12 +159,12 @@ func TestFixGap_JSONOutput(t *testing.T) {
 
 func TestResolve_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorWithChild(t, env, "auth", "auth/login")
+	env.createOrchestratorWithChild(t, "auth", "auth/login")
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "issue"})
 	_ = env.RootCmd.Execute()
 
-	parentNs := loadNodeState(t, env, "auth")
+	parentNs := env.loadNodeState(t, "auth")
 	escID := parentNs.Audit.Escalations[0].ID
 
 	env.App.JSONOutput = true
@@ -178,7 +178,7 @@ func TestResolve_JSONOutput(t *testing.T) {
 
 func TestScope_SetCriteria(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "my-project",
 		"--criteria", "no SQL injection|input validation"})
@@ -186,7 +186,7 @@ func TestScope_SetCriteria(t *testing.T) {
 		t.Fatalf("scope with criteria failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.Audit.Scope.Criteria) != 2 {
 		t.Fatalf("expected 2 criteria, got %d", len(ns.Audit.Scope.Criteria))
 	}
@@ -194,7 +194,7 @@ func TestScope_SetCriteria(t *testing.T) {
 
 func TestScope_SetSystems(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "my-project",
 		"--systems", "auth|session|database"})
@@ -202,7 +202,7 @@ func TestScope_SetSystems(t *testing.T) {
 		t.Fatalf("scope with systems failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.Audit.Scope.Systems) != 3 {
 		t.Fatalf("expected 3 systems, got %d", len(ns.Audit.Scope.Systems))
 	}
@@ -253,7 +253,7 @@ func TestPending_AllReviewed(t *testing.T) {
 
 func TestShow_WithBreadcrumbsGapsEscalations(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorWithChild(t, env, "auth", "auth/login")
+	env.createOrchestratorWithChild(t, "auth", "auth/login")
 
 	// Add breadcrumb to child
 	env.RootCmd.SetArgs([]string{"audit", "breadcrumb", "--node", "auth/login", "made progress"})

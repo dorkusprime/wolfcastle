@@ -15,7 +15,7 @@ import (
 
 func TestShow_WithScopeAndResultSummary(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Set scope with all fields
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "my-project",
@@ -26,7 +26,7 @@ func TestShow_WithScopeAndResultSummary(t *testing.T) {
 	_ = env.RootCmd.Execute()
 
 	// Set result summary directly
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	ns.Audit.ResultSummary = "All checks passed with minor findings."
 	parsed, _ := state.LoadNodeState(filepath.Join(env.ProjectsDir, "my-project", "state.json"))
 	_ = parsed // just to avoid unused warning
@@ -87,7 +87,7 @@ func TestScope_NonexistentNode(t *testing.T) {
 
 func TestScope_AllFields(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "my-project",
 		"--description", "verify everything",
@@ -98,7 +98,7 @@ func TestScope_AllFields(t *testing.T) {
 		t.Fatalf("scope all fields failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	// Check dedup worked
 	if len(ns.Audit.Scope.Files) != 2 {
 		t.Errorf("expected 2 deduped files, got %d", len(ns.Audit.Scope.Files))
@@ -336,7 +336,7 @@ func TestEscalate_NonexistentParent(t *testing.T) {
 	env := newTestEnv(t)
 
 	// Node exists but parent doesn't
-	createLeafNode(t, env, "auth/login", "Login")
+	env.createLeafNode(t, "auth/login", "Login")
 
 	env.RootCmd.SetArgs([]string{"audit", "escalate", "--node", "auth/login", "gap found"})
 	err := env.RootCmd.Execute()
@@ -571,7 +571,7 @@ func TestApprove_AllWithMixed(t *testing.T) {
 
 func TestScope_UpdateExisting(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// First set description
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "my-project", "--description", "initial"})
@@ -583,7 +583,7 @@ func TestScope_UpdateExisting(t *testing.T) {
 		t.Fatalf("scope update failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if ns.Audit.Scope.Description != "initial" {
 		t.Errorf("description should be preserved, got %s", ns.Audit.Scope.Description)
 	}
@@ -598,14 +598,14 @@ func TestScope_UpdateExisting(t *testing.T) {
 
 func TestGap_Multiple(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "first gap"})
 	_ = env.RootCmd.Execute()
 	env.RootCmd.SetArgs([]string{"audit", "gap", "--node", "my-project", "second gap"})
 	_ = env.RootCmd.Execute()
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.Audit.Gaps) != 2 {
 		t.Fatalf("expected 2 gaps, got %d", len(ns.Audit.Gaps))
 	}
@@ -620,14 +620,14 @@ func TestGap_Multiple(t *testing.T) {
 
 func TestBreadcrumb_MultipleBreadcrumbs(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"audit", "breadcrumb", "--node", "my-project", "first note"})
 	_ = env.RootCmd.Execute()
 	env.RootCmd.SetArgs([]string{"audit", "breadcrumb", "--node", "my-project", "second note"})
 	_ = env.RootCmd.Execute()
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.Audit.Breadcrumbs) != 2 {
 		t.Fatalf("expected 2 breadcrumbs, got %d", len(ns.Audit.Breadcrumbs))
 	}
@@ -639,7 +639,7 @@ func TestBreadcrumb_MultipleBreadcrumbs(t *testing.T) {
 
 func TestShow_FullAuditState(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorWithChild(t, env, "auth", "auth/login")
+	env.createOrchestratorWithChild(t, "auth", "auth/login")
 
 	// Set scope on child
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "auth/login",

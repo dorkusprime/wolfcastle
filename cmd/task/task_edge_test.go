@@ -179,7 +179,7 @@ func TestTaskUnblock_InvalidNodeAfterSplit(t *testing.T) {
 
 func TestTaskComplete_ValidationDefaultTimeout(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Validation with TimeoutSeconds == 0 (should use default 30s)
 	cfg := config.Defaults()
@@ -204,7 +204,7 @@ func TestTaskComplete_ValidationDefaultTimeout(t *testing.T) {
 
 func TestTaskComplete_NilConfig(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Set Cfg to nil to test the nil-config branch
 	env.App.Cfg = nil
@@ -234,7 +234,7 @@ func TestTaskComplete_NilConfig(t *testing.T) {
 
 func TestTaskComplete_JSONOutput_NodeComplete(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Add, claim, complete a task
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
@@ -268,7 +268,7 @@ func TestTaskComplete_JSONOutput_NodeComplete(t *testing.T) {
 
 func TestTaskClaim_BrokenIndexStillClaims(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -292,7 +292,7 @@ func TestTaskClaim_BrokenIndexStillClaims(t *testing.T) {
 
 func TestTaskBlock_BrokenIndexStillBlocks(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -319,7 +319,7 @@ func TestTaskBlock_BrokenIndexStillBlocks(t *testing.T) {
 
 func TestTaskComplete_BrokenIndexStillCompletes(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -346,7 +346,7 @@ func TestTaskComplete_BrokenIndexStillCompletes(t *testing.T) {
 
 func TestTaskUnblock_BrokenIndexStillUnblocks(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -402,7 +402,7 @@ func TestTaskAdd_NonLeafNode(t *testing.T) {
 
 func TestTaskComplete_NodeBecomeComplete(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	// Add, claim, complete a task
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
