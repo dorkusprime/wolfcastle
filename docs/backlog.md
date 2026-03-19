@@ -36,7 +36,6 @@ How the tool feels to use.
 
 - **Fully user-configurable prompts via the tier system.** Prompts are embedded via go:embed and extracted at scaffold time. Users can override in custom/local but can't easily see the defaults. Make base/ prompts the authoritative reference. `init` populates, `init --force` regenerates.
 
-- **`wolfcastle status -w` refresh is jumpy.** Each refresh hops the screen for a millisecond or two. Should clear and redraw smoothly (terminal alternate screen buffer or cursor repositioning).
 
 
 
@@ -115,4 +114,5 @@ Things that should be better in the implementation.
 - ~~Status -n flag~~ (shorthand for --interval, PR #53)
 - ~~Status watch interval header~~ (PR #53)
 - ~~Status subtask indentation~~ (hierarchical IDs nested by depth, PR #53)
-- ~~Status collapse completed nodes~~ (--expand flag, PR #53)
+- ~~Status collapse completed nodes~~ (--expand flag, PR #54)
+- ~~Status watch jitter~~ (alternate screen buffer, cursor reposition, PR #54)
