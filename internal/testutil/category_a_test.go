@@ -71,7 +71,7 @@ func TestWriteJSON_WriteFileError_Fatals(t *testing.T) {
 	roDir := filepath.Join(dir, "readonly")
 	_ = os.MkdirAll(roDir, 0o755)
 	_ = os.Chmod(roDir, 0o555)
-	t.Cleanup(func() { os.Chmod(roDir, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(roDir, 0o755) })
 
 	path := filepath.Join(roDir, "out.json")
 

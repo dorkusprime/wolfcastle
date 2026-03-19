@@ -188,7 +188,7 @@ func TestConfigRepository_Load_PermissionError_Propagates(t *testing.T) {
 	if err := os.Chmod(configPath, 0o000); err != nil {
 		t.Fatalf("chmod: %v", err)
 	}
-	t.Cleanup(func() { os.Chmod(configPath, 0o644) })
+	t.Cleanup(func() { _ = os.Chmod(configPath, 0o644) })
 
 	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
 	_, err := repo.Load()

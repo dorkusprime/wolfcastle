@@ -113,16 +113,6 @@ func TestWriteAllBase_WalkError(t *testing.T) {
 	}
 }
 
-// readFailFS has a valid directory entry but fails on ReadFile.
-type readFailFS struct{}
-
-func (readFailFS) Open(name string) (fs.File, error) {
-	// WalkDir needs "." to succeed as a directory, but ReadFile for the
-	// file entry should fail. fstest.MapFS handles the directory; we
-	// compose with an overlay.
-	return nil, &os.PathError{Op: "open", Path: name, Err: os.ErrNotExist}
-}
-
 func TestWriteAllBase_ReadFileError(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)

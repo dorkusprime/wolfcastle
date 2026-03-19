@@ -562,7 +562,7 @@ func TestWriteJSON_WriteFileError(t *testing.T) {
 	if err := os.Chmod(roDir, 0o555); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(roDir, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(roDir, 0o755) })
 
 	path := filepath.Join(roDir, "out.json")
 
@@ -580,7 +580,7 @@ func TestWithConfig_ReadFileError_Fatals(t *testing.T) {
 
 	// Remove the custom config file so ReadFile fails.
 	customPath := filepath.Join(env.Root, "system", "custom", "config.json")
-	os.Remove(customPath)
+	_ = os.Remove(customPath)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -599,7 +599,7 @@ func TestWithConfig_UnmarshalError_Fatals(t *testing.T) {
 
 	// Write invalid JSON to the custom config file.
 	customPath := filepath.Join(env.Root, "system", "custom", "config.json")
-	os.WriteFile(customPath, []byte("NOT JSON{{{"), 0o644)
+	_ = os.WriteFile(customPath, []byte("NOT JSON{{{"), 0o644)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -620,11 +620,11 @@ func TestWithConfig_WriteJSONError_Fatals(t *testing.T) {
 	// read-only so writeJSON can read but not overwrite.
 	customDir := filepath.Join(env.Root, "system", "custom")
 	customPath := filepath.Join(customDir, "config.json")
-	os.Chmod(customPath, 0o444)
-	os.Chmod(customDir, 0o555)
+	_ = os.Chmod(customPath, 0o444)
+	_ = os.Chmod(customDir, 0o555)
 	t.Cleanup(func() {
-		os.Chmod(customDir, 0o755)
-		os.Chmod(customPath, 0o644)
+		_ = os.Chmod(customDir, 0o755)
+		_ = os.Chmod(customPath, 0o644)
 	})
 
 	var wg sync.WaitGroup
@@ -646,7 +646,7 @@ func TestWithProject_ReadIndexError_Fatals(t *testing.T) {
 
 	// Corrupt the root index so ReadIndex fails.
 	statePath := filepath.Join(env.ProjectsDir(), "state.json")
-	os.WriteFile(statePath, []byte("BAD JSON{{{"), 0o644)
+	_ = os.WriteFile(statePath, []byte("BAD JSON{{{"), 0o644)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -665,8 +665,8 @@ func TestWithProject_WriteIndexError_Fatals(t *testing.T) {
 
 	// Make the projects directory read-only so writing the root index fails.
 	projDir := env.ProjectsDir()
-	os.Chmod(projDir, 0o555)
-	t.Cleanup(func() { os.Chmod(projDir, 0o755) })
+	_ = os.Chmod(projDir, 0o555)
+	t.Cleanup(func() { _ = os.Chmod(projDir, 0o755) })
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -689,7 +689,7 @@ func TestBuildNode_MkdirAllError_Fatals(t *testing.T) {
 	// so MkdirAll fails.
 	projDir := env.ProjectsDir()
 	blocker := filepath.Join(projDir, "blocker-node")
-	os.WriteFile(blocker, []byte("x"), 0o644)
+	_ = os.WriteFile(blocker, []byte("x"), 0o644)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -712,9 +712,9 @@ func TestBuildNode_WriteNodeStateError_Fatals(t *testing.T) {
 	// Pre-create the node directory as read-only so writeJSON cannot
 	// write state.json into it.
 	nodeDir := filepath.Join(projDir, "ro-node")
-	os.MkdirAll(nodeDir, 0o755)
-	os.Chmod(nodeDir, 0o555)
-	t.Cleanup(func() { os.Chmod(nodeDir, 0o755) })
+	_ = os.MkdirAll(nodeDir, 0o755)
+	_ = os.Chmod(nodeDir, 0o555)
+	t.Cleanup(func() { _ = os.Chmod(nodeDir, 0o755) })
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -735,8 +735,8 @@ func TestWithPrompt_WriteBaseError_Fatals(t *testing.T) {
 
 	// Make the base prompts directory read-only so WriteBase fails.
 	basePrompts := env.Tiers.BasePath("prompts")
-	os.Chmod(basePrompts, 0o555)
-	t.Cleanup(func() { os.Chmod(basePrompts, 0o755) })
+	_ = os.Chmod(basePrompts, 0o555)
+	t.Cleanup(func() { _ = os.Chmod(basePrompts, 0o755) })
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -757,8 +757,8 @@ func TestWithRule_WriteBaseError_Fatals(t *testing.T) {
 
 	// Make the base rules directory read-only so WriteBase fails.
 	baseRules := env.Tiers.BasePath("rules")
-	os.Chmod(baseRules, 0o555)
-	t.Cleanup(func() { os.Chmod(baseRules, 0o755) })
+	_ = os.Chmod(baseRules, 0o555)
+	t.Cleanup(func() { _ = os.Chmod(baseRules, 0o755) })
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -781,7 +781,7 @@ func TestToAppFields_ConfigLoadError_Fatals(t *testing.T) {
 	for _, tier := range env.Tiers.TierDirs() {
 		cfgPath := filepath.Join(tier, "config.json")
 		if _, err := os.Stat(cfgPath); err == nil {
-			os.WriteFile(cfgPath, []byte("INVALID{{{"), 0o644)
+			_ = os.WriteFile(cfgPath, []byte("INVALID{{{"), 0o644)
 		}
 	}
 

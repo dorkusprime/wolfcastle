@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"fmt"
 	"os/exec"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -344,8 +343,8 @@ func TestArchiveAdd_SuccessInGitRepo(t *testing.T) {
 
 	// Initialize a git repo in the test directory so git rev-parse works
 	// The archive command runs git in filepath.Dir(root), which is env.RootDir.
-	exec.Command("git", "init", env.RootDir).Run()
-	exec.Command("git", "-C", env.RootDir, "commit", "--allow-empty", "-m", "init").Run()
+	_ = exec.Command("git", "init", env.RootDir).Run()
+	_ = exec.Command("git", "-C", env.RootDir, "commit", "--allow-empty", "-m", "init").Run()
 
 	rootCmd.SetArgs([]string{"archive", "add", "--node", "git-arch"})
 	if err := rootCmd.Execute(); err != nil {
@@ -1281,12 +1280,6 @@ func TestBuildDiagnostic_AllFields(t *testing.T) {
 // Stdin read error: uses a custom io.Reader that fails
 // Covers adr_create.go:49-51 (stdin read error)
 // ═══════════════════════════════════════════════════════════════════════════
-
-type errorReader struct{}
-
-func (errorReader) Read([]byte) (int, error) {
-	return 0, fmt.Errorf("simulated stdin read error")
-}
 
 func TestADRCreate_StdinReadError(t *testing.T) {
 	oldApp := app

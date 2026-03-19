@@ -34,7 +34,7 @@ func setupEmbeddedPrompts(t *testing.T, dir string) {
 	setupTiers(t, dir)
 
 	// Extract real embedded templates
-	err := project.WriteBasePrompts(dir)
+	err := project.WriteBasePrompts(dir) //nolint:staticcheck // testing deprecated function
 	if err != nil {
 		t.Fatalf("writing embedded prompts: %v", err)
 	}

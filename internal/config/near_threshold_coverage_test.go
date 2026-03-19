@@ -41,11 +41,11 @@ func TestConfigRepository_WriteBase_WriteError(t *testing.T) {
 	// Remove config.json if it exists, then make the base tier directory
 	// read-only so WriteBase cannot create the file.
 	baseDir := env.Tiers.TierDirs()[0]
-	os.Remove(filepath.Join(baseDir, "config.json"))
+	_ = os.Remove(filepath.Join(baseDir, "config.json"))
 	if err := os.Chmod(baseDir, 0o555); err != nil {
 		t.Fatalf("chmod: %v", err)
 	}
-	t.Cleanup(func() { os.Chmod(baseDir, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(baseDir, 0o755) })
 
 	cfg := config.Defaults()
 	err := repo.WriteBase(cfg)
@@ -81,7 +81,7 @@ func TestConfigRepository_WriteCustom_MkdirAllFailure(t *testing.T) {
 	if err := os.Chmod(systemDir, 0o555); err != nil {
 		t.Fatalf("chmod system dir: %v", err)
 	}
-	t.Cleanup(func() { os.Chmod(systemDir, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(systemDir, 0o755) })
 
 	err := repo.WriteCustom(map[string]any{"failure": map[string]any{"hard_cap": 1}})
 	if err == nil {
@@ -104,11 +104,11 @@ func TestConfigRepository_WriteLocal_WriteFileFailure(t *testing.T) {
 	// Remove any existing config.json, then make the local tier directory
 	// read-only so WriteFile fails (MkdirAll succeeds because the directory exists).
 	localDir := env.Tiers.TierDirs()[2]
-	os.Remove(filepath.Join(localDir, "config.json"))
+	_ = os.Remove(filepath.Join(localDir, "config.json"))
 	if err := os.Chmod(localDir, 0o555); err != nil {
 		t.Fatalf("chmod: %v", err)
 	}
-	t.Cleanup(func() { os.Chmod(localDir, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(localDir, 0o755) })
 
 	err := repo.WriteLocal(map[string]any{"failure": map[string]any{"hard_cap": 1}})
 	if err == nil {
@@ -208,7 +208,7 @@ func TestLoad_PermissionError(t *testing.T) {
 	_ = os.MkdirAll(filepath.Dir(basePath), 0o755)
 	_ = os.WriteFile(basePath, []byte(`{}`), 0o644)
 	_ = os.Chmod(basePath, 0o000)
-	t.Cleanup(func() { os.Chmod(basePath, 0o644) })
+	t.Cleanup(func() { _ = os.Chmod(basePath, 0o644) })
 
 	_, err := config.Load(dir)
 	if err == nil {

@@ -61,7 +61,7 @@ func TestResolve(t *testing.T) {
 			name: "not exist when no tier has file",
 			setup: func(root string) {
 				// create tier dirs but no file
-				os.MkdirAll(filepath.Join(root, "base"), 0o755)
+				_ = os.MkdirAll(filepath.Join(root, "base"), 0o755)
 			},
 			rel:      "missing.md",
 			wantErr:  true,
@@ -151,7 +151,7 @@ func TestResolveAll(t *testing.T) {
 		{
 			name: "empty map when subdir missing everywhere",
 			setup: func(root string) {
-				os.MkdirAll(filepath.Join(root, "base"), 0o755)
+				_ = os.MkdirAll(filepath.Join(root, "base"), 0o755)
 			},
 			sub:  "nonexistent",
 			want: map[string]string{},
@@ -266,7 +266,7 @@ func TestResolve_PermissionError(t *testing.T) {
 	if err := os.Chmod(path, 0o000); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(path, 0o644) })
+	t.Cleanup(func() { _ = os.Chmod(path, 0o644) })
 
 	fs := New(root)
 	_, err := fs.Resolve("secret.md")
@@ -293,7 +293,7 @@ func TestResolveAll_ReadDirPermissionError(t *testing.T) {
 	if err := os.Chmod(dir, 0o000); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(dir, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(dir, 0o755) })
 
 	fs := New(root)
 	_, err := fs.ResolveAll("prompts")
@@ -317,7 +317,7 @@ func TestResolveAll_ReadFilePermissionError(t *testing.T) {
 	if err := os.Chmod(unreadable, 0o000); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(unreadable, 0o644) })
+	t.Cleanup(func() { _ = os.Chmod(unreadable, 0o644) })
 
 	fs := New(root)
 	_, err := fs.ResolveAll("prompts")
@@ -341,7 +341,7 @@ func TestWriteBase_MkdirError(t *testing.T) {
 	if err := os.Chmod(base, 0o555); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(base, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(base, 0o755) })
 
 	fs := New(root)
 	err := fs.WriteBase("sub/file.md", []byte("data"))
@@ -365,7 +365,7 @@ func TestWriteBase_WriteFileError(t *testing.T) {
 	if err := os.Chmod(target, 0o555); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(target, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(target, 0o755) })
 
 	fs := New(root)
 	err := fs.WriteBase("file.md", []byte("data"))

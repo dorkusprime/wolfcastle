@@ -274,7 +274,7 @@ func TestShowTreeStatus_NodeReadError(t *testing.T) {
 	idx, _ := env.App.State.ReadIndex()
 
 	// Remove node state so ReadNode fails.
-	os.Remove(filepath.Join(env.env.ProjectsDir(), "proj", "state.json"))
+	_ = os.Remove(filepath.Join(env.env.ProjectsDir(), "proj", "state.json"))
 
 	// Should tolerate the read error and continue.
 	if err := showTreeStatus(env.App, idx, ""); err != nil {
@@ -288,7 +288,7 @@ func TestShowTreeStatus_NodeReadError(t *testing.T) {
 
 func TestShowAllStatus_ProjectsDirRemoved(t *testing.T) {
 	env := newTestEnv(t)
-	os.RemoveAll(filepath.Join(env.WolfcastleDir, "system", "projects"))
+	_ = os.RemoveAll(filepath.Join(env.WolfcastleDir, "system", "projects"))
 
 	err := showAllStatus(env.App)
 	if err == nil {
@@ -347,7 +347,7 @@ func TestWatchStatus_IntervalFloor(t *testing.T) {
 
 func TestWatchStatus_TreeReadError(t *testing.T) {
 	env := newTestEnv(t)
-	os.Remove(filepath.Join(env.env.ProjectsDir(), "state.json"))
+	_ = os.Remove(filepath.Join(env.env.ProjectsDir(), "state.json"))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -359,7 +359,7 @@ func TestWatchStatus_TreeReadError(t *testing.T) {
 
 func TestWatchStatus_ShowAllReadError(t *testing.T) {
 	env := newTestEnv(t)
-	os.RemoveAll(filepath.Join(env.WolfcastleDir, "system", "projects"))
+	_ = os.RemoveAll(filepath.Join(env.WolfcastleDir, "system", "projects"))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
