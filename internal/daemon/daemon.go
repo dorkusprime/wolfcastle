@@ -59,6 +59,7 @@ type Daemon struct {
 	RepoDir        string
 	Clock          clock.Clock
 	ContextBuilder *pipeline.ContextBuilder
+	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
 	shutdown      chan struct{}
 	shutdownOnce  sync.Once
@@ -167,6 +168,11 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 	maxRestarts := d.Config.Daemon.MaxRestarts
 	delay := time.Duration(d.Config.Daemon.RestartDelaySeconds) * time.Second
 
+	sleepFn := d.SleepFunc
+	if sleepFn == nil {
+		sleepFn = time.Sleep
+	}
+
 	for restart := 0; ; restart++ {
 		err := d.Run(ctx)
 		if err == nil || ctx.Err() != nil {
@@ -176,7 +182,7 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 			return fmt.Errorf("daemon exceeded max restarts (%d): %w", maxRestarts, err)
 		}
 		output.PrintHuman("Crash (attempt %d/%d): %v. Restarting in %v.", restart+1, maxRestarts, err, delay)
-		time.Sleep(delay)
+		sleepFn(delay)
 
 		// Reset daemon state for next Run() invocation.
 		// Resetting sync.Once is safe here because all goroutines from

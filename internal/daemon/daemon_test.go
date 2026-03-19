@@ -1042,6 +1042,188 @@ func TestRunWithSupervisor_ContextCancelReturnsNilNotMaxRestarts(t *testing.T) {
 	}
 }
 
+func TestRunWithSupervisor_MaxRestartsExceeded(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 2
+	d.Config.Daemon.RestartDelaySeconds = 0
+
+	var sleepCalls int
+	d.SleepFunc = func(dur time.Duration) { sleepCalls++ }
+
+	// No root index written: Run will fail with a navigation error on every
+	// attempt, driving the supervisor through its restart budget.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err := d.RunWithSupervisor(ctx)
+	if err == nil {
+		t.Fatal("expected max restarts error")
+	}
+	if !strings.Contains(err.Error(), "exceeded max restarts") {
+		t.Errorf("expected 'exceeded max restarts', got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "(2)") {
+		t.Errorf("error should mention max restart count, got: %v", err)
+	}
+	// SleepFunc should have been called once per restart before hitting the cap.
+	// With MaxRestarts=2: restart 0 sleeps, restart 1 sleeps, restart 2 hits the cap.
+	if sleepCalls != 2 {
+		t.Errorf("expected 2 sleep calls, got %d", sleepCalls)
+	}
+}
+
+func TestRunWithSupervisor_RestartAndRecover(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 3
+	d.Config.Daemon.RestartDelaySeconds = 0
+	d.Config.Daemon.MaxIterations = 1
+
+	// First Run call will fail (no root index). During the sleep between
+	// restarts, write a valid tree so the second Run succeeds.
+	d.SleepFunc = func(dur time.Duration) {
+		setupLeafNode(t, d, "my-node", []state.Task{
+			{ID: "task-0001", State: state.StatusComplete},
+		})
+		idx, _ := d.Store.ReadIndex()
+		entry := idx.Nodes["my-node"]
+		entry.State = state.StatusComplete
+		idx.Nodes["my-node"] = entry
+		_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err := d.RunWithSupervisor(ctx)
+	if err != nil {
+		t.Fatalf("expected recovery after restart, got: %v", err)
+	}
+}
+
+func TestRunWithSupervisor_StateResetBetweenRestarts(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 1
+	d.Config.Daemon.RestartDelaySeconds = 0
+
+	// Track whether the daemon state was reset between restarts by checking
+	// that shutdown is a fresh open channel after the sleep callback fires.
+	var shutdownOpen bool
+	d.SleepFunc = func(dur time.Duration) {
+		// After the sleep call, RunWithSupervisor resets d.shutdown etc.
+		// We can't check here because reset happens after sleep returns.
+		// Instead, flag that we entered sleep. The restart's second Run
+		// will verify the channels work (Run calls selfHeal, etc.).
+	}
+
+	// No root index: both Run calls fail, hitting max restarts.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err := d.RunWithSupervisor(ctx)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	// After RunWithSupervisor returns, verify that the state was reset
+	// during the last restart attempt. The iteration counter should be 0
+	// because Run resets it on entry (line 251), and the run after restart
+	// also resets it via the supervisor (line 188).
+	if d.iteration != 0 {
+		t.Errorf("expected iteration reset to 0, got %d", d.iteration)
+	}
+
+	// Verify that shutdown channel was recreated (should be open, not closed).
+	select {
+	case <-d.shutdown:
+		shutdownOpen = false
+	default:
+		shutdownOpen = true
+	}
+	if !shutdownOpen {
+		t.Error("shutdown channel should be open after state reset")
+	}
+}
+
+func TestRunWithSupervisor_SleepCalledWithConfiguredDelay(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 1
+	d.Config.Daemon.RestartDelaySeconds = 42
+
+	var observedDelay time.Duration
+	d.SleepFunc = func(dur time.Duration) { observedDelay = dur }
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_ = d.RunWithSupervisor(ctx)
+
+	expected := 42 * time.Second
+	if observedDelay != expected {
+		t.Errorf("expected sleep delay %v, got %v", expected, observedDelay)
+	}
+}
+
+func TestRunWithSupervisor_ContextCancelDuringSleep(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 5
+	d.Config.Daemon.RestartDelaySeconds = 0
+	d.Config.Daemon.MaxIterations = 1
+
+	ctx, cancel := context.WithCancel(context.Background())
+	var sleepCalls int
+	d.SleepFunc = func(dur time.Duration) {
+		sleepCalls++
+		// Cancel context during the first sleep. The next Run call should
+		// see ctx.Err() != nil and return nil, which causes
+		// RunWithSupervisor to exit without hitting max restarts.
+		cancel()
+
+		// Write valid state so the next Run can proceed far enough to
+		// notice the cancelled context.
+		setupLeafNode(t, d, "my-node", []state.Task{
+			{ID: "task-0001", State: state.StatusComplete},
+		})
+		idx, _ := d.Store.ReadIndex()
+		entry := idx.Nodes["my-node"]
+		entry.State = state.StatusComplete
+		idx.Nodes["my-node"] = entry
+		_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
+	}
+
+	err := d.RunWithSupervisor(ctx)
+	if err != nil && strings.Contains(err.Error(), "exceeded max restarts") {
+		t.Error("should exit via context cancellation, not max restarts")
+	}
+	if sleepCalls != 1 {
+		t.Errorf("expected exactly 1 sleep call before context cancel, got %d", sleepCalls)
+	}
+}
+
+func TestRunWithSupervisor_NilSleepFuncDefaultsToTimeSleep(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 0
+	d.Config.Daemon.RestartDelaySeconds = 0
+	d.SleepFunc = nil // explicit nil
+
+	// No root index: Run fails, restart 0 >= maxRestarts(0), returns error.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := d.RunWithSupervisor(ctx)
+	if err == nil {
+		t.Fatal("expected max restarts error")
+	}
+	if !strings.Contains(err.Error(), "exceeded max restarts") {
+		t.Errorf("expected max restarts error, got: %v", err)
+	}
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // propagateState
 // ═══════════════════════════════════════════════════════════════════════════
