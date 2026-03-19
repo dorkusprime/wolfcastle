@@ -177,7 +177,8 @@ func runInteractiveUnblockWith(ctx context.Context, taskAddr, diagnostic string,
 	output.PrintHuman("Engaging unblock session. Type 'quit', 'exit', or Ctrl+D to disengage.")
 	output.PrintHuman("")
 
-	// Set up readline for proper line editing, history, and terminal handling
+	// Readline is lazily initialized on first user prompt so that early
+	// failures (e.g. invocation errors) never spawn readline's ioloop goroutine.
 	rlCfg := &readline.Config{
 		Prompt:      "wolfcastle> ",
 		HistoryFile: "", // In-memory only (sessions are short-lived)
@@ -189,11 +190,12 @@ func runInteractiveUnblockWith(ctx context.Context, taskAddr, diagnostic string,
 		rlCfg.Stdout = rlStdout
 		rlCfg.Stderr = rlStdout
 	}
-	rl, err := readline.NewEx(rlCfg)
-	if err != nil {
-		return fmt.Errorf("initializing readline: %w", err)
-	}
-	defer func() { _ = rl.Close() }()
+	var rl *readline.Instance
+	defer func() {
+		if rl != nil {
+			_ = rl.Close()
+		}
+	}()
 
 	// Multi-turn: invoke model, show response, get user input, repeat.
 	// Keep a sliding window of conversation history to avoid unbounded growth.
@@ -231,6 +233,15 @@ func runInteractiveUnblockWith(ctx context.Context, taskAddr, diagnostic string,
 			output.PrintError("%s", result.Stderr)
 		}
 		fmt.Println()
+
+		// Lazily initialize readline on first user prompt
+		if rl == nil {
+			var rlErr error
+			rl, rlErr = readline.NewEx(rlCfg)
+			if rlErr != nil {
+				return fmt.Errorf("initializing readline: %w", rlErr)
+			}
+		}
 
 		// Get user input via readline
 		input, readErr := rl.Readline()
