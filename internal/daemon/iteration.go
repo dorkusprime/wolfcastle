@@ -172,6 +172,20 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		if marker == "WOLFCASTLE_BLOCKED" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
 
+			// Check if the model blocked a task that's actually
+			// superseded. Superseded work should be SKIP, not BLOCKED.
+			// Treat it as complete so it doesn't poison node state.
+			if d.isSupersededBlock(nav.NodeAddress, nav.TaskID) {
+				_ = d.Logger.Log(map[string]any{"type": "superseded_to_skip", "task": nav.TaskID})
+				output.PrintHuman("  Superseded (treating as skip).")
+				if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+					return state.TaskComplete(ns, nav.TaskID)
+				}); err != nil {
+					_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+				}
+				return nil
+			}
+
 			// For audit tasks with gaps, create remediation subtasks
 			// instead of blocking. The subtasks fix each gap, and when
 			// they all complete, DeriveParentStatus resets the audit to
@@ -573,4 +587,31 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 		return nil
 	})
 	return created
+}
+
+// isSupersededBlock checks whether a blocked task was actually superseded
+// (work done via a different path). The model should use WOLFCASTLE_SKIP
+// for these, but sometimes uses BLOCKED instead. This catches the mistake.
+func (d *Daemon) isSupersededBlock(nodeAddr, taskID string) bool {
+	var superseded bool
+	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+		for _, t := range ns.Tasks {
+			if t.ID != taskID {
+				continue
+			}
+			reason := strings.ToLower(t.BlockedReason)
+			if strings.Contains(reason, "supersed") ||
+				strings.Contains(reason, "already done") ||
+				strings.Contains(reason, "already completed") ||
+				strings.Contains(reason, "no longer needed") ||
+				strings.Contains(reason, "replaced by") ||
+				strings.Contains(reason, "done in") ||
+				strings.Contains(reason, "done directly") {
+				superseded = true
+			}
+			break
+		}
+		return nil
+	})
+	return superseded
 }
