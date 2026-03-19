@@ -173,6 +173,24 @@ func TestDeriveParentStatus_AuditResetsWhenChildrenComplete(t *testing.T) {
 	}
 }
 
+func TestDeriveParentStatus_AuditCompletesAfterRerun(t *testing.T) {
+	// Audit re-ran and passed (state=complete). Children are also complete.
+	// DeriveParentStatus should return complete, not reset to not_started.
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "audit", Description: "audit", State: StatusComplete, IsAudit: true},
+		{ID: "audit.0001", Description: "fix race condition", State: StatusComplete},
+	}
+
+	status, hasChildren := DeriveParentStatus(ns, "audit")
+	if !hasChildren {
+		t.Fatal("expected hasChildren=true")
+	}
+	if status != StatusComplete {
+		t.Errorf("audit should be complete after re-verification, got %s", status)
+	}
+}
+
 func TestDeriveParentStatus_AuditStaysInProgressWhenChildrenIncomplete(t *testing.T) {
 	ns := NewNodeState("test", "Test", NodeLeaf)
 	ns.Tasks = []Task{
