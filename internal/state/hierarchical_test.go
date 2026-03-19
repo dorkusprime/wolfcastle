@@ -235,6 +235,38 @@ func TestNavigation_AuditRemediationChildrenRunnable(t *testing.T) {
 	}
 }
 
+func TestNavigation_AuditRerunsAfterRemediationComplete(t *testing.T) {
+	// All remediation children are complete. The audit should be
+	// picked up for re-verification (DeriveParentStatus resets it
+	// to not_started, and navigation should not skip it despite
+	// having children).
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.State = StatusInProgress
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "work", State: StatusComplete},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+		{ID: "audit.0001", Description: "fix race condition", State: StatusComplete},
+	}
+
+	idx := NewRootIndex()
+	idx.Root = []string{"test"}
+	idx.Nodes["test"] = IndexEntry{
+		Name: "Test", Type: NodeLeaf, State: StatusInProgress, Address: "test",
+	}
+
+	loader := func(addr string) (*NodeState, error) { return ns, nil }
+	nav, err := FindNextTask(idx, "", loader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !nav.Found {
+		t.Fatal("expected to find audit for re-verification but navigation found nothing")
+	}
+	if nav.TaskID != "audit" {
+		t.Errorf("expected audit, got %s", nav.TaskID)
+	}
+}
+
 func TestNavigation_HierarchicalDepthFirst(t *testing.T) {
 	// task-0001 has children, task-0002 is a sibling.
 	// Navigation should pick task-0001.0001 before task-0002.
