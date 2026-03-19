@@ -187,6 +187,20 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 		}
 	}
 
+	// Planning indicator: if daemon is running but no task is in_progress,
+	// check for orchestrators that need planning (no children yet).
+	if strings.HasPrefix(daemonStatus, "running") && counts[state.StatusInProgress] > 0 {
+		for addr, entry := range idx.Nodes {
+			if entry.Type != state.NodeOrchestrator {
+				continue
+			}
+			if len(entry.Children) == 0 && entry.State != state.StatusComplete {
+				output.PrintHuman("  Planning: %s", addr)
+				break
+			}
+		}
+	}
+
 	output.PrintHuman("  Daemon: %s", daemonStatus)
 	return nil
 }
@@ -229,7 +243,47 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	if nd.ns == nil {
 		return
 	}
+	// Build a set of task IDs that should be skipped because their
+	// parent task is collapsed (completed with all children complete).
+	skipChildren := map[string]bool{}
+	if !expand {
+		for _, t := range nd.ns.Tasks {
+			if t.State != state.StatusComplete {
+				continue
+			}
+			prefix := t.ID + "."
+			childCount := 0
+			allChildrenDone := true
+			for _, c := range nd.ns.Tasks {
+				if !strings.HasPrefix(c.ID, prefix) {
+					continue
+				}
+				// Only immediate children
+				rest := c.ID[len(prefix):]
+				if strings.Contains(rest, ".") {
+					continue
+				}
+				childCount++
+				if c.State != state.StatusComplete {
+					allChildrenDone = false
+				}
+			}
+			if childCount > 0 && allChildrenDone {
+				// Mark all descendants for skipping
+				for _, c := range nd.ns.Tasks {
+					if strings.HasPrefix(c.ID, prefix) {
+						skipChildren[c.ID] = true
+					}
+				}
+			}
+		}
+	}
+
 	for _, t := range nd.ns.Tasks {
+		if skipChildren[t.ID] {
+			continue
+		}
+
 		tGlyph := taskGlyph(t.State)
 		label := t.Title
 		if label == "" {
@@ -242,6 +296,21 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		depth := strings.Count(t.ID, ".")
 		for i := 0; i < depth; i++ {
 			taskIndent += "  "
+		}
+
+		// Collapsed parent task: show child count instead of listing them
+		if !expand && t.State == state.StatusComplete {
+			prefix := t.ID + "."
+			childCount := 0
+			for _, c := range nd.ns.Tasks {
+				if strings.HasPrefix(c.ID, prefix) {
+					childCount++
+				}
+			}
+			if childCount > 0 {
+				output.PrintHuman("%s%s %s  %s  (%d subtasks)", taskIndent, tGlyph, t.ID, label, childCount)
+				continue
+			}
 		}
 
 		extra := ""
