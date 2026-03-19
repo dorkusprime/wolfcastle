@@ -35,7 +35,6 @@ type App struct {
 	// Retained fields.
 	Clock   clock.Clock
 	Invoker invoke.Invoker
-	JSON    bool
 	Version string
 
 	// Deprecated fields, kept for backward compatibility during migration.
@@ -102,7 +101,6 @@ func (a *App) Init() error {
 	a.WolfcastleDir = root
 	a.Cfg = cfg
 	a.Store = a.State
-	a.JSON = a.JSONOutput
 
 	return nil
 }

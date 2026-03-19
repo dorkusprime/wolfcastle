@@ -237,8 +237,8 @@ func TestProjectCreate_SetsRootMetadata(t *testing.T) {
 
 func TestProjectCreate_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSON = true
-	defer func() { env.App.JSON = false }()
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
 
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "json-proj"})
 	if err := env.RootCmd.Execute(); err != nil {

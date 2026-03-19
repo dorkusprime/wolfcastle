@@ -181,7 +181,7 @@ Examples:
 				return err
 			}
 
-			if app.JSON {
+			if app.JSONOutput {
 				output.Print(output.Ok("project_create", map[string]string{
 					"address": addr,
 					"type":    string(nt),

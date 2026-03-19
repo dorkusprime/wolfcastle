@@ -41,7 +41,7 @@ Examples:
 				return err
 			}
 
-			if app.JSON {
+			if app.JSONOutput {
 				output.Print(output.Ok("task_unblock", map[string]any{
 					"address": nodeFlag,
 					"task_id": taskID,
