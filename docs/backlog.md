@@ -26,7 +26,7 @@ Operational improvements to the daemon's core loop and resilience.
 
 How the tool feels to use.
 
-- **`wolfcastle log` design pass.** Current issues: intake log (10001-*) sorts after execute logs, follow mode doesn't know which iteration is active, no stage filtering, no human-readable formatting. Design goals: multiple verbosity levels, `--follow` at all levels, unified log stream with stage tags, iteration addressing, stage filtering.
+- **`wolfcastle log` design pass.** Current issues: intake log (10001-\*) sorts after execute logs, follow mode doesn't know which iteration is active, no stage filtering, no human-readable formatting. Design goals: multiple verbosity levels, `--follow` at all levels, unified log stream with stage tags, iteration addressing, stage filtering.
 
 - **`wolfcastle status` detail.** Show task descriptions (not just titles), failure reasons from the last attempt, deliverable declarations, and breadcrumbs. A user watching the daemon should understand what's happening without reading raw logs.
 
@@ -36,11 +36,19 @@ How the tool feels to use.
 
 - **Fully user-configurable prompts via the tier system.** Prompts are embedded via go:embed and extracted at scaffold time. Users can override in custom/local but can't easily see the defaults. Make base/ prompts the authoritative reference. `init` populates, `init --force` regenerates.
 
+- **`wolfcastle status -w` refresh is jumpy.** Each refresh hops the screen for a millisecond or two. Should clear and redraw smoothly (terminal alternate screen buffer or cursor repositioning).
+
+- **`wolfcastle status -w` should show the interval.** Display the refresh interval at the top, like `watch` does ("Every 5.0s: wolfcastle status").
+
+- **`wolfcastle status -w --interval` should accept `-n`.** Match `watch` convention: `-n 2` as shorthand for `--interval 2`.
+
+- **`wolfcastle status` should collapse completed nodes.** Show completed leaves/orchestrators as a single line with a count of collapsed children. Flag to expand (e.g., `--all`). Keeps the tree readable as it grows.
+
+- **`wolfcastle status` should indent subtasks by depth.** Hierarchical task IDs (task-0001.0001) should be visually nested under their parent task, not displayed at the same level.
+
 ## Code Quality
 
 Things that should be better in the implementation.
-
-- **Domain refactor: migrate remaining backward-compat callers.** 17 files still use `app.WolfcastleDir`, 9 use `app.Cfg`, 15 use `app.Store`. These need migration to repository methods before `tree.Resolver` can be deleted.
 
 - **ContextBuilder null-safety.** `findTask()` returns nil silently causing context truncation. Should error. Template re-parsing on every `Build()` call with no caching.
 
@@ -106,3 +114,6 @@ Things that should be better in the implementation.
 - ~~NeedsPlanning inference~~ (structural detection of childless orchestrators, PR #42 + PR #47)
 - ~~Spec stubs pass through pipeline~~ (audit checks content not existence, PR #40 + PR #43)
 - ~~Structured audit PASS/REMEDIATE~~ (verdicts, daemon handles BLOCKED, PR #43 + PR #44 + PR #50)
+- ~~Domain refactor: migrate backward-compat callers~~ (App Refactor in eval #6, test/domains run)
+- ~~Spec-first ordering codified~~ (planning prompt, PR #52)
+- ~~Remediation unblock step~~ (remediate prompt, PR #52)
