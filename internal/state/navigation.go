@@ -188,9 +188,13 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 		if task.State != StatusNotStarted {
 			continue
 		}
-		// Skip parent tasks that have children
+		// Skip parent tasks that have incomplete children. Audit tasks
+		// are the exception: when all remediation children complete,
+		// the audit becomes actionable again for re-verification.
 		if TaskChildren(ns, task.ID) {
-			continue
+			if !task.IsAudit || !allChildrenComplete(ns, task.ID) {
+				continue
+			}
 		}
 		// Skip child tasks whose parent is not_started
 		if hasNotStartedAncestor(task.ID, ns) {
@@ -266,4 +270,25 @@ func hasNotStartedAncestor(taskID string, ns *NodeState) bool {
 		id = parentID
 	}
 	return false
+}
+
+// allChildrenComplete returns true if every immediate child of taskID
+// is complete.
+func allChildrenComplete(ns *NodeState, taskID string) bool {
+	prefix := taskID + "."
+	found := false
+	for _, t := range ns.Tasks {
+		if !strings.HasPrefix(t.ID, prefix) {
+			continue
+		}
+		rest := t.ID[len(prefix):]
+		if strings.Contains(rest, ".") {
+			continue
+		}
+		found = true
+		if t.State != StatusComplete {
+			return false
+		}
+	}
+	return found
 }
