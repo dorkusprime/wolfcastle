@@ -89,11 +89,8 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 		nd := &nodeDetail{entry: entry}
 		details[addr] = nd
 
-		if entry.Type == state.NodeLeaf {
-			ns, err := app.State.ReadNode(addr)
-			if err != nil {
-				continue
-			}
+		ns, err := app.State.ReadNode(addr)
+		if err == nil {
 			nd.ns = ns
 			auditCounts[ns.Audit.Status]++
 			for _, g := range ns.Audit.Gaps {
@@ -229,10 +226,18 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	glyph := nodeGlyph(nd.entry.State)
 	output.PrintHuman("%s%s %s  (%s)", indent, glyph, nd.entry.Name, addr)
 
-	// For orchestrators, print children
+	// For orchestrators, print children then show audit task if active
 	if nd.entry.Type == state.NodeOrchestrator {
 		for _, childAddr := range nd.entry.Children {
 			printNodeTree(app, idx, details, childAddr, indent+"  ", expand)
+		}
+		if nd.ns != nil {
+			for _, t := range nd.ns.Tasks {
+				if t.IsAudit && (t.State == state.StatusInProgress || t.State == state.StatusBlocked) {
+					tGlyph := taskGlyph(t.State)
+					output.PrintHuman("%s  %s %s  %s", indent, tGlyph, t.ID, t.Description)
+				}
+			}
 		}
 		return
 	}
