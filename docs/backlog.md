@@ -2,16 +2,11 @@
 
 Items accumulate here as they surface. Don't process unless directed.
 
-## Added by User
-
-- `wolfcastle doctor` seems useless.
-  - It always surfaces a bunch of warnings (why would we ever have gotten into a warning state in the first place??) but doesn't fix them with `--fix`
-  - If there are any actual issues, it just says it can't fix them with "model-assisted fix requires a node address. Model could not fix any of them.". Isn't that what we use the LLM for, to fix this sort of thing?
-  - The "help" test says that `--fix` will "Attempt to fix deterministic issues" but how do I escalate to nondeterministic issues?
-
 ## Pipeline Architecture
 
 These shape how Wolfcastle plans, executes, and learns from its work.
+
+- **Orchestrator state reconciliation.** Orchestrators should reconcile their own task states as part of their planning pass. If a parent task is stale (not_started but all children complete), the orchestrator should derive and write the correct status before deciding what to plan next. Currently this is handled by the daemon's selfHeal at startup, but routine reconciliation belongs in the orchestrator since it's the one responsible for keeping its subtree moving.
 
 - **Harden audit unblock after remediation.** In eval #6, the remediation task successfully unblocked the original audit, but it wasn't obvious whether that would happen reliably. Investigate: does the remediation prompt (`plan-remediate.md`) consistently instruct the model to include an unblock step? Should the daemon auto-unblock as a fallback? A prompt change in the remediate template or the remediation task body may be enough to make this reliable without daemon-side logic.
 
@@ -119,3 +114,6 @@ Things that should be better in the implementation.
 - ~~Status subtask indentation~~ (hierarchical IDs nested by depth, PR #53)
 - ~~Status collapse completed nodes~~ (--expand flag, PR #54)
 - ~~Status watch jitter~~ (alternate screen buffer, cursor reposition, PR #54)
+- ~~Doctor overhaul~~ (deterministic STALE/MULTIPLE fixes, multi-pass repair, escalation guidance, reduced INVALID_AUDIT_SCOPE noise, PR #57)
+- ~~Status collapse completed leaves~~ (leaf nodes with tasks collapse like orchestrators, PR #58)
+- ~~selfHeal derives parent status~~ (parent tasks auto-complete when children done, PR #59)
