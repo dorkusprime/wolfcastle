@@ -15,7 +15,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
 // mockInvoker implements invoke.Invoker with canned responses for testing.
@@ -381,7 +380,6 @@ Description.
 		Config:        configRepo,
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
 		Clock:         clock.NewFixed(fixedTime),
 		Invoker:       mock,
 	}

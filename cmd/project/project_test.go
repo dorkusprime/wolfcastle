@@ -9,7 +9,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -38,15 +37,13 @@ func newTestEnv(t *testing.T) *testEnv {
 	data, _ := json.MarshalIndent(idx, "", "  ")
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
 
-	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
-	store := state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout)
+	store := state.NewStateStore(projDir, state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
 		Config:        config.NewConfigRepository(wcDir),
 		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
 		State:         store,
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
-		Resolver:      resolver,
 		Store:         store,
 	}
 

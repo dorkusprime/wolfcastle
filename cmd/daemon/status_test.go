@@ -10,7 +10,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -53,12 +52,10 @@ func newStatusTestEnv(t *testing.T) *testEnv {
 	idxData, _ := json.MarshalIndent(idx, "", "  ")
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), idxData, 0644)
 
-	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	id, _ := config.IdentityFromConfig(cfg)
 	testApp := &cmdutil.App{
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
-		Resolver:      resolver,
 		Identity:      id,
 		Config:        config.NewConfigRepository(wcDir),
 		Daemon:        dmn.NewDaemonRepository(wcDir),

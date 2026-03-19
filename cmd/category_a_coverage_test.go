@@ -154,9 +154,9 @@ func TestDoctorCmd_CorruptStateJSON_JSON(t *testing.T) {
 	}
 }
 
-// Note: RequireResolver guards for spec create/link/list are exercised
+// Note: RequireIdentity guards for spec create/link/list are exercised
 // indirectly through the NoInit test pattern (PersistentPreRunE fails).
-// The RequireResolver() function itself is tested in cmdutil/app_test.go.
+// The RequireIdentity() function itself is tested in cmdutil/app_test.go.
 // Direct cobra-level testing of these guards in the root cmd package is
 // impractical because cobra retains --node flag values across calls,
 // causing test pollution.
@@ -230,12 +230,12 @@ func TestADRCreate_FileNotFound(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// cmd/archive_add.go: RequireResolver
+// cmd/archive_add.go: RequireIdentity
 // (Uses a bare App and chdir to a dir without .wolfcastle so
-// PersistentPreRunE cannot reload config/resolver)
+// PersistentPreRunE cannot reload config/identity)
 // ---------------------------------------------------------------------------
 
-func TestArchiveAdd_RequireResolver(t *testing.T) {
+func TestArchiveAdd_RequireIdentity(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 
@@ -295,10 +295,10 @@ func TestArchiveAdd_ParseAddressError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// cmd/navigate.go: RequireResolver
+// cmd/navigate.go: RequireIdentity
 // ---------------------------------------------------------------------------
 
-func TestNavigate_RequireResolver(t *testing.T) {
+func TestNavigate_RequireIdentity(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 

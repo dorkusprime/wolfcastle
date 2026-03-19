@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
 // ---------------------------------------------------------------------------
@@ -23,10 +23,9 @@ func TestCompleteTaskAddresses_BrokenResolver(t *testing.T) {
 	// Valid root index
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"not_started","address":"my-node","children":[]}}}`), 0644)
 
-	// App has a resolver but set it to nil to simulate broken state
+	// App has no resolver to simulate broken state
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      nil, // broken: no resolver
 	}
 
 	origDir, _ := os.Getwd()
@@ -95,7 +94,6 @@ func TestCheckOverlap_AllStopWordsInput(t *testing.T) {
 		Cfg: &config.Config{
 			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.1},
 		},
-		Resolver: &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
 	}
 
 	// Input that is entirely stop words produces empty bigrams, should bail early
@@ -116,12 +114,9 @@ func TestCompleteTaskAddresses_IndexSucceedsResolverFails(t *testing.T) {
 
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"not_started","address":"my-node","children":[]}}}`), 0644)
 
-	// Has resolver for loadRootIndex but we'll test the resolver-for-completion path
-	// by providing a resolver that works for index but simulating a scenario where
-	// resolverForCompletion's fallback is needed
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 
 	fn := CompleteTaskAddresses(a)

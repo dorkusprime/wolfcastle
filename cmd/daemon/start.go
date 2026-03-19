@@ -112,7 +112,7 @@ Examples:
 				return startBackground(app.Config.Root(), nodeScope, worktreeBranch, "")
 			}
 
-			d, err := dmn.New(cfg, app.Config.Root(), app.Resolver, nodeScope, repoDir)
+			d, err := dmn.New(cfg, app.Config.Root(), app.State, nodeScope, repoDir)
 			if err != nil {
 				return err
 			}

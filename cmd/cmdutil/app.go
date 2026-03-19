@@ -18,7 +18,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
 // App holds the shared runtime state for the CLI: repository references,
@@ -43,7 +42,6 @@ type App struct {
 	// Task-0002 will migrate all callers, then these are removed.
 	WolfcastleDir string
 	Cfg           *config.Config
-	Resolver      *tree.Resolver
 	Store         *state.StateStore
 	JSONOutput    bool
 	Commit        string
@@ -103,7 +101,6 @@ func (a *App) Init() error {
 	// Populate deprecated fields for backward compatibility.
 	a.WolfcastleDir = root
 	a.Cfg = cfg
-	a.Resolver, _ = tree.NewResolver(root, cfg)
 	a.Store = a.State
 	a.JSON = a.JSONOutput
 
@@ -124,16 +121,6 @@ func (a *App) RequireIdentity() error {
 		return fmt.Errorf("identity not configured. Run 'wolfcastle init' first")
 	}
 	return nil
-}
-
-// RequireResolver is a backward-compatible wrapper. It succeeds if
-// either Identity or Resolver is set. Deprecated: callers should
-// migrate to RequireIdentity.
-func (a *App) RequireResolver() error {
-	if a.Identity != nil || a.Resolver != nil {
-		return nil
-	}
-	return fmt.Errorf("identity not configured. Run 'wolfcastle init' first")
 }
 
 // CheckOverlap scans other engineers' project names and descriptions

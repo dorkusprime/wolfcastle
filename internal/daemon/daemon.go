@@ -52,7 +52,6 @@ const inboxIterationOffset = 10000
 type Daemon struct {
 	Config         *config.Config
 	WolfcastleDir  string
-	Resolver       *tree.Resolver
 	Store          *state.StateStore
 	ScopeNode      string
 	Logger         *logging.Logger
@@ -71,7 +70,7 @@ type Daemon struct {
 }
 
 // New creates a new daemon.
-func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scopeNode string, repoDir string) (*Daemon, error) {
+func New(cfg *config.Config, wolfcastleDir string, store *state.StateStore, scopeNode string, repoDir string) (*Daemon, error) {
 	logDir := filepath.Join(wolfcastleDir, "system", "logs")
 	logger, err := logging.NewLogger(logDir)
 	if err != nil {
@@ -110,8 +109,7 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 	return &Daemon{
 		Config:         cfg,
 		WolfcastleDir:  wolfcastleDir,
-		Resolver:       resolver,
-		Store:          state.NewStateStore(resolver.ProjectsDir(), 5*time.Second),
+		Store:          store,
 		ScopeNode:      scopeNode,
 		Logger:         logger,
 		InboxLogger:    inboxLogger,
@@ -126,7 +124,7 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 // selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
 func (d *Daemon) selfHeal() error {
 	output.PrintHuman("Scanning for casualties...")
-	idx, err := d.Resolver.LoadRootIndex()
+	idx, err := d.Store.ReadIndex()
 	if err != nil {
 		output.PrintHuman("No root index. Nothing to recover.")
 		return nil
@@ -141,7 +139,7 @@ func (d *Daemon) selfHeal() error {
 		if err != nil {
 			continue
 		}
-		ns, err := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+		ns, err := state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json"))
 		if err != nil {
 			continue
 		}
@@ -403,7 +401,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		if parseErr != nil {
 			return nil, fmt.Errorf("parsing address %q: %w", addr, parseErr)
 		}
-		return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+		return state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json"))
 	}
 
 	// Step 1: Try to find an actionable task. Execute if found.

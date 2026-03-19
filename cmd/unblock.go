@@ -34,7 +34,7 @@ Examples:
   wolfcastle unblock --node my-project/task-1
   wolfcastle unblock --agent --node my-project/task-1`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := app.RequireResolver(); err != nil {
+		if err := app.RequireIdentity(); err != nil {
 			return err
 		}
 		nodeFlag, _ := cmd.Flags().GetString("node")
@@ -51,12 +51,7 @@ Examples:
 		}
 
 		// Load node state
-		addr, err := tree.ParseAddress(nodeAddr)
-		if err != nil {
-			return fmt.Errorf("invalid node address: %w", err)
-		}
-		statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-		ns, err := state.LoadNodeState(statePath)
+		ns, err := app.State.ReadNode(nodeAddr)
 		if err != nil {
 			return fmt.Errorf("loading node state: %w", err)
 		}

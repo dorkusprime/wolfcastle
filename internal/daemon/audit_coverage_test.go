@@ -75,7 +75,7 @@ func TestRunInboxWithPolling_ProcessesInbox(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	// Put a new item in the inbox
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "poll-test", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
@@ -210,7 +210,7 @@ func TestRunIntakeStage_MissingModel(t *testing.T) {
 	defer d.InboxLogger.Close()
 
 	// Put new items in inbox
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "test", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
@@ -229,7 +229,7 @@ func TestRunIntakeStage_AllItemsFiled(t *testing.T) {
 	_ = d.InboxLogger.StartIterationWithPrefix("intake")
 	defer d.InboxLogger.Close()
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "filed", Text: "already done", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
@@ -267,7 +267,7 @@ func TestRunIntakeStage_WithExistingTree(t *testing.T) {
 		{ID: "task-0001", State: state.StatusNotStarted},
 	})
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "new work", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
@@ -294,7 +294,7 @@ func TestCheckInboxForNew_MissingFile(t *testing.T) {
 func TestCheckInboxForNew_NewItems(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "test"},
 	}})
@@ -307,7 +307,7 @@ func TestCheckInboxForNew_NewItems(t *testing.T) {
 func TestCheckInboxForNew_AllFiled(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "filed", Text: "done"},
 	}})

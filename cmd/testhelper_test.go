@@ -69,11 +69,6 @@ func newTestEnv(t *testing.T) *testEnv {
 	_ = os.MkdirAll(filepath.Join(wcDir, "docs", "specs"), 0755)
 	_ = os.MkdirAll(filepath.Join(wcDir, "docs", "decisions"), 0755)
 
-	resolver := &tree.Resolver{
-		WolfcastleDir: wcDir,
-		Namespace:     ns,
-	}
-
 	loadedCfg, err := config.Load(wcDir)
 	if err != nil {
 		t.Fatalf("loading test config: %v", err)
@@ -81,7 +76,7 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	cfgRepo := config.NewConfigRepository(wcDir)
 	identity, _ := config.IdentityFromConfig(loadedCfg)
-	stateStore := state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout)
+	stateStore := state.NewStateStore(filepath.Join(wcDir, "system", "projects", ns), state.DefaultLockTimeout)
 
 	testApp := &cmdutil.App{
 		Config:        cfgRepo,
@@ -89,7 +84,6 @@ func newTestEnv(t *testing.T) *testEnv {
 		State:         stateStore,
 		WolfcastleDir: wcDir,
 		Cfg:           loadedCfg,
-		Resolver:      resolver,
 		Store:         stateStore,
 		Clock:         clock.New(),
 	}

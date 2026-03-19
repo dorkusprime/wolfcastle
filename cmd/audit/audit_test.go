@@ -38,15 +38,13 @@ func newTestEnv(t *testing.T) *testEnv {
 	idx := state.NewRootIndex()
 	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
 
-	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
-	store := state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout)
+	store := state.NewStateStore(projDir, state.DefaultLockTimeout)
 	testApp := &cmdutil.App{
 		Config:        config.NewConfigRepository(wcDir),
 		Identity:      &config.Identity{User: "test", Machine: "dev", Namespace: ns},
 		State:         store,
 		WolfcastleDir: wcDir,
 		Cfg:           cfg,
-		Resolver:      resolver,
 		Store:         store,
 		Clock:         clock.New(),
 	}

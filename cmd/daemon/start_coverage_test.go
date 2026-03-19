@@ -14,17 +14,6 @@ import (
 // start command — error paths (without starting the daemon loop)
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestStartCmd_NilResolver_ErrorMessage(t *testing.T) {
-	env := newTestEnv(t)
-	env.App.Resolver = nil
-
-	env.RootCmd.SetArgs([]string{"start"})
-	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Error("expected error when resolver is nil")
-	}
-}
-
 func TestStartCmd_AlreadyRunning_OwnPID(t *testing.T) {
 	env := newStatusTestEnv(t)
 	// Write our own PID as the running daemon

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -249,31 +249,6 @@ func TestFindWolfcastleDir_NotFound(t *testing.T) {
 	_, err := app.FindWolfcastleDir()
 	if err == nil {
 		t.Error("expected error when no .wolfcastle dir exists")
-	}
-}
-
-// ---------------------------------------------------------------------------
-// RequireResolver
-// ---------------------------------------------------------------------------
-
-func TestRequireResolver_NilResolver(t *testing.T) {
-	app := &App{}
-	err := app.RequireResolver()
-	if err == nil {
-		t.Error("expected error when resolver is nil")
-	}
-}
-
-func TestRequireResolver_WithResolver(t *testing.T) {
-	app := &App{
-		Resolver: &tree.Resolver{
-			WolfcastleDir: "/tmp/fake",
-			Namespace:     "test",
-		},
-	}
-	err := app.RequireResolver()
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
 	}
 }
 
@@ -575,7 +550,7 @@ func TestCompleteNodeAddresses_WithResolver(t *testing.T) {
 
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteNodeAddresses(a)
 	addrs, _ := fn(nil, nil, "")
@@ -606,7 +581,7 @@ func TestLoadRootIndexForCompletion_AlreadyLoaded(t *testing.T) {
 
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	idx, err := loadRootIndexForCompletion(a)
 	if err != nil {
@@ -614,31 +589,6 @@ func TestLoadRootIndexForCompletion_AlreadyLoaded(t *testing.T) {
 	}
 	if idx == nil {
 		t.Error("expected non-nil index")
-	}
-}
-
-func TestResolverForCompletion_AlreadyLoaded(t *testing.T) {
-	r := &tree.Resolver{WolfcastleDir: "/tmp/fake", Namespace: "test"}
-	a := &App{Resolver: r}
-	got, err := resolverForCompletion(a)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != r {
-		t.Error("expected the same resolver")
-	}
-}
-
-func TestResolverForCompletion_NilResolverNoConfig(t *testing.T) {
-	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
-
-	a := &App{}
-	_, err := resolverForCompletion(a)
-	if err == nil {
-		t.Error("expected error when resolver and config are both unavailable")
 	}
 }
 
@@ -668,7 +618,7 @@ func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
 
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")
