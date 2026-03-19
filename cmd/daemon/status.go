@@ -429,8 +429,10 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 	}
 
 	for {
-		// Move cursor home (no clear). Overwrite previous output in place.
-		_, _ = fmt.Fprint(os.Stdout, "\033[H")
+		// Home + clear. Inside the alternate screen buffer this is
+		// effectively instantaneous, no visible flash. Cursor-home
+		// alone left stale text when lines shrank between frames.
+		_, _ = fmt.Fprint(os.Stdout, "\033[H\033[2J")
 
 		// Show interval header
 		if output.IsTerminal() {
@@ -453,12 +455,6 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 			}
 		}
 
-		// Clear from cursor to end of screen. This erases any leftover
-		// lines from the previous frame (e.g., when the tree shrinks
-		// because nodes completed and collapsed).
-		// Clear from cursor to end of screen, erasing leftover lines
-		// from the previous frame.
-		_, _ = fmt.Fprint(os.Stdout, "\033[J")
 
 		select {
 		case <-ctx.Done():
