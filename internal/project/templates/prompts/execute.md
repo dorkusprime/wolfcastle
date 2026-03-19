@@ -148,9 +148,9 @@ wolfcastle audit summary --node <your-node> "one-paragraph summary of what was a
 Then emit one terminal marker on its own line, as plain text. No markdown formatting, no bold, no backticks, no emphasis.
 
 - **WOLFCASTLE_COMPLETE** — Task is done. You must have committed changes before emitting this.
-- **WOLFCASTLE_SKIP** *reason* — The task's work was already completed by a prior task, manual change, or codebase evolution. Do not redo work that already exists. Include a reason. Example: `WOLFCASTLE_SKIP tree.Resolver already removed in prior commit`
+- **WOLFCASTLE_SKIP** *reason* — The task's work was already completed by a prior task, manual change, or codebase evolution. Superseded tasks are SKIP, not BLOCKED. If someone else already did the work, or the task was replaced by a different approach, that's SKIP. Include a reason. Example: `WOLFCASTLE_SKIP tree.Resolver already removed in prior commit`
 - **WOLFCASTLE_YIELD** — You made progress but the task needs more work, or you created sub-tasks and need the daemon to work on them.
-- **WOLFCASTLE_BLOCKED** — The task cannot be completed. Call `wolfcastle task block` first with a reason.
+- **WOLFCASTLE_BLOCKED** — The task cannot proceed due to an external dependency, missing prerequisite, or unresolvable conflict. Use this only when the work genuinely cannot be done, not when it was done differently. Call `wolfcastle task block` first with a reason.
 
 ### J. Pre-block downstream tasks (when applicable)
 

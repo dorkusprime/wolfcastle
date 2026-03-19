@@ -129,8 +129,8 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 
 		if ns.Type == state.NodeLeaf {
 			e.checkLeafAudit(ns, addr, categories, report)
-			e.checkLeafTasks(ns, addr, categories, report, &inProgressTasks)
 		}
+		e.checkTaskState(ns, addr, categories, report, &inProgressTasks)
 		e.checkAuditState(ns, addr, categories, report)
 		e.checkParentChild(ns, addr, entry, idx, categories, report)
 		e.checkTransitions(ns, addr, categories, report)
@@ -309,21 +309,36 @@ func (e *Engine) checkGlobalState(idx *state.RootIndex, categories map[string]bo
 	}
 
 	if e.include(CatMultipleInProgress, categories) && len(inProgressTasks) > 1 {
-		report.Issues = append(report.Issues, Issue{
-			Severity:    SeverityError,
-			Category:    CatMultipleInProgress,
-			Description: fmt.Sprintf("Multiple tasks in progress: %s", strings.Join(inProgressTasks, ", ")),
-			FixType:     FixModelAssisted,
-		})
+		for _, taskRef := range inProgressTasks {
+			parts := strings.SplitN(taskRef, "/", 2)
+			node := ""
+			if len(parts) > 0 {
+				// Extract the node address (everything except the last /taskID segment)
+				node = nodeAddrFromTaskRef(taskRef)
+			}
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityError,
+				Category:    CatMultipleInProgress,
+				Node:        node,
+				Description: fmt.Sprintf("Task %s in progress (serial execution allows at most 1)", taskRef),
+				CanAutoFix:  true,
+				FixType:     FixDeterministic,
+			})
+		}
 	}
 	if e.include(CatStaleInProgress, categories) && len(inProgressTasks) > 0 {
 		if !e.isDaemonAlive() {
-			report.Issues = append(report.Issues, Issue{
-				Severity:    SeverityWarning,
-				Category:    CatStaleInProgress,
-				Description: fmt.Sprintf("Task(s) in progress (%s) with no live daemon, likely stale", strings.Join(inProgressTasks, ", ")),
-				FixType:     FixNone,
-			})
+			for _, taskRef := range inProgressTasks {
+				node := nodeAddrFromTaskRef(taskRef)
+				report.Issues = append(report.Issues, Issue{
+					Severity:    SeverityError,
+					Category:    CatStaleInProgress,
+					Node:        node,
+					Description: fmt.Sprintf("Task %s in progress with no live daemon", taskRef),
+					CanAutoFix:  true,
+					FixType:     FixDeterministic,
+				})
+			}
 		}
 	}
 
@@ -401,7 +416,7 @@ func (e *Engine) checkLeafAudit(ns *state.NodeState, addr string, categories map
 	}
 }
 
-func (e *Engine) checkLeafTasks(ns *state.NodeState, addr string, categories map[string]bool, report *Report, inProgressTasks *[]string) {
+func (e *Engine) checkTaskState(ns *state.NodeState, addr string, categories map[string]bool, report *Report, inProgressTasks *[]string) {
 	for _, t := range ns.Tasks {
 		// NEGATIVE_FAILURE_COUNT
 		if e.include(CatNegativeFailureCount, categories) && t.FailureCount < 0 {
@@ -423,14 +438,22 @@ func (e *Engine) checkLeafTasks(ns *state.NodeState, addr string, categories map
 }
 
 func (e *Engine) checkAuditState(ns *state.NodeState, addr string, categories map[string]bool, report *Report) {
-	// INVALID_AUDIT_SCOPE: audit scope present but missing required description
+	// INVALID_AUDIT_SCOPE: scope with a non-empty description that contradicts
+	// the node's actual content would be a real issue, but an empty description
+	// is the default state created by NewNodeState. The audit task populates it
+	// when it runs. Flagging empty descriptions generates noise for every node
+	// in the tree, so we only check for structurally invalid scopes: a scope
+	// that has criteria or systems defined but is missing its description
+	// after the audit has completed (passed or failed).
 	if e.include(CatInvalidAuditScope, categories) && ns.Audit.Scope != nil {
-		if ns.Audit.Scope.Description == "" {
+		hasContent := len(ns.Audit.Scope.Criteria) > 0 || len(ns.Audit.Scope.Systems) > 0 || len(ns.Audit.Scope.Files) > 0
+		auditDone := ns.Audit.Status == state.AuditPassed || ns.Audit.Status == state.AuditFailed
+		if ns.Audit.Scope.Description == "" && hasContent && auditDone {
 			report.Issues = append(report.Issues, Issue{
 				Severity:    SeverityWarning,
 				Category:    CatInvalidAuditScope,
 				Node:        addr,
-				Description: "Audit scope exists but has no description",
+				Description: "Audit scope has criteria/files but no description",
 				FixType:     FixManual,
 			})
 		}
@@ -624,6 +647,17 @@ func (e *Engine) isDaemonAlive() bool {
 	// Signal 0 checks if process exists without actually signaling it
 	err = proc.Signal(syscall.Signal(0))
 	return err == nil
+}
+
+// nodeAddrFromTaskRef extracts the node address from a "node/taskID" reference.
+// For hierarchical tasks like "domain-repo/task-0001.0002", the node address
+// is everything before the last "/" segment.
+func nodeAddrFromTaskRef(ref string) string {
+	idx := strings.LastIndex(ref, "/")
+	if idx < 0 {
+		return ref
+	}
+	return ref[:idx]
 }
 
 func isValidState(s state.NodeStatus) bool {

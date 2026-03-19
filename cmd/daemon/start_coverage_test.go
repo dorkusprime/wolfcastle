@@ -30,36 +30,55 @@ func TestStartCmd_AlreadyRunning_OwnPID(t *testing.T) {
 func TestStartCmd_ValidationBlocksWithErrors(t *testing.T) {
 	env := newStatusTestEnv(t)
 
-	// Make node state invalid: remove all tasks including audit
+	// Set the node to "complete" while leaving tasks incomplete.
+	// This is COMPLETE_WITH_INCOMPLETE, a model-assisted fix that
+	// FixWithVerification cannot repair deterministically. Validation
+	// will block startup with an error.
 	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
 	ns, _ := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
-	ns.Tasks = nil
+	ns.State = state.StatusComplete
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", State: state.StatusNotStarted},
+		{ID: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
 	nsData, _ := json.MarshalIndent(ns, "", "  ")
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
-	// Should either error from validation or from daemon creation,
-	// but must not panic
+	// Should error from validation, not hang
 	_ = err
 }
 
 func TestStartCmd_StalePIDRecoveredBeforeStart(t *testing.T) {
 	env := newStatusTestEnv(t)
 
-	// Write a stale PID file (process doesn't exist)
+	// Write a stale PID file (process doesn't exist) and a stop file.
+	// recoverStaleDaemonState cleans up all three when the PID is dead.
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "daemon.meta.json"), []byte("{}"), 0644)
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
+
+	// Also place a fresh stop file AFTER recovery would run, so the daemon
+	// exits immediately if self-heal + validation pass and it actually starts.
+	// We do this by making the node state unfixable (complete with incomplete tasks).
+	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
+	ns, _ := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
+	ns.State = state.StatusComplete
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", State: state.StatusNotStarted},
+		{ID: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
-	// The stale PID should be cleaned up, then start proceeds to daemon creation
-	// which may fail for other reasons (no model config), but that's fine
+	// The stale PID should be cleaned up; startup should block on validation
 	_ = err
 
-	// Verify stale files were cleaned up
+	// Verify stale PID file was cleaned up
 	if _, statErr := os.Stat(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid")); !os.IsNotExist(statErr) {
 		t.Error("stale PID file should be cleaned up before start")
 	}

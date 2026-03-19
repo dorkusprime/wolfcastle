@@ -156,6 +156,135 @@ func TestDeriveParentStatus_IgnoresGrandchildren(t *testing.T) {
 	}
 }
 
+func TestDeriveParentStatus_AuditResetsWhenChildrenComplete(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "audit", Description: "audit", State: StatusBlocked, IsAudit: true},
+		{ID: "audit.0001", Description: "fix race condition", State: StatusComplete},
+		{ID: "audit.0002", Description: "consolidate tests", State: StatusComplete},
+	}
+
+	status, hasChildren := DeriveParentStatus(ns, "audit")
+	if !hasChildren {
+		t.Fatal("expected hasChildren=true")
+	}
+	if status != StatusNotStarted {
+		t.Errorf("audit should reset to not_started when children complete, got %s", status)
+	}
+}
+
+func TestDeriveParentStatus_AuditCompletesAfterRerun(t *testing.T) {
+	// Audit re-ran and passed (state=complete). Children are also complete.
+	// DeriveParentStatus should return complete, not reset to not_started.
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "audit", Description: "audit", State: StatusComplete, IsAudit: true},
+		{ID: "audit.0001", Description: "fix race condition", State: StatusComplete},
+	}
+
+	status, hasChildren := DeriveParentStatus(ns, "audit")
+	if !hasChildren {
+		t.Fatal("expected hasChildren=true")
+	}
+	if status != StatusComplete {
+		t.Errorf("audit should be complete after re-verification, got %s", status)
+	}
+}
+
+func TestDeriveParentStatus_AuditStaysInProgressWhenChildrenIncomplete(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "audit", Description: "audit", State: StatusBlocked, IsAudit: true},
+		{ID: "audit.0001", Description: "fix race condition", State: StatusComplete},
+		{ID: "audit.0002", Description: "consolidate tests", State: StatusNotStarted},
+	}
+
+	status, hasChildren := DeriveParentStatus(ns, "audit")
+	if !hasChildren {
+		t.Fatal("expected hasChildren=true")
+	}
+	if status != StatusNotStarted {
+		t.Errorf("audit with incomplete children should be not_started, got %s", status)
+	}
+}
+
+func TestDeriveParentStatus_NonAuditStillCompletes(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "parent", State: StatusInProgress},
+		{ID: "task-0001.0001", Description: "child", State: StatusComplete},
+	}
+
+	status, _ := DeriveParentStatus(ns, "task-0001")
+	if status != StatusComplete {
+		t.Errorf("non-audit parent should complete, got %s", status)
+	}
+}
+
+func TestNavigation_AuditRemediationChildrenRunnable(t *testing.T) {
+	// audit is not_started (reset for re-verification) with remediation
+	// children. Children must be runnable despite the parent being
+	// not_started, because the audit's not_started state means
+	// "waiting for children to finish."
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.State = StatusInProgress
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "work", State: StatusComplete},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+		{ID: "audit.0001", Description: "fix race condition", State: StatusNotStarted},
+	}
+
+	idx := NewRootIndex()
+	idx.Root = []string{"test"}
+	idx.Nodes["test"] = IndexEntry{
+		Name: "Test", Type: NodeLeaf, State: StatusInProgress, Address: "test",
+	}
+
+	loader := func(addr string) (*NodeState, error) { return ns, nil }
+	nav, err := FindNextTask(idx, "", loader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !nav.Found {
+		t.Fatal("expected to find audit.0001 but navigation found nothing")
+	}
+	if nav.TaskID != "audit.0001" {
+		t.Errorf("expected audit.0001, got %s", nav.TaskID)
+	}
+}
+
+func TestNavigation_AuditRerunsAfterRemediationComplete(t *testing.T) {
+	// All remediation children are complete. The audit should be
+	// picked up for re-verification (DeriveParentStatus resets it
+	// to not_started, and navigation should not skip it despite
+	// having children).
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.State = StatusInProgress
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "work", State: StatusComplete},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+		{ID: "audit.0001", Description: "fix race condition", State: StatusComplete},
+	}
+
+	idx := NewRootIndex()
+	idx.Root = []string{"test"}
+	idx.Nodes["test"] = IndexEntry{
+		Name: "Test", Type: NodeLeaf, State: StatusInProgress, Address: "test",
+	}
+
+	loader := func(addr string) (*NodeState, error) { return ns, nil }
+	nav, err := FindNextTask(idx, "", loader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !nav.Found {
+		t.Fatal("expected to find audit for re-verification but navigation found nothing")
+	}
+	if nav.TaskID != "audit" {
+		t.Errorf("expected audit, got %s", nav.TaskID)
+	}
+}
+
 func TestNavigation_HierarchicalDepthFirst(t *testing.T) {
 	// task-0001 has children, task-0002 is a sibling.
 	// Navigation should pick task-0001.0001 before task-0002.

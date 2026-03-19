@@ -14,10 +14,10 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// selfHeal — multiple in-progress tasks (corruption error)
+// selfHeal — multiple in-progress tasks are healed (reset to not_started)
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestSelfHeal_MultipleInProgress_ReturnsCorruptionError(t *testing.T) {
+func TestSelfHeal_MultipleInProgress_ResetsAll(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	projDir := d.Store.Dir()
@@ -41,15 +41,30 @@ func TestSelfHeal_MultipleInProgress_ReturnsCorruptionError(t *testing.T) {
 	writeJSON(t, filepath.Join(projDir, "node-b", "state.json"), nsB)
 
 	err := d.selfHeal()
-	if err == nil {
-		t.Fatal("expected corruption error for multiple in-progress tasks")
+	if err != nil {
+		t.Fatalf("selfHeal should not error, got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "state corruption") {
-		t.Errorf("expected 'state corruption' in error, got: %v", err)
+
+	// Verify both nodes were reset
+	nsA2, err := state.LoadNodeState(filepath.Join(projDir, "node-a", "state.json"))
+	if err != nil {
+		t.Fatalf("loading node-a: %v", err)
 	}
-	if !strings.Contains(err.Error(), "2 tasks in progress") {
-		t.Errorf("expected '2 tasks in progress' in error, got: %v", err)
+	if nsA2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-a task should be not_started, got %s", nsA2.Tasks[0].State)
 	}
+	if nsA2.State != state.StatusNotStarted {
+		t.Errorf("node-a state should be not_started, got %s", nsA2.State)
+	}
+
+	nsB2, err := state.LoadNodeState(filepath.Join(projDir, "node-b", "state.json"))
+	if err != nil {
+		t.Fatalf("loading node-b: %v", err)
+	}
+	if nsB2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-b task should be not_started, got %s", nsB2.Tasks[0].State)
+	}
+
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

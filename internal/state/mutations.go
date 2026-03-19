@@ -159,6 +159,15 @@ func DeriveParentStatus(ns *NodeState, taskID string) (NodeStatus, bool) {
 	}
 
 	if allComplete {
+		// Audit tasks with remediation children: if the audit itself
+		// is complete (re-verification passed), derive complete. If
+		// the audit hasn't re-run yet (not_started/blocked), derive
+		// not_started so it gets picked up for re-verification.
+		for _, t := range ns.Tasks {
+			if t.ID == taskID && t.IsAudit && t.State != StatusComplete {
+				return StatusNotStarted, true
+			}
+		}
 		return StatusComplete, true
 	}
 	if anyInProgress {
@@ -206,14 +215,29 @@ func TaskComplete(ns *NodeState, taskID string) error {
 	}
 	t.State = StatusComplete
 
-	// Recompute node state: all complete, all-non-complete blocked, or in_progress
+	// If this is a child task (e.g., task-0001.0002), check if all siblings
+	// are done and auto-complete the parent task.
+	if isChildTask(taskID) {
+		parentID := parentTaskID(taskID)
+		if parent := findTask(ns, parentID); parent != nil {
+			if derived, hasChildren := DeriveParentStatus(ns, parentID); hasChildren && derived == StatusComplete {
+				parent.State = StatusComplete
+			}
+		}
+	}
+
+	// Recompute node state using derived status for parent tasks.
 	allComplete := true
 	allBlockedOrComplete := true
 	for _, task := range ns.Tasks {
-		if task.State != StatusComplete {
+		status := task.State
+		if derived, hasChildren := DeriveParentStatus(ns, task.ID); hasChildren {
+			status = derived
+		}
+		if status != StatusComplete {
 			allComplete = false
 		}
-		if task.State != StatusComplete && task.State != StatusBlocked {
+		if status != StatusComplete && status != StatusBlocked {
 			allBlockedOrComplete = false
 		}
 	}

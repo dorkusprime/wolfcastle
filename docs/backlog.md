@@ -6,6 +6,10 @@ Items accumulate here as they surface. Don't process unless directed.
 
 These shape how Wolfcastle plans, executes, and learns from its work.
 
+- **Orchestrator state reconciliation.** Orchestrators should reconcile their own task states as part of their planning pass. If a parent task is stale (not_started but all children complete), the orchestrator should derive and write the correct status before deciding what to plan next. Currently this is handled by the daemon's selfHeal at startup, but routine reconciliation belongs in the orchestrator since it's the one responsible for keeping its subtree moving.
+
+- **Harden audit unblock after remediation.** In eval #6, the remediation task successfully unblocked the original audit, but it wasn't obvious whether that would happen reliably. Investigate: does the remediation prompt (`plan-remediate.md`) consistently instruct the model to include an unblock step? Should the daemon auto-unblock as a fallback? A prompt change in the remediate template or the remediation task body may be enough to make this reliable without daemon-side logic.
+
 - **Spec review pipeline.** Specs go from draft to implementation with no structured review. The domain repository spec needed 4 revision passes to reach quality. Wolfcastle should have a review stage: after a spec is created, a separate model audits it for logical gaps, missing method signatures, contradictions, and under-specified behavior before it drives implementation.
 
 - **After Action Reviews per task.** Every task should produce an AAR following the standard template: objective, what happened, what went well, what can be improved, action items. The next task reads prior AARs for full context. Replaces terse breadcrumbs with actionable narrative. AARs accumulate in the leaf directory and become the audit's primary input.
@@ -24,7 +28,7 @@ Operational improvements to the daemon's core loop and resilience.
 
 How the tool feels to use.
 
-- **`wolfcastle log` design pass.** Current issues: intake log (10001-*) sorts after execute logs, follow mode doesn't know which iteration is active, no stage filtering, no human-readable formatting. Design goals: multiple verbosity levels, `--follow` at all levels, unified log stream with stage tags, iteration addressing, stage filtering.
+- **`wolfcastle log` design pass.** Current issues: intake log (10001-\*) sorts after execute logs, follow mode doesn't know which iteration is active, no stage filtering, no human-readable formatting. Design goals: multiple verbosity levels, `--follow` at all levels, unified log stream with stage tags, iteration addressing, stage filtering.
 
 - **`wolfcastle status` detail.** Show task descriptions (not just titles), failure reasons from the last attempt, deliverable declarations, and breadcrumbs. A user watching the daemon should understand what's happening without reading raw logs.
 
@@ -37,8 +41,6 @@ How the tool feels to use.
 ## Code Quality
 
 Things that should be better in the implementation.
-
-- **Domain refactor: migrate remaining backward-compat callers.** 17 files still use `app.WolfcastleDir`, 9 use `app.Cfg`, 15 use `app.Store`. These need migration to repository methods before `tree.Resolver` can be deleted.
 
 - **ContextBuilder null-safety.** `findTask()` returns nil silently causing context truncation. Should error. Template re-parsing on every `Build()` call with no caching.
 
@@ -104,3 +106,14 @@ Things that should be better in the implementation.
 - ~~NeedsPlanning inference~~ (structural detection of childless orchestrators, PR #42 + PR #47)
 - ~~Spec stubs pass through pipeline~~ (audit checks content not existence, PR #40 + PR #43)
 - ~~Structured audit PASS/REMEDIATE~~ (verdicts, daemon handles BLOCKED, PR #43 + PR #44 + PR #50)
+- ~~Domain refactor: migrate backward-compat callers~~ (App Refactor in eval #6, test/domains run)
+- ~~Spec-first ordering codified~~ (planning prompt, PR #52)
+- ~~Remediation unblock step~~ (remediate prompt, PR #52)
+- ~~Status -n flag~~ (shorthand for --interval, PR #53)
+- ~~Status watch interval header~~ (PR #53)
+- ~~Status subtask indentation~~ (hierarchical IDs nested by depth, PR #53)
+- ~~Status collapse completed nodes~~ (--expand flag, PR #54)
+- ~~Status watch jitter~~ (alternate screen buffer, cursor reposition, PR #54)
+- ~~Doctor overhaul~~ (deterministic STALE/MULTIPLE fixes, multi-pass repair, escalation guidance, reduced INVALID_AUDIT_SCOPE noise, PR #57)
+- ~~Status collapse completed leaves~~ (leaf nodes with tasks collapse like orchestrators, PR #58)
+- ~~selfHeal derives parent status~~ (parent tasks auto-complete when children done, PR #59)

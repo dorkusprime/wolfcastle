@@ -41,6 +41,10 @@ goal/                       <- orchestrator (root)
 
 Traversal is depth-first. Top-to-bottom, left-to-right, one task at a time. One target. One model.
 
+### Hierarchical Task IDs
+
+Tasks can decompose into subtasks. `task-0001` can spawn `task-0001.0001`, `task-0001.0002`, and so on. When a task has children, its status derives from them: all children complete means the parent completes. This nesting goes as deep as needed. The ID structure mirrors the hierarchy; the dots tell you lineage at a glance.
+
 ## Four States
 
 Every node and task has exactly one state.
@@ -64,6 +68,18 @@ State flows upward. Only upward. When a task completes, its leaf recomputes. Whe
 - Anything else: parent is in progress
 
 No node sets its own state. State is a consequence of the work below it.
+
+## Lazy Planning
+
+The daemon executes first. Planning only fires when navigation finds no actionable tasks in a subtree. Each orchestrator gets planned right before its subtree needs work, not before. This keeps the tree lean: you never have a plan for work the daemon hasn't reached yet, and replanning happens naturally when the shape of the work changes.
+
+## Orchestrator Audits
+
+Every node gets an audit task, not just leaves. Orchestrator audits are deferred until all children complete. Once the last child finishes, the orchestrator's audit fires and verifies the subtree as a whole. This catches integration gaps that leaf-level audits miss.
+
+## Remediation
+
+When an audit finds gaps, the audit task moves to BLOCKED and the block propagates upward to the root index. The parent orchestrator sees the block, triggers re-planning, and creates remediation tasks to address the gaps. Those tasks execute, the fixes land, and the audit re-runs. This cycle repeats until the audit passes or the problem escalates to a human.
 
 ## The Daemon
 

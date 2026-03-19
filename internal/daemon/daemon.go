@@ -131,32 +131,50 @@ func (d *Daemon) selfHeal() error {
 		return nil
 	}
 
-	var inProgress []struct{ addr, taskID string }
+	healed := 0
 	for addr, entry := range idx.Nodes {
-		if entry.Type != state.NodeLeaf {
+		if entry.Type != state.NodeLeaf && entry.Type != state.NodeOrchestrator {
 			continue
 		}
-		a, err := tree.ParseAddress(addr)
-		if err != nil {
+		a, parseErr := tree.ParseAddress(addr)
+		if parseErr != nil {
 			continue
 		}
-		ns, err := state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json"))
-		if err != nil {
+		statePath := filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json")
+		ns, loadErr := state.LoadNodeState(statePath)
+		if loadErr != nil {
 			continue
 		}
-		for _, t := range ns.Tasks {
+
+		changed := false
+		for i := range ns.Tasks {
+			t := &ns.Tasks[i]
 			if t.State == state.StatusInProgress {
-				inProgress = append(inProgress, struct{ addr, taskID string }{addr, t.ID})
+				if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren {
+					t.State = derived
+					output.PrintHuman("  Derived %s/%s → %s", addr, t.ID, derived)
+				} else {
+					t.State = state.StatusNotStarted
+					output.PrintHuman("  Reset %s/%s → not_started", addr, t.ID)
+				}
+				changed = true
+				healed++
+			} else if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren && derived != t.State {
+				output.PrintHuman("  Derived %s/%s → %s (was %s)", addr, t.ID, derived, t.State)
+				t.State = derived
+				changed = true
+				healed++
+			}
+		}
+		if changed {
+			if saveErr := state.SaveNodeState(statePath, ns); saveErr != nil {
+				output.PrintHuman("  Warning: could not save %s: %v", addr, saveErr)
 			}
 		}
 	}
 
-	if len(inProgress) > 1 {
-		return werrors.State(fmt.Errorf("state corruption: %d tasks in progress (serial execution requires at most 1)", len(inProgress)))
-	}
-	if len(inProgress) == 1 {
-		output.PrintHuman("Interrupted task found: %s/%s. Resuming next iteration.",
-			inProgress[0].addr, inProgress[0].taskID)
+	if healed > 0 {
+		output.PrintHuman("Healed %d interrupted task(s).", healed)
 	} else {
 		output.PrintHuman("All clear. No interrupted tasks.")
 	}

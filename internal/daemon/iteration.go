@@ -171,6 +171,31 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 		if marker == "WOLFCASTLE_BLOCKED" {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
+
+			// Check if the model blocked a task that's actually
+			// superseded. Superseded work should be SKIP, not BLOCKED.
+			// Treat it as complete so it doesn't poison node state.
+			if d.isSupersededBlock(nav.NodeAddress, nav.TaskID) {
+				_ = d.Logger.Log(map[string]any{"type": "superseded_to_skip", "task": nav.TaskID})
+				output.PrintHuman("  Superseded (treating as skip).")
+				if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+					return state.TaskComplete(ns, nav.TaskID)
+				}); err != nil {
+					_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+				}
+				return nil
+			}
+
+			// For audit tasks with gaps, create remediation subtasks
+			// instead of blocking. The subtasks fix each gap, and when
+			// they all complete, DeriveParentStatus resets the audit to
+			// not_started so it re-runs to verify the fixes.
+			if created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID); created > 0 {
+				_ = d.Logger.Log(map[string]any{"type": "audit_remediation", "task": nav.TaskID, "subtasks": created})
+				output.PrintHuman("  Audit: %d gap(s), remediating.", created)
+				return nil
+			}
+
 			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 				return state.TaskBlock(ns, nav.TaskID, "blocked by model")
 			}); err != nil {
@@ -510,4 +535,83 @@ func findNewTasks(before, after *state.NodeState) []string {
 		}
 	}
 	return newIDs
+}
+
+// createRemediationSubtasks checks if the given task is an audit with
+// open gaps and, if so, creates a subtask for each gap. Returns the
+// number of subtasks created (0 if the task isn't an audit or has no gaps).
+func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
+	var created int
+	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+		// Find the audit task
+		auditIdx := -1
+		for i, t := range ns.Tasks {
+			if t.ID == taskID && t.IsAudit {
+				auditIdx = i
+				break
+			}
+		}
+		if auditIdx < 0 {
+			return nil
+		}
+
+		// Collect open gaps
+		var openGaps []state.Gap
+		for _, g := range ns.Audit.Gaps {
+			if g.Status == state.GapOpen {
+				openGaps = append(openGaps, g)
+			}
+		}
+		if len(openGaps) == 0 {
+			return nil
+		}
+
+		// Create a subtask for each open gap
+		for i, g := range openGaps {
+			childID := fmt.Sprintf("%s.%04d", taskID, i+1)
+			ns.Tasks = append(ns.Tasks, state.Task{
+				ID:          childID,
+				Description: fmt.Sprintf("Fix: %s", g.Description),
+				State:       state.StatusNotStarted,
+			})
+			created++
+		}
+
+		// Reset the audit task to not_started so it doesn't stay blocked.
+		// Navigation will pick up the children first (depth-first), and
+		// when they complete, DeriveParentStatus resets the audit to
+		// not_started for re-verification.
+		ns.Tasks[auditIdx].State = state.StatusNotStarted
+		ns.Tasks[auditIdx].BlockedReason = ""
+
+		return nil
+	})
+	return created
+}
+
+// isSupersededBlock checks whether a blocked task was actually superseded
+// (work done via a different path). The model should use WOLFCASTLE_SKIP
+// for these, but sometimes uses BLOCKED instead. This catches the mistake.
+func (d *Daemon) isSupersededBlock(nodeAddr, taskID string) bool {
+	var superseded bool
+	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+		for _, t := range ns.Tasks {
+			if t.ID != taskID {
+				continue
+			}
+			reason := strings.ToLower(t.BlockedReason)
+			if strings.Contains(reason, "supersed") ||
+				strings.Contains(reason, "already done") ||
+				strings.Contains(reason, "already completed") ||
+				strings.Contains(reason, "no longer needed") ||
+				strings.Contains(reason, "replaced by") ||
+				strings.Contains(reason, "done in") ||
+				strings.Contains(reason, "done directly") {
+				superseded = true
+			}
+			break
+		}
+		return nil
+	})
+	return superseded
 }

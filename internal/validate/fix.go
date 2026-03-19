@@ -361,6 +361,44 @@ func ApplyDeterministicFixes(
 			// Deterministic fix: no action needed (just a warning)
 			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "orphan definition detected (no auto-fix)"})
 
+		case CatStaleInProgress, CatMultipleInProgress:
+			if issue.Node == "" {
+				continue
+			}
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			fixed := false
+			for i := range ns.Tasks {
+				if ns.Tasks[i].State == state.StatusInProgress {
+					ns.Tasks[i].State = state.StatusNotStarted
+					fixed = true
+				}
+			}
+			if fixed {
+				// Recompute node state from tasks
+				allComplete := true
+				for _, t := range ns.Tasks {
+					if t.State != state.StatusComplete {
+						allComplete = false
+						break
+					}
+				}
+				if allComplete && len(ns.Tasks) > 0 {
+					ns.State = state.StatusComplete
+				} else {
+					ns.State = state.StatusNotStarted
+				}
+				modifiedStates[statePath] = ns
+				if entry, ok := idx.Nodes[issue.Node]; ok {
+					entry.State = ns.State
+					idx.Nodes[issue.Node] = entry
+					indexModified = true
+				}
+			}
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "reset stale in_progress task(s) to not_started"})
+
 		case CatStalePIDFile:
 			if wolfcastleDir != "" {
 				pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")

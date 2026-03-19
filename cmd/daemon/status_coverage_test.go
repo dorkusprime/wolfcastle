@@ -91,7 +91,7 @@ func TestPrintNodeTree_OrchestratorRecursion(t *testing.T) {
 	}
 
 	// Exercises recursive orchestrator → leaf rendering.
-	printNodeTree(env.App, idx, details, "tree", "  ")
+	printNodeTree(env.App, idx, details, "tree", "  ", false)
 }
 
 func TestPrintNodeTree_BlockedTaskWithReason(t *testing.T) {
@@ -113,7 +113,7 @@ func TestPrintNodeTree_BlockedTaskWithReason(t *testing.T) {
 	details := map[string]*nodeDetail{
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
-	printNodeTree(env.App, idx, details, "proj", "  ")
+	printNodeTree(env.App, idx, details, "proj", "  ", false)
 }
 
 func TestPrintNodeTree_TaskFailureCount(t *testing.T) {
@@ -135,7 +135,7 @@ func TestPrintNodeTree_TaskFailureCount(t *testing.T) {
 	details := map[string]*nodeDetail{
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
-	printNodeTree(env.App, idx, details, "proj", "  ")
+	printNodeTree(env.App, idx, details, "proj", "  ", false)
 }
 
 func TestPrintNodeTree_CompletedWithTitleAndDescription(t *testing.T) {
@@ -157,7 +157,7 @@ func TestPrintNodeTree_CompletedWithTitleAndDescription(t *testing.T) {
 	details := map[string]*nodeDetail{
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
-	printNodeTree(env.App, idx, details, "proj", "  ")
+	printNodeTree(env.App, idx, details, "proj", "  ", false)
 }
 
 func TestPrintNodeTree_OpenGapRendering(t *testing.T) {
@@ -176,7 +176,7 @@ func TestPrintNodeTree_OpenGapRendering(t *testing.T) {
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
 	// Exercises gap printing: open gap rendered, fixed gap skipped.
-	printNodeTree(env.App, idx, details, "proj", "  ")
+	printNodeTree(env.App, idx, details, "proj", "  ", false)
 }
 
 func TestPrintNodeTree_TaskDescriptionFallback(t *testing.T) {
@@ -198,7 +198,7 @@ func TestPrintNodeTree_TaskDescriptionFallback(t *testing.T) {
 	details := map[string]*nodeDetail{
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
-	printNodeTree(env.App, idx, details, "proj", "  ")
+	printNodeTree(env.App, idx, details, "proj", "  ", false)
 }
 
 // ---------------------------------------------------------------------------

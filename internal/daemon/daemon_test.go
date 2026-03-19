@@ -287,12 +287,21 @@ func TestSelfHeal_NoInterruptedTasks(t *testing.T) {
 
 func TestSelfHeal_OneInterruptedTask(t *testing.T) {
 	d := testDaemon(t)
+	projDir := d.Store.Dir()
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", State: state.StatusInProgress},
 		{ID: "task-0002", State: state.StatusNotStarted},
 	})
 	if err := d.selfHeal(); err != nil {
 		t.Errorf("selfHeal should succeed with one in-progress task: %v", err)
+	}
+	// Verify the task was reset
+	ns, err := state.LoadNodeState(filepath.Join(projDir, "my-node", "state.json"))
+	if err != nil {
+		t.Fatalf("loading node: %v", err)
+	}
+	if ns.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("task should be reset to not_started, got %s", ns.Tasks[0].State)
 	}
 }
 
@@ -315,25 +324,157 @@ func TestSelfHeal_MultipleInterruptedTasks(t *testing.T) {
 	writeJSON(t, filepath.Join(projDir, "node-b", "state.json"), nsB)
 
 	err := d.selfHeal()
-	if err == nil {
-		t.Fatal("selfHeal should fail with multiple in-progress tasks")
+	if err != nil {
+		t.Fatalf("selfHeal should reset multiple in-progress tasks, got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "state corruption") {
-		t.Errorf("error should mention state corruption: %v", err)
+
+	// Verify both were reset
+	nsA2, _ := state.LoadNodeState(filepath.Join(projDir, "node-a", "state.json"))
+	nsB2, _ := state.LoadNodeState(filepath.Join(projDir, "node-b", "state.json"))
+	if nsA2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-a task should be not_started, got %s", nsA2.Tasks[0].State)
+	}
+	if nsB2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-b task should be not_started, got %s", nsB2.Tasks[0].State)
 	}
 }
 
-func TestSelfHeal_SkipsOrchestrators(t *testing.T) {
+func TestSelfHeal_HealsOrchestrators(t *testing.T) {
 	d := testDaemon(t)
-	// Orchestrator nodes with in-progress state should be ignored by selfHeal,
-	// which only looks at NodeLeaf entries.
+	projDir := d.Store.Dir()
+
 	idx := state.NewRootIndex()
 	idx.Root = []string{"parent"}
 	idx.Nodes["parent"] = state.IndexEntry{Name: "Parent", Type: state.NodeOrchestrator, State: state.StatusInProgress, Address: "parent"}
 	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
+	ns := state.NewNodeState("parent", "Parent", state.NodeOrchestrator)
+	ns.Tasks = []state.Task{{ID: "audit", State: state.StatusInProgress, IsAudit: true}}
+	writeJSON(t, filepath.Join(projDir, "parent", "state.json"), ns)
+
 	if err := d.selfHeal(); err != nil {
-		t.Errorf("selfHeal should skip orchestrators: %v", err)
+		t.Errorf("selfHeal should heal orchestrators: %v", err)
+	}
+
+	ns2, _ := state.LoadNodeState(filepath.Join(projDir, "parent", "state.json"))
+	if ns2.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("orchestrator task should be not_started, got %s", ns2.Tasks[0].State)
+	}
+}
+
+func TestSelfHeal_DerivesStaleParentStatus(t *testing.T) {
+	d := testDaemon(t)
+	projDir := d.Store.Dir()
+
+	// Parent task is not_started but all children are complete.
+	// selfHeal should derive the parent to complete.
+	setupLeafNode(t, d, "my-node", []state.Task{
+		{ID: "task-0001", State: state.StatusComplete},
+		{ID: "task-0002", State: state.StatusNotStarted},
+		{ID: "task-0002.0001", State: state.StatusComplete},
+		{ID: "task-0002.0002", State: state.StatusComplete},
+		{ID: "task-0002.0003", State: state.StatusComplete},
+		{ID: "audit", State: state.StatusNotStarted, IsAudit: true},
+	})
+
+	if err := d.selfHeal(); err != nil {
+		t.Fatalf("selfHeal error: %v", err)
+	}
+
+	ns, _ := state.LoadNodeState(filepath.Join(projDir, "my-node", "state.json"))
+	// task-0002 should be derived to complete from its children
+	for _, t2 := range ns.Tasks {
+		if t2.ID == "task-0002" {
+			if t2.State != state.StatusComplete {
+				t.Errorf("parent task-0002 should be complete, got %s", t2.State)
+			}
+			return
+		}
+	}
+	t.Fatal("task-0002 not found")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// createRemediationSubtasks
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestCreateRemediationSubtasks_AuditWithGaps(t *testing.T) {
+	d := testDaemon(t)
+	projDir := d.Store.Dir()
+
+	ns := state.NewNodeState("my-node", "My Node", state.NodeLeaf)
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", State: state.StatusComplete},
+		{ID: "audit", State: state.StatusBlocked, IsAudit: true, BlockedReason: "blocked by model"},
+	}
+	ns.Audit.Gaps = []state.Gap{
+		{ID: "gap-1", Description: "Race condition in follow.go", Status: state.GapOpen},
+		{ID: "gap-2", Description: "Duplicate tests", Status: state.GapOpen},
+		{ID: "gap-3", Description: "Already resolved", Status: state.GapFixed},
+	}
+	setupLeafNode(t, d, "my-node", ns.Tasks)
+
+	// Write the audit state with gaps
+	nsPath := filepath.Join(projDir, "my-node", "state.json")
+	ns2, _ := state.LoadNodeState(nsPath)
+	ns2.Audit = ns.Audit
+	writeJSON(t, nsPath, ns2)
+
+	created := d.createRemediationSubtasks("my-node", "audit")
+	if created != 2 {
+		t.Fatalf("expected 2 subtasks (only open gaps), got %d", created)
+	}
+
+	// Verify subtasks were created
+	after, _ := state.LoadNodeState(nsPath)
+	var childIDs []string
+	for _, task := range after.Tasks {
+		if strings.HasPrefix(task.ID, "audit.") {
+			childIDs = append(childIDs, task.ID)
+		}
+	}
+	if len(childIDs) != 2 {
+		t.Fatalf("expected 2 audit subtasks, got %d: %v", len(childIDs), childIDs)
+	}
+	if childIDs[0] != "audit.0001" || childIDs[1] != "audit.0002" {
+		t.Errorf("expected audit.0001 and audit.0002, got %v", childIDs)
+	}
+
+	// Verify audit task was reset to not_started
+	for _, task := range after.Tasks {
+		if task.ID == "audit" {
+			if task.State != state.StatusNotStarted {
+				t.Errorf("audit should be reset to not_started, got %s", task.State)
+			}
+			if task.BlockedReason != "" {
+				t.Errorf("blocked reason should be cleared, got %q", task.BlockedReason)
+			}
+			break
+		}
+	}
+}
+
+func TestCreateRemediationSubtasks_NonAuditReturnsZero(t *testing.T) {
+	d := testDaemon(t)
+	setupLeafNode(t, d, "my-node", []state.Task{
+		{ID: "task-0001", State: state.StatusBlocked, BlockedReason: "stuck"},
+	})
+
+	created := d.createRemediationSubtasks("my-node", "task-0001")
+	if created != 0 {
+		t.Errorf("non-audit task should not create subtasks, got %d", created)
+	}
+}
+
+func TestCreateRemediationSubtasks_AuditNoGapsReturnsZero(t *testing.T) {
+	d := testDaemon(t)
+	setupLeafNode(t, d, "my-node", []state.Task{
+		{ID: "audit", State: state.StatusBlocked, IsAudit: true},
+	})
+
+	created := d.createRemediationSubtasks("my-node", "audit")
+	if created != 0 {
+		t.Errorf("audit without gaps should not create subtasks, got %d", created)
 	}
 }
 
@@ -992,7 +1133,7 @@ func TestRunWithSupervisor_SuccessfulRun(t *testing.T) {
 	idx.Nodes["my-node"] = entry
 	_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	if err := d.RunWithSupervisor(ctx); err != nil {
 		t.Fatalf("unexpected error: %v", err)
