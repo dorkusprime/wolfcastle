@@ -41,14 +41,17 @@ func TestSelfHeal_MultipleInProgress_ReturnsCorruptionError(t *testing.T) {
 	writeJSON(t, filepath.Join(projDir, "node-b", "state.json"), nsB)
 
 	err := d.selfHeal()
-	if err == nil {
-		t.Fatal("expected corruption error for multiple in-progress tasks")
+	if err != nil {
+		t.Fatalf("selfHeal should heal multiple in-progress tasks, got error: %v", err)
 	}
-	if !strings.Contains(err.Error(), "state corruption") {
-		t.Errorf("expected 'state corruption' in error, got: %v", err)
+	// Both tasks should be reset to not_started
+	healedA, _ := state.LoadNodeState(filepath.Join(projDir, "node-a", "state.json"))
+	healedB, _ := state.LoadNodeState(filepath.Join(projDir, "node-b", "state.json"))
+	if healedA.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-a task should be not_started, got %s", healedA.Tasks[0].State)
 	}
-	if !strings.Contains(err.Error(), "2 tasks in progress") {
-		t.Errorf("expected '2 tasks in progress' in error, got: %v", err)
+	if healedB.Tasks[0].State != state.StatusNotStarted {
+		t.Errorf("node-b task should be not_started, got %s", healedB.Tasks[0].State)
 	}
 }
 

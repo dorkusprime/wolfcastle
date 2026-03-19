@@ -105,7 +105,8 @@ type NodeState struct {
 	NeedsPlanning   bool           `json:"needs_planning,omitempty"`
 	PlanningTrigger string         `json:"planning_trigger,omitempty"`
 	PlanningModel   string         `json:"planning_model,omitempty"`
-	ReplanCount     map[string]int `json:"replan_count,omitempty"`
+	ReplanCount     map[string]int `json:"replan_count,omitempty"`  // deprecated: use TotalReplans
+	TotalReplans    int            `json:"total_replans,omitempty"` // cumulative replan count across all triggers
 	MaxReplans      int            `json:"max_replans,omitempty"`
 	PlanningHistory []PlanningPass `json:"planning_history,omitempty"`
 	// Common

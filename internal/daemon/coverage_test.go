@@ -442,11 +442,11 @@ func TestRun_SelfHealFails(t *testing.T) {
 	defer cancel()
 
 	err := d.Run(ctx)
-	if err == nil {
-		t.Fatal("expected selfHeal error")
-	}
-	if !strings.Contains(err.Error(), "self-healing") {
-		t.Errorf("expected self-healing error, got: %v", err)
+	// selfHeal now heals multiple in-progress tasks instead of erroring.
+	// Run should proceed (and likely fail on prompt assembly since this is
+	// a test env without scaffolded prompts, but that's not a selfHeal error).
+	if err != nil {
+		t.Fatalf("Run should not error after self-heal, got: %v", err)
 	}
 }
 

@@ -20,7 +20,16 @@ func BuildPlanningContext(nodeAddr string, ns *state.NodeState, trigger string) 
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "**Orchestrator:** %s\n", nodeAddr)
-	fmt.Fprintf(&b, "**Planning Trigger:** %s\n\n", trigger)
+	fmt.Fprintf(&b, "**Planning Trigger:** %s\n", trigger)
+
+	maxReplans := ns.MaxReplans
+	if maxReplans == 0 {
+		maxReplans = 3
+	}
+	if ns.TotalReplans > 0 {
+		fmt.Fprintf(&b, "**Remediation Attempt:** %d of %d\n", ns.TotalReplans, maxReplans)
+	}
+	b.WriteString("\n")
 
 	// Scope (never truncated)
 	if ns.Scope != "" {
