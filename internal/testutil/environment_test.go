@@ -3,6 +3,7 @@ package testutil
 import (
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
@@ -509,6 +510,290 @@ func TestWithClasses_LoadsDefinitions(t *testing.T) {
 	if keys[0] != "coding" || keys[1] != "review" {
 		t.Errorf("unexpected class keys: %v", keys)
 	}
+}
+
+// ── Chaining ────────────────────────────────────────────────────────────
+
+// ── writeJSON (private) error paths ─────────────────────────────────────
+
+func TestWriteJSON_MarshalError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "bad.json")
+
+	// Channels are not JSON-marshalable.
+	err := writeJSON(path, make(chan int))
+	if err == nil {
+		t.Fatal("expected marshal error for channel value")
+	}
+	// File should not have been created.
+	if _, statErr := os.Stat(path); statErr == nil {
+		t.Error("file should not exist after marshal failure")
+	}
+}
+
+func TestWriteJSON_MkdirAllError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Create a regular file where writeJSON expects a directory, so MkdirAll
+	// fails when trying to create the parent path.
+	blocker := filepath.Join(dir, "blocker")
+	if err := os.WriteFile(blocker, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(blocker, "sub", "out.json")
+
+	err := writeJSON(path, map[string]string{"a": "b"})
+	if err == nil {
+		t.Fatal("expected MkdirAll error when parent is a file")
+	}
+}
+
+func TestWriteJSON_WriteFileError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Create a read-only directory so os.WriteFile fails.
+	roDir := filepath.Join(dir, "readonly")
+	if err := os.MkdirAll(roDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(roDir, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(roDir, 0o755) })
+
+	path := filepath.Join(roDir, "out.json")
+
+	err := writeJSON(path, map[string]string{"a": "b"})
+	if err == nil {
+		t.Fatal("expected WriteFile error in read-only directory")
+	}
+}
+
+// ── WithConfig error paths ──────────────────────────────────────────────
+
+func TestWithConfig_ReadFileError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	// Remove the custom config file so ReadFile fails.
+	customPath := filepath.Join(env.Root, "system", "custom", "config.json")
+	os.Remove(customPath)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		env.WithConfig(map[string]any{"daemon": map[string]any{"max_iterations": float64(1)}})
+	}()
+	wg.Wait()
+}
+
+func TestWithConfig_UnmarshalError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	// Write invalid JSON to the custom config file.
+	customPath := filepath.Join(env.Root, "system", "custom", "config.json")
+	os.WriteFile(customPath, []byte("NOT JSON{{{"), 0o644)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		env.WithConfig(map[string]any{"daemon": map[string]any{"max_iterations": float64(1)}})
+	}()
+	wg.Wait()
+}
+
+func TestWithConfig_WriteJSONError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	// Make the custom config file read-only, then make the directory
+	// read-only so writeJSON can read but not overwrite.
+	customDir := filepath.Join(env.Root, "system", "custom")
+	customPath := filepath.Join(customDir, "config.json")
+	os.Chmod(customPath, 0o444)
+	os.Chmod(customDir, 0o555)
+	t.Cleanup(func() {
+		os.Chmod(customDir, 0o755)
+		os.Chmod(customPath, 0o644)
+	})
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		env.WithConfig(map[string]any{"a": "b"})
+	}()
+	wg.Wait()
+}
+
+// ── WithProject error paths ─────────────────────────────────────────────
+
+func TestWithProject_ReadIndexError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	// Corrupt the root index so ReadIndex fails.
+	statePath := filepath.Join(env.ProjectsDir(), "state.json")
+	os.WriteFile(statePath, []byte("BAD JSON{{{"), 0o644)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		env.WithProject("P", Leaf("p", "t1"))
+	}()
+	wg.Wait()
+}
+
+func TestWithProject_WriteIndexError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	// Make the projects directory read-only so writing the root index fails.
+	projDir := env.ProjectsDir()
+	os.Chmod(projDir, 0o555)
+	t.Cleanup(func() { os.Chmod(projDir, 0o755) })
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		env.WithProject("P", Leaf("p", "t1"))
+	}()
+	wg.Wait()
+}
+
+// ── buildNode error paths ───────────────────────────────────────────────
+
+func TestBuildNode_MkdirAllError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	// Place a regular file where the node directory would be created,
+	// so MkdirAll fails.
+	projDir := env.ProjectsDir()
+	blocker := filepath.Join(projDir, "blocker-node")
+	os.WriteFile(blocker, []byte("x"), 0o644)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		// Use a spec whose name matches the blocker file, forcing MkdirAll
+		// to fail when it tries to create a directory at that path.
+		env.WithProject("P", Leaf("blocker-node", "t1"))
+	}()
+	wg.Wait()
+}
+
+func TestBuildNode_WriteNodeStateError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	projDir := env.ProjectsDir()
+	// Pre-create the node directory as read-only so writeJSON cannot
+	// write state.json into it.
+	nodeDir := filepath.Join(projDir, "ro-node")
+	os.MkdirAll(nodeDir, 0o755)
+	os.Chmod(nodeDir, 0o555)
+	t.Cleanup(func() { os.Chmod(nodeDir, 0o755) })
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		env.WithProject("P", Leaf("ro-node", "t1"))
+	}()
+	wg.Wait()
+}
+
+// ── WithPrompt error path ───────────────────────────────────────────────
+
+func TestWithPrompt_WriteBaseError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	// Make the base prompts directory read-only so WriteBase fails.
+	basePrompts := env.Tiers.BasePath("prompts")
+	os.Chmod(basePrompts, 0o555)
+	t.Cleanup(func() { os.Chmod(basePrompts, 0o755) })
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		env.WithPrompt("new-prompt.md", "content")
+	}()
+	wg.Wait()
+}
+
+// ── WithRule error path ─────────────────────────────────────────────────
+
+func TestWithRule_WriteBaseError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	// Make the base rules directory read-only so WriteBase fails.
+	baseRules := env.Tiers.BasePath("rules")
+	os.Chmod(baseRules, 0o555)
+	t.Cleanup(func() { os.Chmod(baseRules, 0o755) })
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		env.WithRule("new-rule.md", "content")
+	}()
+	wg.Wait()
+}
+
+// ── ToAppFields error path ──────────────────────────────────────────────
+
+func TestToAppFields_ConfigLoadError_Fatals(t *testing.T) {
+	t.Parallel()
+	env := NewEnvironment(t)
+
+	// Corrupt every tier's config.json so Config.Load fails.
+	for _, tier := range env.Tiers.TierDirs() {
+		cfgPath := filepath.Join(tier, "config.json")
+		if _, err := os.Stat(cfgPath); err == nil {
+			os.WriteFile(cfgPath, []byte("INVALID{{{"), 0o644)
+		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		env.t = inner
+		env.ToAppFields()
+	}()
+	wg.Wait()
 }
 
 // ── Chaining ────────────────────────────────────────────────────────────

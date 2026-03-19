@@ -38,6 +38,54 @@ func TestWriteJSON_UnmarshalableValue_Channel(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// helpers.go — WriteJSON: MkdirAll error (file blocks directory creation)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestWriteJSON_MkdirAllError_Fatals(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Place a regular file where MkdirAll expects to create a directory.
+	blocker := filepath.Join(dir, "blocker")
+	_ = os.WriteFile(blocker, []byte("x"), 0o644)
+	path := filepath.Join(blocker, "sub", "out.json")
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		WriteJSON(inner, path, map[string]string{"a": "b"})
+	}()
+	wg.Wait()
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// helpers.go — WriteJSON: WriteFile error (read-only directory)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestWriteJSON_WriteFileError_Fatals(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	roDir := filepath.Join(dir, "readonly")
+	_ = os.MkdirAll(roDir, 0o755)
+	_ = os.Chmod(roDir, 0o555)
+	t.Cleanup(func() { os.Chmod(roDir, 0o755) })
+
+	path := filepath.Join(roDir, "out.json")
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		inner := &testing.T{}
+		WriteJSON(inner, path, map[string]string{"a": "b"})
+	}()
+	wg.Wait()
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // helpers.go — ReadJSON: pass nonexistent path
 // ═══════════════════════════════════════════════════════════════════════════
 
