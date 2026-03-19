@@ -209,15 +209,15 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		return
 	}
 
-	// Collapse completed nodes unless --expand is set.
-	if nd.entry.State == state.StatusComplete && !expand {
+	// Collapse completed and not_started nodes unless --expand is set.
+	if (nd.entry.State == state.StatusComplete || nd.entry.State == state.StatusNotStarted) && !expand {
 		childCount := countDescendants(idx, addr)
 		if childCount > 0 {
 			glyph := nodeGlyph(nd.entry.State)
 			output.PrintHuman("%s%s %s  (%d nodes)", indent, glyph, nd.entry.Name, childCount+1)
 			return
 		}
-		// Completed leaf: show node name with task count.
+		// Leaf: show node name with task count.
 		if nd.ns != nil && len(nd.ns.Tasks) > 0 {
 			glyph := nodeGlyph(nd.entry.State)
 			output.PrintHuman("%s%s %s  (%d tasks)", indent, glyph, nd.entry.Name, len(nd.ns.Tasks))
