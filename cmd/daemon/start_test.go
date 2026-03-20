@@ -17,19 +17,24 @@ import (
 func TestStartCmd_ValidationErrors(t *testing.T) {
 	env := newStatusTestEnv(t)
 
-	// Create a validation error by making a node state invalid
-	// (e.g., a leaf with no audit task)
+	// Set node to "complete" with incomplete tasks. This is
+	// COMPLETE_WITH_INCOMPLETE (model-assisted), which pre-start
+	// self-heal cannot fix deterministically. Validation blocks startup.
 	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
 	ns, _ := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
-	ns.Tasks = nil // Remove tasks including audit task
+	ns.State = state.StatusComplete
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", State: state.StatusNotStarted},
+		{ID: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
 	nsData, _ := json.MarshalIndent(ns, "", "  ")
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
-	// The start will likely fail because of validation errors or daemon errors,
-	// just verify it doesn't panic
-	_ = err
+	if err == nil {
+		t.Error("expected validation error")
+	}
 }
 
 func TestStartCmd_ValidationWarnings(t *testing.T) {

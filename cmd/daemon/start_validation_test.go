@@ -68,14 +68,18 @@ func TestStartCmd_VerboseSetsDebugLogLevel(t *testing.T) {
 func TestStartCmd_ValidationErrorsBlockStartup(t *testing.T) {
 	env := newStatusTestEnv(t)
 
-	// Corrupt the node state by removing all tasks (including audit task).
-	// ValidateStartup flags MISSING_AUDIT_TASK as an error.
+	// Set node to complete with incomplete tasks: COMPLETE_WITH_INCOMPLETE
+	// is model-assisted and cannot be fixed by pre-start self-heal.
 	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
 	ns, err := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
 	if err != nil {
 		t.Fatalf("loading node state: %v", err)
 	}
-	ns.Tasks = nil
+	ns.State = state.StatusComplete
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", State: state.StatusNotStarted},
+		{ID: "audit", State: state.StatusNotStarted, IsAudit: true},
+	}
 	nsData, _ := json.MarshalIndent(ns, "", "  ")
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
