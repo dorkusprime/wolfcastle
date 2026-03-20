@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "id": "daemonrepository",
+  "name": "DaemonRepository",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement DaemonRepository struct and constructor",
+      "description": "Implement DaemonRepository struct and constructor",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/repository.go"
+      ],
+      "body": "Create internal/daemon/repository.go with:\n\n- DaemonRepository struct holding a single systemDir field (derived as wolfcastleRoot + \"/system\" in the constructor).\n- NewDaemonRepository(wolfcastleRoot string) *DaemonRepository constructor.\n- ReadPID() (int, error) — reads PID from systemDir/wolfcastle.pid, trims whitespace, converts to int.\n- WritePID(pid int) error — writes PID as decimal with trailing newline.\n- RemovePID() error — removes PID file; returns nil on os.ErrNotExist.\n- HasStopFile() bool — checks existence of systemDir/stop.\n- WriteStopFile() error — creates the stop file (empty, 0644).\n- RemoveStopFile() error — removes stop file; returns nil on os.ErrNotExist.\n- LogDir() string — returns systemDir/logs path (escape hatch for Logger).\n\nReference the existing pid.go for PID logic and daemon.go for stop file logic. The new type consolidates these scattered path constructions into one struct.\n\nDo NOT remove the existing free functions (pid.go) yet — that happens in a later migration step when callers are updated.",
+      "acceptance_criteria": [
+        "DaemonRepository compiles and all methods match the spec signatures",
+        "No path construction leaks outside the struct"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Test DaemonRepository with testutil.Environment",
+      "description": "Test DaemonRepository with testutil.Environment",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/repository_test.go"
+      ],
+      "body": "Create internal/daemon/repository_test.go with tests using testutil.NewEnvironment(t):\n\n1. TestDaemonRepository_PIDLifecycle: Write PID, read it back, verify match, remove, verify read returns error.\n2. TestDaemonRepository_StopFile: Verify HasStopFile is false initially, write stop file, verify HasStopFile is true, remove, verify false again.\n3. TestDaemonRepository_LogDir: Verify LogDir returns the expected path (systemDir/logs).\n4. TestDaemonRepository_ReadPID_Missing: Verify ReadPID returns an error when no PID file exists.\n5. TestDaemonRepository_RemovePID_Idempotent: Verify RemovePID does not error when file is already gone.\n6. TestDaemonRepository_RemoveStopFile_Idempotent: Same for stop file.\n\nUse env.Root as the wolfcastleRoot argument to NewDaemonRepository.",
+      "acceptance_criteria": [
+        "All tests pass",
+        "Tests use testutil.Environment",
+        " not manual temp dirs"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Populate Environment.Daemon field",
+      "description": "Populate Environment.Daemon field",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/testutil/environment.go"
+      ],
+      "body": "Update internal/testutil/environment.go:\n\n1. Uncomment the Daemon *daemon.DaemonRepository field on the Environment struct.\n2. In NewEnvironment, construct a DaemonRepository using wolfcastleDir as the root and assign it to the Daemon field.\n3. Add the daemon package import.\n\nThis wires DaemonRepository into the test harness so later tests can access env.Daemon directly.",
+      "acceptance_criteria": [
+        "Environment.Daemon is populated and non-nil after NewEnvironment",
+        "Existing tests still pass"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in DaemonRepository is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify DaemonRepository method signatures match the spec exactly (ReadPID, WritePID, RemovePID, HasStopFile, WriteStopFile, RemoveStopFile, LogDir)",
+    "Verify no path construction for PID/stop/log exists outside the DaemonRepository struct in the new code"
+  ],
+  "audit": {
+    "scope": {
+      "description": "DaemonRepository struct consolidating daemon filesystem operations",
+      "files": [
+        "internal/daemon/repository.go",
+        "internal/daemon/repository_test.go",
+        "internal/testutil/environment.go"
+      ],
+      "systems": [
+        "daemon"
+      ],
+      "criteria": [
+        "build clean",
+        "all tests pass with race detector",
+        "vet clean",
+        "gofmt clean",
+        "ADR exists",
+        "spec exists"
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T21:27:09.842551Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/daemonrepository",
+        "text": "Implemented DaemonRepository struct in internal/daemon/repository.go. Consolidates PID, stop file, and log directory path logic. Existing free functions in pid.go left untouched for later migration."
+      },
+      {
+        "timestamp": "2026-03-18T21:29:25.679691Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/daemonrepository",
+        "text": "Created repository_test.go with six tests covering PID lifecycle, stop file lifecycle, LogDir path, missing-PID error, and idempotent remove for both PID and stop file. All tests use testutil.NewEnvironment(t)."
+      },
+      {
+        "timestamp": "2026-03-18T21:32:50.311734Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/daemonrepository",
+        "text": "Populated Environment.Daemon field by importing daemon package into testutil and constructing DaemonRepository in NewEnvironment. Moved daemon/repository_test.go to external test package (daemon_test) to resolve the import cycle that arose from testutil importing daemon while daemon tests imported testutil."
+      },
+      {
+        "timestamp": "2026-03-18T21:35:15.190451Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/daemonrepository",
+        "text": "Audit pass: build clean, all tests pass (with -race), vet clean, gofmt clean. Code is correct (nil safety, error handling, idempotent removes). No duplication with existing free functions in pid.go (those remain for callers not yet migrated). Created ADR for concrete-struct-with-explicit-parameters design and spec for the DaemonRepository contract."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T21:24:15.711127Z",
+    "completed_at": "2026-03-18T21:35:36.312419Z",
+    "result_summary": "DaemonRepository consolidates all daemon filesystem operations (PID file, stop file, log directory) into a single struct rooted at .wolfcastle/system/. The struct uses explicit parameters for testability and follows the concrete-type-with-temp-dirs pattern established by StateStore and tierfs. Six tests cover full lifecycle, edge cases, and idempotent removal. The Environment test harness populates its Daemon field via NewDaemonRepository. ADR documents the concrete-struct-over-interface decision; spec documents the contract."
+  },
+  "specs": [
+    "2026-03-18T21-35Z-daemonrepository-contract.md"
+  ]
+}

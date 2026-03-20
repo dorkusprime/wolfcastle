@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "tier-based-repositories",
+  "name": "Tier-Based Repositories",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "configrepository",
+      "address": "domain-repository-architecture/repositories/tier-based-repositories/configrepository",
+      "state": "complete"
+    },
+    {
+      "id": "promptrepository",
+      "address": "domain-repository-architecture/repositories/tier-based-repositories/promptrepository",
+      "state": "complete"
+    },
+    {
+      "id": "environment-wiring",
+      "address": "domain-repository-architecture/repositories/tier-based-repositories/environment-wiring",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Tier-Based Repositories is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Implement ConfigRepository and PromptRepository, both of which depend on tierfs for three-tier file resolution. ConfigRepository (internal/config) owns the tier-based config merge: Load returns a merged *Config from defaults plus each existing tier, WriteBase takes a complete *Config snapshot, WriteCustom/WriteLocal take partial map[string]any overlays. PromptRepository (internal/pipeline) owns prompt template resolution across tiers: Resolve expands Go text/template prompts by short name, ResolveRaw returns raw content by category/name, ListFragments collects all fragments in a category with tier-override semantics, WriteBase and WriteAllBase write to the base tier. Both accept tierfs.Resolver in their constructors for testability and follow the NewXxx(wolfcastleRoot) / NewXxxWithTiers(tiers) dual-constructor pattern from the spec.",
+  "success_criteria": [
+    "ConfigRepository Load/WriteBase/WriteCustom/WriteLocal work correctly with tierfs.Resolver and pass all tests",
+    "PromptRepository Resolve/ResolveRaw/ListFragments/WriteBase/WriteAllBase work correctly with tierfs.Resolver and pass all tests",
+    "Both repositories are wired into testutil.Environment and all existing tests continue to pass",
+    "Both repositories follow the NewXxx/NewXxxWithTiers dual-constructor pattern from the spec"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-18T21:56:13.210088Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T21:56:07.533657Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories",
+        "text": "Created 3 children: configrepository, promptrepository, environment-wiring. Ordering: configrepository and promptrepository are independent and can execute in parallel (both spec-then-implement). environment-wiring depends on both repositories being complete. Each repository leaf has 2 tasks: contract spec first, then implementation with tests. The wiring leaf has 1 task to plug both into testutil.Environment."
+      },
+      {
+        "timestamp": "2026-03-18T22:23:00.138867Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories",
+        "text": "Audit verified: ConfigRepository (9 tests), PromptRepository (13 tests), and testutil.Environment wiring all build clean, vet clean, and pass tests. Specs match implementations. Three-tier resolution pattern consistent across both repositories."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T22:21:46.256567Z",
+    "completed_at": "2026-03-18T22:23:09.444144Z",
+    "result_summary": "Implemented ConfigRepository and PromptRepository as struct-based wrappers over tierfs.Resolver, each providing three-tier resolution (base \u003c custom \u003c local). ConfigRepository handles config.json merging with defaults via DeepMerge; PromptRepository handles prompt template resolution with Go text/template support and fragment listing with include/exclude filtering. Both repositories have production constructors (building their own tierfs.FS) and test constructors (accepting injected resolvers). Contract specs document invariants, error semantics, and thread safety. Both repositories are wired into testutil.Environment with WithConfig, WithPrompt, and WithRule helper methods. All 22+ repository tests pass; all code vets clean."
+  }
+}

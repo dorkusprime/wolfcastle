@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "id": "cmd-orchestrator-coverage",
+  "name": "cmd/orchestrator Coverage",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Cover remaining newCriteriaCmd branches",
+      "description": "Cover remaining newCriteriaCmd branches",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        "cmd/orchestrator/criteria_coverage_test.go"
+      ],
+      "last_failure_type": "no_terminal_marker",
+      "body": "cmd/orchestrator/ is at 91.3% with a single gap: newCriteriaCmd (criteria.go:13) at 89.7%.\n\nThis is a small gap requiring ~3% improvement. Read criteria.go and the existing criteria_test.go to identify exactly which branches are uncovered. Likely candidates:\n- Error paths: invalid node address, node not found, node is a leaf (not orchestrator)\n- JSON output mode for criteria operations\n- Edge cases in criteria text handling (empty string, very long strings)\n\nThis is a targeted fix — probably 2-3 additional test cases will close the gap."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in cmd/orchestrator Coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify cmd/orchestrator/ coverage reaches 94%+ via go test -cover ./cmd/orchestrator/. Key function: newCriteriaCmd."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T06:31:41.568001Z",
+        "task": "code-coverage/cmd-coverage/cmd-orchestrator-coverage",
+        "text": "Added two tests to criteria_coverage_test.go covering the empty nodeAddr guard (line 29-31) and the ReadNode error path in list mode (line 36-38). newCriteriaCmd now at 100% statement coverage."
+      },
+      {
+        "timestamp": "2026-03-19T06:34:35.680337Z",
+        "task": "code-coverage/cmd-coverage/cmd-orchestrator-coverage",
+        "text": "Audit complete: build passes, all 26 packages green, go vet clean, gofmt clean, race detector clean. cmd/orchestrator at 100% statement coverage. criteria.go and criteria_coverage_test.go reviewed for correctness — nil safety, error handling, edge cases all sound. No findings."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T05:54:38.613444Z",
+    "completed_at": "2026-03-19T06:34:45.540586Z",
+    "result_summary": "Raised cmd/orchestrator package from 91.3% to 100% statement coverage by adding two targeted tests in criteria_coverage_test.go: one covering the internal empty-nodeAddr guard (bypassing cobra's required-flag validation to hit the defensive check), and one covering the ReadNode error path in list mode via an invalid path-traversal address. All tests pass, race detector clean, no formatting or vet issues."
+  }
+}

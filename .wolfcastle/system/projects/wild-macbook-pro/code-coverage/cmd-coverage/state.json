@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cmd-coverage",
+  "name": "cmd Coverage",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "cmd-package-coverage",
+      "address": "code-coverage/cmd-coverage/cmd-package-coverage",
+      "state": "complete"
+    },
+    {
+      "id": "cmd-daemon-coverage",
+      "address": "code-coverage/cmd-coverage/cmd-daemon-coverage",
+      "state": "complete"
+    },
+    {
+      "id": "cmd-task-coverage",
+      "address": "code-coverage/cmd-coverage/cmd-task-coverage",
+      "state": "complete"
+    },
+    {
+      "id": "cmd-orchestrator-coverage",
+      "address": "code-coverage/cmd-coverage/cmd-orchestrator-coverage",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in cmd Coverage is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 1,
+      "last_failure_type": "no_terminal_marker"
+    }
+  ],
+  "scope": "Raise coverage to 94%+ for all changed packages under cmd/: cmd (78%), cmd/cmdutil (91.6%), cmd/daemon (79.1%), cmd/orchestrator (91.3%), cmd/task (88.7%)",
+  "success_criteria": [
+    "go test -cover ./cmd/ reports 94% or higher",
+    "go test -cover ./cmd/daemon/ reports 94% or higher",
+    "go test -cover ./cmd/task/ reports 94% or higher",
+    "go test -cover ./cmd/orchestrator/ reports 94% or higher",
+    "All existing tests continue to pass (no regressions)"
+  ],
+  "audit_enrichment": [
+    "Verify each cmd/ package reaches 94%+ coverage. Key gaps: cmd/daemon/start.go has 0% functions (createWorktree, cleanupWorktree), cmd/unblock.go runInteractiveUnblock at 8.6%, cmd/doctor.go tryRecoverRootIndex at 29.4%. Focus on changed code paths."
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-19T02:50:53.961263Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T02:50:51.623218Z",
+        "task": "code-coverage/cmd-coverage",
+        "text": "Created 4 children: cmd-package-coverage (3 tasks), cmd-daemon-coverage (4 tasks), cmd-task-coverage (1 task), cmd-orchestrator-coverage (1 task). cmd/cmdutil/ excluded — already at 96.1%, above the 94% target. Ordering: all leaves are independent and can execute in parallel. Heaviest work is in cmd/ and cmd/daemon/ (both ~78% → 94%), moderate in cmd/task/ (88.6% → 94%), light in cmd/orchestrator/ (91.3% → 94%)."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T03:23:52.268728Z",
+    "completed_at": "2026-03-19T06:36:52.801655Z"
+  }
+}

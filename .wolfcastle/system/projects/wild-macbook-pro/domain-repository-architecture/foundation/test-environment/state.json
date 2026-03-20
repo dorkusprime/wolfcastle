@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "id": "test-environment",
+  "name": "Test Environment",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement NodeSpec builders and Environment struct",
+      "description": "Implement NodeSpec builders and Environment struct",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/testutil/environment.go"
+      ],
+      "body": "Create internal/testutil/environment.go with the Environment type and NodeSpec builders from the spec.\n\nNodeSpec and builders:\n- NodeSpec struct: Name string, Type state.NodeType, Tasks []string, Children []NodeSpec\n- Leaf(name string, taskIDs ...string) NodeSpec — creates a leaf NodeSpec\n- Orchestrator(name string, children ...NodeSpec) NodeSpec — creates an orchestrator NodeSpec\n\nEnvironment struct fields (from spec):\n- Root string — path to the .wolfcastle/ directory within the temp dir\n- Config *config.ConfigRepository (initially nil — will be populated when ConfigRepository exists in a later step)\n- Prompts *pipeline.PromptRepository (initially nil — same)\n- Classes *pipeline.ClassRepository (initially nil — same)\n- Daemon *daemon.DaemonRepository (initially nil — same)\n- State *state.StateStore\n- Git git.Provider (initially nil — same)\n- App *cmdutil.App (initially nil — same)\n\nIMPORTANT: The spec says Environment \"evolves across the migration: it starts with just tierfs and gains repository fields as each repository is built.\" For this initial version:\n- The struct should declare all fields so the type signature is stable from the start\n- But only populate the fields that have existing implementations: Root, State (via existing StateStore), and a tierfs.FS for internal use\n- Repository fields that don't exist yet (Config, Prompts, Classes, Daemon, Git, App) should be left nil with a comment noting they'll be populated when their packages are built\n- This means some fields will reference packages that don't exist yet. If this causes import cycle issues, use interface types or leave them as commented-out fields with a TODO. Prefer the approach that compiles cleanly now.\n\nNewEnvironment(t *testing.T) *Environment:\n- Creates a temp dir via t.TempDir()\n- Constructs a tierfs.FS rooted at \u003ctempdir\u003e/.wolfcastle/system\n- Creates the three-tier directory structure (system/base, system/custom, system/local with prompts, rules, audits subdirs)\n- Writes default config to base tier, empty {} to custom, test identity to local (same as current SetupWolfcastle but using tierfs.WriteBase where possible)\n- Creates projects/\u003cnamespace\u003e/ directory and empty root index\n- Creates docs/, artifacts/, archive/ directories\n- Constructs a StateStore from the projects directory\n- Registers t.Cleanup if needed\n\nReference: the existing SetupWolfcastle in internal/testutil/helpers.go does the same directory/file setup manually. Environment replaces it with a structured approach.\nReference: docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md section \"Test Environment\""
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement With* helper methods",
+      "description": "Implement With* helper methods",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/testutil/environment.go"
+      ],
+      "body": "Add the fluent With* methods to Environment in internal/testutil/environment.go (or a separate file if cleaner):\n\nWithConfig(overrides map[string]any) *Environment:\n- Deep-merges overrides into the custom tier config file (system/custom/config.json)\n- Reads existing custom config, applies DeepMerge from internal/config, writes back\n- Returns the same *Environment for chaining\n\nWithProject(name string, root NodeSpec) *Environment:\n- Creates a project in the state tree using the NodeSpec structure\n- Writes node state files and updates the root index\n- Handles recursive NodeSpec children: orchestrators create child directories and child state files\n- Each leaf's Tasks list creates task entries with auto-generated descriptions (\"Task: \u003cid\u003e\")\n- Each node gets an audit task automatically (matching current SetupTree behavior)\n- Returns the same *Environment for chaining\n\nWithPrompt(relPath string, content string) *Environment:\n- Writes a prompt file to system/base/prompts/\u003crelPath\u003e\n- Uses the Environment's tierfs.FS.WriteBase(\"prompts/\" + relPath, []byte(content))\n- Returns the same *Environment for chaining\n\nWithRule(name string, content string) *Environment:\n- Writes a rule fragment to system/base/rules/\u003cname\u003e\n- Uses the Environment's tierfs.FS.WriteBase(\"rules/\" + name, []byte(content))\n- Returns the same *Environment for chaining\n\nAll With* methods should call t.Fatal on error (the Environment holds the *testing.T). This keeps test code clean — no error checking at every setup step.\n\nReference: docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md section \"Test Environment\""
+    },
+    {
+      "id": "task-0003",
+      "title": "Write tests for Environment and With* helpers",
+      "description": "Write tests for Environment and With* helpers",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/testutil/environment_test.go"
+      ],
+      "body": "Create internal/testutil/environment_test.go with tests covering:\n\nNewEnvironment:\n- Creates valid directory structure (all three tier dirs exist, projects dir exists, docs/artifacts/archive exist)\n- Default config is loadable via config.Load on the created directory\n- Identity resolves to test/dev namespace\n- State store is functional (can read the empty root index)\n\nNodeSpec builders:\n- Leaf() creates correct NodeSpec with leaf type and task IDs\n- Orchestrator() creates correct NodeSpec with orchestrator type and children\n\nWithConfig:\n- Overrides are merged into custom tier (verify by loading config and checking overridden values)\n- Original base tier defaults are preserved for non-overridden keys\n- Multiple WithConfig calls accumulate (not replace)\n\nWithProject:\n- Creates a simple leaf project with tasks\n- Creates a nested orchestrator project with child leaves\n- Root index is updated with all nodes\n- Node state files are readable and contain correct task entries\n- Each node has an audit task\n\nWithPrompt:\n- Prompt file is written to correct location\n- Content is resolvable via ResolveFragment (or tierfs.Resolve)\n\nWithRule:\n- Rule file is written to correct location\n- Content is resolvable across tiers\n\nChaining:\n- Verify that multiple With* calls can be chained fluently: NewEnvironment(t).WithConfig(...).WithProject(...).WithPrompt(...)\n\nReference: docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md section \"Test Environment\""
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Test Environment is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Environment.WithProject produces state files that are loadable by the existing StateStore and match the format written by SetupTree in helpers.go. The root index must have correct Children, Parent, and Address fields.",
+    "Verify no import cycles: testutil depends on tierfs, config, state, but tierfs must not depend on testutil. Check that the dependency graph is acyclic and that environment.go compiles cleanly."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T20:26:42.555989Z",
+        "task": "domain-repository-architecture/foundation/test-environment",
+        "text": "Implemented Environment struct with Root, Tiers (tierfs.Resolver), and State fields. NodeSpec with Leaf() and Orchestrator() builders. NewEnvironment creates temp dir, three-tier directory structure via tierfs, writes config files, and constructs StateStore. Repository fields commented out with TODOs pending package creation. All tests pass."
+      },
+      {
+        "timestamp": "2026-03-18T20:29:59.596583Z",
+        "task": "domain-repository-architecture/foundation/test-environment",
+        "text": "Implemented four With* fluent builder methods on Environment: WithConfig (deep-merges into custom tier), WithProject (recursive NodeSpec tree creation with tasks and audit entries), WithPrompt (base tier prompt files), WithRule (base tier rule fragments). Added t *testing.T field to Environment for fatal-on-error semantics. All existing tests pass."
+      },
+      {
+        "timestamp": "2026-03-18T20:34:20.711895Z",
+        "task": "domain-repository-architecture/foundation/test-environment",
+        "text": "Wrote environment_test.go with 19 tests covering NewEnvironment (directory structure, config loading, identity, state store), NodeSpec builders (Leaf, Orchestrator), WithConfig (merging, defaults, accumulation), WithProject (simple leaf, nested orchestrator, root index, audit tasks, state readability), WithPrompt/WithRule (file creation and tier resolution), and fluent chaining. All tests pass."
+      },
+      {
+        "timestamp": "2026-03-18T20:37:29.261834Z",
+        "task": "domain-repository-architecture/foundation/test-environment",
+        "text": "Audit complete. Build, all tests (36 in testutil, full suite green), gofmt, go vet, and race detector all pass. Code review: nil safety, error handling, edge cases, concurrency all clean. No dead code, no duplication beyond the intentional parallel between old helpers and new Environment (migration in progress). Created two ADRs (fluent builder pattern choice, custom-tier config write strategy) and one spec (Environment contract). Verdict: PASS."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending",
+    "started_at": "2026-03-18T20:23:48.684678Z",
+    "completed_at": "2026-03-18T20:37:39.753125Z",
+    "result_summary": "Implemented testutil.Environment, a fluent-builder test fixture that constructs a complete .wolfcastle/ directory backed by tierfs.Resolver and state.StateStore. Provides WithConfig (custom-tier deep merge), WithProject (recursive NodeSpec tree creation with auto-audit tasks), WithPrompt (base-tier prompt files), and WithRule (base-tier rule fragments). Includes NodeSpec builders (Leaf, Orchestrator) for declarative tree construction. 19 dedicated tests cover all methods, chaining, and edge cases. All tests pass including race detector. Two ADRs document the fluent builder pattern and custom-tier config strategy; one spec documents the Environment contract."
+  },
+  "specs": [
+    "2026-03-18T20-37Z-testutil-environment-contract.md"
+  ]
+}

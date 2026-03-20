@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "id": "configrepository",
+  "name": "ConfigRepository",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write ConfigRepository contract spec",
+      "description": "Write ConfigRepository contract spec",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        "docs/specs/configrepository-contract.md",
+        ".wolfcastle/docs/specs/2026-03-18T21-57Z-configrepository-contract.md"
+      ],
+      "last_failure_type": "no_progress",
+      "body": "Write a contract spec for ConfigRepository following the pattern established by existing contract specs (daemonrepository-contract, git-provider-contract, identity-domain-type-contract). The spec must define:\n\n- The ConfigRepository struct with a tiers field (tierfs.Resolver) and root field (string)\n- Dual constructors: NewConfigRepository(wolfcastleRoot string) constructs tierfs.FS internally; NewConfigRepositoryWithTiers(tiers tierfs.Resolver, root string) accepts an injected resolver for testing\n- Load() (*Config, error): starts with Defaults() as map, overlays each tier's config.json via DeepMerge, marshals back to *Config, validates with ValidateStructure. Uses tiers.TierDirs() to locate config files rather than hardcoded paths. Missing tier files are not errors. Permission errors propagate\n- WriteBase(cfg *Config) error: marshals full *Config to JSON and writes via tiers.WriteBase(\"config.json\", data)\n- WriteCustom(data map[string]any) error: marshals partial overlay to JSON, writes to custom tier's config.json using tiers.TierDirs()[1]\n- WriteLocal(data map[string]any) error: marshals partial overlay to JSON, writes to local tier's config.json using tiers.TierDirs()[2]\n- Error wrapping convention: all errors prefixed with \"config:\"\n\nStudy the existing config.Load() function in internal/config/config.go and the configTiers variable to understand the current implementation that will be refactored into the repository struct. The key change: Load currently takes wolfcastleDir and constructs paths manually; the repository version uses tierfs.Resolver to locate files.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement ConfigRepository and tests",
+      "description": "Implement ConfigRepository and tests",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/repository.go",
+        "internal/config/repository_test.go"
+      ],
+      "body": "Implement ConfigRepository in internal/config/repository.go following the contract spec written in the previous task.\n\nKey implementation details:\n- The struct holds tiers (tierfs.Resolver) and root (string) fields\n- NewConfigRepository(wolfcastleRoot) creates tierfs.New(filepath.Join(wolfcastleRoot, \"system\")) and delegates to NewConfigRepositoryWithTiers\n- Load() reuses the existing merge logic: structToMap(Defaults()), then for each tier dir from tiers.TierDirs(), attempt to read config.json via os.ReadFile (not via tiers.Resolve, since we need all tiers not just highest-priority). DeepMerge each overlay. Marshal back to *Config. Run ValidateStructure\n- WriteBase marshals the full *Config to indented JSON and calls tiers.WriteBase(\"config.json\", data)\n- WriteCustom and WriteLocal marshal map[string]any to indented JSON and write to tiers.TierDirs()[1]/config.json and tiers.TierDirs()[2]/config.json respectively, creating parent dirs as needed\n- Keep the existing exported Load() function as a thin wrapper or deprecate it — check whether anything outside the config package calls it directly. If so, keep it as a convenience that constructs a temporary ConfigRepository\n\nTests (repository_test.go) should use testutil.NewEnvironment(t) to get a real tier filesystem, then exercise:\n- Load() returns merged config with defaults\n- Load() with custom tier overlay merges correctly\n- Load() with local tier overlay takes highest priority\n- WriteBase persists and is reflected in subsequent Load()\n- WriteCustom writes partial overlay that merges on next Load()\n- WriteLocal writes partial overlay that merges on next Load()\n- Load() with malformed JSON in a tier returns error\n- Load() with permission error propagates (if testable)\n\nDo NOT modify the existing config.go Load() function or the configTiers variable yet. The repository wraps the merge logic independently. Cleanup of the old function happens in a later migration step.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in ConfigRepository is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Load() produces identical output to the existing config.Load() function for the same tier files",
+    "Verify WriteCustom and WriteLocal write partial overlays (not full configs) and that Load correctly merges them"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T21:58:50.689112Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories/configrepository",
+        "text": "Wrote ConfigRepository contract spec defining struct, dual constructors, Load/WriteBase/WriteCustom/WriteLocal methods, error conventions, and thread safety"
+      },
+      {
+        "timestamp": "2026-03-18T22:00:17.259877Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories/configrepository",
+        "text": "Committed ConfigRepository contract spec to docs/specs/configrepository-contract.md (previous attempt wrote the .wolfcastle copy but missed the git commit)"
+      },
+      {
+        "timestamp": "2026-03-18T22:04:45.989771Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories/configrepository",
+        "text": "Implemented ConfigRepository with Load, WriteBase, WriteCustom, WriteLocal methods. Nine tests covering three-tier merge, write-then-load round trips, malformed JSON errors, and permission propagation. All existing tests pass."
+      },
+      {
+        "timestamp": "2026-03-18T22:08:14.408357Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories/configrepository",
+        "text": "Audit complete: build/test/vet/race-detector all pass. Reviewed repository.go and repository_test.go for correctness, nil safety, error handling, code quality, and modularity. Verified spec completeness and ADR coverage. No findings."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T21:56:13.304966Z",
+    "completed_at": "2026-03-18T22:08:24.034037Z",
+    "result_summary": "ConfigRepository implemented as a struct-based three-tier configuration resolver backed by tierfs.Resolver. Provides Load (deep-merges defaults with base/custom/local tiers, validates result), WriteBase (full snapshot via tierfs.WriteBase), WriteCustom and WriteLocal (partial overlays via os.WriteFile). Dual constructors support production use and test injection. Nine tests cover merge precedence, write-then-load round trips, malformed JSON, and permission propagation. Contract spec documents the full API, error conventions, thread safety, and invariants. ADR records the custom-tier writing decision for WithConfig."
+  },
+  "specs": [
+    "2026-03-18T21-57Z-configrepository-contract.md"
+  ]
+}

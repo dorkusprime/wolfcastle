@@ -1,0 +1,25 @@
+# Ignore everything by default, then whitelist tracked directories.
+# Git requires each directory level to be explicitly unignored.
+*
+!.gitignore
+
+# Custom config overrides (user-editable)
+!system/
+!system/custom/
+!system/custom/**/
+!system/custom/**
+
+# Project state (task trees, inbox, specs, ADRs)
+!system/projects/
+!system/projects/**/
+!system/projects/**
+
+# Archived projects
+!archive/
+!archive/**/
+!archive/**
+
+# Specs and ADRs
+!docs/
+!docs/**/
+!docs/**

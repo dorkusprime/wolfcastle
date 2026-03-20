@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "id": "git-package-coverage",
+  "name": "Git Package Coverage",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Cover CurrentBranch non-repo fallback and IsDirty edge cases",
+      "description": "Cover CurrentBranch non-repo fallback and IsDirty edge cases",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/git/git_test.go"
+      ],
+      "body": "CurrentBranch (86.7%): The uncovered path is when rev-parse --abbrev-ref HEAD fails and the directory is NOT a git repo (line 48: return \"\", err). The empty-repo test covers the symbolic-ref fallback, but the non-repo error return isn't exercised. Add a test calling CurrentBranch on a plain (non-git) temp directory and verify it returns an error.\n\nIsDirty (88.2%): Two uncovered paths:\n1. Line 87: git status --porcelain returns an error (e.g. not a git repo). Test IsDirty on a non-repo dir and verify it returns false.\n2. Lines 100-101: Rename handling in porcelain output. Create a test that stages a file rename (git mv), then calls IsDirty and verifies the renamed path is correctly parsed. Also test that the rename path can be excluded.\n\nTarget: raise internal/git from 92.5% to 94%+.",
+      "acceptance_criteria": [
+        "go test -cover ./internal/git/ reports \u003e= 94% coverage"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Git Package Coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify git_test.go exercises the CurrentBranch non-repo error return (line 48) and IsDirty rename parsing (lines 100-101). Confirm coverage \u003e= 94%."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T10:14:46.922894Z",
+        "task": "code-coverage/internal-utility-coverage/git-package-coverage",
+        "text": "Added three tests covering CurrentBranch non-repo error path, IsDirty non-repo early return, and IsDirty rename parsing. Package coverage rose from 92.5% to 98.1%."
+      },
+      {
+        "timestamp": "2026-03-19T10:18:17.810457Z",
+        "task": "code-coverage/internal-utility-coverage/git-package-coverage",
+        "text": "Audit PASS: build clean, all 10 tests pass with race detector, 98.1% coverage confirmed, vet/fmt clean, full project suite (26 packages) green. Code review found no nil-safety, error-handling, concurrency, or quality issues. ADR (shell-out decision) and spec (Provider contract) both present and substantive."
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-git-package-coverage-1",
+        "timestamp": "2026-03-19T10:16:03.775359Z",
+        "description": "gaps",
+        "source": "code-coverage/internal-utility-coverage/git-package-coverage",
+        "status": "fixed",
+        "fixed_by": "code-coverage/internal-utility-coverage/git-package-coverage",
+        "fixed_at": "2026-03-19T10:16:08.987524Z"
+      }
+    ],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T10:13:23.794052Z",
+    "completed_at": "2026-03-19T10:18:26.517302Z",
+    "result_summary": "Raised internal/git test coverage from 92.5% to 98.1% by adding three targeted tests: CurrentBranch error path on non-repo directories, IsDirty early-return on non-repo directories, and IsDirty rename parsing via git mv. All tests pass with the race detector enabled, the full project builds and tests clean across 26 packages, and the existing ADR (shell-out-to-git-binary) and spec (git-provider-contract) document the package's design decisions and API contract."
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "id": "render-context-documentation",
+  "name": "Render Context Documentation",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "ADR: Task.RenderContext parameterless refactoring",
+      "description": "ADR: Task.RenderContext parameterless refactoring",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/decisions/2026-03-18T20-59Z-task-rendercontext-parameterless-refactoring.md"
+      ],
+      "body": "Write an ADR documenting the decision to refactor Task.RenderContext from (nodeAddr, nodeDir) parameters to a parameterless signature that strips filesystem I/O and defers it to ContextBuilder. Cover the motivation (separation of domain rendering from filesystem concerns), alternatives considered, and consequences. Addresses audit gap gap-render-context-methods-1. Reference: internal/state/render.go:20."
+    },
+    {
+      "id": "task-0002",
+      "title": "ADR: NodeState.RenderContext phantom taskID parameter",
+      "description": "ADR: NodeState.RenderContext phantom taskID parameter",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        ".wolfcastle/docs/decisions/2026-03-18T21-02Z-nodestate-rendercontext-phantom-taskid-parameter.md"
+      ],
+      "last_failure_type": "no_progress",
+      "body": "Write an ADR documenting the decision to include a taskID parameter in NodeState.RenderContext that is not used in the method body. The parameter exists for future caller pairing. Cover why the parameter was included preemptively, the tradeoff of a slightly misleading API surface vs. avoiding a breaking change later, and when the parameter is expected to become load-bearing. Addresses audit gap gap-render-context-methods-2. Reference: internal/state/render.go:97."
+    },
+    {
+      "id": "task-0003",
+      "title": "Spec: Rendering contract for RenderContext methods",
+      "description": "Spec: Rendering contract for RenderContext methods",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        ".wolfcastle/docs/specs/2026-03-18T21-05Z-rendercontext-rendering-contract.md"
+      ],
+      "last_failure_type": "no_progress",
+      "body": "Write a spec documenting the rendering contract formed by the three RenderContext methods (Task, NodeState, AuditState). The spec must cover: output format and section ordering for each method, edge-case behavior (empty fields omitted, breadcrumb cap of 10, reference inlining size threshold of 8000 bytes), division of responsibility between domain-side rendering and ContextBuilder composition, and how the three outputs are assembled into a final iteration context. Addresses audit gap gap-render-context-methods-3."
+    },
+    {
+      "id": "task-0004",
+      "title": "Fix audit gaps and unblock render-context-methods",
+      "description": "Fix audit gaps and unblock render-context-methods",
+      "state": "complete",
+      "failure_count": 1,
+      "last_failure_type": "no_progress",
+      "body": "After the ADRs and spec are written: (1) run 'wolfcastle audit fix-gap gap-render-context-methods-1 --node domain-repository-architecture/repositories/render-context-methods', (2) fix-gap gap-render-context-methods-2, (3) fix-gap gap-render-context-methods-3. Then the render-context-methods audit can be re-triggered to verify the gaps are resolved."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Render Context Documentation is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T20:59:31.702869Z",
+        "task": "domain-repository-architecture/repositories/render-context-documentation",
+        "text": "Wrote ADR documenting Task.RenderContext parameterless refactoring: motivation (separate domain rendering from filesystem I/O), three alternatives considered, consequences for test simplification and pipeline consolidation."
+      },
+      {
+        "timestamp": "2026-03-18T21:02:29.033499Z",
+        "task": "domain-repository-architecture/repositories/render-context-documentation",
+        "text": "Wrote ADR documenting the decision to retain the phantom taskID parameter on NodeState.RenderContext: parameter reserved for ContextBuilder consolidation, tradeoff of misleading API surface vs. avoiding future breaking change, with explicit sunset condition if consolidation never materializes."
+      },
+      {
+        "timestamp": "2026-03-18T21:03:34.662272Z",
+        "task": "domain-repository-architecture/repositories/render-context-documentation",
+        "text": "Committed ADR documenting the phantom taskID parameter on NodeState.RenderContext: parameter reserved for ContextBuilder consolidation, tradeoff analysis of three options, explicit sunset condition."
+      },
+      {
+        "timestamp": "2026-03-18T21:06:02.580653Z",
+        "task": "domain-repository-architecture/repositories/render-context-documentation",
+        "text": "Wrote spec documenting the rendering contract for all three RenderContext methods: section ordering, edge-case behavior (empty-field omission, breadcrumb cap of 10, reference inlining threshold of 8000 bytes), division of responsibility between domain rendering and ContextBuilder, and final prompt assembly."
+      },
+      {
+        "timestamp": "2026-03-18T21:08:49.243171Z",
+        "task": "domain-repository-architecture/repositories/render-context-documentation",
+        "text": "Wrote and committed spec documenting the rendering contract for all three RenderContext methods and ContextBuilder assembly: section ordering, edge-case behavior (empty-field omission, breadcrumb cap of 10, reference inlining threshold of 8000 bytes), division of responsibility, and composite prompt structure."
+      },
+      {
+        "timestamp": "2026-03-18T21:09:18.258471Z",
+        "task": "domain-repository-architecture/repositories/render-context-documentation",
+        "text": "Fixed all three audit gaps on render-context-methods node (gap-render-context-methods-1, -2, -3) now that ADRs and spec documenting the RenderContext design decisions and rendering contract are committed."
+      },
+      {
+        "timestamp": "2026-03-18T21:11:02.697237Z",
+        "task": "domain-repository-architecture/repositories/render-context-documentation",
+        "text": "Fixed all three audit gaps on render-context-methods (gap-render-context-methods-1, -2, -3) and added cross-reference section to the rendering contract spec documenting which documents resolved which gaps."
+      },
+      {
+        "timestamp": "2026-03-18T21:16:11.065122Z",
+        "task": "domain-repository-architecture/repositories/render-context-documentation",
+        "text": "Audit: added missing numbered ADR 079 (phantom taskID) to docs/decisions/ and INDEX, fixed duplicate Status/Date headers in .wolfcastle ADR copies. Build, tests, formatting, vet, race detector all clean. All prior gaps resolved. Code correctness verified."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T20:58:11.584327Z",
+    "completed_at": "2026-03-18T21:16:49.335808Z",
+    "result_summary": "Documented all RenderContext design decisions and rendering contracts. Produced ADR 078 (Task.RenderContext parameterless refactoring), ADR 079 (NodeState.RenderContext phantom taskID parameter), and a spec covering section ordering, edge-case behavior, and the division of responsibility between domain rendering and ContextBuilder assembly. Resolved three audit gaps (gap-render-context-methods-1 through -3) on the sibling render-context-methods node. Audit verified build, tests, formatting, vet, and race detector all clean; added the missing numbered ADR 079 entry and fixed duplicate headers in wolfcastle-managed ADR copies."
+  },
+  "specs": [
+    "2026-03-18T21-05Z-rendercontext-rendering-contract.md"
+  ]
+}

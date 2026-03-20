@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "id": "gitservice",
+  "name": "GitService",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement git.Provider interface and git.Service struct",
+      "description": "Implement git.Provider interface and git.Service struct",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/git/git.go"
+      ],
+      "body": "Create internal/git/git.go with:\n\n- Provider interface: CurrentBranch() (string, error), HEAD() string, HasProgress(sinceCommit string) bool, IsRepo() bool, IsDirty(excludePaths ...string) bool, CreateWorktree(path, branch string) error, RemoveWorktree(path string) error.\n- Service struct with repoDir string field.\n- NewService(repoDir string) *Service constructor.\n\nImplement each method by shelling out to git:\n\n- CurrentBranch: git rev-parse --abbrev-ref HEAD, with fallback for empty repos (see daemon/branch.go for the three-step logic: rev-parse, then git-dir check, then symbolic-ref).\n- HEAD: git rev-parse HEAD, returns empty string on error.\n- IsRepo: git rev-parse --is-inside-work-tree succeeds.\n- IsDirty: git status --porcelain, filtering out lines matching excludePaths. Exclude paths by prefix-matching the file path column in porcelain output.\n- HasProgress: HEAD() != sinceCommit || IsDirty(\".wolfcastle/\"). The .wolfcastle/ exclusion is baked into the HasProgress call.\n- CreateWorktree: git worktree add \u003cpath\u003e -b \u003cbranch\u003e.\n- RemoveWorktree: git worktree remove \u003cpath\u003e.\n\nAll commands run with cmd.Dir = repoDir.",
+      "acceptance_criteria": [
+        "Service implements Provider (compile-time interface check)",
+        "All methods shell out to git with cmd.Dir set to repoDir"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Test git.Service with real git repos",
+      "description": "Test git.Service with real git repos",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/git/git_test.go"
+      ],
+      "body": "Create internal/git/git_test.go with integration tests that create real temporary git repos:\n\n1. TestService_IsRepo: Init a temp git repo, verify IsRepo returns true. Also verify IsRepo returns false for a non-repo directory.\n2. TestService_CurrentBranch: Init repo, verify returns \"main\" (or whatever default). Create and checkout a branch, verify it returns the new branch name.\n3. TestService_CurrentBranch_EmptyRepo: Init a repo with no commits, verify CurrentBranch still returns a branch name (the fallback path).\n4. TestService_HEAD: Init repo, make a commit, verify HEAD returns a 40-char hex string. Verify HEAD returns empty string for a non-repo.\n5. TestService_IsDirty: Start clean, verify false. Create an untracked file, verify true. Test the excludePaths parameter by creating a file under an excluded path.\n6. TestService_HasProgress: Record HEAD after initial commit, verify HasProgress is false. Make a new commit, verify HasProgress is true against the old HEAD. Also test dirty-but-no-new-commits case (should return true).\n7. TestService_Worktree: Create a worktree, verify the directory exists and is a git checkout. Remove it, verify cleanup.\n\nUse t.TempDir() for repo directories. Use git init, git add, git commit via exec.Command to set up test state.",
+      "acceptance_criteria": [
+        "All tests pass against real git repos",
+        "No test depends on the host machine's git config"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Wire Environment.Git field",
+      "description": "Wire Environment.Git field",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/testutil/environment.go"
+      ],
+      "body": "Update internal/testutil/environment.go:\n\n1. Uncomment the Git git.Provider field on the Environment struct.\n2. Add the git package import.\n\nDo NOT populate Git in NewEnvironment automatically — the test environment uses a temp dir that is not a git repo by default. Tests that need a git.Provider should construct git.NewService(repoDir) themselves and assign it. The field exists so that tests which set up a git context can share the provider through the environment.\n\nAdd a WithGit(provider git.Provider) *Environment chainable method that sets the field.",
+      "acceptance_criteria": [
+        "Environment.Git field is uncommented and typed as git.Provider",
+        "WithGit method exists and returns *Environment for chaining"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in GitService is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Service satisfies Provider at compile time (var _ Provider = (*Service)(nil) or equivalent)",
+    "Verify CurrentBranch handles the empty-repo fallback path (no commits yet)"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T21:38:08.245816Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/gitservice",
+        "text": "Implemented git.Provider interface and git.Service struct in internal/git/git.go. Provider defines seven methods (CurrentBranch, HEAD, HasProgress, IsRepo, IsDirty, CreateWorktree, RemoveWorktree). Service implements all by shelling out to git with cmd.Dir set to repoDir. CurrentBranch uses three-step fallback from daemon/branch.go. IsDirty filters porcelain output by prefix. HasProgress combines HEAD comparison with IsDirty excluding .wolfcastle/."
+      },
+      {
+        "timestamp": "2026-03-18T21:39:40.768279Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/gitservice",
+        "text": "Created internal/git/git_test.go with seven integration tests against real temp repos: IsRepo, CurrentBranch, CurrentBranch_EmptyRepo, HEAD, IsDirty (with excludePaths), HasProgress, and Worktree create/remove. All tests pass, no host git config dependencies."
+      },
+      {
+        "timestamp": "2026-03-18T21:42:52.90585Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/gitservice",
+        "text": "Wired Environment.Git field: uncommented git.Provider field on Environment struct, added git package import, added WithGit(provider) chainable method. Field is not auto-populated in NewEnvironment since temp dirs aren't git repos. Tests that need git create their own git.NewService and pass it via WithGit."
+      },
+      {
+        "timestamp": "2026-03-18T21:44:50.941519Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/gitservice",
+        "text": "Audited git.Provider and git.Service: build passes, all 7 tests pass, vet/fmt clean. Code review found no nil-safety, error-handling, or concurrency issues. Created missing ADR (shell out to git binary vs go-git) and spec (git.Provider contract). Verdict: PASS."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T21:35:36.384256Z",
+    "completed_at": "2026-03-18T21:45:04.369351Z",
+    "result_summary": "Implemented git.Provider interface and git.Service struct that abstracts git operations (branch detection, HEAD resolution, dirty/progress checks, worktree management) by shelling out to the system git binary. Seven integration tests exercise all methods against real temporary repositories, covering edge cases like empty repos and path exclusion in dirty checks. The Environment.Git field was wired with a WithGit chainable method for test composition. ADR documents the shell-out-to-git design choice; spec documents the Provider contract and error semantics."
+  }
+}

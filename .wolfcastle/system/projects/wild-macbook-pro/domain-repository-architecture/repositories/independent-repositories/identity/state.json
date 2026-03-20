@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "id": "identity",
+  "name": "Identity",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement Identity type and extraction functions",
+      "description": "Implement Identity type and extraction functions",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/identity.go",
+        "internal/config/identity_test.go"
+      ],
+      "body": "Create internal/config/identity.go with:\n\n- Identity struct: User string, Machine string, Namespace string (computed as User + \"-\" + Machine).\n- IdentityFromConfig(cfg *Config) (*Identity, error): extracts identity from a loaded config. Returns error if cfg.Identity is nil or if User/Machine are empty. Sets Namespace to User + \"-\" + Machine.\n- DetectIdentity() *Identity: reads username from os/user.Current() and hostname from os.Hostname(). Falls back to \"unknown\" for either if the system call fails. Sets Namespace from the detected values.\n- (id *Identity) ProjectsDir(wolfcastleRoot string) string: returns filepath.Join(wolfcastleRoot, \"system\", \"projects\", id.Namespace).\n\nThis mirrors the logic currently in tree.ResolveNamespace and project.detectIdentity, but as a first-class type. The existing IdentityConfig struct in types.go remains as the config-tier representation; Identity is the domain type derived from it.",
+      "acceptance_criteria": [
+        "Identity compiles with all spec signatures",
+        "IdentityFromConfig returns error for nil or incomplete identity",
+        "DetectIdentity never panics",
+        " falls back to 'unknown'"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Test Identity type",
+      "description": "Test Identity type",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/identity_test.go"
+      ],
+      "body": "Create internal/config/identity_test.go with:\n\n1. TestIdentityFromConfig_Valid: Provide a Config with Identity.User and Identity.Machine set. Verify the returned Identity has correct User, Machine, and Namespace (User + \"-\" + Machine).\n2. TestIdentityFromConfig_NilIdentity: Pass a Config with nil Identity, verify error.\n3. TestIdentityFromConfig_EmptyUser: Identity with empty User, verify error.\n4. TestIdentityFromConfig_EmptyMachine: Identity with empty Machine, verify error.\n5. TestDetectIdentity: Call DetectIdentity, verify it returns a non-nil Identity with non-empty User, Machine, and Namespace. (We can't assert exact values since they depend on the host, but we can verify the contract.)\n6. TestIdentity_ProjectsDir: Create an Identity with known values, call ProjectsDir with a temp root, verify the returned path matches the expected structure (root/system/projects/namespace).\n\nThese are unit tests — no testutil.Environment needed since Identity has no filesystem dependencies beyond ProjectsDir path construction.",
+      "acceptance_criteria": [
+        "All tests pass",
+        "IdentityFromConfig error cases are covered"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Identity is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Identity is distinct from IdentityConfig in types.go — domain type vs config-tier type",
+    "Verify ProjectsDir returns wolfcastleRoot/system/projects/namespace"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T21:46:39.374867Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/identity",
+        "text": "Implemented Identity domain type in internal/config/identity.go with IdentityFromConfig, DetectIdentity, and ProjectsDir. Tests cover nil config, empty fields, valid extraction, OS detection, and path computation."
+      },
+      {
+        "timestamp": "2026-03-18T21:47:05.646277Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/identity",
+        "text": "task-0002: Identity tests already exist from task-0001. All six test cases pass: config extraction (valid + three error paths), OS detection, and ProjectsDir path construction."
+      },
+      {
+        "timestamp": "2026-03-18T21:50:28.724984Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories/identity",
+        "text": "Audit complete: build, tests (including race detector), formatting, and vet all pass. Code reviewed for nil safety, error handling, edge cases, naming, and modularity. Created missing ADR for concrete-struct-with-constructor-validation decision and filled in Identity Domain Type Contract spec."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T21:45:04.449319Z",
+    "completed_at": "2026-03-18T21:50:39.945623Z",
+    "result_summary": "Implemented the Identity domain type in internal/config/identity.go, consolidating namespace resolution and OS detection into a single authoritative struct with two constructors (IdentityFromConfig for config extraction with validation, DetectIdentity for OS-based fallback detection) and a ProjectsDir method. Six tests cover all error paths, valid extraction, OS detection, and path construction. ADR documents the concrete-struct-with-constructor-validation design choice; spec documents the full contract including invariants and thread safety."
+  },
+  "specs": [
+    "2026-03-18T21-50Z-identity-domain-type-contract.md"
+  ]
+}

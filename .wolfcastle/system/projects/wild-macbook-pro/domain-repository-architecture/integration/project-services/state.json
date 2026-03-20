@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "id": "project-services",
+  "name": "Project Services",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write MigrationService contract spec",
+      "description": "Write MigrationService contract spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/*migrationservice-contract*",
+        ".wolfcastle/docs/specs/2026-03-18T22-45Z-migrationservice-contract.md"
+      ],
+      "body": "Create a contract spec for MigrationService at .wolfcastle/docs/specs/. The contract should define:\n\nMigrationService struct with fields:\n- config *config.ConfigRepository\n- root string (path to .wolfcastle/)\n\nMethods:\n- MigrateDirectoryLayout() error: moves pre-ADR-077 flat layout into system/. If system/ already exists, returns nil (idempotent). Moves base/, custom/, local/, projects/, logs/ into system/. Moves loose daemon files (wolfcastle.pid, stop, daemon.log, daemon.meta.json) into system/.\n- MigrateOldConfig() error: migrates old config files to three-tier layout. Moves root config.json to system/custom/config.json (only if target doesn't exist). Merges config.local.json contents into system/local/config.json (preserving existing keys).\n\nBoth methods are idempotent and non-fatal (callers log errors but don't fail).",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Write ScaffoldService contract spec",
+      "description": "Write ScaffoldService contract spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/*scaffoldservice-contract*",
+        ".wolfcastle/docs/specs/2026-03-18T22-48Z-scaffoldservice-contract.md"
+      ],
+      "body": "Create a contract spec for ScaffoldService at .wolfcastle/docs/specs/. The contract should define:\n\nScaffoldService struct with fields:\n- config *config.ConfigRepository\n- prompts *pipeline.PromptRepository\n- daemon *daemon.DaemonRepository\n- root string (path to .wolfcastle/)\n\nMethods:\n- Init(identity *config.Identity) error: creates the full .wolfcastle/ structure for 'wolfcastle init'. Creates directory tree (system/base/prompts, system/base/rules, system/base/audits, system/custom, system/local, docs/, artifacts/, archive/, system/logs/). Writes .gitignore. Writes base config from Defaults(). Writes empty custom config. Writes local config with identity. Creates namespace project directory. Writes empty root index. Extracts embedded prompts via PromptRepository.WriteAllBase().\n- Reinit() error: called by 'wolfcastle update'. Runs MigrationService migrations (non-fatal). Removes and recreates system/base/. Regenerates base config. Ensures custom config exists. Refreshes identity in local config.\n\nScaffoldService replaces the existing Scaffold(), ReScaffold(), and WriteBasePrompts() functions.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Implement MigrationService",
+      "description": "Implement MigrationService",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/migration_service.go"
+      ],
+      "body": "Implement MigrationService in internal/project/migration_service.go. Extract logic from the existing migrateToSystemLayout() and migrateOldConfig() functions in scaffold.go.\n\nConstructor: NewMigrationService(config *config.ConfigRepository, root string)\n\nMigrateDirectoryLayout(): check if system/ exists first (idempotent). Move directories and loose daemon files. Use os.Rename for moves. Create system/ if needed before moving.\n\nMigrateOldConfig(): move root config.json to system/custom/config.json only if target absent. For config.local.json, read it, merge into existing local config, write via ConfigRepository.WriteLocal(). Remove source files after successful migration.\n\nBoth methods should be safe to call multiple times and on fresh installations (where there's nothing to migrate).",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Implement ScaffoldService",
+      "description": "Implement ScaffoldService",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/scaffold_service.go"
+      ],
+      "body": "Implement ScaffoldService in internal/project/scaffold_service.go. This replaces the existing standalone Scaffold(), ReScaffold(), and WriteBasePrompts() functions.\n\nConstructor: NewScaffoldService(config *config.ConfigRepository, prompts *pipeline.PromptRepository, daemon *daemon.DaemonRepository, root string)\n\nInit(identity *config.Identity) error:\n1. Create directory tree (use os.MkdirAll for each path)\n2. Write .gitignore with the whitelist pattern from existing scaffold code\n3. config.WriteBase(config.Defaults()) for base config\n4. config.WriteCustom(map[string]any{}) for empty custom\n5. config.WriteLocal(map[string]any{'user': identity.User, 'machine': identity.Machine}) for local identity\n6. Create namespace project directory at system/projects/\u003cidentity.Namespace\u003e/\n7. Write empty root index state.json\n8. prompts.WriteAllBase(embedded templates) for base prompts\n\nReinit() error:\n1. Create and call MigrationService for both migrations (log errors, don't fail)\n2. Remove system/base/ entirely\n3. Recreate system/base/ directory tree\n4. Regenerate base config and prompts\n5. Ensure custom config exists (create empty if missing)\n6. Refresh identity in local config\n\nReference the existing scaffold.go for the exact directory paths, .gitignore content, and embedded template handling.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0005",
+      "title": "Write MigrationService and ScaffoldService tests",
+      "description": "Write MigrationService and ScaffoldService tests",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/migration_service_test.go",
+        "internal/project/scaffold_service_test.go"
+      ],
+      "body": "Write tests for both services using testutil.Environment.\n\nMigrationService tests (internal/project/migration_service_test.go):\n- MigrateDirectoryLayout moves flat directories into system/\n- MigrateDirectoryLayout is idempotent (no-op when system/ exists)\n- MigrateDirectoryLayout handles fresh installation (nothing to move)\n- MigrateOldConfig moves root config.json to custom tier\n- MigrateOldConfig skips move when custom config already exists\n- MigrateOldConfig merges config.local.json into local tier\n- MigrateOldConfig handles missing source files gracefully\n\nScaffoldService tests (internal/project/scaffold_service_test.go):\n- Init creates complete directory structure\n- Init writes correct config files to each tier\n- Init creates namespace project directory\n- Init extracts embedded prompts\n- Reinit regenerates base tier\n- Reinit preserves custom and local config\n- Reinit calls migrations before regenerating\n\nUse testutil.Environment for repository access. For migration tests, manually create old-layout directories/files before calling migrate methods.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0006",
+      "title": "Replace scaffold functions with ScaffoldService callers",
+      "description": "Replace scaffold functions with ScaffoldService callers",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/scaffold.go"
+      ],
+      "body": "Update all call sites that currently use Scaffold(), ReScaffold(), or WriteBasePrompts() to use ScaffoldService instead.\n\nExpected callers:\n- cmd/init.go (or similar): replace Scaffold() call with ScaffoldService.Init()\n- cmd/update.go (or similar): replace ReScaffold() call with ScaffoldService.Reinit()\n- Any daemon startup code calling WriteBasePrompts()\n\nAfter all callers are updated, mark the old standalone functions in scaffold.go as deprecated or remove them if nothing else references them. Keep CreateProject() and WriteAuditTaskMD() as they are (those are separate concerns not covered by ScaffoldService).\n\nVerify the build passes and tests pass after the switch.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Project Services is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify MigrationService is idempotent: calling MigrateDirectoryLayout and MigrateOldConfig on an already-migrated installation is a safe no-op",
+    "Verify ScaffoldService.Reinit preserves custom and local config while regenerating base"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T22:46:24.493418Z",
+        "task": "domain-repository-architecture/integration/project-services",
+        "text": "Wrote MigrationService contract spec covering MigrateDirectoryLayout and MigrateOldConfig methods, error behavior, thread safety, and invariants"
+      },
+      {
+        "timestamp": "2026-03-18T22:50:28.190997Z",
+        "task": "domain-repository-architecture/integration/project-services",
+        "text": "Wrote ScaffoldService contract spec covering Init and Reinit methods, struct fields, error behavior, thread safety, invariants, and mapping table from existing functions"
+      },
+      {
+        "timestamp": "2026-03-18T22:53:12.663709Z",
+        "task": "domain-repository-architecture/integration/project-services",
+        "text": "Implemented MigrationService in internal/project/migration_service.go, extracting logic from migrateToSystemLayout and migrateOldConfig in scaffold.go"
+      },
+      {
+        "timestamp": "2026-03-18T22:59:32.453168Z",
+        "task": "domain-repository-architecture/integration/project-services",
+        "text": "Implemented ScaffoldService in internal/project/scaffold_service.go with Init and Reinit methods. Used interfaces for PromptRepository (promptWriter) and any for DaemonRepository to break import cycles with pipeline and daemon packages."
+      },
+      {
+        "timestamp": "2026-03-18T23:04:24.702525Z",
+        "task": "domain-repository-architecture/integration/project-services",
+        "text": "Wrote MigrationService tests (4 cases: flat dir migration, file migration, idempotency, fresh install) and MigrateOldConfig tests (4 cases: root config move, custom skip, local merge, missing sources), plus ScaffoldService tests (5 Init cases: dirs, configs, namespace, prompts, gitignore; 5 Reinit cases: base regen, custom/local preservation, migration integration, missing custom, missing local)"
+      },
+      {
+        "timestamp": "2026-03-18T23:08:29.856687Z",
+        "task": "domain-repository-architecture/integration/project-services",
+        "text": "Replaced all production call sites of Scaffold(), ReScaffold(), and WriteBasePrompts() with ScaffoldService. cmd/init.go uses Init()/Reinit(), cmd/update.go uses Reinit(). Old standalone functions marked deprecated in scaffold.go. Build and full test suite pass."
+      },
+      {
+        "timestamp": "2026-03-18T23:10:19.910372Z",
+        "task": "domain-repository-architecture/integration/project-services",
+        "text": "Audit complete. Verified: build passes, all tests pass (including race detector), go vet clean. Fixed one gofmt alignment issue in scaffold_service.go (committed). Code review: nil safety, error handling, edge cases, concurrency all sound. MigrationService methods are idempotent and well-guarded. ScaffoldService correctly delegates to repositories. Production call sites in cmd/init.go and cmd/update.go properly use ScaffoldService. Specs and ADR present and substantive. No duplication, dead code, or architectural issues found."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T22:44:22.632622Z",
+    "completed_at": "2026-03-18T23:10:47.069448Z",
+    "result_summary": "Extracted MigrationService and ScaffoldService from the package-level Scaffold/ReScaffold/WriteBasePrompts functions into dependency-injectable structs. MigrationService handles directory layout and config migrations with idempotent semantics. ScaffoldService owns Init (fresh setup) and Reinit (base-tier regeneration with migration), delegating config writes to ConfigRepository and prompt extraction to PromptRepository via a local promptWriter interface that breaks the project-pipeline import cycle. All production call sites in cmd/init.go and cmd/update.go migrated to the new services. Both services have thorough test suites (8 migration tests, 10 scaffold service tests). Contract specs for both services and an ADR documenting the interface-based cycle-breaking strategy are in place."
+  },
+  "specs": [
+    "2026-03-18T22-45Z-migrationservice-contract.md",
+    "2026-03-18T22-48Z-scaffoldservice-contract.md"
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "id": "foundation",
+  "name": "Foundation",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "tier-resolution-primitive",
+      "address": "domain-repository-architecture/foundation/tier-resolution-primitive",
+      "state": "complete"
+    },
+    {
+      "id": "test-environment",
+      "address": "domain-repository-architecture/foundation/test-environment",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Foundation is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Build the shared tier resolution primitive (internal/tierfs) and the test environment (internal/testutil/Environment). These are the foundational pieces everything else depends on: tierfs provides three-tier file resolution used by ConfigRepository, PromptRepository, and ClassRepository; Environment provides the test infrastructure all subsequent steps use instead of manual path construction. Steps 1-2 from the migration path.",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-18T20:15:32.630569Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": "Verify tierfs provides correct three-tier resolution and Environment replaces manual test setup",
+      "files": [
+        "internal/tierfs/tierfs.go",
+        "internal/tierfs/tierfs_test.go",
+        "internal/testutil/environment.go",
+        "internal/testutil/environment_test.go"
+      ],
+      "systems": [
+        "tierfs",
+        "testutil"
+      ],
+      "criteria": [
+        "tierfs.FS implements Resolver interface",
+        "Resolve returns highest-priority tier content",
+        "ResolveAll collects with override semantics",
+        "WriteBase creates files in base tier",
+        "Environment creates valid scaffolded temp dir",
+        "WithProject creates correct state tree",
+        "WithConfig merges into custom tier",
+        "All tests pass",
+        "No import cycles"
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T20:15:29.834406Z",
+        "task": "domain-repository-architecture/foundation",
+        "text": "Created 2 leaf children: tier-resolution-primitive (tierfs package with FS struct + Resolver interface, 2 tasks) and test-environment (Environment struct, NodeSpec builders, With* helpers, 3 tasks). Ordering: tierfs first since Environment depends on it. tierfs consolidates existing patterns from pipeline/fragments.go and config/config.go. Environment initially populates Root, State, and an internal tierfs.FS; repository fields are nil stubs until those packages exist in later steps."
+      },
+      {
+        "timestamp": "2026-03-18T20:39:21.046934Z",
+        "task": "domain-repository-architecture/foundation",
+        "text": "Audited both child nodes: tierfs (Resolver interface, FS impl, three-tier resolution, 11 tests) and testutil (Environment struct, NodeSpec builders, With* fluent methods, 37 tests). All code compiles, passes vet, and is gofmt-clean. No gaps found."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T20:37:39.836612Z",
+    "completed_at": "2026-03-18T20:39:29.40033Z",
+    "result_summary": "Foundation delivered two packages: tierfs provides a Resolver interface and FS implementation for three-tier file resolution (base \u003c custom \u003c local), referenced by ADR-063, with 11 passing tests covering override semantics, ResolveAll aggregation, WriteBase, and error paths. testutil provides an Environment struct with NodeSpec builders (Leaf, Orchestrator) and four With* fluent methods (WithConfig, WithProject, WithPrompt, WithRule) that compose a complete .wolfcastle directory for domain tests, backed by 37 passing tests. Both packages are gofmt-clean, pass go vet, and have no open gaps."
+  }
+}

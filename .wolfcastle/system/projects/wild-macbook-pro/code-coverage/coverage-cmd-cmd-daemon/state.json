@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "id": "coverage-cmd-cmd-daemon",
+  "name": "Coverage: cmd \u0026 cmd/daemon",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add tests to bring cmd package from 79.0% to 94%+ coverage",
+      "description": "Add tests to bring cmd package from 79.0% to 94%+ coverage",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/coverage_cmd_daemon_test.go"
+      ],
+      "body": "Run go test -coverprofile and identify uncovered lines in cmd/*.go. Write tests following existing patterns in cmd/*_test.go."
+    },
+    {
+      "id": "task-0002",
+      "title": "Add tests to bring cmd/daemon from 71.5% to 94%+ coverage",
+      "description": "Add tests to bring cmd/daemon from 71.5% to 94%+ coverage",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/coverage_deep_test.go"
+      ],
+      "body": "Run go test -coverprofile and identify uncovered lines in cmd/daemon/*.go. Write tests following existing patterns."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Coverage: cmd \u0026 cmd/daemon is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T15:11:45.374372Z",
+        "task": "code-coverage/coverage-cmd-cmd-daemon",
+        "text": "Added coverage_cmd_daemon_test.go with 30+ tests covering error paths, stdin handling, chmod-guarded filesystem errors, interactive unblock, doctor validation, archive operations, and spec CRUD. Coverage raised from 88.1% to 94.0%."
+      },
+      {
+        "timestamp": "2026-03-19T15:28:42.041894Z",
+        "task": "code-coverage/coverage-cmd-cmd-daemon",
+        "text": "Added coverage_deep_test.go with tests for printNodeTree collapse paths, subtask collapsing with grandchildren, orchestrator audit task rendering, planning queue display, watchStatus error paths, showAllStatus empty output, and daemon.New failure. Coverage raised from 87.2% to 94.0%."
+      },
+      {
+        "timestamp": "2026-03-19T15:36:39.474245Z",
+        "task": "code-coverage/coverage-cmd-cmd-daemon",
+        "text": "Audit: verified build, tests (all pass), formatting (clean), go vet (clean), race detector (clean), coverage (94.0% cmd, 94.0% cmd/daemon). Reviewed both test files for correctness, nil safety, error handling, concurrency, duplication, and dead code. No issues found."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T14:47:05.87119Z",
+    "completed_at": "2026-03-19T15:36:48.714545Z",
+    "result_summary": "Added comprehensive coverage tests for cmd and cmd/daemon packages, raising both from ~88% to 94.0%. Tests cover error paths (filesystem permission failures, corrupt JSON, stdin read errors), interactive flows (unblock with model invocation, readline EOF), command output paths (human vs JSON modes), and daemon lifecycle edge cases (PID write failure, stale state recovery, log tailing). All tests pass clean under the race detector. No architectural decisions or new contracts were introduced."
+  }
+}

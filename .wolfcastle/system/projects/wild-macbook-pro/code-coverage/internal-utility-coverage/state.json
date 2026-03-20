@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "internal-utility-coverage",
+  "name": "internal Utility Coverage",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "git-package-coverage",
+      "address": "code-coverage/internal-utility-coverage/git-package-coverage",
+      "state": "complete"
+    },
+    {
+      "id": "testutil-package-coverage",
+      "address": "code-coverage/internal-utility-coverage/testutil-package-coverage",
+      "state": "complete"
+    },
+    {
+      "id": "tierfs-package-coverage",
+      "address": "code-coverage/internal-utility-coverage/tierfs-package-coverage",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in internal Utility Coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Raise coverage to 94%+ for changed internal utility packages: internal/git (92.5%), internal/testutil (82.0%), internal/tierfs (86.1%)",
+  "success_criteria": [
+    "All three packages (internal/git, internal/testutil, internal/tierfs) report \u003e= 94% statement coverage via go test -cover"
+  ],
+  "audit_enrichment": [
+    "Verify each utility package reaches 94%+. Key gaps: internal/testutil has several 0% helper methods (ParentDir, ToAppFields, WithGit, WithClasses); internal/tierfs WriteBase at 66.7%. testutil helpers should be exercised through the tests that use them."
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-19T10:13:23.709059Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T10:13:21.66183Z",
+        "task": "code-coverage/internal-utility-coverage",
+        "text": "Created 3 leaf children: git-package-coverage (1 task), testutil-package-coverage (2 tasks), tierfs-package-coverage (1 task). All three are independent and can execute in parallel. Git needs CurrentBranch/IsDirty edge cases. Testutil needs uncalled methods (ParentDir, ToAppFields, WithGit, WithClasses) plus error paths. Tierfs needs permission-error tests for Resolve, ResolveAll, and WriteBase."
+      },
+      {
+        "timestamp": "2026-03-19T10:29:17.005744Z",
+        "task": "code-coverage/internal-utility-coverage",
+        "text": "Audit complete: verified all 3 child nodes (git-package-coverage, testutil-package-coverage, tierfs-package-coverage) finished successfully. Coverage: internal/git 98.1%, internal/testutil 94.0%, internal/tierfs 100.0%. All above 90% threshold. All tests pass, go vet clean, no open gaps or escalations."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T10:28:47.512373Z",
+    "completed_at": "2026-03-19T10:29:30.068118Z",
+    "result_summary": "Raised coverage across all three internal utility packages to well above the 90% threshold. internal/git went to 98.1% by covering CurrentBranch and IsDirty edge cases. internal/testutil reached 94.0% by exercising previously uncalled Environment methods (ParentDir, ToAppFields, WithGit, WithClasses) and error paths in writeJSON, WithConfig, WithPrompt, and WithRule. internal/tierfs hit 100.0% by adding permission-error tests for Resolve, ResolveAll, and WriteBase. All tests pass, vet is clean, and no audit gaps remain."
+  }
+}

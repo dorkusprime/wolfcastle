@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "id": "environment-wiring",
+  "name": "Environment Wiring",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Wire ConfigRepository and PromptRepository into testutil.Environment",
+      "description": "Wire ConfigRepository and PromptRepository into testutil.Environment",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/testutil/environment.go"
+      ],
+      "body": "Uncomment the Config and Prompts fields on the Environment struct and populate them in NewEnvironment.\n\nChanges to internal/testutil/environment.go:\n1. Add imports for the pipeline package (config is already imported)\n2. Uncomment the Config field: Config *config.ConfigRepository\n3. Uncomment the Prompts field: Prompts *pipeline.PromptRepository\n4. In NewEnvironment, after constructing the tierfs.FS (the tiers variable), construct both repositories using their WithTiers constructors:\n   - config.NewConfigRepositoryWithTiers(tiers, wolfcastleDir) for Config\n   - pipeline.NewPromptRepositoryWithTiers(tiers) for Prompts\n5. Set both on the returned Environment struct\n\nThe key insight: NewEnvironment already creates a tierfs.FS (the tiers variable on line 96). The repositories share this same resolver instance, which means tests that write to tier directories via tiers.WriteBase will be reflected in subsequent repository reads. This is intentional — the WithTiers constructors exist precisely so that test infrastructure can inject a shared resolver.\n\nVerify that existing tests still pass after wiring. The new fields are additive — nothing currently reads them, so existing tests should be unaffected. Run go test ./internal/testutil/... and go test ./internal/config/... and go test ./internal/pipeline/... to confirm.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Environment Wiring is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify both repository fields are non-nil after NewEnvironment and that go test ./... passes for config, pipeline, and testutil packages"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T22:18:24.277134Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories/environment-wiring",
+        "text": "Wired ConfigRepository and PromptRepository into testutil.Environment. Both share the existing tierfs.FS instance. All tests pass."
+      },
+      {
+        "timestamp": "2026-03-18T22:21:37.333681Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories/environment-wiring",
+        "text": "Audit passed. Build, tests, vet, and formatting all clean. The wiring commit correctly uncomments Config and Prompts fields, adds the pipeline import, and constructs both repositories using WithTiers constructors sharing the existing tierfs.FS. Constructor signatures verified against source. No architectural decisions were made (WithTiers pattern was decided in prior repository nodes), so no ADR needed. No new contracts introduced, so no spec needed."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T22:17:29.558381Z",
+    "completed_at": "2026-03-18T22:21:46.129309Z",
+    "result_summary": "Wired ConfigRepository and PromptRepository into testutil.Environment. The single task uncommented the two repository fields, added the pipeline import, and populated both in NewEnvironment using their WithTiers constructors, sharing the existing tierfs.FS resolver. This means tests that write to tier directories via Tiers.WriteBase see those changes reflected through both Config and Prompts reads. All existing tests pass without modification across testutil, config, and pipeline packages. Build, vet, and formatting are clean."
+  }
+}

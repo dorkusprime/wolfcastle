@@ -1,0 +1,3 @@
+# Independent Repositories
+
+Implement DaemonRepository, git.Service + Provider interface, and Identity extraction. These three pieces have no cross-dependencies and no dependency on tierfs. DaemonRepository (internal/daemon) validates the repository pattern against the test infrastructure: PID file, stop file, log directory management. GitService (internal/git) wraps the git binary behind a Provider interface for testability: CurrentBranch, HEAD, HasProgress, IsRepo, IsDirty, CreateWorktree, RemoveWorktree. Identity (internal/config) extracts namespace detection and projects directory mapping into a standalone type. All three can be built in parallel.

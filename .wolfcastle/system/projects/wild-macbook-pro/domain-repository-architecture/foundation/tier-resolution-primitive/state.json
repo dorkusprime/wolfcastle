@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "tier-resolution-primitive",
+  "name": "Tier Resolution Primitive",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Define Resolver interface and FS struct",
+      "description": "Define Resolver interface and FS struct",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/tierfs/tierfs.go"
+      ],
+      "body": "Create internal/tierfs/tierfs.go with:\n\n1. The Resolver interface with these methods (from spec):\n   - Resolve(relPath string) ([]byte, error) — returns content from the highest-priority tier that has the file. Walk tiers from local -\u003e custom -\u003e base (highest to lowest priority). Return os.ErrNotExist (wrapped) if no tier has it.\n   - ResolveAll(subdir string) (map[string][]byte, error) — collect all files in a subdirectory across tiers. Walk tiers lowest-to-highest so higher tier files overwrite lower. Only include .md files (matching existing ResolveAllFragments behavior). Key is the filename, value is content.\n   - WriteBase(relPath string, data []byte) error — write to the base tier directory. Create parent directories as needed.\n   - BasePath(subdir string) string — return the absolute path to a subdirectory within the base tier. Escape hatch for callers that need to walk the directory (e.g., embedded FS extraction).\n   - TierDirs() []string — return absolute paths to all tier directories in resolution order (base, custom, local). Used by error messages that want to tell the user where they searched.\n\n2. The FS struct:\n   - Fields: root string (e.g., \".wolfcastle/system\")\n   - Constructor: New(root string) *FS\n   - Tier names are hardcoded as [\"base\", \"custom\", \"local\"] — not configurable. This is the single source of truth for tier order (ADR-063).\n   - FS implements Resolver.\n\nReference the existing tier resolution patterns in internal/pipeline/fragments.go (Tiers variable, ResolveFragment, ResolveAllFragments) and internal/config/config.go (configTiers). The tierfs package consolidates these into one place.\n\nError wrapping: use fmt.Errorf(\"tierfs: \u003coperation\u003e: %w\", err) so callers can identify the source."
+    },
+    {
+      "id": "task-0002",
+      "title": "Write comprehensive tests for tierfs",
+      "description": "Write comprehensive tests for tierfs",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/tierfs/tierfs_test.go"
+      ],
+      "body": "Create internal/tierfs/tierfs_test.go with table-driven tests covering:\n\nResolve:\n- Returns content from highest-priority tier (local \u003e custom \u003e base)\n- Falls through to lower tiers when higher tiers lack the file\n- Returns base tier content when only base has the file\n- Returns wrapped os.ErrNotExist when no tier has the file\n- Handles subdirectory paths (e.g., \"prompts/execute.md\")\n\nResolveAll:\n- Collects files across all tiers\n- Higher tier files override same-named files from lower tiers\n- Only includes .md files (skips directories, non-.md files)\n- Returns empty map when subdirectory doesn't exist in any tier\n- Handles tiers where the subdirectory is missing (some tiers may not have the subdir)\n\nWriteBase:\n- Writes file to base tier directory\n- Creates parent directories as needed\n- Overwrites existing file\n\nBasePath:\n- Returns correct absolute path to base tier subdirectory\n\nTierDirs:\n- Returns all three tier directories in order (base, custom, local)\n\nEach test should create a temp directory structure using t.TempDir(), populate it with the needed tier files, construct an FS, and verify behavior. Keep tests self-contained — no dependency on testutil.Environment (that package depends on tierfs, not the reverse)."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Tier Resolution Primitive is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify FS.Resolve walks tiers in correct priority order: local beats custom beats base. Compare with existing ResolveFragment in pipeline/fragments.go to confirm identical semantics.",
+    "Verify FS.ResolveAll matches ResolveAllFragments semantics: lowest-to-highest iteration so higher tiers overwrite, .md-only filtering, and correct handling of missing tier directories."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T20:18:26.432022Z",
+        "task": "domain-repository-architecture/foundation/tier-resolution-primitive",
+        "text": "Created internal/tierfs/tierfs.go with Resolver interface (Resolve, ResolveAll, WriteBase, BasePath, TierDirs) and FS struct implementing it. Hardcoded tier order [base, custom, local] per ADR-063. All errors wrapped with tierfs: prefix. Build, vet, fmt, and full test suite pass."
+      },
+      {
+        "timestamp": "2026-03-18T20:20:34.401347Z",
+        "task": "domain-repository-architecture/foundation/tier-resolution-primitive",
+        "text": "Added tierfs_test.go with 15 table-driven tests covering all Resolver methods: Resolve (5 cases), ResolveAll (5 cases), WriteBase (3 cases), BasePath (1), TierDirs (1). All pass, full suite green."
+      },
+      {
+        "timestamp": "2026-03-18T20:23:31.761818Z",
+        "task": "domain-repository-architecture/foundation/tier-resolution-primitive",
+        "text": "Audit complete. Fixed gofmt struct alignment in tierfs_test.go. Created ADRs for Resolver interface choice and hardcoded tier order. Created spec for tierfs.Resolver contract. Build, vet, race-detected tests, and formatting all pass. Code review found no nil safety, error handling, concurrency, or architecture issues."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending",
+    "started_at": "2026-03-18T20:15:32.733431Z",
+    "completed_at": "2026-03-18T20:23:48.610819Z",
+    "result_summary": "The tier-resolution-primitive node delivers package tierfs with a Resolver interface and concrete FS implementation providing three-tier file resolution (base \u003c custom \u003c local) rooted at a single directory. The implementation is 120 lines with 275 lines of table-driven tests covering all five interface methods, including edge cases for missing tiers, subdirectory paths, file filtering, and overwrite semantics. All tests pass with the race detector enabled. Two ADRs document the interface-for-testability and hardcoded-tier-order decisions. A spec documents the full Resolver contract including error behavior and thread safety. The audit found and fixed one gofmt alignment issue in the test file; no correctness, safety, or architecture issues were identified."
+  }
+}

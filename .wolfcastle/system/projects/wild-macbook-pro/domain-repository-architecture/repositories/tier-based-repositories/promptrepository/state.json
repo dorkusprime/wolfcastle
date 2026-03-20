@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "promptrepository",
+  "name": "PromptRepository",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write PromptRepository contract spec",
+      "description": "Write PromptRepository contract spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/promptrepository-contract.md"
+      ],
+      "body": "Write a contract spec for PromptRepository following the established contract spec pattern. The spec must define:\n\n- The PromptRepository struct with a tiers field (tierfs.Resolver)\n- Dual constructors: NewPromptRepository(wolfcastleRoot string) constructs tierfs.FS internally; NewPromptRepositoryWithTiers(tiers tierfs.Resolver) accepts an injected resolver for testing\n- Resolve(name string, ctx any) (string, error): resolves a prompt template by short name (e.g. \"execute\" maps to prompts/execute.md), reads content via tiers.Resolve(\"prompts/\"+name+\".md\"), then executes as Go text/template with ctx. If ctx is nil, returns raw content without template execution. Wraps template parse/execute errors\n- ResolveRaw(category string, name string) (string, error): resolves raw content by category and name (e.g. category=\"prompts\", name=\"execute.md\") via tiers.Resolve(category+\"/\"+name). Returns string content, no template processing\n- ListFragments(category string, include []string, exclude []string) ([]string, error): collects all .md fragments in a category (e.g. \"rules\") across tiers with override semantics using tiers.ResolveAll(category). Applies include/exclude filtering. Returns file contents as string slice, sorted by filename\n- WriteBase(relPath string, data []byte) error: delegates directly to tiers.WriteBase(relPath, data)\n- WriteAllBase(templates fs.FS) error: walks an fs.FS and writes each file to the base tier via tiers.WriteBase. Used during scaffold to seed default prompts from embedded templates\n- Error wrapping convention: all errors prefixed with \"prompts:\"\n\nStudy the existing ResolveFragment, ResolveAllFragments, and ResolvePromptTemplate functions in internal/pipeline/fragments.go. These implement the same logic using raw filepath operations and the hardcoded Tiers variable. The repository version delegates to tierfs.Resolver instead. The existing pipeline.Tiers variable and standalone functions should NOT be modified — they'll be cleaned up in a later migration step.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement PromptRepository and tests",
+      "description": "Implement PromptRepository and tests",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/repository.go",
+        "internal/pipeline/repository_test.go"
+      ],
+      "body": "Implement PromptRepository in internal/pipeline/repository.go following the contract spec written in the previous task.\n\nKey implementation details:\n- The struct holds a single tiers (tierfs.Resolver) field\n- NewPromptRepository(wolfcastleRoot) creates tierfs.New(filepath.Join(wolfcastleRoot, \"system\")) and delegates to NewPromptRepositoryWithTiers\n- Resolve(name, ctx): calls tiers.Resolve(\"prompts/\"+name+\".md\") to get raw bytes, converts to string. If ctx is nil, returns raw. Otherwise parses with text/template and executes with ctx. Returns result string\n- ResolveRaw(category, name): calls tiers.Resolve(category+\"/\"+name) and returns string(data)\n- ListFragments(category, include, exclude): calls tiers.ResolveAll(category) to get map[string][]byte. Applies include/exclude filtering (same logic as existing ResolveAllFragments). Returns content strings sorted by filename\n- WriteBase delegates to tiers.WriteBase\n- WriteAllBase walks an fs.FS using fs.WalkDir, reads each file, calls tiers.WriteBase for each\n\nTests (repository_test.go) should use testutil.NewEnvironment(t) and exercise:\n- Resolve returns raw content when ctx is nil\n- Resolve executes template when ctx is provided\n- Resolve returns error for missing prompt\n- Resolve returns error for invalid template syntax\n- ResolveRaw returns content from highest-priority tier\n- ResolveRaw with tier override (custom overrides base, local overrides custom)\n- ListFragments returns all .md files sorted by name\n- ListFragments applies include filtering\n- ListFragments applies exclude filtering  \n- ListFragments with tier override semantics (higher tier replaces same-named file)\n- WriteBase persists and is reflected in subsequent Resolve\n- WriteAllBase writes multiple files from fs.FS\n\nDo NOT modify the existing fragments.go functions or the Tiers variable. The repository is a parallel implementation using tierfs.Resolver. Cleanup happens later.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in PromptRepository is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Resolve with template execution correctly handles template errors (parse and execute)",
+    "Verify ListFragments tier-override semantics match existing ResolveAllFragments behavior"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T22:09:58.923556Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories/promptrepository",
+        "text": "Wrote PromptRepository contract spec covering struct definition, dual constructors, all five public methods (Resolve, ResolveRaw, ListFragments, WriteBase, WriteAllBase), error behavior, thread safety, and invariants. Follows ConfigRepository contract spec pattern."
+      },
+      {
+        "timestamp": "2026-03-18T22:12:51.90637Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories/promptrepository",
+        "text": "Implemented PromptRepository in internal/pipeline/repository.go with 14 tests in repository_test.go. Struct delegates to tierfs.Resolver for three-tier resolution. Resolve handles template expansion via text/template, ResolveRaw returns raw content by category/name, ListFragments collects .md files with include/exclude filtering and tier override semantics, WriteBase delegates single file writes, WriteAllBase walks an fs.FS to seed base tier. All tests pass, existing pipeline tests unaffected."
+      },
+      {
+        "timestamp": "2026-03-18T22:17:15.662587Z",
+        "task": "domain-repository-architecture/repositories/tier-based-repositories/promptrepository",
+        "text": "Audited PromptRepository: build passes, all 25 packages green, race detector clean, go vet clean. Fixed gofmt alignment in repository_test.go and corrected package reference in contract spec (internal/prompts → internal/pipeline). Code review found no nil safety, error handling, concurrency, or architectural issues. No dead code, no duplication. Spec is thorough and accurate after fix. Design decisions follow established patterns (concrete struct, dual constructors, tierfs delegation) already covered by existing ADRs."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T22:08:24.105785Z",
+    "completed_at": "2026-03-18T22:17:29.481536Z",
+    "result_summary": "PromptRepository provides three-tier prompt and fragment resolution backed by tierfs.Resolver, replacing the standalone functions in fragments.go with a struct-based design. The implementation includes five public methods (Resolve with optional template execution, ResolveRaw for category-based lookup, ListFragments with include/exclude filtering and tier override semantics, WriteBase for single files, WriteAllBase for bulk seeding from fs.FS), dual constructors for production and testing, consistent error wrapping with the prompts: prefix, and 14 comprehensive tests covering all paths. A thorough contract spec documents the full API, error behavior, thread safety, and invariants."
+  }
+}

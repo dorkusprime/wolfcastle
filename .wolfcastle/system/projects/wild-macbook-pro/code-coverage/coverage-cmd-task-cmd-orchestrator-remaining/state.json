@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "id": "coverage-cmd-task-cmd-orchestrator-remaining",
+  "name": "Coverage: cmd/task, cmd/orchestrator \u0026 remaining",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add tests to bring cmd/task (88.6%), cmd/orchestrator (91.3%), internal/state (91.8%), internal/invoke (93.0%), internal/validate (93.7%) to 94%+ each",
+      "description": "Add tests to bring cmd/task (88.6%), cmd/orchestrator (91.3%), internal/state (91.8%), internal/invoke (93.0%), internal/validate (93.7%) to 94%+ each",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/invoke/invoker_test.go",
+        "internal/validate/recover_test.go"
+      ],
+      "body": "These packages are close to threshold. Identify the specific uncovered lines and add targeted tests to push each over 94%."
+    },
+    {
+      "id": "task-0002",
+      "title": "Verify overall project coverage reaches 94%",
+      "description": "Verify overall project coverage reaches 94%",
+      "state": "complete",
+      "failure_count": 0,
+      "body": "After all other coverage work is done, run go test -coverprofile=cover.out ./... and verify total coverage is 94%+."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Coverage: cmd/task, cmd/orchestrator \u0026 remaining is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T15:59:26.728659Z",
+        "task": "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining",
+        "text": "Added targeted tests for internal/invoke (93.0% → 95.8%) and internal/validate (93.7% → 94.7%). cmd/task, cmd/orchestrator, and internal/state were already above 94%. Invoke coverage gains from MarkerSkip/MarkerContinue String() and detection tests. Validate gains from RecoverRootIndex nil-Nodes paths and tryCloseTruncated escape-handling paths."
+      },
+      {
+        "timestamp": "2026-03-19T16:00:49.293233Z",
+        "task": "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining",
+        "text": "Verified overall project coverage: 95.6% (target was 94%). All 26 packages pass tests. Every package is at or above 91.6%. No changes needed."
+      },
+      {
+        "timestamp": "2026-03-19T16:05:05.533796Z",
+        "task": "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining",
+        "text": "Audit passed. Build, vet, gofmt, full test suite (26 packages), and race detector all clean. Code review of 75 added test lines: well-structured, no nil safety issues, no dead code, correct assertions. Coverage confirmed at 95.8% (invoke) and 94.7% (validate). No ADRs/specs needed for pure test additions."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T15:54:39.80805Z",
+    "completed_at": "2026-03-19T16:05:18.40984Z",
+    "result_summary": "Targeted coverage tests were added for internal/invoke (93.0% → 95.8%) and internal/validate (93.7% → 94.7%), bringing both above the 94% threshold. cmd/task, cmd/orchestrator, and internal/state were already above target and required no changes. Overall project coverage reached 95.6%, exceeding the 94% goal. Audit verified: full build, vet, gofmt, 26-package test suite, and race detector all pass cleanly. No issues found."
+  }
+}

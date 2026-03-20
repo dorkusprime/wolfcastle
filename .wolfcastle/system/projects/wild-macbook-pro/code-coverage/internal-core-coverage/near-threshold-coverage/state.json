@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "id": "near-threshold-coverage",
+  "name": "Near-Threshold Coverage",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Raise internal/pipeline from 92.7% to 94%+",
+      "description": "Raise internal/pipeline from 92.7% to 94%+",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/near_threshold_coverage_test.go"
+      ],
+      "body": "Pipeline needs ~1.3% more coverage. Key gaps by function:\n\n- repository.go WriteBase (66.7%): MkdirAll and WriteFile error paths for writing base prompt files\n- repository.go WriteAllBase (72.7%): iteration error over embedded templates, individual WriteBase failure mid-loop\n- context_builder.go Build (72.2%): missing node state, missing spec files, template rendering failure, empty context fields\n- class_repository.go Resolve (88.9%): class not found after reload, malformed class definition\n- fragments.go ResolveAllFragments (90.9%): include list references a missing fragment (lines 79-81)\n- fragments.go ResolvePromptTemplate (91.7%): invalid Go template syntax (lines 106-107)\n- prompt.go AssemblePrompt (96.4%): skip assembly error, fragment resolution error (lines 21-38)\n- repository.go Resolve (92.9%), ListFragments (91.7%): tier fallback edge cases\n\nFocus on WriteBase/WriteAllBase (chmod error paths) and context_builder.Build (fixture-based tests) for the biggest gains. The fragment and template error paths are 1-2 lines each but collectively close the gap."
+    },
+    {
+      "id": "task-0002",
+      "title": "Raise internal/config from 93.3% to 94%+",
+      "description": "Raise internal/config from 93.3% to 94%+",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/near_threshold_coverage_test.go"
+      ],
+      "body": "Config needs ~0.7% more coverage. Key gaps by function:\n\n- repository.go Root (0.0%): simple getter that returns the root path. Trivially testable, just never called in existing tests\n- repository.go WriteBase (66.7%): MkdirAll failure, writeFile error for base config tier\n- repository.go writeTier (66.7%): directory creation failure, JSON marshal error (unlikely but guarded), file write error\n- repository.go Load (78.3%): base tier file not found, custom tier parse error, local tier merge conflict, all three tiers missing\n- config.go Load (84.2%): loadJSONFile returning malformed data, deep merge failure\n- config.go structToMap (85.7%): marshal failure on known struct (defensive guard)\n\nThe Root() getter at 0% is trivially fixable. WriteBase and writeTier need chmod-based error tests. Load needs tests with intentionally malformed JSON in each tier."
+    },
+    {
+      "id": "task-0003",
+      "title": "Raise internal/state from 93.0% to 94%+",
+      "description": "Raise internal/state from 93.0% to 94%+",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/state/near_threshold_coverage_test.go"
+      ],
+      "body": "State needs ~1% more coverage. Key gaps by function:\n\n- store.go MutateNode (46.4%): this is the biggest single gap. Uncovered paths include lock acquisition failure, ReadNode error inside mutation callback, save error after successful mutation, concurrent mutation detection\n- io.go atomicWriteJSON (68.0%): MkdirAll failure, CreateTemp failure, Write failure, Close failure, Rename failure (each is a distinct error path in the atomic write sequence)\n- inbox_io.go InboxMutate (75.0%): load failure, callback error, save failure\n- inbox_io.go InboxAppend (85.7%): load failure with new inbox creation, save error after append\n- navigation.go parentInList (75.0%): parent not found, empty list, nested parent matching\n- filelock_unix.go signalProcess (75.0%): signal send failure\n- mutations.go TaskBlock (84.8%): blocking already-blocked task, blocking complete task (invalid transition)\n- store.go ReadNode (88.9%), ReadIndex (83.3%), nodePath (85.7%): filesystem read errors, path construction edge cases\n- propagation.go RecomputeState (87.1%): mixed task states producing unexpected aggregate\n\nMutateNode at 46.4% is the priority target. It's the store's core write path and its uncovered branches represent real failure scenarios. atomicWriteJSON error paths need chmod tricks."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Near-Threshold Coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify each of the three packages individually reaches 94%+ (not just their combined average)",
+    "Check that chmod-based tests include runtime.GOOS guards and t.Skip on Windows"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T09:58:44.998229Z",
+        "task": "code-coverage/internal-core-coverage/near-threshold-coverage",
+        "text": "Raised internal/pipeline from 92.6% to 98.0% by covering WriteBase/WriteAllBase write failures, Resolve template execution errors, ListFragments ResolveAll errors, Build per-task .md injection, ClassRepository non-ErrNotExist resolve paths, standalone fragment/template error paths, and AssemblePrompt failure modes."
+      },
+      {
+        "timestamp": "2026-03-19T10:02:42.298786Z",
+        "task": "code-coverage/internal-core-coverage/near-threshold-coverage",
+        "text": "Raised internal/config from 93.3% to 95.5% by covering Root() getter, WriteBase write error (via read-only base dir), writeTier MkdirAll and WriteFile failures (via read-only parent and local dirs), custom tier parse errors on both repository.Load and standalone Load, permission errors, and validation failures after successful tier merges."
+      },
+      {
+        "timestamp": "2026-03-19T10:07:55.605454Z",
+        "task": "code-coverage/internal-core-coverage/near-threshold-coverage",
+        "text": "Raised internal/state from 92.0% to 95.9% by covering MutateNode propagation paths (46→89%), ReadNode/ReadIndex corrupt-JSON errors, nodePath edge cases, MutateIndex corrupt-JSON, InboxMutate/InboxAppend error paths, parentInList no-dot, TaskBlock complete/already-blocked/auto-block-audit, RecomputeState blocked derivation, PropagateUp error+cycle, Propagate re-walk failure, and normalizeAuditState defaults."
+      },
+      {
+        "timestamp": "2026-03-19T10:10:47.234869Z",
+        "task": "code-coverage/internal-core-coverage/near-threshold-coverage",
+        "text": "Audit complete: verified all three coverage test files (pipeline, config, state). Build/vet/fmt clean, all tests pass with race detector. Coverage targets met: pipeline 98.0%, config 95.5%, state 95.9%. No correctness issues, no dead code, no duplication. Pre-existing daemon test failures confirmed unrelated to this node's work."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T09:54:49.99268Z",
+    "completed_at": "2026-03-19T10:11:00.150437Z",
+    "result_summary": "Raised three near-threshold internal packages above 90% coverage by adding targeted error-path tests: internal/pipeline from 92.6% to 98.0% (covering WriteBase/WriteAllBase write failures, Resolve template errors, ListFragments ResolveAll errors, Build per-task .md injection, ClassRepository non-ErrNotExist paths, standalone fragment/template errors, and AssemblePrompt failures); internal/config from 93.3% to 95.5% (covering Root() getter, WriteBase write errors, writeTier MkdirAll/WriteFile failures, custom tier parse errors, permission errors, and validation failures); internal/state from 92.0% to 95.9% (covering MutateNode propagation, ReadNode/ReadIndex corrupt JSON, nodePath edge cases, MutateIndex/InboxMutate/InboxAppend errors, TaskBlock edge cases, RecomputeState blocked derivation, PropagateUp error+cycle paths, and normalizeAuditState defaults)."
+  }
+}

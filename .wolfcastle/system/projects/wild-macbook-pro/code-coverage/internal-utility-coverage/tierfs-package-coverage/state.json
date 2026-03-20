@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "id": "tierfs-package-coverage",
+  "name": "Tierfs Package Coverage",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Cover Resolve, ResolveAll, and WriteBase error paths",
+      "description": "Cover Resolve, ResolveAll, and WriteBase error paths",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/tierfs/tierfs_test.go"
+      ],
+      "body": "Three methods have uncovered error branches:\n\nResolve (87.5%, line 53): The uncovered path is line 61, where os.ReadFile returns an error that is NOT os.ErrNotExist (e.g. permission denied). To test: create a tier directory with a file that has 000 permissions, then call Resolve for that file. Verify the returned error wraps the permission error with the \"tierfs: resolve X in tier Y\" message.\n\nResolveAll (87.5%, line 69): Two possible uncovered paths:\n1. Line 79: os.ReadDir returns a non-ErrNotExist error. Test by making a tier subdirectory unreadable (000 permissions).\n2. Line 87: os.ReadFile fails for an individual .md file. Test by creating a .md file with 000 permissions inside a readable directory.\n\nWriteBase (66.7%, line 97): Two error paths:\n1. Line 100: os.MkdirAll fails. Test by making the base tier directory read-only so subdirectory creation fails.\n2. Line 103: os.WriteFile fails. Test by making the target directory read-only after MkdirAll succeeds (or write to a path where the parent exists but is read-only).\n\nNote: Permission-based tests should check runtime.GOOS != \"windows\" and skip on Windows, and should also skip if running as root (os.Getuid() == 0) since root ignores permission bits.\n\nTarget: raise internal/tierfs from 86.1% to 94%+.",
+      "acceptance_criteria": [
+        "go test -cover ./internal/tierfs/ reports \u003e= 94% coverage"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Tierfs Package Coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Resolve non-ErrNotExist path, ResolveAll ReadDir/ReadFile error paths, and WriteBase MkdirAll/WriteFile error paths are all tested. Confirm coverage \u003e= 94%."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T10:27:05.618869Z",
+        "task": "code-coverage/internal-utility-coverage/tierfs-package-coverage",
+        "text": "Added permission-based error path tests for Resolve (line 61), ResolveAll (lines 79, 87), and WriteBase (lines 100, 103). Coverage raised from 86.1% to 100%."
+      },
+      {
+        "timestamp": "2026-03-19T10:28:37.154098Z",
+        "task": "code-coverage/internal-utility-coverage/tierfs-package-coverage",
+        "text": "Audit PASS: build clean, all 10 tests pass with race detector, 100% statement coverage, go vet and gofmt clean. Code review found no nil safety, error handling, concurrency, or quality issues. ADRs and spec exist and are substantive."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T10:26:09.922303Z",
+    "completed_at": "2026-03-19T10:28:47.4164Z",
+    "result_summary": "Raised internal/tierfs test coverage from 86.1% to 100% by adding permission-based error path tests for Resolve (non-ErrNotExist from ReadFile), ResolveAll (ReadDir permission error and ReadFile permission error), and WriteBase (MkdirAll failure and WriteFile failure). All tests use t.TempDir with platform-aware skip guards for permission tests. The package builds, vets, and formats clean with no race conditions detected."
+  }
+}

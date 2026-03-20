@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "classrepository",
+  "name": "ClassRepository",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write ClassRepository contract spec",
+      "description": "Write ClassRepository contract spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/*classrepository-contract*",
+        ".wolfcastle/docs/specs/2026-03-18T22-31Z-classrepository-contract.md"
+      ],
+      "body": "Create a contract spec for ClassRepository at .wolfcastle/docs/specs/. The contract should define:\n\n- NewClassRepository(prompts *PromptRepository) constructor\n- Reload(classes map[string]ClassDef) for goroutine-safe class list updates\n- Resolve(key string) (string, error) with hierarchical fallback: 'lang-go' tries lang-go.md then lang.md; 'typescript/react' tries typescript/react.md then typescript.md\n- List() []string returning sorted class keys\n- Validate() []string returning class keys whose prompts are missing from all tiers\n\nClassRepository resolves class prompts through PromptRepository.ResolveRaw('prompts/classes', key+'.md'). It holds a sync.RWMutex for concurrent access: Reload takes write lock, Resolve/List/Validate take read lock.\n\nFollow the contract spec format established by existing specs in .wolfcastle/docs/specs/.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md",
+        "docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement ClassRepository",
+      "description": "Implement ClassRepository",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/class_repository.go"
+      ],
+      "body": "Implement ClassRepository in internal/pipeline/class_repository.go. The struct wraps PromptRepository and a goroutine-safe class map.\n\nConstructor: NewClassRepository(prompts *PromptRepository) *ClassRepository\n\nMethods:\n- Reload(classes map[string]ClassDef): acquires write lock, replaces the internal class map. Called once at daemon startup with config.TaskClasses.\n- Resolve(key string) (string, error): acquires read lock, looks up the class key, applies hierarchical fallback (split on '/' and try most-specific first, falling back to parent), then resolves the prompt file via PromptRepository.ResolveRaw('prompts/classes', matched+'.md'). Returns error if class key not found in map or prompt file missing.\n- List() []string: acquires read lock, returns sorted keys from class map.\n- Validate() []string: acquires read lock, iterates all configured classes, checks each has a resolvable prompt file, returns list of missing class keys.\n\nClassDef is defined in config; check existing type in internal/config/config.go. If it doesn't exist yet, define it there with whatever fields the task-classes spec requires.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md",
+        "docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Write ClassRepository tests",
+      "description": "Write ClassRepository tests",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/class_repository_test.go"
+      ],
+      "body": "Write tests for ClassRepository in internal/pipeline/class_repository_test.go using testutil.Environment.\n\nTest cases:\n- Resolve returns correct prompt content for a simple class key\n- Resolve applies hierarchical fallback: 'lang-go' falls back to 'lang' when 'lang-go.md' is missing\n- Resolve returns error for unknown class key (not in map)\n- Resolve returns error when class key exists in map but prompt file missing from all tiers\n- Reload replaces class map and subsequent Resolve reflects new classes\n- List returns sorted keys\n- Validate identifies classes with missing prompt files\n- Validate returns empty slice when all classes have prompts\n\nUse env.WithPrompt() to seed prompt files in the base tier. Create a ClassDef map to pass to Reload(). The testutil.Environment already has PromptRepository wired up.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Wire ClassRepository into testutil.Environment",
+      "description": "Wire ClassRepository into testutil.Environment",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/testutil/environment.go"
+      ],
+      "body": "Add a Classes field (*pipeline.ClassRepository) to testutil.Environment. Initialize it in NewEnvironment() using the existing Prompts field:\n\n  env.Classes = pipeline.NewClassRepository(env.Prompts)\n\nAdd a WithClasses(classes map[string]config.ClassDef) helper method that calls env.Classes.Reload(classes) and returns env for chaining.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in ClassRepository is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify ClassRepository.Resolve applies hierarchical fallback correctly: 'lang-go' falls back to 'lang', 'typescript/react' falls back to 'typescript'",
+    "Verify sync.RWMutex usage: Reload takes write lock, Resolve/List/Validate take read lock"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T22:31:53.143686Z",
+        "task": "domain-repository-architecture/integration/classrepository",
+        "text": "Wrote ClassRepository contract spec covering constructor, Reload, Resolve (with hierarchical fallback), List, and Validate methods. Followed format established by ConfigRepository and PromptRepository contract specs."
+      },
+      {
+        "timestamp": "2026-03-18T22:36:51.319381Z",
+        "task": "domain-repository-architecture/integration/classrepository",
+        "text": "Implemented ClassRepository in internal/pipeline/class_repository.go with Reload, Resolve (hierarchical fallback via / and - separators), List, and Validate methods. Added ClassDef type and TaskClasses field to config.Config. Wired ClassRepository into testutil.Environment."
+      },
+      {
+        "timestamp": "2026-03-18T22:39:33.555744Z",
+        "task": "domain-repository-architecture/integration/classrepository",
+        "text": "Wrote 13 ClassRepository tests covering Resolve (simple, fallback-hyphen, fallback-slash, exact-precedence, unknown-key, missing-prompt, both-missing), Reload (map replacement), List (sorted, empty), and Validate (missing detection, all-present, fallback-as-present). All tests pass, full suite green."
+      },
+      {
+        "timestamp": "2026-03-18T22:41:48.9895Z",
+        "task": "domain-repository-architecture/integration/classrepository",
+        "text": "Added WithClasses(map[string]config.ClassDef) helper to testutil.Environment. Calls env.Classes.Reload(classes) and returns env for chaining. Classes field and NewEnvironment initialization were already in place from the prior task."
+      },
+      {
+        "timestamp": "2026-03-18T22:44:02.352076Z",
+        "task": "domain-repository-architecture/integration/classrepository",
+        "text": "Audit complete. Build, tests (including race detector), vet, and formatting all pass. Code review verified nil safety, error handling, concurrency, edge cases, naming, and modularity. One finding: missing ADR for hierarchical fallback strategy, created during audit. Spec is thorough and accurate. 13 tests cover all resolution paths, reload semantics, list ordering, and validation with fallback."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T22:30:58.222799Z",
+    "completed_at": "2026-03-18T22:44:22.541908Z",
+    "result_summary": "ClassRepository implements task class prompt resolution with a one-level hierarchical fallback chain (exact key, then parent via / or - separator). The implementation is goroutine-safe via sync.RWMutex, delegates all file I/O to PromptRepository.ResolveRaw, and provides Reload, Resolve, List, and Validate methods. ClassDef was added to config.Config, and WithClasses was added to testutil.Environment for test ergonomics. A 13-test suite covers all resolution paths (simple, hyphen fallback, slash fallback, exact-before-fallback, unknown key, missing prompts), reload semantics, sorted listing, and validation with fallback awareness. A contract spec documents the full API, error behavior, thread safety, and invariants. An ADR records the rationale for the one-level fallback design."
+  },
+  "specs": [
+    "2026-03-18T22-31Z-classrepository-contract.md"
+  ]
+}

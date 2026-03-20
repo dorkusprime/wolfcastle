@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "timestamp": "2026-03-18T20:07:43Z",
+      "text": "Implement the Domain Repository Architecture per docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md. This spec defines repositories for config, prompts, classes, daemon state, git operations, scaffolding, and a shared tierfs package. Callers work with domain objects, not paths. See the spec for package structure, method signatures, migration path, and testing strategy.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-19T01:51:49Z",
+      "text": "Ensure all code added in this worktree has maximum unit code coverage. The overall goal for the work in this worktree is 94%",
+      "status": "filed"
+    }
+  ]
+}
