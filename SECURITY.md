@@ -31,6 +31,14 @@ Out of scope:
 - Attacks requiring local filesystem access (the attacker already has everything Wolfcastle has)
 - Denial of service through large project trees
 
+## Filesystem Requirements
+
+Wolfcastle relies on `flock(2)` advisory locks to serialize access to `.wolfcastle/` state files. These locks are enforced by the local kernel and are not propagated over network filesystems.
+
+Running Wolfcastle against a `.wolfcastle/` directory on NFS, CIFS, or any other network-mounted filesystem means the locking mechanism silently becomes a no-op. Concurrent processes (parallel daemon runs, multiple engineers sharing a mount) will read and write state without mutual exclusion. The result is silent state corruption: no error, no warning, no crash, just quietly inconsistent data.
+
+Operators must ensure that `.wolfcastle/` resides on a local filesystem (ext4, APFS, etc.). This is not a recommendation; it is a hard requirement for data integrity. The "state file corruption bypassing flock mechanism" threat listed above is exactly what happens when this constraint is violated.
+
 ## Supported Versions
 
 Only the latest release receives security updates. Upgrade to the latest version before reporting.
