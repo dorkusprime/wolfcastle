@@ -267,8 +267,14 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 			}
 			return nil
 		})
-		// Propagate up the tree so parent orchestrators see the completion.
-		if err := d.propagateState(nodeAddr, state.StatusComplete, idx); err != nil {
+		// Propagate the actual derived state. If planning created children
+		// that haven't executed yet, the orchestrator won't be complete
+		// despite its own tasks being done.
+		derivedState := state.StatusNotStarted
+		if freshNS, readErr := d.Store.ReadNode(nodeAddr); readErr == nil {
+			derivedState = freshNS.State
+		}
+		if err := d.propagateState(nodeAddr, derivedState, idx); err != nil {
 			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 		}
 
