@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
@@ -19,11 +20,18 @@ type PromptRepository struct {
 	tiers tierfs.Resolver
 }
 
+// DefaultCacheTTL is the TTL applied to the caching resolver that wraps
+// tier resolution in production repositories. 30 seconds balances freshness
+// with avoiding redundant disk reads during a daemon iteration.
+const DefaultCacheTTL = 30 * time.Second
+
 // NewPromptRepository creates a PromptRepository rooted at wolfcastleRoot.
-// The tierfs.FS is constructed over the "system" subdirectory.
+// The tierfs.FS is constructed over the "system" subdirectory and wrapped
+// with a CachingResolver for TTL-based read caching.
 func NewPromptRepository(wolfcastleRoot string) *PromptRepository {
+	fs := tierfs.New(filepath.Join(wolfcastleRoot, "system"))
 	return NewPromptRepositoryWithTiers(
-		tierfs.New(filepath.Join(wolfcastleRoot, "system")),
+		tierfs.NewCachingResolver(fs, DefaultCacheTTL),
 	)
 }
 

@@ -32,6 +32,7 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	statusCmd.Flags().BoolP("watch", "w", false, "Refresh status on an interval")
 	statusCmd.Flags().Float64P("interval", "n", 2, "Refresh interval in seconds (with --watch)")
 	statusCmd.Flags().Bool("expand", false, "Show completed nodes expanded (default: collapsed)")
+	statusCmd.Flags().Bool("detail", false, "Show task bodies, failure reasons, deliverables, and breadcrumbs")
 	_ = statusCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 
 	startCmd.GroupID = "lifecycle"

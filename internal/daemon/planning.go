@@ -11,6 +11,72 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
+// reconcileOrchestratorStates walks every orchestrator in the index and
+// reconciles its persisted state against reality. For each orchestrator,
+// it reads the current state of every child from disk, patches the
+// ChildRef entries, and recomputes the orchestrator's own status via
+// RecomputeState. This catches staleness that accumulates between
+// planning passes (e.g., a parent stuck at not_started while all its
+// children have completed). The daemon's selfHeal at startup remains
+// as a safety net; this routine handles the same class of drift during
+// normal operation.
+func (d *Daemon) reconcileOrchestratorStates(idx *state.RootIndex) {
+	if !d.Config.Pipeline.Planning.Enabled {
+		return
+	}
+
+	for addr, entry := range idx.Nodes {
+		if entry.Type != state.NodeOrchestrator {
+			continue
+		}
+
+		ns, err := d.Store.ReadNode(addr)
+		if err != nil {
+			continue
+		}
+
+		// Skip orchestrators with no children; nothing to reconcile.
+		if len(ns.Children) == 0 {
+			continue
+		}
+
+		// Check whether any ChildRef is out of sync with the index.
+		needsUpdate := false
+		for _, child := range ns.Children {
+			idxEntry, ok := idx.Nodes[child.Address]
+			if !ok {
+				continue
+			}
+			if child.State != idxEntry.State {
+				needsUpdate = true
+				break
+			}
+		}
+		if !needsUpdate {
+			continue
+		}
+
+		_ = d.Store.MutateNode(addr, func(ns *state.NodeState) error {
+			changed := false
+			for i := range ns.Children {
+				idxEntry, ok := idx.Nodes[ns.Children[i].Address]
+				if !ok {
+					continue
+				}
+				if ns.Children[i].State != idxEntry.State {
+					ns.Children[i].State = idxEntry.State
+					changed = true
+				}
+			}
+			if !changed {
+				return errNoChange
+			}
+			ns.State = state.RecomputeState(ns.Children, ns.Tasks)
+			return nil
+		})
+	}
+}
+
 // findPlanningTarget searches the tree depth-first for an orchestrator
 // that needs planning. Called only when no actionable task exists, making
 // planning lazy: each orchestrator gets planned right before its subtree
@@ -201,8 +267,14 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 			}
 			return nil
 		})
-		// Propagate up the tree so parent orchestrators see the completion.
-		if err := d.propagateState(nodeAddr, state.StatusComplete, idx); err != nil {
+		// Propagate the actual derived state. If planning created children
+		// that haven't executed yet, the orchestrator won't be complete
+		// despite its own tasks being done.
+		derivedState := state.StatusNotStarted
+		if freshNS, readErr := d.Store.ReadNode(nodeAddr); readErr == nil {
+			derivedState = freshNS.State
+		}
+		if err := d.propagateState(nodeAddr, derivedState, idx); err != nil {
 			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 		}
 

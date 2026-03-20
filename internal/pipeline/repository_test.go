@@ -295,3 +295,36 @@ func TestPromptRepository_NewPromptRepository_Production(t *testing.T) {
 		t.Errorf("expected production content, got %q", got)
 	}
 }
+
+func TestPromptRepository_NewPromptRepository_UsesCaching(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("cached.md", "original")
+
+	repo := pipeline.NewPromptRepository(env.Root)
+
+	// First resolve populates the cache.
+	got1, err := repo.Resolve("cached", nil)
+	if err != nil {
+		t.Fatalf("first resolve: %v", err)
+	}
+
+	// Overwrite the file on disk.
+	promptPath := filepath.Join(env.Root, "system", "base", "prompts", "cached.md")
+	if err := os.WriteFile(promptPath, []byte("updated"), 0o644); err != nil {
+		t.Fatalf("overwrite: %v", err)
+	}
+
+	// Second resolve should return the cached value (TTL not expired).
+	got2, err := repo.Resolve("cached", nil)
+	if err != nil {
+		t.Fatalf("second resolve: %v", err)
+	}
+
+	if got1 != "original" {
+		t.Errorf("first resolve: expected 'original', got %q", got1)
+	}
+	if got2 != "original" {
+		t.Errorf("second resolve should return cached 'original', got %q", got2)
+	}
+}

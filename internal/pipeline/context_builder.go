@@ -120,18 +120,21 @@ func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeS
 		}
 	}
 
-	// 5. Audit context (breadcrumbs, scope)
+	// 5. Prior task AARs
+	b.WriteString(state.RenderAARs(ns.AARs))
+
+	// 6. Audit context (breadcrumbs, scope)
 	b.WriteString(ns.Audit.RenderContext())
 
-	// 6. Summary requirement
-	if cb.shouldIncludeSummary(ns, taskID) {
+	// 7. Summary requirement
+	if task != nil && cb.shouldIncludeSummary(ns, taskID) {
 		summary := cb.renderSummaryRequired()
 		b.WriteString("\n## Summary Required\n\n")
 		b.WriteString(summary)
 	}
 
-	// 7. Failure context
-	if task.FailureCount > 0 && cfg != nil {
+	// 8. Failure context
+	if task != nil && task.FailureCount > 0 && cfg != nil {
 		failCtx := cb.renderFailureContext(nodeAddr, task, ns.DecompositionDepth, cfg)
 		b.WriteString("\n" + failCtx)
 	}

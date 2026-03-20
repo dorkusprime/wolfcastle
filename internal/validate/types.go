@@ -31,6 +31,9 @@ const (
 	CatInvalidAuditEscalation  = "INVALID_AUDIT_ESCALATION"
 	CatAuditStatusTaskMismatch = "AUDIT_STATUS_TASK_MISMATCH"
 
+	// Parent-child consistency categories
+	CatChildRefStateMismatch = "CHILDREF_STATE_MISMATCH"
+
 	// Daemon artifact categories
 	CatStalePIDFile  = "STALE_PID_FILE"
 	CatStaleStopFile = "STALE_STOP_FILE"
@@ -116,4 +119,5 @@ var StartupCategories = map[string]bool{
 	CatStaleInProgress:        true,
 	CatMultipleInProgress:     true,
 	CatBlockedWithoutReason:   true,
+	CatChildRefStateMismatch:  true,
 }
