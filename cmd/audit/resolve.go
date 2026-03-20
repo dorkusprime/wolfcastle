@@ -46,7 +46,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_resolve", map[string]string{
 					"node":          nodeAddr,
 					"escalation_id": escalationID,

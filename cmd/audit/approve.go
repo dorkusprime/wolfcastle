@@ -158,7 +158,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_approve", map[string]any{
 					"approved":  len(approved),
 					"decisions": approved,

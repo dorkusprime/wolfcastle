@@ -126,7 +126,7 @@ Examples:
 			writeTaskMD(nsPath, task.ID, title, body)
 
 			taskAddr := nodeAddr + "/" + task.ID
-			if app.JSONOutput {
+			if app.JSON {
 				result := map[string]any{
 					"address":     taskAddr,
 					"task_id":     task.ID,

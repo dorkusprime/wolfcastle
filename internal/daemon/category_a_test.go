@@ -131,7 +131,7 @@ func TestRunIteration_InvokeErrorReturnsError(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Models["failing"] = config.ModelDef{Command: "/nonexistent/binary", Args: []string{}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "failing", PromptFile: "execute.md"},
+		{Name: "execute", Model: "failing", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
@@ -140,7 +140,7 @@ func TestRunIteration_InvokeErrorReturnsError(t *testing.T) {
 	setupLeafNode(t, d, "invoke-fail-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "invoke-fail-node", TaskID: "task-0001", Found: true}
@@ -159,7 +159,7 @@ func TestRunIteration_DecompThreshold_SetsNeedsDecomposition(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Models["silent"] = config.ModelDef{Command: "true", Args: []string{}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "silent", PromptFile: "execute.md"},
+		{Name: "execute", Model: "silent", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 1
@@ -171,7 +171,7 @@ func TestRunIteration_DecompThreshold_SetsNeedsDecomposition(t *testing.T) {
 	setupLeafNode(t, d, "decomp-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "decomp-node", TaskID: "task-0001", Found: true}
@@ -207,7 +207,7 @@ func TestRunIteration_DecompAtMaxDepth_TaskAutoBlocked(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Models["silent"] = config.ModelDef{Command: "true", Args: []string{}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "silent", PromptFile: "execute.md"},
+		{Name: "execute", Model: "silent", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 1
@@ -230,7 +230,7 @@ func TestRunIteration_DecompAtMaxDepth_TaskAutoBlocked(t *testing.T) {
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	}
 	writeJSON(t, filepath.Join(projDir, "maxdepth-node", "state.json"), ns)
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	nav := &state.NavigationResult{NodeAddress: "maxdepth-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx)
@@ -267,7 +267,7 @@ func TestRunIteration_HardCapReached_TaskAutoBlocked(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Models["silent"] = config.ModelDef{Command: "true", Args: []string{}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "silent", PromptFile: "execute.md"},
+		{Name: "execute", Model: "silent", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
@@ -278,7 +278,7 @@ func TestRunIteration_HardCapReached_TaskAutoBlocked(t *testing.T) {
 	setupLeafNode(t, d, "hardcap-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "hardcap-node", TaskID: "task-0001", Found: true}
@@ -317,7 +317,7 @@ func TestRunIteration_NoTerminalMarker_FailureIncremented(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Models["noop"] = config.ModelDef{Command: "echo", Args: []string{"some output without markers"}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "noop", PromptFile: "execute.md"},
+		{Name: "execute", Model: "noop", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
@@ -328,7 +328,7 @@ func TestRunIteration_NoTerminalMarker_FailureIncremented(t *testing.T) {
 	setupLeafNode(t, d, "nonterminal-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "nonterminal-node", TaskID: "task-0001", Found: true}
@@ -458,14 +458,14 @@ func TestRunIntakeStage_MissingModelWithPrompt(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "absent-model-x", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "absent-model-x", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Fatal("expected error for nonexistent model")
@@ -486,14 +486,14 @@ func TestRunIntakeStage_BrokenCommand(t *testing.T) {
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "broken", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "broken", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Fatal("expected invoke error in intake stage")

@@ -83,8 +83,8 @@ func TestStopCmd_RunningProcess(t *testing.T) {
 
 func TestStopCmd_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	// No PID file — should error
 	env.RootCmd.SetArgs([]string{"stop"})
@@ -166,8 +166,8 @@ func TestGetDaemonStatus_CurrentProcessJSON(t *testing.T) {
 
 func TestStatusCmd_NodeScopeJSON(t *testing.T) {
 	env := newStatusTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"status", "--node", "my-project"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -181,8 +181,8 @@ func TestStatusCmd_NodeScopeJSON(t *testing.T) {
 
 func TestShowTreeStatus_WithAuditDataJSON(t *testing.T) {
 	env := newStatusTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
 	ns, _ := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
@@ -215,8 +215,8 @@ func TestShowAllStatus_EmptyNamespaces(t *testing.T) {
 
 func TestShowAllStatus_JSONNoNamespaces(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 	err := showAllStatus(env.App)
 	if err != nil {
 		t.Fatalf("showAllStatus JSON no namespaces failed: %v", err)

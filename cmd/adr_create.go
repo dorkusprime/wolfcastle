@@ -87,7 +87,7 @@ Examples:
 			return fmt.Errorf("writing ADR file: %w", err)
 		}
 
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Ok("adr_create", map[string]string{
 				"title":    title,
 				"filename": filename,

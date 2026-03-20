@@ -42,7 +42,7 @@ Examples:
 				return fmt.Errorf("writing inbox: %w", err)
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("inbox_add", map[string]string{
 					"text":      text,
 					"timestamp": item.Timestamp,

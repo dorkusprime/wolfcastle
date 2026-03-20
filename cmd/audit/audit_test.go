@@ -28,16 +28,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	af := env.ToAppFields()
 
 	testApp := &cmdutil.App{
-		Config:        af.Config,
-		Identity:      af.Identity,
-		State:         af.State,
-		Prompts:       af.Prompts,
-		Classes:       af.Classes,
-		Daemon:        af.Daemon,
-		Git:           af.Git,
-		Clock:         clock.New(),
-		WolfcastleDir: af.WolfcastleDir,
-		Cfg:           af.Cfg,
+		Config:   af.Config,
+		Identity: af.Identity,
+		State:    af.State,
+		Prompts:  af.Prompts,
+		Classes:  af.Classes,
+		Daemon:   af.Daemon,
+		Git:      af.Git,
+		Clock:    clock.New(),
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}

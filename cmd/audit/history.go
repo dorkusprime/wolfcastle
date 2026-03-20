@@ -25,7 +25,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_history", map[string]any{
 					"entries": history.Entries,
 					"count":   len(history.Entries),

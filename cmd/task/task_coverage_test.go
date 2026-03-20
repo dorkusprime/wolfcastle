@@ -188,8 +188,8 @@ func TestTaskDeliverable_JSONOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"task", "deliverable", "docs/out.md", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -425,8 +425,8 @@ func TestTaskAdd_WithParent(t *testing.T) {
 
 func TestTaskAdd_JSONOutputWithDeliverables(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.createLeafNode(t, "my-project", "My Project")
 
@@ -521,8 +521,8 @@ func TestTaskAmend_JSONOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "some task"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"task", "amend", "--node", "my-project/task-0001", "--body", "updated"})
 	if err := env.RootCmd.Execute(); err != nil {

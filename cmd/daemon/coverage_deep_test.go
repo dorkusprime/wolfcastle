@@ -529,7 +529,7 @@ func TestShowAllStatus_EmptyProjectsDir_Human(t *testing.T) {
 	_ = os.RemoveAll(projDir)
 	_ = os.MkdirAll(projDir, 0755)
 
-	env.App.JSONOutput = false
+	env.App.JSON = false
 	if err := showAllStatus(env.App); err != nil {
 		t.Fatalf("showAllStatus empty human: %v", err)
 	}

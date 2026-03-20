@@ -182,6 +182,40 @@ func TestValidate_CatchesMissingSummaryPromptFile(t *testing.T) {
 	}
 }
 
+func TestValidateStructure_CatchesZeroStallTimeout(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.StallTimeoutSeconds = 0
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for zero stall timeout")
+	}
+	if !strings.Contains(err.Error(), "stall_timeout_seconds") {
+		t.Errorf("expected mention of stall_timeout_seconds, got: %v", err)
+	}
+}
+
+func TestValidateStructure_CatchesNegativeStallTimeout(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.StallTimeoutSeconds = -5
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for negative stall timeout")
+	}
+}
+
+func TestValidateStructure_AcceptsPositiveStallTimeout(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.StallTimeoutSeconds = 60
+	if err := ValidateStructure(cfg); err != nil {
+		t.Errorf("positive stall timeout should be valid, got: %v", err)
+	}
+}
+
 func TestValidate_CatchesMissingAuditPromptFile(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()

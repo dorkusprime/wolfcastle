@@ -84,7 +84,7 @@ Examples:
 		}
 
 		// In human mode, report pre-fix issues first.
-		if !app.JSONOutput {
+		if !app.JSON {
 			if err := reportValidationIssues(report.Issues); err != nil {
 				return err
 			}
@@ -93,7 +93,7 @@ Examples:
 		// Apply deterministic fixes
 		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, projectsDir, indexPath, root)
 
-		if !app.JSONOutput {
+		if !app.JSON {
 			if len(fixes) == 0 {
 				output.PrintHuman("\nNothing to fix automatically.")
 			} else {
@@ -152,7 +152,7 @@ Examples:
 		}
 
 		// JSON output for --fix includes issues, fixes applied, and remaining warnings.
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Ok("doctor", map[string]any{
 				"issues":      report.Issues,
 				"count":       len(report.Issues),
@@ -167,7 +167,7 @@ Examples:
 }
 
 func reportValidationIssues(issues []validate.Issue) error {
-	if app.JSONOutput {
+	if app.JSON {
 		output.Print(output.Ok("doctor", map[string]any{
 			"issues": issues,
 			"count":  len(issues),

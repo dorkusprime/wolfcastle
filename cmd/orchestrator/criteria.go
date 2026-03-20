@@ -36,7 +36,7 @@ Examples:
 				if err != nil {
 					return err
 				}
-				if app.JSONOutput {
+				if app.JSON {
 					output.Print(output.Ok("success_criteria", map[string]any{
 						"node":     nodeAddr,
 						"criteria": ns.SuccessCriteria,
@@ -74,7 +74,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("success_criteria_add", map[string]string{
 					"node":      nodeAddr,
 					"criterion": criterion,

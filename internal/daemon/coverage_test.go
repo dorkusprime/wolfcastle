@@ -273,8 +273,8 @@ func TestSelfHeal_MissingStateFileSkipped(t *testing.T) {
 func TestRunIteration_IntakeStageSkipped(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "echo", PromptFile: "intake.md"},
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -282,8 +282,8 @@ func TestRunIteration_IntakeStageSkipped(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -333,14 +333,14 @@ func TestRunIntakeStage_InvocationTimeout(t *testing.T) {
 	d.Config.Daemon.InvocationTimeoutSeconds = 5
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -355,14 +355,14 @@ func TestRunIntakeStage_NoInvocationTimeout(t *testing.T) {
 	d.Config.Daemon.InvocationTimeoutSeconds = 0 // disabled
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -409,7 +409,7 @@ func TestRun_WorkThenComplete(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "do work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	// After 2 iterations the daemon idles (no more work). The 1s timeout
 	// is a safety net; the daemon should complete both iterations in <1s.
@@ -487,14 +487,14 @@ func TestRunIntakeStage_FilesItemsOnSuccess(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item to file", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}

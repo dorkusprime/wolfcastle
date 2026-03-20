@@ -69,7 +69,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		// Execute stage (and any other custom stages)
 		nodeDir := filepath.Join(d.Store.Dir(), filepath.Join(addr.Parts...))
-		iterCtx := d.ContextBuilder.Build(nav.NodeAddress, nodeDir, ns, nav.TaskID, d.Config)
+		iterCtx, err := d.ContextBuilder.Build(nav.NodeAddress, nodeDir, ns, nav.TaskID, d.Config)
+		if err != nil {
+			return werrors.Config(fmt.Errorf("building context for node %s task %s: %w", nav.NodeAddress, nav.TaskID, err))
+		}
 
 		prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, stage, iterCtx)
 		if err != nil {
@@ -219,6 +222,15 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			if !d.Config.Pipeline.Planning.Enabled {
 				d.autoCompleteDecomposedParents(nav.NodeAddress)
 			}
+			// Propagate completion up through parent orchestrators so their
+			// persisted state derives from children. MutateNode propagates
+			// internally, but re-propagating here updates the in-memory idx
+			// and guards against silent propagation failures in the store.
+			if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+				if err := d.propagateState(nav.NodeAddress, updatedNS.State, idx); err != nil {
+					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+				}
+			}
 			return nil
 		}
 		if marker == invoke.MarkerStringComplete {
@@ -268,6 +280,15 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 			if !d.Config.Pipeline.Planning.Enabled {
 				d.autoCompleteDecomposedParents(nav.NodeAddress)
+			}
+			// Propagate completion up through parent orchestrators so their
+			// persisted state derives from children. MutateNode propagates
+			// internally, but re-propagating here updates the in-memory idx
+			// and guards against silent propagation failures in the store.
+			if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+				if err := d.propagateState(nav.NodeAddress, updatedNS.State, idx); err != nil {
+					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+				}
 			}
 			return nil
 		}

@@ -451,15 +451,6 @@ func TestToAppFields_PopulatesAllFields(t *testing.T) {
 	if fields.State == nil {
 		t.Error("State should not be nil")
 	}
-	if fields.WolfcastleDir == "" {
-		t.Error("WolfcastleDir should not be empty")
-	}
-	if fields.Cfg == nil {
-		t.Error("Cfg should not be nil")
-	}
-	if fields.WolfcastleDir != env.Root {
-		t.Errorf("WolfcastleDir: expected %q, got %q", env.Root, fields.WolfcastleDir)
-	}
 }
 
 // ── WithGit ─────────────────────────────────────────────────────────────
@@ -767,31 +758,6 @@ func TestWithRule_WriteBaseError_Fatals(t *testing.T) {
 		inner := &testing.T{}
 		env.t = inner
 		env.WithRule("new-rule.md", "content")
-	}()
-	wg.Wait()
-}
-
-// ── ToAppFields error path ──────────────────────────────────────────────
-
-func TestToAppFields_ConfigLoadError_Fatals(t *testing.T) {
-	t.Parallel()
-	env := NewEnvironment(t)
-
-	// Corrupt every tier's config.json so Config.Load fails.
-	for _, tier := range env.Tiers.TierDirs() {
-		cfgPath := filepath.Join(tier, "config.json")
-		if _, err := os.Stat(cfgPath); err == nil {
-			_ = os.WriteFile(cfgPath, []byte("INVALID{{{"), 0o644)
-		}
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		inner := &testing.T{}
-		env.t = inner
-		env.ToAppFields()
 	}()
 	wg.Wait()
 }

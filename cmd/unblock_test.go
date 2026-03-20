@@ -205,8 +205,8 @@ func TestUnblockCmd_AgentModeJSON(t *testing.T) {
 		return nil
 	})
 
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"unblock", "--agent", "--node", "my-project/task-0001"})
 	if err := rootCmd.Execute(); err != nil {

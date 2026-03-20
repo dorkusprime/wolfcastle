@@ -96,7 +96,7 @@ Examples:
 			}
 		}
 
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Ok("spec_create", map[string]string{
 				"title":    title,
 				"filename": filename,
@@ -158,7 +158,7 @@ Examples:
 			return fmt.Errorf("linking spec to node: %w", err)
 		}
 
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Ok("spec_link", map[string]string{
 				"filename": filename,
 				"node":     nodeAddr,
@@ -232,7 +232,7 @@ Examples:
 			})
 		}
 
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Ok("spec_list", map[string]any{
 				"specs": specs,
 				"count": len(specs),

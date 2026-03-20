@@ -256,7 +256,7 @@ func TestRunPlanningPass_PlanningModelOverride(t *testing.T) {
 	ns.PlanningModel = "custom-model"
 	writeJSON(t, filepath.Join(projDir, "orch", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	idx := state.NewRootIndex()
 	_ = d.Logger.StartIteration()
@@ -306,7 +306,7 @@ func TestRunPlanningPass_InvokeError(t *testing.T) {
 	ns.State = state.StatusInProgress
 	writeJSON(t, filepath.Join(projDir, "orch", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	idx := state.NewRootIndex()
 	_ = d.Logger.StartIteration()
@@ -331,7 +331,7 @@ func TestRunPlanningPass_NoMarker(t *testing.T) {
 	ns.MaxReplans = 5
 	writeJSON(t, filepath.Join(projDir, "orch", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	idx := state.NewRootIndex()
 	_ = d.Logger.StartIteration()
@@ -366,7 +366,7 @@ func TestRunPlanningPass_CompletePreservesScopeDuringPass(t *testing.T) {
 	ns.PendingScope = []string{"item1", "item2"}
 	writeJSON(t, filepath.Join(projDir, "orch", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	idx := state.NewRootIndex()
 	_ = d.Logger.StartIteration()
@@ -428,7 +428,7 @@ func TestRunPlanningPass_CompletePreservesNewScope(t *testing.T) {
 	nsOnDisk.PendingScope = []string{"pre-existing", "arrived1", "arrived2"}
 	writeJSON(t, filepath.Join(projDir, "orch", "state.json"), nsOnDisk)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	idx := state.NewRootIndex()
 	_ = d.Logger.StartIteration()
@@ -464,7 +464,7 @@ func TestRunPlanningPass_EmptyTriggerDefaultsToInitial(t *testing.T) {
 	ns.PlanningTrigger = "" // empty trigger
 	writeJSON(t, filepath.Join(projDir, "orch", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	idx := state.NewRootIndex()
 	_ = d.Logger.StartIteration()

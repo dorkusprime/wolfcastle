@@ -48,8 +48,8 @@ func TestHistory_WithEntries(t *testing.T) {
 
 func TestHistory_WithEntries_JSON(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	now := time.Now()
 	history := &state.History{
@@ -98,8 +98,8 @@ func TestRunCmd_ListFlag(t *testing.T) {
 
 func TestRunCmd_ListFlagJSON(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"audit", "run", "--list"})
 	if err := env.RootCmd.Execute(); err != nil {

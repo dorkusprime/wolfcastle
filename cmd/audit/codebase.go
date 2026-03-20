@@ -46,7 +46,7 @@ Examples:
 			}
 
 			if listFlag {
-				if app.JSONOutput {
+				if app.JSON {
 					output.Print(output.Ok("audit_list", map[string]any{
 						"scopes": scopes,
 					}))
@@ -119,7 +119,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_list", map[string]any{
 					"scopes": scopes,
 				}))
@@ -270,7 +270,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 		return err
 	}
 
-	if app.JSONOutput {
+	if app.JSON {
 		output.Print(output.Ok("audit_run", map[string]any{
 			"batch_id":      batch.ID,
 			"finding_count": len(findings),

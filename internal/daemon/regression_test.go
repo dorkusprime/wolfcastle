@@ -150,7 +150,7 @@ func TestRunOnce_CompletePrintedOnce(t *testing.T) {
 	}
 	writeJSON(t, filepath.Join(projDir, "done-node", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	// Capture stdout to count WOLFCASTLE_COMPLETE occurrences.
 	origStdout := os.Stdout
@@ -218,7 +218,7 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 	}
 	writeJSON(t, filepath.Join(projDir, "done-node", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	// Suppress stdout for this test.
 	origStdout := os.Stdout
@@ -353,7 +353,7 @@ echo "WOLFCASTLE_COMPLETE"
 		Command: "sh",
 		Args:    []string{scriptFile},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	result, err := d.RunOnce(context.Background())

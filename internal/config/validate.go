@@ -66,6 +66,9 @@ func ValidateStructure(cfg *Config) error {
 	if cfg.Daemon.InvocationTimeoutSeconds < 60 {
 		errs = append(errs, fmt.Sprintf("daemon.invocation_timeout_seconds (%d) must be >= 60", cfg.Daemon.InvocationTimeoutSeconds))
 	}
+	if cfg.Daemon.StallTimeoutSeconds <= 0 {
+		errs = append(errs, fmt.Sprintf("daemon.stall_timeout_seconds (%d) must be > 0", cfg.Daemon.StallTimeoutSeconds))
+	}
 	if cfg.Daemon.MaxTurnsPerInvocation <= 0 {
 		errs = append(errs, fmt.Sprintf("daemon.max_turns_per_invocation (%d) must be > 0", cfg.Daemon.MaxTurnsPerInvocation))
 	}

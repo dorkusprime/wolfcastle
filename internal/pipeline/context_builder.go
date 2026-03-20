@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
@@ -14,14 +15,22 @@ import (
 // ContextBuilder composes iteration context strings by delegating section
 // rendering to domain types (NodeState, Task, AuditState) and layering in
 // class guidance and prompt-template-backed sections. It holds two repository
-// dependencies and no mutable state; safe for concurrent use.
+// dependencies and cached templates; safe for concurrent use after construction.
 type ContextBuilder struct {
 	prompts *PromptRepository
 	classes *ClassRepository
+
+	// Cached parsed templates, resolved once at construction time.
+	// nil when the corresponding prompt file is missing (fallback text is used).
+	tmplSummary       *template.Template
+	tmplFailHeader    *template.Template
+	tmplDecomposition *template.Template
 }
 
 // NewContextBuilder creates a ContextBuilder. Both repositories are required;
-// panics if either is nil.
+// panics if either is nil. Templates are parsed eagerly and cached for the
+// lifetime of the builder; missing prompt files are tolerated (fallback text
+// is used at render time).
 func NewContextBuilder(prompts *PromptRepository, classes *ClassRepository) *ContextBuilder {
 	if prompts == nil {
 		panic("pipeline: NewContextBuilder requires a non-nil PromptRepository")
@@ -29,14 +38,33 @@ func NewContextBuilder(prompts *PromptRepository, classes *ClassRepository) *Con
 	if classes == nil {
 		panic("pipeline: NewContextBuilder requires a non-nil ClassRepository")
 	}
-	return &ContextBuilder{prompts: prompts, classes: classes}
+	cb := &ContextBuilder{prompts: prompts, classes: classes}
+	cb.tmplSummary = cb.cacheTemplate("summary-required")
+	cb.tmplFailHeader = cb.cacheTemplate("context-headers")
+	cb.tmplDecomposition = cb.cacheTemplate("decomposition")
+	return cb
+}
+
+// cacheTemplate attempts to load and parse a prompt template by name.
+// Returns nil when the prompt file is missing or fails to parse.
+func (cb *ContextBuilder) cacheTemplate(name string) *template.Template {
+	raw, err := cb.prompts.Resolve(name, nil)
+	if err != nil {
+		return nil
+	}
+	tmpl, err := template.New(name).Parse(raw)
+	if err != nil {
+		return nil
+	}
+	return tmpl
 }
 
 // Build assembles the complete iteration context for a single task within a
 // node. The returned Markdown string is ready for inclusion in the
 // execute-stage prompt. nodeDir is optional; when non-empty, per-task .md
 // files are read from it. cfg may be nil; failure context is skipped when nil.
-func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeState, taskID string, cfg *config.Config) string {
+// Returns an error when taskID does not match any task in the node.
+func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeState, taskID string, cfg *config.Config) (string, error) {
 	var b strings.Builder
 
 	// 1. Node address header
@@ -46,8 +74,11 @@ func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeS
 	b.WriteString(ns.RenderContext(taskID))
 
 	// 3. Task context
-	task := findTask(ns, taskID)
-	if task != nil {
+	task, err := findTask(ns, taskID)
+	if err != nil {
+		return "", fmt.Errorf("context build for node %s: %w", nodeAddr, err)
+	}
+	{
 		// Prefix the task ID with the full node address
 		fmt.Fprintf(&b, "\n**Task:** %s/%s\n", nodeAddr, task.ID)
 		// Task.RenderContext emits **Task:** with just the ID; we replace it
@@ -93,29 +124,30 @@ func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeS
 	b.WriteString(ns.Audit.RenderContext())
 
 	// 6. Summary requirement
-	if task != nil && cb.shouldIncludeSummary(ns, taskID) {
+	if cb.shouldIncludeSummary(ns, taskID) {
 		summary := cb.renderSummaryRequired()
 		b.WriteString("\n## Summary Required\n\n")
 		b.WriteString(summary)
 	}
 
 	// 7. Failure context
-	if task != nil && task.FailureCount > 0 && cfg != nil {
+	if task.FailureCount > 0 && cfg != nil {
 		failCtx := cb.renderFailureContext(nodeAddr, task, ns.DecompositionDepth, cfg)
 		b.WriteString("\n" + failCtx)
 	}
 
-	return b.String()
+	return b.String(), nil
 }
 
-// findTask locates a task by ID within the node's task list.
-func findTask(ns *state.NodeState, taskID string) *state.Task {
+// findTask locates a task by ID within the node's task list. Returns an error
+// when no matching task exists.
+func findTask(ns *state.NodeState, taskID string) (*state.Task, error) {
 	for i := range ns.Tasks {
 		if ns.Tasks[i].ID == taskID {
-			return &ns.Tasks[i]
+			return &ns.Tasks[i], nil
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("task %q not found in node (have %d tasks)", taskID, len(ns.Tasks))
 }
 
 // shouldIncludeSummary returns true when taskID is the only non-complete task
@@ -134,12 +166,15 @@ func (cb *ContextBuilder) shouldIncludeSummary(ns *state.NodeState, taskID strin
 	return found
 }
 
-// renderSummaryRequired loads summary-required.md via PromptRepository or
-// falls back to hardcoded text.
+// renderSummaryRequired uses the cached summary template or falls back to
+// hardcoded text when no template is available.
 func (cb *ContextBuilder) renderSummaryRequired() string {
-	rendered, err := cb.prompts.Resolve("summary-required", nil)
-	if err == nil {
-		return rendered
+	if cb.tmplSummary != nil {
+		var buf strings.Builder
+		// summary-required template takes no context; execute with nil.
+		if err := cb.tmplSummary.Execute(&buf, nil); err == nil {
+			return buf.String()
+		}
 	}
 	var b strings.Builder
 	b.WriteString("This is the last incomplete task in this node. When you complete it, ")
@@ -162,32 +197,48 @@ func (cb *ContextBuilder) renderFailureContext(nodeAddr string, task *state.Task
 		CurrentDepth:    currentDepth,
 		HardCap:         cfg.Failure.HardCap,
 	}
-	rendered, err := cb.prompts.Resolve("context-headers", headerCtx)
-	if err == nil {
-		b.WriteString(rendered)
+	if cb.tmplFailHeader != nil {
+		var buf strings.Builder
+		if err := cb.tmplFailHeader.Execute(&buf, headerCtx); err == nil {
+			b.WriteString(buf.String())
+		} else {
+			cb.writeFailHeaderFallback(&b, headerCtx)
+		}
 	} else {
-		b.WriteString("## Failure History\n\n")
-		fmt.Fprintf(&b, "This task has failed %d times.\n", headerCtx.FailureCount)
-		fmt.Fprintf(&b, "- Decomposition threshold: %d\n", headerCtx.DecompThreshold)
-		fmt.Fprintf(&b, "- Max decomposition depth: %d (current: %d)\n", headerCtx.MaxDecompDepth, headerCtx.CurrentDepth)
-		fmt.Fprintf(&b, "- Hard failure cap: %d\n", headerCtx.HardCap)
+		cb.writeFailHeaderFallback(&b, headerCtx)
 	}
 
 	// Decomposition guidance
 	if task.NeedsDecomposition {
 		decompCtx := DecompositionContext{NodeAddr: nodeAddr}
-		rendered, err := cb.prompts.Resolve("decomposition", decompCtx)
-		if err == nil {
-			b.WriteString("\n" + rendered)
+		if cb.tmplDecomposition != nil {
+			var buf strings.Builder
+			if err := cb.tmplDecomposition.Execute(&buf, decompCtx); err == nil {
+				b.WriteString("\n" + buf.String())
+			} else {
+				cb.writeDecompFallback(&b, nodeAddr)
+			}
 		} else {
-			b.WriteString("\n**Decomposition required.** This task has failed too many times to continue as-is.\n")
-			b.WriteString("Break this leaf into smaller sub-tasks using the wolfcastle CLI:\n\n")
-			fmt.Fprintf(&b, "1. Create child nodes: `wolfcastle project create --node %s --type leaf \"<name>\"`\n", nodeAddr)
-			fmt.Fprintf(&b, "2. Add tasks to each child: `wolfcastle task add --node %s/<child-slug> \"<description>\"`\n", nodeAddr)
-			fmt.Fprintf(&b, "3. Emit %s when decomposition is complete.\n\n", invoke.MarkerStringYield)
-			b.WriteString("The parent node will automatically convert from leaf to orchestrator when the first child is created.\n")
+			cb.writeDecompFallback(&b, nodeAddr)
 		}
 	}
 
 	return b.String()
+}
+
+func (cb *ContextBuilder) writeFailHeaderFallback(b *strings.Builder, ctx FailureHeaderContext) {
+	b.WriteString("## Failure History\n\n")
+	fmt.Fprintf(b, "This task has failed %d times.\n", ctx.FailureCount)
+	fmt.Fprintf(b, "- Decomposition threshold: %d\n", ctx.DecompThreshold)
+	fmt.Fprintf(b, "- Max decomposition depth: %d (current: %d)\n", ctx.MaxDecompDepth, ctx.CurrentDepth)
+	fmt.Fprintf(b, "- Hard failure cap: %d\n", ctx.HardCap)
+}
+
+func (cb *ContextBuilder) writeDecompFallback(b *strings.Builder, nodeAddr string) {
+	b.WriteString("\n**Decomposition required.** This task has failed too many times to continue as-is.\n")
+	b.WriteString("Break this leaf into smaller sub-tasks using the wolfcastle CLI:\n\n")
+	fmt.Fprintf(b, "1. Create child nodes: `wolfcastle project create --node %s --type leaf \"<name>\"`\n", nodeAddr)
+	fmt.Fprintf(b, "2. Add tasks to each child: `wolfcastle task add --node %s/<child-slug> \"<description>\"`\n", nodeAddr)
+	fmt.Fprintf(b, "3. Emit %s when decomposition is complete.\n\n", invoke.MarkerStringYield)
+	b.WriteString("The parent node will automatically convert from leaf to orchestrator when the first child is created.\n")
 }

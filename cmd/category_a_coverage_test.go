@@ -143,8 +143,8 @@ func TestDoctorCmd_CorruptStateJSON_JSON(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), []byte("{{bad"), 0644)
 

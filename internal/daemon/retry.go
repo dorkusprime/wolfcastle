@@ -20,8 +20,13 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 	delay := time.Duration(rc.InitialDelaySeconds) * time.Second
 	maxDelay := time.Duration(rc.MaxDelaySeconds) * time.Second
 
+	inv := &invoke.ProcessInvoker{}
+	if d.Config.Daemon.StallTimeoutSeconds > 0 {
+		inv.StallTimeout = time.Duration(d.Config.Daemon.StallTimeoutSeconds) * time.Second
+	}
+
 	for attempt := 0; ; attempt++ {
-		result, err := invoke.InvokeStreaming(ctx, model, prompt, workDir, logWriter)
+		result, err := inv.Invoke(ctx, model, prompt, workDir, logWriter, nil)
 		if err == nil {
 			return result, nil
 		}

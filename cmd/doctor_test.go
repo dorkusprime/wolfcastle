@@ -45,8 +45,8 @@ func TestReportValidationIssues_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	issues := []validate.Issue{
 		{Severity: validate.SeverityError, Category: "test", Description: "err"},
@@ -94,8 +94,8 @@ func TestDoctorCmd_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"doctor", "--json"})
 	if err := rootCmd.Execute(); err != nil {

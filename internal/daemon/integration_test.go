@@ -52,7 +52,7 @@ echo "WOLFCASTLE_COMPLETE"
 		Command: "sh",
 		Args:    []string{scriptFile},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	result, err := d.RunOnce(context.Background())
@@ -105,7 +105,7 @@ func TestIntegration_JSONStreamEnvelope(t *testing.T) {
 {"type":"result","result":"Done.\n\nWOLFCASTLE_COMPLETE"}
 SCRIPT`},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	result, err := d.RunOnce(context.Background())
@@ -144,7 +144,7 @@ func TestIntegration_JSONStreamYield(t *testing.T) {
 {"type":"result","result":"Pausing here.\n\nWOLFCASTLE_YIELD"}
 SCRIPT`},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	result, err := d.RunOnce(context.Background())
@@ -203,7 +203,7 @@ func TestIntegration_ThreeTierPromptOverride(t *testing.T) {
 			}
 
 			for _, tier := range tt.tiers {
-				dir := filepath.Join(d.WolfcastleDir, tier, "prompts")
+				dir := filepath.Join(d.WolfcastleDir, tier, "prompts", "stages")
 				if err := os.MkdirAll(dir, 0755); err != nil {
 					t.Fatal(err)
 				}
@@ -304,7 +304,7 @@ fi
 		Command: "sh",
 		Args:    []string{scriptFile},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	// Iteration 1: YIELD
 	_ = d.Logger.StartIteration()
@@ -376,7 +376,7 @@ func TestIntegration_BlockedTransition(t *testing.T) {
 		Command: "echo",
 		Args:    []string{"WOLFCASTLE_BLOCKED"},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	result, err := d.RunOnce(context.Background())
@@ -415,7 +415,7 @@ func TestIntegration_FailureEscalation_DecompositionThreshold(t *testing.T) {
 		Command: "echo",
 		Args:    []string{"I did some work but forgot the marker"},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	projDir := d.Store.Dir()
 	statePath := filepath.Join(projDir, "fail-node", "state.json")
@@ -456,7 +456,7 @@ func TestIntegration_FailureEscalation_HardCapAutoBlock(t *testing.T) {
 		Command: "echo",
 		Args:    []string{"no marker here"},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	projDir := d.Store.Dir()
 	statePath := filepath.Join(projDir, "hardcap-node", "state.json")
@@ -522,7 +522,7 @@ func TestIntegration_FailureEscalation_MaxDepthAutoBlock(t *testing.T) {
 		Command: "echo",
 		Args:    []string{"no marker"},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	_, err := d.RunOnce(context.Background())
@@ -565,7 +565,7 @@ func TestIntegration_PromptEchoRejection_JSONStream(t *testing.T) {
 {"type":"result","result":"Finished.\n\nWOLFCASTLE_COMPLETE"}
 SCRIPT`},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	result, err := d.RunOnce(context.Background())
@@ -609,7 +609,7 @@ func TestIntegration_PromptEchoRejection_NoStandaloneMarker(t *testing.T) {
 {"type":"result","result":"I explained the markers but did not produce one myself."}
 SCRIPT`},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	_, err := d.RunOnce(context.Background())
@@ -688,7 +688,7 @@ echo "WOLFCASTLE_COMPLETE"
 		Command: "sh",
 		Args:    []string{scriptFile},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	result, err := d.RunOnce(context.Background())
@@ -746,7 +746,7 @@ func TestIntegration_MissingDeliverable_WarnsButCompletes(t *testing.T) {
 		Command: "echo",
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	_, err := d.RunOnce(context.Background())
@@ -791,7 +791,7 @@ func TestIntegration_DeliverableExists_AcceptsComplete(t *testing.T) {
 		Command: "sh",
 		Args:    []string{"-c", "mkdir -p " + docsDir + " && echo content > " + filepath.Join(docsDir, "output.md") + " && echo WOLFCASTLE_COMPLETE"},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	_, err := d.RunOnce(context.Background())

@@ -82,7 +82,7 @@ Examples:
 				}
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("task_deliverable", map[string]string{
 					"address":     nodeFlag,
 					"task_id":     taskID,

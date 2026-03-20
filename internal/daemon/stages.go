@@ -167,7 +167,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 	// that creates orchestrators instead of full project trees.
 	intakeStage := stage
 	if d.Config.Pipeline.Planning.Enabled {
-		intakeStage.PromptFile = "intake-planning.md"
+		intakeStage.PromptFile = "stages/intake-planning.md"
 	}
 
 	model, ok := d.Config.Models[intakeStage.Model]
