@@ -19,6 +19,104 @@ type promptWriter interface {
 	WriteAllBase(templates fs.FS) error
 }
 
+// scaffoldREADMEs maps relative paths (under .wolfcastle/) to README content
+// that Init writes during scaffold. These orient humans who browse the
+// directory structure after running wolfcastle init.
+var scaffoldREADMEs = map[string]string{
+	"README.md": `# .wolfcastle
+
+This directory is Wolfcastle's workspace. Everything it needs to plan, execute,
+and track work lives here.
+
+## What's inside
+
+- **system/** -- Configuration and runtime state. Three tiers of config (base,
+  custom, local), project trees, and logs.
+- **docs/** -- ADRs and specs generated during project work. Decisions get
+  recorded. Specs get written. Nothing disappears.
+- **archive/** -- Completed projects land here. Finished work moves out of the
+  active tree and into cold storage.
+- **artifacts/** -- Build outputs, generated files, anything produced as a side
+  effect of task execution.
+`,
+
+	"system/README.md": `# system
+
+Configuration and state, organized into three tiers.
+
+## The three tiers
+
+**base/** -- Defaults. Wolfcastle writes these. You don't edit them. Every
+` + "`wolfcastle init --force`" + ` regenerates this tier from scratch. Prompt
+templates, default config, audit definitions. All machine-generated, all
+disposable.
+
+**custom/** -- Team overrides. Checked into version control. This is where your
+team sets model preferences, pipeline stages, and any config that should travel
+with the repo. Custom overrides base.
+
+**local/** -- Your machine. Gitignored. Identity, local model endpoints,
+anything specific to this workstation. Local overrides everything.
+
+A field set in local beats custom. Custom beats base. Set a field to ` + "`null`" + ` in
+a higher tier to delete it entirely.
+
+## Other directories
+
+- **projects/** -- Active project trees. Each namespace (user+machine) gets its
+  own directory with a state.json index.
+- **logs/** -- Daemon execution logs. Gitignored.
+`,
+
+	"system/base/prompts/README.md": `# prompts
+
+Prompt templates that drive Wolfcastle's pipeline stages. Each file here is a
+Markdown template injected into model calls during task execution.
+
+These are the base tier copies. Wolfcastle regenerates them on every
+` + "`wolfcastle init --force`" + `. Do not edit these files directly.
+
+## How to override
+
+Create the same filename under **system/custom/prompts/** (team-wide) or
+**system/local/prompts/** (this machine only). The higher tier wins. Wolfcastle
+loads prompts using the same three-tier resolution as config: local beats
+custom beats base.
+
+If you want to tweak the execution prompt for your team, copy
+` + "`system/base/prompts/execute.md`" + ` to ` + "`system/custom/prompts/execute.md`" + ` and
+edit the copy. The base version stays intact and gets refreshed on upgrades.
+Your custom version stays yours.
+`,
+
+	"docs/README.md": `# docs
+
+Generated documentation from project work. Wolfcastle writes here during
+planning and execution.
+
+## What goes here
+
+- **decisions/** -- Architecture Decision Records. When Wolfcastle makes a
+  design choice worth recording, the ADR lands here.
+- **specs/** -- Technical specifications. Produced during project planning,
+  referenced during execution.
+
+These files are tracked in git. They survive project completion and serve as
+the written record of why things were built the way they were.
+`,
+
+	"archive/README.md": `# archive
+
+Completed projects. When a project finishes, its state tree moves here.
+
+Active work lives in system/projects/. Once every task is done and the final
+audit passes, the project gets archived. The work is preserved. The active
+tree stays clean.
+
+Archived projects are tracked in git. They are the permanent record.
+`,
+}
+
 // ScaffoldService owns creation and regeneration of the .wolfcastle/ directory
 // tree. Init builds the full structure from nothing; Reinit tears down and
 // rebuilds the base tier while preserving custom and local content.
@@ -77,9 +175,11 @@ func (s *ScaffoldService) Init(identity *config.Identity) error {
 # Git requires each directory level to be explicitly unignored.
 *
 !.gitignore
+!README.md
 
 # Custom config overrides (user-editable)
 !system/
+!system/README.md
 !system/custom/
 !system/custom/**/
 !system/custom/**
@@ -88,6 +188,11 @@ func (s *ScaffoldService) Init(identity *config.Identity) error {
 !system/projects/
 !system/projects/**/
 !system/projects/**
+
+# Base prompts (README only; base tier is regenerated)
+!system/base/
+!system/base/prompts/
+!system/base/prompts/README.md
 
 # Archived projects
 !archive/
@@ -101,6 +206,13 @@ func (s *ScaffoldService) Init(identity *config.Identity) error {
 `
 	if err := os.WriteFile(filepath.Join(s.root, ".gitignore"), []byte(gitignore), 0644); err != nil {
 		return fmt.Errorf("scaffold: writing .gitignore: %w", err)
+	}
+
+	// Write README files into key directories.
+	for path, content := range scaffoldREADMEs {
+		if err := os.WriteFile(filepath.Join(s.root, path), []byte(content), 0644); err != nil {
+			return fmt.Errorf("scaffold: writing %s: %w", path, err)
+		}
 	}
 
 	// Write base config from defaults (identity belongs only in local tier)
