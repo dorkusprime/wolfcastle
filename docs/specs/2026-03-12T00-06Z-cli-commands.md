@@ -1905,6 +1905,84 @@ wolfcastle audit breadcrumb --node attunement-tree/fire-impl/task-3 \
 
 ---
 
+## wolfcastle audit enrich
+
+### Synopsis
+
+```
+wolfcastle audit enrich --node <path> "<text>"
+```
+
+### Description
+
+Appends enrichment text to a node's audit enrichment list. Enrichment entries provide additional context an auditor should consider when evaluating the node, such as areas to scrutinize or cross-cutting concerns that surfaced during implementation. Duplicate entries are silently ignored.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the target node (ADR-008) |
+| `"<text>"` | string (positional) | Yes | -- | Enrichment text describing the context to add |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load the node's co-located `state.json` at `projects/{identity}/{node-path}/state.json`.
+4. Validate the `--node` path exists in the tree.
+5. Trim and validate that the positional text argument is non-empty.
+6. Scan the node's existing `AuditEnrichment` list for an exact match. If the text already exists, skip the append (silent deduplication).
+7. Append the text to the node's `AuditEnrichment` list.
+8. Write the updated node `state.json`.
+9. Output the result.
+
+### Output
+
+```json
+{
+  "ok": true,
+  "action": "audit_enrich",
+  "node": "my-project/auth",
+  "text": "check error handling in auth module"
+}
+```
+
+Human-readable mode prints:
+
+```
+Added audit enrichment to my-project/auth: check error handling in auth module
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Enrichment added (or already present) |
+| 1 | `.wolfcastle/` not found or identity not configured |
+| 2 | Node path not found |
+| 3 | Text is empty |
+
+### Examples
+
+```bash
+# Add an enrichment note for auditors
+wolfcastle audit enrich --node my-project "check error handling in auth module"
+
+# Add a second enrichment; duplicates are silently ignored
+wolfcastle audit enrich --node my-project "verify backward compatibility"
+wolfcastle audit enrich --node my-project "check error handling in auth module"  # no-op
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
+| Empty text | `{"ok": false, "error": "enrichment text cannot be empty. Describe the context to add", "code": "EMPTY_TEXT"}` | 3 |
+| Missing --node | `{"ok": false, "error": "--node is required: specify the target node address", "code": "MISSING_FLAG"}` | 1 |
+
+---
+
 ## wolfcastle audit escalate
 
 ### Synopsis
