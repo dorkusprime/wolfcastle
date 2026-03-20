@@ -49,7 +49,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_gap", map[string]string{
 					"node":   nodeAddr,
 					"gap_id": gapID,

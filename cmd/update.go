@@ -22,7 +22,7 @@ Examples:
 		// Check for binary update
 		updater := selfupdate.NewUpdater(Version)
 		result, err := updater.Apply()
-		if !app.JSONOutput {
+		if !app.JSON {
 			if err != nil {
 				output.PrintHuman("Update check failed: %v. Regenerating system/base/ anyway.", err)
 			} else if result.Updated {
@@ -39,7 +39,7 @@ Examples:
 			return fmt.Errorf("regenerating system/base/: %w", err)
 		}
 
-		if app.JSONOutput {
+		if app.JSON {
 			updateStatus := "unchanged"
 			if err != nil {
 				updateStatus = "check_failed"

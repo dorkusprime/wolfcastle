@@ -58,7 +58,7 @@ Examples:
 					Timestamp: now,
 				})
 
-				if !app.JSONOutput {
+				if !app.JSON {
 					output.PrintHuman("  Rejected: %s (%s)", f.ID, f.Title)
 				}
 			}
@@ -80,7 +80,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_reject", map[string]any{
 					"rejected":  len(rejected),
 					"decisions": rejected,

@@ -92,8 +92,8 @@ func TestApprove_MixedPendingAndDecided(t *testing.T) {
 
 func TestApprove_AllJSON(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	batch := &state.Batch{
 		ID:     "audit-all-json",

@@ -160,8 +160,8 @@ func TestApprove_NoPendingForAll(t *testing.T) {
 
 func TestApprove_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	batch := &state.Batch{
 		ID:     "test",

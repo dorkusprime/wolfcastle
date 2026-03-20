@@ -36,12 +36,7 @@ type App struct {
 	Clock   clock.Clock
 	Invoker invoke.Invoker
 	Version string
-
-	// Deprecated fields, kept for backward compatibility during migration.
-	// Task-0002 will migrate all callers, then these are removed.
-	WolfcastleDir string
-	Cfg           *config.Config
-	JSONOutput    bool
+	JSON    bool // set by --json persistent flag
 }
 
 // FindWolfcastleDir checks the current working directory for a .wolfcastle
@@ -94,10 +89,6 @@ func (a *App) Init() error {
 		a.State = state.NewStateStore(id.ProjectsDir(root), state.DefaultLockTimeout)
 		a.Classes.Reload(cfg.TaskClasses)
 	}
-
-	// Populate deprecated fields for backward compatibility.
-	a.WolfcastleDir = root
-	a.Cfg = cfg
 
 	return nil
 }

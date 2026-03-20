@@ -68,7 +68,7 @@ func TestEnrichCmd_EmptyText_ReturnsError(t *testing.T) {
 
 func TestEnrichCmd_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
+	env.App.JSON = true
 	setupNode(t, env, "test-node", state.NodeLeaf)
 
 	env.RootCmd.SetArgs([]string{"audit", "enrich", "--node", "test-node", "verify coverage"})

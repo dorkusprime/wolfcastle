@@ -68,7 +68,7 @@ Examples:
 			return fmt.Errorf("writing archive entry: %w", err)
 		}
 
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Ok("archive_add", map[string]string{
 				"node":     nodeAddr,
 				"filename": entry.Filename,

@@ -52,7 +52,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("inbox_clear", map[string]any{
 					"removed":   removedCount,
 					"remaining": len(inboxData.Items),

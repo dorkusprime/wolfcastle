@@ -222,7 +222,7 @@ func TestShowTreeStatus_JSONWithAuditData(t *testing.T) {
 	}
 	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
 
-	env.App.JSONOutput = true
+	env.App.JSON = true
 	if err := showTreeStatus(env.App, idx, ""); err != nil {
 		t.Fatalf("showTreeStatus JSON failed: %v", err)
 	}
@@ -298,7 +298,7 @@ func TestShowAllStatus_ProjectsDirRemoved(t *testing.T) {
 
 func TestShowAllStatus_EmptyJSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
+	env.App.JSON = true
 	if err := showAllStatus(env.App); err != nil {
 		t.Fatalf("showAllStatus JSON empty failed: %v", err)
 	}
@@ -387,7 +387,7 @@ func TestWatchStatus_ScopedWithCancel(t *testing.T) {
 
 func TestStatusCmd_AllWithJSON(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
+	env.App.JSON = true
 	env.RootCmd.SetArgs([]string{"status", "--all"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("status --all --json failed: %v", err)

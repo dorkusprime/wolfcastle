@@ -84,7 +84,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("task_amend", map[string]string{
 					"address": nodeFlag,
 					"task_id": taskID,

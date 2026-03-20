@@ -77,7 +77,7 @@ Examples:
 
 		if agentMode {
 			// Tier 3: dump context for an interactive agent
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("unblock_diagnostic", map[string]any{
 					"node":            nodeFlag,
 					"task_id":         taskID,

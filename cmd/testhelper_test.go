@@ -26,7 +26,6 @@ func newTestEnv(t *testing.T) *testEnv {
 	af := env.ToAppFields()
 
 	testApp := &cmdutil.App{
-		// Repository fields.
 		Config:   af.Config,
 		Identity: af.Identity,
 		State:    af.State,
@@ -35,10 +34,6 @@ func newTestEnv(t *testing.T) *testEnv {
 		Daemon:   af.Daemon,
 		Git:      af.Git,
 		Clock:    clock.New(),
-
-		// Deprecated fields, kept while production code still reads them.
-		WolfcastleDir: af.WolfcastleDir,
-		Cfg:           af.Cfg,
 	}
 
 	// Commands call FindWolfcastleDir, which checks cwd for .wolfcastle.

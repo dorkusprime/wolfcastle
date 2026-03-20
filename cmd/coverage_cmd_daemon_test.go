@@ -418,7 +418,7 @@ func TestSpecList_EmptyHumanOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = false
+	app.JSON = false
 
 	// Remove all spec files to ensure empty
 	specsDir := filepath.Join(env.WolfcastleDir, "docs", "specs")
@@ -549,7 +549,7 @@ func TestInitCmd_AlreadyInitializedHuman(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = false
+	app.JSON = false
 
 	rootCmd.SetArgs([]string{"init"})
 	if err := rootCmd.Execute(); err != nil {
@@ -624,8 +624,8 @@ func TestInstallSkill_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"install", "skill", "--json"})
 	if err := rootCmd.Execute(); err != nil {
@@ -644,7 +644,7 @@ func TestUpdateCmd_HumanOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = false
+	app.JSON = false
 
 	rootCmd.SetArgs([]string{"update"})
 	if err := rootCmd.Execute(); err != nil {
@@ -662,8 +662,8 @@ func TestUpdateCmd_JSONOutputVerified(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"update", "--json"})
 	if err := rootCmd.Execute(); err != nil {
@@ -1003,8 +1003,8 @@ func TestInitCmd_AlreadyInitializedJSON(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"init", "--json"})
 	if err := rootCmd.Execute(); err != nil {
@@ -1135,7 +1135,7 @@ func TestSpecList_NoSpecsHuman(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = false
+	app.JSON = false
 
 	// Wipe all files from the specs dir
 	specsDir := filepath.Join(env.WolfcastleDir, "docs", "specs")
@@ -1185,7 +1185,7 @@ func TestReportValidationIssues_MultipleCategories(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = false
+	app.JSON = false
 
 	// Mix of severities, nodes, fix types
 	issues := []validate.Issue{
@@ -1205,8 +1205,8 @@ func TestReportValidationIssues_JSONMode(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	issues := []validate.Issue{
 		{Severity: validate.SeverityError, Category: "test", Description: "err"},
@@ -1222,7 +1222,7 @@ func TestReportValidationIssues_Empty(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = false
+	app.JSON = false
 
 	if err := reportValidationIssues(nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)

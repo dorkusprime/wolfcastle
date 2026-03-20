@@ -47,7 +47,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_enrich", map[string]string{
 					"node": nodeAddr,
 					"text": text,

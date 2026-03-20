@@ -70,7 +70,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("task_complete", map[string]any{
 					"address":    nodeFlag,
 					"task_id":    taskID,

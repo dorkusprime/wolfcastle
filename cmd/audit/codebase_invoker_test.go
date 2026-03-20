@@ -36,16 +36,19 @@ func newInvokerTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	env := newTestEnv(t)
 
-	// Set up an audit model in config (both in-memory and on disk)
-	env.App.Cfg.Audit.Model = "test-model"
-	env.App.Cfg.Models["test-model"] = config.ModelDef{
+	// Set up an audit model in config on disk
+	cfg, err := env.App.Config.Load()
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+	cfg.Audit.Model = "test-model"
+	cfg.Models["test-model"] = config.ModelDef{
 		Command: "echo",
 		Args:    []string{"test"},
 	}
-	env.App.Cfg.Daemon.InvocationTimeoutSeconds = 60
+	cfg.Daemon.InvocationTimeoutSeconds = 60
 
-	// Write config to disk so app.Config.Load() picks it up
-	if err := env.App.Config.WriteBase(env.App.Cfg); err != nil {
+	if err := env.App.Config.WriteBase(cfg); err != nil {
 		t.Fatalf("writing base config: %v", err)
 	}
 
@@ -236,8 +239,12 @@ func TestRunCodebaseAudit_ModelNotFound(t *testing.T) {
 	env := newInvokerTestEnv(t)
 
 	// Point to a model that doesn't exist and write to disk
-	env.App.Cfg.Audit.Model = "nonexistent-model"
-	if err := env.App.Config.WriteBase(env.App.Cfg); err != nil {
+	cfg, err := env.App.Config.Load()
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+	cfg.Audit.Model = "nonexistent-model"
+	if err := env.App.Config.WriteBase(cfg); err != nil {
 		t.Fatalf("writing config: %v", err)
 	}
 
@@ -245,7 +252,7 @@ func TestRunCodebaseAudit_ModelNotFound(t *testing.T) {
 		{ID: "test", Description: "Test"},
 	}
 
-	err := runCodebaseAudit(context.Background(), env.App, scopes)
+	err = runCodebaseAudit(context.Background(), env.App, scopes)
 	if err == nil {
 		t.Fatal("expected error for missing model")
 	}
@@ -313,7 +320,7 @@ Description one.
 func TestRunCodebaseAudit_JSONOutput(t *testing.T) {
 	t.Parallel()
 	env := newInvokerTestEnv(t)
-	env.App.JSONOutput = true
+	env.App.JSON = true
 
 	baseAudits := filepath.Join(env.WolfcastleDir, "system", "base", "audits")
 	_ = os.MkdirAll(baseAudits, 0755)
@@ -377,11 +384,9 @@ Description.
 	}
 
 	testApp := &cmdutil.App{
-		Config:        configRepo,
-		WolfcastleDir: wcDir,
-		Cfg:           cfg,
-		Clock:         clock.NewFixed(fixedTime),
-		Invoker:       mock,
+		Config:  configRepo,
+		Clock:   clock.NewFixed(fixedTime),
+		Invoker: mock,
 	}
 
 	baseAudits := filepath.Join(wcDir, "system", "base", "audits")

@@ -52,7 +52,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_escalate", map[string]string{
 					"source": nodeAddr,
 					"parent": parentAddr.String(),

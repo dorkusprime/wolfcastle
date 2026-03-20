@@ -375,10 +375,7 @@ func TestLoadConfig_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
-	if a.Cfg == nil {
-		t.Error("expected config to be loaded")
-	}
-	// Verify new repository fields are populated.
+	// Verify repository fields are populated.
 	if a.Config == nil {
 		t.Error("expected Config repository to be set")
 	}
@@ -390,11 +387,11 @@ func TestLoadConfig_Success(t *testing.T) {
 	if a.State == nil {
 		t.Error("expected State store to be set")
 	}
-	// Resolver may or may not init depending on identity; at minimum WolfcastleDir is set
+	// Verify Config.Root() matches the .wolfcastle directory
 	resolvedWC, _ := filepath.EvalSymlinks(wcDir)
-	resolvedApp, _ := filepath.EvalSymlinks(a.WolfcastleDir)
-	if resolvedApp != resolvedWC {
-		t.Errorf("WolfcastleDir = %q, want %q", resolvedApp, resolvedWC)
+	resolvedRoot, _ := filepath.EvalSymlinks(a.Config.Root())
+	if resolvedRoot != resolvedWC {
+		t.Errorf("Config.Root() = %q, want %q", resolvedRoot, resolvedWC)
 	}
 }
 
@@ -546,8 +543,7 @@ func TestCompleteNodeAddresses_WithResolver(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	a := &App{
-		WolfcastleDir: wcDir,
-		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteNodeAddresses(a)
 	addrs, _ := fn(nil, nil, "")
@@ -577,8 +573,7 @@ func TestLoadRootIndexForCompletion_AlreadyLoaded(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	a := &App{
-		WolfcastleDir: wcDir,
-		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	idx, err := loadRootIndexForCompletion(a)
 	if err != nil {
@@ -614,8 +609,7 @@ func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
 
 	a := &App{
-		WolfcastleDir: wcDir,
-		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")

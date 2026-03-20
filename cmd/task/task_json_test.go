@@ -8,8 +8,8 @@ import (
 
 func TestTaskAdd_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.createLeafNode(t, "my-project", "My Project")
 
@@ -21,14 +21,14 @@ func TestTaskAdd_JSONOutput(t *testing.T) {
 
 func TestTaskClaim_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.createLeafNode(t, "my-project", "My Project")
-	env.App.JSONOutput = false
+	env.App.JSON = false
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
-	env.App.JSONOutput = true
+	env.App.JSON = true
 
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -45,8 +45,8 @@ func TestTaskComplete_JSONOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -63,8 +63,8 @@ func TestTaskBlock_JSONOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -83,8 +83,8 @@ func TestTaskUnblock_JSONOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"task", "unblock", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {

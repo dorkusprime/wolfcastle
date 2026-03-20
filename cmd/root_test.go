@@ -23,8 +23,8 @@ func TestInitCmd_JSONOutput(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"init"})
 	if err := rootCmd.Execute(); err != nil {
@@ -41,8 +41,8 @@ func TestInitCmd_AlreadyInitialized_JSON(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"init"})
 	if err := rootCmd.Execute(); err != nil {
@@ -61,8 +61,8 @@ func TestInitCmd_ForceReinit_JSON(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"init", "--force"})
 	if err := rootCmd.Execute(); err != nil {
@@ -89,8 +89,8 @@ func TestSpecLink_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	env.createLeafNode(t, "my-project", "My Project")
 
@@ -185,7 +185,7 @@ func TestExecuteRoot_Error_HumanOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = false
+	app.JSON = false
 
 	rootCmd.SetArgs([]string{"nonexistent-cmd-xyz"})
 	err := executeRoot()
@@ -200,8 +200,8 @@ func TestExecuteRoot_Error_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"nonexistent-cmd-xyz"})
 	err := executeRoot()
@@ -230,8 +230,8 @@ func TestRootCmd_UnknownCommand_JSON(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"nonexistent-command-xyz"})
 	err := rootCmd.Execute()
@@ -328,8 +328,8 @@ func TestInstallSkillCmd_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	sourceDir := filepath.Join(env.WolfcastleDir, "system", "base", "skills")
 	_ = os.MkdirAll(sourceDir, 0755)
@@ -373,8 +373,8 @@ func TestSpecList_JSONWithNodeFilter(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 	env.createLeafNode(t, "my-project", "My Project")
 
 	rootCmd.SetArgs([]string{"spec", "list", "--node", "my-project"})
@@ -397,8 +397,8 @@ func TestSpecLink_JSONWithNode(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 	env.createLeafNode(t, "my-project", "My Project")
 
 	// Create a spec file manually
@@ -457,8 +457,8 @@ func TestArchiveAddCmd_JSONNotComplete(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 	env.createLeafNode(t, "my-project", "My Project")
 
 	rootCmd.SetArgs([]string{"archive", "add", "--node", "my-project"})
@@ -512,8 +512,8 @@ func TestArchiveAddCmd_SuccessComplete_JSON(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 	env.createLeafNode(t, "done-json", "Done JSON")
 
 	parsed, _ := tree.ParseAddress("done-json")
@@ -537,8 +537,8 @@ func TestDoctorCmd_Fix_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"doctor", "--fix"})
 	if err := rootCmd.Execute(); err != nil {
@@ -582,8 +582,8 @@ func TestUpdateCmd_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"update"})
 	_ = rootCmd.Execute()
@@ -653,7 +653,7 @@ func TestInitCmd_ForceReinit_HumanOutput(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 
-	app.JSONOutput = false
+	app.JSON = false
 
 	rootCmd.SetArgs([]string{"init"})
 	_ = rootCmd.Execute()

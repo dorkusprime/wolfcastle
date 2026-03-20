@@ -12,7 +12,7 @@ import (
 func TestCriteria_AddJSON(t *testing.T) {
 	env := newTestEnv(t)
 	env.createOrchestratorNode(t, "my-project", "My Project")
-	env.App.JSONOutput = true
+	env.App.JSON = true
 
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "all tests pass"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -43,7 +43,7 @@ func TestCriteria_ListJSON(t *testing.T) {
 	_ = env.RootCmd.Execute()
 
 	// Switch to JSON and list.
-	env.App.JSONOutput = true
+	env.App.JSON = true
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "--list"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("criteria list (JSON) failed: %v", err)
@@ -62,7 +62,7 @@ func TestCriteria_ListJSON(t *testing.T) {
 func TestCriteria_ListEmptyJSON(t *testing.T) {
 	env := newTestEnv(t)
 	env.createOrchestratorNode(t, "my-project", "My Project")
-	env.App.JSONOutput = true
+	env.App.JSON = true
 
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "--list"})
 	if err := env.RootCmd.Execute(); err != nil {

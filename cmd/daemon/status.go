@@ -110,7 +110,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 
 	daemonStatus := getDaemonStatus(app.Daemon)
 
-	if app.JSONOutput {
+	if app.JSON {
 		output.Print(output.Ok("status", map[string]any{
 			"total":             total,
 			"not_started":       counts[state.StatusNotStarted],
@@ -457,7 +457,7 @@ func showAllStatus(app *cmdutil.App) error {
 		})
 	}
 
-	if app.JSONOutput {
+	if app.JSON {
 		output.Print(output.Ok("status_all", map[string]any{
 			"namespaces": summaries,
 			"count":      len(summaries),

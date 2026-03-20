@@ -45,15 +45,13 @@ func Orchestrator(name string, children ...NodeSpec) NodeSpec {
 // Since testutil (internal/) cannot import cmdutil (cmd/), this struct carries
 // the fields that callers can spread into an App literal themselves.
 type AppFields struct {
-	Config        *config.ConfigRepository
-	Identity      *config.Identity
-	Prompts       *pipeline.PromptRepository
-	Classes       *pipeline.ClassRepository
-	Daemon        *daemon.DaemonRepository
-	State         *state.StateStore
-	Git           git.Provider
-	WolfcastleDir string
-	Cfg           *config.Config
+	Config   *config.ConfigRepository
+	Identity *config.Identity
+	Prompts  *pipeline.PromptRepository
+	Classes  *pipeline.ClassRepository
+	Daemon   *daemon.DaemonRepository
+	State    *state.StateStore
+	Git      git.Provider
 }
 
 // Environment provides a fully constructed .wolfcastle/ directory for tests.
@@ -216,20 +214,14 @@ func (e *Environment) ParentDir() string {
 // Callers in cmd/ can spread these into an App literal, then set any
 // retained or deprecated fields they still need.
 func (e *Environment) ToAppFields() AppFields {
-	cfg, err := e.Config.Load()
-	if err != nil {
-		e.t.Fatalf("loading config in ToAppFields: %v", err)
-	}
 	return AppFields{
-		Config:        e.Config,
-		Identity:      e.Identity,
-		Prompts:       e.Prompts,
-		Classes:       e.Classes,
-		Daemon:        e.Daemon,
-		State:         e.State,
-		Git:           e.Git,
-		WolfcastleDir: e.Root,
-		Cfg:           cfg,
+		Config:   e.Config,
+		Identity: e.Identity,
+		Prompts:  e.Prompts,
+		Classes:  e.Classes,
+		Daemon:   e.Daemon,
+		State:    e.State,
+		Git:      e.Git,
 	}
 }
 

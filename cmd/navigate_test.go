@@ -82,8 +82,8 @@ func TestNavigate_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"navigate", "--json"})
 	if err := rootCmd.Execute(); err != nil {
@@ -97,8 +97,8 @@ func TestNavigate_JSONWithTask(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 	env.createLeafNode(t, "my-project", "My Project")
 
 	parsed, _ := tree.ParseAddress("my-project")
