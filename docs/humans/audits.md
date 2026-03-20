@@ -31,6 +31,20 @@ If the audit finds gaps it cannot resolve locally, it escalates them upward to t
 
 Gaps are tracked individually with deterministic IDs, open/fixed status, and full traceability.
 
+### After Action Reviews
+
+After Action Reviews (AARs) are structured post-mortems recorded when a task completes. Each AAR captures the objective, what actually happened, what went well, what could improve, and follow-up action items. The model writes them via [`wolfcastle audit aar`](cli/audit-aar.md).
+
+AARs are richer than breadcrumbs. Breadcrumbs are timestamped notes written during execution. AARs are retrospectives written after. Both feed into the audit, but AARs also flow forward: the next task in the leaf receives the previous task's AAR as context, so lessons compound rather than evaporate.
+
+When the audit task runs, it reads every AAR in the node alongside the breadcrumbs. Patterns across AARs (repeated improvement suggestions, recurring action items) signal systemic issues that the audit can escalate.
+
+### Audit Reports
+
+Audit reports are Markdown summaries generated when an audit completes. They contain the audit verdict (passed, failed, in progress), scope definitions, breadcrumb summaries, gap details, and escalation records. Reports are saved as files in the node's directory for permanent reference.
+
+View a report with [`wolfcastle audit report`](cli/audit-report.md). If no report file exists yet, the command generates a preview from the current audit state. With `--path`, it prints just the file path for scripting.
+
 ## Codebase Audit
 
 A standalone command for auditing your codebase against composable, discoverable scopes:

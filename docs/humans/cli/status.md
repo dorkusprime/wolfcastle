@@ -29,6 +29,7 @@ Without `--watch`, prints once and exits. With `--watch`, holds the screen and r
 | `--all` | Aggregate status across all engineer namespaces. |
 | `--watch`, `-w` | Continuously refresh the tree view. Uses the alternate screen buffer for flicker-free updates. |
 | `--interval <seconds>`, `-n` | Refresh interval for `--watch`, in seconds. Accepts float64. Default: `5`. |
+| `--detail` | Show task bodies, failure reasons, deliverable status, and recent breadcrumbs for in-progress nodes. |
 | `--expand` | Show all task details for completed nodes. By default, completed nodes collapse to just their name. |
 | `--json` | Output as structured JSON. |
 
