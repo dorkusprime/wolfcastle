@@ -331,7 +331,7 @@ wolfcastle stop --force
 ### Synopsis
 
 ```
-wolfcastle status [--node <path>] [--all] [--watch [-w]] [--interval <seconds>] [--json]
+wolfcastle status [--node <path>] [--all] [--expand] [--watch [-w]] [--interval <seconds>] [--json]
 ```
 
 ### Description
@@ -352,6 +352,7 @@ With `--watch` (or `-w`), the display refreshes on an interval until interrupted
 | `--all` | boolean | No | `false` | Aggregate status across all engineer directories, not just the current engineer's |
 | `-w`, `--watch` | boolean | No | `false` | Refresh status on an interval until interrupted |
 | `--interval <seconds>` | float64 | No | `5` | Refresh interval in seconds (only meaningful with `--watch`) |
+| `--expand` | boolean | No | `false` | Show completed nodes and tasks expanded. By default, completed nodes are collapsed to a single line showing only a descendant/subtask count. Completed parent tasks whose children are all complete are similarly collapsed. When `--expand` is set, all nodes and tasks are shown in full regardless of completion state |
 | `--json` | boolean | No | `false` | Output as structured JSON instead of human-readable text |
 
 ### Behavior
@@ -368,7 +369,8 @@ With `--watch` (or `-w`), the display refreshes on an interval until interrupted
    - If PID file exists but process is dead: stale (report as not running).
    - If no PID file: not running (or foreground -- cannot distinguish without more info).
 6. **If `--all` is specified**: scan `projects/` for all engineer directories. For each, repeat steps 3-4 using that engineer's root `state.json`. Aggregate results grouped by engineer identity. Daemon status (step 5) still reflects only the local engineer's daemon.
-7. Output the status.
+7. **Display collapsing** (unless `--expand` is set): completed nodes are collapsed to a single summary line showing only the count of descendants or subtasks rather than listing each one. Completed parent tasks whose children are all complete are similarly collapsed, displaying only the child count. When `--expand` is set, all nodes and tasks are rendered in full regardless of completion state.
+8. Output the status.
 
 ### Output
 
@@ -527,6 +529,12 @@ wolfcastle status --json
 
 # JSON status for all engineers
 wolfcastle status --all --json
+
+# Show completed nodes expanded instead of collapsed
+wolfcastle status --expand
+
+# Combine --expand with --node for a detailed subtree view
+wolfcastle status --node attunement-tree/fire-impl --expand
 ```
 
 ### Error Cases
@@ -1856,12 +1864,12 @@ echo "## Status\nAccepted\n..." | wolfcastle adr create "Adopt Conventional Comm
 ### Synopsis
 
 ```
-wolfcastle spec create [--node <path>] "<title>"
+wolfcastle spec create [--node <path>] [--body "<text>"] [--stdin] "<title>"
 ```
 
 ### Description
 
-Creates a new specification document in `.wolfcastle/docs/specs/` and optionally links it to a node. The filename follows the ISO 8601 timestamp format (ADR-011). Specs are Markdown files that travel with work: when linked to a node, they are injected into the model's context during task execution on that node.
+Creates a new specification document in `.wolfcastle/docs/specs/` and optionally links it to a node. The filename follows the ISO 8601 timestamp format (ADR-011). Specs are Markdown files that travel with work: when linked to a node, they are injected into the model's context during task execution on that node. The spec body can be provided inline via `--body`, piped through `--stdin`, or left empty for a placeholder template.
 
 ### Arguments and Flags
 
@@ -1869,6 +1877,8 @@ Creates a new specification document in `.wolfcastle/docs/specs/` and optionally
 |----------|------|----------|---------|-------------|
 | `"<title>"` | string (positional) | Yes | -- | Title of the spec |
 | `--node <path>` | string | No | -- | Link the new spec to this node immediately |
+| `--body "<text>"` | string | No | `""` | Spec body text. When provided, this content replaces the default placeholder template |
+| `--stdin` | boolean | No | `false` | Read spec body from standard input instead of using `--body` or the template. Takes precedence over `--body` |
 | `--json` | boolean | No | `false` | Output as structured JSON |
 
 ### Behavior
@@ -1880,14 +1890,18 @@ Creates a new specification document in `.wolfcastle/docs/specs/` and optionally
    - Format as `{YYYY}-{MM}-{DD}T{HH}-{mm}Z-{slug}.md` (ADR-011).
    - Slug is derived from the title (lowercase, hyphens for spaces, strip special characters).
 4. Ensure the `docs/specs/` directory exists (create if needed).
-5. Write a template spec file:
+5. Assemble the spec content:
+   - If `--stdin` is set, read body from standard input and trim surrounding whitespace.
+   - Otherwise, if `--body` is provided, use that string as the body.
+   - If neither is provided, use the placeholder: `[Spec content goes here.]`
+6. Write the spec file with the title as a Markdown heading followed by the assembled body:
    ```markdown
    # {title}
 
-   [Spec content goes here.]
+   {body}
    ```
-6. If `--node` is provided, load the node's `state.json` and append the filename to its `specs` array.
-7. Output the result.
+7. If `--node` is provided, load the node's `state.json` and append the filename to its `specs` array.
+8. Output the result.
 
 ### Output
 
@@ -1929,11 +1943,20 @@ JSON (`--json`):
 ### Examples
 
 ```bash
-# Create a spec (no node link)
+# Create a spec (no node link) -- uses placeholder template
 wolfcastle spec create "Authentication Protocol"
 
 # Create a spec and link it to a node
 wolfcastle spec create --node backend/auth "Authentication Protocol"
+
+# Create a spec with inline body text
+wolfcastle spec create "Token Refresh Spec" --body "## Overview\n\nTokens are refreshed using a sliding-window strategy with a 15-minute grace period."
+
+# Create a spec with body piped from stdin
+echo "## API Contract\n\nAll endpoints return JSON." | wolfcastle spec create --stdin "API Contract Spec"
+
+# Combine --stdin with --node to create and link in one step
+cat design-notes.md | wolfcastle spec create --stdin --node backend/auth "Auth Design Notes"
 
 # Create with JSON output
 wolfcastle spec create "Token Refresh Spec" --json
