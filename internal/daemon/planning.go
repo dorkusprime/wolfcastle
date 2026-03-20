@@ -159,8 +159,9 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	switch marker {
 	case "WOLFCASTLE_COMPLETE":
 		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": "WOLFCASTLE_COMPLETE"})
-		// Clear planning state. Only remove scope items that existed before
-		// the pass started; items delivered during the pass are preserved.
+		// Clear planning state and complete the orchestrator's audit task.
+		// Without this, the orchestrator stays in_progress because its
+		// audit never goes through the execution pipeline's TaskComplete.
 		_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 			ns.NeedsPlanning = false
 			ns.PlanningTrigger = ""
@@ -169,8 +170,41 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 			} else {
 				ns.PendingScope = nil
 			}
+			// Complete the audit task so the node can derive to complete.
+			// The audit may be not_started (never executed separately for
+			// orchestrators), so set it directly rather than going through
+			// TaskComplete which requires in_progress.
+			for i := range ns.Tasks {
+				if ns.Tasks[i].IsAudit {
+					ns.Tasks[i].State = state.StatusComplete
+					break
+				}
+			}
+			// Recompute node state from tasks + children.
+			allDone := true
+			for _, t := range ns.Tasks {
+				s := t.State
+				if derived, has := state.DeriveParentStatus(ns, t.ID); has {
+					s = derived
+				}
+				if s != state.StatusComplete {
+					allDone = false
+				}
+			}
+			for _, c := range ns.Children {
+				if c.State != state.StatusComplete {
+					allDone = false
+				}
+			}
+			if allDone {
+				ns.State = state.StatusComplete
+			}
 			return nil
 		})
+		// Propagate up the tree so parent orchestrators see the completion.
+		if err := d.propagateState(nodeAddr, state.StatusComplete, idx); err != nil {
+			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+		}
 
 	case "WOLFCASTLE_BLOCKED":
 		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": "WOLFCASTLE_BLOCKED"})
