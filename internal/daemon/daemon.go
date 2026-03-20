@@ -129,6 +129,10 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.StateStore, scop
 	}, nil
 }
 
+// errNoChange is a sentinel used by selfHeal to signal that MutateNode
+// should skip writing when no tasks were actually modified.
+var errNoChange = fmt.Errorf("no change")
+
 // selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
 func (d *Daemon) selfHeal() error {
 	output.PrintHuman("Scanning for casualties...")
@@ -143,40 +147,60 @@ func (d *Daemon) selfHeal() error {
 		if entry.Type != state.NodeLeaf && entry.Type != state.NodeOrchestrator {
 			continue
 		}
-		a, parseErr := tree.ParseAddress(addr)
-		if parseErr != nil {
-			continue
-		}
-		statePath := filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json")
-		ns, loadErr := state.LoadNodeState(statePath)
-		if loadErr != nil {
+		if _, parseErr := tree.ParseAddress(addr); parseErr != nil {
 			continue
 		}
 
-		changed := false
+		// Peek at the node to see if healing is needed before acquiring
+		// the write lock. Most nodes won't need changes.
+		ns, readErr := d.Store.ReadNode(addr)
+		if readErr != nil {
+			continue
+		}
+		needsHeal := false
 		for i := range ns.Tasks {
 			t := &ns.Tasks[i]
 			if t.State == state.StatusInProgress {
-				if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren {
-					t.State = derived
-					output.PrintHuman("  Derived %s/%s → %s", addr, t.ID, derived)
-				} else {
-					t.State = state.StatusNotStarted
-					output.PrintHuman("  Reset %s/%s → not_started", addr, t.ID)
-				}
-				changed = true
-				healed++
-			} else if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren && derived != t.State {
-				output.PrintHuman("  Derived %s/%s → %s (was %s)", addr, t.ID, derived, t.State)
-				t.State = derived
-				changed = true
-				healed++
+				needsHeal = true
+				break
+			}
+			if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren && derived != t.State {
+				needsHeal = true
+				break
 			}
 		}
-		if changed {
-			if saveErr := state.SaveNodeState(statePath, ns); saveErr != nil {
-				output.PrintHuman("  Warning: could not save %s: %v", addr, saveErr)
+		if !needsHeal {
+			continue
+		}
+
+		mutErr := d.Store.MutateNode(addr, func(ns *state.NodeState) error {
+			changed := false
+			for i := range ns.Tasks {
+				t := &ns.Tasks[i]
+				if t.State == state.StatusInProgress {
+					if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren {
+						t.State = derived
+						output.PrintHuman("  Derived %s/%s → %s", addr, t.ID, derived)
+					} else {
+						t.State = state.StatusNotStarted
+						output.PrintHuman("  Reset %s/%s → not_started", addr, t.ID)
+					}
+					changed = true
+					healed++
+				} else if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren && derived != t.State {
+					output.PrintHuman("  Derived %s/%s → %s (was %s)", addr, t.ID, derived, t.State)
+					t.State = derived
+					changed = true
+					healed++
+				}
 			}
+			if !changed {
+				return errNoChange
+			}
+			return nil
+		})
+		if mutErr != nil && mutErr != errNoChange {
+			output.PrintHuman("  Warning: could not save %s: %v", addr, mutErr)
 		}
 	}
 
