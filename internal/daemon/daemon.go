@@ -30,7 +30,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 
@@ -66,6 +65,7 @@ type Daemon struct {
 	shutdownOnce  sync.Once
 	workAvailable chan struct{}
 	sigChan       chan os.Signal
+	runWg         sync.WaitGroup // tracks goroutines started by Run
 	branch        string
 	iteration     int
 	lastNoWorkMsg string // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
@@ -203,14 +203,10 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		output.PrintHuman("Crash (attempt %d/%d): %v. Restarting in %v.", restart+1, maxRestarts, err, delay)
 		sleepFn(delay)
 
-		// Ensure previous goroutines see shutdown before we reset.
-		// The signal goroutine and context-cancel goroutine both
-		// select on d.shutdown; closing it lets them exit cleanly.
+		// Close shutdown so goroutines from the previous Run() exit,
+		// then wait for them to finish before resetting state.
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
-
-		// Brief yield so goroutines from the previous Run() can
-		// observe the closed channel and exit before we replace it.
-		runtime.Gosched()
+		d.runWg.Wait()
 
 		d.shutdown = make(chan struct{})
 		d.shutdownOnce = sync.Once{}
@@ -246,7 +242,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 	d.sigChan = make(chan os.Signal, 2)
 	signal.Notify(d.sigChan, shutdownSignals...)
 	defer signal.Stop(d.sigChan)
+	d.runWg.Add(1)
 	go func() {
+		defer d.runWg.Done()
 		for {
 			select {
 			case _, ok := <-d.sigChan:
@@ -256,9 +254,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 				output.PrintHuman("\n=== Wolfcastle standing down (signal) ===")
 				cancel()
 				d.shutdownOnce.Do(func() { close(d.shutdown) })
-				// Force exit after a grace period in case the main loop
-				// is stuck (e.g., spinner Stop() blocking). Clean up PID
-				// file before exiting to prevent stale PID on next start.
 				go func() {
 					time.Sleep(2 * time.Second)
 					_ = os.Remove(filepath.Join(d.WolfcastleDir, "system", "wolfcastle.pid"))
@@ -273,7 +268,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	// Also close the shutdown channel when context cancels (covers
 	// programmatic cancellation, not just signals).
+	d.runWg.Add(1)
 	go func() {
+		defer d.runWg.Done()
 		<-ctx.Done()
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
