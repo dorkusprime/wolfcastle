@@ -1,6 +1,6 @@
 # CLI Command Specification
 
-This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 39 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `inbox`, `spec`, `adr`, `archive`, `install`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
+This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 39 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `install`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
 
 ## Conventions
 
@@ -1456,6 +1456,128 @@ wolfcastle project create --node attunement-tree "Fire Implementation"
 | Parent not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
 | Parent is a leaf | `{"ok": false, "error": "cannot create project under leaf node 'foo/bar/task-1'", "code": "INVALID_NODE_TYPE"}` | 3 |
 | Empty name | `{"ok": false, "error": "project name must not be empty", "code": "EMPTY_NAME"}` | 4 |
+
+---
+
+## wolfcastle orchestrator criteria
+
+### Synopsis
+
+```
+wolfcastle orchestrator criteria --node <path> ["<criterion>"] [--list]
+```
+
+### Description
+
+Manages success criteria on an orchestrator node. In its default (add) mode, it appends a success criterion to the node's `SuccessCriteria` list in `state.json`. Duplicates are silently ignored. In list mode (`--list`), it displays the node's current criteria without modification. Exactly one of a positional criterion argument or `--list` must be provided; omitting both is an error.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the target node (ADR-008) |
+| `"<criterion>"` | string (positional) | No | -- | Success criterion text to add. Required unless `--list` is set |
+| `--list` | boolean | No | `false` | List current success criteria instead of adding one |
+
+### Behavior
+
+#### Add mode (default)
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Validate `--node` is provided. Fail if absent.
+4. Validate a positional criterion argument is present. Fail if missing and `--list` is not set.
+5. Validate the criterion text is not blank after trimming whitespace.
+6. Call `MutateNode` on the target node:
+   - Iterate the existing `SuccessCriteria` slice. If the criterion already exists (exact string match), return without modification.
+   - Otherwise, append the criterion to the slice.
+7. Write the updated node `state.json`.
+8. Output the result.
+
+#### List mode (`--list`)
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Validate `--node` is provided. Fail if absent.
+4. Read the node's `state.json`.
+5. Output the node's `SuccessCriteria` list.
+   - Human mode: if the list is empty, print `No success criteria defined for <node>`. Otherwise print each criterion as a bulleted line.
+   - JSON mode: output the full criteria array.
+
+### Output
+
+**Add mode (JSON):**
+
+```json
+{
+  "ok": true,
+  "action": "success_criteria_add",
+  "node": "my-project",
+  "criterion": "all tests pass"
+}
+```
+
+**List mode (JSON):**
+
+```json
+{
+  "ok": true,
+  "action": "success_criteria",
+  "node": "my-project",
+  "criteria": ["all tests pass", "lint clean"]
+}
+```
+
+**Add mode (human):**
+
+```
+Added success criterion to my-project: all tests pass
+```
+
+**List mode (human):**
+
+```
+Success criteria for my-project:
+  - all tests pass
+  - lint clean
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Criterion added or criteria listed successfully |
+| 1 | `.wolfcastle/` not found, identity not configured, or `--node` missing |
+| 2 | Node path not found |
+| 3 | Criterion text is empty or missing (neither positional arg nor `--list` provided) |
+
+### Examples
+
+```bash
+# Add a success criterion to a project node
+wolfcastle orchestrator criteria --node my-project "all tests pass"
+
+# Add another (duplicates are silently ignored)
+wolfcastle orchestrator criteria --node my-project "all tests pass"
+
+# List current criteria
+wolfcastle orchestrator criteria --node my-project --list
+
+# JSON output for add
+wolfcastle orchestrator criteria --node my-project --json "lint clean"
+
+# JSON output for list
+wolfcastle orchestrator criteria --node my-project --list --json
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
+| No criterion and no --list | `{"ok": false, "error": "criterion text is required (or use --list to view existing criteria)", "code": "MISSING_CRITERION"}` | 3 |
+| Empty criterion text | `{"ok": false, "error": "criterion text cannot be empty", "code": "EMPTY_TEXT"}` | 3 |
+| --node missing | `{"ok": false, "error": "--node is required: specify the target node address", "code": "MISSING_FLAG"}` | 1 |
 
 ---
 
