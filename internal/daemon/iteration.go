@@ -594,25 +594,22 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 // (work done via a different path). The model should use WOLFCASTLE_SKIP
 // for these, but sometimes uses BLOCKED instead. This catches the mistake.
 func (d *Daemon) isSupersededBlock(nodeAddr, taskID string) bool {
-	var superseded bool
-	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
-		for _, t := range ns.Tasks {
-			if t.ID != taskID {
-				continue
-			}
-			reason := strings.ToLower(t.BlockedReason)
-			if strings.Contains(reason, "supersed") ||
-				strings.Contains(reason, "already done") ||
-				strings.Contains(reason, "already completed") ||
-				strings.Contains(reason, "no longer needed") ||
-				strings.Contains(reason, "replaced by") ||
-				strings.Contains(reason, "done in") ||
-				strings.Contains(reason, "done directly") {
-				superseded = true
-			}
-			break
+	ns, err := d.Store.ReadNode(nodeAddr)
+	if err != nil {
+		return false
+	}
+	for _, t := range ns.Tasks {
+		if t.ID != taskID {
+			continue
 		}
-		return nil
-	})
-	return superseded
+		reason := strings.ToLower(t.BlockedReason)
+		return strings.Contains(reason, "supersed") ||
+			strings.Contains(reason, "already done") ||
+			strings.Contains(reason, "already completed") ||
+			strings.Contains(reason, "no longer needed") ||
+			strings.Contains(reason, "replaced by") ||
+			strings.Contains(reason, "done in") ||
+			strings.Contains(reason, "done directly")
+	}
+	return false
 }
