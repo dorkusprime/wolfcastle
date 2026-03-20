@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IMPLEMENTED
 ---
 
 # Domain Repository Architecture

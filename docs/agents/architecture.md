@@ -42,7 +42,7 @@ wolfcastle/
 
 ## Orchestrator Planning Pipeline
 
-The daemon uses lazy, recursive planning for orchestrator nodes. Rather than decomposing the entire project tree up front during intake, each orchestrator is planned on demand, right before its subtree needs work. The full design is in [docs/specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md](../specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md) (draft).
+The daemon uses lazy, recursive planning for orchestrator nodes. Rather than decomposing the entire project tree up front during intake, each orchestrator is planned on demand, right before its subtree needs work. The full design is in [docs/specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md](../specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md).
 
 ## Key Design Principles
 

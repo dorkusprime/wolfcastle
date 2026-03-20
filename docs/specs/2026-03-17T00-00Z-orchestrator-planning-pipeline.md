@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IMPLEMENTED
 ---
 
 # Orchestrator Planning Pipeline
