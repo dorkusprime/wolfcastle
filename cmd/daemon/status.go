@@ -52,7 +52,11 @@ Examples:
 			}
 
 			if watch {
-				ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
+				parent := cmd.Context()
+				if parent == nil {
+					parent = context.Background()
+				}
+				ctx, stop := signal.NotifyContext(parent, signals.Shutdown...)
 				defer stop()
 				return watchStatus(ctx, app, scopeNode, showAll, interval, expand, detail)
 			}

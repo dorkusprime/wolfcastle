@@ -266,21 +266,25 @@ func TestWatchStatus_ExpandFlag(t *testing.T) {
 func TestStatusCmd_WatchFlag(t *testing.T) {
 	env := newStatusTestEnv(t)
 
-	// Run status --watch with a very short interval.
-	// The command will enter watchStatus. We run it in a goroutine
-	// with a timeout to avoid hanging.
+	// Run status --watch with a very short interval and a context
+	// that cancels after 500ms. Without cancellation the goroutine
+	// outlives the test and races on os.Stdout with later tests.
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
 	done := make(chan error, 1)
 	go func() {
+		env.RootCmd.SetContext(ctx)
 		env.RootCmd.SetArgs([]string{"status", "--watch", "--interval", "0.1"})
 		done <- env.RootCmd.Execute()
 	}()
 
 	select {
 	case <-done:
-		// May or may not error depending on signal delivery; either way we
-		// exercised the watch branch.
-	case <-time.After(1 * time.Second):
-		// Expected: still running. The code path was exercised.
+		// Command exited (context cancelled or signal).
+	case <-time.After(2 * time.Second):
+		cancel()
+		<-done
 	}
 }
 
