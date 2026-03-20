@@ -199,9 +199,7 @@ func TestFindWolfcastleDir_Found(t *testing.T) {
 	}
 
 	// CWD must be the directory containing .wolfcastle (no walking up)
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	app := &App{}
 	found, err := app.FindWolfcastleDir()
@@ -228,9 +226,7 @@ func TestFindWolfcastleDir_DoesNotWalkUp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(sub)
+	t.Chdir(sub)
 
 	app := &App{}
 	_, err := app.FindWolfcastleDir()
@@ -241,9 +237,7 @@ func TestFindWolfcastleDir_DoesNotWalkUp(t *testing.T) {
 
 func TestFindWolfcastleDir_NotFound(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	app := &App{}
 	_, err := app.FindWolfcastleDir()
@@ -373,11 +367,8 @@ func TestLoadConfig_Success(t *testing.T) {
 	// Write a root index so the resolver can init
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
 
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-
 	// cd into the directory containing .wolfcastle (no walking up)
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	a := &App{}
 	err := a.LoadConfig()
@@ -409,9 +400,7 @@ func TestLoadConfig_Success(t *testing.T) {
 
 func TestLoadConfig_NoWolfcastleDir(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	a := &App{}
 	err := a.LoadConfig()
@@ -518,9 +507,7 @@ func TestCheckOverlap_FindsMatch(t *testing.T) {
 func TestCompleteNodeAddresses_NilResolver(t *testing.T) {
 	// Run from a temp dir to avoid picking up .wolfcastle/ from the repo
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	_ = os.Chdir(tmp)
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmp)
 
 	a := &App{}
 	fn := CompleteNodeAddresses(a)
@@ -535,9 +522,7 @@ func TestCompleteNodeAddresses_NilResolver(t *testing.T) {
 
 func TestCompleteTaskAddresses_NilResolver(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	_ = os.Chdir(tmp)
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmp)
 
 	a := &App{}
 	fn := CompleteTaskAddresses(a)

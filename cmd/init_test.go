@@ -6,11 +6,13 @@ import (
 	"testing"
 )
 
+// Tests in this file use t.Chdir (Go 1.24+) which automatically saves and
+// restores the working directory via t.Cleanup, eliminating the risk of
+// leaked directory changes if a test panics or fails mid-execution.
+
 func TestInitCmd_NewProject(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	oldApp := app
 	defer func() { app = oldApp }()
@@ -36,9 +38,7 @@ func TestInitCmd_NewProject(t *testing.T) {
 
 func TestInitCmd_AlreadyInitialized(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	// Pre-create .wolfcastle
 	_ = os.MkdirAll(filepath.Join(tmp, ".wolfcastle"), 0755)
@@ -55,9 +55,7 @@ func TestInitCmd_AlreadyInitialized(t *testing.T) {
 
 func TestInitCmd_ForceReinit(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	// First init
 	rootCmd.SetArgs([]string{"init"})

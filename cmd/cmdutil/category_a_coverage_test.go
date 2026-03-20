@@ -29,9 +29,7 @@ func TestCompleteTaskAddresses_BrokenResolver(t *testing.T) {
 		WolfcastleDir: wcDir,
 	}
 
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")
@@ -179,9 +177,7 @@ func TestStoreForCompletion_AlreadyLoaded(t *testing.T) {
 
 func TestStoreForCompletion_FallbackConfigFails(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	a := &App{}
 	_, err := storeForCompletion(a)
@@ -200,9 +196,7 @@ func TestStoreForCompletion_FallbackStateNil(t *testing.T) {
 	cfgData, _ := json.Marshal(cfg)
 	_ = os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), cfgData, 0644)
 
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	a := &App{}
 	_, err := storeForCompletion(a)
@@ -223,9 +217,7 @@ func TestStoreForCompletion_FallbackSuccess(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), []byte(cfgJSON), 0644)
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
 
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	a := &App{}
 	got, err := storeForCompletion(a)

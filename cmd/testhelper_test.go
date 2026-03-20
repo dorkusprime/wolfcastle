@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"os"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -43,11 +42,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	}
 
 	// Commands call FindWolfcastleDir, which checks cwd for .wolfcastle.
-	origDir, _ := os.Getwd()
-	if err := os.Chdir(env.ParentDir()); err != nil {
-		t.Fatalf("chdir to test root: %v", err)
-	}
-	t.Cleanup(func() { _ = os.Chdir(origDir) })
+	t.Chdir(env.ParentDir())
 
 	return &testEnv{
 		RootDir:       env.ParentDir(),

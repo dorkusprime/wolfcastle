@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"os"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -48,9 +47,7 @@ func TestNavigate_NoInit(t *testing.T) {
 	defer func() { app = oldApp }()
 
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	app = &cmdutil.App{}
 
