@@ -92,7 +92,7 @@ Is every value, behavior, and decision defined in exactly one place in the code?
 - [ ] Validation categories (`CatRootIndexDanglingRef`, etc.) are defined once in `validate/types.go`. No string literals like `"ROOTINDEX_DANGLING_REF"` elsewhere.
 - [ ] The shutdown signals list is defined once per platform (`signals_unix.go`, `signals_windows.go`). No other code constructs its own signal list.
 - [ ] Marker names (`WOLFCASTLE_COMPLETE`, etc.) are matched by `scanTerminalMarker` and `ParseMarkers`. Verify these two parsers agree on what constitutes a match for each marker type.
-- [ ] The seven-phase execution protocol is defined in one prompt file (`execute.md`). No other prompt file or Go code embeds a competing definition of the phases.
+- [ ] The ten-phase execution protocol is defined in one prompt file (`execute.md`). No other prompt file or Go code embeds a competing definition of the phases.
 - [ ] Error messages for the same condition are consistent. `RequireResolver()` should return the same message everywhere it's called, not variant phrasings.
 - [ ] The `Invoker` interface is the single contract for model invocation. No code calls `exec.Command` directly for model processes outside of `ProcessInvoker`.
 - [ ] File paths (`.wolfcastle/wolfcastle.pid`, `.wolfcastle/stop`, `inbox.json`, `state.json`) are constructed from shared helpers or constants, not hardcoded strings scattered across packages.

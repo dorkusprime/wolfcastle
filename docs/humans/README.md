@@ -6,7 +6,7 @@ Start with [How It Works](how-it-works.md) if you want the full picture. Start w
 
 ## [How It Works](how-it-works.md)
 
-The core of the machine. Work enters through your coding agent, the inbox, or direct CLI commands. It lands in a project tree built from orchestrator nodes (containers) and leaf nodes (where tasks live). A daemon runs a pipeline of stages in a loop, each invoking a model with a specific role. When a model executes a task, it follows a seven-phase protocol and communicates only through deterministic script calls. State is JSON on disk, propagates upward from children to parents, and every mutation is atomic.
+The core of the machine. Work enters through your coding agent, the inbox, or direct CLI commands. It lands in a project tree built from orchestrator nodes (containers) and leaf nodes (where tasks live). A daemon runs a pipeline of stages in a loop, each invoking a model with a specific role. When a model executes a task, it follows a ten-phase protocol and communicates only through deterministic script calls. State is JSON on disk, propagates upward from children to parents, and every mutation is atomic.
 
 ## [Configuration](configuration.md)
 

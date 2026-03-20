@@ -1,6 +1,6 @@
 # wolfcastle task claim
 
-Marks a task as `in_progress`. This is how a model takes ownership of a task during [execution](../how-it-works.md#seven-phase-execution).
+Marks a task as `in_progress`. This is how a model takes ownership of a task during [execution](../how-it-works.md#execution-protocol).
 
 ## What It Does
 
@@ -41,4 +41,4 @@ wolfcastle task claim --node <path>
 
 - [`wolfcastle task complete`](task-complete.md) when the work is done.
 - [`wolfcastle task block`](task-block.md) when the work cannot proceed.
-- [Seven-Phase Execution](../how-it-works.md#seven-phase-execution) for where this fits in the model's workflow.
+- [Execution Protocol](../how-it-works.md#execution-protocol) for where this fits in the model's workflow.

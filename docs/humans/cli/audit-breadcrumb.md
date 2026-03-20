@@ -8,7 +8,7 @@ Loads the node's `state.json` and appends a breadcrumb to its `audit.breadcrumbs
 
 Breadcrumbs are the raw material for [audit verification](../audits.md#audit-execution). They should be rich and explanatory, not terse commit messages. Describe what was done, why it was done, and what changed.
 
-This is typically called by the model during the [record phase](../how-it-works.md#seven-phase-execution) of task execution.
+This is typically called by the model during the [record phase](../how-it-works.md#execution-protocol) of task execution.
 
 ## Usage
 
