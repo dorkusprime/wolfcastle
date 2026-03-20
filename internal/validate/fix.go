@@ -224,7 +224,7 @@ func ApplyDeterministicFixesRepo(
 				continue
 			}
 			if ns.Type == state.NodeOrchestrator && len(ns.Children) > 0 {
-				ns.State = state.RecomputeState(ns.Children)
+				ns.State = state.RecomputeState(ns.Children, ns.Tasks)
 				modifiedStates[statePath] = ns
 			}
 			// Update index to match node state
