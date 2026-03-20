@@ -24,13 +24,13 @@ func TestRunIntakeStage_SaveInboxError_ReadOnly(t *testing.T) {
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item to process", Timestamp: "2025-01-01T00:00:00Z"},
 	}})
 
 	// Lock the projects dir so SaveInbox (atomicWriteJSON) fails.
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	_ = os.Chmod(projDir, 0555)
 	t.Cleanup(func() { _ = os.Chmod(projDir, 0755) })
 

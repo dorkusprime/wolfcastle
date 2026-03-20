@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -253,31 +253,6 @@ func TestFindWolfcastleDir_NotFound(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// RequireResolver
-// ---------------------------------------------------------------------------
-
-func TestRequireResolver_NilResolver(t *testing.T) {
-	app := &App{}
-	err := app.RequireResolver()
-	if err == nil {
-		t.Error("expected error when resolver is nil")
-	}
-}
-
-func TestRequireResolver_WithResolver(t *testing.T) {
-	app := &App{
-		Resolver: &tree.Resolver{
-			WolfcastleDir: "/tmp/fake",
-			Namespace:     "test",
-		},
-	}
-	err := app.RequireResolver()
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-}
-
-// ---------------------------------------------------------------------------
 // overlapMatch / compareNamespace
 // ---------------------------------------------------------------------------
 
@@ -412,6 +387,18 @@ func TestLoadConfig_Success(t *testing.T) {
 	if a.Cfg == nil {
 		t.Error("expected config to be loaded")
 	}
+	// Verify new repository fields are populated.
+	if a.Config == nil {
+		t.Error("expected Config repository to be set")
+	}
+	if a.Identity == nil {
+		t.Error("expected Identity to be set")
+	} else if a.Identity.Namespace != "tester-box" {
+		t.Errorf("Identity.Namespace = %q, want %q", a.Identity.Namespace, "tester-box")
+	}
+	if a.State == nil {
+		t.Error("expected State store to be set")
+	}
 	// Resolver may or may not init depending on identity; at minimum WolfcastleDir is set
 	resolvedWC, _ := filepath.EvalSymlinks(wcDir)
 	resolvedApp, _ := filepath.EvalSymlinks(a.WolfcastleDir)
@@ -438,27 +425,40 @@ func TestLoadConfig_NoWolfcastleDir(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCheckOverlap_DisabledConfig(t *testing.T) {
-	a := &App{} // nil Cfg
+	a := &App{} // nil Config
 	// Should not panic
 	a.CheckOverlap("test", "description")
 }
 
-func TestCheckOverlap_NilResolver(t *testing.T) {
+func TestCheckOverlap_NilIdentity(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.3
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.3},
-		},
+		Config: cfgRepo,
 	}
-	// Should return silently when resolver is nil
+	// Should return silently when identity is nil
 	a.CheckOverlap("test", "description")
 }
 
 func TestCheckOverlap_NotEnabled(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = false
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: false},
-		},
-		Resolver: &tree.Resolver{WolfcastleDir: "/tmp/fake", Namespace: "test"},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "test", Machine: "dev", Namespace: "test-dev"},
 	}
 	// Should return without error
 	a.CheckOverlap("test", "description")
@@ -469,13 +469,16 @@ func TestCheckOverlap_EmptyProject(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.3
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
 
 	a := &App{
-		WolfcastleDir: wcDir,
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.3},
-		},
-		Resolver: &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: ns},
 	}
 	// No other namespaces, should not panic
 	a.CheckOverlap("database migration", "migrate the database schema")
@@ -486,6 +489,7 @@ func TestCheckOverlap_FindsMatch(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
 
 	// Create another engineer's namespace with similar project
 	otherDir := filepath.Join(wcDir, "system", "projects", "alice-dev")
@@ -493,12 +497,15 @@ func TestCheckOverlap_FindsMatch(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(otherDir, "database-migration.md"),
 		[]byte("database migration schema upgrade postgresql"), 0644)
 
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		WolfcastleDir: wcDir,
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.1},
-		},
-		Resolver: &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: ns},
 	}
 	// Should not panic, should detect overlap silently
 	a.CheckOverlap("database migration", "database migration schema upgrade postgresql")
@@ -555,7 +562,7 @@ func TestCompleteNodeAddresses_WithResolver(t *testing.T) {
 
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteNodeAddresses(a)
 	addrs, _ := fn(nil, nil, "")
@@ -586,7 +593,7 @@ func TestLoadRootIndexForCompletion_AlreadyLoaded(t *testing.T) {
 
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	idx, err := loadRootIndexForCompletion(a)
 	if err != nil {
@@ -594,31 +601,6 @@ func TestLoadRootIndexForCompletion_AlreadyLoaded(t *testing.T) {
 	}
 	if idx == nil {
 		t.Error("expected non-nil index")
-	}
-}
-
-func TestResolverForCompletion_AlreadyLoaded(t *testing.T) {
-	r := &tree.Resolver{WolfcastleDir: "/tmp/fake", Namespace: "test"}
-	a := &App{Resolver: r}
-	got, err := resolverForCompletion(a)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != r {
-		t.Error("expected the same resolver")
-	}
-}
-
-func TestResolverForCompletion_NilResolverNoConfig(t *testing.T) {
-	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
-
-	a := &App{}
-	_, err := resolverForCompletion(a)
-	if err == nil {
-		t.Error("expected error when resolver and config are both unavailable")
 	}
 }
 
@@ -648,7 +630,7 @@ func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
 
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")

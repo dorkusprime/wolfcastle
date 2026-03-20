@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/dorkusprime/wolfcastle/internal/testutil"
 	"github.com/spf13/cobra"
 )
 
@@ -24,30 +24,26 @@ type testEnv struct {
 	ProjectsDir   string
 	App           *cmdutil.App
 	RootCmd       *cobra.Command
+	env           *testutil.Environment
 }
 
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
-	tmp := t.TempDir()
-	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wcDir, 0755)
 
-	cfg := config.Defaults()
-	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
+	env := testutil.NewEnvironment(t)
+	af := env.ToAppFields()
 
-	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "system", "projects", ns)
-	_ = os.MkdirAll(projDir, 0755)
-
-	idx := state.NewRootIndex()
-	data, _ := json.MarshalIndent(idx, "", "  ")
-	_ = os.WriteFile(filepath.Join(projDir, "state.json"), data, 0644)
-
-	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	testApp := &cmdutil.App{
-		WolfcastleDir: wcDir,
-		Cfg:           cfg,
-		Resolver:      resolver,
+		Config:        af.Config,
+		Identity:      af.Identity,
+		State:         af.State,
+		Prompts:       af.Prompts,
+		Classes:       af.Classes,
+		Daemon:        af.Daemon,
+		Git:           af.Git,
+		Clock:         clock.New(),
+		WolfcastleDir: af.WolfcastleDir,
+		Cfg:           af.Cfg,
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -62,10 +58,11 @@ func newTestEnv(t *testing.T) *testEnv {
 	Register(testApp, rootCmd)
 
 	return &testEnv{
-		WolfcastleDir: wcDir,
-		ProjectsDir:   projDir,
+		WolfcastleDir: env.Root,
+		ProjectsDir:   env.ProjectsDir(),
 		App:           testApp,
 		RootCmd:       rootCmd,
+		env:           env,
 	}
 }
 
@@ -190,14 +187,14 @@ func TestRecoverStaleDaemonState_DeadProcess(t *testing.T) {
 // status command (no resolver)
 // ---------------------------------------------------------------------------
 
-func TestStatusCmd_NoResolver(t *testing.T) {
+func TestStatusCmd_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"status"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -433,7 +430,7 @@ func TestShowHistoricalLines_ValidLog(t *testing.T) {
 	_ = os.WriteFile(logFile, []byte(lines), 0644)
 
 	// Reset offsets
-	delete(fileOffsets, logFile)
+	clearOffset(logFile)
 
 	// Should not panic, should set offset
 	showHistoricalLines(logFile, 2, logging.LevelDebug)
@@ -453,7 +450,7 @@ func TestShowHistoricalLines_MoreLinesThanAvailable(t *testing.T) {
 	tmp := t.TempDir()
 	logFile := filepath.Join(tmp, "short.ndjson")
 	_ = os.WriteFile(logFile, []byte(`{"type":"assistant","text":"only one"}`+"\n"), 0644)
-	delete(fileOffsets, logFile)
+	clearOffset(logFile)
 
 	showHistoricalLines(logFile, 100, logging.LevelDebug) // Asking for 100 lines when only 1 exists
 }
@@ -659,13 +656,13 @@ func TestRecoverStaleDaemonState_RunningProcess(t *testing.T) {
 // start command edge cases
 // ---------------------------------------------------------------------------
 
-func TestStartCmd_NoResolver(t *testing.T) {
+func TestStartCmd_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }
 
@@ -724,7 +721,7 @@ func TestShowHistoricalLines_EmptyFile(t *testing.T) {
 	tmp := t.TempDir()
 	logFile := filepath.Join(tmp, "empty.ndjson")
 	_ = os.WriteFile(logFile, []byte(""), 0644)
-	delete(fileOffsets, logFile)
+	clearOffset(logFile)
 	showHistoricalLines(logFile, 10, logging.LevelDebug)
 }
 
@@ -803,55 +800,6 @@ func TestLogCmd_AliasFollow(t *testing.T) {
 	// "follow" should work as an alias for "log"
 	env.RootCmd.SetArgs([]string{"follow", "--lines", "5"})
 	_ = env.RootCmd.Execute()
-}
-
-// ---------------------------------------------------------------------------
-// nodeGlyph
-// ---------------------------------------------------------------------------
-
-func TestNodeGlyph(t *testing.T) {
-	// In tests, output.IsTerminal() is false (piped), so we get plain glyphs.
-	tests := []struct {
-		status state.NodeStatus
-		want   string
-	}{
-		{state.StatusComplete, "●"},
-		{state.StatusInProgress, "◐"},
-		{state.StatusBlocked, "☢"},
-		{state.StatusNotStarted, "◯"},
-	}
-	for _, tt := range tests {
-		t.Run(string(tt.status), func(t *testing.T) {
-			got := nodeGlyph(tt.status)
-			if got != tt.want {
-				t.Errorf("nodeGlyph(%s) = %q, want %q", tt.status, got, tt.want)
-			}
-		})
-	}
-}
-
-// ---------------------------------------------------------------------------
-// taskGlyph
-// ---------------------------------------------------------------------------
-
-func TestTaskGlyph(t *testing.T) {
-	tests := []struct {
-		status state.NodeStatus
-		want   string
-	}{
-		{state.StatusComplete, "✓"},
-		{state.StatusInProgress, "→"},
-		{state.StatusBlocked, "✖"},
-		{state.StatusNotStarted, "○"},
-	}
-	for _, tt := range tests {
-		t.Run(string(tt.status), func(t *testing.T) {
-			got := taskGlyph(tt.status)
-			if got != tt.want {
-				t.Errorf("taskGlyph(%s) = %q, want %q", tt.status, got, tt.want)
-			}
-		})
-	}
 }
 
 // ---------------------------------------------------------------------------
@@ -1036,50 +984,6 @@ func TestStartBackground_LogDirNotWritable(t *testing.T) {
 	err := startBackground(wolfDir, "", "", "sleep")
 	if err == nil {
 		t.Error("expected error when log dir is not writable")
-	}
-}
-
-// ---------------------------------------------------------------------------
-// nodeGlyph and taskGlyph — all states
-// ---------------------------------------------------------------------------
-
-func TestNodeGlyph_AllStates(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		status state.NodeStatus
-		glyph  string
-	}{
-		{state.StatusComplete, "●"},
-		{state.StatusInProgress, "◐"},
-		{state.StatusBlocked, "☢"},
-		{state.StatusNotStarted, "◯"},
-		{"unknown_status", "◯"},
-	}
-	for _, tc := range cases {
-		result := nodeGlyph(tc.status)
-		if !strings.Contains(result, tc.glyph) {
-			t.Errorf("nodeGlyph(%s) = %q, expected to contain %q", tc.status, result, tc.glyph)
-		}
-	}
-}
-
-func TestTaskGlyph_AllStates(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		status state.NodeStatus
-		glyph  string
-	}{
-		{state.StatusComplete, "✓"},
-		{state.StatusInProgress, "→"},
-		{state.StatusBlocked, "✖"},
-		{state.StatusNotStarted, "○"},
-		{"unknown_status", "○"},
-	}
-	for _, tc := range cases {
-		result := taskGlyph(tc.status)
-		if !strings.Contains(result, tc.glyph) {
-			t.Errorf("taskGlyph(%s) = %q, expected to contain %q", tc.status, result, tc.glyph)
-		}
 	}
 }
 

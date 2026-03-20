@@ -1,8 +1,11 @@
 ---
-status: DRAFT
+status: SUPERSEDED
+superseded_by: 2026-03-16T00-00Z-domain-repository-architecture.md
 ---
 
 # Wolfcastle Filesystem Abstraction
+
+> **Superseded** by [Domain Repository Architecture](2026-03-16T00-00Z-domain-repository-architecture.md), which generalized this spec into domain-specific repositories with richer contracts.
 
 ## Problem
 

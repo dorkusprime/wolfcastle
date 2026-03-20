@@ -79,3 +79,5 @@
 | 075 | [Foreground Process Group Reclaim](075-foreground-process-group-reclaim.md) | Accepted | 2026-03-16 |
 | 076 | [Signal Handling and Terminal Restoration](076-signal-handling-and-terminal-restoration.md) | Accepted | 2026-03-16 |
 | 077 | [System Directory Restructure](077-system-directory-restructure.md) | Accepted | 2026-03-16 |
+| 078 | [Task.RenderContext Parameterless Refactoring](078-task-rendercontext-parameterless.md) | Accepted | 2026-03-18 |
+| 079 | [NodeState.RenderContext Phantom taskID Parameter](079-nodestate-rendercontext-phantom-taskid.md) | Accepted | 2026-03-18 |

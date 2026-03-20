@@ -15,7 +15,8 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-// Scaffold creates the .wolfcastle/ directory structure for wolfcastle init.
+// Deprecated: Use ScaffoldService.Init instead. Scaffold creates the
+// .wolfcastle/ directory structure for wolfcastle init.
 func Scaffold(wolfcastleDir string) error {
 	dirs := []string{
 		"system/base/prompts",
@@ -145,6 +146,7 @@ func detectIdentity() map[string]any {
 	}
 }
 
+// Deprecated: Use ScaffoldService.Init or ScaffoldService.Reinit instead.
 // WriteBasePrompts extracts embedded prompt templates into the system/base/ directory.
 func WriteBasePrompts(wolfcastleDir string) error {
 	return fs.WalkDir(Templates, "templates", func(path string, d fs.DirEntry, err error) error {
@@ -164,8 +166,9 @@ func WriteBasePrompts(wolfcastleDir string) error {
 	})
 }
 
-// ReScaffold regenerates system/base/ templates and config, refreshes identity
-// in system/local/config.json, migrates old-style config files (config.json,
+// Deprecated: Use ScaffoldService.Reinit instead. ReScaffold regenerates
+// system/base/ templates and config, refreshes identity in
+// system/local/config.json, migrates old-style config files (config.json,
 // config.local.json) to the three-tier layout, and migrates the old flat
 // directory structure into the system/ subdirectory.
 func ReScaffold(wolfcastleDir string) error {

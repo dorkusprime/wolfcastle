@@ -12,24 +12,36 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
-// App holds the shared runtime state for the CLI: configuration,
-// resolver, and flags that cut across subcommands.
+// App holds the shared runtime state for the CLI: repository references,
+// identity, and flags that cut across subcommands.
 type App struct {
+	// Repository fields (new, preferred).
+	Config   *config.ConfigRepository
+	Identity *config.Identity // nil if identity not configured
+	Prompts  *pipeline.PromptRepository
+	Classes  *pipeline.ClassRepository
+	Daemon   *daemon.DaemonRepository
+	State    *state.StateStore // nil if identity not configured
+	Git      git.Provider
+
+	// Retained fields.
+	Clock   clock.Clock
+	Invoker invoke.Invoker
+	Version string
+
+	// Deprecated fields, kept for backward compatibility during migration.
+	// Task-0002 will migrate all callers, then these are removed.
 	WolfcastleDir string
 	Cfg           *config.Config
-	Resolver      *tree.Resolver
-	Store         *state.StateStore
-	Clock         clock.Clock
-	Invoker       invoke.Invoker
 	JSONOutput    bool
-	Version       string
-	Commit        string
 }
 
 // FindWolfcastleDir checks the current working directory for a .wolfcastle
@@ -48,40 +60,59 @@ func (a *App) FindWolfcastleDir() (string, error) {
 	return "", fmt.Errorf("no .wolfcastle directory found in current directory. Run 'wolfcastle init' first")
 }
 
-// LoadConfig discovers the .wolfcastle directory, loads its
-// configuration, and attempts to initialise the tree resolver.
-// A resolver failure is not fatal — some commands can proceed
-// without one.
-func (a *App) LoadConfig() error {
-	var err error
-	a.WolfcastleDir, err = a.FindWolfcastleDir()
+// Init discovers the .wolfcastle directory, creates all domain
+// repositories, loads config, and extracts identity. If identity is
+// not configured, Identity and State remain nil; commands that need
+// them call RequireIdentity().
+func (a *App) Init() error {
+	root, err := a.FindWolfcastleDir()
 	if err != nil {
 		return err
 	}
-	a.Cfg, err = config.Load(a.WolfcastleDir)
+
+	// Create repositories.
+	a.Config = config.NewConfigRepository(root)
+	a.Prompts = pipeline.NewPromptRepository(root)
+	a.Daemon = daemon.NewDaemonRepository(root)
+	a.Git = git.NewService(filepath.Dir(root))
+	a.Classes = pipeline.NewClassRepository(a.Prompts)
+
+	// Load merged config.
+	cfg, err := a.Config.Load()
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
-	// Set defaults for fields that callers may use without checking.
+
 	if a.Clock == nil {
 		a.Clock = clock.New()
 	}
-	// Don't validate identity for commands that don't need it
-	a.Resolver, err = tree.NewResolver(a.WolfcastleDir, a.Cfg)
-	if err != nil {
-		// Not fatal for all commands
-		a.Resolver = nil
-	} else {
-		a.Store = state.NewStateStore(a.Resolver.ProjectsDir(), state.DefaultLockTimeout)
+
+	// Extract identity; nil is acceptable for commands that don't need it.
+	id, err := config.IdentityFromConfig(cfg)
+	if err == nil {
+		a.Identity = id
+		a.State = state.NewStateStore(id.ProjectsDir(root), state.DefaultLockTimeout)
+		a.Classes.Reload(cfg.TaskClasses)
 	}
+
+	// Populate deprecated fields for backward compatibility.
+	a.WolfcastleDir = root
+	a.Cfg = cfg
+
 	return nil
 }
 
-// RequireResolver returns an error if the resolver has not been
-// initialised. Commands that operate on the project tree should
-// call this early to surface a clear message.
-func (a *App) RequireResolver() error {
-	if a.Resolver == nil {
+// LoadConfig is a backward-compatible wrapper for Init. Deprecated:
+// callers should migrate to Init.
+func (a *App) LoadConfig() error {
+	return a.Init()
+}
+
+// RequireIdentity returns an error if identity is not configured.
+// Commands that operate on the project tree should call this early
+// to surface a clear message.
+func (a *App) RequireIdentity() error {
+	if a.Identity == nil {
 		return fmt.Errorf("identity not configured. Run 'wolfcastle init' first")
 	}
 	return nil
@@ -92,11 +123,15 @@ func (a *App) RequireResolver() error {
 // bigram Jaccard similarity — no model invocation required (ADR-041).
 // Purely informational — failures are silently ignored (ADR-027).
 func (a *App) CheckOverlap(projectName, description string) {
-	if a.Cfg == nil || a.Resolver == nil || !a.Cfg.OverlapAdvisory.Enabled {
+	if a.Config == nil || a.Identity == nil {
+		return
+	}
+	cfg, err := a.Config.Load()
+	if err != nil || !cfg.OverlapAdvisory.Enabled {
 		return
 	}
 
-	threshold := a.Cfg.OverlapAdvisory.Threshold
+	threshold := cfg.OverlapAdvisory.Threshold
 
 	// Tokenize the new project
 	newText := projectName + " " + description
@@ -108,7 +143,7 @@ func (a *App) CheckOverlap(projectName, description string) {
 	}
 
 	// Collect and compare against other engineers' projects
-	projectsRoot := filepath.Join(a.WolfcastleDir, "system", "projects")
+	projectsRoot := filepath.Join(a.Config.Root(), "system", "projects")
 	entries, err := os.ReadDir(projectsRoot)
 	if err != nil {
 		return
@@ -116,7 +151,7 @@ func (a *App) CheckOverlap(projectName, description string) {
 
 	var matches []overlapMatch
 	for _, entry := range entries {
-		if !entry.IsDir() || entry.Name() == a.Resolver.Namespace {
+		if !entry.IsDir() || entry.Name() == a.Identity.Namespace {
 			continue
 		}
 		nsDir := filepath.Join(projectsRoot, entry.Name())

@@ -65,7 +65,7 @@ func TestApprove_ExistingProject_JSON(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	createLeafNode(t, env, "existing-project", "Existing Project")
+	env.createLeafNode(t, "existing-project", "Existing Project")
 
 	batch := &state.Batch{
 		ID:     "audit-existing-json",

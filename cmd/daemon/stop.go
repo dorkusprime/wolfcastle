@@ -6,7 +6,7 @@ import (
 	"syscall"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/daemon"
+	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -24,13 +24,13 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			force, _ := cmd.Flags().GetBool("force")
 
-			pid, err := daemon.ReadPID(app.WolfcastleDir)
+			pid, err := app.Daemon.ReadPID()
 			if err != nil {
 				return fmt.Errorf("no PID file. Nothing to stop")
 			}
 
-			if !daemon.IsProcessRunning(pid) {
-				daemon.RemovePID(app.WolfcastleDir)
+			if !dmn.IsProcessRunning(pid) {
+				_ = app.Daemon.RemovePID()
 				return fmt.Errorf("PID %d is not running (stale PID file removed)", pid)
 			}
 

@@ -6,76 +6,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
-	"github.com/spf13/cobra"
+	"github.com/dorkusprime/wolfcastle/internal/testutil"
 )
 
 func newStatusTestEnv(t *testing.T) *testEnv {
 	t.Helper()
-	tmp := t.TempDir()
-	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wcDir, 0755)
-
-	cfg := config.Defaults()
-	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
-
-	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "system", "projects", ns)
-	_ = os.MkdirAll(projDir, 0755)
-
-	// Create root index with some nodes
-	idx := state.NewRootIndex()
-	idx.RootID = "my-project"
-	idx.RootState = state.StatusInProgress
-
-	// Add a leaf node
-	idx.Nodes["my-project"] = state.IndexEntry{
-		Name:     "My Project",
-		Type:     state.NodeLeaf,
-		State:    state.StatusInProgress,
-		Address:  "my-project",
-		Children: []string{},
-	}
-
-	// Create node dir and state
-	nodeDir := filepath.Join(projDir, "my-project")
-	_ = os.MkdirAll(nodeDir, 0755)
-
-	ns2 := state.NewNodeState("my-project", "My Project", state.NodeLeaf)
-	ns2.State = state.StatusInProgress
-	nsData, _ := json.MarshalIndent(ns2, "", "  ")
-	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
-
-	idxData, _ := json.MarshalIndent(idx, "", "  ")
-	_ = os.WriteFile(filepath.Join(projDir, "state.json"), idxData, 0644)
-
-	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
-	testApp := &cmdutil.App{
-		WolfcastleDir: wcDir,
-		Cfg:           cfg,
-		Resolver:      resolver,
-	}
-
-	rootCmd := &cobra.Command{Use: "wolfcastle"}
-	rootCmd.AddGroup(
-		&cobra.Group{ID: "lifecycle", Title: "Lifecycle:"},
-		&cobra.Group{ID: "work", Title: "Work Management:"},
-		&cobra.Group{ID: "audit", Title: "Auditing:"},
-		&cobra.Group{ID: "docs", Title: "Documentation:"},
-		&cobra.Group{ID: "diagnostics", Title: "Diagnostics:"},
-		&cobra.Group{ID: "integration", Title: "Integration:"},
-	)
-	Register(testApp, rootCmd)
-
-	return &testEnv{
-		WolfcastleDir: wcDir,
-		ProjectsDir:   projDir,
-		App:           testApp,
-		RootCmd:       rootCmd,
-	}
+	env := newTestEnv(t)
+	env.env.WithProject("My Project", testutil.Leaf("my-project"))
+	return env
 }
 
 func TestStatusCmd_Success(t *testing.T) {

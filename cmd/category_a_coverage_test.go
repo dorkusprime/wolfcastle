@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -66,12 +65,12 @@ func TestDoctorCmd_ModelAssistedFixBlock(t *testing.T) {
 	app = env.App
 	app.Invoker = invoke.NewProcessInvoker()
 
-	// Set up config with a doctor model reference (the model won't actually
-	// be invoked because there are no model-assisted issues)
-	app.Cfg.Doctor.Model = "test-model"
-	app.Cfg.Models = map[string]config.ModelDef{
-		"test-model": {Command: "echo", Args: []string{"test"}},
-	}
+	_ = app.Config.WriteCustom(map[string]any{
+		"doctor": map[string]any{"model": "test-model"},
+		"models": map[string]any{
+			"test-model": map[string]any{"command": "echo", "args": []any{"test"}},
+		},
+	})
 
 	rootCmd.SetArgs([]string{"doctor", "--fix"})
 	if err := rootCmd.Execute(); err != nil {
@@ -87,11 +86,12 @@ func TestDoctorCmd_ModelAssistedFixWithIssues(t *testing.T) {
 	app = env.App
 	app.Invoker = invoke.NewProcessInvoker()
 
-	// Set up config with a doctor model
-	app.Cfg.Doctor.Model = "test-model"
-	app.Cfg.Models = map[string]config.ModelDef{
-		"test-model": {Command: "echo", Args: []string{"test"}},
-	}
+	_ = app.Config.WriteCustom(map[string]any{
+		"doctor": map[string]any{"model": "test-model"},
+		"models": map[string]any{
+			"test-model": map[string]any{"command": "echo", "args": []any{"test"}},
+		},
+	})
 
 	// Create a node with issues that have FixType model-assisted to exercise
 	// the code block (the actual invoke will fail, but the code path is covered)
@@ -154,9 +154,9 @@ func TestDoctorCmd_CorruptStateJSON_JSON(t *testing.T) {
 	}
 }
 
-// Note: RequireResolver guards for spec create/link/list are exercised
+// Note: RequireIdentity guards for spec create/link/list are exercised
 // indirectly through the NoInit test pattern (PersistentPreRunE fails).
-// The RequireResolver() function itself is tested in cmdutil/app_test.go.
+// The RequireIdentity() function itself is tested in cmdutil/app_test.go.
 // Direct cobra-level testing of these guards in the root cmd package is
 // impractical because cobra retains --node flag values across calls,
 // causing test pollution.
@@ -230,12 +230,12 @@ func TestADRCreate_FileNotFound(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// cmd/archive_add.go: RequireResolver
+// cmd/archive_add.go: RequireIdentity
 // (Uses a bare App and chdir to a dir without .wolfcastle so
-// PersistentPreRunE cannot reload config/resolver)
+// PersistentPreRunE cannot reload config/identity)
 // ---------------------------------------------------------------------------
 
-func TestArchiveAdd_RequireResolver(t *testing.T) {
+func TestArchiveAdd_RequireIdentity(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 
@@ -295,10 +295,10 @@ func TestArchiveAdd_ParseAddressError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// cmd/navigate.go: RequireResolver
+// cmd/navigate.go: RequireIdentity
 // ---------------------------------------------------------------------------
 
-func TestNavigate_RequireResolver(t *testing.T) {
+func TestNavigate_RequireIdentity(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 

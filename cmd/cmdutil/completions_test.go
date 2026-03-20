@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
 // ---------------------------------------------------------------------------
@@ -41,7 +41,7 @@ func TestCompleteTaskAddresses_WithOrchestrator(t *testing.T) {
 
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")
@@ -91,7 +91,7 @@ func TestCompleteTaskAddresses_BrokenNodeState(t *testing.T) {
 
 	a := &App{
 		WolfcastleDir: wcDir,
-		Resolver:      &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")
@@ -117,18 +117,22 @@ func TestCheckOverlap_ShortText(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
 
 	// Create another namespace with a project
 	otherDir := filepath.Join(wcDir, "system", "projects", "other-dev")
 	_ = os.MkdirAll(otherDir, 0755)
 	_ = os.WriteFile(filepath.Join(otherDir, "proj.md"), []byte("some content"), 0644)
 
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		WolfcastleDir: wcDir,
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.1},
-		},
-		Resolver: &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: ns},
 	}
 	// Use all stop words, should produce empty bigrams and bail early
 	a.CheckOverlap("the", "the and for")
@@ -214,66 +218,26 @@ func TestLoadConfig_MalformedConfig(t *testing.T) {
 	}
 }
 
-func TestResolverForCompletion_FallbackSuccess(t *testing.T) {
-	tmp := t.TempDir()
-	wcDir := filepath.Join(tmp, ".wolfcastle")
-	ns := "tester-box"
-	projDir := filepath.Join(wcDir, "system", "projects", ns)
-	_ = os.MkdirAll(projDir, 0755)
-	_ = os.MkdirAll(filepath.Join(wcDir, "system", "local"), 0755)
-
-	// Config with identity in local/config.json
-	cfgJSON := `{"identity": {"user": "tester", "machine": "box"}}`
-	_ = os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), []byte(cfgJSON), 0644)
-	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
-
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
-
-	a := &App{}
-	res, err := resolverForCompletion(a)
-	if err != nil {
-		t.Fatalf("expected success on fallback: %v", err)
-	}
-	if res == nil {
-		t.Error("expected non-nil resolver")
-	}
-}
-
-// ---------------------------------------------------------------------------
-// resolverForCompletion — fallback loads config but resolver still nil
-// ---------------------------------------------------------------------------
-
-func TestResolverForCompletion_FallbackConfigLoadsButNoResolver(t *testing.T) {
-	tmp := t.TempDir()
-	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wcDir, 0755)
-
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
-
-	a := &App{}
-	_, err := resolverForCompletion(a)
-	if err == nil {
-		t.Error("expected error when config loaded but resolver still nil")
-	}
-}
-
 // ---------------------------------------------------------------------------
 // CheckOverlap — nonexistent projects dir
 // ---------------------------------------------------------------------------
 
 func TestCheckOverlap_NonexistentProjectsDir(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
+
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		WolfcastleDir: "/nonexistent/path",
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.1},
-		},
-		Resolver: &tree.Resolver{WolfcastleDir: "/nonexistent/path", Namespace: "me-dev"},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: "me-dev"},
 	}
-	// Should not panic, just silently return
+	// No projects dir for this namespace, should not panic
 	a.CheckOverlap("database migration", "migrate the schema")
 }
 
@@ -286,6 +250,7 @@ func TestCheckOverlap_NoMatchesBelowThreshold(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	ns := "me-dev"
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "projects", ns), 0755)
+	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
 
 	// Another engineer with completely different topic
 	otherDir := filepath.Join(wcDir, "system", "projects", "alice-dev")
@@ -293,12 +258,15 @@ func TestCheckOverlap_NoMatchesBelowThreshold(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(otherDir, "quantum.md"),
 		[]byte("quantum entanglement photon superposition"), 0644)
 
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.9
+	cfgRepo := config.NewConfigRepository(wcDir)
+	_ = cfgRepo.WriteBase(cfg)
+
 	a := &App{
-		WolfcastleDir: wcDir,
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.9},
-		},
-		Resolver: &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns},
+		Config:   cfgRepo,
+		Identity: &config.Identity{User: "me", Machine: "dev", Namespace: ns},
 	}
 	// High threshold means no match
 	a.CheckOverlap("database migration", "migrate postgresql schema")

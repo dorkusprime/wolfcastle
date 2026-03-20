@@ -37,7 +37,7 @@ func CompleteTaskAddresses(app *App) func(cmd *cobra.Command, args []string, toC
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 
-		res, err := resolverForCompletion(app)
+		store, err := storeForCompletion(app)
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
@@ -53,7 +53,7 @@ func CompleteTaskAddresses(app *App) func(cmd *cobra.Command, args []string, toC
 				if err != nil {
 					continue
 				}
-				statePath := filepath.Join(res.ProjectsDir(), filepath.Join(parsed.Parts...), "state.json")
+				statePath := filepath.Join(store.Dir(), filepath.Join(parsed.Parts...), "state.json")
 				ns, err := state.LoadNodeState(statePath)
 				if err != nil {
 					continue
@@ -71,31 +71,30 @@ func CompleteTaskAddresses(app *App) func(cmd *cobra.Command, args []string, toC
 // completion. Returns an error silently if the environment is not
 // configured.
 func loadRootIndexForCompletion(app *App) (*state.RootIndex, error) {
-	if app.Resolver != nil {
-		return app.Resolver.LoadRootIndex()
+	if app.State != nil {
+		return app.State.ReadIndex()
 	}
-	// Try to set up if not yet loaded
 	if err := app.LoadConfig(); err != nil {
 		return nil, err
 	}
-	if app.Resolver == nil {
+	if app.State == nil {
 		return nil, &ConfigNotReady{}
 	}
-	return app.Resolver.LoadRootIndex()
+	return app.State.ReadIndex()
 }
 
-// resolverForCompletion returns the resolver, loading config if needed.
-func resolverForCompletion(app *App) (*tree.Resolver, error) {
-	if app.Resolver != nil {
-		return app.Resolver, nil
+// storeForCompletion returns the state store, loading config if needed.
+func storeForCompletion(app *App) (*state.StateStore, error) {
+	if app.State != nil {
+		return app.State, nil
 	}
 	if err := app.LoadConfig(); err != nil {
 		return nil, err
 	}
-	if app.Resolver == nil {
+	if app.State == nil {
 		return nil, &ConfigNotReady{}
 	}
-	return app.Resolver, nil
+	return app.State, nil
 }
 
 // ConfigNotReady is a sentinel error for when config/identity isn't available.

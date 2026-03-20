@@ -1,0 +1,821 @@
+package daemon
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/logging"
+	"github.com/dorkusprime/wolfcastle/internal/state"
+)
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — already in_progress task skips claim
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_AlreadyInProgress_SkipsClaim(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	// Set task to in_progress before calling runIteration. The claim
+	// logic should detect this and skip the MutateNode call.
+	setupLeafNode(t, d, "skip-claim", []state.Task{
+		{ID: "task-0001", Description: "resumed", State: state.StatusInProgress},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "skip-claim", TaskID: "task-0001", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	// Task should be complete (echo outputs WOLFCASTLE_COMPLETE)
+	ns, _ := d.Store.ReadNode("skip-claim")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" && task.State != state.StatusComplete {
+			t.Errorf("expected complete after skip-claim path, got %s", task.State)
+		}
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_YIELD with planning disabled + new tasks
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_YieldDecomposition_PlanningDisabled(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = false
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	projDir := d.Store.Dir()
+	stateFile := filepath.Join(projDir, "yield-decomp", "state.json")
+
+	setupLeafNode(t, d, "yield-decomp", []state.Task{
+		{ID: "task-0001", Description: "parent task", State: state.StatusNotStarted},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	// Model command: add a new task to the state file, then emit YIELD.
+	d.Config.Models["yield-add"] = config.ModelDef{
+		Command: "sh",
+		Args: []string{"-c", fmt.Sprintf(
+			`python3 -c "
+import json
+with open('%s') as f: data = json.load(f)
+data['tasks'].append({'id':'task-0002','description':'subtask','state':'not_started'})
+with open('%s','w') as f: json.dump(data, f)
+" 2>/dev/null; echo WOLFCASTLE_YIELD`, stateFile, stateFile,
+		)},
+	}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "execute", Model: "yield-add", PromptFile: "execute.md"},
+	}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "yield-decomp", TaskID: "task-0001", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	// With planning disabled and new tasks, the parent should be blocked
+	// with reason "decomposed into subtasks: task-0002"
+	ns, _ := d.Store.ReadNode("yield-decomp")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.State != state.StatusBlocked {
+				t.Errorf("expected parent blocked after yield decomposition, got %s", task.State)
+			}
+			if !strings.Contains(task.BlockedReason, "decomposed into subtasks") {
+				t.Errorf("expected decomposition reason, got %q", task.BlockedReason)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_YIELD with planning enabled + new tasks
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_YieldDecomposition_PlanningEnabled(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	projDir := d.Store.Dir()
+	stateFile := filepath.Join(projDir, "yield-plan", "state.json")
+
+	setupLeafNode(t, d, "yield-plan", []state.Task{
+		{ID: "task-0001", Description: "parent", State: state.StatusNotStarted},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	d.Config.Models["yield-plan"] = config.ModelDef{
+		Command: "sh",
+		Args: []string{"-c", fmt.Sprintf(
+			`python3 -c "
+import json
+with open('%s') as f: data = json.load(f)
+data['tasks'].append({'id':'task-0002','description':'child','state':'not_started'})
+with open('%s','w') as f: json.dump(data, f)
+" 2>/dev/null; echo WOLFCASTLE_YIELD`, stateFile, stateFile,
+		)},
+	}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "execute", Model: "yield-plan", PromptFile: "execute.md"},
+	}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "yield-plan", TaskID: "task-0001", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	// With planning enabled, the parent task stays in_progress (not blocked).
+	ns, _ := d.Store.ReadNode("yield-plan")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.State == state.StatusBlocked {
+				t.Error("with planning enabled, parent should NOT be blocked on yield")
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_YIELD with no new tasks
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_YieldNoNewTasks(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = false
+	d.Config.Models["yield"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_YIELD"}}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "execute", Model: "yield", PromptFile: "execute.md"},
+	}
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	setupLeafNode(t, d, "yield-no-new", []state.Task{
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "yield-no-new", TaskID: "task-0001", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	ns, _ := d.Store.ReadNode("yield-no-new")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.State != state.StatusInProgress {
+				t.Errorf("expected in_progress after yield with no new tasks, got %s", task.State)
+			}
+			return
+		}
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_BLOCKED with superseded detection
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_BlockedSuperseded_TreatedAsSkip(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	setupLeafNode(t, d, "superseded-node", []state.Task{
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted,
+			BlockedReason: "already done in prior commit"},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "execute", Model: "blocked", PromptFile: "execute.md"},
+	}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "superseded-node", TaskID: "task-0001", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	ns, _ := d.Store.ReadNode("superseded-node")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.State != state.StatusComplete {
+				t.Errorf("superseded block should be completed, got %s", task.State)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_BLOCKED triggers remediation subtasks
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_BlockedAudit_CreatesRemediationSubtasks(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	projDir := d.Store.Dir()
+
+	setupLeafNode(t, d, "audit-remediation", []state.Task{
+		{ID: "task-0001", State: state.StatusComplete},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	})
+
+	nsPath := filepath.Join(projDir, "audit-remediation", "state.json")
+	ns, _ := state.LoadNodeState(nsPath)
+	ns.Audit.Gaps = []state.Gap{
+		{ID: "gap-1", Description: "Missing error handling", Status: state.GapOpen},
+		{ID: "gap-2", Description: "No input validation", Status: state.GapOpen},
+	}
+	writeJSON(t, nsPath, ns)
+
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "execute", Model: "blocked", PromptFile: "execute.md"},
+	}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "audit-remediation", TaskID: "audit", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	after, _ := d.Store.ReadNode("audit-remediation")
+	var childCount int
+	for _, task := range after.Tasks {
+		if strings.HasPrefix(task.ID, "audit.") {
+			childCount++
+		}
+		if task.ID == "audit" {
+			if task.State != state.StatusNotStarted {
+				t.Errorf("audit task should be reset to not_started, got %s", task.State)
+			}
+		}
+	}
+	if childCount != 2 {
+		t.Errorf("expected 2 remediation subtasks, got %d", childCount)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_BLOCKED normal path (propagateState)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_BlockedNormal_BlocksAndPropagates(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	setupLeafNode(t, d, "blocked-normal", []state.Task{
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "execute", Model: "blocked", PromptFile: "execute.md"},
+	}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "blocked-normal", TaskID: "task-0001", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	ns, _ := d.Store.ReadNode("blocked-normal")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.State != state.StatusBlocked {
+				t.Errorf("expected blocked, got %s", task.State)
+			}
+			if task.BlockedReason != "blocked by model" {
+				t.Errorf("expected 'blocked by model' reason, got %q", task.BlockedReason)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_COMPLETE with missing deliverables (warning)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_Complete_MissingDeliverables(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	setupLeafNode(t, d, "deliv-warn", []state.Task{
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted,
+			Deliverables: []string{"nonexistent/file.go"}},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "deliv-warn", TaskID: "task-0001", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	// Deliverables are advisory. The echo model outputs WOLFCASTLE_COMPLETE;
+	// in a non-git temp dir, checkGitProgress returns true (git unavailable
+	// is treated as progress), so the task completes.
+	ns, _ := d.Store.ReadNode("deliv-warn")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.State != state.StatusComplete {
+				t.Errorf("expected complete despite missing deliverables, got %s", task.State)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_COMPLETE for audit task (skips git check)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_CompleteAudit_SkipsGitCheck(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	setupLeafNode(t, d, "audit-complete", []state.Task{
+		{ID: "audit", Description: "audit task", State: state.StatusNotStarted, IsAudit: true},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "audit-complete", TaskID: "audit", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	ns, _ := d.Store.ReadNode("audit-complete")
+	for _, task := range ns.Tasks {
+		if task.ID == "audit" {
+			if task.State != state.StatusComplete {
+				t.Errorf("audit task should complete without git check, got %s", task.State)
+			}
+			return
+		}
+	}
+	t.Error("audit task not found")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_COMPLETE with no git progress (non-audit)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_CompleteNoGitProgress_FailsTask(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Failure.DecompositionThreshold = 0
+	d.Config.Failure.HardCap = 0
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	// Use the existing initGitRepo which returns the dir
+	repoDir := initGitRepo(t)
+	d.RepoDir = repoDir
+
+	setupLeafNode(t, d, "no-progress", []state.Task{
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_COMPLETE"}}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "no-progress", TaskID: "task-0001", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	// No git progress: COMPLETE marker is cleared, task falls through to failure.
+	ns, _ := d.Store.ReadNode("no-progress")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.State == state.StatusComplete {
+				t.Error("task should NOT be complete when there's no git progress")
+			}
+			if task.FailureCount < 1 {
+				t.Error("failure count should be incremented")
+			}
+			if task.LastFailureType != "no_progress" {
+				t.Errorf("expected last_failure_type 'no_progress', got %q", task.LastFailureType)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — WOLFCASTLE_SKIP with planning disabled (autoComplete)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_Skip_AutoCompleteDecomposedParent(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = false
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	setupLeafNode(t, d, "skip-auto", []state.Task{
+		{ID: "task-0001", Description: "parent", State: state.StatusBlocked,
+			BlockedReason: "decomposed into subtasks: task-0002, task-0003"},
+		{ID: "task-0002", Description: "subtask 1", State: state.StatusComplete},
+		{ID: "task-0003", Description: "subtask 2", State: state.StatusNotStarted},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	d.Config.Models["skip"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_SKIP already done"}}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "execute", Model: "skip", PromptFile: "execute.md"},
+	}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "skip-auto", TaskID: "task-0003", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	ns, _ := d.Store.ReadNode("skip-auto")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0003" && task.State != state.StatusComplete {
+			t.Errorf("skipped task should be complete, got %s", task.State)
+		}
+		if task.ID == "task-0001" && task.State != state.StatusComplete {
+			t.Errorf("decomposed parent should be auto-completed, got %s", task.State)
+		}
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// autoCommitPartialWork
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestAutoCommitPartialWork_NoChanges(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	autoCommitPartialWork(repoDir, logger, "task-0001")
+
+	out := iterCovGitLog(t, repoDir)
+	if strings.Count(out, "\n") > 1 {
+		t.Error("should not create a commit when there are no changes")
+	}
+}
+
+func TestAutoCommitPartialWork_CommitsUnstagedFiles(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	_ = os.WriteFile(filepath.Join(repoDir, "new-file.go"), []byte("package main\n"), 0644)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	autoCommitPartialWork(repoDir, logger, "task-0001")
+
+	out := iterCovGitLog(t, repoDir)
+	if !strings.Contains(out, "auto-commit partial work") {
+		t.Error("expected auto-commit message in git log")
+	}
+	if !strings.Contains(out, "task-0001") {
+		t.Error("expected task ID in commit message")
+	}
+}
+
+func TestAutoCommitPartialWork_MultipleFiles(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	for _, name := range []string{"a.go", "b.go", "c.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n"), 0644)
+	}
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	autoCommitPartialWork(repoDir, logger, "task-0002")
+
+	statusCmd := exec.Command("git", "status", "--porcelain")
+	statusCmd.Dir = repoDir
+	statusOut, _ := statusCmd.Output()
+	if len(strings.TrimSpace(string(statusOut))) > 0 {
+		t.Errorf("expected clean working tree, got: %s", statusOut)
+	}
+}
+
+func TestAutoCommitPartialWork_NotAGitRepo(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, "file.txt"), []byte("content"), 0644)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	// Should not panic
+	autoCommitPartialWork(dir, logger, "task-0001")
+}
+
+func TestAutoCommitPartialWork_GitAddFails(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	_ = os.WriteFile(filepath.Join(repoDir, "file.go"), []byte("content"), 0644)
+
+	// Make .git read-only to cause git add to fail
+	gitDir := filepath.Join(repoDir, ".git")
+	_ = os.Chmod(gitDir, 0444)
+	defer func() { _ = os.Chmod(gitDir, 0755) }()
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	autoCommitPartialWork(repoDir, logger, "task-0001")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// autoCompleteDecomposedParents — edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestAutoCompleteDecomposedParents_MissingSubtask(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+
+	setupLeafNode(t, d, "auto-missing", []state.Task{
+		{ID: "task-0001", Description: "parent", State: state.StatusBlocked,
+			BlockedReason: "decomposed into subtasks: task-0002, task-9999"},
+		{ID: "task-0002", Description: "child 1", State: state.StatusComplete},
+	})
+
+	d.autoCompleteDecomposedParents("auto-missing")
+
+	ns, _ := d.Store.ReadNode("auto-missing")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.State != state.StatusBlocked {
+				t.Errorf("parent should stay blocked when subtask is missing, got %s", task.State)
+			}
+			return
+		}
+	}
+}
+
+func TestAutoCompleteDecomposedParents_NotDecomposed(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+
+	setupLeafNode(t, d, "auto-notdecomp", []state.Task{
+		{ID: "task-0001", Description: "parent", State: state.StatusBlocked,
+			BlockedReason: "some other reason"},
+	})
+
+	d.autoCompleteDecomposedParents("auto-notdecomp")
+
+	ns, _ := d.Store.ReadNode("auto-notdecomp")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.State != state.StatusBlocked {
+				t.Errorf("non-decomposed task should stay blocked, got %s", task.State)
+			}
+			return
+		}
+	}
+}
+
+func TestAutoCompleteDecomposedParents_ReadError(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.autoCompleteDecomposedParents("nonexistent-node")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// isSupersededBlock
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestIsSupersededBlock_VariousKeywords(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		reason string
+		expect bool
+	}{
+		{"superseded by task-0003", true},
+		{"already done in prior commit", true},
+		{"already completed by previous task", true},
+		{"no longer needed after refactor", true},
+		{"replaced by new implementation", true},
+		{"done in task-0002", true},
+		{"done directly by orchestrator", true},
+		{"waiting for database migration", false},
+		{"stuck on API rate limit", false},
+		{"", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.reason, func(t *testing.T) {
+			d := testDaemon(t)
+			setupLeafNode(t, d, "sup-kw", []state.Task{
+				{ID: "task-0001", State: state.StatusBlocked, BlockedReason: tc.reason},
+			})
+
+			got := d.isSupersededBlock("sup-kw", "task-0001")
+			if got != tc.expect {
+				t.Errorf("isSupersededBlock(%q) = %v, want %v", tc.reason, got, tc.expect)
+			}
+		})
+	}
+}
+
+func TestIsSupersededBlock_TaskNotFound(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	setupLeafNode(t, d, "sup-missing", []state.Task{
+		{ID: "task-0001", State: state.StatusBlocked, BlockedReason: "stuck"},
+	})
+
+	got := d.isSupersededBlock("sup-missing", "task-9999")
+	if got {
+		t.Error("should return false for non-existent task")
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// findNewTasks — audit exclusion
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestFindNewTasks_ExcludesAuditTasks(t *testing.T) {
+	t.Parallel()
+	before := &state.NodeState{
+		Tasks: []state.Task{
+			{ID: "task-0001", State: state.StatusInProgress},
+		},
+	}
+	after := &state.NodeState{
+		Tasks: []state.Task{
+			{ID: "task-0001", State: state.StatusInProgress},
+			{ID: "task-0002", State: state.StatusNotStarted},
+			{ID: "audit", State: state.StatusNotStarted, IsAudit: true},
+		},
+	}
+
+	newIDs := findNewTasks(before, after)
+	if len(newIDs) != 1 {
+		t.Fatalf("expected 1 new task (audit excluded), got %d: %v", len(newIDs), newIDs)
+	}
+	if newIDs[0] != "task-0002" {
+		t.Errorf("expected task-0002, got %v", newIDs)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// runIteration — failure type detection
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_NoProgress_FailureType(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Failure.DecompositionThreshold = 0
+	d.Config.Failure.HardCap = 0
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	repoDir := initGitRepo(t)
+	d.RepoDir = repoDir
+
+	setupLeafNode(t, d, "fp-node", []state.Task{
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_COMPLETE"}}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "fp-node", TaskID: "task-0001", Found: true}
+	_ = d.runIteration(context.Background(), nav, idx)
+
+	ns, _ := d.Store.ReadNode("fp-node")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.LastFailureType != "no_progress" {
+				t.Errorf("expected failure type 'no_progress', got %q", task.LastFailureType)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+func TestRunIteration_NoMarker_FailureType(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Failure.DecompositionThreshold = 0
+	d.Config.Failure.HardCap = 0
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	setupLeafNode(t, d, "ftm-node", []state.Task{
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
+	})
+	writePromptFile(t, d.WolfcastleDir, "execute.md")
+
+	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"just some text"}}
+	d.Config.Pipeline.Stages = []config.PipelineStage{
+		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+	}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "ftm-node", TaskID: "task-0001", Found: true}
+	_ = d.runIteration(context.Background(), nav, idx)
+
+	ns, _ := d.Store.ReadNode("ftm-node")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.LastFailureType != "no_terminal_marker" {
+				t.Errorf("expected 'no_terminal_marker', got %q", task.LastFailureType)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Helpers (namespaced to avoid collisions with deliverables_test.go)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func iterCovGitLog(t *testing.T, dir string) string {
+	t.Helper()
+	cmd := exec.Command("git", "log", "--oneline")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git log failed: %v", err)
+	}
+	return string(out)
+}
+
+func iterCovTestLogger(t *testing.T) *logging.Logger {
+	t.Helper()
+	logDir := filepath.Join(t.TempDir(), "logs")
+	_ = os.MkdirAll(logDir, 0755)
+	l, err := logging.NewLogger(logDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = l.StartIteration()
+	return l
+}

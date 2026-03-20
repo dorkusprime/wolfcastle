@@ -15,7 +15,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +41,7 @@ Examples:
 			expand, _ := cmd.Flags().GetBool("expand")
 
 			if !showAll {
-				if err := app.RequireResolver(); err != nil {
+				if err := app.RequireIdentity(); err != nil {
 					return err
 				}
 			}
@@ -57,7 +56,7 @@ Examples:
 				return showAllStatus(app)
 			}
 
-			idx, err := app.Resolver.LoadRootIndex()
+			idx, err := app.State.ReadIndex()
 			if err != nil {
 				return err
 			}
@@ -90,19 +89,18 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 		nd := &nodeDetail{entry: entry}
 		details[addr] = nd
 
-		if a, err := tree.ParseAddress(addr); err == nil {
-			if ns, err := state.LoadNodeState(app.Resolver.NodeStatePath(a)); err == nil {
-				nd.ns = ns
-				auditCounts[ns.Audit.Status]++
-				for _, g := range ns.Audit.Gaps {
-					if g.Status == state.GapOpen {
-						openGaps++
-					}
+		ns, err := app.State.ReadNode(addr)
+		if err == nil {
+			nd.ns = ns
+			auditCounts[ns.Audit.Status]++
+			for _, g := range ns.Audit.Gaps {
+				if g.Status == state.GapOpen {
+					openGaps++
 				}
-				for _, e := range ns.Audit.Escalations {
-					if e.Status == state.EscalationOpen {
-						openEscalations++
-					}
+			}
+			for _, e := range ns.Audit.Escalations {
+				if e.Status == state.EscalationOpen {
+					openEscalations++
 				}
 			}
 		}
@@ -110,7 +108,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 
 	total := len(details)
 
-	daemonStatus := getDaemonStatus(app.WolfcastleDir)
+	daemonStatus := getDaemonStatus(app.Config.Root())
 
 	if app.JSONOutput {
 		output.Print(output.Ok("status", map[string]any{
@@ -165,7 +163,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 	}
 
 	// Inbox count
-	inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(app.State.Dir(), "inbox.json")
 	if inboxData, err := state.LoadInbox(inboxPath); err == nil {
 		newCount, filedCount := 0, 0
 		for _, item := range inboxData.Items {
@@ -209,15 +207,15 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		return
 	}
 
-	// Collapse completed and not_started nodes unless --expand is set.
-	if (nd.entry.State == state.StatusComplete || nd.entry.State == state.StatusNotStarted) && !expand {
+	// Collapse completed nodes unless --expand is set.
+	if nd.entry.State == state.StatusComplete && !expand {
 		childCount := countDescendants(idx, addr)
 		if childCount > 0 {
 			glyph := nodeGlyph(nd.entry.State)
 			output.PrintHuman("%s%s %s  (%d nodes)", indent, glyph, nd.entry.Name, childCount+1)
 			return
 		}
-		// Leaf: show node name with task count.
+		// Completed leaf: show node name with task count.
 		if nd.ns != nil && len(nd.ns.Tasks) > 0 {
 			glyph := nodeGlyph(nd.entry.State)
 			output.PrintHuman("%s%s %s  (%d tasks)", indent, glyph, nd.entry.Name, len(nd.ns.Tasks))
@@ -429,7 +427,7 @@ func getDaemonStatus(wolfcastleDir string) string {
 }
 
 func showAllStatus(app *cmdutil.App) error {
-	projectsDir := filepath.Join(app.WolfcastleDir, "system", "projects")
+	projectsDir := filepath.Join(app.Config.Root(), "system", "projects")
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
 		return fmt.Errorf("reading projects dir: %w", err)
@@ -519,7 +517,7 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 				output.PrintError("%v", err)
 			}
 		} else {
-			idx, err := app.Resolver.LoadRootIndex()
+			idx, err := app.State.ReadIndex()
 			if err != nil {
 				output.PrintError("%v", err)
 			} else {

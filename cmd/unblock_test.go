@@ -7,7 +7,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
 func TestBuildDiagnostic_BasicOutput(t *testing.T) {
@@ -103,10 +102,10 @@ func TestUnblockCmd_TaskNotBlocked(t *testing.T) {
 	env.createLeafNode(t, "my-project", "My Project")
 
 	// Add a task (not_started, not blocked)
-	parsed, _ := tree.ParseAddress("my-project")
-	ns := env.loadNodeState(t, "my-project")
-	_, _ = state.TaskAdd(ns, "do work")
-	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_ = app.State.MutateNode("my-project", func(ns *state.NodeState) error {
+		_, _ = state.TaskAdd(ns, "do work")
+		return nil
+	})
 
 	rootCmd.SetArgs([]string{"unblock", "--node", "my-project/task-0001"})
 	err := rootCmd.Execute()
@@ -139,31 +138,16 @@ func TestUnblockCmd_AgentMode(t *testing.T) {
 	env.createLeafNode(t, "my-project", "My Project")
 
 	// Create a blocked task
-	parsed, _ := tree.ParseAddress("my-project")
-	ns := env.loadNodeState(t, "my-project")
-	_, _ = state.TaskAdd(ns, "do work")
-	_ = state.TaskClaim(ns, "task-0001")
-	_ = state.TaskBlock(ns, "task-0001", "stuck on something")
-	_ = state.SaveNodeState(app.Resolver.NodeStatePath(parsed), ns)
+	_ = app.State.MutateNode("my-project", func(ns *state.NodeState) error {
+		_, _ = state.TaskAdd(ns, "do work")
+		_ = state.TaskClaim(ns, "task-0001")
+		_ = state.TaskBlock(ns, "task-0001", "stuck on something")
+		return nil
+	})
 
 	rootCmd.SetArgs([]string{"unblock", "--agent", "--node", "my-project/task-0001"})
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("unblock --agent failed: %v", err)
-	}
-}
-
-func TestUnblockCmd_NoResolver(t *testing.T) {
-	oldApp := app
-	defer func() { app = oldApp }()
-
-	env := newTestEnv(t)
-	app = env.App
-	app.Resolver = nil
-
-	rootCmd.SetArgs([]string{"unblock", "--node", "my-project/task-0001"})
-	err := rootCmd.Execute()
-	if err == nil {
-		t.Error("expected error without resolver")
 	}
 }
 

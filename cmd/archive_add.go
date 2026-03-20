@@ -10,7 +10,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/archive"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +24,7 @@ and metadata.
 Examples:
   wolfcastle archive add --node my-project`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := app.RequireResolver(); err != nil {
+		if err := app.RequireIdentity(); err != nil {
 			return err
 		}
 		nodeAddr, _ := cmd.Flags().GetString("node")
@@ -33,11 +32,7 @@ Examples:
 			return fmt.Errorf("--node is required: specify the completed node to archive")
 		}
 
-		addr, err := tree.ParseAddress(nodeAddr)
-		if err != nil {
-			return fmt.Errorf("invalid node address: %w", err)
-		}
-		ns, err := app.Resolver.LoadNodeState(addr)
+		ns, err := app.State.ReadNode(nodeAddr)
 		if err != nil {
 			return fmt.Errorf("loading node state: %w", err)
 		}
@@ -46,17 +41,24 @@ Examples:
 			return fmt.Errorf("node %s is %s, not complete. Finish the job first", nodeAddr, ns.State)
 		}
 
+		cfg, err := app.Config.Load()
+		if err != nil {
+			return fmt.Errorf("loading config: %w", err)
+		}
+
+		root := app.Config.Root()
+
 		// Get current branch
 		branch := ""
 		branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-		branchCmd.Dir = filepath.Dir(app.WolfcastleDir)
+		branchCmd.Dir = filepath.Dir(root)
 		if out, err := branchCmd.Output(); err == nil {
 			branch = strings.TrimSpace(string(out))
 		}
 
-		entry := archive.GenerateEntry(nodeAddr, ns, app.Cfg, branch, ns.Audit.ResultSummary)
+		entry := archive.GenerateEntry(nodeAddr, ns, cfg, branch, ns.Audit.ResultSummary)
 
-		archiveDir := filepath.Join(app.WolfcastleDir, "archive")
+		archiveDir := filepath.Join(root, "archive")
 		if err := os.MkdirAll(archiveDir, 0755); err != nil {
 			return fmt.Errorf("creating archive directory: %w", err)
 		}

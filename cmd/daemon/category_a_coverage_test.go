@@ -89,7 +89,7 @@ func TestShowHistoricalLines_ThenNewFile(t *testing.T) {
 	_ = os.WriteFile(logFile1, []byte(`{"type":"assistant","text":"first"}`+"\n"), 0644)
 
 	// Show historical lines from first file
-	delete(fileOffsets, logFile1)
+	clearOffset(logFile1)
 	showHistoricalLines(logFile1, 10, logging.LevelDebug)
 
 	// Create second log file (simulates new iteration)
@@ -97,7 +97,7 @@ func TestShowHistoricalLines_ThenNewFile(t *testing.T) {
 	_ = os.WriteFile(logFile2, []byte(`{"type":"assistant","text":"second"}`+"\n"), 0644)
 
 	// Tail the second file from the beginning
-	delete(fileOffsets, logFile2)
+	clearOffset(logFile2)
 	err := tailFileStreaming(logFile2, logging.LevelDebug)
 	if err != nil {
 		t.Fatalf("tailFileStreaming second file failed: %v", err)

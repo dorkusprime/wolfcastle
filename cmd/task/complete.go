@@ -24,7 +24,7 @@ node falls and the victory propagates upward.
 Examples:
   wolfcastle task complete --node my-project/task-1`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			nodeFlag, _ := cmd.Flags().GetString("node")
@@ -42,14 +42,15 @@ Examples:
 			// MutateNode handles save + propagation automatically.
 			// Validation commands run inside the callback so that a
 			// failure aborts the mutation before anything is written.
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				if err := state.TaskComplete(ns, taskID); err != nil {
 					return err
 				}
 
 				// Run configured validation commands before saving.
-				if app.Cfg != nil {
-					for _, vc := range app.Cfg.Validation.Commands {
+				cfg, _ := app.Config.Load()
+				if cfg != nil {
+					for _, vc := range cfg.Validation.Commands {
 						timeout := 30 * time.Second
 						if vc.TimeoutSeconds > 0 {
 							timeout = time.Duration(vc.TimeoutSeconds) * time.Second

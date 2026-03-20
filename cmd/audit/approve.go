@@ -25,7 +25,7 @@ Examples:
   wolfcastle audit approve finding-1
   wolfcastle audit approve --all`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 
@@ -34,7 +34,7 @@ Examples:
 				return fmt.Errorf("provide a finding ID or use --all")
 			}
 
-			batchPath := filepath.Join(app.WolfcastleDir, "audit-state.json")
+			batchPath := filepath.Join(app.Config.Root(), "audit-state.json")
 			batch, err := state.LoadBatch(batchPath)
 			if err != nil {
 				return err
@@ -43,7 +43,7 @@ Examples:
 				return fmt.Errorf("no pending batch. Run 'wolfcastle audit run' first")
 			}
 
-			idx, err := app.Resolver.LoadRootIndex()
+			idx, err := app.State.ReadIndex()
 			if err != nil {
 				return fmt.Errorf("loading root index: %w", err)
 			}
@@ -97,7 +97,7 @@ Examples:
 					output.PrintHuman("  Error parsing address %s: %v", addr, parseErr)
 					continue
 				}
-				nodeDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addrParsed.Parts...))
+				nodeDir := filepath.Join(app.State.Dir(), filepath.Join(addrParsed.Parts...))
 				if mkdirErr := os.MkdirAll(nodeDir, 0755); mkdirErr != nil {
 					// Roll back index entry since we can't persist the node
 					delete(idx.Nodes, addr)
@@ -115,7 +115,7 @@ Examples:
 				if f.Description != "" {
 					descContent += "\n## Details\n\n" + f.Description + "\n"
 				}
-				descPath := filepath.Join(app.Resolver.ProjectsDir(), slug+".md")
+				descPath := filepath.Join(app.State.Dir(), slug+".md")
 				if writeErr := os.WriteFile(descPath, []byte(descContent), 0644); writeErr != nil {
 					output.PrintHuman("  Warning: could not write description for %s: %v", f.ID, writeErr)
 				}
@@ -149,7 +149,7 @@ Examples:
 			}
 
 			// Save updated root index (new projects created above)
-			if err := state.SaveRootIndex(app.Resolver.RootIndexPath(), idx); err != nil {
+			if err := state.SaveRootIndex(filepath.Join(app.State.Dir(), "state.json"), idx); err != nil {
 				return err
 			}
 

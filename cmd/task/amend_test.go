@@ -13,7 +13,7 @@ import (
 
 func TestTaskAmend_Body(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "original body"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -25,7 +25,7 @@ func TestTaskAmend_Body(t *testing.T) {
 		t.Fatalf("amend body: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" {
 			if task.Body != "updated body" {
@@ -39,7 +39,7 @@ func TestTaskAmend_Body(t *testing.T) {
 
 func TestTaskAmend_Type(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "some task"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -51,7 +51,7 @@ func TestTaskAmend_Type(t *testing.T) {
 		t.Fatalf("amend type: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" {
 			if task.TaskType != "implementation" {
@@ -65,7 +65,7 @@ func TestTaskAmend_Type(t *testing.T) {
 
 func TestTaskAmend_AddSliceFields(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "task with extras"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -83,7 +83,7 @@ func TestTaskAmend_AddSliceFields(t *testing.T) {
 		t.Fatalf("amend slice fields: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	for _, task := range ns.Tasks {
 		if task.ID != "task-0001" {
 			continue
@@ -107,7 +107,7 @@ func TestTaskAmend_AddSliceFields(t *testing.T) {
 
 func TestTaskAmend_RefuseInProgress(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "some work"})
 	_ = env.RootCmd.Execute()
@@ -126,7 +126,7 @@ func TestTaskAmend_RefuseInProgress(t *testing.T) {
 
 func TestTaskAmend_RefuseComplete(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "finish me"})
 	_ = env.RootCmd.Execute()
@@ -147,7 +147,7 @@ func TestTaskAmend_RefuseComplete(t *testing.T) {
 
 func TestTaskAmend_InvalidType(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "typed task"})
 	_ = env.RootCmd.Execute()
@@ -164,7 +164,7 @@ func TestTaskAmend_InvalidType(t *testing.T) {
 
 func TestTaskAmend_TaskNotFound(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "amend", "--node", "my-project/task-9999", "--body", "ghost"})
 	err := env.RootCmd.Execute()

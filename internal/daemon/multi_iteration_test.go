@@ -24,7 +24,7 @@ func TestMultiIteration_YieldThenComplete(t *testing.T) {
 	d.Config.Daemon.MaxIterations = 5
 
 	// Set up a leaf node with one task
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	nodeDir := filepath.Join(projDir, "test-node")
 	_ = os.MkdirAll(nodeDir, 0755)
 
@@ -103,7 +103,7 @@ func TestMultiIteration_NoFalseMarkerFromPromptEcho(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = false
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	nodeDir := filepath.Join(projDir, "test-node")
 	_ = os.MkdirAll(nodeDir, 0755)
 

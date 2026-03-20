@@ -1,15 +1,12 @@
 package orchestrator
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
+	"github.com/dorkusprime/wolfcastle/internal/testutil"
 	"github.com/spf13/cobra"
 )
 
@@ -18,30 +15,26 @@ type testEnv struct {
 	ProjectsDir   string
 	App           *cmdutil.App
 	RootCmd       *cobra.Command
+	env           *testutil.Environment
 }
 
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
-	tmp := t.TempDir()
-	wcDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wcDir, 0755)
 
-	cfg := config.Defaults()
-	cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
+	env := testutil.NewEnvironment(t)
+	af := env.ToAppFields()
 
-	ns := "test-dev"
-	projDir := filepath.Join(wcDir, "system", "projects", ns)
-	_ = os.MkdirAll(projDir, 0755)
-
-	idx := state.NewRootIndex()
-	saveJSON(t, filepath.Join(projDir, "state.json"), idx)
-
-	resolver := &tree.Resolver{WolfcastleDir: wcDir, Namespace: ns}
 	testApp := &cmdutil.App{
-		WolfcastleDir: wcDir,
-		Cfg:           cfg,
-		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), state.DefaultLockTimeout),
+		Config:        af.Config,
+		Identity:      af.Identity,
+		State:         af.State,
+		Prompts:       af.Prompts,
+		Classes:       af.Classes,
+		Daemon:        af.Daemon,
+		Git:           af.Git,
+		Clock:         clock.New(),
+		WolfcastleDir: af.WolfcastleDir,
+		Cfg:           af.Cfg,
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -56,50 +49,22 @@ func newTestEnv(t *testing.T) *testEnv {
 	Register(testApp, rootCmd)
 
 	return &testEnv{
-		WolfcastleDir: wcDir,
-		ProjectsDir:   projDir,
+		WolfcastleDir: env.Root,
+		ProjectsDir:   env.ProjectsDir(),
 		App:           testApp,
 		RootCmd:       rootCmd,
+		env:           env,
 	}
 }
 
-func saveJSON(t *testing.T, path string, v any) {
+func (e *testEnv) createOrchestratorNode(t *testing.T, addr, name string) {
 	t.Helper()
-	data, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = os.MkdirAll(filepath.Dir(path), 0755)
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		t.Fatal(err)
-	}
+	e.env.WithProject(name, testutil.Orchestrator(addr))
 }
 
-func createOrchestratorNode(t *testing.T, env *testEnv, addr, name string) {
+func (e *testEnv) loadNodeState(t *testing.T, addr string) *state.NodeState {
 	t.Helper()
-	parsed, _ := tree.ParseAddress(addr)
-	nodeDir := filepath.Join(env.ProjectsDir, filepath.Join(parsed.Parts...))
-	_ = os.MkdirAll(nodeDir, 0755)
-
-	ns := state.NewNodeState(parsed.Leaf(), name, state.NodeOrchestrator)
-	saveJSON(t, filepath.Join(nodeDir, "state.json"), ns)
-
-	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
-	idx.Nodes[addr] = state.IndexEntry{
-		Name:     name,
-		Type:     state.NodeOrchestrator,
-		State:    state.StatusNotStarted,
-		Address:  addr,
-		Children: []string{},
-	}
-	_ = state.SaveRootIndex(filepath.Join(env.ProjectsDir, "state.json"), idx)
-}
-
-func loadNodeState(t *testing.T, env *testEnv, addr string) *state.NodeState {
-	t.Helper()
-	parsed, _ := tree.ParseAddress(addr)
-	statePath := filepath.Join(env.ProjectsDir, filepath.Join(parsed.Parts...), "state.json")
-	ns, err := state.LoadNodeState(statePath)
+	ns, err := e.env.State.ReadNode(addr)
 	if err != nil {
 		t.Fatalf("loading node state for %s: %v", addr, err)
 	}
@@ -112,14 +77,14 @@ func loadNodeState(t *testing.T, env *testEnv, addr string) *state.NodeState {
 
 func TestCriteria_AddSuccess(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorNode(t, env, "my-project", "My Project")
+	env.createOrchestratorNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "all tests pass"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("criteria add failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.SuccessCriteria) != 1 {
 		t.Fatalf("expected 1 criterion, got %d", len(ns.SuccessCriteria))
 	}
@@ -134,7 +99,7 @@ func TestCriteria_AddSuccess(t *testing.T) {
 
 func TestCriteria_AddDuplicate(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorNode(t, env, "my-project", "My Project")
+	env.createOrchestratorNode(t, "my-project", "My Project")
 
 	for i := 0; i < 3; i++ {
 		env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "all tests pass"})
@@ -143,7 +108,7 @@ func TestCriteria_AddDuplicate(t *testing.T) {
 		}
 	}
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.SuccessCriteria) != 1 {
 		t.Errorf("expected 1 criterion after duplicates, got %d", len(ns.SuccessCriteria))
 	}
@@ -155,7 +120,7 @@ func TestCriteria_AddDuplicate(t *testing.T) {
 
 func TestCriteria_List(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorNode(t, env, "my-project", "My Project")
+	env.createOrchestratorNode(t, "my-project", "My Project")
 
 	// Add two criteria first
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "all tests pass"})
@@ -170,7 +135,7 @@ func TestCriteria_List(t *testing.T) {
 	}
 
 	// Verify the underlying state still has both
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if len(ns.SuccessCriteria) != 2 {
 		t.Errorf("expected 2 criteria, got %d", len(ns.SuccessCriteria))
 	}
@@ -178,7 +143,7 @@ func TestCriteria_List(t *testing.T) {
 
 func TestCriteria_ListEmpty(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorNode(t, env, "my-project", "My Project")
+	env.createOrchestratorNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "--list"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -206,7 +171,7 @@ func TestCriteria_MissingNode(t *testing.T) {
 
 func TestCriteria_EmptyText(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorNode(t, env, "my-project", "My Project")
+	env.createOrchestratorNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "   "})
 	err := env.RootCmd.Execute()
@@ -217,7 +182,7 @@ func TestCriteria_EmptyText(t *testing.T) {
 
 func TestCriteria_NoCriterionArg(t *testing.T) {
 	env := newTestEnv(t)
-	createOrchestratorNode(t, env, "my-project", "My Project")
+	env.createOrchestratorNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project"})
 	err := env.RootCmd.Execute()
@@ -255,13 +220,13 @@ func TestCriteria_ListOnMissingNodeReturnsEmpty(t *testing.T) {
 // no resolver
 // ---------------------------------------------------------------------------
 
-func TestCriteria_NoResolver(t *testing.T) {
+func TestCriteria_NoIdentity(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Resolver = nil
+	env.App.Identity = nil
 
 	env.RootCmd.SetArgs([]string{"orchestrator", "criteria", "--node", "my-project", "test"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when resolver is nil")
+		t.Error("expected error when identity is nil")
 	}
 }

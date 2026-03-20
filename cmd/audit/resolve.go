@@ -19,7 +19,7 @@ Examples:
   wolfcastle audit resolve --node my-project escalation-my-project-1`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			escalationID := args[0]
@@ -28,7 +28,7 @@ Examples:
 				return fmt.Errorf("--node is required: specify the node that holds this escalation")
 			}
 
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				for i := range ns.Audit.Escalations {
 					if ns.Audit.Escalations[i].ID == escalationID {
 						if ns.Audit.Escalations[i].Status == state.EscalationResolved {

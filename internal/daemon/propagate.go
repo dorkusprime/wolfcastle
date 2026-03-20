@@ -17,7 +17,7 @@ import (
 func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx *state.RootIndex) error {
 	return d.Store.WithLock(func() error {
 		// Re-read the index from disk to pick up concurrent modifications.
-		freshIdx, err := state.LoadRootIndex(d.Resolver.RootIndexPath())
+		freshIdx, err := state.LoadRootIndex(filepath.Join(d.Store.Dir(), "state.json"))
 		if err != nil {
 			// Fall back to the in-memory copy if the file can't be read.
 			freshIdx = idx
@@ -34,7 +34,7 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 			if err != nil {
 				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
 			}
-			return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+			return state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json"))
 		}
 
 		// Raw SaveNodeState (no lock) since we already hold the namespace lock.
@@ -43,7 +43,7 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 			if err != nil {
 				return fmt.Errorf("parsing address %q: %w", addr, err)
 			}
-			return state.SaveNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"), ns)
+			return state.SaveNodeState(filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json"), ns)
 		}
 
 		if err := state.Propagate(nodeAddr, nodeState, freshIdx, loadNode, saveNode); err != nil {
@@ -54,7 +54,7 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 		// operations in the same iteration see the updated state.
 		*idx = *freshIdx
 
-		return state.SaveRootIndex(d.Resolver.RootIndexPath(), freshIdx)
+		return state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), freshIdx)
 	})
 }
 

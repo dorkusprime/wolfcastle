@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -33,7 +34,7 @@ Examples:
   wolfcastle log -f -l debug`,
 		Aliases: []string{"follow"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logDir := filepath.Join(app.WolfcastleDir, "system", "logs")
+			logDir := app.Daemon.LogDir()
 			lines, _ := cmd.Flags().GetInt("lines")
 			follow, _ := cmd.Flags().GetBool("follow")
 			levelFilter, _ := cmd.Flags().GetString("level")
@@ -277,12 +278,25 @@ func formatAndPrintLogLine(line string, minLevel logging.Level) {
 }
 
 // Simple offset tracking for tail -f behavior
-var fileOffsets = make(map[string]int64)
+var (
+	fileOffsetsMu sync.Mutex
+	fileOffsets   = make(map[string]int64)
+)
 
 func getOffset(path string) int64 {
+	fileOffsetsMu.Lock()
+	defer fileOffsetsMu.Unlock()
 	return fileOffsets[path]
 }
 
 func setOffset(path string, offset int64) {
+	fileOffsetsMu.Lock()
+	defer fileOffsetsMu.Unlock()
 	fileOffsets[path] = offset
+}
+
+func clearOffset(path string) {
+	fileOffsetsMu.Lock()
+	defer fileOffsetsMu.Unlock()
+	delete(fileOffsets, path)
 }

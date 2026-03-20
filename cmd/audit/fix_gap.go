@@ -19,7 +19,7 @@ Examples:
   wolfcastle audit fix-gap --node my-project gap-my-project-1`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			gapID := args[0]
@@ -28,7 +28,7 @@ Examples:
 				return fmt.Errorf("--node is required: specify the target node address")
 			}
 
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				for i := range ns.Audit.Gaps {
 					if ns.Audit.Gaps[i].ID == gapID {
 						if ns.Audit.Gaps[i].Status == state.GapFixed {

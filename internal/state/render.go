@@ -8,31 +8,21 @@ import (
 )
 
 // RenderContext renders a task's context section as a formatted string suitable
-// for inclusion in an iteration prompt. nodeAddr is the slash-delimited address
-// of the parent node (e.g. "project/auth"); nodeDir, when non-empty, is the
-// filesystem path to the node directory for reading per-task .md files.
+// for inclusion in an iteration prompt. The output covers task metadata,
+// deliverables, acceptance criteria, constraints, references (with inline spec
+// content for small .md files), failure count, and last failure type. Failure
+// headers and decomposition guidance are intentionally excluded; those belong
+// to the ContextBuilder which has access to config thresholds.
 //
-// The output covers task metadata, deliverables, acceptance criteria,
-// constraints, references (with inline spec content for small .md files),
-// failure count, and last failure type. Failure headers and decomposition
-// guidance are intentionally excluded; those belong to the ContextBuilder
-// which has access to config thresholds.
-func (t *Task) RenderContext(nodeAddr string, nodeDir string) string {
+// The task address line renders only the task ID; the full node-qualified
+// address is provided by NodeState.RenderContext or ContextBuilder. Per-task
+// .md file content is likewise the ContextBuilder's responsibility, since it
+// requires filesystem access that a domain type should not perform.
+func (t *Task) RenderContext() string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "**Task:** %s/%s\n", nodeAddr, t.ID)
+	fmt.Fprintf(&b, "**Task:** %s\n", t.ID)
 	fmt.Fprintf(&b, "**Description:** %s\n", t.Description)
-
-	// Include task .md content if available
-	if nodeDir != "" {
-		mdPath := filepath.Join(nodeDir, t.ID+".md")
-		if mdContent, err := os.ReadFile(mdPath); err == nil {
-			content := strings.TrimSpace(string(mdContent))
-			if content != "" {
-				b.WriteString("\n" + content + "\n\n")
-			}
-		}
-	}
 
 	if t.TaskType != "" {
 		fmt.Fprintf(&b, "**Task Type:** %s\n", t.TaskType)
@@ -96,6 +86,60 @@ func (t *Task) RenderContext(nodeAddr string, nodeDir string) string {
 				fmt.Fprintf(&b, "The previous attempt failed with reason: %s\n", t.LastFailureType)
 			}
 		}
+	}
+
+	return b.String()
+}
+
+// RenderContext renders node-level context as a formatted string suitable for
+// inclusion in an iteration prompt. It emits node metadata (type and state)
+// and any linked specs. The full node address is not rendered here; the
+// ContextBuilder provides it when composing the final context. The taskID
+// parameter identifies the active task so the caller can pair this output
+// with the corresponding Task.RenderContext and AuditState.RenderContext.
+func (ns *NodeState) RenderContext(taskID string) string {
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "**Node Type:** %s\n", ns.Type)
+	fmt.Fprintf(&b, "**Node State:** %s\n", ns.State)
+
+	if len(ns.Specs) > 0 {
+		b.WriteString("\n## Linked Specs\n\n")
+		for _, s := range ns.Specs {
+			fmt.Fprintf(&b, "- %s\n", s)
+		}
+	}
+
+	return b.String()
+}
+
+// RenderContext renders the audit state (breadcrumbs and scope) as a formatted
+// string for inclusion in an iteration prompt. Returns empty string when there
+// are no breadcrumbs and no scope.
+func (a *AuditState) RenderContext() string {
+	hasBreadcrumbs := len(a.Breadcrumbs) > 0
+	hasScope := a.Scope != nil
+
+	if !hasBreadcrumbs && !hasScope {
+		return ""
+	}
+
+	var b strings.Builder
+
+	if hasBreadcrumbs {
+		b.WriteString("\n## Recent Breadcrumbs\n\n")
+		start := 0
+		if len(a.Breadcrumbs) > 10 {
+			start = len(a.Breadcrumbs) - 10
+		}
+		for _, bc := range a.Breadcrumbs[start:] {
+			fmt.Fprintf(&b, "- [%s] %s: %s\n", bc.Timestamp.Format("2006-01-02T15:04Z"), bc.Task, bc.Text)
+		}
+	}
+
+	if hasScope {
+		b.WriteString("\n## Audit Scope\n\n")
+		b.WriteString(a.Scope.Description + "\n")
 	}
 
 	return b.String()

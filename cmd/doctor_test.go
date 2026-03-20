@@ -78,7 +78,7 @@ func TestDoctorCmd_NoInit(t *testing.T) {
 	}
 }
 
-func TestDoctorCmd_WithResolver(t *testing.T) {
+func TestDoctorCmd_WithIdentity(t *testing.T) {
 	oldApp := app
 	defer func() { app = oldApp }()
 

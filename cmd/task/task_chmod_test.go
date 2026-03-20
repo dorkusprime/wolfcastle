@@ -15,7 +15,7 @@ func TestTaskAdd_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createLeafNode(t, env, "locked-proj", "Locked Project")
+	env.createLeafNode(t, "locked-proj", "Locked Project")
 
 	// Lock the node directory so SaveNodeState fails.
 	nodeDir := filepath.Join(env.ProjectsDir, "locked-proj")
@@ -35,7 +35,7 @@ func TestTaskClaim_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createLeafNode(t, env, "claim-proj", "Claim Project")
+	env.createLeafNode(t, "claim-proj", "Claim Project")
 
 	// Add a task first (with writable dir).
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "claim-proj", "claimable task"})
@@ -61,7 +61,7 @@ func TestTaskComplete_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createLeafNode(t, env, "complete-proj", "Complete Project")
+	env.createLeafNode(t, "complete-proj", "Complete Project")
 
 	// Add and claim a task.
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "complete-proj", "completable"})
@@ -87,7 +87,7 @@ func TestTaskBlock_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createLeafNode(t, env, "block-proj", "Block Project")
+	env.createLeafNode(t, "block-proj", "Block Project")
 
 	// Add and claim a task.
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "block-proj", "blockable"})
@@ -113,7 +113,7 @@ func TestTaskUnblock_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 
 	env := newTestEnv(t)
-	createLeafNode(t, env, "unblock-proj", "Unblock Project")
+	env.createLeafNode(t, "unblock-proj", "Unblock Project")
 
 	// Add, claim, then block a task.
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "unblock-proj", "blockable"})

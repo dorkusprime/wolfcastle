@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -14,8 +15,11 @@ import (
 
 func TestProjectCreate_OverlapEnabled(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Cfg.OverlapAdvisory.Enabled = true
-	env.App.Cfg.OverlapAdvisory.Threshold = 0.1
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system", "base"), 0755)
+	_ = env.App.Config.WriteBase(cfg)
 
 	// Create another engineer's namespace with similar project
 	otherDir := filepath.Join(env.WolfcastleDir, "system", "projects", "alice-dev")
@@ -156,8 +160,11 @@ func TestProjectCreate_SecondRootProjectNoMetadataOverwrite(t *testing.T) {
 
 func TestProjectCreate_OverlapWithMultipleEngineers(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.Cfg.OverlapAdvisory.Enabled = true
-	env.App.Cfg.OverlapAdvisory.Threshold = 0.1
+	cfg := config.Defaults()
+	cfg.OverlapAdvisory.Enabled = true
+	cfg.OverlapAdvisory.Threshold = 0.1
+	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system", "base"), 0755)
+	_ = env.App.Config.WriteBase(cfg)
 
 	// Create two other engineers with similar projects
 	for _, engineer := range []string{"alice-dev", "bob-dev"} {

@@ -70,7 +70,7 @@ func TestApprove_DuplicateSlugCreateProjectError(t *testing.T) {
 	// covers the "already exists in index" path. Here we exercise the case
 	// where CreateProject itself returns an error for a different reason.
 	// We pre-create the node so the "already exists" dedup path triggers.
-	createLeafNode(t, env, "auth-issue", "Auth Issue")
+	env.createLeafNode(t, "auth-issue", "Auth Issue")
 
 	batch := &state.Batch{
 		ID:     "audit-dup-slug",
@@ -131,7 +131,7 @@ func TestRunCmd_NoScopesFoundForRun(t *testing.T) {
 
 func TestScope_NilScopeInitialization(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "fresh-node", "Fresh Node")
+	env.createLeafNode(t, "fresh-node", "Fresh Node")
 
 	// Node starts with no scope set. Setting description should initialize it.
 	env.RootCmd.SetArgs([]string{"audit", "scope", "--node", "fresh-node", "--description", "new audit scope"})
@@ -139,7 +139,7 @@ func TestScope_NilScopeInitialization(t *testing.T) {
 		t.Fatalf("scope on fresh node failed: %v", err)
 	}
 
-	ns := loadNodeState(t, env, "fresh-node")
+	ns := env.loadNodeState(t, "fresh-node")
 	if ns.Audit.Scope == nil {
 		t.Fatal("scope should have been initialized")
 	}

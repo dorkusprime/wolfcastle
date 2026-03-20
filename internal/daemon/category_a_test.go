@@ -20,7 +20,7 @@ import (
 func TestSelfHeal_MultipleInProgress_ResetsAll(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	idx := state.NewRootIndex()
 	idx.Root = []string{"node-a", "node-b"}
@@ -30,7 +30,7 @@ func TestSelfHeal_MultipleInProgress_ResetsAll(t *testing.T) {
 	idx.Nodes["node-b"] = state.IndexEntry{
 		Name: "B", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "node-b",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	nsA := state.NewNodeState("node-a", "A", state.NodeLeaf)
 	nsA.Tasks = []state.Task{{ID: "t1", State: state.StatusInProgress}}
@@ -142,7 +142,7 @@ func TestRunIteration_InvokeErrorReturnsError(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "invoke-fail-node", TaskID: "task-0001", Found: true}
 	err := d.runIteration(context.Background(), nav, idx)
 	if err == nil {
@@ -173,11 +173,11 @@ func TestRunIteration_DecompThreshold_SetsNeedsDecomposition(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "decomp-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx)
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	var ns state.NodeState
 	data, err := os.ReadFile(filepath.Join(projDir, "decomp-node", "state.json"))
 	if err != nil {
@@ -216,13 +216,13 @@ func TestRunIteration_DecompAtMaxDepth_TaskAutoBlocked(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	idx := state.NewRootIndex()
 	idx.Root = []string{"maxdepth-node"}
 	idx.Nodes["maxdepth-node"] = state.IndexEntry{
 		Name: "MaxDepth", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "maxdepth-node",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	ns := state.NewNodeState("maxdepth-node", "MaxDepth", state.NodeLeaf)
 	ns.DecompositionDepth = 0
@@ -280,11 +280,11 @@ func TestRunIteration_HardCapReached_TaskAutoBlocked(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "hardcap-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx)
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	data, err := os.ReadFile(filepath.Join(projDir, "hardcap-node", "state.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -330,7 +330,7 @@ func TestRunIteration_NoTerminalMarker_FailureIncremented(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "nonterminal-node", TaskID: "task-0001", Found: true}
 	err := d.runIteration(context.Background(), nav, idx)
 	if err != nil {
@@ -372,7 +372,7 @@ func TestPropagateState_EmptyParentAddr_LoadNodeError(t *testing.T) {
 func TestPropagateState_SaveNodeCallbackExercised(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	idx := state.NewRootIndex()
 
 	idx.Root = []string{"sv-parent"}
@@ -384,7 +384,7 @@ func TestPropagateState_SaveNodeCallbackExercised(t *testing.T) {
 		Name: "Child", Type: state.NodeLeaf, State: state.StatusNotStarted,
 		Address: "sv-parent/sv-child", Parent: "sv-parent",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	parentNS := state.NewNodeState("sv-parent", "Parent", state.NodeOrchestrator)
 	parentNS.Children = []state.ChildRef{
@@ -460,7 +460,7 @@ func TestRunIntakeStage_MissingModelWithPrompt(t *testing.T) {
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
@@ -488,7 +488,7 @@ func TestRunIntakeStage_BrokenCommand(t *testing.T) {
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
@@ -510,7 +510,7 @@ func TestRunIntakeStage_MissingPromptFile(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})

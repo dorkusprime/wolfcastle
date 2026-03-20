@@ -34,7 +34,7 @@ func TestRunIntakeStage_ProcessesNewItems(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
 	// Write an inbox with a "new" item
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	inboxData := state.InboxFile{
 		Items: []state.InboxItem{
 			{Text: "build a feature", Status: "new", Timestamp: clock.New().Now().Format("2006-01-02T15:04:05Z")},
@@ -85,7 +85,7 @@ func TestRunIntakeStage_SkipsWhenAllFiled(t *testing.T) {
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	inboxData := state.InboxFile{
 		Items: []state.InboxItem{
 			{Text: "old idea", Status: "filed", Timestamp: clock.New().Now().Format("2006-01-02T15:04:05Z")},
@@ -124,7 +124,7 @@ func TestRunInboxWithFsnotify_ReactsToFileChange(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Write an inbox item; fsnotify should detect the write
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	inboxPath := filepath.Join(projDir, "inbox.json")
 	inboxData := state.InboxFile{
 		Items: []state.InboxItem{
@@ -175,7 +175,7 @@ func TestRunInboxLoop_ProcessesItemFromGoroutine(t *testing.T) {
 	go d.runInboxLoop(ctx)
 
 	// Add an inbox item from this goroutine
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	inboxPath := filepath.Join(projDir, "inbox.json")
 	inboxData := state.InboxFile{
 		Items: []state.InboxItem{

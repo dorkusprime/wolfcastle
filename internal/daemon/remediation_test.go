@@ -37,7 +37,7 @@ func TestRunIteration_SkipBypassesProgressCheck(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "skip-node", TaskID: "task-0001", Found: true}
 	err := d.runIteration(context.Background(), nav, idx)
 	if err != nil {
@@ -87,7 +87,7 @@ func TestRunIteration_AuditSkipsProgressCheck(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "audit-node", TaskID: "audit-0001", Found: true}
 	err := d.runIteration(context.Background(), nav, idx)
 	if err != nil {
@@ -127,7 +127,7 @@ func TestRunIteration_MissingDeliverables_WarnsButCompletes(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	ns := state.NewNodeState("deliv-node", "deliv-node", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{
@@ -142,11 +142,11 @@ func TestRunIteration_MissingDeliverables_WarnsButCompletes(t *testing.T) {
 	idx.Nodes["deliv-node"] = state.IndexEntry{
 		Name: "deliv-node", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "deliv-node",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 	writeJSON(t, filepath.Join(projDir, "deliv-node", "state.json"), ns)
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx2, _ := d.Resolver.LoadRootIndex()
+	idx2, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "deliv-node", TaskID: "task-0001", Found: true}
 	err := d.runIteration(context.Background(), nav, idx2)
 	if err != nil {

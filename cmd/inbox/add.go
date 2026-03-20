@@ -22,7 +22,7 @@ Examples:
   wolfcastle inbox add "investigate flaky test in CI"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			text := args[0]
@@ -30,7 +30,7 @@ Examples:
 				return fmt.Errorf("empty text. Give Wolfcastle something to work with")
 			}
 
-			inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
+			inboxPath := filepath.Join(app.State.Dir(), "inbox.json")
 
 			item := state.InboxItem{
 				Timestamp: app.Clock.Now().Format("2006-01-02T15:04:05Z07:00"),

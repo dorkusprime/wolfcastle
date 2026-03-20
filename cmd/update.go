@@ -32,9 +32,11 @@ Examples:
 			}
 		}
 
-		// Regenerate base/ prompts and rules
-		if err := project.WriteBasePrompts(app.WolfcastleDir); err != nil {
-			return fmt.Errorf("regenerating base prompts: %w", err)
+		// Regenerate base tier (prompts, rules, configs, identity)
+		root := app.Config.Root()
+		svc := project.NewScaffoldService(app.Config, app.Prompts, nil, root)
+		if err := svc.Reinit(); err != nil {
+			return fmt.Errorf("regenerating system/base/: %w", err)
 		}
 
 		if app.JSONOutput {
@@ -45,12 +47,12 @@ Examples:
 				updateStatus = "updated"
 			}
 			output.Print(output.Ok("update", map[string]string{
-				"path":          app.WolfcastleDir,
+				"path":          root,
 				"version":       Version,
 				"update_status": updateStatus,
 			}))
 		} else {
-			output.PrintHuman("system/base/ regenerated in %s", app.WolfcastleDir)
+			output.PrintHuman("system/base/ regenerated in %s", root)
 		}
 		return nil
 	},

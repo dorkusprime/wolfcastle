@@ -21,7 +21,7 @@ Examples:
   wolfcastle audit scope --node my-project --files "auth.go|login.go" --systems "auth|session"
   wolfcastle audit scope --node my-project --criteria "no SQL injection|input validation"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
@@ -38,7 +38,7 @@ Examples:
 			}
 
 			var scope *state.AuditScope
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				if ns.Audit.Scope == nil {
 					ns.Audit.Scope = &state.AuditScope{}
 				}

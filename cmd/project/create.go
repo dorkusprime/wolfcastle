@@ -27,7 +27,7 @@ Examples:
   wolfcastle project create --node auth-system "login-flow"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			name := args[0]
@@ -53,12 +53,14 @@ Examples:
 				return fmt.Errorf("unknown node type %q: pick 'leaf' or 'orchestrator'", nodeType)
 			}
 
+			projDir := app.State.Dir()
+
 			// All state mutations happen under a single lock hold to
 			// prevent races with the daemon or other CLI commands.
 			var addr string
-			if err := app.Store.WithLock(func() error {
+			if err := app.State.WithLock(func() error {
 				// Load root index (raw, we hold the lock)
-				idx, err := state.LoadRootIndex(app.Resolver.RootIndexPath())
+				idx, err := state.LoadRootIndex(filepath.Join(projDir, "state.json"))
 				if err != nil {
 					if !os.IsNotExist(err) {
 						return fmt.Errorf("loading root index: %w", err)
@@ -77,7 +79,7 @@ Examples:
 						if err != nil {
 							return fmt.Errorf("invalid parent address: %w", err)
 						}
-						parentDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(parentParsed.Parts...))
+						parentDir := filepath.Join(projDir, filepath.Join(parentParsed.Parts...))
 						parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
 						if err != nil {
 							return fmt.Errorf("loading parent state for promotion: %w", err)
@@ -127,7 +129,7 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("invalid node address: %w", err)
 				}
-				nodeDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addrParsed.Parts...))
+				nodeDir := filepath.Join(projDir, filepath.Join(addrParsed.Parts...))
 				if err := os.MkdirAll(nodeDir, 0755); err != nil {
 					return fmt.Errorf("creating node directory: %w", err)
 				}
@@ -153,7 +155,7 @@ Examples:
 				// Update parent node state to include child ref
 				if parentNode != "" {
 					parentParsed2, _ := tree.ParseAddress(parentNode)
-					parentDir := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(parentParsed2.Parts...))
+					parentDir := filepath.Join(projDir, filepath.Join(parentParsed2.Parts...))
 					parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
 					if err == nil {
 						parentState.Children = append(parentState.Children, state.ChildRef{
@@ -174,7 +176,7 @@ Examples:
 					idx.RootState = state.StatusNotStarted
 				}
 
-				return state.SaveRootIndex(app.Resolver.RootIndexPath(), idx)
+				return state.SaveRootIndex(filepath.Join(projDir, "state.json"), idx)
 			}); err != nil {
 				return err
 			}
@@ -190,7 +192,8 @@ Examples:
 			}
 
 			// Run overlap advisory if enabled (ADR-027)
-			if app.Cfg != nil && app.Cfg.OverlapAdvisory.Enabled {
+			cfg, cfgErr := app.Config.Load()
+			if cfgErr == nil && cfg.OverlapAdvisory.Enabled {
 				overlapDesc := description
 				if overlapDesc == "" {
 					overlapDesc = name

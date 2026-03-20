@@ -22,7 +22,7 @@ Examples:
   wolfcastle audit gap --node api/endpoints "no rate limiting tests"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			description := args[0]
@@ -35,7 +35,7 @@ Examples:
 			}
 
 			var gapID string
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				gapID = fmt.Sprintf("gap-%s-%d", ns.ID, len(ns.Audit.Gaps)+1)
 				ns.Audit.Gaps = append(ns.Audit.Gaps, state.Gap{
 					ID:          gapID,

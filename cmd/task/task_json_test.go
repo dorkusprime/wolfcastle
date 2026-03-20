@@ -11,7 +11,7 @@ func TestTaskAdd_JSONOutput(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "implement the API"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -24,7 +24,7 @@ func TestTaskClaim_JSONOutput(t *testing.T) {
 	env.App.JSONOutput = true
 	defer func() { env.App.JSONOutput = false }()
 
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 	env.App.JSONOutput = false
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -38,7 +38,7 @@ func TestTaskClaim_JSONOutput(t *testing.T) {
 
 func TestTaskComplete_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -56,7 +56,7 @@ func TestTaskComplete_JSONOutput(t *testing.T) {
 
 func TestTaskBlock_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -74,7 +74,7 @@ func TestTaskBlock_JSONOutput(t *testing.T) {
 
 func TestTaskUnblock_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -94,7 +94,7 @@ func TestTaskUnblock_JSONOutput(t *testing.T) {
 
 func TestTaskAdd_InvalidNodeAddress(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "INVALID", "description"})
 	err := env.RootCmd.Execute()
@@ -115,7 +115,7 @@ func TestTaskAdd_NonexistentNode(t *testing.T) {
 
 func TestTaskClaim_AlreadyClaimed(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -132,7 +132,7 @@ func TestTaskClaim_AlreadyClaimed(t *testing.T) {
 
 func TestTaskComplete_NotInProgress(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -147,7 +147,7 @@ func TestTaskComplete_NotInProgress(t *testing.T) {
 
 func TestTaskBlock_PreBlockNotStarted(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -162,7 +162,7 @@ func TestTaskBlock_PreBlockNotStarted(t *testing.T) {
 
 func TestTaskUnblock_NotBlocked(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -177,7 +177,7 @@ func TestTaskUnblock_NotBlocked(t *testing.T) {
 
 func TestTaskBlockPropagatesNodeState(t *testing.T) {
 	env := newTestEnv(t)
-	createLeafNode(t, env, "my-project", "My Project")
+	env.createLeafNode(t, "my-project", "My Project")
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
@@ -194,7 +194,7 @@ func TestTaskBlockPropagatesNodeState(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "block", "--node", "my-project/task-0001", "stuck"})
 	_ = env.RootCmd.Execute()
 
-	ns := loadNodeState(t, env, "my-project")
+	ns := env.loadNodeState(t, "my-project")
 	if ns.State != state.StatusBlocked {
 		t.Errorf("node should be blocked when all non-complete tasks are blocked, got %s", ns.State)
 	}

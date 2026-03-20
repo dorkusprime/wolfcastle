@@ -5,7 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +48,8 @@ Examples:
 			}
 
 			// Force mode: re-scaffold base/ and refresh identity
-			if err := project.ReScaffold(wcDir); err != nil {
+			svc := newScaffoldService(wcDir)
+			if err := svc.Reinit(); err != nil {
 				return fmt.Errorf("re-scaffold failed: %w", err)
 			}
 
@@ -61,7 +64,8 @@ Examples:
 			return nil
 		}
 
-		if err := project.Scaffold(wcDir); err != nil {
+		svc := newScaffoldService(wcDir)
+		if err := svc.Init(config.DetectIdentity()); err != nil {
 			return fmt.Errorf("scaffold failed: %w", err)
 		}
 
@@ -85,4 +89,12 @@ Examples:
 func init() {
 	initCmd.Flags().Bool("force", false, "Re-scaffold system/base/ templates and refresh identity")
 	rootCmd.AddCommand(initCmd)
+}
+
+// newScaffoldService constructs a ScaffoldService with real repositories
+// rooted at the given .wolfcastle directory.
+func newScaffoldService(wcDir string) *project.ScaffoldService {
+	cfgRepo := config.NewConfigRepository(wcDir)
+	promptRepo := pipeline.NewPromptRepository(wcDir)
+	return project.NewScaffoldService(cfgRepo, promptRepo, nil, wcDir)
 }

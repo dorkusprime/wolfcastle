@@ -20,7 +20,7 @@ Use 'wolfcastle navigate' to find the next one worth claiming.
 Examples:
   wolfcastle task claim --node my-project/task-1`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			nodeFlag, _ := cmd.Flags().GetString("node")
@@ -35,7 +35,7 @@ Examples:
 			}
 
 			// MutateNode handles save + propagation automatically.
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				return state.TaskClaim(ns, taskID)
 			}); err != nil {
 				return err

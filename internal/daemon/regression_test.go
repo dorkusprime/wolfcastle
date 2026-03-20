@@ -23,7 +23,7 @@ import (
 
 func TestPropagateState_PreservesNewNodesAddedDuringIteration(t *testing.T) {
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	// Set up initial index with one leaf node.
 	idx := state.NewRootIndex()
@@ -34,7 +34,7 @@ func TestPropagateState_PreservesNewNodesAddedDuringIteration(t *testing.T) {
 		State:   state.StatusInProgress,
 		Address: "node-a",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	// Create the node-a state file so propagation can load it.
 	nsA := state.NewNodeState("node-a", "Node A", state.NodeLeaf)
@@ -45,7 +45,7 @@ func TestPropagateState_PreservesNewNodesAddedDuringIteration(t *testing.T) {
 
 	// Simulate the intake model adding a new project to the root index
 	// on disk while the daemon holds a stale in-memory copy.
-	diskIdx, err := d.Resolver.LoadRootIndex()
+	diskIdx, err := d.Store.ReadIndex()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestPropagateState_PreservesNewNodesAddedDuringIteration(t *testing.T) {
 		State:   state.StatusNotStarted,
 		Address: "node-b",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), diskIdx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), diskIdx)
 
 	// Now propagate using the daemon's stale in-memory idx (which
 	// knows nothing about node-b).
@@ -65,7 +65,7 @@ func TestPropagateState_PreservesNewNodesAddedDuringIteration(t *testing.T) {
 	}
 
 	// Re-read the index from disk and verify node-b survived.
-	final, err := d.Resolver.LoadRootIndex()
+	final, err := d.Store.ReadIndex()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestPropagateState_PreservesNewNodesAddedDuringIteration(t *testing.T) {
 
 func TestPropagateState_FallsBackToInMemoryOnDiskError(t *testing.T) {
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	// Set up initial index with one leaf node.
 	idx := state.NewRootIndex()
@@ -95,7 +95,7 @@ func TestPropagateState_FallsBackToInMemoryOnDiskError(t *testing.T) {
 		State:   state.StatusInProgress,
 		Address: "node-a",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	// Create node-a state file.
 	nsA := state.NewNodeState("node-a", "Node A", state.NodeLeaf)
@@ -105,7 +105,7 @@ func TestPropagateState_FallsBackToInMemoryOnDiskError(t *testing.T) {
 	writeJSON(t, filepath.Join(projDir, "node-a", "state.json"), nsA)
 
 	// Delete the root index so LoadRootIndex fails on re-read.
-	_ = os.Remove(d.Resolver.RootIndexPath())
+	_ = os.Remove(filepath.Join(d.Store.Dir(), "state.json"))
 
 	// propagateState should fall back to the in-memory idx.
 	// This will fail to save (directory still exists), but the key
@@ -129,7 +129,7 @@ func TestPropagateState_FallsBackToInMemoryOnDiskError(t *testing.T) {
 func TestRunOnce_CompletePrintedOnce(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = false
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	// Set up a fully-complete tree: one leaf, one task, already done.
 	idx := state.NewRootIndex()
@@ -140,7 +140,7 @@ func TestRunOnce_CompletePrintedOnce(t *testing.T) {
 		State:   state.StatusComplete,
 		Address: "done-node",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	ns := state.NewNodeState("done-node", "Done Node", state.NodeLeaf)
 	ns.State = state.StatusComplete
@@ -197,7 +197,7 @@ func TestRunOnce_CompletePrintedOnce(t *testing.T) {
 func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = false
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	// Start with a complete tree.
 	idx := state.NewRootIndex()
@@ -208,7 +208,7 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 		State:   state.StatusComplete,
 		Address: "done-node",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	ns := state.NewNodeState("done-node", "Done Node", state.NodeLeaf)
 	ns.State = state.StatusComplete
@@ -255,7 +255,7 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 		State:   state.StatusNotStarted,
 		Address: "new-node",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx2)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx2)
 
 	nsNew := state.NewNodeState("new-node", "New Node", state.NodeLeaf)
 	nsNew.Tasks = []state.Task{
@@ -294,7 +294,7 @@ func TestRunOnce_CompleteResetWhenNewWorkAppears(t *testing.T) {
 func TestIntegration_PropagatePreservesNodesAddedDuringModelRun(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = false
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	setupLeafNode(t, d, "existing-node", []state.Task{
 		{ID: "task-0001", Description: "do the thing", State: state.StatusNotStarted},
@@ -305,7 +305,7 @@ func TestIntegration_PropagatePreservesNodesAddedDuringModelRun(t *testing.T) {
 	// before emitting WOLFCASTLE_COMPLETE. This simulates the intake
 	// model calling `wolfcastle project create`.
 	scriptFile := filepath.Join(t.TempDir(), "add-node.sh")
-	rootIndexPath := d.Resolver.RootIndexPath()
+	rootIndexPath := filepath.Join(d.Store.Dir(), "state.json")
 	newNodeDir := filepath.Join(projDir, "injected-node")
 
 	// Build the new node state JSON.
@@ -366,7 +366,7 @@ echo "WOLFCASTLE_COMPLETE"
 	}
 
 	// Verify the injected node survived propagation.
-	final, err := d.Resolver.LoadRootIndex()
+	final, err := d.Store.ReadIndex()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -39,7 +39,7 @@ func TestPropagateState_ParentLoadError(t *testing.T) {
 		Name: "Child", Type: state.NodeLeaf, State: state.StatusNotStarted,
 		Address: "parent/child", Parent: "parent",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	// Don't create parent state.json on disk — loadNode for parent will fail
 	// but propagateState should still succeed or return an error gracefully
@@ -50,7 +50,7 @@ func TestPropagateState_ParentLoadError(t *testing.T) {
 
 func TestPropagateState_FourLevelHierarchy(t *testing.T) {
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	idx := state.NewRootIndex()
 	idx.Root = []string{"l1"}
@@ -70,7 +70,7 @@ func TestPropagateState_FourLevelHierarchy(t *testing.T) {
 		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusNotStarted,
 		Address: "l1/l2/l3/leaf", Parent: "l1/l2/l3",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	// Create node state files
 	l1NS := state.NewNodeState("l1", "L1", state.NodeOrchestrator)
@@ -94,7 +94,7 @@ func TestPropagateState_FourLevelHierarchy(t *testing.T) {
 	}
 
 	// Verify index was updated
-	updatedIdx, err := d.Resolver.LoadRootIndex()
+	updatedIdx, err := d.Store.ReadIndex()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestCheckInboxState_NoFile(t *testing.T) {
 
 func TestCheckInboxState_EmptyItems(t *testing.T) {
 	d := testDaemon(t)
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{}})
 
 	hasNew := d.checkInboxState(inboxPath)
@@ -128,7 +128,7 @@ func TestCheckInboxState_EmptyItems(t *testing.T) {
 
 func TestCheckInboxState_MixedItems(t *testing.T) {
 	d := testDaemon(t)
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item1"},
 		{Status: "filed", Text: "item3"},
@@ -142,7 +142,7 @@ func TestCheckInboxState_MixedItems(t *testing.T) {
 
 func TestCheckInboxState_OnlyFiled(t *testing.T) {
 	d := testDaemon(t)
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "filed", Text: "item1"},
 	}})

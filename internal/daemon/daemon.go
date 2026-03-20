@@ -30,7 +30,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 
@@ -39,6 +38,7 @@ import (
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -50,27 +50,29 @@ const inboxIterationOffset = 10000
 
 // Daemon is the main Wolfcastle daemon loop.
 type Daemon struct {
-	Config        *config.Config
-	WolfcastleDir string
-	Resolver      *tree.Resolver
-	Store         *state.StateStore
-	ScopeNode     string
-	Logger        *logging.Logger
-	InboxLogger   *logging.Logger // separate logger for the inbox goroutine
-	RepoDir       string
-	Clock         clock.Clock
+	Config         *config.Config
+	WolfcastleDir  string
+	Store          *state.StateStore
+	ScopeNode      string
+	Logger         *logging.Logger
+	InboxLogger    *logging.Logger // separate logger for the inbox goroutine
+	RepoDir        string
+	Clock          clock.Clock
+	ContextBuilder *pipeline.ContextBuilder
+	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
 	shutdown      chan struct{}
 	shutdownOnce  sync.Once
 	workAvailable chan struct{}
 	sigChan       chan os.Signal
+	runWg         sync.WaitGroup // tracks goroutines started by Run
 	branch        string
 	iteration     int
 	lastNoWorkMsg string // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
 }
 
 // New creates a new daemon.
-func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scopeNode string, repoDir string) (*Daemon, error) {
+func New(cfg *config.Config, wolfcastleDir string, store *state.StateStore, scopeNode string, repoDir string) (*Daemon, error) {
 	logDir := filepath.Join(wolfcastleDir, "system", "logs")
 	logger, err := logging.NewLogger(logDir)
 	if err != nil {
@@ -98,69 +100,33 @@ func New(cfg *config.Config, wolfcastleDir string, resolver *tree.Resolver, scop
 	// their iteration numbers never overlap.
 	inboxLogger.Iteration = inboxIterationOffset + logging.IterationFromDir(logDir)
 
+	// Build domain repositories for prompt and class resolution, then
+	// assemble a ContextBuilder that replaces the legacy standalone
+	// buildIterationContext functions.
+	prompts := pipeline.NewPromptRepository(wolfcastleDir)
+	classes := pipeline.NewClassRepository(prompts)
+	classes.Reload(cfg.TaskClasses)
+	ctxBuilder := pipeline.NewContextBuilder(prompts, classes)
+
 	return &Daemon{
-		Config:        cfg,
-		WolfcastleDir: wolfcastleDir,
-		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), 5*time.Second),
-		ScopeNode:     scopeNode,
-		Logger:        logger,
-		InboxLogger:   inboxLogger,
-		RepoDir:       repoDir,
-		Clock:         clock.New(),
-		shutdown:      make(chan struct{}),
-		workAvailable: make(chan struct{}, 1),
+		Config:         cfg,
+		WolfcastleDir:  wolfcastleDir,
+		Store:          store,
+		ScopeNode:      scopeNode,
+		Logger:         logger,
+		InboxLogger:    inboxLogger,
+		RepoDir:        repoDir,
+		Clock:          clock.New(),
+		ContextBuilder: ctxBuilder,
+		shutdown:       make(chan struct{}),
+		workAvailable:  make(chan struct{}, 1),
 	}, nil
 }
 
-// PreStartSelfHeal runs before validation to fix stale in_progress tasks.
-// Called from the start command before the daemon is constructed.
-func PreStartSelfHeal(resolver *tree.Resolver, wolfcastleDir string) {
-	idx, err := resolver.LoadRootIndex()
-	if err != nil {
-		return
-	}
-	projDir := resolver.ProjectsDir()
-	for addr, entry := range idx.Nodes {
-		if entry.Type != state.NodeLeaf && entry.Type != state.NodeOrchestrator {
-			continue
-		}
-		a, parseErr := tree.ParseAddress(addr)
-		if parseErr != nil {
-			continue
-		}
-		statePath := filepath.Join(projDir, filepath.Join(a.Parts...), "state.json")
-		ns, loadErr := state.LoadNodeState(statePath)
-		if loadErr != nil {
-			continue
-		}
-		changed := false
-		for i := range ns.Tasks {
-			if ns.Tasks[i].State == state.StatusInProgress {
-				if derived, hasChildren := state.DeriveParentStatus(ns, ns.Tasks[i].ID); hasChildren {
-					ns.Tasks[i].State = derived
-				} else {
-					ns.Tasks[i].State = state.StatusNotStarted
-				}
-				changed = true
-			} else if derived, hasChildren := state.DeriveParentStatus(ns, ns.Tasks[i].ID); hasChildren && derived != ns.Tasks[i].State {
-				ns.Tasks[i].State = derived
-				changed = true
-			}
-		}
-		if changed {
-			_ = state.SaveNodeState(statePath, ns)
-		}
-	}
-}
-
 // selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
-// Resets all in_progress tasks to not_started (they'll be re-claimed next
-// iteration). Also derives parent task status from children so hierarchical
-// tasks don't stay in_progress when all children are complete.
 func (d *Daemon) selfHeal() error {
 	output.PrintHuman("Scanning for casualties...")
-	idx, err := d.Resolver.LoadRootIndex()
+	idx, err := d.Store.ReadIndex()
 	if err != nil {
 		output.PrintHuman("No root index. Nothing to recover.")
 		return nil
@@ -175,7 +141,7 @@ func (d *Daemon) selfHeal() error {
 		if parseErr != nil {
 			continue
 		}
-		statePath := filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json")
+		statePath := filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json")
 		ns, loadErr := state.LoadNodeState(statePath)
 		if loadErr != nil {
 			continue
@@ -185,7 +151,6 @@ func (d *Daemon) selfHeal() error {
 		for i := range ns.Tasks {
 			t := &ns.Tasks[i]
 			if t.State == state.StatusInProgress {
-				// Stale in_progress: derive from children or reset
 				if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren {
 					t.State = derived
 					output.PrintHuman("  Derived %s/%s → %s", addr, t.ID, derived)
@@ -196,9 +161,6 @@ func (d *Daemon) selfHeal() error {
 				changed = true
 				healed++
 			} else if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren && derived != t.State {
-				// Parent task disagrees with its children. Write the
-				// derived status so the on-disk state matches what
-				// navigation computes on the fly.
 				output.PrintHuman("  Derived %s/%s → %s (was %s)", addr, t.ID, derived, t.State)
 				t.State = derived
 				changed = true
@@ -225,6 +187,11 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 	maxRestarts := d.Config.Daemon.MaxRestarts
 	delay := time.Duration(d.Config.Daemon.RestartDelaySeconds) * time.Second
 
+	sleepFn := d.SleepFunc
+	if sleepFn == nil {
+		sleepFn = time.Sleep
+	}
+
 	for restart := 0; ; restart++ {
 		err := d.Run(ctx)
 		if err == nil || ctx.Err() != nil {
@@ -234,13 +201,12 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 			return fmt.Errorf("daemon exceeded max restarts (%d): %w", maxRestarts, err)
 		}
 		output.PrintHuman("Crash (attempt %d/%d): %v. Restarting in %v.", restart+1, maxRestarts, err, delay)
-		time.Sleep(delay)
+		sleepFn(delay)
 
-		// Ensure previous goroutines see shutdown before we reset.
-		// The signal goroutine and context-cancel goroutine both
-		// select on d.shutdown; closing it lets them exit cleanly.
+		// Close shutdown so goroutines from the previous Run() exit,
+		// then wait for them to finish before resetting state.
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
-		runtime.Gosched()
+		d.runWg.Wait()
 
 		d.shutdown = make(chan struct{})
 		d.shutdownOnce = sync.Once{}
@@ -276,7 +242,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 	d.sigChan = make(chan os.Signal, 2)
 	signal.Notify(d.sigChan, shutdownSignals...)
 	defer signal.Stop(d.sigChan)
+	d.runWg.Add(1)
 	go func() {
+		defer d.runWg.Done()
 		for {
 			select {
 			case _, ok := <-d.sigChan:
@@ -286,9 +254,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 				output.PrintHuman("\n=== Wolfcastle standing down (signal) ===")
 				cancel()
 				d.shutdownOnce.Do(func() { close(d.shutdown) })
-				// Force exit after a grace period in case the main loop
-				// is stuck (e.g., spinner Stop() blocking). Clean up PID
-				// file before exiting to prevent stale PID on next start.
 				go func() {
 					time.Sleep(2 * time.Second)
 					_ = os.Remove(filepath.Join(d.WolfcastleDir, "system", "wolfcastle.pid"))
@@ -303,7 +268,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	// Also close the shutdown channel when context cancels (covers
 	// programmatic cancellation, not just signals).
+	d.runWg.Add(1)
 	go func() {
+		defer d.runWg.Done()
 		<-ctx.Done()
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
@@ -461,7 +428,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		if parseErr != nil {
 			return nil, fmt.Errorf("parsing address %q: %w", addr, parseErr)
 		}
-		return state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(a.Parts...), "state.json"))
+		return state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json"))
 	}
 
 	// Step 1: Try to find an actionable task. Execute if found.

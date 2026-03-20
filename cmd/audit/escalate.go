@@ -24,7 +24,7 @@ Examples:
   wolfcastle audit escalate --node api/endpoints "rate limiting not defined"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			description := args[0]
@@ -45,7 +45,7 @@ Examples:
 				return fmt.Errorf("root-level node has no parent to escalate to")
 			}
 
-			if err := app.Store.MutateNode(parentAddr.String(), func(parentState *state.NodeState) error {
+			if err := app.State.MutateNode(parentAddr.String(), func(parentState *state.NodeState) error {
 				state.AddEscalation(parentState, nodeAddr, description, "", app.Clock)
 				return nil
 			}); err != nil {

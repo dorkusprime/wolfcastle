@@ -12,6 +12,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -162,18 +163,21 @@ func testDaemon(t *testing.T) *Daemon {
 		t.Fatal(err)
 	}
 
-	resolver := &tree.Resolver{WolfcastleDir: wolfDir, Namespace: ns}
+	prompts := pipeline.NewPromptRepository(wolfDir)
+	classes := pipeline.NewClassRepository(prompts)
+	ctxBuilder := pipeline.NewContextBuilder(prompts, classes)
+
 	return &Daemon{
-		Config:        testConfig(),
-		WolfcastleDir: wolfDir,
-		Resolver:      resolver,
-		Store:         state.NewStateStore(resolver.ProjectsDir(), 5*time.Second),
-		Logger:        logger,
-		InboxLogger:   inboxLogger,
-		Clock:         clock.New(),
-		RepoDir:       tmp,
-		shutdown:      make(chan struct{}),
-		workAvailable: make(chan struct{}, 1),
+		Config:         testConfig(),
+		WolfcastleDir:  wolfDir,
+		Store:          state.NewStateStore(projDir, 5*time.Second),
+		Logger:         logger,
+		InboxLogger:    inboxLogger,
+		Clock:          clock.New(),
+		RepoDir:        tmp,
+		ContextBuilder: ctxBuilder,
+		shutdown:       make(chan struct{}),
+		workAvailable:  make(chan struct{}, 1),
 	}
 }
 
@@ -195,7 +199,7 @@ func writeJSON(t *testing.T, path string, v any) {
 // setupLeafNode creates a root index with a single leaf node and its state file.
 func setupLeafNode(t *testing.T, d *Daemon, nodeAddr string, tasks []state.Task) {
 	t.Helper()
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	idx := state.NewRootIndex()
 	idx.Root = []string{nodeAddr}
 	idx.Nodes[nodeAddr] = state.IndexEntry{
@@ -204,7 +208,7 @@ func setupLeafNode(t *testing.T, d *Daemon, nodeAddr string, tasks []state.Task)
 		State:   state.StatusNotStarted,
 		Address: nodeAddr,
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	ns := state.NewNodeState(nodeAddr, nodeAddr, state.NodeLeaf)
 	ns.Tasks = tasks
@@ -232,8 +236,8 @@ func TestNew(t *testing.T) {
 	_ = os.MkdirAll(wolfDir, 0755)
 
 	cfg := testConfig()
-	resolver := &tree.Resolver{WolfcastleDir: wolfDir, Namespace: "test"}
-	d, err := New(cfg, wolfDir, resolver, "", tmp)
+	store := state.NewStateStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
+	d, err := New(cfg, wolfDir, store, "", tmp)
 	if err != nil {
 		t.Fatalf("New() error: %v", err)
 	}
@@ -283,7 +287,7 @@ func TestSelfHeal_NoInterruptedTasks(t *testing.T) {
 
 func TestSelfHeal_OneInterruptedTask(t *testing.T) {
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", State: state.StatusInProgress},
 		{ID: "task-0002", State: state.StatusNotStarted},
@@ -303,13 +307,13 @@ func TestSelfHeal_OneInterruptedTask(t *testing.T) {
 
 func TestSelfHeal_MultipleInterruptedTasks(t *testing.T) {
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	idx := state.NewRootIndex()
 	idx.Root = []string{"node-a", "node-b"}
 	idx.Nodes["node-a"] = state.IndexEntry{Name: "A", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "node-a"}
 	idx.Nodes["node-b"] = state.IndexEntry{Name: "B", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "node-b"}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	nsA := state.NewNodeState("node-a", "A", state.NodeLeaf)
 	nsA.Tasks = []state.Task{{ID: "task-0001", State: state.StatusInProgress}}
@@ -337,12 +341,12 @@ func TestSelfHeal_MultipleInterruptedTasks(t *testing.T) {
 
 func TestSelfHeal_HealsOrchestrators(t *testing.T) {
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	idx := state.NewRootIndex()
 	idx.Root = []string{"parent"}
 	idx.Nodes["parent"] = state.IndexEntry{Name: "Parent", Type: state.NodeOrchestrator, State: state.StatusInProgress, Address: "parent"}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	ns := state.NewNodeState("parent", "Parent", state.NodeOrchestrator)
 	ns.Tasks = []state.Task{{ID: "audit", State: state.StatusInProgress, IsAudit: true}}
@@ -360,7 +364,7 @@ func TestSelfHeal_HealsOrchestrators(t *testing.T) {
 
 func TestSelfHeal_DerivesStaleParentStatus(t *testing.T) {
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	// Parent task is not_started but all children are complete.
 	// selfHeal should derive the parent to complete.
@@ -396,7 +400,7 @@ func TestSelfHeal_DerivesStaleParentStatus(t *testing.T) {
 
 func TestCreateRemediationSubtasks_AuditWithGaps(t *testing.T) {
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	ns := state.NewNodeState("my-node", "My Node", state.NodeLeaf)
 	ns.Tasks = []state.Task{
@@ -551,11 +555,11 @@ func TestRunOnce_NoWork_AllComplete(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", State: state.StatusComplete},
 	})
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	entry := idx.Nodes["my-node"]
 	entry.State = state.StatusComplete
 	idx.Nodes["my-node"] = entry
-	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
+	_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -574,11 +578,11 @@ func TestRunOnce_NoWork_AllBlocked(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", State: state.StatusBlocked, BlockedReason: "stuck"},
 	})
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	entry := idx.Nodes["my-node"]
 	entry.State = state.StatusBlocked
 	idx.Nodes["my-node"] = entry
-	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
+	_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -649,14 +653,14 @@ func TestRunIteration_ClaimTask(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	if err := d.runIteration(context.Background(), nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
 
 	addr, _ := tree.ParseAddress("my-node")
-	ns, _ := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json"))
+	ns, _ := state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(addr.Parts...), "state.json"))
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" && task.State != state.StatusComplete {
 			t.Errorf("task should be complete after WOLFCASTLE_COMPLETE marker, got %s", task.State)
@@ -686,7 +690,7 @@ func TestRunIteration_TerminalMarkers(t *testing.T) {
 			})
 			writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-			idx, _ := d.Resolver.LoadRootIndex()
+			idx, _ := d.Store.ReadIndex()
 			nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 			if err := d.runIteration(context.Background(), nav, idx); err != nil {
 				t.Fatalf("runIteration should succeed with terminal marker: %v", err)
@@ -706,14 +710,14 @@ func TestRunIteration_NoTerminalMarker_IncrFailure(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	if err := d.runIteration(context.Background(), nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
 
 	addr, _ := tree.ParseAddress("my-node")
-	ns, _ := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json"))
+	ns, _ := state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(addr.Parts...), "state.json"))
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" {
 			if task.FailureCount != 1 {
@@ -739,12 +743,12 @@ func TestRunIteration_DecompositionThreshold(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx)
 
 	addr, _ := tree.ParseAddress("my-node")
-	ns, _ := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json"))
+	ns, _ := state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(addr.Parts...), "state.json"))
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" {
 			if task.FailureCount != 2 {
@@ -768,14 +772,14 @@ func TestRunIteration_DecompAtMaxDepth_AutoBlocks(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	idx := state.NewRootIndex()
 	idx.Root = []string{"my-node"}
 	idx.Nodes["my-node"] = state.IndexEntry{
 		Name: "my-node", Type: state.NodeLeaf, State: state.StatusNotStarted,
 		Address: "my-node", DecompositionDepth: 1,
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	ns := state.NewNodeState("my-node", "my-node", state.NodeLeaf)
 	ns.DecompositionDepth = 1
@@ -783,7 +787,7 @@ func TestRunIteration_DecompAtMaxDepth_AutoBlocks(t *testing.T) {
 	writeJSON(t, filepath.Join(projDir, "my-node", "state.json"), ns)
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx2, _ := d.Resolver.LoadRootIndex()
+	idx2, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx2)
 
@@ -816,12 +820,12 @@ func TestRunIteration_HardCap_AutoBlocks(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	_ = d.runIteration(context.Background(), nav, idx)
 
 	addr, _ := tree.ParseAddress("my-node")
-	ns, _ := state.LoadNodeState(filepath.Join(d.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json"))
+	ns, _ := state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(addr.Parts...), "state.json"))
 	for _, task := range ns.Tasks {
 		if task.ID == "task-0001" {
 			if task.State != state.StatusBlocked {
@@ -849,7 +853,7 @@ func TestRunIteration_ModelNotFound(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	err := d.runIteration(context.Background(), nav, idx)
 	if err == nil || !strings.Contains(err.Error(), "model") {
@@ -871,7 +875,7 @@ func TestRunIteration_DisabledStageSkipped(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	if err := d.runIteration(context.Background(), nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
@@ -893,7 +897,7 @@ func TestRunIteration_IntakeStageSkippedInPipeline(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	if err := d.runIteration(context.Background(), nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
@@ -911,7 +915,7 @@ func TestRunIteration_InvocationTimeout(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	if err := d.runIteration(context.Background(), nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
@@ -929,7 +933,7 @@ func TestRunIteration_ZeroInvocationTimeout(t *testing.T) {
 	})
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
 	if err := d.runIteration(context.Background(), nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
@@ -957,7 +961,7 @@ func TestRunIntakeStage_WithNewItems(t *testing.T) {
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "add feature X", Timestamp: "2024-01-01T00:00:00Z"},
 	}})
@@ -978,7 +982,7 @@ func TestRunIntakeStage_NoNewItems(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "filed", Text: "already done"},
 	}})
@@ -994,7 +998,7 @@ func TestRunIntakeStage_ModelNotFound(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item"},
 	}})
@@ -1012,7 +1016,7 @@ func TestRunIntakeStage_MultipleNewItems(t *testing.T) {
 	defer d.Logger.Close()
 	writePromptFile(t, d.WolfcastleDir, "intake.md")
 
-	inboxPath := filepath.Join(d.Resolver.ProjectsDir(), "inbox.json")
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "item 1", Timestamp: "2024-01-01T00:00:00Z"},
 		{Status: "new", Text: "item 2", Timestamp: "2024-01-01T00:01:00Z"},
@@ -1123,11 +1127,11 @@ func TestRunWithSupervisor_SuccessfulRun(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", State: state.StatusComplete},
 	})
-	idx, _ := d.Resolver.LoadRootIndex()
+	idx, _ := d.Store.ReadIndex()
 	entry := idx.Nodes["my-node"]
 	entry.State = state.StatusComplete
 	idx.Nodes["my-node"] = entry
-	_ = state.SaveRootIndex(d.Resolver.RootIndexPath(), idx)
+	_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -1179,13 +1183,212 @@ func TestRunWithSupervisor_ContextCancelReturnsNilNotMaxRestarts(t *testing.T) {
 	}
 }
 
+func TestRunWithSupervisor_MaxRestartsExceeded(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 2
+	d.Config.Daemon.RestartDelaySeconds = 0
+
+	var sleepCalls int
+	d.SleepFunc = func(dur time.Duration) { sleepCalls++ }
+
+	// Corrupt root index: Run will fail with a navigation error on every
+	// attempt, driving the supervisor through its restart budget.
+	corruptRootIndex(t, d)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err := d.RunWithSupervisor(ctx)
+	if err == nil {
+		t.Fatal("expected max restarts error")
+	}
+	if !strings.Contains(err.Error(), "exceeded max restarts") {
+		t.Errorf("expected 'exceeded max restarts', got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "(2)") {
+		t.Errorf("error should mention max restart count, got: %v", err)
+	}
+	// SleepFunc should have been called once per restart before hitting the cap.
+	// With MaxRestarts=2: restart 0 sleeps, restart 1 sleeps, restart 2 hits the cap.
+	if sleepCalls != 2 {
+		t.Errorf("expected 2 sleep calls, got %d", sleepCalls)
+	}
+}
+
+func TestRunWithSupervisor_RestartAndRecover(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 3
+	d.Config.Daemon.RestartDelaySeconds = 0
+	d.Config.Daemon.MaxIterations = 1
+
+	// First Run call will fail (corrupt root index). During the sleep between
+	// restarts, write a valid tree so the second Run succeeds.
+	corruptRootIndex(t, d)
+	d.SleepFunc = func(dur time.Duration) {
+		setupLeafNode(t, d, "my-node", []state.Task{
+			{ID: "task-0001", State: state.StatusComplete},
+		})
+		idx, _ := d.Store.ReadIndex()
+		entry := idx.Nodes["my-node"]
+		entry.State = state.StatusComplete
+		idx.Nodes["my-node"] = entry
+		_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err := d.RunWithSupervisor(ctx)
+	if err != nil {
+		t.Fatalf("expected recovery after restart, got: %v", err)
+	}
+}
+
+func TestRunWithSupervisor_StateResetBetweenRestarts(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 2
+	d.Config.Daemon.RestartDelaySeconds = 0
+
+	// Capture the shutdown channel identity across sleep calls to verify
+	// that RunWithSupervisor creates a fresh channel between restarts.
+	// The reset happens after sleepFn returns, so the second sleep call
+	// observes the channel created after the first restart.
+	var channels []chan struct{}
+	corruptRootIndex(t, d)
+	d.SleepFunc = func(dur time.Duration) {
+		channels = append(channels, d.shutdown)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err := d.RunWithSupervisor(ctx)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	if len(channels) != 2 {
+		t.Fatalf("expected 2 sleep calls, got %d", len(channels))
+	}
+
+	// The second sleep should see a different shutdown channel than the
+	// first, proving the supervisor reset daemon state between restarts.
+	if channels[0] == channels[1] {
+		t.Error("shutdown channel was not recreated between restarts")
+	}
+
+	// Iteration counter is reset to 0 by the supervisor between restarts.
+	// Run also sets it to 0 on entry, so after the final Run returns it
+	// should still be 0.
+	if d.iteration != 0 {
+		t.Errorf("expected iteration reset to 0, got %d", d.iteration)
+	}
+}
+
+func TestRunWithSupervisor_SleepCalledWithConfiguredDelay(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 1
+	d.Config.Daemon.RestartDelaySeconds = 42
+
+	var observedDelay time.Duration
+	d.SleepFunc = func(dur time.Duration) { observedDelay = dur }
+
+	corruptRootIndex(t, d)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	_ = d.RunWithSupervisor(ctx)
+
+	expected := 42 * time.Second
+	if observedDelay != expected {
+		t.Errorf("expected sleep delay %v, got %v", expected, observedDelay)
+	}
+}
+
+func TestRunWithSupervisor_ContextCancelDuringSleep(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 5
+	d.Config.Daemon.RestartDelaySeconds = 0
+	d.Config.Daemon.MaxIterations = 1
+
+	corruptRootIndex(t, d)
+	ctx, cancel := context.WithCancel(context.Background())
+	var sleepCalls int
+	d.SleepFunc = func(dur time.Duration) {
+		sleepCalls++
+		// Cancel context during the first sleep. The next Run call should
+		// see ctx.Err() != nil and return nil, which causes
+		// RunWithSupervisor to exit without hitting max restarts.
+		cancel()
+
+		// Write valid state so the next Run can proceed far enough to
+		// notice the cancelled context.
+		setupLeafNode(t, d, "my-node", []state.Task{
+			{ID: "task-0001", State: state.StatusComplete},
+		})
+		idx, _ := d.Store.ReadIndex()
+		entry := idx.Nodes["my-node"]
+		entry.State = state.StatusComplete
+		idx.Nodes["my-node"] = entry
+		_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
+	}
+
+	err := d.RunWithSupervisor(ctx)
+	if err != nil && strings.Contains(err.Error(), "exceeded max restarts") {
+		t.Error("should exit via context cancellation, not max restarts")
+	}
+	if sleepCalls != 1 {
+		t.Errorf("expected exactly 1 sleep call before context cancel, got %d", sleepCalls)
+	}
+}
+
+func TestRunWithSupervisor_NilSleepFuncDefaultsToTimeSleep(t *testing.T) {
+	d := testDaemon(t)
+	d.Config.Git.VerifyBranch = false
+	d.Config.Daemon.MaxRestarts = 0
+	d.Config.Daemon.RestartDelaySeconds = 0
+	d.SleepFunc = nil // explicit nil
+
+	// Corrupt root index: Run fails, restart 0 >= maxRestarts(0), returns error.
+	corruptRootIndex(t, d)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err := d.RunWithSupervisor(ctx)
+	if err == nil {
+		t.Fatal("expected max restarts error")
+	}
+	if !strings.Contains(err.Error(), "exceeded max restarts") {
+		t.Errorf("expected max restarts error, got: %v", err)
+	}
+}
+
+// corruptRootIndex writes invalid JSON to the root state.json so that
+// ReadIndex returns a parse error (not os.ErrNotExist). This causes RunOnce
+// to fail with a Navigation error, giving RunWithSupervisor something to
+// restart from.
+func corruptRootIndex(t *testing.T, d *Daemon) {
+	t.Helper()
+	p := filepath.Join(d.Store.Dir(), "state.json")
+	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte("{corrupt"), 0644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // propagateState
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPropagateState(t *testing.T) {
 	d := testDaemon(t)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 
 	idx := state.NewRootIndex()
 	idx.Root = []string{"parent"}
@@ -1197,7 +1400,7 @@ func TestPropagateState(t *testing.T) {
 		Name: "Child", Type: state.NodeLeaf, State: state.StatusNotStarted,
 		Address: "parent/child", Parent: "parent",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	parentNS := state.NewNodeState("parent", "Parent", state.NodeOrchestrator)
 	parentNS.Children = []state.ChildRef{
@@ -1213,7 +1416,7 @@ func TestPropagateState(t *testing.T) {
 		t.Fatalf("propagateState error: %v", err)
 	}
 
-	updatedIdx, _ := d.Resolver.LoadRootIndex()
+	updatedIdx, _ := d.Store.ReadIndex()
 	if updatedIdx.Nodes["parent/child"].State != state.StatusInProgress {
 		t.Error("child state should be in_progress in index")
 	}
@@ -1226,7 +1429,7 @@ func TestPropagateState_SingleNode(t *testing.T) {
 	idx.Nodes["my-node"] = state.IndexEntry{
 		Name: "my-node", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "my-node",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	// No parent => just updates root index entry
 	if err := d.propagateState("my-node", state.StatusInProgress, idx); err != nil {

@@ -117,7 +117,7 @@ SCRIPT`},
 		t.Fatalf("expected DidWork, got %v", result)
 	}
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	ns, err := state.LoadNodeState(filepath.Join(projDir, "json-node", "state.json"))
 	if err != nil {
 		t.Fatalf("loading node state: %v", err)
@@ -156,7 +156,7 @@ SCRIPT`},
 		t.Fatalf("expected DidWork, got %v", result)
 	}
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	ns, err := state.LoadNodeState(filepath.Join(projDir, "yield-json-node", "state.json"))
 	if err != nil {
 		t.Fatalf("loading node state: %v", err)
@@ -317,7 +317,7 @@ fi
 		t.Fatalf("iteration 1: expected DidWork, got %v", r1)
 	}
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	ns1, _ := state.LoadNodeState(filepath.Join(projDir, "yield-node", "state.json"))
 	if ns1.Tasks[0].State != state.StatusInProgress {
 		t.Errorf("after yield: expected in_progress, got %s", ns1.Tasks[0].State)
@@ -388,7 +388,7 @@ func TestIntegration_BlockedTransition(t *testing.T) {
 		t.Fatalf("expected DidWork, got %v", result)
 	}
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	ns, _ := state.LoadNodeState(filepath.Join(projDir, "block-node", "state.json"))
 	if ns.Tasks[0].State != state.StatusBlocked {
 		t.Errorf("expected blocked, got %s", ns.Tasks[0].State)
@@ -417,7 +417,7 @@ func TestIntegration_FailureEscalation_DecompositionThreshold(t *testing.T) {
 	}
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	statePath := filepath.Join(projDir, "fail-node", "state.json")
 
 	// Run twice (threshold is 2)
@@ -458,7 +458,7 @@ func TestIntegration_FailureEscalation_HardCapAutoBlock(t *testing.T) {
 	}
 	writePromptFile(t, d.WolfcastleDir, "execute.md")
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	statePath := filepath.Join(projDir, "hardcap-node", "state.json")
 
 	// Run 3 times to hit hard cap
@@ -491,7 +491,7 @@ func TestIntegration_FailureEscalation_MaxDepthAutoBlock(t *testing.T) {
 	d.Config.Failure.HardCap = 100
 
 	// Set up a node that is already at max decomposition depth
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	nodeDir := filepath.Join(projDir, "maxdepth-node")
 	if err := os.MkdirAll(nodeDir, 0755); err != nil {
 		t.Fatal(err)
@@ -516,7 +516,7 @@ func TestIntegration_FailureEscalation_MaxDepthAutoBlock(t *testing.T) {
 		State:   state.StatusNotStarted,
 		Address: "maxdepth-node",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	d.Config.Models["echo"] = config.ModelDef{
 		Command: "echo",
@@ -577,7 +577,7 @@ SCRIPT`},
 		t.Fatalf("expected DidWork, got %v", result)
 	}
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	ns, _ := state.LoadNodeState(filepath.Join(projDir, "echo-node", "state.json"))
 	// The task should be complete, not blocked or yielded, because the embedded
 	// mentions are in sentences and only the final standalone COMPLETE counts.
@@ -618,7 +618,7 @@ SCRIPT`},
 		t.Fatalf("iteration error: %v", err)
 	}
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	ns, _ := state.LoadNodeState(filepath.Join(projDir, "nomarker-node", "state.json"))
 	if ns.Tasks[0].FailureCount != 1 {
 		t.Errorf("expected failure count 1 (no standalone marker), got %d", ns.Tasks[0].FailureCount)
@@ -641,7 +641,7 @@ func TestIntegration_SelfHeal_ResumesInProgressTask(t *testing.T) {
 	d.Config.Git.VerifyBranch = false
 
 	// Set up a task already in in_progress state (as if daemon crashed mid-work)
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	nodeDir := filepath.Join(projDir, "crash-node")
 	if err := os.MkdirAll(nodeDir, 0755); err != nil {
 		t.Fatal(err)
@@ -666,7 +666,7 @@ func TestIntegration_SelfHeal_ResumesInProgressTask(t *testing.T) {
 		State:   state.StatusInProgress,
 		Address: "crash-node",
 	}
-	writeJSON(t, d.Resolver.RootIndexPath(), idx)
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	assertFile := filepath.Join(t.TempDir(), "crash-assertions.txt")
 	scriptFile := filepath.Join(t.TempDir(), "crash-check.sh")
@@ -755,7 +755,7 @@ func TestIntegration_MissingDeliverable_WarnsButCompletes(t *testing.T) {
 		t.Fatalf("iteration error: %v", err)
 	}
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	ns, _ := state.LoadNodeState(filepath.Join(projDir, "deliv-node", "state.json"))
 
 	// Task completes despite missing deliverable (warning only, not a gate)
@@ -800,7 +800,7 @@ func TestIntegration_DeliverableExists_AcceptsComplete(t *testing.T) {
 		t.Fatalf("iteration error: %v", err)
 	}
 
-	projDir := d.Resolver.ProjectsDir()
+	projDir := d.Store.Dir()
 	ns, _ := state.LoadNodeState(filepath.Join(projDir, "deliv-ok-node", "state.json"))
 
 	if ns.Tasks[0].State != state.StatusComplete {

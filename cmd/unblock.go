@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/chzyer/readline"
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
@@ -34,7 +35,7 @@ Examples:
   wolfcastle unblock --node my-project/task-1
   wolfcastle unblock --agent --node my-project/task-1`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := app.RequireResolver(); err != nil {
+		if err := app.RequireIdentity(); err != nil {
 			return err
 		}
 		nodeFlag, _ := cmd.Flags().GetString("node")
@@ -51,12 +52,7 @@ Examples:
 		}
 
 		// Load node state
-		addr, err := tree.ParseAddress(nodeAddr)
-		if err != nil {
-			return fmt.Errorf("invalid node address: %w", err)
-		}
-		statePath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...), "state.json")
-		ns, err := state.LoadNodeState(statePath)
+		ns, err := app.State.ReadNode(nodeAddr)
 		if err != nil {
 			return fmt.Errorf("loading node state: %w", err)
 		}
@@ -140,10 +136,37 @@ func buildDiagnostic(nodeAddr, taskID string, ns *state.NodeState, task *state.T
 	return b.String()
 }
 
+// unblockOpts allows injection of dependencies for testing. When nil or
+// when individual fields are nil, production defaults are used.
+type unblockOpts struct {
+	invokeFn func(ctx context.Context, model config.ModelDef, prompt, workDir string) (*invoke.Result, error)
+	stdin    io.ReadCloser
+	stdout   io.Writer
+}
+
 func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic string) error {
-	model, ok := app.Cfg.Models[app.Cfg.Unblock.Model]
+	return runInteractiveUnblockWith(ctx, taskAddr, diagnostic, nil)
+}
+
+func runInteractiveUnblockWith(ctx context.Context, taskAddr, diagnostic string, opts *unblockOpts) error {
+	cfg, err := app.Config.Load()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+	model, ok := cfg.Models[cfg.Unblock.Model]
 	if !ok {
-		return fmt.Errorf("unblock model %q not found", app.Cfg.Unblock.Model)
+		return fmt.Errorf("unblock model %q not found", cfg.Unblock.Model)
+	}
+
+	invokeFn := invoke.Invoke
+	var rlStdin io.ReadCloser
+	var rlStdout io.Writer
+	if opts != nil {
+		if opts.invokeFn != nil {
+			invokeFn = opts.invokeFn
+		}
+		rlStdin = opts.stdin
+		rlStdout = opts.stdout
 	}
 
 	// Load unblock prompt from externalized template (falls back to inline text)
@@ -154,26 +177,36 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 	output.PrintHuman("Engaging unblock session. Type 'quit', 'exit', or Ctrl+D to disengage.")
 	output.PrintHuman("")
 
-	// Set up readline for proper line editing, history, and terminal handling
-	rl, err := readline.NewEx(&readline.Config{
+	// Readline is lazily initialized on first user prompt so that early
+	// failures (e.g. invocation errors) never spawn readline's ioloop goroutine.
+	rlCfg := &readline.Config{
 		Prompt:      "wolfcastle> ",
 		HistoryFile: "", // In-memory only (sessions are short-lived)
-	})
-	if err != nil {
-		return fmt.Errorf("initializing readline: %w", err)
 	}
-	defer func() { _ = rl.Close() }()
+	if rlStdin != nil {
+		rlCfg.Stdin = rlStdin
+	}
+	if rlStdout != nil {
+		rlCfg.Stdout = rlStdout
+		rlCfg.Stderr = rlStdout
+	}
+	var rl *readline.Instance
+	defer func() {
+		if rl != nil {
+			_ = rl.Close()
+		}
+	}()
 
 	// Multi-turn: invoke model, show response, get user input, repeat.
 	// Keep a sliding window of conversation history to avoid unbounded growth.
 	const maxConversationBytes = 100_000
-	repoDir := filepath.Dir(app.WolfcastleDir)
+	repoDir := filepath.Dir(app.Config.Root())
 	conversation := prompt
 
 	for {
 		output.PrintHuman("  thinking...")
-		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(app.Cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
-		result, invokeErr := invoke.Invoke(invokeCtx, model, conversation, repoDir)
+		invokeCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.Daemon.InvocationTimeoutSeconds)*time.Second)
+		result, invokeErr := invokeFn(invokeCtx, model, conversation, repoDir)
 		cancel()
 
 		// Clear the "thinking..." line
@@ -200,6 +233,15 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 			output.PrintError("%s", result.Stderr)
 		}
 		fmt.Println()
+
+		// Lazily initialize readline on first user prompt
+		if rl == nil {
+			var rlErr error
+			rl, rlErr = readline.NewEx(rlCfg)
+			if rlErr != nil {
+				return fmt.Errorf("initializing readline: %w", rlErr)
+			}
+		}
 
 		// Get user input via readline
 		input, readErr := rl.Readline()
@@ -243,8 +285,8 @@ func runInteractiveUnblock(ctx context.Context, taskAddr string, diagnostic stri
 // loadUnblockPreamble loads the unblock.md prompt via the three-tier
 // resolution system, falling back to a hardcoded default.
 func loadUnblockPreamble() string {
-	if app.WolfcastleDir != "" {
-		content, err := pipeline.ResolvePromptTemplate(app.WolfcastleDir, "unblock.md", nil)
+	if app.Config != nil {
+		content, err := pipeline.ResolvePromptTemplate(app.Config.Root(), "unblock.md", nil)
 		if err == nil {
 			return content
 		}

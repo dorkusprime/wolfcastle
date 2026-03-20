@@ -21,12 +21,12 @@ Examples:
   wolfcastle inbox clear
   wolfcastle inbox clear --all`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			clearAll, _ := cmd.Flags().GetBool("all")
 
-			inboxPath := filepath.Join(app.Resolver.ProjectsDir(), "inbox.json")
+			inboxPath := filepath.Join(app.State.Dir(), "inbox.json")
 			inboxData, err := state.LoadInbox(inboxPath)
 			if err != nil {
 				return fmt.Errorf("reading inbox: %w", err)

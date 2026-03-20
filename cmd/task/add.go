@@ -27,7 +27,7 @@ Examples:
   echo "body text" | wolfcastle task add --node my-project "title" --stdin`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireResolver(); err != nil {
+			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
 			title := args[0]
@@ -71,12 +71,12 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
-			nsPath := filepath.Join(app.Resolver.ProjectsDir(), filepath.Join(addr.Parts...))
+			nsPath := filepath.Join(app.State.Dir(), filepath.Join(addr.Parts...))
 
 			parentTask, _ := cmd.Flags().GetString("parent")
 
 			var task *state.Task
-			if err := app.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 				var addErr error
 				if parentTask != "" {
 					task, addErr = state.TaskAddChild(ns, parentTask, title)
