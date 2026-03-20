@@ -20,7 +20,7 @@ import (
 func newStartCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "start",
-		Short: "Unleash the daemon",
+		Short: "Start the daemon",
 		Long: `Starts the execution loop. Wolfcastle picks up tasks, calls models,
 validates results, and moves to the next target. Use --node to restrict
 the carnage to a subtree. Use -d to run in the background.

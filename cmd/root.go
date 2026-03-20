@@ -37,7 +37,7 @@ Quick start:
   wolfcastle init                          Claim a directory
   wolfcastle project create "my-feature"   Name your target
   wolfcastle task add --node my-feature "implement API"
-  wolfcastle start                         Unleash the daemon
+  wolfcastle start                         Start the daemon
 
 Use "wolfcastle [command] --help" for more information about a command.
 All commands support --json for machine-readable output.`,
