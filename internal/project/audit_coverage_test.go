@@ -33,3 +33,9 @@ func TestWriteAuditTaskMD_ReadOnlyDir(t *testing.T) {
 	// Should not panic on write failure
 	WriteAuditTaskMD(dir)
 }
+
+func TestWriteAuditTaskMD_NonexistentDir(t *testing.T) {
+	t.Parallel()
+	// Should not panic when directory does not exist
+	WriteAuditTaskMD("/nonexistent/path/that/does/not/exist")
+}
