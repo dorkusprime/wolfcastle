@@ -280,7 +280,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 
 		// Auto-commit partial work, then increment failure count
-		autoCommitPartialWork(d.RepoDir, d.Logger, nav.TaskID)
+		autoCommitPartialWork(d.RepoDir, d.Logger, nav.TaskID, d.Config.Git.SkipHooksOnAutoCommit)
 
 		_ = d.Logger.Log(map[string]any{
 			"type":  failureType,
@@ -437,7 +437,7 @@ func extractAssistantText(line string) string {
 // autoCommitPartialWork commits any uncommitted changes in the repo when a
 // task fails without a terminal marker. This preserves partial work that the
 // model did before failing, preventing it from being lost on the next iteration.
-func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string) {
+func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string, skipHooks bool) {
 	// Check for uncommitted changes
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = repoDir
@@ -446,8 +446,10 @@ func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string
 		return // no changes or git unavailable
 	}
 
-	// Stage and commit
-	addCmd := exec.Command("git", "add", "-A")
+	// Stage tracked files only (git add -u). This avoids staging
+	// untracked files like .env or credentials that happen to be
+	// sitting in the working tree.
+	addCmd := exec.Command("git", "add", "-u")
 	addCmd.Dir = repoDir
 	if err := addCmd.Run(); err != nil {
 		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
@@ -455,7 +457,11 @@ func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string
 	}
 
 	msg := fmt.Sprintf("wolfcastle: auto-commit partial work [%s]", taskID)
-	commitCmd := exec.Command("git", "commit", "-m", msg, "--no-verify")
+	commitArgs := []string{"commit", "-m", msg}
+	if skipHooks {
+		commitArgs = append(commitArgs, "--no-verify")
+	}
+	commitCmd := exec.Command("git", commitArgs...)
 	commitCmd.Dir = repoDir
 	if err := commitCmd.Run(); err != nil {
 		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})

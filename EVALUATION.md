@@ -269,7 +269,7 @@ The `testutil` package provides minimal, focused helpers. The daemon tests use a
 
 **Analysis**
 
-The CLI has 41 commands/subcommands organized across 7 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration, Additional). The grouping is logical and discoverable. Every command accepts `--json` for machine-readable output. Every command that operates on a node accepts `--node` with a slash-separated tree address.
+The CLI has 43 commands/subcommands organized across 7 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration, Additional). The grouping is logical and discoverable. Every command accepts `--json` for machine-readable output. Every command that operates on a node accepts `--node` with a slash-separated tree address.
 
 The help text is accurate and includes usage patterns. The root help includes a quickstart and the `--json` reminder. Command-specific help shows flags with defaults. The "PRE-RELEASE" banner in the help text sets surface stability expectations appropriately.
 

@@ -142,9 +142,10 @@ type DaemonConfig struct {
 
 // GitConfig controls automatic commit behavior and branch verification.
 type GitConfig struct {
-	AutoCommit          bool   `json:"auto_commit"`
-	CommitMessageFormat string `json:"commit_message_format"`
-	VerifyBranch        bool   `json:"verify_branch"`
+	AutoCommit            bool   `json:"auto_commit"`
+	CommitMessageFormat   string `json:"commit_message_format"`
+	VerifyBranch          bool   `json:"verify_branch"`
+	SkipHooksOnAutoCommit bool   `json:"skip_hooks_on_auto_commit"`
 }
 
 // DoctorConfig configures the structural validation and repair command (ADR-025).
