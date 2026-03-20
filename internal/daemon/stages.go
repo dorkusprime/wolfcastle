@@ -134,7 +134,7 @@ func (d *Daemon) checkInboxForNew(inboxPath string) bool {
 		return false
 	}
 	for _, item := range inboxData.Items {
-		if item.Status == "new" {
+		if item.Status == state.InboxNew {
 			return true
 		}
 	}
@@ -152,10 +152,10 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		return nil // No inbox file = nothing to process
 	}
 
-	// Filter to only "new" status items
+	// Filter to only new-status items
 	var newItems []state.InboxItem
 	for _, item := range inboxData.Items {
-		if item.Status == "new" {
+		if item.Status == state.InboxNew {
 			newItems = append(newItems, item)
 		}
 	}
@@ -248,8 +248,8 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 	}
 	if err := state.InboxMutate(inboxPath, func(f *state.InboxFile) error {
 		for i, item := range f.Items {
-			if item.Status == "new" && processedSet[item.Timestamp+"|"+item.Text] {
-				f.Items[i].Status = "filed"
+			if item.Status == state.InboxNew && processedSet[item.Timestamp+"|"+item.Text] {
+				f.Items[i].Status = state.InboxFiled
 			}
 		}
 		return nil

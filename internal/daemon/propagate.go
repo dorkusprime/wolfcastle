@@ -66,7 +66,7 @@ func (d *Daemon) checkInboxState(inboxPath string) (hasNew bool) {
 		return false
 	}
 	for _, item := range inboxData.Items {
-		if item.Status == "new" {
+		if item.Status == state.InboxNew {
 			hasNew = true
 		}
 	}

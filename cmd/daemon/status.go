@@ -168,9 +168,9 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 		newCount, filedCount := 0, 0
 		for _, item := range inboxData.Items {
 			switch item.Status {
-			case "new":
+			case state.InboxNew:
 				newCount++
-			case "filed":
+			case state.InboxFiled:
 				filedCount++
 			}
 		}
