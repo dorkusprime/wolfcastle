@@ -59,26 +59,27 @@ Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (au
 ```
 .wolfcastle/
   .gitignore
-  base/                    <- Wolfcastle defaults, prompts, scripts (gitignored)
-    config.json            <- compiled defaults (gitignored)
-  custom/                  <- team overrides and additions (committed)
-    config.json            <- team-shared config (committed)
-  local/                   <- personal overrides (gitignored)
-    config.json            <- personal config, identity (gitignored)
-  projects/                <- live work trees, per engineer (committed)
-    wild-macbook/
-    dave-workstation/
-  archive/                 <- completed work summaries (committed)
-  docs/                    <- ADRs and specs (committed)
+  system/                    <- system-managed files (ADR-077)
+    base/                    <- Wolfcastle defaults, prompts, scripts (gitignored)
+      config.json            <- compiled defaults (gitignored)
+    custom/                  <- team overrides and additions (committed)
+      config.json            <- team-shared config (committed)
+    local/                   <- personal overrides (gitignored)
+      config.json            <- personal config, identity (gitignored)
+    projects/                <- live work trees, per engineer (committed)
+      wild-macbook/
+      dave-workstation/
+    logs/                    <- NDJSON iteration logs (gitignored)
+    wolfcastle.pid           <- daemon PID file (gitignored)
+  archive/                   <- completed work summaries (committed)
+  docs/                      <- ADRs and specs (committed)
     decisions/
     specs/
-  logs/                    <- NDJSON iteration logs (gitignored)
-  worktrees/               <- git worktrees when using --worktree (gitignored)
 ```
 
-**Committed**: `custom/`, `projects/`, `archive/`, `docs/`
+**Committed**: `system/custom/`, `system/projects/`, `archive/`, `docs/`
 
-**Gitignored**: `base/`, `local/`, `logs/`, `worktrees/`
+**Gitignored**: `system/base/`, `system/local/`, `system/logs/`
 
 ### New Engineer Setup
 

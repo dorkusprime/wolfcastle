@@ -189,5 +189,51 @@ func TestBuildDiagnostic_EmptyNode(t *testing.T) {
 	}
 }
 
+func TestUnblockCmd_AgentModeJSON(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+
+	// Create a blocked task
+	env.createLeafNode(t, "my-project", "My Project")
+	_ = app.State.MutateNode("my-project", func(ns *state.NodeState) error {
+		_, _ = state.TaskAdd(ns, "do work")
+		_ = state.TaskClaim(ns, "task-0001")
+		_ = state.TaskBlock(ns, "task-0001", "stuck on something")
+		return nil
+	})
+
+	app.JSONOutput = true
+	defer func() { app.JSONOutput = false }()
+
+	rootCmd.SetArgs([]string{"unblock", "--agent", "--node", "my-project/task-0001"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("unblock --agent --json failed: %v", err)
+	}
+}
+
+func TestUnblockCmd_MissingNodeFlagShowsExample(t *testing.T) {
+	oldApp := app
+	defer func() { app = oldApp }()
+
+	env := newTestEnv(t)
+	app = env.App
+	env.createLeafNode(t, "proj", "P")
+
+	// The --node flag is marked required by MarkFlagRequired, so Cobra
+	// returns an error before RunE. We pass --node "" to bypass Cobra
+	// and hit our validation path with the actionable error message.
+	rootCmd.SetArgs([]string{"unblock", "--node", ""})
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Error("expected error when --node is empty")
+	}
+	if err != nil && !strings.Contains(err.Error(), "my-project/task-1") {
+		t.Errorf("error should include example address, got: %v", err)
+	}
+}
+
 // Task.Breadcrumbs was removed (vestigial field, never written in production).
 // Breadcrumbs are stored on AuditState.Breadcrumbs.
