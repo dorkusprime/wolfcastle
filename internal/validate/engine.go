@@ -144,6 +144,7 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 		e.checkTaskState(ns, addr, categories, report, &inProgressTasks)
 		e.checkAuditState(ns, addr, categories, report)
 		e.checkParentChild(ns, addr, entry, idx, categories, report)
+		e.checkChildRefState(ns, addr, idx, categories, report)
 		e.checkTransitions(ns, addr, categories, report)
 	}
 
@@ -254,6 +255,43 @@ func (e *Engine) checkParentChild(ns *state.NodeState, addr string, entry state.
 				Category:    CatDepthMismatch,
 				Node:        addr,
 				Description: fmt.Sprintf("Child depth %d < parent depth %d", ns.DecompositionDepth, parentNS.DecompositionDepth),
+				CanAutoFix:  true,
+				FixType:     FixDeterministic,
+			})
+		}
+	}
+}
+
+// checkChildRefState verifies that each orchestrator's ChildRef.State matches
+// the child's actual state from the index (or disk). A mismatch means the
+// parent is carrying a stale snapshot of the child's lifecycle.
+func (e *Engine) checkChildRefState(ns *state.NodeState, addr string, idx *state.RootIndex, categories map[string]bool, report *Report) {
+	if !e.include(CatChildRefStateMismatch, categories) {
+		return
+	}
+	if ns.Type != state.NodeOrchestrator {
+		return
+	}
+
+	for _, child := range ns.Children {
+		// Prefer the index entry as the source of truth; fall back to loading from disk.
+		var actualState state.NodeStatus
+		if entry, ok := idx.Nodes[child.Address]; ok {
+			actualState = entry.State
+		} else {
+			childNS, err := e.loadNode(child.Address)
+			if err != nil {
+				continue // dangling ref is caught by a different category
+			}
+			actualState = childNS.State
+		}
+
+		if child.State != actualState {
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityError,
+				Category:    CatChildRefStateMismatch,
+				Node:        addr,
+				Description: fmt.Sprintf("ChildRef %s has state %s but actual child state is %s", child.Address, child.State, actualState),
 				CanAutoFix:  true,
 				FixType:     FixDeterministic,
 			})
