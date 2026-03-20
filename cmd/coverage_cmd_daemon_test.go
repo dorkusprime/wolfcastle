@@ -635,7 +635,7 @@ func TestInstallSkill_JSONOutput(t *testing.T) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // update.go: human output paths (lines 26-32)
-// The stubUpdater always returns AlreadyCurrent, covering line 30-31.
+// The stubUpdater returns Unavailable, covering the unavailable output path.
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestUpdateCmd_HumanOutput(t *testing.T) {
