@@ -25,6 +25,8 @@ func newStatusCmd(app *cmdutil.App) *cobra.Command {
 		Long: `Shows node states across the project tree. How many targets remain.
 How many have fallen. Use --node to scope to a subtree, --all to
 see every engineer's namespace. Use --watch to refresh on an interval.
+Use --detail to see task bodies, failure reasons, deliverables, and
+breadcrumbs for in-progress work.
 
 Examples:
   wolfcastle status
@@ -32,6 +34,8 @@ Examples:
   wolfcastle status --watch
   wolfcastle status -w --interval 2
   wolfcastle status --all
+  wolfcastle status --detail
+  wolfcastle status --expand --detail
   wolfcastle status --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			showAll, _ := cmd.Flags().GetBool("all")
@@ -39,6 +43,7 @@ Examples:
 			watch, _ := cmd.Flags().GetBool("watch")
 			interval, _ := cmd.Flags().GetFloat64("interval")
 			expand, _ := cmd.Flags().GetBool("expand")
+			detail, _ := cmd.Flags().GetBool("detail")
 
 			if !showAll {
 				if err := app.RequireIdentity(); err != nil {
@@ -49,7 +54,7 @@ Examples:
 			if watch {
 				ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
 				defer stop()
-				return watchStatus(ctx, app, scopeNode, showAll, interval, expand)
+				return watchStatus(ctx, app, scopeNode, showAll, interval, expand, detail)
 			}
 
 			if showAll {
@@ -61,7 +66,7 @@ Examples:
 				return err
 			}
 
-			return showTreeStatus(app, idx, scopeNode, expand)
+			return showTreeStatus(app, idx, scopeNode, expand, detail)
 		},
 	}
 }
@@ -73,7 +78,7 @@ type nodeDetail struct {
 	ns    *state.NodeState // nil for orchestrators or load failures
 }
 
-func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expandAll ...bool) error {
+func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags ...bool) error {
 	counts := map[state.NodeStatus]int{}
 	auditCounts := map[state.AuditStatus]int{}
 	openGaps := 0
@@ -111,6 +116,50 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 	daemonStatus := getDaemonStatus(app.Daemon)
 
 	if app.JSONOutput {
+		// Build per-node detail for JSON consumers.
+		nodeDetails := make(map[string]any, len(details))
+		for addr, nd := range details {
+			info := map[string]any{
+				"name":  nd.entry.Name,
+				"type":  nd.entry.Type,
+				"state": nd.entry.State,
+			}
+			if nd.ns != nil {
+				if len(nd.ns.Tasks) > 0 {
+					taskList := make([]map[string]any, 0, len(nd.ns.Tasks))
+					for _, t := range nd.ns.Tasks {
+						td := map[string]any{
+							"id":            t.ID,
+							"state":         t.State,
+							"description":   t.Description,
+							"failure_count": t.FailureCount,
+						}
+						if t.Title != "" {
+							td["title"] = t.Title
+						}
+						if t.Body != "" {
+							td["body"] = t.Body
+						}
+						if t.LastFailureType != "" {
+							td["last_failure_type"] = t.LastFailureType
+						}
+						if len(t.Deliverables) > 0 {
+							td["deliverables"] = t.Deliverables
+						}
+						if t.BlockedReason != "" {
+							td["block_reason"] = t.BlockedReason
+						}
+						taskList = append(taskList, td)
+					}
+					info["tasks"] = taskList
+				}
+				if len(nd.ns.Audit.Breadcrumbs) > 0 {
+					info["breadcrumbs"] = nd.ns.Audit.Breadcrumbs
+				}
+			}
+			nodeDetails[addr] = info
+		}
+
 		output.Print(output.Ok("status", map[string]any{
 			"total":             total,
 			"not_started":       counts[state.StatusNotStarted],
@@ -124,6 +173,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 			"audit_failed":      auditCounts[state.AuditFailed],
 			"open_gaps":         openGaps,
 			"open_escalations":  openEscalations,
+			"nodes":             nodeDetails,
 		}))
 		return nil
 	}
@@ -154,12 +204,13 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 	output.PrintHuman("")
 
 	// Tree view: walk root nodes in order
-	expand := len(expandAll) > 0 && expandAll[0]
+	expand := len(flags) > 0 && flags[0]
+	detail := len(flags) > 1 && flags[1]
 	for _, rootAddr := range idx.Root {
 		if scope != "" && !isInSubtree(idx, rootAddr, scope) {
 			continue
 		}
-		printNodeTree(app, idx, details, rootAddr, "  ", expand)
+		printNodeTree(app, idx, details, rootAddr, "  ", expand, detail)
 	}
 
 	// Inbox count
@@ -200,7 +251,11 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 }
 
 // printNodeTree recursively prints a node and its children/tasks.
-func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*nodeDetail, addr string, indent string, expand bool) {
+// The optional detailFlag parameter controls whether extra detail
+// (task body, failure type, deliverables, breadcrumbs) is shown.
+func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*nodeDetail, addr string, indent string, expand bool, detailFlag ...bool) {
+	detail := len(detailFlag) > 0 && detailFlag[0]
+
 	nd, ok := details[addr]
 	if !ok {
 		return
@@ -225,10 +280,17 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	glyph := nodeGlyph(nd.entry.State)
 	output.PrintHuman("%s%s %s  (%s)", indent, glyph, nd.entry.Name, addr)
 
+	// Show most recent breadcrumb for in_progress nodes when --detail is set.
+	if detail && nd.ns != nil && nd.entry.State == state.StatusInProgress && len(nd.ns.Audit.Breadcrumbs) > 0 {
+		bc := nd.ns.Audit.Breadcrumbs[len(nd.ns.Audit.Breadcrumbs)-1]
+		text := truncate(bc.Text, 80)
+		output.PrintHuman("%s  breadcrumb: %s", indent, text)
+	}
+
 	// For orchestrators, print children then show audit task if active
 	if nd.entry.Type == state.NodeOrchestrator {
 		for _, childAddr := range nd.entry.Children {
-			printNodeTree(app, idx, details, childAddr, indent+"  ", expand)
+			printNodeTree(app, idx, details, childAddr, indent+"  ", expand, detail)
 		}
 		if nd.ns != nil {
 			for _, t := range nd.ns.Tasks {
@@ -320,7 +382,11 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 			extra = "\n" + taskIndent + "       " + t.BlockedReason
 		}
 		if t.FailureCount > 0 && t.State != state.StatusComplete {
-			extra += fmt.Sprintf("  (%d failures)", t.FailureCount)
+			if t.LastFailureType != "" && detail {
+				extra += fmt.Sprintf("  (%d failures, last: %s)", t.FailureCount, t.LastFailureType)
+			} else {
+				extra += fmt.Sprintf("  (%d failures)", t.FailureCount)
+			}
 		}
 		// Show description detail for completed tasks when a title is
 		// the primary label and the description adds information.
@@ -329,6 +395,22 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		}
 
 		output.PrintHuman("%s%s %s  %s%s", taskIndent, tGlyph, t.ID, label, extra)
+
+		// Detail-only lines: task body, deliverable summary
+		if detail {
+			if t.Body != "" {
+				output.PrintHuman("%s       %s", taskIndent, truncate(t.Body, 80))
+			}
+			if len(t.Deliverables) > 0 {
+				met := 0
+				for _, d := range t.Deliverables {
+					if strings.HasPrefix(d, "[x] ") || strings.HasPrefix(d, "[X] ") {
+						met++
+					}
+				}
+				output.PrintHuman("%s       %d/%d deliverables met", taskIndent, met, len(t.Deliverables))
+			}
+		}
 	}
 
 	// Gaps
@@ -341,6 +423,25 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 			}
 		}
 	}
+
+	// Audit report path (shown in expanded view)
+	if expand {
+		if reportPath := state.LatestAuditReport(app.State.Dir(), addr); reportPath != "" {
+			output.PrintHuman("%s    report: %s", indent, reportPath)
+		}
+	}
+}
+
+// truncate shortens s to maxLen characters, appending "..." if truncated.
+func truncate(s string, maxLen int) string {
+	s = strings.ReplaceAll(s, "\n", " ")
+	if len(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
 }
 
 // ANSI color codes matching the TUI spec (section 2.9).
@@ -478,7 +579,7 @@ func showAllStatus(app *cmdutil.App) error {
 // watchStatus refreshes the status display on an interval. Uses the
 // alternate screen buffer and cursor repositioning for flicker-free
 // updates (no clear-then-redraw flash).
-func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64, expand bool) error {
+func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64, expand bool, detailFlags ...bool) error {
 	if intervalSec < 0.1 {
 		intervalSec = 0.1
 	}
@@ -511,7 +612,8 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 			if err != nil {
 				output.PrintError("%v", err)
 			} else {
-				if err := showTreeStatus(app, idx, scope, expand); err != nil {
+				detail := len(detailFlags) > 0 && detailFlags[0]
+				if err := showTreeStatus(app, idx, scope, expand, detail); err != nil {
 					output.PrintError("%v", err)
 				}
 			}

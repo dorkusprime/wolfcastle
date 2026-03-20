@@ -61,7 +61,20 @@ Before committing, verify your work compiles, passes tests, and is clean:
 Do not skip this phase. Do not commit code that doesn't build or pass tests.
 
 ### E. Record
-Write a breadcrumb describing what you did:
+
+Write an After Action Review (AAR) for your completed work. This structured narrative flows to the next task and into audits.
+
+```
+wolfcastle audit aar --node <your-node> --task <your-task-id> \
+  --objective "What you set out to do" \
+  --what-happened "What actually happened" \
+  --went-well "First thing that went well" \
+  --went-well "Second thing that went well" \
+  --improvements "Something that could be better" \
+  --action-items "Follow-up for the next task"
+```
+
+Also write a breadcrumb describing what you did:
 ```
 wolfcastle audit breadcrumb --node <your-node> "description of changes"
 ```

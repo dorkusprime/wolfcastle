@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
@@ -172,6 +174,24 @@ func TestCountDescendants(t *testing.T) {
 	}
 }
 
+// captureStdout runs fn while capturing stdout, returning the output as a string.
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	origStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	fn()
+	_ = w.Close()
+	os.Stdout = origStdout
+	buf := make([]byte, 64*1024)
+	n, _ := r.Read(buf)
+	_ = r.Close()
+	return string(buf[:n])
+}
+
 func TestShowTreeStatus_SubtaskIndentation(t *testing.T) {
 	env := newStatusTestEnv(t)
 
@@ -193,5 +213,228 @@ func TestShowTreeStatus_SubtaskIndentation(t *testing.T) {
 	// Should not panic and should render hierarchical tasks
 	if err := showTreeStatus(env.App, idx, ""); err != nil {
 		t.Fatalf("showTreeStatus with subtasks failed: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// --detail flag: task body, failure type, deliverables, breadcrumbs
+// ---------------------------------------------------------------------------
+
+// setupDetailEnv creates a leaf node with tasks that exercise all detail fields:
+// body, failure type, deliverables, and breadcrumbs.
+func setupDetailEnv(t *testing.T) (*testEnv, *state.RootIndex) {
+	t.Helper()
+	env := newStatusTestEnv(t)
+
+	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
+	ns := state.NewNodeState("my-project", "My Project", state.NodeLeaf)
+	ns.State = state.StatusInProgress
+	ns.Tasks = []state.Task{
+		{
+			ID:              "task-0001",
+			Title:           "Build the widget",
+			Description:     "Construct the primary widget component",
+			Body:            "This is a long task body that describes the full scope of the work to be done for building the widget.",
+			State:           state.StatusInProgress,
+			FailureCount:    3,
+			LastFailureType: "timeout",
+			Deliverables:    []string{"[x] widget.go created", "[ ] widget_test.go created", "[x] docs updated"},
+		},
+		{
+			ID:          "task-0002",
+			Title:       "Simple task",
+			Description: "A task with no extras",
+			State:       state.StatusNotStarted,
+		},
+	}
+	ns.Audit.Breadcrumbs = []state.Breadcrumb{
+		{Timestamp: time.Now().Add(-2 * time.Minute), Task: "task-0001", Text: "Started building widget scaffold"},
+		{Timestamp: time.Now().Add(-1 * time.Minute), Task: "task-0001", Text: "Completed initial file structure for the widget component"},
+	}
+
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+
+	// Update index to reflect in_progress state
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	entry := idx.Nodes["my-project"]
+	entry.State = state.StatusInProgress
+	idx.Nodes["my-project"] = entry
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	return env, idx
+}
+
+func TestShowTreeStatus_DetailFlag_ShowsTaskBody(t *testing.T) {
+	env, idx := setupDetailEnv(t)
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "", false, true) // expand=false, detail=true
+	})
+
+	if !strings.Contains(out, "This is a long task body") {
+		t.Error("detail mode should show task body")
+	}
+}
+
+func TestShowTreeStatus_DetailFlag_ShowsFailureType(t *testing.T) {
+	env, idx := setupDetailEnv(t)
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "", false, true)
+	})
+
+	if !strings.Contains(out, "3 failures, last: timeout") {
+		t.Errorf("detail mode should show failure type inline, got:\n%s", out)
+	}
+}
+
+func TestShowTreeStatus_DetailFlag_ShowsDeliverables(t *testing.T) {
+	env, idx := setupDetailEnv(t)
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "", false, true)
+	})
+
+	if !strings.Contains(out, "2/3 deliverables met") {
+		t.Errorf("detail mode should show deliverable summary, got:\n%s", out)
+	}
+}
+
+func TestShowTreeStatus_DetailFlag_ShowsBreadcrumb(t *testing.T) {
+	env, idx := setupDetailEnv(t)
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "", false, true)
+	})
+
+	if !strings.Contains(out, "breadcrumb:") {
+		t.Error("detail mode should show most recent breadcrumb")
+	}
+	if !strings.Contains(out, "Completed initial file structure") {
+		t.Error("detail mode should show the latest breadcrumb text")
+	}
+}
+
+func TestShowTreeStatus_NoDetail_HidesExtras(t *testing.T) {
+	env, idx := setupDetailEnv(t)
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "", false, false) // expand=false, detail=false
+	})
+
+	if strings.Contains(out, "This is a long task body") {
+		t.Error("without --detail, task body should not appear")
+	}
+	if strings.Contains(out, "deliverables met") {
+		t.Error("without --detail, deliverable summary should not appear")
+	}
+	if strings.Contains(out, "breadcrumb:") {
+		t.Error("without --detail, breadcrumb should not appear")
+	}
+	if strings.Contains(out, "last: timeout") {
+		t.Error("without --detail, failure type should not appear")
+	}
+	// Basic failure count should still show
+	if !strings.Contains(out, "3 failures") {
+		t.Error("failure count should appear even without --detail")
+	}
+}
+
+func TestShowTreeStatus_DefaultView_Unchanged(t *testing.T) {
+	env, idx := setupDetailEnv(t)
+	// Call with no flags at all (variadic empty)
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "")
+	})
+
+	if strings.Contains(out, "deliverables met") {
+		t.Error("default view should not show deliverable summary")
+	}
+	if strings.Contains(out, "breadcrumb:") {
+		t.Error("default view should not show breadcrumbs")
+	}
+}
+
+func TestShowTreeStatus_JSON_IncludesNodeDetails(t *testing.T) {
+	env, idx := setupDetailEnv(t)
+	env.App.JSONOutput = true
+	defer func() { env.App.JSONOutput = false }()
+
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "")
+	})
+
+	var resp map[string]any
+	if err := json.Unmarshal([]byte(out), &resp); err != nil {
+		t.Fatalf("invalid JSON output: %v", err)
+	}
+	data, ok := resp["data"].(map[string]any)
+	if !ok {
+		t.Fatal("expected data field in JSON response")
+	}
+	nodes, ok := data["nodes"].(map[string]any)
+	if !ok {
+		t.Fatal("expected nodes field in JSON data")
+	}
+	proj, ok := nodes["my-project"].(map[string]any)
+	if !ok {
+		t.Fatal("expected my-project node in JSON nodes")
+	}
+	tasks, ok := proj["tasks"].([]any)
+	if !ok {
+		t.Fatal("expected tasks array in node data")
+	}
+	if len(tasks) == 0 {
+		t.Fatal("expected at least one task in JSON output")
+	}
+	task0 := tasks[0].(map[string]any)
+	if task0["body"] != "This is a long task body that describes the full scope of the work to be done for building the widget." {
+		t.Error("JSON should include task body")
+	}
+	if task0["last_failure_type"] != "timeout" {
+		t.Error("JSON should include last_failure_type")
+	}
+	deliverables, ok := task0["deliverables"].([]any)
+	if !ok || len(deliverables) != 3 {
+		t.Errorf("JSON should include 3 deliverables, got %v", task0["deliverables"])
+	}
+
+	// Breadcrumbs at node level
+	bcs, ok := proj["breadcrumbs"].([]any)
+	if !ok || len(bcs) == 0 {
+		t.Error("JSON should include breadcrumbs at node level")
+	}
+}
+
+func TestStatusCmd_DetailFlag(t *testing.T) {
+	env, _ := setupDetailEnv(t)
+	env.RootCmd.SetArgs([]string{"status", "--detail"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("status --detail failed: %v", err)
+	}
+}
+
+func TestStatusCmd_ExpandAndDetailFlags(t *testing.T) {
+	env, _ := setupDetailEnv(t)
+	env.RootCmd.SetArgs([]string{"status", "--expand", "--detail"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("status --expand --detail failed: %v", err)
+	}
+}
+
+func TestTruncate(t *testing.T) {
+	cases := []struct {
+		in     string
+		maxLen int
+		want   string
+	}{
+		{"short", 80, "short"},
+		{"exactly ten", 11, "exactly ten"},
+		{"this is a longer string that should be truncated", 20, "this is a longer ..."},
+		{"ab", 1, "a"},
+		{"line one\nline two", 80, "line one line two"},
+	}
+	for _, tc := range cases {
+		got := truncate(tc.in, tc.maxLen)
+		if got != tc.want {
+			t.Errorf("truncate(%q, %d) = %q, want %q", tc.in, tc.maxLen, got, tc.want)
+		}
 	}
 }

@@ -5,6 +5,17 @@ Verify all work in this node is complete, correct, and high-quality.
 For leaf nodes, your scope is the files touched by tasks in this node.
 For orchestrator nodes, your scope is everything touched by all descendant nodes.
 
+## Phase 0: Read the AARs
+
+Before touching any code, read the After Action Reviews (AARs) in the iteration context. Each task that ran before you produced an AAR with:
+- **Objective**: what the task set out to do
+- **What happened**: the actual outcome
+- **Went well**: things worth preserving
+- **Improvements**: things the task author flagged as suboptimal
+- **Action items**: follow-ups the author identified
+
+Pay particular attention to **Improvements** and **Action items**. These are the task authors' own flags about where quality may be thin. They are leads, not verdicts; verify each one against the code.
+
 ## Phase 1: Read the code
 
 Read every file this node touched. Don't check boxes yet. Just read, and write down what you notice. What feels wrong? What would you question in a code review? What makes you uneasy? Follow your instincts before following the rubric.

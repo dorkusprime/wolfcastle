@@ -147,3 +147,54 @@ func (a *AuditState) RenderContext() string {
 
 	return b.String()
 }
+
+// RenderAARs produces a formatted Markdown section summarizing prior After
+// Action Reviews. The AARs are sorted by timestamp so the narrative reads
+// chronologically. Returns empty string when there are no AARs.
+func RenderAARs(aars map[string]AAR) string {
+	if len(aars) == 0 {
+		return ""
+	}
+
+	// Sort by timestamp for chronological ordering.
+	sorted := make([]AAR, 0, len(aars))
+	for _, aar := range aars {
+		sorted = append(sorted, aar)
+	}
+	// Simple insertion sort; AAR counts are small.
+	for i := 1; i < len(sorted); i++ {
+		for j := i; j > 0 && sorted[j].Timestamp.Before(sorted[j-1].Timestamp); j-- {
+			sorted[j], sorted[j-1] = sorted[j-1], sorted[j]
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString("\n## Prior Task Reviews (AARs)\n\n")
+
+	for _, aar := range sorted {
+		fmt.Fprintf(&b, "### %s\n\n", aar.TaskID)
+		fmt.Fprintf(&b, "**Objective:** %s\n", aar.Objective)
+		fmt.Fprintf(&b, "**What happened:** %s\n", aar.WhatHappened)
+		if len(aar.WentWell) > 0 {
+			b.WriteString("**Went well:**\n")
+			for _, item := range aar.WentWell {
+				fmt.Fprintf(&b, "- %s\n", item)
+			}
+		}
+		if len(aar.Improvements) > 0 {
+			b.WriteString("**Improvements:**\n")
+			for _, item := range aar.Improvements {
+				fmt.Fprintf(&b, "- %s\n", item)
+			}
+		}
+		if len(aar.ActionItems) > 0 {
+			b.WriteString("**Action items:**\n")
+			for _, item := range aar.ActionItems {
+				fmt.Fprintf(&b, "- %s\n", item)
+			}
+		}
+		b.WriteString("\n")
+	}
+
+	return b.String()
+}
