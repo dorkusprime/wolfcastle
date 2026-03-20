@@ -78,6 +78,11 @@ func (a *App) Init() error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
+	// Surface unknown-field warnings to stderr.
+	for _, w := range cfg.Warnings {
+		output.PrintError("%s", w)
+	}
+
 	if a.Clock == nil {
 		a.Clock = clock.New()
 	}

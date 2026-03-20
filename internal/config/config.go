@@ -142,16 +142,28 @@ func Load(wolfcastleDir string) (*Config, error) {
 		return nil, fmt.Errorf("marshaling defaults: %w", err)
 	}
 
-	// Overlay each tier in order
-	for _, tier := range configTiers() {
+	var warnings []string
+
+	// Overlay each tier in order, checking for unknown fields per tier
+	for i, tier := range configTiers() {
 		path := filepath.Join(wolfcastleDir, tier)
-		raw, err := loadJSONFile(path)
-		if err != nil && !os.IsNotExist(err) {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
 			return nil, fmt.Errorf("reading %s: %w", tier, err)
 		}
-		if raw != nil {
-			result = DeepMerge(result, raw)
+
+		// Check this tier's raw JSON for unknown fields
+		tierLabel := tierfs.TierNames[i] + "/config.json"
+		warnings = append(warnings, checkUnknownFields(data, tierLabel)...)
+
+		var overlay map[string]any
+		if err := json.Unmarshal(data, &overlay); err != nil {
+			return nil, fmt.Errorf("parsing %s: %w", tier, err)
 		}
+		result = DeepMerge(result, overlay)
 	}
 
 	// Marshal back to Config struct
@@ -164,26 +176,14 @@ func Load(wolfcastleDir string) (*Config, error) {
 		return nil, fmt.Errorf("unmarshaling merged config: %w", err)
 	}
 
+	cfg.Warnings = warnings
+
 	// Validate structural integrity (skip identity — handled by resolver)
 	if err := ValidateStructure(&cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return &cfg, nil
-}
-
-// loadJSONFile reads a JSON file and returns its contents as a map.
-// Returns (nil, os.ErrNotExist) if the file does not exist.
-func loadJSONFile(path string) (map[string]any, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var m map[string]any
-	if err := json.Unmarshal(data, &m); err != nil {
-		return nil, fmt.Errorf("parsing %s: %w", filepath.Base(path), err)
-	}
-	return m, nil
 }
 
 // structToMap converts a struct to a map[string]any via JSON round-trip.
