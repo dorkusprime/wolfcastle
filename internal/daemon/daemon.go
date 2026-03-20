@@ -72,6 +72,11 @@ type Daemon struct {
 	lastNoWorkMsg string // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
 }
 
+// repo returns a DaemonRepository for the daemon's wolfcastle directory.
+func (d *Daemon) repo() *DaemonRepository {
+	return NewDaemonRepository(d.WolfcastleDir)
+}
+
 // New creates a new daemon.
 func New(cfg *config.Config, wolfcastleDir string, store *state.StateStore, scopeNode string, repoDir string) (*Daemon, error) {
 	logDir := filepath.Join(wolfcastleDir, "system", "logs")
@@ -257,7 +262,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				d.shutdownOnce.Do(func() { close(d.shutdown) })
 				go func() {
 					time.Sleep(2 * time.Second)
-					_ = os.Remove(filepath.Join(d.WolfcastleDir, "system", "wolfcastle.pid"))
+					_ = d.repo().RemovePID()
 					os.Exit(0)
 				}()
 				return
@@ -394,9 +399,8 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	}
 
 	// Check stop file
-	stopFilePath := filepath.Join(d.WolfcastleDir, "system", "stop")
-	if _, err := os.Stat(stopFilePath); err == nil {
-		_ = os.Remove(stopFilePath)
+	if d.repo().HasStopFile() {
+		_ = d.repo().RemoveStopFile()
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
 		output.PrintHuman("=== Wolfcastle standing down (stop file) ===")
 		return IterationStop, nil
