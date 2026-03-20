@@ -1538,49 +1538,54 @@ Agent mode does not invoke a model and ignores these settings.
 ### Synopsis
 
 ```
-wolfcastle project create [--node <parent>] "<name>"
+wolfcastle project create "<name>" [--node <parent>] [--type <leaf|orchestrator>] [--description "<text>"] [--scope "<text>"]
 ```
 
 ### Description
 
-Creates a new project or sub-project node. When `--node` is omitted, creates a root-level project. When `--node` is provided, creates a child node under the specified parent. The new node is an orchestrator (can have children) rather than a leaf task. Used during discovery to structure work into a tree hierarchy.
+Creates a new project or sub-project node. When `--node` is omitted, creates a root-level project. When `--node` is provided, creates a child node under the specified parent. The `--type` flag controls whether the new node is a leaf (holds tasks) or an orchestrator (holds child projects); it defaults to `leaf`. Used during discovery to structure work into a tree hierarchy.
 
 ### Arguments and Flags
 
 | Flag/Arg | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `--node <parent>` | string | No | (none -- root level) | Tree address of the parent node (ADR-008). When omitted, the project is created at the root level |
 | `"<name>"` | string (positional) | Yes | -- | Name for the new project node (used as its slug in the tree path) |
+| `--node <parent>` | string | No | (none, root level) | Tree address of the parent node (ADR-008). When omitted, the project is created at the root level |
+| `--type <leaf\|orchestrator>` | string | No | `"leaf"` | Node type. `leaf` nodes hold tasks; `orchestrator` nodes hold child projects |
+| `--description "<text>"` | string | No | `""` | Project description text written to the project `.md` file. When empty, a placeholder is used |
+| `--scope "<text>"` | string | No | `""` | Planning scope for orchestrator nodes. Sets the node's `Scope` field, which the planning agent reads to understand what the orchestrator covers. Ignored for leaf nodes |
 
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
 2. Resolve engineer identity.
 3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
-4. If `--node` is provided, validate the parent path exists in the tree index and is an orchestrator node. If `--node` is omitted, create the project at the root level.
-5. (When `--node` is provided) Validate the parent is an orchestrator node.
-6. Generate a slug from the name (lowercase, hyphens for spaces, strip special characters).
+4. Validate `--type` is either `"leaf"` or `"orchestrator"`. Fail with an error if unrecognized.
+5. If `--node` is provided, validate the parent path exists in the tree index. If the parent is currently a leaf node with no non-audit tasks, auto-promote it to an orchestrator (clear its task list, update its type in both node state and root index). If the parent is a leaf with existing tasks, fail with an error.
+6. Generate a slug from the name (lowercase, hyphens for spaces, strip special characters). Validate the slug.
 7. Check that no sibling node already has the same slug. If collision, append a numeric suffix.
 8. Create the new project's directory at `projects/{identity}/{parent-path}/{slug}/` and write its co-located `state.json` (ADR-024):
    - `name`: the provided name
-   - `type`: `"orchestrator"`
+   - `type`: the value of `--type` (`"leaf"` or `"orchestrator"`)
+   - For orchestrator nodes: set `Scope` to `--scope` if provided, otherwise `--description` if provided, otherwise the project name
    - `children`: `[]`
    - `audit`: `null`
-9. Create the project description Markdown file at `projects/{identity}/{parent-path}/{slug}/{slug}.md` (ADR-024).
-10. Append the new node to the parent's `children` list in the parent's `state.json`.
-11. Update the root `state.json` index to register the new node.
-12. Output the result as JSON.
+9. For leaf nodes, write the audit task Markdown template into the node directory.
+10. Create the project description Markdown file at `projects/{identity}/{parent-path}/{slug}/{slug}.md` containing the project name as a heading and `--description` as body text (or a placeholder if `--description` is empty).
+11. Append the new node to the parent's `children` list in the parent's `state.json`.
+12. Update the root `state.json` index to register the new node. If this is the first root-level project, set it as the tree root.
+13. Output the result as JSON.
+14. If overlap advisory is enabled in config, run overlap detection using the project name and description.
 
 ### Output
 
 ```json
 {
   "ok": true,
-  "action": "project_created",
-  "node": "attunement-tree/fire-implementation",
-  "parent": "attunement-tree",
-  "name": "Fire Implementation",
-  "type": "orchestrator"
+  "action": "project_create",
+  "address": "attunement-tree/fire-implementation",
+  "type": "leaf",
+  "name": "Fire Implementation"
 }
 ```
 
@@ -1591,26 +1596,37 @@ Creates a new project or sub-project node. When `--node` is omitted, creates a r
 | 0 | Project created successfully |
 | 1 | `.wolfcastle/` not found or identity not configured |
 | 2 | Parent node path not found |
-| 3 | Parent is a leaf task (cannot nest projects under leaf tasks) |
-| 4 | Name is empty |
+| 3 | Parent is a leaf with existing tasks (cannot nest under a leaf that has tasks) |
+| 4 | Name is empty or slug is invalid |
+| 5 | Unknown `--type` value (not `"leaf"` or `"orchestrator"`) |
 
 ### Examples
 
 ```bash
-# Create a root-level project (no --node flag)
+# Create a root-level leaf project (default type)
 wolfcastle project create "Attunement Tree"
+
+# Create an orchestrator project
+wolfcastle project create --type orchestrator "API Gateway"
 
 # Create a sub-project under an existing parent
 wolfcastle project create --node attunement-tree "Fire Implementation"
+
+# Create a leaf with a description
+wolfcastle project create --node attunement-tree "Water Implementation" --description "Implement water attunement abilities and resistance calculations"
+
+# Create an orchestrator with scope for the planning agent
+wolfcastle project create --type orchestrator --node api-gateway "Auth Module" --scope "JWT-based authentication: token issuance, validation, refresh, and revocation"
 ```
 
 ### Error Cases
 
 | Error | Output (JSON) | Code |
 |-------|---------------|------|
-| Parent not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
-| Parent is a leaf | `{"ok": false, "error": "cannot create project under leaf node 'foo/bar/task-1'", "code": "INVALID_NODE_TYPE"}` | 3 |
-| Empty name | `{"ok": false, "error": "project name must not be empty", "code": "EMPTY_NAME"}` | 4 |
+| Parent not found | `{"ok": false, "error": "parent node \"foo/bar\" not found. Check your address", "code": "NODE_NOT_FOUND"}` | 2 |
+| Parent is leaf with tasks | `{"ok": false, "error": "cannot create child under leaf \"foo/bar\": it has 3 existing task(s). Remove tasks before decomposing", "code": "INVALID_NODE_TYPE"}` | 3 |
+| Empty/invalid name | `{"ok": false, "error": "invalid project name: ...", "code": "INVALID_NAME"}` | 4 |
+| Invalid type | `{"ok": false, "error": "unknown node type \"custom\": pick 'leaf' or 'orchestrator'", "code": "INVALID_TYPE"}` | 5 |
 
 ---
 
