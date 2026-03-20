@@ -13,3 +13,7 @@ For each finding:
 6. **Estimated Effort**: small (< 1 hour), medium (1-4 hours), large (4+ hours)
 
 Group findings by scope. Prioritize high-severity items first within each scope.
+
+## Previous Audit Reports
+
+If this node has been audited before, previous audit reports (named `audit-YYYY-MM-DDTHH-MM.md`) exist in the node's state directory. Read them for context on what was previously reviewed, what gaps were found and remediated, and what changed since the last audit. Focus your review on areas that have changed or were previously flagged.
