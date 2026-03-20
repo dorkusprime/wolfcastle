@@ -14,6 +14,9 @@
 !system/projects/**/
 !system/projects/**
 
+# Runtime artifacts (lock files, PID files, logs)
+*.lock
+
 # Archived projects
 !archive/
 !archive/**/
