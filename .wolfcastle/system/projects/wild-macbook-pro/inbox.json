@@ -74,6 +74,11 @@
       "timestamp": "2026-03-20T10:18:37Z",
       "text": "Delete deprecated scaffold.go: zero production callers. ScaffoldService replaced it. Remove scaffold.go, scaffold_test.go, deprecated_coverage_test.go, reinit_coverage_test.go, and category_a_test.go's Scaffold/ReScaffold calls.",
       "status": "new"
+    },
+    {
+      "timestamp": "2026-03-20T10:27:29Z",
+      "text": "Doctor should detect parent-child state mismatch: when a parent ChildRef.State says complete but the actual child node state is not_started, doctor reports clean. Add a CHILDREF_STATE_MISMATCH validation category that compares ChildRef.State against the child's actual persisted state. Include a deterministic fix that updates the ChildRef to match reality.",
+      "status": "new"
     }
   ]
 }

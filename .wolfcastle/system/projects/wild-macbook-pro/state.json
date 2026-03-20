@@ -212,7 +212,7 @@
     "domain-repository-architecture/foundation/test-environment": {
       "name": "Test Environment",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "domain-repository-architecture/foundation/test-environment",
       "decomposition_depth": 0,
       "parent": "domain-repository-architecture/foundation"
@@ -220,7 +220,7 @@
     "domain-repository-architecture/foundation/tier-resolution-primitive": {
       "name": "Tier Resolution Primitive",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "domain-repository-architecture/foundation/tier-resolution-primitive",
       "decomposition_depth": 0,
       "parent": "domain-repository-architecture/foundation"

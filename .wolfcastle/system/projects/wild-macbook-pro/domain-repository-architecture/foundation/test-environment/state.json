@@ -3,14 +3,14 @@
   "id": "test-environment",
   "name": "Test Environment",
   "type": "leaf",
-  "state": "not_started",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Implement NodeSpec builders and Environment struct",
       "description": "Implement NodeSpec builders and Environment struct",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/testutil/environment.go"
@@ -80,7 +80,7 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "pending",
+    "status": "passed",
     "started_at": "2026-03-18T20:23:48.684678Z",
     "completed_at": "2026-03-18T20:37:39.753125Z",
     "result_summary": "Implemented testutil.Environment, a fluent-builder test fixture that constructs a complete .wolfcastle/ directory backed by tierfs.Resolver and state.StateStore. Provides WithConfig (custom-tier deep merge), WithProject (recursive NodeSpec tree creation with auto-audit tasks), WithPrompt (base-tier prompt files), and WithRule (base-tier rule fragments). Includes NodeSpec builders (Leaf, Orchestrator) for declarative tree construction. 19 dedicated tests cover all methods, chaining, and edge cases. All tests pass including race detector. Two ADRs document the fluent builder pattern and custom-tier config strategy; one spec documents the Environment contract."

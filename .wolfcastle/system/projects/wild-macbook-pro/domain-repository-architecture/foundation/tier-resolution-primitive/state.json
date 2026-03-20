@@ -3,14 +3,14 @@
   "id": "tier-resolution-primitive",
   "name": "Tier Resolution Primitive",
   "type": "leaf",
-  "state": "not_started",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Define Resolver interface and FS struct",
       "description": "Define Resolver interface and FS struct",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/tierfs/tierfs.go"
@@ -64,7 +64,7 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "pending",
+    "status": "passed",
     "started_at": "2026-03-18T20:15:32.733431Z",
     "completed_at": "2026-03-18T20:23:48.610819Z",
     "result_summary": "The tier-resolution-primitive node delivers package tierfs with a Resolver interface and concrete FS implementation providing three-tier file resolution (base \u003c custom \u003c local) rooted at a single directory. The implementation is 120 lines with 275 lines of table-driven tests covering all five interface methods, including edge cases for missing tiers, subdirectory paths, file filtering, and overwrite semantics. All tests pass with the race detector enabled. Two ADRs document the interface-for-testability and hardcoded-tier-order decisions. A spec documents the full Resolver contract including error behavior and thread safety. The audit found and fixed one gofmt alignment issue in the test file; no correctness, safety, or architecture issues were identified."
