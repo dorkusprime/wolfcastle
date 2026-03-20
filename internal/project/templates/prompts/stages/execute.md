@@ -61,7 +61,30 @@ Before committing, verify your work compiles, passes tests, and is clean:
 Do not skip this phase. Do not commit code that doesn't build or pass tests.
 
 ### E. Record
-Write a breadcrumb describing what you did:
+
+Write an After Action Review (AAR) for your completed work. This structured narrative flows to the next task and into audits. A good AAR is specific. A bad AAR says "implemented the feature." A good one names the files changed, the tradeoffs made, and the doubts that remain.
+
+**Objective**: restate the task goal in your own words. One sentence.
+
+**What happened**: what you actually did. Name the files you created or modified. If you changed your approach mid-task, say why. If something surprised you, say what.
+
+**Went well**: things worth preserving. Patterns that worked, tests that caught real bugs, abstractions that simplified the code. Be concrete: "the table-driven test in foo_test.go caught three edge cases" is useful. "Tests went well" is not.
+
+**Improvements**: things you'd do differently with more time, or things you left imperfect. Flag code you're uncertain about. Name files and functions. The auditor will check these first.
+
+**Action items**: specific follow-ups for whoever works here next. "The retry logic in bar.go doesn't handle context cancellation during the backoff sleep" is actionable. "Consider improving error handling" is not.
+
+```
+wolfcastle audit aar --node <your-node> --task <your-task-id> \
+  --objective "Implement retry logic for model invocations" \
+  --what-happened "Added RetryInvoker wrapper in invoke/retry.go. Changed approach from fixed delay to exponential backoff after reading the existing timeout config. Also added ErrStallTimeout sentinel." \
+  --went-well "Backoff calculation is clean and testable" \
+  --went-well "Stall test caught a real bug: child processes holding pipes open" \
+  --improvements "The killProcessGroup function uses SIGKILL directly; a graceful SIGTERM-then-SIGKILL sequence would be better" \
+  --action-items "Wire stall timeout into the config validation docs"
+```
+
+Also write a breadcrumb describing what you did:
 ```
 wolfcastle audit breadcrumb --node <your-node> "description of changes"
 ```

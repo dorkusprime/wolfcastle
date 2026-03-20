@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
@@ -17,11 +18,17 @@ type ConfigRepository struct {
 	root  string
 }
 
+// DefaultConfigCacheTTL is the TTL for the caching resolver wrapping
+// tier resolution in production config repositories.
+const DefaultConfigCacheTTL = 30 * time.Second
+
 // NewConfigRepository creates a ConfigRepository rooted at wolfcastleRoot.
-// The tierfs.FS is constructed over the "system" subdirectory.
+// The tierfs.FS is constructed over the "system" subdirectory and wrapped
+// with a CachingResolver for TTL-based read caching.
 func NewConfigRepository(wolfcastleRoot string) *ConfigRepository {
+	fs := tierfs.New(filepath.Join(wolfcastleRoot, "system"))
 	return NewConfigRepositoryWithTiers(
-		tierfs.New(filepath.Join(wolfcastleRoot, "system")),
+		tierfs.NewCachingResolver(fs, DefaultConfigCacheTTL),
 		wolfcastleRoot,
 	)
 }

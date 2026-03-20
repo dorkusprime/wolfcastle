@@ -81,6 +81,14 @@ Every node gets an audit task, not just leaves. Orchestrator audits are deferred
 
 When an audit finds gaps, the audit task moves to BLOCKED and the block propagates upward to the root index. The parent orchestrator sees the block, triggers re-planning, and creates remediation tasks to address the gaps. Those tasks execute, the fixes land, and the audit re-runs. This cycle repeats until the audit passes or the problem escalates to a human.
 
+## Spec Review
+
+When a spec task completes, the daemon automatically creates a review task. The review checks the spec for logical gaps, missing method signatures, contradictions, and unclear requirements before implementation begins. If the review finds issues, it blocks and feeds the feedback back to the original spec task, which re-enters the work queue for revision. This loop repeats until the spec passes review. Review tasks are inserted before the audit task so they run in the natural execution order.
+
+## Orchestrator Reconciliation
+
+At the start of each daemon iteration, the daemon reconciles every orchestrator's persisted state against its children. If a parent says "in progress" but all its children are complete, the parent gets corrected. This handles edge cases where state mutations from a previous iteration (or a crash) left the tree inconsistent. The reconciliation runs before planning or navigation, so the daemon always operates on an accurate picture.
+
 ## The Daemon
 
 `wolfcastle start` launches the daemon. It owns the pipeline loop.

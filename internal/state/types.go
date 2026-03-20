@@ -110,8 +110,9 @@ type NodeState struct {
 	MaxReplans      int            `json:"max_replans,omitempty"`
 	PlanningHistory []PlanningPass `json:"planning_history,omitempty"`
 	// Common
-	Audit AuditState `json:"audit"`
-	Specs []string   `json:"specs,omitempty"`
+	Audit AuditState     `json:"audit"`
+	AARs  map[string]AAR `json:"aars,omitempty"`
+	Specs []string       `json:"specs,omitempty"`
 }
 
 // ChildRef is a reference to a child node in an orchestrator's state.
@@ -197,6 +198,20 @@ type PlanningPass struct {
 	Timestamp time.Time `json:"timestamp"`
 	Trigger   string    `json:"trigger"`
 	Summary   string    `json:"summary"`
+}
+
+// AAR (After Action Review) captures structured narrative about a completed
+// task: what was attempted, what happened, what went well, and what should
+// change. AARs flow from one task to the next and serve as the audit's
+// primary input, replacing terse breadcrumbs with actionable context.
+type AAR struct {
+	TaskID       string    `json:"task_id"`
+	Timestamp    time.Time `json:"timestamp"`
+	Objective    string    `json:"objective"`
+	WhatHappened string    `json:"what_happened"`
+	WentWell     []string  `json:"went_well,omitempty"`
+	Improvements []string  `json:"improvements,omitempty"`
+	ActionItems  []string  `json:"action_items,omitempty"`
 }
 
 // NewRootIndex creates an empty root index.

@@ -457,6 +457,12 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// Deliver any buffered pending scope from intake.
 	d.deliverPendingScope(idx)
 
+	// Reconcile orchestrator states before planning or navigation
+	// decisions. Catches stale parent states (e.g., not_started while
+	// all children are complete) that would otherwise persist until
+	// the next daemon restart and selfHeal.
+	d.reconcileOrchestratorStates(idx)
+
 	nodeLoader := func(addr string) (*state.NodeState, error) {
 		a, parseErr := tree.ParseAddress(addr)
 		if parseErr != nil {
@@ -546,6 +552,10 @@ execute:
 			d.checkReplanningTriggers(navResult.NodeAddress, navResult.TaskID, freshIdx)
 		}
 	}
+
+	// If a spec task just completed, queue a review task so the spec
+	// gets audited before it drives implementation.
+	d.checkSpecReviewNeeded(navResult.NodeAddress, navResult.TaskID)
 
 	return IterationDidWork, nil
 }

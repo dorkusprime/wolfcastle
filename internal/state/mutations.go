@@ -397,6 +397,16 @@ func SetNeedsDecomposition(ns *NodeState, taskID string, needs bool) {
 	}
 }
 
+// AddAAR records an After Action Review for a completed task. The AAR
+// is keyed by task ID in the node's AARs map. Calling AddAAR for the
+// same task ID overwrites any prior review.
+func AddAAR(ns *NodeState, aar AAR) {
+	if ns.AARs == nil {
+		ns.AARs = make(map[string]AAR)
+	}
+	ns.AARs[aar.TaskID] = aar
+}
+
 func findTask(ns *NodeState, taskID string) *Task {
 	for i := range ns.Tasks {
 		if ns.Tasks[i].ID == taskID {

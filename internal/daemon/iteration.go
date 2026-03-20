@@ -200,6 +200,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				return nil
 			}
 
+			// Spec review blocked: feed issues back to the original spec
+			// task so it can be revised. The review task stays blocked;
+			// the spec task resets to not_started for another pass.
+			if d.handleSpecReviewBlocked(nav.NodeAddress, nav.TaskID) {
+				return nil
+			}
+
 			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 				return state.TaskBlock(ns, nav.TaskID, "blocked by model")
 			}); err != nil {
@@ -278,6 +285,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 			}
+
+			// Generate audit report when an audit task completes.
+			d.maybeWriteAuditReport(nav.NodeAddress, nav.TaskID)
+
 			if !d.Config.Pipeline.Planning.Enabled {
 				d.autoCompleteDecomposedParents(nav.NodeAddress)
 			}
@@ -615,6 +626,45 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 		return nil
 	})
 	return created
+}
+
+// maybeWriteAuditReport checks if the completed task is an audit and, if so,
+// writes a markdown report to the node's directory. This is a best-effort
+// operation; failures are logged but do not block task completion.
+func (d *Daemon) maybeWriteAuditReport(nodeAddr, taskID string) {
+	ns, err := d.Store.ReadNode(nodeAddr)
+	if err != nil {
+		return
+	}
+
+	isAudit := false
+	for _, t := range ns.Tasks {
+		if t.ID == taskID && t.IsAudit {
+			isAudit = true
+			break
+		}
+	}
+	if !isAudit {
+		return
+	}
+
+	now := d.Clock.Now()
+	reportPath, err := state.WriteAuditReport(d.Store.Dir(), nodeAddr, ns.Audit, ns.Name, now)
+	if err != nil {
+		_ = d.Logger.Log(map[string]any{
+			"type":  "audit_report_error",
+			"node":  nodeAddr,
+			"error": err.Error(),
+		})
+		return
+	}
+
+	_ = d.Logger.Log(map[string]any{
+		"type": "audit_report_written",
+		"node": nodeAddr,
+		"path": reportPath,
+	})
+	output.PrintHuman("  Audit report: %s", reportPath)
 }
 
 // isSupersededBlock checks whether a blocked task was actually superseded

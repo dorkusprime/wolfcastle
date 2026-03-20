@@ -5,6 +5,17 @@ Verify all work in this node is complete, correct, and high-quality.
 For leaf nodes, your scope is the files touched by tasks in this node.
 For orchestrator nodes, your scope is everything touched by all descendant nodes.
 
+## Phase 0: Read the AARs
+
+Before touching any code, read the After Action Reviews (AARs) in the iteration context. Each task that ran before you produced an AAR with:
+- **Objective**: what the task set out to do
+- **What happened**: the actual outcome
+- **Went well**: things worth preserving
+- **Improvements**: things the task author flagged as suboptimal
+- **Action items**: follow-ups the author identified
+
+Pay particular attention to **Improvements** and **Action items**. These are the task authors' own flags about where quality may be thin. They are leads, not verdicts; verify each one against the code.
+
 ## Phase 1: Read the code
 
 Read every file this node touched. Don't check boxes yet. Just read, and write down what you notice. What feels wrong? What would you question in a code review? What makes you uneasy? Follow your instincts before following the rubric.
@@ -84,6 +95,22 @@ Check git blame, commit history, or whether the file was modified by any task in
 - Hypothetical improvements with no concrete evidence: discard
 
 Record remediations as gaps with `wolfcastle audit gap`. Record escalations with `wolfcastle audit escalate`. Fix trivial issues directly and commit.
+
+## Phase 4: Write the audit summary
+
+Before emitting your verdict, write a summary with `wolfcastle audit breadcrumb`. This summary becomes the narrative core of the audit report. Make it worth reading.
+
+Structure your summary as:
+
+1. **Scope**: what you reviewed (files, packages, line count).
+2. **Verdict rationale**: why you're passing or remediating. Name the strongest evidence for your decision.
+3. **Findings**: each finding with its disposition (remediated, escalated, accepted, discarded) and why.
+4. **Risks**: anything that's technically correct but fragile, or correct today but likely to break under future changes. These aren't gaps; they're notes for the next auditor.
+5. **Quality assessment**: one paragraph on the overall quality of the work. Be honest. Good work deserves recognition. Weak work deserves candor.
+
+```
+wolfcastle audit breadcrumb --node <your-node> "Reviewed 4 files (312 lines). PASS. Two findings: (1) retry.go line 45 discards context error during backoff sleep, accepted because the next iteration checks ctx.Err() immediately. (2) Escalated: stale TODO in invoke.go:89 predates this node. Quality: clean implementation, good test coverage, the exponential backoff is well-factored."
+```
 
 ## Verdicts
 

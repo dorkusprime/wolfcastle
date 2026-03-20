@@ -204,6 +204,9 @@ func (s *ScaffoldService) Init(identity *config.Identity) error {
 !system/projects/**/
 !system/projects/**
 
+# Runtime artifacts (lock files, PID files, logs)
+*.lock
+
 # Base prompts (README only; base tier is regenerated)
 !system/base/
 !system/base/prompts/
