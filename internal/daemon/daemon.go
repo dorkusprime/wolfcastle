@@ -297,7 +297,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Start the parallel inbox processing goroutine (ADR-064).
 	// It watches for new inbox items and runs the intake stage
 	// independently of the main execution loop.
-	go d.runInboxLoop(ctx)
+	d.runWg.Add(1)
+	go func() {
+		defer d.runWg.Done()
+		d.runInboxLoop(ctx)
+	}()
 
 	var idleSpinner *output.Spinner
 	for {
