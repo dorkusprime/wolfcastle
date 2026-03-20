@@ -1,3 +1,6 @@
+// Package git abstracts git operations behind a Provider interface so
+// callers can work against a real repository or a test stub. The
+// default Service implementation shells out to the git binary.
 package git
 
 import (
