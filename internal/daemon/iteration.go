@@ -286,6 +286,63 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 			}
 
+			// Guard: audit tasks must not complete while open gaps remain.
+			// If the model declares COMPLETE but unresolved gaps exist, undo
+			// the completion and create remediation subtasks instead.
+			if completedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+				isAuditTask := false
+				for _, t := range completedNS.Tasks {
+					if t.ID == nav.TaskID && t.IsAudit {
+						isAuditTask = true
+						break
+					}
+				}
+				if isAuditTask {
+					var hasOpenGaps bool
+					for _, g := range completedNS.Audit.Gaps {
+						if g.Status == state.GapOpen {
+							hasOpenGaps = true
+							break
+						}
+					}
+					if hasOpenGaps {
+						// Undo the completion: revert the task to not_started
+						// so remediation subtasks run first.
+						_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
+							for i := range ns2.Tasks {
+								if ns2.Tasks[i].ID == nav.TaskID {
+									ns2.Tasks[i].State = state.StatusNotStarted
+									break
+								}
+							}
+							return nil
+						})
+
+						created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID)
+						if created > 0 {
+							_ = d.Logger.Log(map[string]any{
+								"type":     "audit_complete_with_gaps",
+								"task":     nav.TaskID,
+								"subtasks": created,
+							})
+							output.PrintHuman("  Audit has %d open gap(s), creating remediation subtasks.", created)
+						} else {
+							// Edge case: open gaps exist but no subtasks created.
+							// Block the audit to prevent silent completion.
+							_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
+								return state.TaskBlock(ns2, nav.TaskID, "open gaps remain")
+							})
+							_ = d.Logger.Log(map[string]any{
+								"type": "audit_blocked_open_gaps",
+								"task": nav.TaskID,
+							})
+							output.PrintHuman("  Audit blocked: open gaps remain.")
+						}
+						return nil
+					}
+				}
+			}
+
 			// Generate audit report when an audit task completes.
 			d.maybeWriteAuditReport(nav.NodeAddress, nav.TaskID)
 

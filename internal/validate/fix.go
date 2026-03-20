@@ -422,6 +422,34 @@ func ApplyDeterministicFixesRepo(
 			}
 			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "reset stale in_progress task(s) to not_started"})
 
+		case CatChildRefStateMismatch:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			for i := range ns.Children {
+				// Resolve the child's actual state from the index (preferred) or disk.
+				var actualState state.NodeStatus
+				if entry, ok := idx.Nodes[ns.Children[i].Address]; ok {
+					actualState = entry.State
+				} else {
+					childNS, _, childErr := loadOrCached(ns.Children[i].Address)
+					if childErr != nil {
+						continue
+					}
+					actualState = childNS.State
+				}
+				ns.Children[i].State = actualState
+			}
+			ns.State = state.RecomputeState(ns.Children, ns.Tasks)
+			modifiedStates[statePath] = ns
+			if entry, ok := idx.Nodes[issue.Node]; ok {
+				entry.State = ns.State
+				idx.Nodes[issue.Node] = entry
+				indexModified = true
+			}
+			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: fmt.Sprintf("synced ChildRef states and recomputed parent to %s", ns.State)})
+
 		case CatStalePIDFile:
 			if repo != nil {
 				if err := repo.RemovePID(); err == nil {
