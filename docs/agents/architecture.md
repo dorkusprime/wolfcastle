@@ -27,6 +27,7 @@ wolfcastle/
 │   ├── pipeline/            # Prompt assembly, iteration context, fragment resolution
 │   ├── project/             # Project scaffolding and embedded templates
 │   ├── selfupdate/          # Binary self-update logic
+│   ├── signals/             # Canonical shutdown signal set (platform-specific via build tags)
 │   ├── state/               # State types, I/O, mutations, navigation, propagation, inbox, review (ADR-058)
 │   ├── testutil/            # Shared test helpers
 │   ├── tierfs/              # Three-tier file resolution (ADR-063)
@@ -71,18 +72,20 @@ User input → cmd/ → internal/ → filesystem (.wolfcastle/)
 
 Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
-- `daemon` → `clock`, `config`, `errors`, `invoke`, `logging`, `output`, `pipeline`, `state`, `tree`
-- `pipeline` → `config`, `state`
-- `validate` → `state`
-- `archive` → `config`, `state`
-- `project` → `state`, `tree`
+- `daemon` → `clock`, `config`, `errors`, `invoke`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
+- `validate` → `config`, `daemon`, `invoke`, `pipeline`, `state`, `tree`
+- `pipeline` → `config`, `invoke`, `state`, `tierfs`
+- `archive` → `clock`, `config`, `state`
+- `project` → `config`, `state`, `tierfs`
+- `config` → `tierfs`
+- `state` → `clock`, `invoke` (includes inbox and review types per ADR-058)
+- `logging` → `output`
+- `invoke` → `config`
+- `tree` → `config`
 - `selfupdate` → (standalone)
-- `config` → (standalone)
-- `state` → (standalone, includes inbox and review types per ADR-058)
 - `clock` → (standalone)
 - `git` → (standalone)
 - `tierfs` → (standalone)
-- `tree` → (standalone)
+- `signals` → (standalone)
 - `output` → (standalone)
 - `errors` → (standalone)
-- `invoke` → `config`
