@@ -96,6 +96,22 @@ Check git blame, commit history, or whether the file was modified by any task in
 
 Record remediations as gaps with `wolfcastle audit gap`. Record escalations with `wolfcastle audit escalate`. Fix trivial issues directly and commit.
 
+## Phase 4: Write the audit summary
+
+Before emitting your verdict, write a summary with `wolfcastle audit breadcrumb`. This summary becomes the narrative core of the audit report. Make it worth reading.
+
+Structure your summary as:
+
+1. **Scope**: what you reviewed (files, packages, line count).
+2. **Verdict rationale**: why you're passing or remediating. Name the strongest evidence for your decision.
+3. **Findings**: each finding with its disposition (remediated, escalated, accepted, discarded) and why.
+4. **Risks**: anything that's technically correct but fragile, or correct today but likely to break under future changes. These aren't gaps; they're notes for the next auditor.
+5. **Quality assessment**: one paragraph on the overall quality of the work. Be honest. Good work deserves recognition. Weak work deserves candor.
+
+```
+wolfcastle audit breadcrumb --node <your-node> "Reviewed 4 files (312 lines). PASS. Two findings: (1) retry.go line 45 discards context error during backoff sleep, accepted because the next iteration checks ctx.Err() immediately. (2) Escalated: stale TODO in invoke.go:89 predates this node. Quality: clean implementation, good test coverage, the exponential backoff is well-factored."
+```
+
 ## Verdicts
 
 - **PASS**: No findings that warrant remediation. Escalations and accepted tradeoffs are fine. Emit WOLFCASTLE_COMPLETE.
