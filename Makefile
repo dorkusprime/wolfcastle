@@ -5,7 +5,7 @@ DATE    ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -ldflags "-X github.com/dorkusprime/wolfcastle/cmd.Version=$(VERSION) -X github.com/dorkusprime/wolfcastle/cmd.Commit=$(COMMIT) -X github.com/dorkusprime/wolfcastle/cmd.Date=$(DATE)"
 GOFLAGS := -trimpath
 
-.PHONY: build test install clean lint fmt vet ci help
+.PHONY: build test install clean lint fmt vet golangci-lint ci help
 
 build:
 	@echo "Building wolfcastle $(VERSION) ($(COMMIT))..."
@@ -27,7 +27,7 @@ clean:
 	rm -f $(BINARY)
 	go clean
 
-lint: vet fmt
+lint: vet fmt golangci-lint
 	@echo "Lint passed"
 
 vet:
@@ -35,6 +35,9 @@ vet:
 
 fmt:
 	@test -z "$$(gofmt -l .)" || (echo "gofmt needed on:"; gofmt -l .; exit 1)
+
+golangci-lint:
+	golangci-lint run ./...
 
 ci: lint test build
 
@@ -62,9 +65,10 @@ help: ## Print available targets
 	@echo "  test-verbose   Run tests with verbose output"
 	@echo "  install        Install wolfcastle to GOPATH/bin"
 	@echo "  clean          Remove built binary and build cache"
-	@echo "  lint           Run vet and fmt checks"
+	@echo "  lint           Run vet, fmt, and golangci-lint checks"
 	@echo "  vet            Run go vet"
 	@echo "  fmt            Check gofmt compliance"
+	@echo "  golangci-lint  Run golangci-lint"
 	@echo "  build-all      Cross-compile for all platforms"
 	@echo "  build-linux    Cross-compile for Linux (amd64, arm64)"
 	@echo "  build-darwin   Cross-compile for macOS (amd64, arm64)"
