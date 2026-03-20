@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -30,11 +31,21 @@ func FixWithVerification(
 	loadNode NodeLoader,
 	wolfcastleDirs ...string,
 ) ([]FixResult, *Report, error) {
-	var wolfcastleDir string
-	if len(wolfcastleDirs) > 0 {
-		wolfcastleDir = wolfcastleDirs[0]
+	var repo *daemon.DaemonRepository
+	if len(wolfcastleDirs) > 0 && wolfcastleDirs[0] != "" {
+		repo = daemon.NewDaemonRepository(wolfcastleDirs[0])
 	}
+	return FixWithVerificationRepo(projectsDir, indexPath, loadNode, repo)
+}
 
+// FixWithVerificationRepo is like FixWithVerification but accepts a
+// DaemonRepository directly. Pass nil to skip daemon artifact cleanup.
+func FixWithVerificationRepo(
+	projectsDir string,
+	indexPath string,
+	loadNode NodeLoader,
+	repo *daemon.DaemonRepository,
+) ([]FixResult, *Report, error) {
 	var allFixes []FixResult
 
 	for pass := 1; pass <= maxFixPasses; pass++ {
@@ -45,14 +56,14 @@ func FixWithVerification(
 			return allFixes, nil, fmt.Errorf("loading root index on pass %d: %w", pass, err)
 		}
 
-		engine := NewEngine(projectsDir, loadNode, wolfcastleDir)
+		engine := NewEngineWithRepo(projectsDir, loadNode, repo)
 		report := engine.ValidateAll(idx)
 
 		if !report.HasAutoFixable() {
 			return allFixes, report, nil
 		}
 
-		fixes, _, err := ApplyDeterministicFixes(idx, report.Issues, projectsDir, indexPath, wolfcastleDir)
+		fixes, _, err := ApplyDeterministicFixesRepo(idx, report.Issues, projectsDir, indexPath, repo)
 		if err != nil {
 			return allFixes, report, fmt.Errorf("applying fixes on pass %d: %w", pass, err)
 		}
@@ -72,7 +83,7 @@ func FixWithVerification(
 	if err != nil {
 		return allFixes, nil, fmt.Errorf("loading root index for final validation: %w", err)
 	}
-	engine := NewEngine(projectsDir, loadNode, wolfcastleDir)
+	engine := NewEngineWithRepo(projectsDir, loadNode, repo)
 	finalReport := engine.ValidateAll(idx)
 
 	return allFixes, finalReport, nil
@@ -80,7 +91,7 @@ func FixWithVerification(
 
 // ApplyDeterministicFixes attempts to repair all deterministic-fixable issues.
 // It stages changes in memory, writes leaf->parent->root, and re-validates.
-// wolfcastleDir is optional — pass "" to skip daemon artifact cleanup.
+// wolfcastleDir is optional; pass "" to skip daemon artifact cleanup.
 // Returns the list of fixes applied, any post-fix re-validation warnings, and an error.
 func ApplyDeterministicFixes(
 	idx *state.RootIndex,
@@ -89,10 +100,22 @@ func ApplyDeterministicFixes(
 	indexPath string,
 	wolfcastleDirs ...string,
 ) ([]FixResult, []Issue, error) {
-	var wolfcastleDir string
-	if len(wolfcastleDirs) > 0 {
-		wolfcastleDir = wolfcastleDirs[0]
+	var repo *daemon.DaemonRepository
+	if len(wolfcastleDirs) > 0 && wolfcastleDirs[0] != "" {
+		repo = daemon.NewDaemonRepository(wolfcastleDirs[0])
 	}
+	return ApplyDeterministicFixesRepo(idx, issues, projectsDir, indexPath, repo)
+}
+
+// ApplyDeterministicFixesRepo is like ApplyDeterministicFixes but accepts
+// a DaemonRepository directly. Pass nil to skip daemon artifact cleanup.
+func ApplyDeterministicFixesRepo(
+	idx *state.RootIndex,
+	issues []Issue,
+	projectsDir string,
+	indexPath string,
+	repo *daemon.DaemonRepository,
+) ([]FixResult, []Issue, error) {
 	var fixes []FixResult
 	modifiedStates := map[string]*state.NodeState{}
 	indexModified := false
@@ -400,17 +423,15 @@ func ApplyDeterministicFixes(
 			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: "reset stale in_progress task(s) to not_started"})
 
 		case CatStalePIDFile:
-			if wolfcastleDir != "" {
-				pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
-				if err := os.Remove(pidPath); err == nil {
+			if repo != nil {
+				if err := repo.RemovePID(); err == nil {
 					fixes = append(fixes, FixResult{Category: issue.Category, Description: "removed stale PID file"})
 				}
 			}
 
 		case CatStaleStopFile:
-			if wolfcastleDir != "" {
-				stopPath := filepath.Join(wolfcastleDir, "system", "stop")
-				if err := os.Remove(stopPath); err == nil {
+			if repo != nil {
+				if err := repo.RemoveStopFile(); err == nil {
 					fixes = append(fixes, FixResult{Category: issue.Category, Description: "removed stale stop file"})
 				}
 			}
@@ -436,7 +457,7 @@ func ApplyDeterministicFixes(
 	// without treating them as failures.
 	var postFixWarnings []Issue
 	if len(fixes) > 0 {
-		engine := NewEngine(projectsDir, DefaultNodeLoader(projectsDir), wolfcastleDir)
+		engine := NewEngineWithRepo(projectsDir, DefaultNodeLoader(projectsDir), repo)
 		postReport := engine.ValidateAll(idx)
 		for _, issue := range postReport.Issues {
 			issue.Severity = SeverityWarning

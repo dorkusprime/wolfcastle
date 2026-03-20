@@ -7,12 +7,11 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -109,7 +108,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 
 	total := len(details)
 
-	daemonStatus := getDaemonStatus(app.Config.Root())
+	daemonStatus := getDaemonStatus(app.Daemon)
 
 	if app.JSONOutput {
 		output.Print(output.Ok("status", map[string]any{
@@ -164,8 +163,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, expand
 	}
 
 	// Inbox count
-	inboxPath := filepath.Join(app.State.Dir(), "inbox.json")
-	if inboxData, err := state.LoadInbox(inboxPath); err == nil {
+	if inboxData, err := app.State.ReadInbox(); err == nil {
 		newCount, filedCount := 0, 0
 		for _, item := range inboxData.Items {
 			switch item.Status {
@@ -407,21 +405,12 @@ func taskGlyph(s state.NodeStatus) string {
 }
 
 // getDaemonStatus checks the PID file and reports daemon status.
-func getDaemonStatus(wolfcastleDir string) string {
-	pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
-	data, err := os.ReadFile(pidPath)
+func getDaemonStatus(repo *dmn.DaemonRepository) string {
+	pid, err := repo.ReadPID()
 	if err != nil {
 		return "stopped"
 	}
-	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil {
-		return "unknown (malformed PID file)"
-	}
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		return fmt.Sprintf("stopped (stale PID %d)", pid)
-	}
-	if err := proc.Signal(syscall.Signal(0)); err != nil {
+	if !dmn.IsProcessRunning(pid) {
 		return fmt.Sprintf("stopped (stale PID %d)", pid)
 	}
 	return fmt.Sprintf("running (PID %d)", pid)

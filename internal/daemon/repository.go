@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 // DaemonRepository consolidates all filesystem operations the daemon
@@ -75,6 +76,33 @@ func (r *DaemonRepository) RemoveStopFile() error {
 		return nil
 	}
 	return err
+}
+
+// IsAlive checks whether a daemon process is currently running by reading
+// the PID file and sending signal 0. Returns false if the PID file is
+// missing, malformed, or the process is dead.
+func (r *DaemonRepository) IsAlive() bool {
+	pid, err := r.ReadPID()
+	if err != nil {
+		return false
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	return proc.Signal(syscall.Signal(0)) == nil
+}
+
+// PIDFileExists reports whether the PID file exists on disk.
+func (r *DaemonRepository) PIDFileExists() bool {
+	_, err := os.Stat(r.pidPath())
+	return err == nil
+}
+
+// StopFileExists reports whether the stop file exists on disk.
+func (r *DaemonRepository) StopFileExists() bool {
+	_, err := os.Stat(r.stopPath())
+	return err == nil
 }
 
 // LogDir returns the path to the daemon log directory. This is an

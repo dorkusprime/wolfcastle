@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"syscall"
 
+	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -24,22 +23,34 @@ type NodeLoader func(addr string) (*state.NodeState, error)
 
 // Engine runs structural validation checks against a project tree.
 type Engine struct {
-	projectsDir   string
-	wolfcastleDir string
-	loadNode      NodeLoader
+	projectsDir string
+	daemonRepo  *daemon.DaemonRepository
+	loadNode    NodeLoader
 }
 
 // NewEngine creates a validation engine.
-// wolfcastleDir is optional — pass "" to skip PID-aware stale detection.
+// wolfcastleDir is optional; pass "" to skip PID-aware stale detection.
+// When provided, a DaemonRepository is created internally. Prefer
+// NewEngineWithRepo when a DaemonRepository is already available.
 func NewEngine(projectsDir string, loadNode NodeLoader, wolfcastleDirs ...string) *Engine {
-	var wolfcastleDir string
-	if len(wolfcastleDirs) > 0 {
-		wolfcastleDir = wolfcastleDirs[0]
+	var repo *daemon.DaemonRepository
+	if len(wolfcastleDirs) > 0 && wolfcastleDirs[0] != "" {
+		repo = daemon.NewDaemonRepository(wolfcastleDirs[0])
 	}
 	return &Engine{
-		projectsDir:   projectsDir,
-		wolfcastleDir: wolfcastleDir,
-		loadNode:      loadNode,
+		projectsDir: projectsDir,
+		daemonRepo:  repo,
+		loadNode:    loadNode,
+	}
+}
+
+// NewEngineWithRepo creates a validation engine using an existing
+// DaemonRepository. Pass nil to skip PID-aware stale detection.
+func NewEngineWithRepo(projectsDir string, loadNode NodeLoader, repo *daemon.DaemonRepository) *Engine {
+	return &Engine{
+		projectsDir: projectsDir,
+		daemonRepo:  repo,
+		loadNode:    loadNode,
 	}
 }
 
@@ -343,9 +354,8 @@ func (e *Engine) checkGlobalState(idx *state.RootIndex, categories map[string]bo
 	}
 
 	if e.include(CatStalePIDFile, categories) {
-		if e.wolfcastleDir != "" && !e.isDaemonAlive() {
-			pidPath := filepath.Join(e.wolfcastleDir, "system", "wolfcastle.pid")
-			if _, err := os.Stat(pidPath); err == nil {
+		if e.daemonRepo != nil && !e.isDaemonAlive() {
+			if e.daemonRepo.PIDFileExists() {
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityWarning,
 					Category:    CatStalePIDFile,
@@ -357,9 +367,8 @@ func (e *Engine) checkGlobalState(idx *state.RootIndex, categories map[string]bo
 		}
 	}
 	if e.include(CatStaleStopFile, categories) {
-		if e.wolfcastleDir != "" && !e.isDaemonAlive() {
-			stopPath := filepath.Join(e.wolfcastleDir, "system", "stop")
-			if _, err := os.Stat(stopPath); err == nil {
+		if e.daemonRepo != nil && !e.isDaemonAlive() {
+			if e.daemonRepo.StopFileExists() {
 				report.Issues = append(report.Issues, Issue{
 					Severity:    SeverityWarning,
 					Category:    CatStaleStopFile,
@@ -628,25 +637,10 @@ func (e *Engine) include(category string, filter map[string]bool) bool {
 
 // isDaemonAlive checks if a daemon PID file exists and the process is alive.
 func (e *Engine) isDaemonAlive() bool {
-	if e.wolfcastleDir == "" {
+	if e.daemonRepo == nil {
 		return false
 	}
-	pidPath := filepath.Join(e.wolfcastleDir, "system", "wolfcastle.pid")
-	data, err := os.ReadFile(pidPath)
-	if err != nil {
-		return false
-	}
-	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil {
-		return false
-	}
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		return false
-	}
-	// Signal 0 checks if process exists without actually signaling it
-	err = proc.Signal(syscall.Signal(0))
-	return err == nil
+	return e.daemonRepo.IsAlive()
 }
 
 // nodeAddrFromTaskRef extracts the node address from a "node/taskID" reference.

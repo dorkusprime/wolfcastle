@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -151,7 +152,8 @@ func TestGetDaemonStatus_CurrentProcessJSON(t *testing.T) {
 	pid := os.Getpid()
 	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
-	status := getDaemonStatus(tmp)
+	repo := dmn.NewDaemonRepository(tmp)
+	status := getDaemonStatus(repo)
 	expected := fmt.Sprintf("running (PID %d)", pid)
 	if status != expected {
 		t.Errorf("expected %q, got %q", expected, status)

@@ -190,6 +190,24 @@ func (s *StateStore) WithLock(fn func() error) error {
 
 // ── Path helpers ────────────────────────────────────────────────────────
 
+// IndexPath returns the absolute path to the root index file (state.json)
+// in this namespace. Useful for callers that need raw I/O inside WithLock.
+func (s *StateStore) IndexPath() string {
+	return s.indexPath()
+}
+
+// NodePath returns the absolute path to a node's state.json file. Useful
+// for callers that need raw I/O inside WithLock. Returns an error if the
+// address is invalid.
+func (s *StateStore) NodePath(addr string) (string, error) {
+	return s.nodePath(addr)
+}
+
+// InboxPath returns the absolute path to the inbox file in this namespace.
+func (s *StateStore) InboxPath() string {
+	return s.inboxPath()
+}
+
 func (s *StateStore) nodePath(addr string) (string, error) {
 	if addr == "" {
 		return "", fmt.Errorf("node address cannot be empty")

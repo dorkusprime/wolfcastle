@@ -13,6 +13,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
+	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
@@ -72,7 +73,8 @@ func newTestEnv(t *testing.T) *testEnv {
 
 func TestGetDaemonStatus_NoPidFile(t *testing.T) {
 	tmp := t.TempDir()
-	status := getDaemonStatus(tmp)
+	repo := dmn.NewDaemonRepository(tmp)
+	status := getDaemonStatus(repo)
 	if status != "stopped" {
 		t.Errorf("expected 'stopped', got %q", status)
 	}
@@ -82,9 +84,10 @@ func TestGetDaemonStatus_MalformedPid(t *testing.T) {
 	tmp := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("not-a-number"), 0644)
-	status := getDaemonStatus(tmp)
-	if status != "unknown (malformed PID file)" {
-		t.Errorf("expected malformed PID message, got %q", status)
+	repo := dmn.NewDaemonRepository(tmp)
+	status := getDaemonStatus(repo)
+	if status != "stopped" {
+		t.Errorf("expected 'stopped', got %q", status)
 	}
 }
 
@@ -93,7 +96,8 @@ func TestGetDaemonStatus_StalePid(t *testing.T) {
 	// Use PID 1 (which exists but won't be our daemon), or a very large PID
 	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
-	status := getDaemonStatus(tmp)
+	repo := dmn.NewDaemonRepository(tmp)
+	status := getDaemonStatus(repo)
 	if status == "" {
 		t.Error("status should not be empty")
 	}
@@ -627,7 +631,8 @@ func TestGetDaemonStatus_RunningProcess(t *testing.T) {
 	pid := os.Getpid()
 	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
-	status := getDaemonStatus(tmp)
+	repo := dmn.NewDaemonRepository(tmp)
+	status := getDaemonStatus(repo)
 	if status == "stopped" {
 		t.Error("expected running status for own PID")
 	}
