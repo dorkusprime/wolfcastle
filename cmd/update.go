@@ -47,6 +47,8 @@ Examples:
 				updateStatus = "check_failed"
 			} else if result.Updated {
 				updateStatus = "updated"
+			} else if result.Unavailable {
+				updateStatus = "unavailable"
 			}
 			output.Print(output.Ok("update", map[string]string{
 				"path":          root,
