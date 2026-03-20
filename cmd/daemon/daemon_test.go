@@ -35,16 +35,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	af := env.ToAppFields()
 
 	testApp := &cmdutil.App{
-		Config:        af.Config,
-		Identity:      af.Identity,
-		State:         af.State,
-		Prompts:       af.Prompts,
-		Classes:       af.Classes,
-		Daemon:        af.Daemon,
-		Git:           af.Git,
-		Clock:         clock.New(),
-		WolfcastleDir: af.WolfcastleDir,
-		Cfg:           af.Cfg,
+		Config:   af.Config,
+		Identity: af.Identity,
+		State:    af.State,
+		Prompts:  af.Prompts,
+		Classes:  af.Classes,
+		Daemon:   af.Daemon,
+		Git:      af.Git,
+		Clock:    clock.New(),
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -310,8 +308,8 @@ func TestStopCmd_RunningProcess_SIGTERM(t *testing.T) {
 
 func TestStopCmd_RunningProcess_SIGTERM_JSON(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	sleepCmd := exec.Command("sleep", "60")
 	if err := sleepCmd.Start(); err != nil {
@@ -400,8 +398,8 @@ func TestFollowCmd_NoLogs(t *testing.T) {
 
 func TestStopCmd_RunningProcess_Force_JSON(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	sleepCmd := exec.Command("sleep", "60")
 	if err := sleepCmd.Start(); err != nil {
@@ -528,8 +526,8 @@ func TestFormatAndPrintLogLine_UnknownType(t *testing.T) {
 
 func TestStatusCmd_JSONOutput(t *testing.T) {
 	env := newStatusTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"status"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -539,8 +537,8 @@ func TestStatusCmd_JSONOutput(t *testing.T) {
 
 func TestShowAllStatus_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	err := showAllStatus(env.App)
 	if err != nil {
@@ -559,8 +557,8 @@ func TestShowAllStatus_WithNamespace(t *testing.T) {
 
 func TestShowTreeStatus_JSONOutput(t *testing.T) {
 	env := newStatusTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
 	err := showTreeStatus(env.App, idx, "")
@@ -691,8 +689,8 @@ func TestStartCmd_AlreadyRunning(t *testing.T) {
 
 func TestShowAllStatus_JSONWithNamespace(t *testing.T) {
 	env := newStatusTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	err := showAllStatus(env.App)
 	if err != nil {
@@ -706,8 +704,8 @@ func TestShowAllStatus_JSONWithNamespace(t *testing.T) {
 
 func TestStopCmd_StalePidJSON(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
@@ -744,8 +742,8 @@ func TestStatusCmd_AllFlag(t *testing.T) {
 
 func TestStatusCmd_AllFlagJSON(t *testing.T) {
 	env := newStatusTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"status", "--all"})
 	if err := env.RootCmd.Execute(); err != nil {

@@ -55,7 +55,7 @@ copies on Windows.`,
 				// Fall back to copy
 				return copyDir(sourceDir, skillDir)
 			}
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("install_skill", map[string]string{
 					"method": "symlink",
 					"source": sourceDir,
@@ -73,7 +73,7 @@ copies on Windows.`,
 		if err := copyDir(sourceDir, skillDir); err != nil {
 			return err
 		}
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Ok("install_skill", map[string]string{
 				"method": "copy",
 				"source": sourceDir,

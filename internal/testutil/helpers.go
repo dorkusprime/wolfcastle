@@ -53,6 +53,9 @@ func SetupWolfcastle(t *testing.T) (wolfcastleDir, namespace string) {
 
 	dirs := []string{
 		"system/base/prompts",
+		"system/base/prompts/stages",
+		"system/base/prompts/classes",
+		"system/base/prompts/audits",
 		"system/base/rules",
 		"system/base/audits",
 		"system/custom",

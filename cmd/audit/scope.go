@@ -60,7 +60,7 @@ Examples:
 				return err
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_scope", scope))
 			} else {
 				output.PrintHuman("Audit scope updated for %s", nodeAddr)

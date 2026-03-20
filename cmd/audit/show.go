@@ -42,7 +42,7 @@ Examples:
 				return fmt.Errorf("loading node state: %w", err)
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_show", ns.Audit))
 				return nil
 			}

@@ -25,9 +25,7 @@ func TestCompleteTaskAddresses_BrokenResolver(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"not_started","address":"my-node","children":[]}}}`), 0644)
 
 	// App has no resolver to simulate broken state
-	a := &App{
-		WolfcastleDir: wcDir,
-	}
+	a := &App{}
 
 	t.Chdir(tmp)
 
@@ -88,12 +86,7 @@ func TestCheckOverlap_AllStopWordsInput(t *testing.T) {
 	_ = os.MkdirAll(otherDir, 0755)
 	_ = os.WriteFile(filepath.Join(otherDir, "proj.md"), []byte("database migration schema"), 0644)
 
-	a := &App{
-		WolfcastleDir: wcDir,
-		Cfg: &config.Config{
-			OverlapAdvisory: config.OverlapConfig{Enabled: true, Threshold: 0.1},
-		},
-	}
+	a := &App{}
 
 	// Input that is entirely stop words produces empty bigrams, should bail early
 	a.CheckOverlap("the and for", "the and for with this that")
@@ -114,8 +107,7 @@ func TestCompleteTaskAddresses_IndexSucceedsResolverFails(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"not_started","address":"my-node","children":[]}}}`), 0644)
 
 	a := &App{
-		WolfcastleDir: wcDir,
-		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 
 	fn := CompleteTaskAddresses(a)
@@ -245,8 +237,7 @@ func TestCompleteTaskAddresses_InvalidAddressInIndex(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	a := &App{
-		WolfcastleDir: wcDir,
-		State:         state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")

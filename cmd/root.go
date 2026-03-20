@@ -53,7 +53,7 @@ All commands support --json for machine-readable output.`,
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&app.JSONOutput, "json", false, "Output in JSON format")
+	rootCmd.PersistentFlags().BoolVar(&app.JSON, "json", false, "Output in JSON format")
 }
 
 // setupCommands registers all subcommand groups and wires up
@@ -98,7 +98,7 @@ func setupCommands() {
 func executeRoot() error {
 	setupCommands()
 	if err := rootCmd.Execute(); err != nil {
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Err("error", 1, err.Error()))
 		} else {
 			output.PrintError("%s", err)

@@ -30,7 +30,7 @@ Examples:
 				return fmt.Errorf("reading inbox: %w", err)
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("inbox_list", map[string]any{
 					"items": inboxData.Items,
 					"count": len(inboxData.Items),

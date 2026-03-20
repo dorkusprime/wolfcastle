@@ -31,8 +31,8 @@ func TestVersionCmd_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"version", "--json"})
 	err := rootCmd.Execute()

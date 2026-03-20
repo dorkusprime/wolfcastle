@@ -34,7 +34,7 @@ func TestContextBuilder_IncludesAARs(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", "", ns, "task-0002", nil)
+	got, _ := cb.Build("proj", "", ns, "task-0002", nil)
 
 	if !strings.Contains(got, "## Prior Task Reviews (AARs)") {
 		t.Error("missing AARs section")
@@ -72,7 +72,7 @@ func TestContextBuilder_OmitsAARsWhenEmpty(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", "", ns, "task-0001", nil)
+	got, _ := cb.Build("proj", "", ns, "task-0001", nil)
 
 	if strings.Contains(got, "## Prior Task Reviews") {
 		t.Error("AARs section should be absent when no AARs exist")
@@ -106,7 +106,7 @@ func TestContextBuilder_AARsBeforeAuditContext(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj", "", ns, "task-0002", nil)
+	got, _ := cb.Build("proj", "", ns, "task-0002", nil)
 
 	aarIdx := strings.Index(got, "## Prior Task Reviews (AARs)")
 	bcIdx := strings.Index(got, "## Recent Breadcrumbs")

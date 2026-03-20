@@ -116,7 +116,7 @@ func TestRun_WorkAvailableWakesIdleLoop(t *testing.T) {
 			})
 			return nil
 		})
-		writePromptFile(t, d.WolfcastleDir, "execute.md")
+		writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 		// Signal work available (non-blocking send)
 		select {
 		case d.workAvailable <- struct{}{}:
@@ -178,13 +178,13 @@ func TestRun_IterationErrorSleepsAndRetries(t *testing.T) {
 	// RunOnce returns IterationError, Run sleeps (0s) and retries.
 	// Use MaxIterations=2 to limit retries then stop via stop file.
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "execute.md"},
+		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
 
 	setupLeafNode(t, d, "err-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	// Place stop file after a short delay so Run exits after a couple of
 	// error iterations.
@@ -214,13 +214,13 @@ func TestRun_IterationErrorContextCancelDuringSleep(t *testing.T) {
 	d.Config.Daemon.PollIntervalSeconds = 60 // long sleep so ctx cancel fires first
 
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "execute.md"},
+		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
 
 	setupLeafNode(t, d, "err-cancel-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	// Cancel quickly so sleepWithContext returns false inside the
 	// IterationError branch, causing Run to return nil.
@@ -247,7 +247,7 @@ func TestRun_DidWorkEnforcesLogRetention(t *testing.T) {
 	setupLeafNode(t, d, "work-node", []state.Task{
 		{ID: "task-0001", Description: "do work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()

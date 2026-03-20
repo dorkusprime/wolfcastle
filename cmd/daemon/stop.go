@@ -48,7 +48,7 @@ Examples:
 				return fmt.Errorf("sending signal to PID %d: %w", pid, err)
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("stop", map[string]any{
 					"pid":   pid,
 					"force": force,

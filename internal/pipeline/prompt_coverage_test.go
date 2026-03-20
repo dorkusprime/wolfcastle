@@ -40,9 +40,9 @@ func TestAssemblePrompt_FullStageWithRules(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create prompts and rules
-	promptsDir := filepath.Join(dir, "system", "base", "prompts")
-	_ = os.MkdirAll(promptsDir, 0755)
-	_ = os.WriteFile(filepath.Join(promptsDir, "execute.md"),
+	stagesDir := filepath.Join(dir, "system", "base", "prompts", "stages")
+	_ = os.MkdirAll(stagesDir, 0755)
+	_ = os.WriteFile(filepath.Join(stagesDir, "execute.md"),
 		[]byte("Execute the task"), 0644)
 
 	rulesDir := filepath.Join(dir, "system", "base", "rules")
@@ -53,7 +53,7 @@ func TestAssemblePrompt_FullStageWithRules(t *testing.T) {
 	cfg := config.Defaults()
 	stage := config.PipelineStage{
 		Name:       "execute",
-		PromptFile: "execute.md",
+		PromptFile: "stages/execute.md",
 	}
 
 	result, err := AssemblePrompt(dir, cfg, stage, "task context")

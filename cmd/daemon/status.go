@@ -119,7 +119,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 
 	daemonStatus := getDaemonStatus(app.Daemon)
 
-	if app.JSONOutput {
+	if app.JSON {
 		// Build per-node detail for JSON consumers.
 		nodeDetails := make(map[string]any, len(details))
 		for addr, nd := range details {
@@ -562,7 +562,7 @@ func showAllStatus(app *cmdutil.App) error {
 		})
 	}
 
-	if app.JSONOutput {
+	if app.JSON {
 		output.Print(output.Ok("status_all", map[string]any{
 			"namespaces": summaries,
 			"count":      len(summaries),

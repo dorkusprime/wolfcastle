@@ -24,7 +24,7 @@ func TestRunOnce_ContextCancelledBeforeExecution(t *testing.T) {
 	setupLeafNode(t, d, "ctx-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // pre-cancel
@@ -66,7 +66,7 @@ func TestRunOnce_PlanningPassSuccess(t *testing.T) {
 	ns := state.NewNodeState("plan-orch", "Plan Orch", state.NodeOrchestrator)
 	writeJSON(t, filepath.Join(projDir, "plan-orch", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -102,7 +102,7 @@ func TestRunOnce_PlanningPassError(t *testing.T) {
 
 	ns := state.NewNodeState("plan-err", "Plan Err", state.NodeOrchestrator)
 	writeJSON(t, filepath.Join(projDir, "plan-err", "state.json"), ns)
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -187,7 +187,7 @@ func TestRunOnce_StateErrorIsFatal(t *testing.T) {
 	nodeDir := filepath.Join(projDir, "state-err-node")
 	nodeStatePath := filepath.Join(nodeDir, "state.json")
 	writeJSON(t, nodeStatePath, ns)
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	// Make the directory read-only so atomicWriteJSON (temp file + rename)
 	// fails during MutateNode. The LoadNodeState read still works since
@@ -254,7 +254,7 @@ func TestRunOnce_ReplanningTriggersAfterWork(t *testing.T) {
 	}
 	writeJSON(t, filepath.Join(projDir, "parent-replan", "child", "state.json"), childNS)
 
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 	writePromptFile(t, d.WolfcastleDir, "plan.md")
 
 	result, err := d.RunOnce(context.Background())
@@ -305,13 +305,13 @@ func TestRunOnce_NonStateErrorReturnsIterationError(t *testing.T) {
 
 	// Model not in config: runIteration returns a non-StateError.
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "execute.md"},
+		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
 
 	setupLeafNode(t, d, "nonfatal-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {

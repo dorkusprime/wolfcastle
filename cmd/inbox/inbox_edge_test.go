@@ -14,8 +14,8 @@ import (
 
 func TestInboxAdd_JSONOutput_Multiple(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	for _, text := range []string{"first idea", "second idea"} {
 		env.RootCmd.SetArgs([]string{"inbox", "add", text})
@@ -101,8 +101,8 @@ func TestInboxClear_JSONOutput_WithoutAll(t *testing.T) {
 	}
 	_ = state.SaveInbox(inboxPath, inboxData)
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"inbox", "clear"})
 	if err := env.RootCmd.Execute(); err != nil {

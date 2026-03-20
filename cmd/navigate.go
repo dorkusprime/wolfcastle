@@ -35,7 +35,7 @@ Examples:
 			return err
 		}
 
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Ok("navigate", result))
 		} else {
 			if result.Found {

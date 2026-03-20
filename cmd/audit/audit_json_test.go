@@ -10,8 +10,8 @@ import (
 
 func TestBreadcrumb_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.createLeafNode(t, "my-project", "My Project")
 
@@ -23,8 +23,8 @@ func TestBreadcrumb_JSONOutput(t *testing.T) {
 
 func TestEscalate_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.createOrchestratorWithChild(t, "auth", "auth/login")
 
@@ -36,8 +36,8 @@ func TestEscalate_JSONOutput(t *testing.T) {
 
 func TestGap_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.createLeafNode(t, "my-project", "My Project")
 
@@ -49,8 +49,8 @@ func TestGap_JSONOutput(t *testing.T) {
 
 func TestShow_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.createLeafNode(t, "my-project", "My Project")
 
@@ -62,8 +62,8 @@ func TestShow_JSONOutput(t *testing.T) {
 
 func TestScope_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.createLeafNode(t, "my-project", "My Project")
 
@@ -75,8 +75,8 @@ func TestScope_JSONOutput(t *testing.T) {
 
 func TestPending_JSONOutput_NoBatch(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"audit", "pending"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -86,8 +86,8 @@ func TestPending_JSONOutput_NoBatch(t *testing.T) {
 
 func TestPending_JSONOutput_WithBatch(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	batch := &state.Batch{
 		ID:     "test",
@@ -107,8 +107,8 @@ func TestPending_JSONOutput_WithBatch(t *testing.T) {
 
 func TestHistory_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"audit", "history"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -129,8 +129,8 @@ func TestReject_JSONOutput(t *testing.T) {
 	}
 	_ = state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"audit", "reject", "f-1"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -148,8 +148,8 @@ func TestFixGap_JSONOutput(t *testing.T) {
 	ns := env.loadNodeState(t, "my-project")
 	gapID := ns.Audit.Gaps[0].ID
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"audit", "fix-gap", "--node", "my-project", gapID})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -167,8 +167,8 @@ func TestResolve_JSONOutput(t *testing.T) {
 	parentNs := env.loadNodeState(t, "auth")
 	escID := parentNs.Audit.Escalations[0].ID
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"audit", "resolve", "--node", "auth", escID})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -223,8 +223,8 @@ func TestAuditList_WithScopes(t *testing.T) {
 
 func TestAuditList_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"audit", "list"})
 	if err := env.RootCmd.Execute(); err != nil {

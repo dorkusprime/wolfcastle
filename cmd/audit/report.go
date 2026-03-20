@@ -43,7 +43,7 @@ Examples:
 
 			if pathOnly {
 				if reportPath == "" {
-					if app.JSONOutput {
+					if app.JSON {
 						output.Print(output.Ok("audit_report", map[string]string{
 							"node": nodeAddr,
 							"path": "",
@@ -53,7 +53,7 @@ Examples:
 					}
 					return nil
 				}
-				if app.JSONOutput {
+				if app.JSON {
 					output.Print(output.Ok("audit_report", map[string]string{
 						"node": nodeAddr,
 						"path": reportPath,
@@ -70,7 +70,7 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("reading report: %w", err)
 				}
-				if app.JSONOutput {
+				if app.JSON {
 					output.Print(output.Ok("audit_report", map[string]any{
 						"node":    nodeAddr,
 						"path":    reportPath,
@@ -90,7 +90,7 @@ Examples:
 			}
 
 			report := state.GenerateAuditReport(ns.Audit, nodeAddr, ns.Name)
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_report", map[string]any{
 					"node":    nodeAddr,
 					"path":    "",

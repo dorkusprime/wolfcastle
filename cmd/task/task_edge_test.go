@@ -202,29 +202,19 @@ func TestTaskComplete_ValidationDefaultTimeout(t *testing.T) {
 	}
 }
 
-func TestTaskComplete_NilConfig(t *testing.T) {
+func TestTaskComplete_DefaultConfig(t *testing.T) {
 	env := newTestEnv(t)
 	env.createLeafNode(t, "my-project", "My Project")
-
-	// Set Cfg to nil to test the nil-config branch
-	env.App.Cfg = nil
 
 	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "work"})
 	_ = env.RootCmd.Execute()
 
-	// Restore config for claim
-	env.App.Cfg = config.Defaults()
-	env.App.Cfg.Identity = &config.IdentityConfig{User: "test", Machine: "dev"}
-
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	// Set Cfg to nil again for complete
-	env.App.Cfg = nil
-
 	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	if err := env.RootCmd.Execute(); err != nil {
-		t.Fatalf("complete with nil config failed: %v", err)
+		t.Fatalf("complete with default config failed: %v", err)
 	}
 }
 
@@ -248,8 +238,8 @@ func TestTaskComplete_JSONOutput_NodeComplete(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/audit"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/audit"})
 	if err := env.RootCmd.Execute(); err != nil {

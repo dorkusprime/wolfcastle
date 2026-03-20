@@ -20,6 +20,9 @@ import (
 func Scaffold(wolfcastleDir string) error {
 	dirs := []string{
 		"system/base/prompts",
+		"system/base/prompts/stages",
+		"system/base/prompts/classes",
+		"system/base/prompts/audits",
 		"system/base/rules",
 		"system/base/audits",
 		"system/custom",
@@ -42,9 +45,11 @@ func Scaffold(wolfcastleDir string) error {
 # Git requires each directory level to be explicitly unignored.
 *
 !.gitignore
+!README.md
 
 # Custom config overrides (user-editable)
 !system/
+!system/README.md
 !system/custom/
 !system/custom/**/
 !system/custom/**
@@ -53,6 +58,11 @@ func Scaffold(wolfcastleDir string) error {
 !system/projects/
 !system/projects/**/
 !system/projects/**
+
+# Base prompts (README only; base tier is regenerated)
+!system/base/
+!system/base/prompts/
+!system/base/prompts/README.md
 
 # Archived projects
 !archive/
@@ -66,6 +76,13 @@ func Scaffold(wolfcastleDir string) error {
 `
 	if err := os.WriteFile(filepath.Join(wolfcastleDir, ".gitignore"), []byte(gitignore), 0644); err != nil {
 		return fmt.Errorf("writing .gitignore: %w", err)
+	}
+
+	// Write README files into key directories.
+	for path, content := range scaffoldREADMEs {
+		if err := os.WriteFile(filepath.Join(wolfcastleDir, path), []byte(content), 0644); err != nil {
+			return fmt.Errorf("writing %s: %w", path, err)
+		}
 	}
 
 	// Write system/base/config.json with populated defaults (excluding identity)
@@ -190,6 +207,9 @@ func ReScaffold(wolfcastleDir string) error {
 	}
 	baseDirs := []string{
 		"system/base/prompts",
+		"system/base/prompts/stages",
+		"system/base/prompts/classes",
+		"system/base/prompts/audits",
 		"system/base/rules",
 		"system/base/audits",
 	}

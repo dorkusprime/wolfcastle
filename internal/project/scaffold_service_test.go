@@ -57,6 +57,9 @@ func TestScaffoldService_Init_CreatesDirectoryStructure(t *testing.T) {
 
 	expectedDirs := []string{
 		"system/base/prompts",
+		"system/base/prompts/stages",
+		"system/base/prompts/classes",
+		"system/base/prompts/audits",
 		"system/base/rules",
 		"system/base/audits",
 		"system/custom",

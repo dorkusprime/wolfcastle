@@ -19,7 +19,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show the current version",
 	Run: func(cmd *cobra.Command, args []string) {
-		if app.JSONOutput {
+		if app.JSON {
 			output.Print(output.Ok("version", map[string]string{
 				"version": Version,
 				"commit":  Commit,

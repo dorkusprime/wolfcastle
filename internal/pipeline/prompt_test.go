@@ -20,8 +20,10 @@ func setupPromptDir(t *testing.T, dir string) {
 	// Write script reference
 	_ = os.WriteFile(filepath.Join(dir, "system", "base", "prompts", "script-reference.md"), []byte("Script reference"), 0644)
 
-	// Write stage prompt
-	_ = os.WriteFile(filepath.Join(dir, "system", "base", "prompts", "execute.md"), []byte("Execute prompt"), 0644)
+	// Write stage prompt (under stages/ subdirectory)
+	stagesDir := filepath.Join(dir, "system", "base", "prompts", "stages")
+	_ = os.MkdirAll(stagesDir, 0755)
+	_ = os.WriteFile(filepath.Join(stagesDir, "execute.md"), []byte("Execute prompt"), 0644)
 
 	// Write a lightweight stage prompt
 	_ = os.WriteFile(filepath.Join(dir, "system", "base", "prompts", "expand.md"), []byte("Expand prompt"), 0644)
@@ -46,7 +48,7 @@ func TestAssemblePrompt_IncludesRuleFragments(t *testing.T) {
 	setupPromptDir(t, dir)
 
 	cfg := config.Defaults()
-	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "execute.md"}
+	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "stages/execute.md"}
 
 	result, err := AssemblePrompt(dir, cfg, stage, "")
 	if err != nil {
@@ -64,7 +66,7 @@ func TestAssemblePrompt_IncludesStagePrompt(t *testing.T) {
 	setupPromptDir(t, dir)
 
 	cfg := config.Defaults()
-	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "execute.md"}
+	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "stages/execute.md"}
 
 	result, err := AssemblePrompt(dir, cfg, stage, "")
 	if err != nil {
@@ -82,7 +84,7 @@ func TestAssemblePrompt_IncludesIterationContext(t *testing.T) {
 	setupPromptDir(t, dir)
 
 	cfg := config.Defaults()
-	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "execute.md"}
+	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "stages/execute.md"}
 
 	result, err := AssemblePrompt(dir, cfg, stage, "task context here")
 	if err != nil {
@@ -242,14 +244,14 @@ func TestAssemblePrompt_StagesProduceDifferentPrompts(t *testing.T) {
 	cfg := config.Defaults()
 
 	intake, err := AssemblePrompt(dir, cfg,
-		config.PipelineStage{Name: "intake", Model: "mid", PromptFile: "intake.md"},
+		config.PipelineStage{Name: "intake", Model: "mid", PromptFile: "stages/intake.md"},
 		"inbox items")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	execute, err := AssemblePrompt(dir, cfg,
-		config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "execute.md"},
+		config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "stages/execute.md"},
 		"task context")
 	if err != nil {
 		t.Fatal(err)

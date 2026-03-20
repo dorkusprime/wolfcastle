@@ -27,16 +27,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	af := env.ToAppFields()
 
 	testApp := &cmdutil.App{
-		Config:        af.Config,
-		Identity:      af.Identity,
-		State:         af.State,
-		Prompts:       af.Prompts,
-		Classes:       af.Classes,
-		Daemon:        af.Daemon,
-		Git:           af.Git,
-		Clock:         clock.New(),
-		WolfcastleDir: af.WolfcastleDir,
-		Cfg:           af.Cfg,
+		Config:   af.Config,
+		Identity: af.Identity,
+		State:    af.State,
+		Prompts:  af.Prompts,
+		Classes:  af.Classes,
+		Daemon:   af.Daemon,
+		Git:      af.Git,
+		Clock:    clock.New(),
 	}
 
 	rootCmd := &cobra.Command{Use: "wolfcastle"}
@@ -236,8 +234,8 @@ func TestProjectCreate_SetsRootMetadata(t *testing.T) {
 
 func TestProjectCreate_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "json-proj"})
 	if err := env.RootCmd.Execute(); err != nil {

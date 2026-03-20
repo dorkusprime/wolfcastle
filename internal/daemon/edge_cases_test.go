@@ -266,7 +266,7 @@ echo "The architecture looks solid. I would recommend refactoring the widget mod
 echo "Let me know if you have questions."`},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "chatty", PromptFile: "execute.md"},
+		{Name: "execute", Model: "chatty", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
@@ -277,7 +277,7 @@ echo "Let me know if you have questions."`},
 	setupLeafNode(t, d, "chatty-node", []state.Task{
 		{ID: "task-0001", Description: "implement feature", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "chatty-node", TaskID: "task-0001", Found: true}
@@ -317,7 +317,7 @@ func TestRunIteration_NonzeroExitCode_NoMarker(t *testing.T) {
 		Args:    []string{"-c", "echo 'Error: authentication failed'; exit 1"},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "failing", PromptFile: "execute.md"},
+		{Name: "execute", Model: "failing", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
@@ -328,7 +328,7 @@ func TestRunIteration_NonzeroExitCode_NoMarker(t *testing.T) {
 	setupLeafNode(t, d, "exitcode-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "exitcode-node", TaskID: "task-0001", Found: true}
@@ -368,7 +368,7 @@ echo "Task completed with warnings."
 echo "WOLFCASTLE_COMPLETE"`},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "warn", PromptFile: "execute.md"},
+		{Name: "execute", Model: "warn", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
@@ -377,7 +377,7 @@ echo "WOLFCASTLE_COMPLETE"`},
 	setupLeafNode(t, d, "warn-node", []state.Task{
 		{ID: "task-0001", Description: "implement with warnings", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "warn-node", TaskID: "task-0001", Found: true}
@@ -412,14 +412,14 @@ func TestRunIntakeStage_NonzeroExitCode_ItemsStayNew(t *testing.T) {
 	d.Config.Retries.MaxRetries = 0
 	_ = d.InboxLogger.StartIterationWithPrefix("intake")
 	defer d.InboxLogger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "should stay new", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "fail-intake", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "fail-intake", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err != nil {
 		t.Fatalf("intake stage returned error: %v", err)
@@ -465,14 +465,14 @@ echo "WOLFCASTLE_COMPLETE"
 	d.Config.Models["checker"] = config.ModelDef{Command: "sh", Args: []string{scriptFile}}
 	_ = d.InboxLogger.StartIterationWithPrefix("intake")
 	defer d.InboxLogger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(projDir, "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "new work", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "checker", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "checker", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake error: %v", err)
 	}
@@ -535,7 +535,7 @@ func TestRunIteration_ContextCancelledDuringExecution(t *testing.T) {
 		Args:    []string{"-c", "read BLOCK; echo WOLFCASTLE_COMPLETE"},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "slow", PromptFile: "execute.md"},
+		{Name: "execute", Model: "slow", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Daemon.InvocationTimeoutSeconds = 0
@@ -547,7 +547,7 @@ func TestRunIteration_ContextCancelledDuringExecution(t *testing.T) {
 	setupLeafNode(t, d, "cancel-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
@@ -604,7 +604,7 @@ func TestRunIteration_PartialMarkerOutput(t *testing.T) {
 				Args:    []string{tt.output},
 			}
 			d.Config.Pipeline.Stages = []config.PipelineStage{
-				{Name: "execute", Model: "partial", PromptFile: "execute.md"},
+				{Name: "execute", Model: "partial", PromptFile: "stages/execute.md"},
 			}
 			d.Config.Retries.MaxRetries = 0
 			d.Config.Failure.DecompositionThreshold = 0
@@ -615,7 +615,7 @@ func TestRunIteration_PartialMarkerOutput(t *testing.T) {
 			setupLeafNode(t, d, "partial-node", []state.Task{
 				{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 			})
-			writePromptFile(t, d.WolfcastleDir, "execute.md")
+			writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 			idx, _ := d.Store.ReadIndex()
 			nav := &state.NavigationResult{NodeAddress: "partial-node", TaskID: "task-0001", Found: true}
@@ -653,7 +653,7 @@ echo ']}}}}'
 echo 'random text at the end'`},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "garbage", PromptFile: "execute.md"},
+		{Name: "execute", Model: "garbage", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
@@ -664,7 +664,7 @@ echo 'random text at the end'`},
 	setupLeafNode(t, d, "garbage-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "garbage-node", TaskID: "task-0001", Found: true}
@@ -697,7 +697,7 @@ func TestRunIteration_EmptyOutput(t *testing.T) {
 		Args:    []string{},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "silent", PromptFile: "execute.md"},
+		{Name: "execute", Model: "silent", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
@@ -708,7 +708,7 @@ func TestRunIteration_EmptyOutput(t *testing.T) {
 	setupLeafNode(t, d, "silent-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "silent-node", TaskID: "task-0001", Found: true}
@@ -798,7 +798,7 @@ func TestRunIteration_NoGitProgress_RejectsComplete(t *testing.T) {
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "noop-complete", PromptFile: "execute.md"},
+		{Name: "execute", Model: "noop-complete", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
@@ -817,7 +817,7 @@ func TestRunIteration_NoGitProgress_RejectsComplete(t *testing.T) {
 	}
 	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 	writeJSON(t, filepath.Join(projDir, "unchanged-node", "state.json"), ns)
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx2, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "unchanged-node", TaskID: "task-0001", Found: true}
@@ -887,7 +887,7 @@ func TestRunOnce_StateError_ReturnsFatal(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte("not valid json at all"), 0644)
 
 	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_COMPLETE"}}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	result, err := d.RunOnce(context.Background())
@@ -912,14 +912,14 @@ func TestIntakeStage_SignalsWorkAvailable(t *testing.T) {
 	}
 	_ = d.InboxLogger.StartIterationWithPrefix("intake")
 	defer d.InboxLogger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "trigger work signal", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "intake-echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "intake-echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake error: %v", err)
 	}
@@ -977,8 +977,8 @@ func TestRunIteration_MultipleStages_CustomStagesRun(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "echo", PromptFile: "intake.md"},
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -986,8 +986,8 @@ func TestRunIteration_MultipleStages_CustomStagesRun(t *testing.T) {
 	setupLeafNode(t, d, "multi-stage-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "multi-stage-node", TaskID: "task-0001", Found: true}

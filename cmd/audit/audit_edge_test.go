@@ -402,8 +402,8 @@ func TestReject_JSONOutput_All(t *testing.T) {
 	}
 	_ = state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"audit", "reject", "--all"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -429,8 +429,8 @@ func TestApprove_JSONOutput_All(t *testing.T) {
 	}
 	_ = state.SaveBatch(filepath.Join(env.WolfcastleDir, "audit-state.json"), batch)
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"audit", "approve", "--all"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -444,8 +444,8 @@ func TestApprove_JSONOutput_All(t *testing.T) {
 
 func TestPending_JSONOutput_AllReviewed(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	batch := &state.Batch{
 		ID:     "test",

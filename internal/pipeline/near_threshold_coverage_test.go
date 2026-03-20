@@ -207,7 +207,10 @@ func TestBuild_InjectsPerTaskMDContent(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj/node", nodeDir, ns, "task-0001", nil)
+	got, err := cb.Build("proj/node", nodeDir, ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(got, "Detailed Plan") {
 		t.Error("per-task .md content should be injected into context")
@@ -233,7 +236,10 @@ func TestBuild_SkipsMissingPerTaskMD(t *testing.T) {
 	nodeDir := t.TempDir()
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj/node", nodeDir, ns, "task-0001", nil)
+	got, err := cb.Build("proj/node", nodeDir, ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Should still produce valid output with task context.
 	if !strings.Contains(got, "**Task:** proj/node/task-0001") {
@@ -260,7 +266,10 @@ func TestBuild_EmptyPerTaskMDIgnored(t *testing.T) {
 	}
 
 	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got := cb.Build("proj/node", nodeDir, ns, "task-0001", nil)
+	got, err := cb.Build("proj/node", nodeDir, ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !strings.Contains(got, "**Task:** proj/node/task-0001") {
 		t.Error("task should still render when .md file is empty")
@@ -490,7 +499,7 @@ func TestAssemblePrompt_FragmentResolutionError(t *testing.T) {
 	cfg := config.Defaults()
 	stage := config.PipelineStage{
 		Name:       "execute",
-		PromptFile: "execute.md",
+		PromptFile: "stages/execute.md",
 	}
 
 	_, err := pipeline.AssemblePrompt(dir, cfg, stage, "")

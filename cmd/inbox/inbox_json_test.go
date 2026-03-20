@@ -6,8 +6,8 @@ import (
 
 func TestInboxAdd_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"inbox", "add", "test idea"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -17,8 +17,8 @@ func TestInboxAdd_JSONOutput(t *testing.T) {
 
 func TestInboxList_JSONOutput_Empty(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"inbox", "list"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -32,8 +32,8 @@ func TestInboxList_JSONOutput_WithItems(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"inbox", "add", "idea one"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"inbox", "list"})
 	if err := env.RootCmd.Execute(); err != nil {
@@ -47,8 +47,8 @@ func TestInboxClear_JSONOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"inbox", "add", "idea"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"inbox", "clear", "--all"})
 	if err := env.RootCmd.Execute(); err != nil {

@@ -64,8 +64,8 @@ func TestShowAllStatus_NoSummaries(t *testing.T) {
 
 func TestShowAllStatus_NoSummaries_JSON(t *testing.T) {
 	env := newTestEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	_ = os.RemoveAll(filepath.Join(env.WolfcastleDir, "system", "projects", "test-dev"))
 

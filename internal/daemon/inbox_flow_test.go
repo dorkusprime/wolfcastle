@@ -27,11 +27,11 @@ func TestRunIntakeStage_ProcessesNewItems(t *testing.T) {
 	}
 	d.Config.Models["mid"] = mockModel
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "mid", PromptFile: "intake.md"},
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "intake", Model: "mid", PromptFile: "stages/intake.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
 
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	// Write an inbox with a "new" item
 	projDir := d.Store.Dir()
@@ -44,7 +44,7 @@ func TestRunIntakeStage_ProcessesNewItems(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "inbox.json"), data, 0644)
 
 	// Run the intake stage directly
-	stage := config.PipelineStage{Name: "intake", Model: "mid", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "mid", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -68,10 +68,10 @@ func TestRunIntakeStage_SkipsWhenEmpty(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	// No inbox file exists
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestRunIntakeStage_SkipsWhenAllFiled(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	projDir := d.Store.Dir()
 	inboxData := state.InboxFile{
@@ -94,7 +94,7 @@ func TestRunIntakeStage_SkipsWhenAllFiled(t *testing.T) {
 	data, _ := json.MarshalIndent(inboxData, "", "  ")
 	_ = os.WriteFile(filepath.Join(projDir, "inbox.json"), data, 0644)
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -109,10 +109,10 @@ func TestRunInboxWithFsnotify_ReactsToFileChange(t *testing.T) {
 		Args:    []string{"-c", `cat > /dev/null; echo "done"`},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "mid", PromptFile: "intake.md"},
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "intake", Model: "mid", PromptFile: "stages/intake.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -163,10 +163,10 @@ func TestRunInboxLoop_ProcessesItemFromGoroutine(t *testing.T) {
 		Args:    []string{"-c", `cat > /dev/null; echo "done"`},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "mid", PromptFile: "intake.md"},
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "intake", Model: "mid", PromptFile: "stages/intake.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -26,7 +26,7 @@ Examples:
 				return err
 			}
 			if batch == nil {
-				if app.JSONOutput {
+				if app.JSON {
 					output.Print(output.Ok("audit_pending", map[string]any{
 						"pending": 0,
 					}))
@@ -43,7 +43,7 @@ Examples:
 				}
 			}
 
-			if app.JSONOutput {
+			if app.JSON {
 				output.Print(output.Ok("audit_pending", map[string]any{
 					"batch_id": batch.ID,
 					"scopes":   batch.Scopes,

@@ -59,7 +59,7 @@ func TestMultiIteration_YieldThenComplete(t *testing.T) {
 			counterFile, counterFile,
 		)},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	// Run iteration 1: should claim and yield
 	_ = d.Logger.StartIteration()
@@ -132,7 +132,7 @@ func TestMultiIteration_NoFalseMarkerFromPromptEcho(t *testing.T) {
 		Command: "sh",
 		Args:    []string{"-c", `printf 'When done, emit WOLFCASTLE_COMPLETE on its own line.\nIf stuck, emit WOLFCASTLE_YIELD.\nI finished the work.\nWOLFCASTLE_COMPLETE\n'`},
 	}
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	_ = d.Logger.StartIteration()
 	result, err := d.RunOnce(context.Background())

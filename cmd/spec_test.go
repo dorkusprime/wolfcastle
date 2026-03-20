@@ -171,8 +171,8 @@ func TestSpecCreate_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	// Explicitly pass no --node to avoid flag pollution from other tests
 	rootCmd.SetArgs([]string{"spec", "create", "--node", "", "JSON Spec"})
@@ -187,8 +187,8 @@ func TestSpecList_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	rootCmd.SetArgs([]string{"spec", "list", "--json"})
 	if err := rootCmd.Execute(); err != nil {

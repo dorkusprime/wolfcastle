@@ -94,8 +94,8 @@ func TestADRCreate_JSONOutput(t *testing.T) {
 
 	env := newTestEnv(t)
 	app = env.App
-	app.JSONOutput = true
-	defer func() { app.JSONOutput = false }()
+	app.JSON = true
+	defer func() { app.JSON = false }()
 
 	// Explicitly clear --file to avoid flag pollution from other tests
 	rootCmd.SetArgs([]string{"adr", "create", "--file", "", "JSON ADR"})

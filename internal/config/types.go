@@ -135,6 +135,7 @@ type DaemonConfig struct {
 	MaxIterations              int    `json:"max_iterations"`
 	MaxTurnsPerInvocation      int    `json:"max_turns_per_invocation"`
 	InvocationTimeoutSeconds   int    `json:"invocation_timeout_seconds"`
+	StallTimeoutSeconds        int    `json:"stall_timeout_seconds"`
 	MaxRestarts                int    `json:"max_restarts"`
 	RestartDelaySeconds        int    `json:"restart_delay_seconds"`
 	LogLevel                   string `json:"log_level"`

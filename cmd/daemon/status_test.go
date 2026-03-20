@@ -109,8 +109,8 @@ func TestShowTreeStatus_MultipleNodeStates(t *testing.T) {
 	}
 
 	// Test JSON output
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 	if err := showTreeStatus(env.App, idx, "my-project"); err != nil {
 		t.Fatalf("showTreeStatus JSON with multiple states failed: %v", err)
 	}
@@ -137,8 +137,8 @@ func TestShowAllStatus_WithMultipleNamespaces(t *testing.T) {
 	}
 
 	// JSON mode
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 	err = showAllStatus(env.App)
 	if err != nil {
 		t.Fatalf("showAllStatus JSON with multiple namespaces failed: %v", err)
@@ -354,8 +354,8 @@ func TestShowTreeStatus_DefaultView_Unchanged(t *testing.T) {
 
 func TestShowTreeStatus_JSON_IncludesNodeDetails(t *testing.T) {
 	env, idx := setupDetailEnv(t)
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	out := captureStdout(t, func() {
 		_ = showTreeStatus(env.App, idx, "")

@@ -231,8 +231,8 @@ func TestProjectCreate_ChildJSONOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "orchestrator", "parent-json"})
 	_ = env.RootCmd.Execute()
 
-	env.App.JSONOutput = true
-	defer func() { env.App.JSONOutput = false }()
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
 
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "--node", "parent-json", "child-json"})
 	if err := env.RootCmd.Execute(); err != nil {

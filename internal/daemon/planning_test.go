@@ -388,10 +388,10 @@ func TestRunPlanningPass_Complete(t *testing.T) {
 	ns.Scope = "test scope"
 	writeJSON(t, filepath.Join(projDir, "orch-node", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
-	writePromptFile(t, d.WolfcastleDir, "plan-amend.md")
-	writePromptFile(t, d.WolfcastleDir, "plan-remediate.md")
-	writePromptFile(t, d.WolfcastleDir, "plan-review.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-amend.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-remediate.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-review.md")
 
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -434,7 +434,7 @@ func TestRunPlanningPass_Blocked(t *testing.T) {
 	ns.Scope = "test scope"
 	writeJSON(t, filepath.Join(projDir, "orch-node", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -477,7 +477,7 @@ func TestRunPlanningPass_Continue(t *testing.T) {
 	ns.Scope = "test scope"
 	writeJSON(t, filepath.Join(projDir, "orch-node", "state.json"), ns)
 
-	writePromptFile(t, d.WolfcastleDir, "plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
 
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -507,11 +507,11 @@ func TestSelectPlanningPrompt(t *testing.T) {
 		trigger  string
 		expected string
 	}{
-		{"", "plan-initial.md"},
-		{"initial", "plan-initial.md"},
-		{"new_scope", "plan-amend.md"},
-		{"child_blocked", "plan-remediate.md"},
-		{"completion_review", "plan-review.md"},
+		{"", "stages/plan-initial.md"},
+		{"initial", "stages/plan-initial.md"},
+		{"new_scope", "stages/plan-amend.md"},
+		{"child_blocked", "stages/plan-remediate.md"},
+		{"completion_review", "stages/plan-review.md"},
 	}
 
 	for _, tc := range cases {

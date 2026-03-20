@@ -271,6 +271,132 @@ func TestMigrateOldConfig_HandlesMissingSources(t *testing.T) {
 	}
 }
 
+// --- MigratePromptLayout ---
+
+func TestMigratePromptLayout_MovesFlatPrompts(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	// Set up a base tier with flat prompt files.
+	basePrompts := filepath.Join(root, "system", "base", "prompts")
+	if err := os.MkdirAll(basePrompts, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{"execute.md", "intake.md", "plan-initial.md", "audit.md", "summary.md"} {
+		if err := os.WriteFile(filepath.Join(basePrompts, f), []byte("content:"+f), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := svc.MigratePromptLayout(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stage files should be under stages/.
+	for _, f := range []string{"execute.md", "intake.md", "plan-initial.md"} {
+		data, err := os.ReadFile(filepath.Join(basePrompts, "stages", f))
+		if err != nil {
+			t.Errorf("expected stages/%s to exist: %v", f, err)
+			continue
+		}
+		if string(data) != "content:"+f {
+			t.Errorf("stages/%s content mismatch", f)
+		}
+		// Original should be gone.
+		if _, err := os.Stat(filepath.Join(basePrompts, f)); !os.IsNotExist(err) {
+			t.Errorf("%s should have moved out of flat prompts/", f)
+		}
+	}
+
+	// Audit file should be under audits/.
+	data, err := os.ReadFile(filepath.Join(basePrompts, "audits", "audit.md"))
+	if err != nil {
+		t.Fatal("expected audits/audit.md:", err)
+	}
+	if string(data) != "content:audit.md" {
+		t.Error("audits/audit.md content mismatch")
+	}
+
+	// summary.md stays in the root prompts/ (not a stage or audit prompt).
+	if _, err := os.Stat(filepath.Join(basePrompts, "summary.md")); err != nil {
+		t.Error("summary.md should remain in flat prompts/:", err)
+	}
+}
+
+func TestMigratePromptLayout_IdempotentWhenStagesExist(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	basePrompts := filepath.Join(root, "system", "base", "prompts")
+	stagesDir := filepath.Join(basePrompts, "stages")
+	if err := os.MkdirAll(stagesDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Write a file directly into stages/ (already migrated).
+	if err := os.WriteFile(filepath.Join(stagesDir, "execute.md"), []byte("already here"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Also write a flat file that should NOT be touched.
+	if err := os.WriteFile(filepath.Join(basePrompts, "intake.md"), []byte("flat"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.MigratePromptLayout(); err != nil {
+		t.Fatal(err)
+	}
+
+	// stages/execute.md should remain untouched.
+	data, err := os.ReadFile(filepath.Join(stagesDir, "execute.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "already here" {
+		t.Error("stages/execute.md should not be overwritten")
+	}
+
+	// Flat intake.md should remain (tier skipped since stages/ exists).
+	if _, err := os.Stat(filepath.Join(basePrompts, "intake.md")); err != nil {
+		t.Error("intake.md should remain when migration is skipped")
+	}
+}
+
+func TestMigratePromptLayout_HandlesCustomAndLocalTiers(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	// Set up custom tier with flat execute.md override.
+	customPrompts := filepath.Join(root, "system", "custom", "prompts")
+	if err := os.MkdirAll(customPrompts, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(customPrompts, "execute.md"), []byte("custom"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.MigratePromptLayout(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Custom execute.md should move to stages/.
+	data, err := os.ReadFile(filepath.Join(customPrompts, "stages", "execute.md"))
+	if err != nil {
+		t.Fatal("expected custom/prompts/stages/execute.md:", err)
+	}
+	if string(data) != "custom" {
+		t.Error("custom/prompts/stages/execute.md content mismatch")
+	}
+}
+
+func TestMigratePromptLayout_HandlesMissingPromptDir(t *testing.T) {
+	t.Parallel()
+	svc, _ := newMigrationService(t)
+
+	// No prompts/ directory at all. Should succeed silently.
+	if err := svc.MigratePromptLayout(); err != nil {
+		t.Fatal("MigratePromptLayout should handle missing prompts/ gracefully:", err)
+	}
+}
+
 func writeTestJSON(t *testing.T, path string, v any) {
 	t.Helper()
 	data, err := json.MarshalIndent(v, "", "  ")
