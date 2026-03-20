@@ -779,7 +779,7 @@ None. This command always exits 0.
 ### Synopsis
 
 ```
-wolfcastle task add --node <path> "<description>"
+wolfcastle task add --node <path> "<title>" [--body "<text>"] [--stdin] [--deliverable "<path>"] [--type <type>] [--class <class>] [--constraint "<text>"] [--acceptance "<text>"] [--reference "<path>"] [--integration "<text>"] [--parent <task-id>]
 ```
 
 ### Description
@@ -790,39 +790,69 @@ Adds a new task to a leaf node's task list, inserting it before the audit task (
 
 | Flag/Arg | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
+| `"<title>"` | string (positional) | Yes | -- | Human-readable title of the task |
 | `--node <path>` | string | Yes | -- | Tree address of the leaf node to add the task to (ADR-008) |
-| `"<description>"` | string (positional) | Yes | -- | Human-readable description of the task |
+| `--body "<text>"` | string | No | `""` | Detailed task description/body text |
+| `--stdin` | bool | No | `false` | Read task body from stdin (overrides `--body`) |
+| `--deliverable "<path>"` | string slice | No | `[]` | Expected output file path (repeatable) |
+| `--type <type>` | string | No | `""` | Task type: `discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup` |
+| `--class <class>` | string | No | `""` | Task class override (e.g., `lang-go`) |
+| `--constraint "<text>"` | string slice | No | `[]` | What not to do (repeatable) |
+| `--acceptance "<text>"` | string slice | No | `[]` | Acceptance criterion (repeatable) |
+| `--reference "<path>"` | string slice | No | `[]` | Reference material path (repeatable) |
+| `--integration "<text>"` | string | No | `""` | How this task connects to other work |
+| `--parent <task-id>` | string | No | `""` | Parent task ID for hierarchical decomposition (e.g., `task-0001`) |
 
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
 2. Resolve engineer identity.
-3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
-4. Validate the `--node` path exists in the tree index.
-5. Validate the target node is a leaf node (tasks live in leaves, not orchestrators).
-6. Load the leaf's `state.json`.
-7. Generate the next task ID (`task-N` where N is one greater than the current highest).
-8. Insert a new task entry into the leaf's `tasks` array before the audit task:
+3. Validate the title positional argument is non-empty (whitespace-only is rejected).
+4. Validate `--node` is provided and resolves to a valid leaf node address.
+5. Resolve the task body:
+   - If `--stdin` is set, read all of stdin and use it as the body. This overrides any value passed via `--body`.
+   - Otherwise, use the `--body` value (empty string if omitted).
+6. If `--type` is provided, validate it against the allowed set: `discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup`. Fail with an error on invalid values.
+7. Load the leaf's `state.json` via `MutateNode`.
+8. Generate the next task ID:
+   - If `--parent` is provided, create a hierarchical child ID under the parent (e.g., `task-0001.0001`). The parent task must exist. The parent auto-completes when all children finish.
+   - Otherwise, generate a top-level ID (`task-N` where N is one greater than the current highest).
+9. Insert a new task entry into the leaf's `tasks` array with:
    - `id`: the generated task ID
-   - `description`: the provided description
+   - `title`: the provided title
    - `state`: `"not_started"`
-   - `failure_count`: `0`
-9. Write the updated leaf `state.json`. Adding a `not_started` task does not change the node's state, so no propagation is needed.
-10. Output the result as JSON (model-facing command).
+   - `body`: the resolved body text (stored in `Body` field)
+   - `deliverables`: the `--deliverable` values (stored in `Deliverables`)
+   - `task_type`: the `--type` value (stored in `TaskType`)
+   - `class`: the `--class` value (stored in `Class`)
+   - `constraints`: the `--constraint` values (stored in `Constraints`)
+   - `acceptance_criteria`: the `--acceptance` values (stored in `AcceptanceCriteria`)
+   - `references`: the `--reference` values (stored in `References`)
+   - `integration`: the `--integration` value (stored in `Integration`)
+   Only non-empty/non-nil values are written; omitted flags leave their fields at zero value.
+10. Write the updated leaf `state.json`. Adding a `not_started` task does not change the node's state, so no propagation is needed.
+11. Write a `{task-id}.md` file in the node directory containing the title as a heading and the body (if any) as content.
+12. Output the result.
 
 ### Output
+
+JSON mode (`--json`):
 
 ```json
 {
   "ok": true,
-  "action": "task_added",
-  "node": "attunement-tree/fire-impl",
+  "action": "task_add",
+  "address": "attunement-tree/fire-impl/task-4",
   "task_id": "task-4",
-  "task_address": "attunement-tree/fire-impl/task-4",
   "description": "Wire stamina cost into fire ability",
-  "state": "not_started"
+  "state": "not_started",
+  "deliverables": ["internal/fire/stamina.go"]
 }
 ```
+
+The `deliverables` key is present only when `--deliverable` was provided.
+
+Human-readable mode prints: `Added task attunement-tree/fire-impl/task-4: Wire stamina cost into fire ability`
 
 ### Exit Codes
 
@@ -832,13 +862,37 @@ Adds a new task to a leaf node's task list, inserting it before the audit task (
 | 1 | `.wolfcastle/` not found or identity not configured |
 | 2 | Node path not found |
 | 3 | Target node is not a leaf (tasks can only be added to leaves) |
-| 4 | Description is empty |
+| 4 | Title is empty |
+| 5 | Invalid `--type` value |
 
 ### Examples
 
 ```bash
-# Add a task to a leaf node
+# Add a simple task
 wolfcastle task add --node attunement-tree/fire-impl "Wire stamina cost into fire ability"
+
+# Add a task with a body describing the work
+wolfcastle task add --node auth/login "Add rate limiting" \
+  --body "Implement token-bucket rate limiting at 100 req/s per user."
+
+# Read body from stdin (useful for long descriptions or piping)
+echo "Detailed implementation spec..." | wolfcastle task add --node my-project "Implement caching" --stdin
+
+# Add a task with deliverables the daemon will verify on completion
+wolfcastle task add --node my-project/auth "Write auth middleware" \
+  --deliverable "internal/auth/middleware.go" \
+  --deliverable "internal/auth/middleware_test.go"
+
+# Add a typed task with constraints and acceptance criteria
+wolfcastle task add --node my-project/api "Design REST endpoints" \
+  --type spec \
+  --acceptance "All endpoints documented with request/response schemas" \
+  --constraint "Do not introduce GraphQL"
+
+# Create a child task under an existing parent for decomposition
+wolfcastle task add --node my-project/auth "Implement token refresh" \
+  --parent task-0001 \
+  --type implementation
 
 # Add a task to a deeply nested leaf
 wolfcastle task add --node attunement-tree/balance-pass/pvp "Adjust fire spell damage for PvP"
@@ -850,7 +904,8 @@ wolfcastle task add --node attunement-tree/balance-pass/pvp "Adjust fire spell d
 |-------|---------------|------|
 | Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
 | Node is not a leaf | `{"ok": false, "error": "cannot add tasks to orchestrator node 'foo/bar' — use wolfcastle project create for child nodes", "code": "INVALID_NODE_TYPE"}` | 3 |
-| Empty description | `{"ok": false, "error": "description must not be empty", "code": "EMPTY_DESCRIPTION"}` | 4 |
+| Empty title | `{"ok": false, "error": "task title cannot be empty. Name the target", "code": "EMPTY_TITLE"}` | 4 |
+| Invalid task type | `{"ok": false, "error": "invalid task type \"foo\": must be one of discovery, spec, adr, implementation, integration, cleanup", "code": "INVALID_TASK_TYPE"}` | 5 |
 
 ---
 
