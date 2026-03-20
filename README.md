@@ -50,6 +50,7 @@ Everything is deterministic except the model's output. State is [JSON on disk](d
 - **Git** (branch verification, progress detection, auto-commit)
 - **A coding agent** that reads stdin and writes stdout. [Claude Code](https://claude.com/claude-code) is the default. Anything that accepts a prompt and produces code works: Cursor, Copilot, GPT, Gemini, Llama, a bash script that echoes "done."
 - **Go 1.26+** (only if building from source)
+- **Local filesystem** for the `.wolfcastle/` directory (ext4, APFS, HFS+, NTFS, etc.). Wolfcastle uses `flock(2)` advisory locking to protect state from concurrent daemon and CLI access. NFS and most network-mounted filesystems do not honor `flock(2)`, which means concurrent access from a network mount can corrupt state silently, with no error reported to the user. Keep `.wolfcastle/` on a locally attached disk.
 
 ## Quick Start
 
