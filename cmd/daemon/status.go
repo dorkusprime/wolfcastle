@@ -14,6 +14,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
 )
@@ -47,7 +48,7 @@ Examples:
 			}
 
 			if watch {
-				ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+				ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
 				defer stop()
 				return watchStatus(ctx, app, scopeNode, showAll, interval, expand)
 			}

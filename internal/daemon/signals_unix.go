@@ -4,10 +4,9 @@ package daemon
 
 import (
 	"os"
-	"syscall"
+
+	"github.com/dorkusprime/wolfcastle/internal/signals"
 )
 
-// shutdownSignals returns the signals that trigger daemon shutdown.
-// On Unix, SIGTSTP (Ctrl+Z) is included so foreground mode exits
-// cleanly instead of suspending to a stopped background process.
-var shutdownSignals = []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP}
+// shutdownSignals are the signals that trigger daemon shutdown.
+var shutdownSignals []os.Signal = signals.Shutdown
