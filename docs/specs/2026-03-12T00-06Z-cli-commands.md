@@ -3680,7 +3680,7 @@ wolfcastle doctor [--fix] [--json]
 
 ### Description
 
-Validates the structural integrity of the Wolfcastle project and offers to fix issues. The doctor runs a comprehensive suite of checks against the distributed state files (ADR-024), identifying orphaned files, missing index entries, stale states, missing audit tasks, and other structural inconsistencies.
+Validates the structural integrity of the Wolfcastle project and offers to fix issues. The doctor runs 20+ categories of checks against the distributed state files (ADR-024), identifying orphaned files, missing index entries, stale states, missing audit tasks, and other structural inconsistencies.
 
 A subset of these checks also runs automatically on daemon startup (ADR-025). The `doctor` command runs the full suite and provides interactive repair.
 
