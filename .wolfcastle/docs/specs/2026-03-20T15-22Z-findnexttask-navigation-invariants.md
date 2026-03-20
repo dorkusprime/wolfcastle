@@ -22,16 +22,15 @@ If `result.Found == true`, then the task identified by `result.TaskID` in the no
 assert(task.State == StatusInProgress || task.State == StatusNotStarted)
 ```
 
-### INV-2: Non-audit tasks take priority over audit tasks
+### INV-2: Non-audit tasks take priority over audit tasks (per-node)
 
-If `result.Found == true` and the returned task has `IsAudit == true`, then there must be no `StatusNotStarted` non-audit task in any reachable leaf node that would itself be actionable (i.e., it passes INV-3 and INV-4). In simpler terms: if actionable non-audit work exists anywhere in the reachable tree, the navigator must not return an audit task.
+If `result.Found == true` and the returned task has `IsAudit == true` and `State == StatusNotStarted`, then within the same node, `allNonAuditDone` must be true. Audit deferral is enforced per-node by `findActionableTask`, not tree-wide, because the DFS returns the first actionable task it finds and does not look ahead across nodes.
 
-The converse also applies within a single node: `findActionableTask` skips audit tasks unless `allNonAuditDone` is true and `allNonAuditBlocked` is false.
+Two additional constraints: (1) `findActionableTask` also skips audit tasks when `allNonAuditBlocked` is true (all non-audit tasks blocked, no point running audit). (2) In-progress audit tasks bypass the deferral check entirely, because the self-healing loop returns any in_progress task without checking `IsAudit`.
 
 ```
-if task.IsAudit {
-    for each reachable leaf node N:
-        assert no non-audit task in N is (not_started AND not a parent-with-children AND has no not_started non-audit ancestor)
+if task.IsAudit && task.State == StatusNotStarted {
+    assert(computeAllNonAuditDone(node) == true)
 }
 ```
 
