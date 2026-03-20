@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "internal-core-coverage",
+  "name": "internal Core Coverage",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "daemon-coverage",
+      "address": "code-coverage/internal-core-coverage/daemon-coverage",
+      "state": "complete"
+    },
+    {
+      "id": "project-coverage",
+      "address": "code-coverage/internal-core-coverage/project-coverage",
+      "state": "complete"
+    },
+    {
+      "id": "near-threshold-coverage",
+      "address": "code-coverage/internal-core-coverage/near-threshold-coverage",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in internal Core Coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Raise coverage to 94%+ for changed internal core packages: internal/daemon (85.8%), internal/pipeline (92.7%), internal/project (78.1%), internal/config (93.3%), internal/state (93.0%)",
+  "success_criteria": [
+    "internal/daemon reaches 94%+ coverage (from 85.8%)",
+    "internal/project reaches 94%+ coverage (from 78.1%)",
+    "internal/pipeline reaches 94%+ coverage (from 92.7%)",
+    "internal/config reaches 94%+ coverage (from 93.3%)",
+    "internal/state reaches 94%+ coverage (from 93.0%)",
+    "All tests pass with -race flag"
+  ],
+  "audit_enrichment": [
+    "Verify each internal core package reaches 94%+. Key gaps: internal/daemon/daemon.go RunWithSupervisor at 42.9%, Run at 68.7%; internal/project/scaffold.go migrateToSystemLayout at 24.0%; internal/state/store.go MutateNode at 46.4%. Some of these may be untestable without mocking; document exclusions if needed."
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-19T06:46:31.837803Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T06:46:13.690023Z",
+        "task": "code-coverage/internal-core-coverage",
+        "text": "Created 3 leaf children: daemon-coverage (6 tasks), project-coverage (5 tasks), near-threshold-coverage (3 tasks). Ordering: daemon-coverage first because it requires a Category D production code change (SleepFunc injection) that other tasks don't depend on but is the highest-risk modification. project-coverage second as the largest coverage gap (78.1% to 94%). near-threshold-coverage last as the smallest delta (all three packages within 1.3% of target). Total: 14 tasks covering 5 packages. Coverage data sourced from live go test -coverprofile runs during planning."
+      },
+      {
+        "timestamp": "2026-03-19T14:44:47.021112Z",
+        "task": "code-coverage/internal-core-coverage",
+        "text": "Audit verified all 3 child nodes (daemon-coverage, project-coverage, near-threshold-coverage) complete with audits passed. No open gaps or escalations. Live coverage measurements confirm all 5 packages exceed 90%: daemon 95.1%, project 94.4%, config 95.5%, state 95.9%, pipeline 98.0%. Build and vet clean."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T06:53:11.962647Z",
+    "completed_at": "2026-03-19T14:45:01.756122Z",
+    "result_summary": "Raised coverage across 5 internal packages to well above the 90% threshold. daemon went from ~87% to 95.1% (including a SleepFunc injection for testability), project from 78.1% to 94.4% (covering scaffold, migration, and reinit error paths), config from 94.2% to 95.5%, state from 92.0% to 95.9%, and pipeline from 93.9% to 98.0%. Work was decomposed into 14 tasks across 3 leaf nodes (daemon-coverage, project-coverage, near-threshold-coverage), all completed with clean audits and no open gaps."
+  }
+}

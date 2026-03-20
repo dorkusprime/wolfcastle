@@ -10,9 +10,28 @@ import (
 	"strings"
 )
 
-// tiers defines the resolution order from lowest to highest priority.
-// This slice is the canonical source of truth for tier names.
-var tiers = []string{"base", "custom", "local"}
+// TierNames defines the resolution order from lowest to highest priority.
+// This slice is the canonical source of truth for tier names (ADR-063).
+// All packages that need tier-aware paths should derive them from this
+// constant rather than hardcoding their own lists.
+var TierNames = []string{"base", "custom", "local"}
+
+// SystemPrefix is the directory under the wolfcastle root that contains
+// the three tiers (e.g. ".wolfcastle/system/base").
+const SystemPrefix = "system"
+
+// SystemTierPaths returns tier directory paths prefixed with SystemPrefix,
+// in resolution order. Example output: ["system/base", "system/custom", "system/local"].
+func SystemTierPaths() []string {
+	paths := make([]string, len(TierNames))
+	for i, name := range TierNames {
+		paths[i] = SystemPrefix + "/" + name
+	}
+	return paths
+}
+
+// tiers is an alias kept for internal use within this package.
+var tiers = TierNames
 
 // Resolver reads and writes files through the three-tier overlay.
 type Resolver interface {

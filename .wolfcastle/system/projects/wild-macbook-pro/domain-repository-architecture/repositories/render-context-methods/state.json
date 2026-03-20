@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "id": "render-context-methods",
+  "name": "Render Context Methods",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement AuditState.RenderContext method",
+      "description": "Implement AuditState.RenderContext method",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/state/render.go"
+      ],
+      "body": "Add a RenderContext() string method to AuditState in internal/state/render.go. This method extracts the audit-related rendering from pipeline/context.go lines 163-179 into the domain type itself.\n\nThe method should render:\n- Recent breadcrumbs (last 10) under a '## Recent Breadcrumbs' header, formatted as '- [timestamp] task: text'\n- Audit scope description under a '## Audit Scope' header when scope is non-nil\n\nReturn empty string when there are no breadcrumbs and no scope (do not emit empty sections).\n\nThe current code in buildIterationContext that handles this lives at pipeline/context.go:163-179. The render method moves this logic to the domain type so that ContextBuilder can simply call ns.Audit.RenderContext() instead of inlining the rendering.\n\nDo not modify callers yet. The ContextBuilder migration happens in a later task (internal/pipeline/ContextBuilder). This task only adds the new method and its tests.",
+      "acceptance_criteria": [
+        "AuditState.RenderContext returns formatted breadcrumbs and scope",
+        "Empty AuditState produces empty string",
+        "Breadcrumbs are limited to last 10",
+        "All tests pass: go test ./internal/state/..."
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement NodeState.RenderContext method",
+      "description": "Implement NodeState.RenderContext method",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/state/render.go"
+      ],
+      "body": "Add a RenderContext(taskID string) string method to NodeState in internal/state/render.go. This method extracts the node-level rendering from pipeline/context.go lines 55-57 and 182-187 into the domain type.\n\nThe method should render:\n- Node metadata: '**Node:** \u003caddress\u003e' requires the node to know its address. Since NodeState has an ID field but not a full address, and the spec signature is RenderContext(taskID string), the node address must come from elsewhere. For now, render the node's ID, Name, Type, and State. The full address will be provided by ContextBuilder when it composes the final context.\n- Linked specs under a '## Linked Specs' header when specs are non-nil/non-empty\n- Node type and state information\n\nThe method renders node-level context that surrounds the task-specific rendering. The ContextBuilder will call ns.RenderContext(taskID) to get the node framing, then task.RenderContext() for task detail, then ns.Audit.RenderContext() for audit info.\n\nDo not modify callers or remove the existing buildIterationContext function. This task only adds the new method and its tests.",
+      "acceptance_criteria": [
+        "NodeState.RenderContext renders node metadata and linked specs",
+        "Empty specs list produces no specs section",
+        "All tests pass: go test ./internal/state/..."
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Refactor Task.RenderContext signature",
+      "description": "Refactor Task.RenderContext signature",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/state/render.go",
+        "internal/state/render_test.go"
+      ],
+      "body": "Refactor the existing Task.RenderContext method in internal/state/render.go to match the spec signature: RenderContext() string (no parameters).\n\nCurrent signature: RenderContext(nodeAddr string, nodeDir string) string\nTarget signature: RenderContext() string\n\nChanges required:\n1. Remove nodeAddr parameter. The task address line ('**Task:** project/auth/task-0001') currently uses nodeAddr to build the full path. Change this to just use the task's own ID ('**Task:** task-0001'). The full address will be provided by NodeState.RenderContext or ContextBuilder.\n\n2. Remove nodeDir parameter and the .md file reading block (lines 27-35 of current render.go). Reading per-task .md files from the filesystem is I/O that belongs in the ContextBuilder, not on the domain type's render method. The ContextBuilder has access to file paths and can prepend .md content before calling task.RenderContext().\n\n3. Update all callers. The existing render_test.go tests call task.RenderContext('project/auth', '') — these must be updated to call task.RenderContext(). Search for all callers with: grep -r 'RenderContext(' internal/ to find them.\n\n4. Update the existing tests in render_test.go to reflect the new signature and output format.",
+      "acceptance_criteria": [
+        "Task.RenderContext takes no parameters",
+        "Task.RenderContext no longer performs filesystem I/O",
+        "All existing tests updated and passing",
+        "No callers use the old two-parameter signature",
+        "go test ./internal/state/... passes",
+        "go vet ./... passes"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Add comprehensive render method tests",
+      "description": "Add comprehensive render method tests",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/state/render_test.go"
+      ],
+      "body": "Write thorough tests for all three RenderContext methods in internal/state/render_test.go.\n\nTest cases for AuditState.RenderContext():\n- Empty audit state returns empty string\n- Breadcrumbs render with correct formatting and timestamp\n- More than 10 breadcrumbs shows only the last 10\n- Audit scope renders description\n- Both breadcrumbs and scope render together\n- Nil scope is handled gracefully\n\nTest cases for NodeState.RenderContext(taskID):\n- Basic node metadata renders correctly\n- Linked specs render under header\n- Empty specs list produces no specs section\n- Orchestrator vs leaf node types render correctly\n\nTest cases for Task.RenderContext() (supplement existing tests):\n- Body and Integration sections render correctly\n- All optional fields (deliverables, acceptance criteria, constraints, references) render when present and are absent when empty\n- Failure count and last failure type variations\n\nExisting tests in render_test.go should already cover basic Task.RenderContext behavior. Extend rather than duplicate. Ensure all tests use t.Parallel().",
+      "acceptance_criteria": [
+        "All three render methods have test coverage",
+        "Edge cases (empty state",
+        " nil fields",
+        " boundary conditions) are tested",
+        "go test ./internal/state/... passes"
+      ],
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Render Context Methods is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Task.RenderContext no longer performs filesystem I/O (no os.ReadFile calls)",
+    "Verify all three render methods (Task, AuditState, NodeState) produce output consistent with what buildIterationContext currently renders for those sections",
+    "Verify no callers remain that use the old two-parameter Task.RenderContext(nodeAddr, nodeDir) signature"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T20:48:03.313683Z",
+        "task": "domain-repository-architecture/repositories/render-context-methods",
+        "text": "Implemented AuditState.RenderContext method on the domain type. Renders last 10 breadcrumbs and audit scope description; returns empty string for empty state. Seven test cases cover empty, breadcrumbs-only, scope-only, combined, and the 10-item cap."
+      },
+      {
+        "timestamp": "2026-03-18T20:49:43.809817Z",
+        "task": "domain-repository-architecture/repositories/render-context-methods",
+        "text": "Implemented NodeState.RenderContext method on the domain type. Renders node type, state, and linked specs. Six test cases cover metadata, orchestrator variant, specs present/nil/empty-slice, and section ordering."
+      },
+      {
+        "timestamp": "2026-03-18T20:52:39.415138Z",
+        "task": "domain-repository-architecture/repositories/render-context-methods",
+        "text": "Refactored Task.RenderContext to parameterless signature. Removed nodeAddr param (task line now renders only the ID), removed nodeDir param and per-task .md file reading block. Deleted three nodeDir-specific tests, updated all 19 remaining callers to use the new signature."
+      },
+      {
+        "timestamp": "2026-03-18T20:53:32.771366Z",
+        "task": "domain-repository-architecture/repositories/render-context-methods",
+        "text": "task-0004: All specified test cases already exist in render_test.go from prior tasks. 32 tests pass covering AuditState, NodeState, and Task RenderContext methods including edge cases."
+      },
+      {
+        "timestamp": "2026-03-18T20:56:15.344969Z",
+        "task": "domain-repository-architecture/repositories/render-context-methods",
+        "text": "Audit found code correct and well-tested (32 tests, all pass, build/vet/gofmt clean). Three documentation gaps recorded: missing ADR for parameterless Task.RenderContext refactoring, missing ADR for unused taskID parameter on NodeState.RenderContext, and missing spec for the three RenderContext methods' rendering contract. Verdict: REMEDIATE."
+      },
+      {
+        "timestamp": "2026-03-18T21:20:10.311564Z",
+        "task": "domain-repository-architecture/repositories/render-context-methods",
+        "text": "Audit pass: build/vet/gofmt clean, 271 tests pass, code correct and well-documented. Two ADRs (078 parameterless refactoring, 079 phantom taskID) and one spec (RenderContext rendering contract) cover all architectural decisions. No findings."
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-render-context-methods-1",
+        "timestamp": "2026-03-18T20:56:06.711119Z",
+        "description": "Missing ADR: Task.RenderContext was refactored from (nodeAddr, nodeDir) to parameterless. The decision to strip filesystem I/O and node-address rendering from the domain type, deferring both to ContextBuilder, is an architectural choice with no recorded rationale. File: internal/state/render.go:20",
+        "source": "domain-repository-architecture/repositories/render-context-methods",
+        "status": "fixed",
+        "fixed_by": "domain-repository-architecture/repositories/render-context-methods",
+        "fixed_at": "2026-03-18T21:09:12.205455Z"
+      },
+      {
+        "id": "gap-render-context-methods-2",
+        "timestamp": "2026-03-18T20:56:07.191212Z",
+        "description": "Missing ADR: NodeState.RenderContext accepts a taskID parameter (render.go:97) that is never used in the method body. The docstring explains it exists for caller pairing, but no ADR captures why a phantom parameter was preferred over adding it later when ContextBuilder is built.",
+        "source": "domain-repository-architecture/repositories/render-context-methods",
+        "status": "fixed",
+        "fixed_by": "domain-repository-architecture/repositories/render-context-methods",
+        "fixed_at": "2026-03-18T21:09:12.43483Z"
+      },
+      {
+        "id": "gap-render-context-methods-3",
+        "timestamp": "2026-03-18T20:56:10.569915Z",
+        "description": "Missing spec: The three RenderContext methods (Task, NodeState, AuditState) form the domain-side rendering contract that ContextBuilder will compose. No spec in .wolfcastle/docs/specs/ documents their output format, section ordering, edge-case behavior (empty fields omitted, breadcrumb cap of 10, reference inlining size threshold of 8000 bytes), or the division of responsibility between domain rendering and ContextBuilder.",
+        "source": "domain-repository-architecture/repositories/render-context-methods",
+        "status": "fixed",
+        "fixed_by": "domain-repository-architecture/repositories/render-context-methods",
+        "fixed_at": "2026-03-18T21:09:12.997209Z"
+      }
+    ],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T20:46:27.239155Z",
+    "completed_at": "2026-03-18T21:20:22.790113Z",
+    "result_summary": "Implemented three domain-level RenderContext methods on Task, NodeState, and AuditState in internal/state/render.go. Task.RenderContext was refactored from a two-parameter signature to parameterless, removing filesystem coupling from the domain layer. NodeState.RenderContext retains a phantom taskID parameter reserved for future ContextBuilder consolidation. AuditState.RenderContext renders breadcrumbs (capped at 10) and audit scope, returning empty string when both are absent. 32 tests cover all methods including edge cases. Two ADRs document the key design decisions (parameterless refactoring and phantom parameter retention), and a spec documents the full rendering contract including section ordering, empty-field omission, reference inlining semantics, and the division of responsibility between domain types and ContextBuilder."
+  }
+}

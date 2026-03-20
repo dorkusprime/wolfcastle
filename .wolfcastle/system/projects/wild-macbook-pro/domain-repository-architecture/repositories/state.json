@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "id": "repositories",
+  "name": "Repositories",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "independent-repositories",
+      "address": "domain-repository-architecture/repositories/independent-repositories",
+      "state": "complete"
+    },
+    {
+      "id": "tier-based-repositories",
+      "address": "domain-repository-architecture/repositories/tier-based-repositories",
+      "state": "complete"
+    },
+    {
+      "id": "render-context-methods",
+      "address": "domain-repository-architecture/repositories/render-context-methods",
+      "state": "complete"
+    },
+    {
+      "id": "render-context-documentation",
+      "address": "domain-repository-architecture/repositories/render-context-documentation",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Repositories is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Implement the individual domain repositories and services that have no cross-repository dependencies. This covers: DaemonRepository (smallest, validates the pattern), GitService + Provider interface (wraps git binary), Identity extraction (namespace detection, projects directory), ConfigRepository (tier-based config merge), PromptRepository (tier-based prompt resolution), and RenderContext methods on NodeState/Task/AuditState. Steps 3-7 and 9 from the migration path. Internal ordering: DaemonRepo, GitService, and Identity are independent of tierfs-dependent repos; ConfigRepo and PromptRepo depend on tierfs; render methods are independent of all repositories.",
+  "success_criteria": [
+    "All six components implemented: DaemonRepository, git.Service + Provider, Identity, ConfigRepository, PromptRepository, and RenderContext methods",
+    "Each repository follows the spec's constructor patterns (NewXxx(wolfcastleRoot) and NewXxxWithTiers(tiers) where applicable)",
+    "All tests pass: go test ./internal/daemon/... ./internal/git/... ./internal/config/... ./internal/pipeline/... ./internal/state/...",
+    "Error messages follow the repository:operation:detail pattern (e.g. 'config: loading base tier: ...')",
+    "testutil.Environment is updated with fields for each new repository as it is built"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-18T20:46:27.13222Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    },
+    {
+      "timestamp": "2026-03-18T20:58:11.513494Z",
+      "trigger": "child_blocked",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    },
+    {
+      "timestamp": "2026-03-18T21:18:36.481346Z",
+      "trigger": "child_blocked",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T20:46:22.528087Z",
+        "task": "domain-repository-architecture/repositories",
+        "text": "Created 3 children: independent-repositories (orchestrator: DaemonRepo, GitService, Identity), tier-based-repositories (orchestrator: ConfigRepo, PromptRepo), render-context-methods (leaf: 4 tasks for AuditState/NodeState/Task render methods). Ordering: independent-repositories and tier-based-repositories can proceed in parallel; render-context-methods is fully independent of both. Within tier-based-repositories, both repos depend on tierfs (already complete) but not on each other."
+      },
+      {
+        "timestamp": "2026-03-18T20:58:00.975041Z",
+        "task": "domain-repository-architecture/repositories",
+        "text": "Remediated render-context-methods: created render-context-documentation leaf with 4 tasks to address 3 audit gaps (2 missing ADRs for RenderContext design decisions, 1 missing rendering contract spec). Code is correct and tested; only documentation is missing. New leaf must complete before render-context-methods audit can pass."
+      },
+      {
+        "timestamp": "2026-03-18T21:18:29.905039Z",
+        "task": "domain-repository-architecture/repositories",
+        "text": "Remediated render-context-methods: unblocked audit task. All three documentation gaps (ADR for parameterless Task.RenderContext, ADR for phantom taskID parameter, RenderContext rendering contract spec) were fixed in prior commits. Audit task reset to not_started for re-evaluation."
+      },
+      {
+        "timestamp": "2026-03-18T22:25:00.276524Z",
+        "task": "domain-repository-architecture/repositories",
+        "text": "Final audit: all 10 child nodes complete with passing audits, zero open gaps, zero escalations. Full build/vet/test suite passes across 26 packages. Repositories subtree is complete."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T22:23:09.582045Z",
+    "completed_at": "2026-03-18T22:25:10.579152Z",
+    "result_summary": "Implemented six domain repositories across three orchestrator branches. Independent repositories: DaemonRepository (PID/stop-file/log-dir operations, 6 tests), git.Service (Provider interface wrapping system git, 7 test functions against real repos), and Identity (namespace resolution and OS detection, 6 tests). Tier-based repositories: ConfigRepository (three-tier deep-merge config resolution, 9 tests) and PromptRepository (three-tier prompt/fragment resolution with template execution, 14 tests), both backed by tierfs.Resolver and wired into testutil.Environment. Render-context methods: AuditState, NodeState, and Task each received RenderContext methods (32 tests), with Task refactored to parameterless and NodeState retaining a phantom taskID for future ContextBuilder consolidation. Three ADRs and one spec document the non-obvious design decisions. All 26 packages build, vet, and test clean."
+  }
+}

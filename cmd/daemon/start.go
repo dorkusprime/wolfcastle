@@ -6,9 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
-	"strings"
-	"syscall"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
@@ -20,7 +17,7 @@ import (
 func newStartCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "start",
-		Short: "Unleash the daemon",
+		Short: "Start the daemon",
 		Long: `Starts the execution loop. Wolfcastle picks up tasks, calls models,
 validates results, and moves to the next target. Use --node to restrict
 the carnage to a subtree. Use -d to run in the background.
@@ -191,8 +188,8 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch, executablePath st
 	}
 
 	// Write PID file
-	pidFile := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
-	if err := os.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", proc.Process.Pid)), 0644); err != nil {
+	repo := dmn.NewDaemonRepository(wolfcastleDir)
+	if err := repo.WritePID(proc.Process.Pid); err != nil {
 		return fmt.Errorf("writing PID file: %w", err)
 	}
 
@@ -239,28 +236,15 @@ func createWorktree(repoDir, branch string) (string, error) {
 }
 
 func recoverStaleDaemonState(wolfcastleDir string) {
-	pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
-	data, err := os.ReadFile(pidPath)
-	if os.IsNotExist(err) {
+	repo := dmn.NewDaemonRepository(wolfcastleDir)
+	if !repo.PIDFileExists() {
 		return
 	}
-	if err != nil {
+	if repo.IsAlive() {
 		return
 	}
-	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil {
-		_ = os.Remove(pidPath)
-		return
-	}
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		_ = os.Remove(pidPath)
-		return
-	}
-	if err := process.Signal(syscall.Signal(0)); err != nil {
-		// Process is dead — clean up stale files
-		_ = os.Remove(pidPath)
-		_ = os.Remove(filepath.Join(wolfcastleDir, "system", "daemon.meta.json"))
-		_ = os.Remove(filepath.Join(wolfcastleDir, "system", "stop"))
-	}
+	// Process is dead or PID is unreadable. Clean up stale files.
+	_ = repo.RemovePID()
+	_ = os.Remove(filepath.Join(wolfcastleDir, "system", "daemon.meta.json"))
+	_ = repo.RemoveStopFile()
 }

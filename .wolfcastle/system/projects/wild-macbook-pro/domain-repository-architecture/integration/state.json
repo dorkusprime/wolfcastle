@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "id": "integration",
+  "name": "Integration",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "classrepository",
+      "address": "domain-repository-architecture/integration/classrepository",
+      "state": "complete"
+    },
+    {
+      "id": "project-services",
+      "address": "domain-repository-architecture/integration/project-services",
+      "state": "complete"
+    },
+    {
+      "id": "contextbuilder",
+      "address": "domain-repository-architecture/integration/contextbuilder",
+      "state": "complete"
+    },
+    {
+      "id": "app-refactor",
+      "address": "domain-repository-architecture/integration/app-refactor",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Integration is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Build composite services that depend on multiple repositories, refactor the App struct, and remove the legacy Resolver. This covers: ClassRepository (depends on PromptRepository), ContextBuilder (depends on PromptRepo + ClassRepo + render methods), ScaffoldService + MigrationService (depends on ConfigRepo + PromptRepo + DaemonRepo), App struct refactor (replaces WolfcastleDir/Resolver/raw Cfg with repository references, adds RequireIdentity), and tree.Resolver removal + final test migration. Steps 8, 10-13 from the migration path.",
+  "success_criteria": [
+    "ClassRepository resolves class prompts through PromptRepository with hierarchical fallback and goroutine-safe access",
+    "ContextBuilder replaces monolithic buildIterationContext with repository-backed composition of domain render methods",
+    "ScaffoldService and MigrationService replace standalone scaffold functions with repository-backed services",
+    "App struct holds repositories instead of raw config, Resolver, and WolfcastleDir; RequireIdentity gates project-aware commands",
+    "tree.Resolver is completely removed with no remaining references; all tests use testutil.Environment"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-18T22:30:58.132894Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    },
+    {
+      "timestamp": "2026-03-19T02:33:10.58436Z",
+      "trigger": "child_blocked",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    },
+    {
+      "timestamp": "2026-03-19T06:39:08.664684Z",
+      "trigger": "child_blocked",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T22:30:53.529363Z",
+        "task": "domain-repository-architecture/integration",
+        "text": "Created 4 children: classrepository (leaf, 4 tasks), project-services (leaf, 6 tasks), contextbuilder (leaf, 4 tasks), app-refactor (leaf, 4 tasks). Ordering: classrepository and project-services can proceed in parallel (independent dependencies). contextbuilder depends on classrepository (needs ClassRepository for class prompt resolution). app-refactor depends on all three predecessors (rewires App to use all new repositories and services, then removes Resolver). Each leaf begins with a contract spec task before implementation."
+      },
+      {
+        "timestamp": "2026-03-19T02:32:56.171885Z",
+        "task": "domain-repository-architecture/integration",
+        "text": "Remediated app-refactor audit failure. Created 4 tasks for audit gaps: task-0014 migrates unblock.go from deprecated Cfg/WolfcastleDir fields; task-0015 reverts the partial JSONOutput→JSON split (removes JSON field, restores 3 callers to JSONOutput); task-0016 replaces placeholder specs with real content or deletes them; task-0017 removes dead deprecated fields Store and Commit from App struct."
+      },
+      {
+        "timestamp": "2026-03-19T06:39:03.183891Z",
+        "task": "domain-repository-architecture/integration",
+        "text": "Remediated app-refactor: gap-app-refactor-5 (fileOffsets race condition) was already fixed in commit 26661fa which added sync.Mutex guards around getOffset/setOffset/deleteOffset. Marked gap as fixed. All 5 audit gaps now resolved. Node ready for audit re-run."
+      },
+      {
+        "timestamp": "2026-03-19T14:19:22.947662Z",
+        "task": "domain-repository-architecture/integration",
+        "text": "Final integration audit: verified all 4 child nodes (classrepository, project-services, contextbuilder, app-refactor) complete with passed audits, 0 open gaps, 0 escalations. Build/vet/tests clean. Coverage 94.3%. Remediation items confirmed: no deprecated Store/Commit fields, unblock.go migrated off Cfg/WolfcastleDir, no JSON field split, no placeholder specs."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T03:23:52.268797Z",
+    "completed_at": "2026-03-19T14:19:33.755591Z",
+    "result_summary": "The integration node decomposed domain-repository-architecture into four sequential workstreams: ClassRepository (extracted class file resolution from Resolver into a standalone repository), ProjectServices (extracted ScaffoldService, PromptService, and RuleService from Resolver into composable services), ContextBuilder (built a RenderContext assembler consuming all new repositories and services), and App-Refactor (rewired App to use the new domain layer, removed the monolithic Resolver, and cleaned up deprecated fields). Five audit gaps were identified and remediated across the process, covering unblock.go migration, JSON field revert, placeholder spec replacement, deprecated field removal, and a fileOffsets race condition fix. All children passed audit. Final state: build clean, vet clean, all tests passing, 94.3% coverage."
+  }
+}

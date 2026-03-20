@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
 // Defaults returns the hardcoded default configuration.
@@ -118,12 +120,15 @@ func Defaults() *Config {
 	}
 }
 
-// configTiers lists the three-tier config file paths relative to the
+// configTiers returns the three-tier config file paths relative to the
 // wolfcastle directory, in resolution order from lowest to highest priority.
-var configTiers = []string{
-	"system/base/config.json",
-	"system/custom/config.json",
-	"system/local/config.json",
+// Derived from tierfs.TierNames, the single source of truth (ADR-063).
+func configTiers() []string {
+	paths := make([]string, len(tierfs.TierNames))
+	for i, name := range tierfs.TierNames {
+		paths[i] = tierfs.SystemPrefix + "/" + name + "/config.json"
+	}
+	return paths
 }
 
 // Load reads and merges configuration from the .wolfcastle directory.
@@ -136,7 +141,7 @@ func Load(wolfcastleDir string) (*Config, error) {
 	}
 
 	// Overlay each tier in order
-	for _, tier := range configTiers {
+	for _, tier := range configTiers() {
 		path := filepath.Join(wolfcastleDir, tier)
 		raw, err := loadJSONFile(path)
 		if err != nil && !os.IsNotExist(err) {

@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "contextbuilder",
+  "name": "ContextBuilder",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write ContextBuilder contract spec",
+      "description": "Write ContextBuilder contract spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/*contextbuilder-contract*",
+        ".wolfcastle/docs/specs/2026-03-18T23-11Z-contextbuilder-contract.md"
+      ],
+      "body": "Create a contract spec for ContextBuilder at .wolfcastle/docs/specs/. The contract should define:\n\nContextBuilder struct with fields:\n- prompts *PromptRepository\n- classes *ClassRepository\n\nConstructor: NewContextBuilder(prompts *PromptRepository, classes *ClassRepository)\n\nMethod: Build(nodeAddr string, ns *state.NodeState, taskID string, cfg *config.Config) string\n\nBuild assembles the full iteration context in this order:\n1. Node context via ns.RenderContext(taskID) — type, state, linked specs\n2. Task context via task.RenderContext() — metadata, deliverables, criteria, constraints, references\n3. Class guidance via classes.Resolve(task.Class) if task has a class set\n4. Audit context via ns.Audit.RenderContext() — breadcrumbs, scope\n5. Summary requirement prompt (loaded via PromptRepository) if this is the last incomplete task\n6. Failure context (loaded via PromptRepository) if task has failures, with decomposition guidance based on failure count and config\n\nInternal helper methods:\n- shouldIncludeSummary(ns, taskID, cfg) bool\n- renderSummaryRequired() string — loads summary-required.md template\n- renderFailureContext(task, cfg) string — loads context-headers.md and optionally decomposition.md\n\nContextBuilder replaces the monolithic buildIterationContext() function in pipeline/context.go.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement ContextBuilder",
+      "description": "Implement ContextBuilder",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/context_builder.go"
+      ],
+      "body": "Implement ContextBuilder in internal/pipeline/context_builder.go.\n\nConstructor: NewContextBuilder(prompts *PromptRepository, classes *ClassRepository) *ContextBuilder\n\nBuild(nodeAddr string, ns *state.NodeState, taskID string, cfg *config.Config) string:\nUse a strings.Builder. Call render methods on domain types for their sections (ns.RenderContext, task.RenderContext, ns.Audit.RenderContext). Handle class resolution through ClassRepository. Load prompt templates through PromptRepository for failure headers, decomposition guidance, and summary requirement.\n\nPort the logic from the existing buildIterationContext() in context.go, but delegate domain rendering to the render methods on Task, NodeState, and AuditState rather than inlining it. The ContextBuilder is responsible only for orchestration and repository access.\n\nCheck the existing renderFailureHeader(), renderDecomposition(), renderSummaryRequired(), and isLastIncompleteTask() helper functions in context.go — port their logic into ContextBuilder methods.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Write ContextBuilder tests",
+      "description": "Write ContextBuilder tests",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/context_builder_test.go"
+      ],
+      "body": "Write tests for ContextBuilder in internal/pipeline/context_builder_test.go using testutil.Environment.\n\nTest cases:\n- Build includes node context (type, state) from NodeState.RenderContext\n- Build includes task context (metadata, deliverables, criteria) from Task.RenderContext\n- Build includes class guidance when task has a class set\n- Build omits class section when task has no class\n- Build includes audit context (breadcrumbs, scope) from AuditState.RenderContext\n- Build includes summary requirement when task is the last incomplete task\n- Build omits summary requirement when other tasks remain\n- Build includes failure header when task has failures\n- Build includes decomposition guidance when failure count exceeds threshold\n- Build produces empty-ish output for minimal node state (no task found)\n\nUse env.WithProject() to create node state, env.WithPrompt() to seed prompt templates (summary-required.md, context-headers.md, decomposition.md), and env.WithClasses() if available (or manually create ClassRepository).",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Replace buildIterationContext callers with ContextBuilder",
+      "description": "Replace buildIterationContext callers with ContextBuilder",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/context.go",
+        "internal/pipeline/context_builder.go",
+        "internal/daemon/daemon.go",
+        "internal/daemon/iteration.go"
+      ],
+      "body": "Update all call sites that currently use BuildIterationContext(), BuildIterationContextWithDir(), or BuildIterationContextFull() to use ContextBuilder.Build() instead.\n\nExpected callers are in the daemon pipeline and possibly command handlers. Search for all references to these functions. Each caller will need access to a ContextBuilder instance, which means either passing it as a parameter or constructing it from available repositories.\n\nAfter migrating all callers, remove or deprecate the old standalone functions in context.go. Keep the file if other pipeline utilities remain in it; remove it entirely if it becomes empty.\n\nVerify the build passes and tests pass after the switch.",
+      "references": [
+        "docs/specs/2026-03-16T00-00Z-domain-repository-architecture.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in ContextBuilder is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify ContextBuilder.Build output matches the section order from the spec: node context, task context, class guidance, audit context, summary requirement, failure context",
+    "Verify no domain rendering logic leaked into ContextBuilder — Task, NodeState, AuditState render methods handle their own sections"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T23:12:59.287065Z",
+        "task": "domain-repository-architecture/integration/contextbuilder",
+        "text": "Wrote ContextBuilder contract spec covering struct, constructor, Build method assembly order, internal helpers (shouldIncludeSummary, renderSummaryRequired, renderFailureContext), error behavior, thread safety, and migration path from legacy buildIterationContext"
+      },
+      {
+        "timestamp": "2026-03-18T23:16:01.280022Z",
+        "task": "domain-repository-architecture/integration/contextbuilder",
+        "text": "Implemented ContextBuilder in internal/pipeline/context_builder.go. Delegates section rendering to domain RenderContext() methods, resolves class guidance via ClassRepository, loads summary/failure/decomposition templates through PromptRepository with hardcoded fallbacks. Builds pass, tests pass, vet clean."
+      },
+      {
+        "timestamp": "2026-03-18T23:20:07.580111Z",
+        "task": "domain-repository-architecture/integration/contextbuilder",
+        "text": "Wrote 19 ContextBuilder tests in context_builder_test.go covering node context, task context, class guidance (present/absent/error fallback), audit context (breadcrumbs+scope), summary required (last task/not last/template), failure header (fallback/template), decomposition guidance (fallback/template), nil-config skip, task-not-found minimal output, linked specs, nil-repository panics, and section ordering."
+      },
+      {
+        "timestamp": "2026-03-18T23:27:33.834056Z",
+        "task": "domain-repository-architecture/integration/contextbuilder",
+        "text": "Migrated BuildIterationContextFull caller in daemon/iteration.go to ContextBuilder.Build. Added nodeDir parameter to Build for per-task .md reading. Wired PromptRepository, ClassRepository, and ContextBuilder into Daemon struct. Stripped context.go to shared template types only, removing 1027 lines of legacy code and tests."
+      },
+      {
+        "timestamp": "2026-03-18T23:32:58.424605Z",
+        "task": "domain-repository-architecture/integration/contextbuilder",
+        "text": "Audit passed. Build, tests, vet, and formatting all clean. Found and fixed one spec gap: Build method signature was stale (missing nodeDir parameter) and internal helper signatures differed from implementation. No code issues found. Legacy buildIterationContext fully removed, 19 tests cover all Build output sections, delegation to domain RenderContext methods is clean."
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-contextbuilder-1",
+        "timestamp": "2026-03-18T23:31:13.117064Z",
+        "description": "Spec method signature for Build is stale: spec shows Build(nodeAddr, ns, taskID, cfg) but the implemented signature is Build(nodeAddr, nodeDir, ns, taskID, cfg) with an added nodeDir parameter for per-task .md file loading",
+        "source": "domain-repository-architecture/integration/contextbuilder",
+        "status": "fixed",
+        "fixed_by": "domain-repository-architecture/integration/contextbuilder",
+        "fixed_at": "2026-03-18T23:32:12.541226Z"
+      }
+    ],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T23:10:47.148303Z",
+    "completed_at": "2026-03-18T23:33:08.907637Z",
+    "result_summary": "ContextBuilder replaces the monolithic buildIterationContext function family with a struct that composes iteration context by delegating section rendering to domain RenderContext methods on NodeState, Task, and AuditState, then layering in class guidance via ClassRepository and prompt-template-backed sections (summary requirements, failure context, decomposition guidance) via PromptRepository with hardcoded fallbacks. The implementation lives in context_builder.go (193 lines), is covered by 19 tests across all output sections and edge cases, and is wired into the daemon through the Daemon struct. The legacy context.go was stripped to shared template types only, removing ~1000 lines of duplicated rendering logic."
+  },
+  "specs": [
+    "2026-03-18T23-11Z-contextbuilder-contract.md"
+  ]
+}

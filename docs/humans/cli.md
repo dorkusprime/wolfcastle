@@ -7,9 +7,10 @@ Every command accepts `--json` for structured output. Every command that operate
 | Category          | Commands                                                                                                                                                                                                                                                                                |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Lifecycle**     | [`init`](cli/init.md), [`start`](cli/start.md), [`stop`](cli/stop.md), [`status`](cli/status.md), [`log`](cli/log.md), [`update`](cli/update.md), [`version`](cli/version.md)                                                                                                     |
-| **Task**          | [`task add`](cli/task-add.md), [`task claim`](cli/task-claim.md), [`task complete`](cli/task-complete.md), [`task block`](cli/task-block.md), [`task unblock`](cli/task-unblock.md), [`task deliverable`](cli/task-deliverable.md)                                                       |
+| **Task**          | [`task add`](cli/task-add.md), [`task amend`](cli/task-amend.md), [`task claim`](cli/task-claim.md), [`task complete`](cli/task-complete.md), [`task block`](cli/task-block.md), [`task unblock`](cli/task-unblock.md), [`task deliverable`](cli/task-deliverable.md)                                                       |
 | **Project**       | [`project create`](cli/project-create.md)                                                                                                                                                                                                                                               |
-| **Audit**         | [`audit run`](cli/audit-run.md), [`audit list`](cli/audit-list.md), [`audit show`](cli/audit-show.md), [`audit scope`](cli/audit-scope.md), [`audit breadcrumb`](cli/audit-breadcrumb.md), [`audit gap`](cli/audit-gap.md), [`audit fix-gap`](cli/audit-fix-gap.md), [`audit escalate`](cli/audit-escalate.md), [`audit resolve`](cli/audit-resolve.md), [`audit pending`](cli/audit-pending.md), [`audit approve`](cli/audit-approve.md), [`audit reject`](cli/audit-reject.md), [`audit history`](cli/audit-history.md) |
+| **Orchestrator**  | [`orchestrator criteria`](cli/orchestrator-criteria.md)                                                                                                                                                                                                                                               |
+| **Audit**         | [`audit run`](cli/audit-run.md), [`audit list`](cli/audit-list.md), [`audit show`](cli/audit-show.md), [`audit scope`](cli/audit-scope.md), [`audit breadcrumb`](cli/audit-breadcrumb.md), [`audit enrich`](cli/audit-enrich.md), [`audit summary`](cli/audit-summary.md), [`audit gap`](cli/audit-gap.md), [`audit fix-gap`](cli/audit-fix-gap.md), [`audit escalate`](cli/audit-escalate.md), [`audit resolve`](cli/audit-resolve.md), [`audit pending`](cli/audit-pending.md), [`audit approve`](cli/audit-approve.md), [`audit reject`](cli/audit-reject.md), [`audit history`](cli/audit-history.md) |
 | **Navigation**    | [`navigate`](cli/navigate.md)                                                                                                                                                                                                                                                           |
 | **Diagnostics**   | [`doctor`](cli/doctor.md), [`unblock`](cli/unblock.md)                                                                                                                                                                                                                                  |
 | **Documentation** | [`adr create`](cli/adr-create.md), [`spec create`](cli/spec-create.md), [`spec link`](cli/spec-link.md), [`spec list`](cli/spec-list.md)                                                                                                                                                |
@@ -59,26 +60,27 @@ Installs the Wolfcastle skill for Claude Code. Uses symlinks where supported (au
 ```
 .wolfcastle/
   .gitignore
-  base/                    <- Wolfcastle defaults, prompts, scripts (gitignored)
-    config.json            <- compiled defaults (gitignored)
-  custom/                  <- team overrides and additions (committed)
-    config.json            <- team-shared config (committed)
-  local/                   <- personal overrides (gitignored)
-    config.json            <- personal config, identity (gitignored)
-  projects/                <- live work trees, per engineer (committed)
-    wild-macbook/
-    dave-workstation/
-  archive/                 <- completed work summaries (committed)
-  docs/                    <- ADRs and specs (committed)
+  system/                    <- system-managed files (ADR-077)
+    base/                    <- Wolfcastle defaults, prompts, scripts (gitignored)
+      config.json            <- compiled defaults (gitignored)
+    custom/                  <- team overrides and additions (committed)
+      config.json            <- team-shared config (committed)
+    local/                   <- personal overrides (gitignored)
+      config.json            <- personal config, identity (gitignored)
+    projects/                <- live work trees, per engineer (committed)
+      wild-macbook/
+      dave-workstation/
+    logs/                    <- NDJSON iteration logs (gitignored)
+    wolfcastle.pid           <- daemon PID file (gitignored)
+  archive/                   <- completed work summaries (committed)
+  docs/                      <- ADRs and specs (committed)
     decisions/
     specs/
-  logs/                    <- NDJSON iteration logs (gitignored)
-  worktrees/               <- git worktrees when using --worktree (gitignored)
 ```
 
-**Committed**: `custom/`, `projects/`, `archive/`, `docs/`
+**Committed**: `system/custom/`, `system/projects/`, `archive/`, `docs/`
 
-**Gitignored**: `base/`, `local/`, `logs/`, `worktrees/`
+**Gitignored**: `system/base/`, `system/local/`, `system/logs/`
 
 ### New Engineer Setup
 

@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "id": "testutil-package-coverage",
+  "name": "Testutil Package Coverage",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Cover uncalled Environment methods",
+      "description": "Cover uncalled Environment methods",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/testutil/environment_test.go"
+      ],
+      "body": "Four exported methods on Environment have 0% coverage:\n\n1. ParentDir() (line 211): Returns filepath.Dir(e.Root). Add a test that calls NewEnvironment, then verifies ParentDir() returns a valid directory that is the parent of env.Root.\n\n2. ToAppFields() (line 218): Returns an AppFields struct populated from the Environment. Add a test that calls NewEnvironment, then ToAppFields(), and verifies the returned struct has non-nil Config, Identity, Prompts, Classes, Daemon, State, and a non-empty WolfcastleDir. Also verify Cfg is loaded successfully.\n\n3. WithGit() (line 269): Sets the Git provider. Add a test that calls WithGit with a git.NewService pointed at a temp dir, then verifies env.Git is set and returns the environment for chaining.\n\n4. WithClasses() (line 367): Reloads class definitions. Add a test that calls WithClasses with a sample map[string]config.ClassDef, then verifies the classes are accessible through the environment.\n\nThese are all simple tests since the methods are straightforward accessors/setters.",
+      "acceptance_criteria": [
+        "ParentDir",
+        " ToAppFields",
+        " WithGit",
+        " WithClasses all appear as \u003e0% in go tool cover -func output"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Cover error paths in writeJSON, WithConfig, WithPrompt, WithRule",
+      "description": "Cover error paths in writeJSON, WithConfig, WithPrompt, WithRule",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/testutil/environment_test.go"
+      ],
+      "body": "Several methods have partial coverage due to uncovered error paths:\n\nwriteJSON (66.7%, line 395): The private helper has three branches: MkdirAll error, MarshalIndent error, and WriteFile error. The MarshalIndent error can be triggered by passing an unmarshalable value (e.g. a channel or a func). The MkdirAll error is harder to trigger but could be done by passing a path under a read-only directory or a file where a directory is expected.\n\nWithConfig (75.0%, line 244): The uncovered branch is likely the os.ReadFile error (line 251) or json.Unmarshal error (line 255). These can be tested by manipulating the custom config file before calling WithConfig (e.g. deleting it or writing invalid JSON).\n\nWithPrompt (75.0%, line 375): The uncovered branch is the error path from Tiers.WriteBase. This is harder to trigger with a real tierfs.FS since it creates directories. Could be tested by making the base tier directory read-only.\n\nWithRule (75.0%, line 385): Same pattern as WithPrompt.\n\nNewEnvironment (78.0%): The uncovered lines are all t.Fatalf error paths. These are difficult to test because they require filesystem failures during setup. Since they're all fatal-on-error guards, they're acceptable at current coverage. Focus effort on the other gaps first.\n\nStrategy: Since these methods call t.Fatalf on error (which calls runtime.Goexit), tests must run the failing code in a goroutine to capture the failure without killing the test process. See the pattern in category_a_test.go for reference.\n\nTarget: raise internal/testutil from 82.0% to 94%+.",
+      "acceptance_criteria": [
+        "go test -cover ./internal/testutil/ reports \u003e= 94% coverage"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Testutil Package Coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify ParentDir, ToAppFields, WithGit, and WithClasses each have test coverage. Verify error paths in writeJSON, WithConfig, WithPrompt, WithRule are tested. Confirm coverage \u003e= 94%."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T10:20:30.134857Z",
+        "task": "code-coverage/internal-utility-coverage/testutil-package-coverage",
+        "text": "Added tests for four uncovered Environment methods: ParentDir (100%), ToAppFields (75%), WithGit (100%), WithClasses (100%). All four now appear as \u003e0% in coverage output."
+      },
+      {
+        "timestamp": "2026-03-19T10:24:42.254681Z",
+        "task": "code-coverage/internal-utility-coverage/testutil-package-coverage",
+        "text": "Covered error paths in writeJSON (3 branches), WithConfig (3 error paths), WithPrompt, WithRule, ToAppFields, WithProject (2 errors), and buildNode (2 errors). Also covered helpers.go WriteJSON MkdirAll and WriteFile errors. Coverage raised from 86.9% to 94.0%."
+      },
+      {
+        "timestamp": "2026-03-19T10:25:58.641338Z",
+        "task": "code-coverage/internal-utility-coverage/testutil-package-coverage",
+        "text": "Audit passed. Verified: clean build, all tests pass with -race, gofmt/vet clean, 94.0% coverage (above 90% threshold). Uncovered lines are exclusively t.Fatalf guards in test infrastructure constructors. No correctness issues, no duplication, no dead code. Existing ADRs cover the design decisions."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T10:18:26.596166Z",
+    "completed_at": "2026-03-19T10:26:09.842559Z",
+    "result_summary": "Raised internal/testutil coverage from 86.9% to 94.0% by adding comprehensive tests for Environment methods (ParentDir, ToAppFields, WithGit, WithClasses) and error paths in writeJSON (3 branches), WithConfig (3 error paths), WithPrompt, WithRule, WithProject (2 errors), and buildNode (2 errors). Also covered helpers.go WriteJSON MkdirAll and WriteFile errors, and ReadJSON error paths. All tests pass with race detection enabled, build is clean, and no open gaps remain."
+  }
+}

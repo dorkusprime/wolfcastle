@@ -1,10 +1,10 @@
 # Coverage Roadmap: Path to 100%
 
-Current state: **94.2% local (`go tool cover`), estimated ~90%+ Codecov (line + partial branch)**
+Current state: **95.7% local (`go tool cover`), estimated ~92%+ Codecov (line + partial branch)**
 
 Codecov's lower number comes from counting partial branches (e.g., `if err != nil` where the error never fires) as uncovered. To reach 100% on Codecov, we need architectural changes.
 
-Total uncovered: ~230 statements across cmd/ and internal/.
+Total uncovered: ~170 statements across cmd/ and internal/.
 
 ---
 

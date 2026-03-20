@@ -109,17 +109,20 @@ Summaries are generated inline during execution via the `WOLFCASTLE_SUMMARY:` ma
 
 Stages do not pass output to each other. They read the current state of the world and act on it. The intake stage creates projects and tasks. The execute stage finds them. No coupling. No handoffs. Just [state on disk](#distributed-state) and models that know how to read it.
 
-### Seven-Phase Execution
+### Execution Protocol
 
-When the execute stage claims a task, the model follows a seven-phase protocol:
+When the execute stage claims a task, the model follows a ten-phase protocol:
 
 1. **Claim** the task.
 2. **Study** the project description, [specs](collaboration.md#specs), [breadcrumbs](audits.md#breadcrumbs), and linked context.
 3. **Implement** the work.
 4. **Validate** by running configured checks (tests, lints, builds).
 5. **Record** [breadcrumbs](audits.md#breadcrumbs) describing what was done and why.
-6. **Commit** the changes.
-7. **Signal** the outcome: COMPLETE, YIELD (needs another iteration), or BLOCKED.
+6. **Document** decisions (ADRs) and contracts (specs).
+7. **Commit** the changes.
+8. **Signal** the outcome: COMPLETE, YIELD (needs another iteration), or BLOCKED.
+9. **Pre-block** downstream tasks that cannot succeed, when applicable.
+10. **Create follow-up tasks** based on findings, when applicable.
 
 The model communicates through [script calls](cli.md): `wolfcastle task claim`, `wolfcastle audit breadcrumb`, `wolfcastle task complete`. Every side effect goes through a deterministic command that validates inputs and enforces invariants. The model cannot corrupt the tree. It can only ask the scripts to make valid changes.
 

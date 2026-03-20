@@ -36,6 +36,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
@@ -69,6 +70,11 @@ type Daemon struct {
 	branch        string
 	iteration     int
 	lastNoWorkMsg string // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
+}
+
+// repo returns a DaemonRepository for the daemon's wolfcastle directory.
+func (d *Daemon) repo() *DaemonRepository {
+	return NewDaemonRepository(d.WolfcastleDir)
 }
 
 // New creates a new daemon.
@@ -236,9 +242,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 	ctx, cancel := signal.NotifyContext(ctx, shutdownSignals...)
 	defer cancel()
 
-	// Dedicated signal channel as a backup. Child processes (Claude Code)
-	// may corrupt Go's signal infrastructure. Re-register after every
-	// model invocation to ensure signals are always caught.
+	// Dedicated signal channel as a backup. Child processes may corrupt
+	// Go's signal infrastructure by leaving the terminal in raw mode
+	// (ISIG off). RestoreTerminal re-enables ISIG after each invocation,
+	// and this channel provides a second delivery path for signals.
 	d.sigChan = make(chan os.Signal, 2)
 	signal.Notify(d.sigChan, shutdownSignals...)
 	defer signal.Stop(d.sigChan)
@@ -256,7 +263,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				d.shutdownOnce.Do(func() { close(d.shutdown) })
 				go func() {
 					time.Sleep(2 * time.Second)
-					_ = os.Remove(filepath.Join(d.WolfcastleDir, "system", "wolfcastle.pid"))
+					_ = d.repo().RemovePID()
 					os.Exit(0)
 				}()
 				return
@@ -297,7 +304,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Start the parallel inbox processing goroutine (ADR-064).
 	// It watches for new inbox items and runs the intake stage
 	// independently of the main execution loop.
-	go d.runInboxLoop(ctx)
+	d.runWg.Add(1)
+	go func() {
+		defer d.runWg.Done()
+		d.runInboxLoop(ctx)
+	}()
 
 	var idleSpinner *output.Spinner
 	for {
@@ -389,9 +400,8 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	}
 
 	// Check stop file
-	stopFilePath := filepath.Join(d.WolfcastleDir, "system", "stop")
-	if _, err := os.Stat(stopFilePath); err == nil {
-		_ = os.Remove(stopFilePath)
+	if d.repo().HasStopFile() {
+		_ = d.repo().RemoveStopFile()
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
 		output.PrintHuman("=== Wolfcastle standing down (stop file) ===")
 		return IterationStop, nil
@@ -409,7 +419,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	if d.Config.Git.VerifyBranch {
 		current, err := currentBranch(d.RepoDir)
 		if err == nil && current != d.branch {
-			return IterationStop, fmt.Errorf("WOLFCASTLE_BLOCKED: branch changed from %s to %s", d.branch, current)
+			return IterationStop, fmt.Errorf("%s: branch changed from %s to %s", invoke.MarkerStringBlocked, d.branch, current)
 		}
 	}
 
@@ -462,7 +472,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		var msg string
 		switch navResult.Reason {
 		case "all_complete":
-			msg = "WOLFCASTLE_COMPLETE"
+			msg = invoke.MarkerStringComplete
 		case "empty_tree":
 			msg = "Nothing to destroy. Feed the inbox."
 		case "all_blocked":

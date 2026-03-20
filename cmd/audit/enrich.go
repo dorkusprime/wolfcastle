@@ -28,7 +28,7 @@ Examples:
 			}
 			text := args[0]
 			if strings.TrimSpace(text) == "" {
-				return fmt.Errorf("enrichment text cannot be empty")
+				return fmt.Errorf("enrichment text cannot be empty. Describe the context to add")
 			}
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			if nodeAddr == "" {

@@ -161,11 +161,12 @@ func TestWriteAndReadPID_RoundTrip(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
-	if err := WritePID(dir); err != nil {
+	repo := NewDaemonRepository(dir)
+	if err := repo.WritePID(os.Getpid()); err != nil {
 		t.Fatal(err)
 	}
 
-	pid, err := ReadPID(dir)
+	pid, err := repo.ReadPID()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,6 +178,7 @@ func TestWriteAndReadPID_RoundTrip(t *testing.T) {
 func TestRemovePID_NoFileNoPanic(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	// Should not panic
-	RemovePID(dir)
+	repo := NewDaemonRepository(dir)
+	// Should not panic or error
+	_ = repo.RemovePID()
 }

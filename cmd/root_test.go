@@ -18,9 +18,7 @@ func nodeStatePath(projectsDir string, parsed tree.Address) string {
 
 func TestInitCmd_JSONOutput(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	oldApp := app
 	defer func() { app = oldApp }()
@@ -36,9 +34,7 @@ func TestInitCmd_JSONOutput(t *testing.T) {
 
 func TestInitCmd_AlreadyInitialized_JSON(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	_ = os.MkdirAll(tmp+"/.wolfcastle", 0755)
 
@@ -56,9 +52,7 @@ func TestInitCmd_AlreadyInitialized_JSON(t *testing.T) {
 
 func TestInitCmd_ForceReinit_JSON(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	// First init
 	rootCmd.SetArgs([]string{"init"})
@@ -654,9 +648,7 @@ func TestDoctorCmd_Fix_WithFixableIssues(t *testing.T) {
 
 func TestInitCmd_ForceReinit_HumanOutput(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	oldApp := app
 	defer func() { app = oldApp }()

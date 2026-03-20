@@ -83,27 +83,31 @@ Examples:
 			return reportValidationIssues(report.Issues)
 		}
 
-		// Report issues first
-		if err := reportValidationIssues(report.Issues); err != nil {
-			return err
+		// In human mode, report pre-fix issues first.
+		if !app.JSONOutput {
+			if err := reportValidationIssues(report.Issues); err != nil {
+				return err
+			}
 		}
 
 		// Apply deterministic fixes
 		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, projectsDir, indexPath, root)
 
-		if len(fixes) == 0 {
-			output.PrintHuman("\nNothing to fix automatically.")
-		} else {
-			output.PrintHuman("\nFixed %d issues:", len(fixes))
-			for _, f := range fixes {
-				output.PrintHuman("  FIXED [%s] %s: %s", f.Category, f.Node, f.Description)
+		if !app.JSONOutput {
+			if len(fixes) == 0 {
+				output.PrintHuman("\nNothing to fix automatically.")
+			} else {
+				output.PrintHuman("\nFixed %d issues:", len(fixes))
+				for _, f := range fixes {
+					output.PrintHuman("  FIXED [%s] %s: %s", f.Category, f.Node, f.Description)
+				}
 			}
-		}
 
-		if len(postFixWarnings) > 0 {
-			output.PrintHuman("\n%d issue(s) survived the fix:", len(postFixWarnings))
-			for _, w := range postFixWarnings {
-				output.PrintHuman("  WARN  [%s] %s: %s", w.Category, w.Node, w.Description)
+			if len(postFixWarnings) > 0 {
+				output.PrintHuman("\n%d issue(s) survived the fix:", len(postFixWarnings))
+				for _, w := range postFixWarnings {
+					output.PrintHuman("  WARN  [%s] %s: %s", w.Category, w.Node, w.Description)
+				}
 			}
 		}
 
@@ -112,6 +116,7 @@ Examples:
 		}
 
 		// Model-assisted fixes for issues that deterministic repair cannot resolve
+		var modelFixCount int
 		cfg, cfgErr := app.Config.Load()
 		if cfgErr == nil && cfg.Doctor.Model != "" {
 			model, ok := cfg.Models[cfg.Doctor.Model]
@@ -126,7 +131,6 @@ Examples:
 					output.PrintHuman("\nCalling in model-assisted repair for %d issue(s)...", len(modelIssues))
 					ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 					defer cancel()
-					modelFixed := 0
 					for _, issue := range modelIssues {
 						applied, err := validate.TryModelAssistedFix(ctx, app.Invoker, model, issue, projectsDir, root)
 						if err != nil {
@@ -134,17 +138,28 @@ Examples:
 							continue
 						}
 						if applied {
-							modelFixed++
+							modelFixCount++
 							output.PrintHuman("  FIXED [%s] %s: model-assisted resolution", issue.Category, issue.Node)
 						}
 					}
-					if modelFixed > 0 {
-						output.PrintHuman("Model-assisted fixes applied: %d/%d", modelFixed, len(modelIssues))
+					if modelFixCount > 0 {
+						output.PrintHuman("Model-assisted fixes applied: %d/%d", modelFixCount, len(modelIssues))
 					} else {
 						output.PrintHuman("Model could not fix any of them.")
 					}
 				}
 			}
+		}
+
+		// JSON output for --fix includes issues, fixes applied, and remaining warnings.
+		if app.JSONOutput {
+			output.Print(output.Ok("doctor", map[string]any{
+				"issues":      report.Issues,
+				"count":       len(report.Issues),
+				"fixed":       len(fixes),
+				"remaining":   len(postFixWarnings),
+				"model_fixed": modelFixCount,
+			}))
 		}
 
 		return nil
@@ -191,6 +206,17 @@ func reportValidationIssues(issues []validate.Issue) error {
 	}
 	output.PrintHuman("")
 	output.PrintHuman("Found %d issues (%d errors, %d warnings)", len(issues), errors, warnings)
+
+	// Count fixable issues and suggest --fix if any exist.
+	fixable := 0
+	for _, issue := range issues {
+		if issue.CanAutoFix {
+			fixable++
+		}
+	}
+	if fixable > 0 {
+		output.PrintHuman("%d issue(s) can be repaired automatically. Run 'wolfcastle doctor --fix' to apply.", fixable)
+	}
 	return nil
 }
 

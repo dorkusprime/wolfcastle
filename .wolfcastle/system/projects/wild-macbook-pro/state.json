@@ -1,0 +1,379 @@
+{
+  "version": 1,
+  "root_id": "domain-repository-architecture",
+  "root_name": "Domain Repository Architecture",
+  "root_state": "complete",
+  "root": [
+    "domain-repository-architecture",
+    "code-coverage"
+  ],
+  "nodes": {
+    "code-coverage": {
+      "name": "Code Coverage",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "code-coverage",
+      "decomposition_depth": 0,
+      "children": [
+        "code-coverage/cmd-coverage",
+        "code-coverage/internal-core-coverage",
+        "code-coverage/internal-utility-coverage",
+        "code-coverage/coverage-cmd-cmd-daemon",
+        "code-coverage/coverage-internal-daemon-internal-project",
+        "code-coverage/coverage-internal-output-internal-logging",
+        "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining",
+        "code-coverage/cmd-cmdutil-coverage-gap"
+      ]
+    },
+    "code-coverage/cmd-cmdutil-coverage-gap": {
+      "name": "cmd-cmdutil-coverage-gap",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/cmd-cmdutil-coverage-gap",
+      "decomposition_depth": 0,
+      "parent": "code-coverage"
+    },
+    "code-coverage/cmd-coverage": {
+      "name": "cmd Coverage",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "code-coverage/cmd-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage",
+      "children": [
+        "code-coverage/cmd-coverage/cmd-package-coverage",
+        "code-coverage/cmd-coverage/cmd-daemon-coverage",
+        "code-coverage/cmd-coverage/cmd-task-coverage",
+        "code-coverage/cmd-coverage/cmd-orchestrator-coverage"
+      ]
+    },
+    "code-coverage/cmd-coverage/cmd-daemon-coverage": {
+      "name": "cmd/daemon Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/cmd-coverage/cmd-daemon-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/cmd-coverage"
+    },
+    "code-coverage/cmd-coverage/cmd-orchestrator-coverage": {
+      "name": "cmd/orchestrator Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/cmd-coverage/cmd-orchestrator-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/cmd-coverage"
+    },
+    "code-coverage/cmd-coverage/cmd-package-coverage": {
+      "name": "cmd Package Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/cmd-coverage/cmd-package-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/cmd-coverage"
+    },
+    "code-coverage/cmd-coverage/cmd-task-coverage": {
+      "name": "cmd/task Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/cmd-coverage/cmd-task-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/cmd-coverage"
+    },
+    "code-coverage/coverage-cmd-cmd-daemon": {
+      "name": "Coverage: cmd \u0026 cmd/daemon",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/coverage-cmd-cmd-daemon",
+      "decomposition_depth": 0,
+      "parent": "code-coverage"
+    },
+    "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining": {
+      "name": "Coverage: cmd/task, cmd/orchestrator \u0026 remaining",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining",
+      "decomposition_depth": 0,
+      "parent": "code-coverage"
+    },
+    "code-coverage/coverage-internal-daemon-internal-project": {
+      "name": "Coverage: internal/daemon \u0026 internal/project",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/coverage-internal-daemon-internal-project",
+      "decomposition_depth": 0,
+      "parent": "code-coverage"
+    },
+    "code-coverage/coverage-internal-output-internal-logging": {
+      "name": "Coverage: internal/output \u0026 internal/logging",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/coverage-internal-output-internal-logging",
+      "decomposition_depth": 0,
+      "parent": "code-coverage"
+    },
+    "code-coverage/internal-core-coverage": {
+      "name": "internal Core Coverage",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "code-coverage/internal-core-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage",
+      "children": [
+        "code-coverage/internal-core-coverage/daemon-coverage",
+        "code-coverage/internal-core-coverage/project-coverage",
+        "code-coverage/internal-core-coverage/near-threshold-coverage"
+      ]
+    },
+    "code-coverage/internal-core-coverage/daemon-coverage": {
+      "name": "Daemon Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/internal-core-coverage/daemon-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/internal-core-coverage"
+    },
+    "code-coverage/internal-core-coverage/near-threshold-coverage": {
+      "name": "Near-Threshold Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/internal-core-coverage/near-threshold-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/internal-core-coverage"
+    },
+    "code-coverage/internal-core-coverage/project-coverage": {
+      "name": "Project Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/internal-core-coverage/project-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/internal-core-coverage"
+    },
+    "code-coverage/internal-utility-coverage": {
+      "name": "internal Utility Coverage",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "code-coverage/internal-utility-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage",
+      "children": [
+        "code-coverage/internal-utility-coverage/git-package-coverage",
+        "code-coverage/internal-utility-coverage/testutil-package-coverage",
+        "code-coverage/internal-utility-coverage/tierfs-package-coverage"
+      ]
+    },
+    "code-coverage/internal-utility-coverage/git-package-coverage": {
+      "name": "Git Package Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/internal-utility-coverage/git-package-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/internal-utility-coverage"
+    },
+    "code-coverage/internal-utility-coverage/testutil-package-coverage": {
+      "name": "Testutil Package Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/internal-utility-coverage/testutil-package-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/internal-utility-coverage"
+    },
+    "code-coverage/internal-utility-coverage/tierfs-package-coverage": {
+      "name": "Tierfs Package Coverage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "code-coverage/internal-utility-coverage/tierfs-package-coverage",
+      "decomposition_depth": 0,
+      "parent": "code-coverage/internal-utility-coverage"
+    },
+    "domain-repository-architecture": {
+      "name": "Domain Repository Architecture",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "domain-repository-architecture",
+      "decomposition_depth": 0,
+      "children": [
+        "domain-repository-architecture/foundation",
+        "domain-repository-architecture/repositories",
+        "domain-repository-architecture/integration"
+      ]
+    },
+    "domain-repository-architecture/foundation": {
+      "name": "Foundation",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "domain-repository-architecture/foundation",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture",
+      "children": [
+        "domain-repository-architecture/foundation/tier-resolution-primitive",
+        "domain-repository-architecture/foundation/test-environment"
+      ]
+    },
+    "domain-repository-architecture/foundation/test-environment": {
+      "name": "Test Environment",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "domain-repository-architecture/foundation/test-environment",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/foundation"
+    },
+    "domain-repository-architecture/foundation/tier-resolution-primitive": {
+      "name": "Tier Resolution Primitive",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "domain-repository-architecture/foundation/tier-resolution-primitive",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/foundation"
+    },
+    "domain-repository-architecture/integration": {
+      "name": "Integration",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "domain-repository-architecture/integration",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture",
+      "children": [
+        "domain-repository-architecture/integration/classrepository",
+        "domain-repository-architecture/integration/project-services",
+        "domain-repository-architecture/integration/contextbuilder",
+        "domain-repository-architecture/integration/app-refactor"
+      ]
+    },
+    "domain-repository-architecture/integration/app-refactor": {
+      "name": "App Refactor",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/integration/app-refactor",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/integration"
+    },
+    "domain-repository-architecture/integration/classrepository": {
+      "name": "ClassRepository",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/integration/classrepository",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/integration"
+    },
+    "domain-repository-architecture/integration/contextbuilder": {
+      "name": "ContextBuilder",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/integration/contextbuilder",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/integration"
+    },
+    "domain-repository-architecture/integration/project-services": {
+      "name": "Project Services",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/integration/project-services",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/integration"
+    },
+    "domain-repository-architecture/repositories": {
+      "name": "Repositories",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture",
+      "children": [
+        "domain-repository-architecture/repositories/independent-repositories",
+        "domain-repository-architecture/repositories/tier-based-repositories",
+        "domain-repository-architecture/repositories/render-context-methods",
+        "domain-repository-architecture/repositories/render-context-documentation"
+      ]
+    },
+    "domain-repository-architecture/repositories/independent-repositories": {
+      "name": "Independent Repositories",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/independent-repositories",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories",
+      "children": [
+        "domain-repository-architecture/repositories/independent-repositories/daemonrepository",
+        "domain-repository-architecture/repositories/independent-repositories/gitservice",
+        "domain-repository-architecture/repositories/independent-repositories/identity"
+      ]
+    },
+    "domain-repository-architecture/repositories/independent-repositories/daemonrepository": {
+      "name": "DaemonRepository",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/independent-repositories/daemonrepository",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories/independent-repositories"
+    },
+    "domain-repository-architecture/repositories/independent-repositories/gitservice": {
+      "name": "GitService",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/independent-repositories/gitservice",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories/independent-repositories"
+    },
+    "domain-repository-architecture/repositories/independent-repositories/identity": {
+      "name": "Identity",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/independent-repositories/identity",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories/independent-repositories"
+    },
+    "domain-repository-architecture/repositories/render-context-documentation": {
+      "name": "Render Context Documentation",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/render-context-documentation",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories"
+    },
+    "domain-repository-architecture/repositories/render-context-methods": {
+      "name": "Render Context Methods",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/render-context-methods",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories"
+    },
+    "domain-repository-architecture/repositories/tier-based-repositories": {
+      "name": "Tier-Based Repositories",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/tier-based-repositories",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories",
+      "children": [
+        "domain-repository-architecture/repositories/tier-based-repositories/configrepository",
+        "domain-repository-architecture/repositories/tier-based-repositories/promptrepository",
+        "domain-repository-architecture/repositories/tier-based-repositories/environment-wiring"
+      ]
+    },
+    "domain-repository-architecture/repositories/tier-based-repositories/configrepository": {
+      "name": "ConfigRepository",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/tier-based-repositories/configrepository",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories/tier-based-repositories"
+    },
+    "domain-repository-architecture/repositories/tier-based-repositories/environment-wiring": {
+      "name": "Environment Wiring",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/tier-based-repositories/environment-wiring",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories/tier-based-repositories"
+    },
+    "domain-repository-architecture/repositories/tier-based-repositories/promptrepository": {
+      "name": "PromptRepository",
+      "type": "leaf",
+      "state": "complete",
+      "address": "domain-repository-architecture/repositories/tier-based-repositories/promptrepository",
+      "decomposition_depth": 0,
+      "parent": "domain-repository-architecture/repositories/tier-based-repositories"
+    }
+  }
+}

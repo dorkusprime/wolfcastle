@@ -35,7 +35,7 @@ Examples:
 			item := state.InboxItem{
 				Timestamp: app.Clock.Now().Format("2006-01-02T15:04:05Z07:00"),
 				Text:      text,
-				Status:    "new",
+				Status:    state.InboxNew,
 			}
 
 			if err := state.InboxAppend(inboxPath, item); err != nil {

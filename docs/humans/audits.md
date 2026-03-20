@@ -6,7 +6,7 @@ Every [leaf](how-it-works.md#the-project-tree) ends with an audit task. Auto-cre
 
 ### Breadcrumbs
 
-As tasks execute, they write timestamped breadcrumbs via `wolfcastle audit breadcrumb` (during the [record phase](how-it-works.md#seven-phase-execution) of execution). Each breadcrumb describes what was done, why, and what changed. These are not terse commit messages. They are rich, explanatory records: the raw material for verification.
+As tasks execute, they write timestamped breadcrumbs via `wolfcastle audit breadcrumb` (during the [record phase](how-it-works.md#execution-protocol) of execution). Each breadcrumb describes what was done, why, and what changed. These are not terse commit messages. They are rich, explanatory records: the raw material for verification.
 
 ### Audit Execution
 

@@ -9,13 +9,13 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/spf13/cobra"
 )
 
@@ -50,7 +50,7 @@ Examples:
 			if !follow {
 				return showRecentLogs(logDir, lines, minLevel)
 			}
-			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+			ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer stop()
 			return followLogs(ctx, logDir, lines, minLevel)
 		},

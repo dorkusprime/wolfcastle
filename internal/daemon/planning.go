@@ -3,9 +3,9 @@ package daemon
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -157,8 +157,8 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	d.recordPlanningPass(nodeAddr, trigger, marker)
 
 	switch marker {
-	case "WOLFCASTLE_COMPLETE":
-		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": "WOLFCASTLE_COMPLETE"})
+	case invoke.MarkerStringComplete:
+		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": invoke.MarkerStringComplete})
 		// Clear planning state and complete the orchestrator's audit task.
 		// Without this, the orchestrator stays in_progress because its
 		// audit never goes through the execution pipeline's TaskComplete.
@@ -206,8 +206,8 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 		}
 
-	case "WOLFCASTLE_BLOCKED":
-		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": "WOLFCASTLE_BLOCKED"})
+	case invoke.MarkerStringBlocked:
+		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": invoke.MarkerStringBlocked})
 		// Block the orchestrator
 		_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 			ns.NeedsPlanning = false
@@ -216,8 +216,8 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 			return nil
 		})
 
-	case "WOLFCASTLE_CONTINUE":
-		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": "WOLFCASTLE_CONTINUE"})
+	case invoke.MarkerStringContinue:
+		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": invoke.MarkerStringContinue})
 		// Review found gaps and created new work. Clear NeedsPlanning;
 		// it will be re-set when the new children complete.
 		_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
@@ -257,7 +257,7 @@ func selectPlanningPrompt(trigger string) string {
 func (d *Daemon) recordPlanningPass(nodeAddr, trigger, marker string) {
 	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 		pass := state.PlanningPass{
-			Timestamp: time.Now().UTC(),
+			Timestamp: d.Clock.Now(),
 			Trigger:   trigger,
 			Summary:   fmt.Sprintf("marker=%s", marker),
 		}

@@ -245,9 +245,7 @@ func TestArchiveAdd_RequireIdentity(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "custom"), 0755)
 	_ = os.WriteFile(filepath.Join(wcDir, "system", "custom", "config.json"), []byte(`{}`), 0644)
 
-	origDir, _ := os.Getwd()
-	_ = os.Chdir(tmp)
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmp)
 
 	app = &cmdutil.App{}
 
@@ -308,9 +306,7 @@ func TestNavigate_RequireIdentity(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "custom"), 0755)
 	_ = os.WriteFile(filepath.Join(wcDir, "system", "custom", "config.json"), []byte(`{}`), 0644)
 
-	origDir, _ := os.Getwd()
-	_ = os.Chdir(tmp)
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmp)
 
 	app = &cmdutil.App{}
 

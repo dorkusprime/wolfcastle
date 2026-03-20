@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
 // MigrationService handles layout and config migrations for users upgrading
@@ -20,7 +21,7 @@ type MigrationService struct {
 // MigrateDirectoryLayout moves the pre-ADR-077 flat directory layout into
 // system/. If system/ already exists, the call is a no-op.
 func (m *MigrationService) MigrateDirectoryLayout() error {
-	systemDir := filepath.Join(m.root, "system")
+	systemDir := filepath.Join(m.root, tierfs.SystemPrefix)
 	if _, err := os.Stat(systemDir); err == nil {
 		return nil
 	}
@@ -36,7 +37,9 @@ func (m *MigrationService) MigrateDirectoryLayout() error {
 		return fmt.Errorf("creating system/: %w", err)
 	}
 
-	dirsToMove := []string{"base", "custom", "local", "projects", "logs"}
+	// Tier directories derived from tierfs (the canonical source of truth),
+	// plus non-tier directories that also live under system/.
+	dirsToMove := append(append([]string{}, tierfs.TierNames...), "projects", "logs")
 	for _, d := range dirsToMove {
 		src := filepath.Join(m.root, d)
 		if _, err := os.Stat(src); os.IsNotExist(err) {
@@ -71,7 +74,7 @@ func (m *MigrationService) MigrateOldConfig() error {
 	// Migrate root config.json -> system/custom/config.json
 	oldCfgPath := filepath.Join(m.root, "config.json")
 	if _, err := os.Stat(oldCfgPath); err == nil {
-		customDir := filepath.Join(m.root, "system", "custom")
+		customDir := filepath.Join(m.root, tierfs.SystemPrefix, tierfs.TierNames[1])
 		if err := os.MkdirAll(customDir, 0755); err != nil {
 			return fmt.Errorf("creating system/custom/: %w", err)
 		}
@@ -91,7 +94,7 @@ func (m *MigrationService) MigrateOldConfig() error {
 	// Migrate config.local.json -> system/local/config.json
 	oldLocalPath := filepath.Join(m.root, "config.local.json")
 	if _, err := os.Stat(oldLocalPath); err == nil {
-		localDir := filepath.Join(m.root, "system", "local")
+		localDir := filepath.Join(m.root, tierfs.SystemPrefix, tierfs.TierNames[2])
 		if err := os.MkdirAll(localDir, 0755); err != nil {
 			return fmt.Errorf("creating system/local/: %w", err)
 		}

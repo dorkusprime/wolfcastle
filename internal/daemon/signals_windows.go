@@ -4,9 +4,9 @@ package daemon
 
 import (
 	"os"
-	"syscall"
+
+	"github.com/dorkusprime/wolfcastle/internal/signals"
 )
 
-// shutdownSignals returns the signals that trigger daemon shutdown.
-// SIGTSTP is not available on Windows.
-var shutdownSignals = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
+// shutdownSignals are the signals that trigger daemon shutdown.
+var shutdownSignals []os.Signal = signals.Shutdown

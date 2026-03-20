@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "id": "project-coverage",
+  "name": "Project Coverage",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Cover migrateToSystemLayout",
+      "description": "Cover migrateToSystemLayout",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/migrate_layout_coverage_test.go"
+      ],
+      "body": "migrateToSystemLayout (scaffold.go:251) is at 24.0% coverage, the worst function in the package. This is a deprecated migration function that moves old-layout wolfcastle directories into the new system layout.\n\nUncovered paths:\n- Old layout detection (checking for legacy directory markers)\n- Directory rename operations and their error paths\n- Partial migration recovery (some dirs moved, others not)\n- Already-migrated detection (idempotency guard)\n- Permission errors during directory moves\n- Symlink handling during migration\n\nSince this is a deprecated function, tests should focus on the happy path and major error branches without excessive edge-case coverage. Use t.TempDir() to create realistic old-layout directory structures, then verify the migration produces the expected new layout."
+    },
+    {
+      "id": "task-0002",
+      "title": "Cover ScaffoldService Init and writeBasePrompts",
+      "description": "Cover ScaffoldService Init and writeBasePrompts",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/scaffold_service_coverage_test.go"
+      ],
+      "body": "ScaffoldService.Init is at 69.0% and writeBasePrompts at 75.0%. These are the modern (non-deprecated) scaffolding paths.\n\nInit (scaffold_service.go:50) uncovered branches:\n- MkdirAll failure for each directory tier (base, custom, local, system)\n- WriteBase failure (PromptRepository returns error)\n- WriteCustom/WriteLocal config write failures\n- Identity detection failure during init\n- Re-initialization when partial structure exists\n\nwriteBasePrompts (scaffold_service.go:218) uncovered branches:\n- fs.Sub(Templates, 'templates') failure (unlikely but guarded)\n- PromptRepository.WriteAllBase() error propagation\n- Template file iteration error\n\nTests should inject a mock PromptRepository (or use a real one with a read-only temp dir for error paths). The existing scaffold_service_test.go has 16 tests to build upon."
+    },
+    {
+      "id": "task-0003",
+      "title": "Cover ScaffoldService Reinit and WriteAuditTaskMD",
+      "description": "Cover ScaffoldService Reinit and WriteAuditTaskMD",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/reinit_coverage_test.go"
+      ],
+      "body": "Reinit is at 76.7% and WriteAuditTaskMD at 75.0%.\n\nReinit (scaffold_service.go:152) uncovered branches:\n- Migration errors silently swallowed (lines 155-156): verify the function continues despite migration failure\n- RemoveAll on base tier failure\n- MkdirAll recreation failure after removal\n- writeBasePrompts error after successful removal\n\nWriteAuditTaskMD (scaffold.go:360) uncovered branches:\n- Best-effort early return on read error (line 363)\n- Template file not found in embedded FS\n- Write error to audit.md\n- Directory doesn't exist for audit.md\n\nTests for Reinit should create a fully scaffolded directory, then make specific subdirectories read-only to trigger errors at each stage. WriteAuditTaskMD tests should cover the best-effort pattern where errors are swallowed."
+    },
+    {
+      "id": "task-0004",
+      "title": "Cover MigrationService methods",
+      "description": "Cover MigrationService methods",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/migration_service_coverage_test.go"
+      ],
+      "body": "MigrateDirectoryLayout is at 88.0% and MigrateOldConfig at 82.9%.\n\nMigrateDirectoryLayout (migration_service.go:22) uncovered branches:\n- os.Rename failure during directory move\n- Partial rename success (some moved, others fail)\n- Source directory doesn't exist (no-op path)\n- MkdirAll for destination parent failure\n\nMigrateOldConfig (migration_service.go:70) uncovered branches:\n- Old config file parse error (malformed JSON)\n- New config file already exists (skip/merge decision)\n- Write error for migrated config\n- Multiple old config files found\n\nThe existing migration_service_test.go has 15 tests. Add chmod-based error path tests and malformed-input tests to cover the remaining branches."
+    },
+    {
+      "id": "task-0005",
+      "title": "Cover deprecated Scaffold, ReScaffold, and migrateOldConfig",
+      "description": "Cover deprecated Scaffold, ReScaffold, and migrateOldConfig",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/deprecated_coverage_test.go"
+      ],
+      "body": "The deprecated scaffold functions still contribute to the package's coverage score:\n\nScaffold (scaffold.go:20, 87.2%):\n- MkdirAll failures for individual tier directories\n- Config write errors during initial scaffold\n- Template extraction errors\n\nReScaffold (scaffold.go:174, 82.1%):\n- LoadConfig failure\n- RemoveAll on base tier failure  \n- Migration step failures during rescaffold\n\nmigrateOldConfig (scaffold.go:301, 80.0%):\n- Old config not found (no-op)\n- JSON parse error on old config\n- Write error for new config format\n\nWriteBasePrompts (scaffold.go:151, 90.9%):\n- ReadDir error on templates directory\n- Individual template file write error\n\nUse chmod tricks (Category B) for filesystem error paths. These are deprecated functions so focus on the highest-impact error branches that will close the most coverage gap per test."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Project Coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "block_reason": "open gaps must be resolved before audit can pass",
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Check that deprecated function tests don't create maintenance burden; prefer covering high-impact branches over exhaustive edge cases",
+    "Verify migrateToSystemLayout tests create realistic old-layout structures matching what the function actually expects"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T09:30:12.589426Z",
+        "task": "code-coverage/internal-core-coverage/project-coverage",
+        "text": "Covered migrateToSystemLayout from 24% to 92%. Six tests: idempotency guard, no-old-layout happy path, no-old-layout MkdirAll error, full migration with all dirs and loose files, partial old layout with missing entries, and MkdirAll error when old layout is present. The two uncovered rename-error lines (278, 291) require concurrent filesystem manipulation since the function creates system/ internally."
+      },
+      {
+        "timestamp": "2026-03-19T09:33:03.764132Z",
+        "task": "code-coverage/internal-core-coverage/project-coverage",
+        "text": "Covered ScaffoldService.Init from 69% to 96.6% and verified writeBasePrompts error propagation. Nine new tests in scaffold_service_coverage_test.go: MkdirAll failure, .gitignore write failure, WriteBase/WriteCustom/WriteLocal failures, namespace dir failure, root index write failure, WriteAllBase error propagation, and sentinel error chain verification. The two uncovered lines (json.MarshalIndent on typed struct, fs.Sub on embedded FS) are structurally unreachable."
+      },
+      {
+        "timestamp": "2026-03-19T09:39:53.163324Z",
+        "task": "code-coverage/internal-core-coverage/project-coverage",
+        "text": "Covered ScaffoldService.Reinit from 76.7% to 100% with seven new error-path tests in reinit_coverage_test.go. WriteAuditTaskMD remains at 75%: the sole uncovered branch (Templates.ReadFile error on line 362) is structurally unreachable because the template is baked into the binary via embed.FS."
+      },
+      {
+        "timestamp": "2026-03-19T09:44:08.227585Z",
+        "task": "code-coverage/internal-core-coverage/project-coverage",
+        "text": "Covered MigrationService error paths: MigrateDirectoryLayout 88% to 92%, MigrateOldConfig 82.9% to 97.1%. Seven new tests in migration_service_coverage_test.go covering MkdirAll failures, ReadFile/WriteFile chmod errors, and malformed JSON. Three uncovered lines remain: two os.Rename error paths (lines 47, 59) require concurrent filesystem manipulation to trigger, and json.MarshalIndent (line 113) is structurally unreachable since DeepMerge output contains only JSON-safe types."
+      },
+      {
+        "timestamp": "2026-03-19T09:51:02.502015Z",
+        "task": "code-coverage/internal-core-coverage/project-coverage",
+        "text": "Covered deprecated Scaffold (87.2% → 92.3%), ReScaffold (82.1% → 89.7%), and migrateOldConfig (80% → 97.1%) with eleven new tests in deprecated_coverage_test.go. WriteBasePrompts remains at 90.9%: only uncovered path is Templates.ReadFile on embed.FS (structurally unreachable). WriteAuditTaskMD stays at 75%: same embed.FS constraint. ReScaffold lines 201-215 (WriteBasePrompts and base config write after RemoveAll) are unreachable in unit tests because RemoveAll wipes any filesystem blocker before MkdirAll recreates fresh writable directories. Package total: 94.4%."
+      },
+      {
+        "timestamp": "2026-03-19T09:54:38.40984Z",
+        "task": "code-coverage/internal-core-coverage/project-coverage",
+        "text": "Audit complete. Verified: all 5 tasks delivered, all tests pass (including race detector), build/vet/fmt/lint clean, 94.4% coverage exceeds 90% threshold. Source code is correct (nil-safe, errors wrapped, idempotent migrations). Specs exist for MigrationService and ScaffoldService. ADR covers the promptWriter interface decision. One open gap (os.Rename error paths in MigrateDirectoryLayout) is structurally untestable and properly documented. Verdict: PASS."
+      },
+      {
+        "timestamp": "2026-03-19T14:28:46.561581Z",
+        "task": "code-coverage/internal-core-coverage/project-coverage",
+        "text": "Audit verified: all 5 tasks complete with deliverables, full test suite passes (26 packages), race detector clean, go vet/gofmt clean, 94.4% coverage (\u003e90% threshold). Code is correct: proper error wrapping, nil safety, idempotent migrations. Specs exist for MigrationService and ScaffoldService. ADR covers promptWriter interface. One gap (os.Rename paths) properly closed as structurally untestable. Verdict: PASS."
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-project-coverage-1",
+        "timestamp": "2026-03-19T09:44:12.556808Z",
+        "description": "MigrateDirectoryLayout os.Rename error paths (lines 46-48, 58-60) are untestable without concurrent filesystem manipulation. The function creates system/ via MkdirAll and immediately renames into it; no way to inject a blocker between those calls. Ceiling is 92%.",
+        "source": "code-coverage/internal-core-coverage/project-coverage",
+        "status": "fixed",
+        "fixed_by": "accepted: untestable error paths, 92% ceiling documented"
+      }
+    ],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T09:27:26.256386Z",
+    "completed_at": "2026-03-19T14:29:00.038245Z",
+    "result_summary": "Raised internal/project package coverage from ~70% to 94.4% across five tasks. Added 40+ tests covering error paths in migrateToSystemLayout (24%→92%), ScaffoldService.Init (69%→96.6%), ScaffoldService.Reinit (76.7%→100%), MigrationService.MigrateDirectoryLayout (88%→92%), MigrationService.MigrateOldConfig (82.9%→97.1%), and deprecated Scaffold/ReScaffold/migrateOldConfig functions. Remaining uncovered lines are structurally unreachable (embed.FS read errors, json.MarshalIndent on typed structs, os.Rename errors requiring concurrent filesystem manipulation). Specs document MigrationService and ScaffoldService contracts; ADR covers the promptWriter interface that breaks the project-pipeline import cycle."
+  }
+}

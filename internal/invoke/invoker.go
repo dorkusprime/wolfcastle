@@ -36,19 +36,31 @@ const (
 	MarkerContinue
 )
 
+// Marker string values. These are the canonical representations used in
+// model output and parsed by both detectLineMarker (streaming, first-match)
+// and scanTerminalMarker (post-execution, priority-ordered).
+const (
+	MarkerStringComplete = "WOLFCASTLE_COMPLETE"
+	MarkerStringYield    = "WOLFCASTLE_YIELD"
+	MarkerStringBlocked  = "WOLFCASTLE_BLOCKED"
+	MarkerStringSkip     = "WOLFCASTLE_SKIP"
+	MarkerStringContinue = "WOLFCASTLE_CONTINUE"
+	MarkerStringSummary  = "WOLFCASTLE_SUMMARY:"
+)
+
 // String returns the human-readable name of the marker.
 func (m Marker) String() string {
 	switch m {
 	case MarkerComplete:
-		return "WOLFCASTLE_COMPLETE"
+		return MarkerStringComplete
 	case MarkerYield:
-		return "WOLFCASTLE_YIELD"
+		return MarkerStringYield
 	case MarkerBlocked:
-		return "WOLFCASTLE_BLOCKED"
+		return MarkerStringBlocked
 	case MarkerSkip:
-		return "WOLFCASTLE_SKIP"
+		return MarkerStringSkip
 	case MarkerContinue:
-		return "WOLFCASTLE_CONTINUE"
+		return MarkerStringContinue
 	default:
 		return "none"
 	}
@@ -223,22 +235,22 @@ func detectLineMarker(line string, result *Result) {
 	// Terminal markers — only record the first one encountered.
 	if result.TerminalMarker == MarkerNone {
 		switch {
-		case strings.Contains(trimmed, "WOLFCASTLE_COMPLETE"):
+		case strings.Contains(trimmed, MarkerStringComplete):
 			result.TerminalMarker = MarkerComplete
-		case strings.Contains(trimmed, "WOLFCASTLE_YIELD"):
+		case strings.Contains(trimmed, MarkerStringYield):
 			result.TerminalMarker = MarkerYield
-		case strings.Contains(trimmed, "WOLFCASTLE_SKIP"):
+		case strings.Contains(trimmed, MarkerStringSkip):
 			result.TerminalMarker = MarkerSkip
-		case strings.Contains(trimmed, "WOLFCASTLE_CONTINUE"):
+		case strings.Contains(trimmed, MarkerStringContinue):
 			result.TerminalMarker = MarkerContinue
-		case strings.Contains(trimmed, "WOLFCASTLE_BLOCKED"):
+		case strings.Contains(trimmed, MarkerStringBlocked):
 			result.TerminalMarker = MarkerBlocked
 		}
 	}
 
 	// Summary marker — can appear alongside a terminal marker.
-	if strings.HasPrefix(trimmed, "WOLFCASTLE_SUMMARY:") {
-		text := strings.TrimSpace(strings.TrimPrefix(trimmed, "WOLFCASTLE_SUMMARY:"))
+	if strings.HasPrefix(trimmed, MarkerStringSummary) {
+		text := strings.TrimSpace(strings.TrimPrefix(trimmed, MarkerStringSummary))
 		if text != "" {
 			result.Summary = text
 		}

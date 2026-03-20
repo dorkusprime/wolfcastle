@@ -36,7 +36,7 @@ wolfcastle spec link --node backend/auth/oauth oauth-spec.md
 ## Consequences
 
 - Mutates the node's `state.json` to include the spec reference.
-- The spec will be injected into the model's context during [task execution](../how-it-works.md#seven-phase-execution) on this node.
+- The spec will be injected into the model's context during [task execution](../how-it-works.md#execution-protocol) on this node.
 
 ## See Also
 

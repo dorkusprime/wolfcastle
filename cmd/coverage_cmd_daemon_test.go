@@ -32,9 +32,7 @@ func TestDoctorCmd_RequireIdentity(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "custom"), 0755)
 	_ = os.WriteFile(filepath.Join(wcDir, "system", "custom", "config.json"), []byte(`{}`), 0644)
 
-	origDir, _ := os.Getwd()
-	_ = os.Chdir(tmp)
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmp)
 
 	app = &cmdutil.App{}
 
@@ -449,9 +447,7 @@ func TestUnblockCmd_RequireIdentity(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "custom"), 0755)
 	_ = os.WriteFile(filepath.Join(wcDir, "system", "custom", "config.json"), []byte(`{}`), 0644)
 
-	origDir, _ := os.Getwd()
-	_ = os.Chdir(tmp)
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmp)
 
 	app = &cmdutil.App{}
 
@@ -528,9 +524,7 @@ func TestRunInteractiveUnblockWith_ConfigLoadError(t *testing.T) {
 	// Write invalid config JSON
 	_ = os.WriteFile(filepath.Join(wcDir, "system", "custom", "config.json"), []byte(`{invalid`), 0644)
 
-	origDir, _ := os.Getwd()
-	_ = os.Chdir(tmp)
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmp)
 
 	// Minimal app with a broken config
 	env := newTestEnv(t)

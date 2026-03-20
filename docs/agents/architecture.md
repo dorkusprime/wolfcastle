@@ -12,25 +12,29 @@ wolfcastle/
 │   ├── daemon/              # start, stop, status, log
 │   ├── inbox/               # add, list, clear
 │   ├── project/             # create
-│   └── task/                # add, claim, complete, block, unblock, deliverable
+│   ├── orchestrator/        # criteria (planning pipeline support)
+│   └── task/                # add, amend, claim, complete, block, unblock, deliverable
 ├── internal/                # Core logic (not importable outside the module)
 │   ├── archive/             # Archive entry rollup (Markdown generation)
 │   ├── clock/               # Time abstraction for deterministic testing (ADR-052)
 │   ├── config/              # Config loading, merging, validation, types
 │   ├── daemon/              # Daemon loop, pipeline execution, marker parsing
 │   ├── errors/              # Typed error categories (ADR-065)
+│   ├── git/                 # Git operations behind Provider interface
 │   ├── invoke/              # Model CLI invocation (buffered + streaming)
 │   ├── logging/             # Per-iteration NDJSON logging
 │   ├── output/              # Structured JSON envelopes + human-readable printing
 │   ├── pipeline/            # Prompt assembly, iteration context, fragment resolution
 │   ├── project/             # Project scaffolding and embedded templates
 │   ├── selfupdate/          # Binary self-update logic
+│   ├── signals/             # Canonical shutdown signal set (platform-specific via build tags)
 │   ├── state/               # State types, I/O, mutations, navigation, propagation, inbox, review (ADR-058)
 │   ├── testutil/            # Shared test helpers
+│   ├── tierfs/              # Three-tier file resolution (ADR-063)
 │   ├── tree/                # Tree addressing, slug generation, resolver
 │   └── validate/            # Structural validation engine and auto-fix
 ├── docs/
-│   ├── decisions/           # ADRs (001-076)
+│   ├── decisions/           # ADRs (001-079)
 │   ├── specs/               # Implementation specs (timestamped)
 │   └── agents/              # This directory (agent guidance)
 └── Makefile
@@ -38,7 +42,7 @@ wolfcastle/
 
 ## Orchestrator Planning Pipeline
 
-The daemon uses lazy, recursive planning for orchestrator nodes. Rather than decomposing the entire project tree up front during intake, each orchestrator is planned on demand, right before its subtree needs work. The full design is in [docs/specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md](../specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md) (draft).
+The daemon uses lazy, recursive planning for orchestrator nodes. Rather than decomposing the entire project tree up front during intake, each orchestrator is planned on demand, right before its subtree needs work. The full design is in [docs/specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md](../specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md).
 
 ## Key Design Principles
 
@@ -52,33 +56,36 @@ The daemon uses lazy, recursive planning for orchestrator nodes. Rather than dec
 
 ```
 User input → cmd/ → internal/ → filesystem (.wolfcastle/)
-                                    ├── base/config.json (defaults)
-                                    ├── custom/config.json (team overrides)
-                                    ├── local/config.json (personal overrides)
-                                    ├── projects/{namespace}/
-                                    │   ├── state.json (root index)
-                                    │   └── {node}/state.json (per-node)
-                                    ├── archive/ (completed work)
-                                    ├── logs/ (NDJSON per-iteration)
-                                    ├── base/ (Wolfcastle-managed)
-                                    ├── custom/ (team-shared)
-                                    └── local/ (personal, gitignored)
+                                    ├── system/                    (ADR-077)
+                                    │   ├── base/config.json       (defaults)
+                                    │   ├── custom/config.json     (team overrides)
+                                    │   ├── local/config.json      (personal overrides)
+                                    │   ├── projects/{namespace}/
+                                    │   │   ├── state.json         (root index)
+                                    │   │   └── {node}/state.json  (per-node)
+                                    │   └── logs/                  (NDJSON per-iteration)
+                                    ├── archive/                   (completed work)
+                                    └── docs/                      (ADRs, specs)
 ```
 
 ## Package Dependencies
 
 Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
-- `daemon` → `config`, `errors`, `invoke`, `logging`, `output`, `pipeline`, `state`, `tree`
-- `pipeline` → `config`, `state`
-- `validate` → `state`
-- `archive` → `config`, `state`
-- `project` → `state`, `tree`
+- `daemon` → `clock`, `config`, `errors`, `invoke`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
+- `validate` → `config`, `daemon`, `invoke`, `pipeline`, `state`, `tree`
+- `pipeline` → `config`, `invoke`, `state`, `tierfs`
+- `archive` → `clock`, `config`, `state`
+- `project` → `config`, `state`, `tierfs`
+- `config` → `tierfs`
+- `state` → `clock`, `invoke` (includes inbox and review types per ADR-058)
+- `logging` → `output`
+- `invoke` → `config`
+- `tree` → `config`
 - `selfupdate` → (standalone)
-- `config` → (standalone)
-- `state` → (standalone, includes inbox and review types per ADR-058)
 - `clock` → (standalone)
-- `tree` → (standalone)
+- `git` → (standalone)
+- `tierfs` → (standalone)
+- `signals` → (standalone)
 - `output` → (standalone)
 - `errors` → (standalone)
-- `invoke` → `config`

@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "id": "code-coverage",
+  "name": "Code Coverage",
+  "type": "orchestrator",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "cmd-coverage",
+      "address": "code-coverage/cmd-coverage",
+      "state": "in_progress"
+    },
+    {
+      "id": "internal-core-coverage",
+      "address": "code-coverage/internal-core-coverage",
+      "state": "complete"
+    },
+    {
+      "id": "internal-utility-coverage",
+      "address": "code-coverage/internal-utility-coverage",
+      "state": "complete"
+    },
+    {
+      "id": "coverage-cmd-cmd-daemon",
+      "address": "code-coverage/coverage-cmd-cmd-daemon",
+      "state": "complete"
+    },
+    {
+      "id": "coverage-internal-daemon-internal-project",
+      "address": "code-coverage/coverage-internal-daemon-internal-project",
+      "state": "complete"
+    },
+    {
+      "id": "coverage-internal-output-internal-logging",
+      "address": "code-coverage/coverage-internal-output-internal-logging",
+      "state": "complete"
+    },
+    {
+      "id": "coverage-cmd-task-cmd-orchestrator-remaining",
+      "address": "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining",
+      "state": "complete"
+    },
+    {
+      "id": "cmd-cmdutil-coverage-gap",
+      "address": "code-coverage/cmd-cmdutil-coverage-gap",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Code Coverage is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Ensure all code added in this worktree has maximum unit code coverage. The overall goal for coverage across the worktree is 94%. Identify all packages with code changes, audit current coverage, and add tests to fill gaps. See existing test patterns in the codebase for style guidance.",
+  "success_criteria": [
+    "Every changed package reaches 94%+ statement coverage",
+    "Overall project coverage reaches 94%+ (currently 88.8%)",
+    "No test-only changes break existing tests (go test ./... passes clean)"
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-03-19T02:47:13.505466Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    },
+    {
+      "timestamp": "2026-03-19T14:47:05.793273Z",
+      "trigger": "completion_review",
+      "summary": "marker=WOLFCASTLE_CONTINUE"
+    },
+    {
+      "timestamp": "2026-03-19T16:08:19.738169Z",
+      "trigger": "completion_review",
+      "summary": "marker=WOLFCASTLE_CONTINUE"
+    },
+    {
+      "timestamp": "2026-03-19T16:13:50.060695Z",
+      "trigger": "completion_review",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T02:46:59.842342Z",
+        "task": "code-coverage",
+        "text": "Created 3 sub-orchestrators: cmd-coverage (5 packages: cmd 78%, cmd/cmdutil 91.6%, cmd/daemon 79.1%, cmd/orchestrator 91.3%, cmd/task 88.7%), internal-core-coverage (5 packages: internal/daemon 85.8%, internal/pipeline 92.7%, internal/project 78.1%, internal/config 93.3%, internal/state 93.0%), internal-utility-coverage (3 packages: internal/git 92.5%, internal/testutil 82.0%, internal/tierfs 86.1%). Ordering: utilities first (testutil powers other tests), then internal core, then cmd layer. Overall coverage 88.8% targeting 94%."
+      },
+      {
+        "timestamp": "2026-03-19T14:47:02.504068Z",
+        "task": "code-coverage",
+        "text": "Completion review: gaps found. Overall coverage is 88.0%, target is 94%. Three prior children completed but left 11 packages below threshold. Created 4 new leaves: coverage-cmd-cmd-daemon (cmd 79%, cmd/daemon 71.5%), coverage-internal-daemon-internal-project (internal/daemon 82.6%, internal/project 77.5%), coverage-internal-output-internal-logging (internal/output 63.2%, internal/logging 87.6%), coverage-cmd-task-cmd-orchestrator-remaining (cmd/task 88.6%, cmd/orchestrator 91.3%, internal/state 91.8%, internal/invoke 93%, internal/validate 93.7%). All existing tests pass clean."
+      },
+      {
+        "timestamp": "2026-03-19T16:08:12.498158Z",
+        "task": "code-coverage",
+        "text": "Completion review: gaps found. Overall coverage is 95.6% (above 94% target). All tests pass clean. 25 of 26 packages meet the 94% per-package threshold. One gap remains: cmd/cmdutil at 91.6% (modified on this branch, so in scope). Created cmd-cmdutil-coverage-gap leaf to address it."
+      },
+      {
+        "timestamp": "2026-03-19T16:13:42.187777Z",
+        "task": "code-coverage",
+        "text": "Completion review: PASS. All 26 packages at 94%+ coverage. Overall coverage 95.8% (target 94%). All tests pass clean. Navigator reports all_complete, no gaps or open escalations."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-19T03:23:52.268664Z",
+    "result_summary": "Raised project-wide test coverage from 88.8% to 95.8%, exceeding the 94% target. Every package now meets or exceeds 94% statement coverage. Work spanned 8 child nodes covering cmd/*, internal/*, and utility packages. All tests pass."
+  }
+}

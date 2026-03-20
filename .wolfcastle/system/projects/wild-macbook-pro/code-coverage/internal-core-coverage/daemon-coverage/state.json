@@ -1,0 +1,148 @@
+{
+  "version": 0,
+  "id": "code-coverage/internal-core-coverage/daemon-coverage",
+  "name": "Daemon Coverage",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "description": "Inject SleepFunc and cover RunWithSupervisor",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        "internal/daemon/daemon_test.go"
+      ],
+      "last_failure_type": "no_terminal_marker"
+    },
+    {
+      "id": "task-0002",
+      "description": "Cover Run and RunOnce main loop branches",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/run_loop_test.go",
+        "internal/daemon/runonce_branches_test.go"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "description": "Cover planning subsystem gaps",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/planning_coverage_test.go"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "description": "Cover iteration and autoCommit paths",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration_coverage_test.go"
+      ]
+    },
+    {
+      "id": "task-0005",
+      "description": "Cover stages and inbox processing gaps",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/stages_coverage_test.go"
+      ]
+    },
+    {
+      "id": "task-0006",
+      "description": "Cover lock, PID, branch, and propagation gaps",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/coverage_gaps_test.go"
+      ]
+    },
+    {
+      "id": "audit",
+      "description": "Audit",
+      "state": "complete",
+      "is_audit": true,
+      "block_reason": "open gaps must be resolved before audit can pass",
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": "Daemon package test coverage: all test files in internal/daemon/*_test.go. Pure test additions, no production code changes.",
+      "files": [
+        "internal/daemon/daemon_test.go",
+        "internal/daemon/run_loop_test.go",
+        "internal/daemon/runonce_branches_test.go",
+        "internal/daemon/planning_coverage_test.go",
+        "internal/daemon/iteration_coverage_test.go",
+        "internal/daemon/stages_coverage_test.go",
+        "internal/daemon/coverage_gaps_test.go"
+      ],
+      "criteria": [
+        "build passes",
+        "all tests pass",
+        "coverage above 90%",
+        "no lint warnings",
+        "no formatting violations"
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T08:29:03.72492Z",
+        "task": "code-coverage/internal-core-coverage/daemon-coverage",
+        "text": "Fixed RunWithSupervisor tests: replaced 'missing root index' strategy with corrupt JSON. ReadIndex returns a default empty index on missing file, so old tests idled forever. corruptRootIndex helper writes invalid JSON causing parse error in RunOnce, properly exercising restart loop. Coverage 42.9% → 100%."
+      },
+      {
+        "timestamp": "2026-03-19T08:44:03.067008Z",
+        "task": "code-coverage/internal-core-coverage/daemon-coverage",
+        "text": "Covered Run and RunOnce main loop branches. Run: 70.1% → ~80% (remaining uncovered is os.Exit signal goroutine). RunOnce: 85.1% → 98.5%. Added 17 tests across two files: run_loop_test.go (Run loop behaviors) and runonce_branches_test.go (RunOnce branch paths including planning, StateError, replanning, branch verification)."
+      },
+      {
+        "timestamp": "2026-03-19T08:50:52.475843Z",
+        "task": "code-coverage/internal-core-coverage/daemon-coverage",
+        "text": "Covered planning subsystem gaps to 100%. Added planning_coverage_test.go with 28 tests covering: dfsFindPlanning (62.5% → 100%), runPlanningPass (79.2% → 100%), checkReplanningTriggers (79.5% → 100%), recordPlanningPass (83.3% → 100%), incrementReplanCount (83.3% → 100%), deliverPendingScope (92.3% → 100%), findPlanningTarget (91.7% → 100%). All functions in planning.go now at 100%."
+      },
+      {
+        "timestamp": "2026-03-19T09:01:43.008989Z",
+        "task": "code-coverage/internal-core-coverage/daemon-coverage",
+        "text": "Covered iteration and autoCommit paths. Added iteration_coverage_test.go with 28 tests. runIteration: 84.6% → 91.2%, autoCompleteDecomposedParents: 97%, isSupersededBlock: 100%, findNewTasks: 100%. autoCommitPartialWork: git error branches remain uncovered (OS-level failures). Overall daemon: 93.1%."
+      },
+      {
+        "timestamp": "2026-03-19T09:08:57.513361Z",
+        "task": "code-coverage/internal-core-coverage/daemon-coverage",
+        "text": "Covered stages and inbox processing gaps. Added stages_coverage_test.go with 22 tests. runInboxLoop: 75%→100%, runInboxWithFsnotify: 80%→90%, processInbox: 87.5%→100%, runIntakeStage: 93.7%→100%, parseOverlapMarkers: 86.4%→100%. Remaining uncovered in runInboxWithFsnotify: fsnotify Events channel !ok close (OS-level behavior) and watcher error print (cannot inject errors into real fsnotify). Overall daemon: 93.3%→94.4%."
+      },
+      {
+        "timestamp": "2026-03-19T09:19:54.124052Z",
+        "task": "code-coverage/internal-core-coverage/daemon-coverage",
+        "text": "Covered lock, PID, branch, propagation, and deliverables gaps. Added coverage_gaps_test.go with 18 tests. Lock: globalLockPath env var, malformed JSON, no-file release, own-lock release, MkdirAll failure, WriteFile failure. PID: init process EPERM, negative PID, zero PID. Branch: normal repo, detached HEAD. Propagation: invalid parent address, SaveRootIndex failure. Deliverables: checkGitProgress git-status failure, renamed file porcelain. AcquireGlobalLock 75%→87.5%, ReleaseGlobalLock 75%→87.5%, ReadGlobalLock 80%→90%, checkGitProgress 95.2%→100%, propagateState 90.5%→95.2%. Overall daemon 94.6%→95.2%. Remaining uncovered: OS-level failures (UserHomeDir, FindProcess) and unreachable defensive code."
+      },
+      {
+        "timestamp": "2026-03-19T09:27:04.210187Z",
+        "task": "code-coverage/internal-core-coverage/daemon-coverage",
+        "text": "Audit complete. Build, vet, format, lint, and full test suite all pass. Coverage at 95.0% (above 90% threshold). Fixed one lint finding (ineffectual assignment in coverage_gaps_test.go:301). Identified pre-existing data race in daemon.go RunWithSupervisor (not introduced by this node). All 6 tasks verified complete with deliverables present. No production code changes — all work is test-only. No ADRs/specs needed (pure coverage, no architectural decisions or new contracts)."
+      },
+      {
+        "timestamp": "2026-03-19T14:26:31.746356Z",
+        "task": "code-coverage/internal-core-coverage/daemon-coverage",
+        "text": "Audit PASS. Build clean, vet clean, gofmt clean, all tests pass (race detector flags pre-existing RunWithSupervisor race, documented as gap-2). Coverage 94.9% (above 90% threshold). All 6 task deliverables present and substantive. No production code changes, so no ADRs or specs required. One prior gap (lint finding) already fixed. One open gap (pre-existing data race) is legitimate and not introduced by this node."
+      },
+      {
+        "timestamp": "2026-03-19T14:43:23.207203Z",
+        "task": "code-coverage/internal-core-coverage/daemon-coverage",
+        "text": "Final audit pass. Build clean, vet clean, gofmt clean, all tests pass (95.0% coverage). Race detector flags pre-existing RunWithSupervisor race fixed on main at d581541 but not yet merged into this branch; not introduced by this node. All 6 task deliverables present and substantive (4645 lines of test code total). No production code changes, no ADRs or specs required. Verdict: PASS."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T06:53:57.418607Z",
+    "completed_at": "2026-03-19T14:43:37.615611Z",
+    "result_summary": "Raised internal/daemon test coverage from ~42% to 95.0% through six tasks that added seven test files covering RunWithSupervisor, Run/RunOnce loop branches, the planning subsystem, iteration and autoCommit paths, stages and inbox processing, and lock/PID/branch/propagation/deliverables gaps. All work is test-only with no production code changes. Build, vet, format, lint, and full test suite pass. One pre-existing data race in RunWithSupervisor (independently fixed on main at d581541) is the only known open issue and was not introduced by this node."
+  }
+}

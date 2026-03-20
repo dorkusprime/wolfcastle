@@ -10,11 +10,12 @@ func TestWritePID_CreatesPIDFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
-	if err := WritePID(dir); err != nil {
+	repo := NewDaemonRepository(dir)
+	if err := repo.WritePID(os.Getpid()); err != nil {
 		t.Fatal(err)
 	}
 
-	pid, err := ReadPID(dir)
+	pid, err := repo.ReadPID()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +27,8 @@ func TestWritePID_CreatesPIDFile(t *testing.T) {
 func TestReadPID_MissingFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	_, err := ReadPID(dir)
+	repo := NewDaemonRepository(dir)
+	_, err := repo.ReadPID()
 	if err == nil {
 		t.Error("expected error when PID file does not exist")
 	}
@@ -38,7 +40,8 @@ func TestReadPID_InvalidContent(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(dir, "system", "wolfcastle.pid"), []byte("not-a-number"), 0644)
 
-	_, err := ReadPID(dir)
+	repo := NewDaemonRepository(dir)
+	_, err := repo.ReadPID()
 	if err == nil {
 		t.Error("expected error for invalid PID content")
 	}
@@ -48,9 +51,12 @@ func TestRemovePID_RemovesFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
-	_ = WritePID(dir)
+	repo := NewDaemonRepository(dir)
+	_ = repo.WritePID(os.Getpid())
 
-	RemovePID(dir)
+	if err := repo.RemovePID(); err != nil {
+		t.Fatal(err)
+	}
 
 	pidPath := filepath.Join(dir, "system", "wolfcastle.pid")
 	if _, err := os.Stat(pidPath); !os.IsNotExist(err) {
@@ -61,8 +67,11 @@ func TestRemovePID_RemovesFile(t *testing.T) {
 func TestRemovePID_NoOpOnMissingFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	// Should not panic or error
-	RemovePID(dir)
+	repo := NewDaemonRepository(dir)
+	// Should not error
+	if err := repo.RemovePID(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 }
 
 func TestIsProcessRunning_CurrentProcess(t *testing.T) {

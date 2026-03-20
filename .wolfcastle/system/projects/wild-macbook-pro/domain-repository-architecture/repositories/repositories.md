@@ -1,0 +1,3 @@
+# Repositories
+
+Implement the individual domain repositories and services that have no cross-repository dependencies. This covers: DaemonRepository (smallest, validates the pattern), GitService + Provider interface (wraps git binary), Identity extraction (namespace detection, projects directory), ConfigRepository (tier-based config merge), PromptRepository (tier-based prompt resolution), and RenderContext methods on NodeState/Task/AuditState. Steps 3-7 and 9 from the migration path. Internal ordering: DaemonRepo, GitService, and Identity are independent of tierfs-dependent repos; ConfigRepo and PromptRepo depend on tierfs; render methods are independent of all repositories.

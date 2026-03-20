@@ -144,9 +144,7 @@ func TestCheckOverlap_ShortText(t *testing.T) {
 
 func TestLoadRootIndexForCompletion_FallbackConfigFails(t *testing.T) {
 	tmp := t.TempDir()
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	// No resolver, no .wolfcastle dir -> LoadConfig fails
 	a := &App{}
@@ -161,9 +159,7 @@ func TestLoadRootIndexForCompletion_FallbackResolverNil(t *testing.T) {
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 	_ = os.MkdirAll(wcDir, 0755)
 
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	a := &App{}
 	_, err := loadRootIndexForCompletion(a)
@@ -185,9 +181,7 @@ func TestLoadRootIndexForCompletion_FallbackSuccess(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), []byte(cfgJSON), 0644)
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{}}`), 0644)
 
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	a := &App{}
 	idx, err := loadRootIndexForCompletion(a)
@@ -207,9 +201,7 @@ func TestLoadConfig_MalformedConfig(t *testing.T) {
 	// Write malformed config
 	_ = os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), []byte("not valid json"), 0644)
 
-	origDir, _ := os.Getwd()
-	defer func() { _ = os.Chdir(origDir) }()
-	_ = os.Chdir(tmp)
+	t.Chdir(tmp)
 
 	a := &App{}
 	err := a.LoadConfig()

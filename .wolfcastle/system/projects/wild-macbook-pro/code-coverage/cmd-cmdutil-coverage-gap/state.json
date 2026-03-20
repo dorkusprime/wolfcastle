@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "cmd-cmdutil-coverage-gap",
+  "name": "cmd-cmdutil-coverage-gap",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add tests to raise cmd/cmdutil from 91.6% to 94%+ statement coverage",
+      "description": "Add tests to raise cmd/cmdutil from 91.6% to 94%+ statement coverage",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/cmdutil/category_a_coverage_test.go"
+      ],
+      "body": "cmd/cmdutil was modified on this branch and currently sits at 91.6% coverage. The 94% threshold applies to all changed packages. Identify uncovered statements with go test -coverprofile and add targeted tests following existing patterns in cmd/cmdutil/app_test.go and cmd/cmdutil/completions_test.go."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in cmd-cmdutil-coverage-gap is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": "Coverage gap tests for cmd/cmdutil: RequireIdentity, storeForCompletion fallback paths, CompleteTaskAddresses edge cases, compareNamespace edge cases, jaccardSimilarity nil guard",
+      "files": [
+        "cmd/cmdutil/category_a_coverage_test.go"
+      ],
+      "criteria": [
+        "build passes",
+        "all tests pass with race detector",
+        "coverage ≥ 90%",
+        "go vet clean",
+        "gofmt clean"
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T16:10:34.134282Z",
+        "task": "code-coverage/cmd-cmdutil-coverage-gap",
+        "text": "Added targeted tests for RequireIdentity (both paths), storeForCompletion (all 4 fallback branches), CompleteTaskAddresses with invalid slug addresses, and compareNamespace with unreadable .md files. Coverage moved from 91.6% to 97.6%."
+      },
+      {
+        "timestamp": "2026-03-19T16:11:53.163761Z",
+        "task": "code-coverage/cmd-cmdutil-coverage-gap",
+        "text": "Audit complete: read all source and test files in cmd/cmdutil, ran build/test/vet/fmt, verified 97.6% coverage. No correctness, safety, or quality issues found in the new test file."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T16:08:19.840061Z",
+    "completed_at": "2026-03-19T16:12:04.524374Z",
+    "result_summary": "Added targeted coverage tests for cmd/cmdutil, moving statement coverage from 91.6% to 97.6%. Tests cover RequireIdentity (nil and configured paths), all four storeForCompletion fallback branches, CompleteTaskAddresses with invalid slug addresses and broken resolvers, compareNamespace with unreadable .md files and all-stop-words content, and jaccardSimilarity nil-guard. Audit confirmed: build, tests (with race detector), vet, and formatting all clean. No correctness, safety, or quality issues found."
+  }
+}

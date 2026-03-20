@@ -2,10 +2,8 @@ package daemon
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
 // propagateState locks the namespace, re-reads the root index from disk,
@@ -17,7 +15,7 @@ import (
 func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx *state.RootIndex) error {
 	return d.Store.WithLock(func() error {
 		// Re-read the index from disk to pick up concurrent modifications.
-		freshIdx, err := state.LoadRootIndex(filepath.Join(d.Store.Dir(), "state.json"))
+		freshIdx, err := state.LoadRootIndex(d.Store.IndexPath())
 		if err != nil {
 			// Fall back to the in-memory copy if the file can't be read.
 			freshIdx = idx
@@ -30,20 +28,20 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 		}
 
 		loadNode := func(addr string) (*state.NodeState, error) {
-			a, err := tree.ParseAddress(addr)
+			p, err := d.Store.NodePath(addr)
 			if err != nil {
-				return nil, fmt.Errorf("parsing address %q: %w", addr, err)
+				return nil, fmt.Errorf("resolving path for %q: %w", addr, err)
 			}
-			return state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json"))
+			return state.LoadNodeState(p)
 		}
 
 		// Raw SaveNodeState (no lock) since we already hold the namespace lock.
 		saveNode := func(addr string, ns *state.NodeState) error {
-			a, err := tree.ParseAddress(addr)
+			p, err := d.Store.NodePath(addr)
 			if err != nil {
-				return fmt.Errorf("parsing address %q: %w", addr, err)
+				return fmt.Errorf("resolving path for %q: %w", addr, err)
 			}
-			return state.SaveNodeState(filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json"), ns)
+			return state.SaveNodeState(p, ns)
 		}
 
 		if err := state.Propagate(nodeAddr, nodeState, freshIdx, loadNode, saveNode); err != nil {
@@ -54,21 +52,21 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 		// operations in the same iteration see the updated state.
 		*idx = *freshIdx
 
-		return state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), freshIdx)
+		return state.SaveRootIndex(d.Store.IndexPath(), freshIdx)
 	})
 }
 
 // checkInboxState returns whether the inbox has new items (needing intake).
 // Returns false if the inbox file doesn't exist or can't be read.
-func (d *Daemon) checkInboxState(inboxPath string) (hasNew bool) {
+func (d *Daemon) checkInboxState(inboxPath string) bool {
 	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
 		return false
 	}
 	for _, item := range inboxData.Items {
-		if item.Status == "new" {
-			hasNew = true
+		if item.Status == state.InboxNew {
+			return true
 		}
 	}
-	return
+	return false
 }

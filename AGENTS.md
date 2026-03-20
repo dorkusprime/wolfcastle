@@ -29,8 +29,8 @@ Consult these topic-specific files before making changes in their domain:
 
 ## Design References
 
-- [Architecture Decision Records](docs/decisions/INDEX.md) (77 ADRs) document every major design choice. Consult these before making architectural decisions.
-- [Specifications](docs/specs/) (16 implemented specs, 3 drafts) describe the current system in detail. Consult these before modifying behavior.
+- [Architecture Decision Records](docs/decisions/INDEX.md) (79 ADRs) document every major design choice. Consult these before making architectural decisions.
+- [Specifications](docs/specs/) (18 implemented specs, 3 drafts) describe the current system in detail. Consult these before modifying behavior.
 - [Full documentation hub](docs/)
 
 ## Critical Rules

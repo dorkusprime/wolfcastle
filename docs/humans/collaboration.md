@@ -62,7 +62,7 @@ wolfcastle spec link --node backend/auth/oauth oauth-spec.md
 wolfcastle spec list --node backend/auth
 ```
 
-Specs live in the committed `docs/specs/` directory with ISO 8601 timestamp filenames. Each node's [`state.json`](how-it-works.md#distributed-state) references the specs relevant to it. Only referenced specs are injected into the [model's context](how-it-works.md#seven-phase-execution) for that node. Multiple nodes can reference the same spec.
+Specs live in the committed `docs/specs/` directory with ISO 8601 timestamp filenames. Each node's [`state.json`](how-it-works.md#distributed-state) references the specs relevant to it. Only referenced specs are injected into the [model's context](how-it-works.md#execution-protocol) for that node. Multiple nodes can reference the same spec.
 
 ## Logging
 

@@ -70,7 +70,7 @@ Nodes have [four states](docs/humans/how-it-works.md#four-states): `not_started`
 
 `wolfcastle start` launches a [daemon](docs/humans/how-it-works.md#the-daemon) that runs a [pipeline of stages](docs/humans/how-it-works.md#the-pipeline). The default pipeline has two stages: intake (triage inbox items into projects and coding tasks) and execute (claim a task, point an agent at the code, ship the result). Intake runs in a parallel goroutine, processing new inbox items independently of task execution. Summaries are generated inline during execution via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage. Each stage invokes a [coding agent](docs/humans/configuration.md#models) with a specific role. Stages are decoupled; they read state from disk and act on it independently.
 
-When the execute stage claims a task, the agent follows a [seven-phase protocol](docs/humans/how-it-works.md#seven-phase-execution): claim, study, implement, validate, record, commit, signal. The agent reads and writes your codebase, but communicates with Wolfcastle only through deterministic script calls that enforce invariants. It cannot corrupt the tree.
+When the execute stage claims a task, the agent follows a [ten-phase protocol](docs/humans/how-it-works.md#execution-protocol): claim, study, implement, validate, record, document, commit, signal, pre-block, follow-up. The agent reads and writes your codebase, but communicates with Wolfcastle only through deterministic script calls that enforce invariants. It cannot corrupt the tree.
 
 ## Configuration
 
@@ -98,7 +98,7 @@ Wolfcastle [commits code to your current branch](docs/humans/collaboration.md#gi
 
 ## CLI
 
-[39 commands](docs/humans/cli.md#commands) across lifecycle, task management, auditing, diagnostics, and documentation. Every command accepts `--json` for structured output. Every command that operates on a node accepts `--node` with a slash-separated [tree address](docs/humans/cli.md#tree-addressing). The [inbox](docs/humans/cli.md#the-inbox) (`wolfcastle inbox add`) captures feature requests and bug reports mid-flight for the daemon to decompose into coding tasks. See the full [project layout](docs/humans/cli.md#project-layout) and [installation options](docs/humans/cli.md#installation) in the CLI reference.
+[43 commands](docs/humans/cli.md#commands) across lifecycle, task management, auditing, diagnostics, and documentation. Every command accepts `--json` for structured output. Every command that operates on a node accepts `--node` with a slash-separated [tree address](docs/humans/cli.md#tree-addressing). The [inbox](docs/humans/cli.md#the-inbox) (`wolfcastle inbox add`) captures feature requests and bug reports mid-flight for the daemon to decompose into coding tasks. See the full [project layout](docs/humans/cli.md#project-layout) and [installation options](docs/humans/cli.md#installation) in the CLI reference.
 
 ## Design Documents
 

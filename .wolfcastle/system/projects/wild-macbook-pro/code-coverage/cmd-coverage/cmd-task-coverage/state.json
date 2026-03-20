@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "id": "cmd-task-coverage",
+  "name": "cmd/task Coverage",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Cover findFilesByName, deliverable command, and add command gaps",
+      "description": "Cover findFilesByName, deliverable command, and add command gaps",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        "cmd/task/task_coverage_test.go"
+      ],
+      "last_failure_type": "no_terminal_marker",
+      "body": "Coverage gaps in cmd/task/:\n- findFilesByName (deliverable.go:110, 50%): walks the repo looking for files by base name. Uncovered paths likely include: walk error handling, .wolfcastle/.git directory skipping, reaching the 5-match limit (SkipAll), no matches found. Create a temp directory tree and test each path.\n- newDeliverableCmd (deliverable.go:16, 81.0%): the cobra command. Identify uncovered branches — likely glob pattern handling, file-not-found errors, JSON output mode.\n- newAddCmd (add.go:17, 81.2%): the task add command. Check for uncovered flag combinations: --stdin, --body, --deliverable (multiple), missing --node.\n- writeTaskMD (add.go:163, 80.0%): writes the task markdown file. Uncovered paths likely involve: tasks with deliverables section, tasks with body from stdin, error writing file.\n- newAmendCmd (amend.go:13, 90.7%): nearly covered. Identify the remaining ~9% gap.\n\nReview existing task_test.go, task_edge_test.go, task_json_test.go, task_chmod_test.go to understand existing coverage and avoid duplication. Focus on the genuinely uncovered branches."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in cmd/task Coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify cmd/task/ coverage reaches 94%+ via go test -cover ./cmd/task/. Key functions: findFilesByName, newDeliverableCmd, newAddCmd, writeTaskMD, newAmendCmd."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-19T05:51:59.278416Z",
+        "task": "code-coverage/cmd-coverage/cmd-task-coverage",
+        "text": "Added task_coverage_test.go covering findFilesByName (50%→100%), deliverable cmd (81%→97.6%), add cmd (81.2%→95.3%), writeTaskMD (80%→100%), amend cmd (90.7%→98.1%). Overall package coverage now 98.2%."
+      },
+      {
+        "timestamp": "2026-03-19T05:54:28.222237Z",
+        "task": "code-coverage/cmd-coverage/cmd-task-coverage",
+        "text": "Audit complete: verified build, tests (with race detector), vet, formatting all pass. Coverage at 98.2%. Reviewed deliverable.go, add.go, amend.go source and task_coverage_test.go (568 lines, 31 tests). No correctness issues, no dead code, no duplication. PASS."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-19T05:46:56.472077Z",
+    "completed_at": "2026-03-19T05:54:38.527712Z",
+    "result_summary": "Raised cmd/task package test coverage from ~80-90% to 98.2% of statements. Added task_coverage_test.go with 31 tests covering findFilesByName (directory skipping, match limits, permission errors), deliverable command validation (empty/absolute/traversal paths, glob handling, file-existence warnings with suggestions), add command flag combinations (body, type, class, constraints, acceptance, references, integration, parent decomposition, JSON output), writeTaskMD (body inclusion, whitespace handling, error resilience), and amend command branches (nil identity, JSON output, integration field, invalid addresses). All tests pass with race detector enabled. No architectural changes, no new public API surface."
+  }
+}

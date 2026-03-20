@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "independent-repositories",
+  "name": "Independent Repositories",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "daemonrepository",
+      "address": "domain-repository-architecture/repositories/independent-repositories/daemonrepository",
+      "state": "complete"
+    },
+    {
+      "id": "gitservice",
+      "address": "domain-repository-architecture/repositories/independent-repositories/gitservice",
+      "state": "complete"
+    },
+    {
+      "id": "identity",
+      "address": "domain-repository-architecture/repositories/independent-repositories/identity",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Independent Repositories is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Implement DaemonRepository, git.Service + Provider interface, and Identity extraction. These three pieces have no cross-dependencies and no dependency on tierfs. DaemonRepository (internal/daemon) validates the repository pattern against the test infrastructure: PID file, stop file, log directory management. GitService (internal/git) wraps the git binary behind a Provider interface for testability: CurrentBranch, HEAD, HasProgress, IsRepo, IsDirty, CreateWorktree, RemoveWorktree. Identity (internal/config) extracts namespace detection and projects directory mapping into a standalone type. All three can be built in parallel.",
+  "success_criteria": [
+    "All three packages compile and pass tests: internal/daemon (DaemonRepository), internal/git (Service + Provider), internal/config (Identity)",
+    "Environment.Daemon and Environment.Git fields are wired in testutil",
+    "No existing tests broken by the new code"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-18T21:24:15.600296Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-18T21:24:09.327883Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories",
+        "text": "Created 3 leaf children: DaemonRepository (3 tasks), GitService (3 tasks), Identity (2 tasks). All three are parallelizable with no cross-dependencies. DaemonRepository and GitService each include an Environment wiring task; Identity has no Environment field to wire. Task ordering within each leaf: implement, test, then wire into Environment."
+      },
+      {
+        "timestamp": "2026-03-18T21:52:08.354907Z",
+        "task": "domain-repository-architecture/repositories/independent-repositories",
+        "text": "Audit complete: verified DaemonRepository (8 methods, 6 tests, Environment.Daemon wiring), git.Service (Provider interface with 8 methods, 7 test functions using real temp repos, WithGit wiring), and Identity (IdentityFromConfig + DetectIdentity + ProjectsDir, 3 test functions, correctly excluded from Environment). All packages build, all tests pass, go vet clean. No gaps found."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-18T21:50:40.047468Z",
+    "completed_at": "2026-03-18T21:52:19.89472Z",
+    "result_summary": "Implemented three independent domain repositories: DaemonRepository consolidates daemon filesystem operations (PID, stop file, log directory) behind a clean struct with idempotent removal; git.Service implements the git.Provider interface for branch, HEAD, dirty-state, progress, and worktree operations, tested against real temporary git repos; Identity provides config extraction (IdentityFromConfig) and OS-level detection (DetectIdentity) with hostname normalization. DaemonRepository and git.Provider are wired into testutil.Environment via the Daemon field and WithGit chainable method respectively. Identity is correctly excluded from Environment since it's extracted from Config at runtime. All packages build, all tests pass, go vet is clean."
+  }
+}

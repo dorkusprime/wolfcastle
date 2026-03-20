@@ -39,7 +39,7 @@ Examples:
 			} else {
 				var kept []state.InboxItem
 				for _, item := range inboxData.Items {
-					if item.Status == "new" {
+					if item.Status == state.InboxNew {
 						kept = append(kept, item)
 					}
 				}

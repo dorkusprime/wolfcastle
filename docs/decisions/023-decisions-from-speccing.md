@@ -44,8 +44,8 @@ The audit spec introduced a separate status for the audit itself: `pending`, `in
 ### 9. Gap tracking with open/fixed status
 Audit gaps have their own lifecycle: found during audit (open), fixed during audit (fixed), or escalated to parent. Gaps have deterministic IDs for traceability.
 
-### 10. Orchestrator prompt seven-phase structure
-The execute stage follows: Claim → Study → Implement → Validate → Record → Commit → Yield. All within a single model invocation per iteration.
+### 10. Orchestrator prompt execution protocol
+The execute stage follows: Claim → Study → Implement → Validate → Record → Document → Commit → Signal → Pre-block → Follow-up. All within a single model invocation per iteration. Originally seven phases; expanded to ten as documentation, pre-blocking, and follow-up creation were formalized.
 
 ### 11. JSON envelope for model-facing commands
 CLI commands that the model calls return a consistent JSON envelope: `{ok: boolean, action: string, ...}` for reliable parsing.

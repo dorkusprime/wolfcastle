@@ -6,5 +6,7 @@ cover*.out
 *.coverprofile
 *.test
 .claude/
-.wolfcastle/
+# Allow .wolfcastle/.gitignore to control what's tracked inside
+.wolfcastle/*
+!.wolfcastle/.gitignore
 *.out

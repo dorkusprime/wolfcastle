@@ -42,7 +42,7 @@ Examples:
 		agentMode, _ := cmd.Flags().GetBool("agent")
 
 		if nodeFlag == "" {
-			return fmt.Errorf("--node is required")
+			return fmt.Errorf("--node is required: specify the blocked task address (e.g. my-project/task-1)")
 		}
 
 		// Parse task address
@@ -77,6 +77,18 @@ Examples:
 
 		if agentMode {
 			// Tier 3: dump context for an interactive agent
+			if app.JSONOutput {
+				output.Print(output.Ok("unblock_diagnostic", map[string]any{
+					"node":            nodeFlag,
+					"task_id":         taskID,
+					"description":     blockedTask.Description,
+					"blocked_reason":  blockedTask.BlockedReason,
+					"failure_count":   blockedTask.FailureCount,
+					"diagnostic":      diagnostic,
+					"unblock_command": fmt.Sprintf("wolfcastle task unblock --node %s", nodeFlag),
+				}))
+				return nil
+			}
 			output.PrintHuman("%s", diagnostic)
 			output.PrintHuman("")
 			output.PrintHuman("---")

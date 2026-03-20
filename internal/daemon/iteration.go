@@ -10,6 +10,7 @@ import (
 	"time"
 
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
@@ -128,8 +129,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		// Use line-by-line scanning to avoid false matches against
 		// prompt instructions echoed in the model's JSON stream.
 		marker := scanTerminalMarker(result.Stdout)
-		if marker == "WOLFCASTLE_YIELD" {
-			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_YIELD"})
+		if marker == invoke.MarkerStringYield {
+			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringYield})
 
 			// If the model created child tasks (hierarchical IDs like task-0001.0001),
 			// navigation handles them automatically via depth-first ordering.
@@ -169,8 +170,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 			return nil
 		}
-		if marker == "WOLFCASTLE_BLOCKED" {
-			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_BLOCKED", "task": nav.TaskID})
+		if marker == invoke.MarkerStringBlocked {
+			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringBlocked, "task": nav.TaskID})
 
 			// Check if the model blocked a task that's actually
 			// superseded. Superseded work should be SKIP, not BLOCKED.
@@ -208,8 +209,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 			return nil
 		}
-		if marker == "WOLFCASTLE_SKIP" {
-			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_SKIP", "task": nav.TaskID})
+		if marker == invoke.MarkerStringSkip {
+			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringSkip, "task": nav.TaskID})
 			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 				return state.TaskComplete(ns, nav.TaskID)
 			}); err != nil {
@@ -220,7 +221,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 			return nil
 		}
-		if marker == "WOLFCASTLE_COMPLETE" {
+		if marker == invoke.MarkerStringComplete {
 			// Re-read state from disk since the model may have added
 			// deliverables via CLI during execution.
 			if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
@@ -239,7 +240,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				output.PrintHuman("  Warning: declared deliverables missing: %v", missing)
 			}
 		}
-		if marker == "WOLFCASTLE_COMPLETE" {
+		if marker == invoke.MarkerStringComplete {
 			// Audit tasks skip the git progress check: their output is
 			// state mutations in .wolfcastle/system/, not code changes.
 			isAudit := false
@@ -258,8 +259,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				marker = ""
 			}
 		}
-		if marker == "WOLFCASTLE_COMPLETE" {
-			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": "WOLFCASTLE_COMPLETE"})
+		if marker == invoke.MarkerStringComplete {
+			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringComplete})
 			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 				return state.TaskComplete(ns, nav.TaskID)
 			}); err != nil {
@@ -347,7 +348,7 @@ func scanTerminalMarker(output string) string {
 	// This prevents an early YIELD (from prompt echo or an intermediate
 	// model message) from shadowing a later COMPLETE.
 	found := map[string]bool{}
-	markers := []string{"WOLFCASTLE_COMPLETE", "WOLFCASTLE_SKIP", "WOLFCASTLE_CONTINUE", "WOLFCASTLE_BLOCKED", "WOLFCASTLE_YIELD"}
+	markers := []string{invoke.MarkerStringComplete, invoke.MarkerStringSkip, invoke.MarkerStringContinue, invoke.MarkerStringBlocked, invoke.MarkerStringYield}
 
 	for _, line := range strings.Split(output, "\n") {
 		trimmed := strings.TrimSpace(line)
@@ -367,7 +368,7 @@ func scanTerminalMarker(output string) string {
 					found[m] = true
 				}
 				// SKIP matches as a prefix: "WOLFCASTLE_SKIP reason text"
-				if m == "WOLFCASTLE_SKIP" && strings.HasPrefix(sub, m+" ") {
+				if m == invoke.MarkerStringSkip && strings.HasPrefix(sub, m+" ") {
 					found[m] = true
 				}
 				if strings.HasSuffix(sub, m) && (len(sub) == len(m) || sub[len(sub)-len(m)-1] == ' ') {
@@ -593,25 +594,22 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 // (work done via a different path). The model should use WOLFCASTLE_SKIP
 // for these, but sometimes uses BLOCKED instead. This catches the mistake.
 func (d *Daemon) isSupersededBlock(nodeAddr, taskID string) bool {
-	var superseded bool
-	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
-		for _, t := range ns.Tasks {
-			if t.ID != taskID {
-				continue
-			}
-			reason := strings.ToLower(t.BlockedReason)
-			if strings.Contains(reason, "supersed") ||
-				strings.Contains(reason, "already done") ||
-				strings.Contains(reason, "already completed") ||
-				strings.Contains(reason, "no longer needed") ||
-				strings.Contains(reason, "replaced by") ||
-				strings.Contains(reason, "done in") ||
-				strings.Contains(reason, "done directly") {
-				superseded = true
-			}
-			break
+	ns, err := d.Store.ReadNode(nodeAddr)
+	if err != nil {
+		return false
+	}
+	for _, t := range ns.Tasks {
+		if t.ID != taskID {
+			continue
 		}
-		return nil
-	})
-	return superseded
+		reason := strings.ToLower(t.BlockedReason)
+		return strings.Contains(reason, "supersed") ||
+			strings.Contains(reason, "already done") ||
+			strings.Contains(reason, "already completed") ||
+			strings.Contains(reason, "no longer needed") ||
+			strings.Contains(reason, "replaced by") ||
+			strings.Contains(reason, "done in") ||
+			strings.Contains(reason, "done directly")
+	}
+	return false
 }
