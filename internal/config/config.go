@@ -43,13 +43,13 @@ func Defaults() *Config {
 				{
 					Name:            "intake",
 					Model:           "mid",
-					PromptFile:      "intake.md",
+					PromptFile:      "stages/intake.md",
 					AllowedCommands: []string{"project create", "task add", "status"},
 				},
 				{
 					Name:            "execute",
 					Model:           "heavy",
-					PromptFile:      "execute.md",
+					PromptFile:      "stages/execute.md",
 					AllowedCommands: []string{"project create", "task add", "task block", "task deliverable", "audit breadcrumb", "audit escalate", "audit gap", "audit fix-gap", "audit scope", "audit summary", "audit resolve-escalation", "status", "adr create", "spec create", "spec link", "spec list"},
 				},
 			},
@@ -91,6 +91,7 @@ func Defaults() *Config {
 			MaxIterations:              -1,
 			MaxTurnsPerInvocation:      200,
 			InvocationTimeoutSeconds:   3600,
+			StallTimeoutSeconds:        120,
 			MaxRestarts:                3,
 			RestartDelaySeconds:        2,
 			LogLevel:                   "info",
@@ -116,7 +117,7 @@ func Defaults() *Config {
 		},
 		Audit: AuditCommandConfig{
 			Model:      "heavy",
-			PromptFile: "audit.md",
+			PromptFile: "audits/audit.md",
 		},
 	}
 }

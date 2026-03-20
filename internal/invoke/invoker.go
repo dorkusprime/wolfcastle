@@ -14,9 +14,14 @@ import (
 	"io"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 )
+
+// ErrStallTimeout is returned when the model process produces no output
+// for longer than the configured stall timeout.
+var ErrStallTimeout = fmt.Errorf("model output stalled: no output received within stall timeout")
 
 // Marker represents a detected WOLFCASTLE_* marker in model output.
 type Marker int
@@ -100,6 +105,12 @@ type ProcessInvoker struct {
 	// CmdFactory allows overriding exec.CommandContext for testing.
 	// If nil, exec.CommandContext is used.
 	CmdFactory func(ctx context.Context, name string, args ...string) *exec.Cmd
+
+	// StallTimeout, if positive, kills the process when no stdout output
+	// has been received for this duration. This catches hung model processes
+	// (e.g., API instability) without waiting for the full invocation timeout.
+	// Zero or negative disables stall detection.
+	StallTimeout time.Duration
 }
 
 // NewProcessInvoker creates a ProcessInvoker that spawns real CLI processes.
@@ -111,11 +122,23 @@ func NewProcessInvoker() *ProcessInvoker {
 // logWriter (if non-nil) while also capturing the full output. It detects
 // WOLFCASTLE_* markers during streaming and populates the Result accordingly.
 func (p *ProcessInvoker) Invoke(ctx context.Context, model config.ModelDef, prompt string, workDir string, logWriter io.Writer, onLine LineCallback) (*Result, error) {
+	// If stall detection is enabled for streaming invocations, wrap the
+	// context with a cancel we can fire when the stall timer expires.
+	// This lets exec.CommandContext handle the process kill cleanly.
+	stallEnabled := p.StallTimeout > 0 && (logWriter != nil || onLine != nil)
+	var stallCancel context.CancelFunc
+	var stalled bool
+	cmdCtx := ctx
+	if stallEnabled {
+		cmdCtx, stallCancel = context.WithCancel(ctx)
+		defer stallCancel()
+	}
+
 	var cmd *exec.Cmd
 	if p.CmdFactory != nil {
-		cmd = p.CmdFactory(ctx, model.Command, model.Args...)
+		cmd = p.CmdFactory(cmdCtx, model.Command, model.Args...)
 	} else {
-		cmd = exec.CommandContext(ctx, model.Command, model.Args...)
+		cmd = exec.CommandContext(cmdCtx, model.Command, model.Args...)
 	}
 	cmd.Dir = workDir
 	cmd.Stdin = strings.NewReader(prompt)
@@ -161,6 +184,16 @@ func (p *ProcessInvoker) Invoke(ctx context.Context, model config.ModelDef, prom
 		return nil, fmt.Errorf("creating stdout pipe: %w", err)
 	}
 
+	// When stall detection is active, override the cancel function to
+	// kill the entire process group (not just the leader). This ensures
+	// child processes like sleep(1) don't hold the pipe open after the
+	// context is cancelled.
+	if stallEnabled {
+		cmd.Cancel = func() error {
+			return killProcessGroup(cmd.Process)
+		}
+	}
+
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("starting %s: %w", model.Command, err)
 	}
@@ -171,26 +204,96 @@ func (p *ProcessInvoker) Invoke(ctx context.Context, model config.ModelDef, prom
 	// Increase buffer to 1MB to handle large model output lines.
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		captured.WriteString(line)
-		captured.WriteByte('\n')
-
-		// Detect markers as lines arrive for immediate awareness.
-		detectLineMarker(line, result)
-
-		// Stream to NDJSON log writer.
-		if logWriter != nil {
-			_, _ = fmt.Fprintln(logWriter, line)
+	// If stall detection is active, run the scanner in a goroutine and
+	// select between lines, the stall timer, and context cancellation.
+	// When the stall timer fires we cancel cmdCtx, which makes
+	// exec.CommandContext kill the child process, unblocking the scanner.
+	if stallEnabled {
+		type scanLine struct {
+			line string
+			err  error
+			eof  bool
 		}
+		lines := make(chan scanLine, 1)
+		go func() {
+			defer close(lines)
+			for scanner.Scan() {
+				lines <- scanLine{line: scanner.Text()}
+			}
+			if err := scanner.Err(); err != nil {
+				lines <- scanLine{err: err}
+			} else {
+				lines <- scanLine{eof: true}
+			}
+		}()
 
-		// Notify callback.
-		if onLine != nil {
-			onLine(line)
+		stallTimer := time.NewTimer(p.StallTimeout)
+		defer stallTimer.Stop()
+
+	scanLoop:
+		for {
+			select {
+			case sl, ok := <-lines:
+				if !ok {
+					break scanLoop
+				}
+				if sl.err != nil {
+					// Scanner errors after a stall cancellation are expected
+					// (broken pipe). Don't mask the stall error.
+					if stalled {
+						break scanLoop
+					}
+					return nil, fmt.Errorf("reading stdout: %w", sl.err)
+				}
+				if sl.eof {
+					break scanLoop
+				}
+
+				captured.WriteString(sl.line)
+				captured.WriteByte('\n')
+				detectLineMarker(sl.line, result)
+				if logWriter != nil {
+					_, _ = fmt.Fprintln(logWriter, sl.line)
+				}
+				if onLine != nil {
+					onLine(sl.line)
+				}
+
+				// Reset the stall timer on every line of output.
+				if !stallTimer.Stop() {
+					select {
+					case <-stallTimer.C:
+					default:
+					}
+				}
+				stallTimer.Reset(p.StallTimeout)
+
+			case <-stallTimer.C:
+				stalled = true
+				stallCancel() // kills the child via exec.CommandContext
+				// Drain remaining lines from the scanner goroutine.
+				for range lines {
+				}
+				break scanLoop
+			}
 		}
-	}
-	if scanErr := scanner.Err(); scanErr != nil {
-		return nil, fmt.Errorf("reading stdout: %w", scanErr)
+	} else {
+		// No stall detection: simple synchronous loop.
+		for scanner.Scan() {
+			line := scanner.Text()
+			captured.WriteString(line)
+			captured.WriteByte('\n')
+			detectLineMarker(line, result)
+			if logWriter != nil {
+				_, _ = fmt.Fprintln(logWriter, line)
+			}
+			if onLine != nil {
+				onLine(line)
+			}
+		}
+		if scanErr := scanner.Err(); scanErr != nil {
+			return nil, fmt.Errorf("reading stdout: %w", scanErr)
+		}
 	}
 
 	err = cmd.Wait()
@@ -198,6 +301,10 @@ func (p *ProcessInvoker) Invoke(ctx context.Context, model config.ModelDef, prom
 
 	result.Stdout = captured.String()
 	result.Stderr = stderr.String()
+
+	if stalled {
+		return result, ErrStallTimeout
+	}
 
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
