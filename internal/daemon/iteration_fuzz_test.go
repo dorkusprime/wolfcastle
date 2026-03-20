@@ -81,3 +81,100 @@ func FuzzScanTerminalMarker(f *testing.F) {
 		scanTerminalMarker(input)
 	})
 }
+
+func FuzzExtractAssistantText(f *testing.F) {
+	// Valid assistant envelopes: simple format
+	f.Add(`{"type":"assistant","text":"hello world"}`)
+	f.Add(`{"type":"assistant","text":"WOLFCASTLE_COMPLETE"}`)
+	f.Add(`{"type":"assistant","text":"multi\nline\ntext"}`)
+	f.Add(`{"type":"assistant","text":""}`)
+
+	// Valid assistant envelopes: Claude Code format
+	f.Add(`{"type":"assistant","message":{"content":[{"type":"text","text":"hello"}]}}`)
+	f.Add(`{"type":"assistant","message":{"content":[{"type":"text","text":"WOLFCASTLE_COMPLETE"}]}}`)
+	f.Add(`{"type":"assistant","message":{"content":[{"type":"text","text":"first"},{"type":"text","text":"second"}]}}`)
+	f.Add(`{"type":"assistant","message":{"content":[{"type":"image","text":"ignored"}]}}`)
+	f.Add(`{"type":"assistant","message":{"content":[]}}`)
+
+	// Valid result envelopes: text field format
+	f.Add(`{"type":"result","text":"done"}`)
+	f.Add(`{"type":"result","text":"WOLFCASTLE_COMPLETE"}`)
+
+	// Valid result envelopes: result field format
+	f.Add(`{"type":"result","result":"finished"}`)
+	f.Add(`{"type":"result","result":"WOLFCASTLE_SKIP already done"}`)
+
+	// Both text and result fields present
+	f.Add(`{"type":"result","text":"primary","result":"secondary"}`)
+
+	// Deeply nested JSON objects
+	f.Add(`{"type":"assistant","text":"ok","extra":{"a":{"b":{"c":{"d":{"e":"deep"}}}}}}`)
+	f.Add(`{"type":"assistant","message":{"content":[{"type":"text","text":"deep","meta":{"a":{"b":{"c":1}}}}]}}`)
+	f.Add(`{"a":{"b":{"c":{"d":{"e":{"f":{"g":{"h":{"i":{"j":"ten"}}}}}}}}}}`)
+
+	// Very large JSON payloads
+	f.Add(`{"type":"assistant","text":"` + strings.Repeat("x", 10000) + `"}`)
+	f.Add(`{"type":"result","result":"` + strings.Repeat("y", 10000) + `"}`)
+	largeContent := `{"type":"assistant","message":{"content":[`
+	for i := 0; i < 100; i++ {
+		if i > 0 {
+			largeContent += ","
+		}
+		largeContent += `{"type":"text","text":"chunk"}`
+	}
+	largeContent += `]}}`
+	f.Add(largeContent)
+
+	// JSON with unexpected types (numbers where strings expected, arrays where objects expected)
+	f.Add(`{"type":123,"text":"hello"}`)
+	f.Add(`{"type":"assistant","text":42}`)
+	f.Add(`{"type":"assistant","text":null}`)
+	f.Add(`{"type":"assistant","text":true}`)
+	f.Add(`{"type":"assistant","text":["array","of","strings"]}`)
+	f.Add(`{"type":"assistant","message":"not an object"}`)
+	f.Add(`{"type":"assistant","message":{"content":"not an array"}}`)
+	f.Add(`{"type":"assistant","message":{"content":[42, true, null]}}`)
+	f.Add(`{"type":null}`)
+	f.Add(`{"type":["assistant"]}`)
+
+	// Non-JSON input that starts with '{'
+	f.Add(`{not json at all}`)
+	f.Add(`{{{`)
+	f.Add(`{type: assistant}`)
+	f.Add(`{ this is yaml-ish: true }`)
+	f.Add(`{<xml>not json</xml>}`)
+
+	// Truncated JSON at various points
+	f.Add(`{`)
+	f.Add(`{"`)
+	f.Add(`{"type`)
+	f.Add(`{"type"`)
+	f.Add(`{"type":`)
+	f.Add(`{"type":"`)
+	f.Add(`{"type":"assistant`)
+	f.Add(`{"type":"assistant"`)
+	f.Add(`{"type":"assistant",`)
+	f.Add(`{"type":"assistant","text`)
+	f.Add(`{"type":"assistant","text":`)
+	f.Add(`{"type":"assistant","text":"`)
+	f.Add(`{"type":"assistant","text":"hello`)
+	f.Add(`{"type":"assistant","text":"hello"`)
+	f.Add(`{"type":"assistant","message":{"content":[{"type":"text","text":"trunc`)
+
+	// Empty and minimal JSON
+	f.Add(`{}`)
+	f.Add(`{"type":""}`)
+	f.Add(`{"type":"unknown"}`)
+
+	// Non-JSON strings (quick-rejected by len < 2 or first char != '{')
+	f.Add("")
+	f.Add("x")
+	f.Add("hello world")
+	f.Add(`["array"]`)
+	f.Add(`"just a string"`)
+
+	f.Fuzz(func(t *testing.T, input string) {
+		// The only property: extractAssistantText must not panic.
+		extractAssistantText(input)
+	})
+}
