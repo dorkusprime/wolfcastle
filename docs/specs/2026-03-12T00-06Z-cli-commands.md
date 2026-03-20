@@ -854,6 +854,106 @@ wolfcastle task add --node attunement-tree/balance-pass/pvp "Adjust fire spell d
 
 ---
 
+## wolfcastle task amend
+
+### Synopsis
+
+```
+wolfcastle task amend --node <task-address> [--body "<text>"] [--type <type>] [--integration "<text>"] [--add-deliverable "<path>"] [--add-constraint "<text>"] [--add-acceptance "<text>"] [--add-reference "<text>"]
+```
+
+### Description
+
+Modifies fields on a task that has not yet started or is blocked. Tasks in `in_progress` or `complete` state cannot be amended. Only the flags you provide are applied; everything else stays untouched. List fields (deliverables, constraints, acceptance criteria, references) are appended with deduplication, so adding a value that already exists is a no-op.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <task-address>` | string | Yes | -- | Full task address: node-path/task-id (e.g. `my-project/task-0001`) |
+| `--body "<text>"` | string | No | -- | Replace the task's body/description text |
+| `--type <type>` | string | No | -- | Set task type. Must be one of: `discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup` |
+| `--integration "<text>"` | string | No | -- | Set how this task connects to other work |
+| `--add-deliverable "<path>"` | string slice | No | -- | Append a deliverable path (repeatable, deduplicated) |
+| `--add-constraint "<text>"` | string slice | No | -- | Append a constraint (repeatable, deduplicated) |
+| `--add-acceptance "<text>"` | string slice | No | -- | Append an acceptance criterion (repeatable, deduplicated) |
+| `--add-reference "<text>"` | string slice | No | -- | Append a reference (repeatable, deduplicated) |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Parse `--node` as a task address using `tree.SplitTaskAddress`, extracting the node path and task ID. Fail if the address does not contain a task ID component.
+4. Load the node's `state.json` via `MutateNode`.
+5. Find the task by ID within the node's task list. Fail if no task matches.
+6. Validate the task's state is `not_started` or `blocked`. Fail if the task is `in_progress` or `complete`.
+7. If `--type` is provided, validate it against the allowed set (`discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup`). Fail on invalid values.
+8. Apply provided scalar fields:
+   - If `--body` is non-empty, replace the task's body.
+   - If `--type` is non-empty, replace the task's type.
+   - If `--integration` is non-empty, replace the task's integration text.
+9. Append list fields with deduplication (values already present are silently skipped):
+   - `--add-deliverable` values appended to `Deliverables`.
+   - `--add-constraint` values appended to `Constraints`.
+   - `--add-acceptance` values appended to `AcceptanceCriteria`.
+   - `--add-reference` values appended to `References`.
+10. Write the updated node `state.json`.
+11. Output the result.
+
+### Output
+
+```json
+{
+  "ok": true,
+  "action": "task_amend",
+  "address": "my-project/task-0001",
+  "task_id": "task-0001"
+}
+```
+
+Human-readable mode prints: `Amended task my-project/task-0001`
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Task amended successfully |
+| 1 | `.wolfcastle/` not found, identity not configured, or `--node` missing |
+| 2 | `--node` is not a valid task address (no task ID component) |
+| 3 | Task not found in the specified node |
+| 4 | Task state is `in_progress` or `complete` (cannot amend) |
+| 5 | Invalid `--type` value |
+
+### Examples
+
+```bash
+# Replace a task's body text
+wolfcastle task amend --node my-project/task-0001 --body "Updated requirements after discovery phase"
+
+# Add deliverables to an existing task
+wolfcastle task amend --node my-project/task-0001 --add-deliverable "docs/api.md" --add-deliverable "docs/schema.md"
+
+# Set the task type and integration context
+wolfcastle task amend --node my-project/task-0001 --type implementation --integration "feeds into auth module"
+
+# Add acceptance criteria and constraints
+wolfcastle task amend --node my-project/task-0001 --add-acceptance "all tests pass" --add-constraint "no new dependencies"
+
+# Combine multiple amendments in one call
+wolfcastle task amend --node my-project/task-0001 --body "Revised spec" --type spec --add-reference "docs/prior-art.md"
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Invalid task address | `{"ok": false, "error": "--node must be a task address: ...", "code": "INVALID_ADDRESS"}` | 2 |
+| Task not found | `{"ok": false, "error": "task task-0099 not found in node my-project", "code": "TASK_NOT_FOUND"}` | 3 |
+| Wrong state | `{"ok": false, "error": "cannot amend task task-0001: state is in_progress (must be not_started or blocked)", "code": "INVALID_STATE"}` | 4 |
+| Invalid type | `{"ok": false, "error": "invalid task type \"bogus\": must be one of discovery, spec, adr, implementation, integration, cleanup", "code": "INVALID_TYPE"}` | 5 |
+
+---
+
 ## wolfcastle task claim
 
 ### Synopsis
