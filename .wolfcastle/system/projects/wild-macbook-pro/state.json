@@ -11,7 +11,7 @@
     "code-coverage": {
       "name": "Code Coverage",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "code-coverage",
       "decomposition_depth": 0,
       "children": [
@@ -36,7 +36,7 @@
     "code-coverage/cmd-coverage": {
       "name": "cmd Coverage",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "code-coverage/cmd-coverage",
       "decomposition_depth": 0,
       "parent": "code-coverage",
