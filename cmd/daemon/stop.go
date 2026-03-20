@@ -26,7 +26,7 @@ Examples:
 
 			pid, err := app.Daemon.ReadPID()
 			if err != nil {
-				return fmt.Errorf("no PID file. Nothing to stop")
+				return fmt.Errorf("no PID file found. Is the daemon running? Check with 'wolfcastle status'")
 			}
 
 			if !dmn.IsProcessRunning(pid) {

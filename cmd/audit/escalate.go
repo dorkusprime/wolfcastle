@@ -42,7 +42,7 @@ Examples:
 			}
 			parentAddr := addr.Parent()
 			if parentAddr.IsRoot() {
-				return fmt.Errorf("root-level node has no parent to escalate to")
+				return fmt.Errorf("root-level node has no parent to escalate to. Use 'wolfcastle audit gap --node %s' to record the gap locally instead", nodeAddr)
 			}
 
 			if err := app.State.MutateNode(parentAddr.String(), func(parentState *state.NodeState) error {
