@@ -242,9 +242,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 	ctx, cancel := signal.NotifyContext(ctx, shutdownSignals...)
 	defer cancel()
 
-	// Dedicated signal channel as a backup. Child processes (Claude Code)
-	// may corrupt Go's signal infrastructure. Re-register after every
-	// model invocation to ensure signals are always caught.
+	// Dedicated signal channel as a backup. Child processes may corrupt
+	// Go's signal infrastructure by leaving the terminal in raw mode
+	// (ISIG off). RestoreTerminal re-enables ISIG after each invocation,
+	// and this channel provides a second delivery path for signals.
 	d.sigChan = make(chan os.Signal, 2)
 	signal.Notify(d.sigChan, shutdownSignals...)
 	defer signal.Stop(d.sigChan)
