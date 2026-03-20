@@ -205,7 +205,7 @@ func (e *Engine) checkPropagation(ns *state.NodeState, addr string, entry state.
 	}
 
 	if ns.Type == state.NodeOrchestrator && len(ns.Children) > 0 {
-		expected := state.RecomputeState(ns.Children)
+		expected := state.RecomputeState(ns.Children, ns.Tasks)
 		if ns.State != expected {
 			report.Issues = append(report.Issues, Issue{
 				Severity:    SeverityError,
