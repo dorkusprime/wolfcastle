@@ -10,6 +10,244 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
+// reconcileOrchestratorStates
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestReconcileOrchestratorStates_FixesStaleParent(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Store.Dir()
+
+	// Set up an orchestrator whose ChildRef says not_started, but the
+	// index (and reality) says complete. The orchestrator itself is
+	// stuck at not_started.
+	idx := state.NewRootIndex()
+	idx.Root = []string{"parent"}
+	idx.Nodes["parent"] = state.IndexEntry{
+		Name: "Parent", Type: state.NodeOrchestrator, State: state.StatusNotStarted,
+		Address: "parent", Children: []string{"parent/child-a", "parent/child-b"},
+	}
+	idx.Nodes["parent/child-a"] = state.IndexEntry{
+		Name: "ChildA", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "parent/child-a", Parent: "parent",
+	}
+	idx.Nodes["parent/child-b"] = state.IndexEntry{
+		Name: "ChildB", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "parent/child-b", Parent: "parent",
+	}
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
+
+	parentNS := state.NewNodeState("parent", "Parent", state.NodeOrchestrator)
+	parentNS.State = state.StatusNotStarted
+	parentNS.Children = []state.ChildRef{
+		{ID: "child-a", Address: "parent/child-a", State: state.StatusNotStarted},
+		{ID: "child-b", Address: "parent/child-b", State: state.StatusNotStarted},
+	}
+	// Add a complete audit task so RecomputeState can derive complete.
+	parentNS.Tasks = []state.Task{
+		{ID: "audit", IsAudit: true, State: state.StatusComplete},
+	}
+	writeJSON(t, filepath.Join(projDir, "parent", "state.json"), parentNS)
+
+	d.reconcileOrchestratorStates(idx)
+
+	updated, err := d.Store.ReadNode("parent")
+	if err != nil {
+		t.Fatalf("failed to read parent state: %v", err)
+	}
+	// Children should be synced to complete.
+	for _, c := range updated.Children {
+		if c.State != state.StatusComplete {
+			t.Errorf("child %s state should be complete, got %s", c.Address, c.State)
+		}
+	}
+	// Parent should now derive to complete.
+	if updated.State != state.StatusComplete {
+		t.Errorf("expected parent state complete after reconciliation, got %s", updated.State)
+	}
+}
+
+func TestReconcileOrchestratorStates_NoOpWhenAlreadyConsistent(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Store.Dir()
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"parent"}
+	idx.Nodes["parent"] = state.IndexEntry{
+		Name: "Parent", Type: state.NodeOrchestrator, State: state.StatusInProgress,
+		Address: "parent", Children: []string{"parent/child"},
+	}
+	idx.Nodes["parent/child"] = state.IndexEntry{
+		Name: "Child", Type: state.NodeLeaf, State: state.StatusInProgress,
+		Address: "parent/child", Parent: "parent",
+	}
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
+
+	parentNS := state.NewNodeState("parent", "Parent", state.NodeOrchestrator)
+	parentNS.State = state.StatusInProgress
+	parentNS.Children = []state.ChildRef{
+		{ID: "child", Address: "parent/child", State: state.StatusInProgress},
+	}
+	writeJSON(t, filepath.Join(projDir, "parent", "state.json"), parentNS)
+
+	// Should be a no-op: states are consistent.
+	d.reconcileOrchestratorStates(idx)
+
+	updated, err := d.Store.ReadNode("parent")
+	if err != nil {
+		t.Fatalf("failed to read parent state: %v", err)
+	}
+	if updated.State != state.StatusInProgress {
+		t.Errorf("consistent parent should remain in_progress, got %s", updated.State)
+	}
+}
+
+func TestReconcileOrchestratorStates_SkipsLeafNodes(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Store.Dir()
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"leaf"}
+	idx.Nodes["leaf"] = state.IndexEntry{
+		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "leaf",
+	}
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
+
+	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
+	ns.State = state.StatusNotStarted
+	writeJSON(t, filepath.Join(projDir, "leaf", "state.json"), ns)
+
+	// Should not touch leaf nodes.
+	d.reconcileOrchestratorStates(idx)
+
+	updated, err := d.Store.ReadNode("leaf")
+	if err != nil {
+		t.Fatalf("failed to read leaf state: %v", err)
+	}
+	if updated.State != state.StatusNotStarted {
+		t.Errorf("leaf should be unchanged, got %s", updated.State)
+	}
+}
+
+func TestReconcileOrchestratorStates_SkipsWhenPlanningDisabled(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	// Planning disabled by default in testDaemon
+
+	projDir := d.Store.Dir()
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"parent"}
+	idx.Nodes["parent"] = state.IndexEntry{
+		Name: "Parent", Type: state.NodeOrchestrator, State: state.StatusNotStarted,
+		Address: "parent", Children: []string{"parent/child"},
+	}
+	idx.Nodes["parent/child"] = state.IndexEntry{
+		Name: "Child", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "parent/child", Parent: "parent",
+	}
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
+
+	parentNS := state.NewNodeState("parent", "Parent", state.NodeOrchestrator)
+	parentNS.State = state.StatusNotStarted
+	parentNS.Children = []state.ChildRef{
+		{ID: "child", Address: "parent/child", State: state.StatusNotStarted},
+	}
+	writeJSON(t, filepath.Join(projDir, "parent", "state.json"), parentNS)
+
+	d.reconcileOrchestratorStates(idx)
+
+	updated, err := d.Store.ReadNode("parent")
+	if err != nil {
+		t.Fatalf("failed to read parent state: %v", err)
+	}
+	// Should remain stale because planning is disabled.
+	if updated.State != state.StatusNotStarted {
+		t.Errorf("should not reconcile when planning disabled, got %s", updated.State)
+	}
+}
+
+func TestReconcileOrchestratorStates_SkipsChildlessOrchestrators(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Store.Dir()
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"orch"}
+	idx.Nodes["orch"] = state.IndexEntry{
+		Name: "Orch", Type: state.NodeOrchestrator, State: state.StatusNotStarted, Address: "orch",
+	}
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
+
+	ns := state.NewNodeState("orch", "Orch", state.NodeOrchestrator)
+	ns.State = state.StatusNotStarted
+	writeJSON(t, filepath.Join(projDir, "orch", "state.json"), ns)
+
+	d.reconcileOrchestratorStates(idx)
+
+	updated, err := d.Store.ReadNode("orch")
+	if err != nil {
+		t.Fatalf("failed to read orch state: %v", err)
+	}
+	if updated.State != state.StatusNotStarted {
+		t.Errorf("childless orchestrator should be unchanged, got %s", updated.State)
+	}
+}
+
+func TestReconcileOrchestratorStates_DerivesInProgress(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+
+	projDir := d.Store.Dir()
+
+	// Parent stuck at not_started, but one child is complete, one in_progress.
+	idx := state.NewRootIndex()
+	idx.Root = []string{"parent"}
+	idx.Nodes["parent"] = state.IndexEntry{
+		Name: "Parent", Type: state.NodeOrchestrator, State: state.StatusNotStarted,
+		Address: "parent", Children: []string{"parent/a", "parent/b"},
+	}
+	idx.Nodes["parent/a"] = state.IndexEntry{
+		Name: "A", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "parent/a", Parent: "parent",
+	}
+	idx.Nodes["parent/b"] = state.IndexEntry{
+		Name: "B", Type: state.NodeLeaf, State: state.StatusInProgress,
+		Address: "parent/b", Parent: "parent",
+	}
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
+
+	parentNS := state.NewNodeState("parent", "Parent", state.NodeOrchestrator)
+	parentNS.State = state.StatusNotStarted
+	parentNS.Children = []state.ChildRef{
+		{ID: "a", Address: "parent/a", State: state.StatusNotStarted},
+		{ID: "b", Address: "parent/b", State: state.StatusNotStarted},
+	}
+	writeJSON(t, filepath.Join(projDir, "parent", "state.json"), parentNS)
+
+	d.reconcileOrchestratorStates(idx)
+
+	updated, err := d.Store.ReadNode("parent")
+	if err != nil {
+		t.Fatalf("failed to read parent state: %v", err)
+	}
+	if updated.State != state.StatusInProgress {
+		t.Errorf("expected in_progress after reconciliation, got %s", updated.State)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // findPlanningTarget
 // ═══════════════════════════════════════════════════════════════════════════
 
