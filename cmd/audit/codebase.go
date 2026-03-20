@@ -12,6 +12,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 	"github.com/spf13/cobra"
 )
 
@@ -150,7 +151,7 @@ func discoverScopes(app *cmdutil.App) ([]auditScope, error) {
 	seen := make(map[string]bool)
 
 	// Scan tiers in reverse priority (base first, local last overwrites)
-	for _, tier := range pipeline.Tiers {
+	for _, tier := range tierfs.SystemTierPaths() {
 		dir := filepath.Join(app.Config.Root(), tier, "audits")
 		entries, err := os.ReadDir(dir)
 		if err != nil {

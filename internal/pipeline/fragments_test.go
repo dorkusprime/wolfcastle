@@ -4,11 +4,13 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
 func setupTiers(t *testing.T, dir string) {
 	t.Helper()
-	for _, tier := range []string{"system/base", "system/custom", "system/local"} {
+	for _, tier := range tierfs.SystemTierPaths() {
 		if err := os.MkdirAll(filepath.Join(dir, tier, "rules"), 0755); err != nil {
 			t.Fatal(err)
 		}

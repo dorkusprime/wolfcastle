@@ -9,6 +9,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
 // promptWriter is the subset of pipeline.PromptRepository that ScaffoldService
@@ -48,19 +49,23 @@ func NewScaffoldService(
 // wolfcastle init. The caller should verify that .wolfcastle/ does not
 // already exist before calling Init.
 func (s *ScaffoldService) Init(identity *config.Identity) error {
-	dirs := []string{
-		"system/base/prompts",
-		"system/base/rules",
-		"system/base/audits",
-		"system/custom",
-		"system/local",
+	// Derive tier directories from tierfs (the canonical source of
+	// truth for tier names), then add scaffold-specific subdirectories.
+	dirs := append([]string{}, tierfs.SystemTierPaths()...)
+	// Base tier needs subdirectories for prompts, rules, and audits
+	dirs = append(dirs,
+		tierfs.SystemPrefix+"/"+tierfs.TierNames[0]+"/prompts",
+		tierfs.SystemPrefix+"/"+tierfs.TierNames[0]+"/rules",
+		tierfs.SystemPrefix+"/"+tierfs.TierNames[0]+"/audits",
+	)
+	dirs = append(dirs,
 		"system/projects",
 		"system/logs",
 		"archive",
 		"artifacts",
 		"docs/decisions",
 		"docs/specs",
-	}
+	)
 	for _, d := range dirs {
 		if err := os.MkdirAll(filepath.Join(s.root, d), 0755); err != nil {
 			return fmt.Errorf("scaffold: creating directory %s: %w", d, err)
@@ -159,15 +164,16 @@ func (s *ScaffoldService) Reinit() error {
 		return fmt.Errorf("scaffold: migrating old config: %w", err)
 	}
 
-	// Remove and recreate system/base/
-	baseDir := filepath.Join(s.root, "system", "base")
+	// Remove and recreate the base tier directory
+	baseTierPath := tierfs.SystemPrefix + "/" + tierfs.TierNames[0]
+	baseDir := filepath.Join(s.root, baseTierPath)
 	if err := os.RemoveAll(baseDir); err != nil {
-		return fmt.Errorf("scaffold: removing system/base/: %w", err)
+		return fmt.Errorf("scaffold: removing %s/: %w", baseTierPath, err)
 	}
 	baseDirs := []string{
-		"system/base/prompts",
-		"system/base/rules",
-		"system/base/audits",
+		baseTierPath + "/prompts",
+		baseTierPath + "/rules",
+		baseTierPath + "/audits",
 	}
 	for _, d := range baseDirs {
 		if err := os.MkdirAll(filepath.Join(s.root, d), 0755); err != nil {
@@ -188,7 +194,7 @@ func (s *ScaffoldService) Reinit() error {
 	}
 
 	// Ensure custom config exists
-	customCfgPath := filepath.Join(s.root, "system", "custom", "config.json")
+	customCfgPath := filepath.Join(s.root, tierfs.SystemPrefix, tierfs.TierNames[1], "config.json")
 	if _, err := os.Stat(customCfgPath); os.IsNotExist(err) {
 		if err := s.config.WriteCustom(map[string]any{}); err != nil {
 			return fmt.Errorf("scaffold: %w", err)
@@ -196,7 +202,7 @@ func (s *ScaffoldService) Reinit() error {
 	}
 
 	// Refresh identity in local config, preserving other keys
-	localPath := filepath.Join(s.root, "system", "local", "config.json")
+	localPath := filepath.Join(s.root, tierfs.SystemPrefix, tierfs.TierNames[2], "config.json")
 	localCfg := map[string]any{}
 	if data, err := os.ReadFile(localPath); err == nil {
 		if err := json.Unmarshal(data, &localCfg); err != nil {

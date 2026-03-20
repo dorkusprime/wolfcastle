@@ -37,3 +37,5 @@ hardcoded defaults <- base/config.json <- custom/config.json <- local/config.jso
 - Teams gain a clean separation: `custom/config.json` is the single file reviewed in PRs for team config changes, free of regenerated defaults that would otherwise create noisy diffs.
 
 **Amendment (ADR-077):** The three tiers moved under `.wolfcastle/system/` (`system/base/`, `system/custom/`, `system/local/`). The merge semantics and override order are unchanged.
+
+**Amendment:** `internal/tierfs` is the single source of truth for tier names and resolution order. All packages that need tier-aware paths (`config`, `pipeline`, `project`, `cmd/audit`) derive their tier references from `tierfs.TierNames` and `tierfs.SystemTierPaths()` rather than maintaining independent lists. The `pipeline` package's legacy free functions (`ResolveFragment`, `ResolveAllFragments`, `ResolvePromptTemplate`) now delegate to a `tierfs.Resolver` internally.

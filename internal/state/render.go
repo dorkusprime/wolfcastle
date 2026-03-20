@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 )
 
 // RenderContext renders a task's context section as a formatted string suitable
@@ -79,9 +81,10 @@ func (t *Task) RenderContext() string {
 			fmt.Fprintf(&b, "\n## Previous Attempt Failed\n\n")
 			switch t.LastFailureType {
 			case "no_terminal_marker":
-				fmt.Fprintf(&b, "The previous attempt did not emit a terminal marker (WOLFCASTLE_COMPLETE, WOLFCASTLE_SKIP, WOLFCASTLE_BLOCKED, or WOLFCASTLE_YIELD). Make sure to emit exactly one terminal marker when done.\n")
+				fmt.Fprintf(&b, "The previous attempt did not emit a terminal marker (%s, %s, %s, or %s). Make sure to emit exactly one terminal marker when done.\n",
+					invoke.MarkerStringComplete, invoke.MarkerStringSkip, invoke.MarkerStringBlocked, invoke.MarkerStringYield)
 			case "no_progress":
-				fmt.Fprintf(&b, "The previous attempt emitted WOLFCASTLE_COMPLETE but no git changes were detected. You must commit your changes before signaling completion.\n")
+				fmt.Fprintf(&b, "The previous attempt emitted %s but no git changes were detected. You must commit your changes before signaling completion.\n", invoke.MarkerStringComplete)
 			default:
 				fmt.Fprintf(&b, "The previous attempt failed with reason: %s\n", t.LastFailureType)
 			}

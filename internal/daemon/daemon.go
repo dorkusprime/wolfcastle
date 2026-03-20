@@ -36,6 +36,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
@@ -413,7 +414,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	if d.Config.Git.VerifyBranch {
 		current, err := currentBranch(d.RepoDir)
 		if err == nil && current != d.branch {
-			return IterationStop, fmt.Errorf("WOLFCASTLE_BLOCKED: branch changed from %s to %s", d.branch, current)
+			return IterationStop, fmt.Errorf("%s: branch changed from %s to %s", invoke.MarkerStringBlocked, d.branch, current)
 		}
 	}
 
@@ -466,7 +467,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		var msg string
 		switch navResult.Reason {
 		case "all_complete":
-			msg = "WOLFCASTLE_COMPLETE"
+			msg = invoke.MarkerStringComplete
 		case "empty_tree":
 			msg = "Nothing to destroy. Feed the inbox."
 		case "all_blocked":

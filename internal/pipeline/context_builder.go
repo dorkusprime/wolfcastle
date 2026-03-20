@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -144,7 +145,7 @@ func (cb *ContextBuilder) renderSummaryRequired() string {
 	b.WriteString("This is the last incomplete task in this node. When you complete it, ")
 	b.WriteString("include a summary of all work done in this node:\n\n")
 	b.WriteString("`wolfcastle audit summary --node <your-node> \"one-paragraph summary of what was accomplished\"`\n\n")
-	b.WriteString("Run this command before emitting WOLFCASTLE_COMPLETE.\n")
+	fmt.Fprintf(&b, "Run this command before emitting %s.\n", invoke.MarkerStringComplete)
 	return b.String()
 }
 
@@ -183,7 +184,7 @@ func (cb *ContextBuilder) renderFailureContext(nodeAddr string, task *state.Task
 			b.WriteString("Break this leaf into smaller sub-tasks using the wolfcastle CLI:\n\n")
 			fmt.Fprintf(&b, "1. Create child nodes: `wolfcastle project create --node %s --type leaf \"<name>\"`\n", nodeAddr)
 			fmt.Fprintf(&b, "2. Add tasks to each child: `wolfcastle task add --node %s/<child-slug> \"<description>\"`\n", nodeAddr)
-			b.WriteString("3. Emit WOLFCASTLE_YIELD when decomposition is complete.\n\n")
+			fmt.Fprintf(&b, "3. Emit %s when decomposition is complete.\n\n", invoke.MarkerStringYield)
 			b.WriteString("The parent node will automatically convert from leaf to orchestrator when the first child is created.\n")
 		}
 	}

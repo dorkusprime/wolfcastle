@@ -1,56 +1,52 @@
 package pipeline
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
+
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
-// Tiers defines the resolution order for three-tier file merging.
-// Listed from lowest to highest priority; later entries override earlier
-// ones for same-named files. Defined once to prevent drift between
-// ResolveFragment, ResolveAllFragments, and any other tier-aware code.
-var Tiers = []string{"system/base", "system/custom", "system/local"}
+// Tiers returns the three-tier directory paths relative to the wolfcastle
+// root, in resolution order (base, custom, local). Derived from tierfs,
+// the single source of truth for tier names (ADR-063).
+//
+// Deprecated: prefer tierfs.SystemTierPaths() or a tierfs.Resolver directly.
+// Kept for call sites that still need the "system/base" style paths.
+var Tiers = tierfs.SystemTierPaths()
 
 // ResolveFragment finds a file through the three-tier merge.
 // Returns the content from the most specific tier that has it.
 func ResolveFragment(wolfcastleDir, filename string) (string, error) {
-	// Walk tiers from most specific to least, return on first match.
-	for i := len(Tiers) - 1; i >= 0; i-- {
-		path := filepath.Join(wolfcastleDir, Tiers[i], filename)
-		data, err := os.ReadFile(path)
-		if err == nil {
-			return string(data), nil
+	r := tierfs.New(filepath.Join(wolfcastleDir, tierfs.SystemPrefix))
+	data, err := r.Resolve(filename)
+	if err != nil {
+		if isNotExist(err) {
+			return "", fmt.Errorf("fragment %q not found in any tier", filename)
 		}
-		if !os.IsNotExist(err) {
-			return "", fmt.Errorf("reading %s from tier %s: %w", filename, Tiers[i], err)
-		}
+		return "", fmt.Errorf("reading %s: %w", filename, err)
 	}
-	return "", fmt.Errorf("fragment %q not found in any tier", filename)
+	return string(data), nil
 }
 
 // ResolveAllFragments finds all rule fragments across all tiers.
 // Same-named files in higher tiers replace lower tiers.
 func ResolveAllFragments(wolfcastleDir string, subdir string, include, exclude []string) ([]string, error) {
-	// Collect all filenames across tiers. Iterating lowest-to-highest
-	// means later map writes (higher tiers) overwrite earlier ones.
-	files := make(map[string]string) // filename -> full path
+	r := tierfs.New(filepath.Join(wolfcastleDir, tierfs.SystemPrefix))
+	allFiles, err := r.ResolveAll(subdir)
+	if err != nil {
+		return nil, fmt.Errorf("resolving fragments in %s: %w", subdir, err)
+	}
 
-	for _, tier := range Tiers {
-		dir := filepath.Join(wolfcastleDir, tier, subdir)
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			continue
-		}
-		for _, e := range entries {
-			if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
-				continue
-			}
-			files[e.Name()] = filepath.Join(dir, e.Name())
-		}
+	// Convert []byte values to string map for filtering
+	files := make(map[string]string, len(allFiles))
+	for name, data := range allFiles {
+		files[name] = string(data)
 	}
 
 	// Filter by include/exclude
@@ -74,18 +70,14 @@ func ResolveAllFragments(wolfcastleDir string, subdir string, include, exclude [
 		if excludeSet[name] {
 			continue
 		}
-		path, ok := files[name]
+		content, ok := files[name]
 		if !ok {
 			if len(include) > 0 {
 				return nil, fmt.Errorf("fragment %q specified in include list not found in any tier", name)
 			}
 			continue
 		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("reading fragment %q: %w", name, err)
-		}
-		contents = append(contents, string(data))
+		contents = append(contents, content)
 	}
 
 	return contents, nil
@@ -111,4 +103,9 @@ func ResolvePromptTemplate(wolfcastleDir, promptFile string, ctx any) (string, e
 		return "", fmt.Errorf("executing prompt template %s: %w", promptFile, err)
 	}
 	return buf.String(), nil
+}
+
+// isNotExist checks whether an error wraps os.ErrNotExist.
+func isNotExist(err error) bool {
+	return errors.Is(err, os.ErrNotExist)
 }

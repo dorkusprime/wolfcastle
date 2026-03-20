@@ -369,8 +369,8 @@ func TestResolveAllFragments_ReadFileError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when fragment file is unreadable")
 	}
-	if !strings.Contains(err.Error(), "reading fragment") {
-		t.Errorf("error should mention 'reading fragment', got: %v", err)
+	if !strings.Contains(err.Error(), "resolving fragments") {
+		t.Errorf("error should mention 'resolving fragments', got: %v", err)
 	}
 }
 
