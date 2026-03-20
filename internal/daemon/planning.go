@@ -3,7 +3,6 @@ package daemon
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
@@ -258,7 +257,7 @@ func selectPlanningPrompt(trigger string) string {
 func (d *Daemon) recordPlanningPass(nodeAddr, trigger, marker string) {
 	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 		pass := state.PlanningPass{
-			Timestamp: time.Now().UTC(),
+			Timestamp: d.Clock.Now(),
 			Trigger:   trigger,
 			Summary:   fmt.Sprintf("marker=%s", marker),
 		}
