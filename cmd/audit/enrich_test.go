@@ -56,6 +56,37 @@ func TestEnrichCmd_MultipleEnrichments(t *testing.T) {
 	}
 }
 
+func TestEnrichCmd_EmptyText_ReturnsError(t *testing.T) {
+	env := newTestEnv(t)
+	setupNode(t, env, "test-node", state.NodeLeaf)
+
+	env.RootCmd.SetArgs([]string{"audit", "enrich", "--node", "test-node", "   "})
+	if err := env.RootCmd.Execute(); err == nil {
+		t.Error("expected error for whitespace-only enrichment text")
+	}
+}
+
+func TestEnrichCmd_JSONOutput(t *testing.T) {
+	env := newTestEnv(t)
+	env.App.JSONOutput = true
+	setupNode(t, env, "test-node", state.NodeLeaf)
+
+	env.RootCmd.SetArgs([]string{"audit", "enrich", "--node", "test-node", "verify coverage"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("enrich with JSON failed: %v", err)
+	}
+}
+
+func TestEnrichCmd_NoIdentity_ReturnsError(t *testing.T) {
+	env := newTestEnv(t)
+	env.App.Identity = nil
+
+	env.RootCmd.SetArgs([]string{"audit", "enrich", "--node", "test-node", "check tests"})
+	if err := env.RootCmd.Execute(); err == nil {
+		t.Error("expected error when identity is nil")
+	}
+}
+
 // setupNode creates a leaf or orchestrator node with a root index entry.
 func setupNode(t *testing.T, env *testEnv, addr string, nodeType state.NodeType) {
 	t.Helper()
