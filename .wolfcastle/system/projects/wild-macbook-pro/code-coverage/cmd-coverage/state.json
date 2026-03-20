@@ -3,7 +3,7 @@
   "id": "cmd-coverage",
   "name": "cmd Coverage",
   "type": "orchestrator",
-  "state": "complete",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "children": [
     {
@@ -71,7 +71,7 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "passed",
+    "status": "in_progress",
     "started_at": "2026-03-19T03:23:52.268728Z",
     "completed_at": "2026-03-19T06:36:52.801655Z"
   }
