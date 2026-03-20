@@ -26,7 +26,7 @@ func TestRunIteration_SkipBypassesProgressCheck(t *testing.T) {
 		Args:    []string{"WOLFCASTLE_SKIP already done"},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "skip-echo", PromptFile: "execute.md"},
+		{Name: "execute", Model: "skip-echo", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
@@ -35,7 +35,7 @@ func TestRunIteration_SkipBypassesProgressCheck(t *testing.T) {
 	setupLeafNode(t, d, "skip-node", []state.Task{
 		{ID: "task-0001", Description: "already resolved elsewhere", State: state.StatusInProgress},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "skip-node", TaskID: "task-0001", Found: true}
@@ -76,7 +76,7 @@ func TestRunIteration_AuditSkipsProgressCheck(t *testing.T) {
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
@@ -85,7 +85,7 @@ func TestRunIteration_AuditSkipsProgressCheck(t *testing.T) {
 	setupLeafNode(t, d, "audit-node", []state.Task{
 		{ID: "audit-0001", Description: "audit the node", State: state.StatusInProgress, IsAudit: true},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "audit-node", TaskID: "audit-0001", Found: true}
@@ -121,7 +121,7 @@ func TestRunIteration_MissingDeliverables_WarnsButCompletes(t *testing.T) {
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
@@ -144,7 +144,7 @@ func TestRunIteration_MissingDeliverables_WarnsButCompletes(t *testing.T) {
 	}
 	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 	writeJSON(t, filepath.Join(projDir, "deliv-node", "state.json"), ns)
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx2, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "deliv-node", TaskID: "task-0001", Found: true}

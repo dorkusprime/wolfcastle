@@ -189,7 +189,7 @@ func TestReScaffold_RegeneratesBase(t *testing.T) {
 	}
 
 	// Remove a base file to verify it gets regenerated
-	promptFile := filepath.Join(dir, "system", "base", "prompts", "execute.md")
+	promptFile := filepath.Join(dir, "system", "base", "prompts", "stages", "execute.md")
 	if err := os.Remove(promptFile); err != nil {
 		t.Fatal("removing prompt file:", err)
 	}
@@ -423,7 +423,7 @@ func TestWriteBasePrompts_CreatesPromptFiles(t *testing.T) {
 	}
 
 	expectedFiles := []string{
-		"system/base/prompts/execute.md",
+		"system/base/prompts/stages/execute.md",
 		"system/base/prompts/expand.md",
 		"system/base/prompts/file.md",
 		"system/base/prompts/summary.md",

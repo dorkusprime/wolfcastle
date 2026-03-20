@@ -118,7 +118,7 @@ func TestScaffold_WritesBasePromptFiles(t *testing.T) {
 	}
 
 	// Verify execute.md is written
-	data, err := os.ReadFile(filepath.Join(dir, "system", "base", "prompts", "execute.md"))
+	data, err := os.ReadFile(filepath.Join(dir, "system", "base", "prompts", "stages", "execute.md"))
 	if err != nil {
 		t.Fatal("execute.md should exist:", err)
 	}

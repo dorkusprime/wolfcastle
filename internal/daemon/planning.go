@@ -243,13 +243,13 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 func selectPlanningPrompt(trigger string) string {
 	switch trigger {
 	case "new_scope":
-		return "plan-amend.md"
+		return "stages/plan-amend.md"
 	case "child_blocked":
-		return "plan-remediate.md"
+		return "stages/plan-remediate.md"
 	case "completion_review":
-		return "plan-review.md"
+		return "stages/plan-review.md"
 	default:
-		return "plan-initial.md"
+		return "stages/plan-initial.md"
 	}
 }
 

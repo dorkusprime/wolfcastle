@@ -29,7 +29,7 @@ func TestRunIteration_AlreadyInProgress_SkipsClaim(t *testing.T) {
 	setupLeafNode(t, d, "skip-claim", []state.Task{
 		{ID: "task-0001", Description: "resumed", State: state.StatusInProgress},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "skip-claim", TaskID: "task-0001", Found: true}
@@ -64,7 +64,7 @@ func TestRunIteration_YieldDecomposition_PlanningDisabled(t *testing.T) {
 	setupLeafNode(t, d, "yield-decomp", []state.Task{
 		{ID: "task-0001", Description: "parent task", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	// Model command: add a new task to the state file, then emit YIELD.
 	d.Config.Models["yield-add"] = config.ModelDef{
@@ -79,7 +79,7 @@ with open('%s','w') as f: json.dump(data, f)
 		)},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "yield-add", PromptFile: "execute.md"},
+		{Name: "execute", Model: "yield-add", PromptFile: "stages/execute.md"},
 	}
 
 	idx, _ := d.Store.ReadIndex()
@@ -123,7 +123,7 @@ func TestRunIteration_YieldDecomposition_PlanningEnabled(t *testing.T) {
 	setupLeafNode(t, d, "yield-plan", []state.Task{
 		{ID: "task-0001", Description: "parent", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["yield-plan"] = config.ModelDef{
 		Command: "sh",
@@ -137,7 +137,7 @@ with open('%s','w') as f: json.dump(data, f)
 		)},
 	}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "yield-plan", PromptFile: "execute.md"},
+		{Name: "execute", Model: "yield-plan", PromptFile: "stages/execute.md"},
 	}
 
 	idx, _ := d.Store.ReadIndex()
@@ -170,7 +170,7 @@ func TestRunIteration_YieldNoNewTasks(t *testing.T) {
 	d.Config.Pipeline.Planning.Enabled = false
 	d.Config.Models["yield"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_YIELD"}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "yield", PromptFile: "execute.md"},
+		{Name: "execute", Model: "yield", PromptFile: "stages/execute.md"},
 	}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -178,7 +178,7 @@ func TestRunIteration_YieldNoNewTasks(t *testing.T) {
 	setupLeafNode(t, d, "yield-no-new", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "yield-no-new", TaskID: "task-0001", Found: true}
@@ -212,11 +212,11 @@ func TestRunIteration_BlockedSuperseded_TreatedAsSkip(t *testing.T) {
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted,
 			BlockedReason: "already done in prior commit"},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "blocked", PromptFile: "execute.md"},
+		{Name: "execute", Model: "blocked", PromptFile: "stages/execute.md"},
 	}
 
 	idx, _ := d.Store.ReadIndex()
@@ -263,11 +263,11 @@ func TestRunIteration_BlockedAudit_CreatesRemediationSubtasks(t *testing.T) {
 	}
 	writeJSON(t, nsPath, ns)
 
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "blocked", PromptFile: "execute.md"},
+		{Name: "execute", Model: "blocked", PromptFile: "stages/execute.md"},
 	}
 
 	idx, _ := d.Store.ReadIndex()
@@ -307,11 +307,11 @@ func TestRunIteration_BlockedNormal_BlocksAndPropagates(t *testing.T) {
 	setupLeafNode(t, d, "blocked-normal", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "blocked", PromptFile: "execute.md"},
+		{Name: "execute", Model: "blocked", PromptFile: "stages/execute.md"},
 	}
 
 	idx, _ := d.Store.ReadIndex()
@@ -350,7 +350,7 @@ func TestRunIteration_Complete_MissingDeliverables(t *testing.T) {
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted,
 			Deliverables: []string{"nonexistent/file.go"}},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "deliv-warn", TaskID: "task-0001", Found: true}
@@ -387,7 +387,7 @@ func TestRunIteration_CompleteAudit_SkipsGitCheck(t *testing.T) {
 	setupLeafNode(t, d, "audit-complete", []state.Task{
 		{ID: "audit", Description: "audit task", State: state.StatusNotStarted, IsAudit: true},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "audit-complete", TaskID: "audit", Found: true}
@@ -427,7 +427,7 @@ func TestRunIteration_CompleteNoGitProgress_FailsTask(t *testing.T) {
 	setupLeafNode(t, d, "no-progress", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_COMPLETE"}}
 
@@ -474,11 +474,11 @@ func TestRunIteration_Skip_AutoCompleteDecomposedParent(t *testing.T) {
 		{ID: "task-0002", Description: "subtask 1", State: state.StatusComplete},
 		{ID: "task-0003", Description: "subtask 2", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["skip"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_SKIP already done"}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "skip", PromptFile: "execute.md"},
+		{Name: "execute", Model: "skip", PromptFile: "stages/execute.md"},
 	}
 
 	idx, _ := d.Store.ReadIndex()
@@ -885,7 +885,7 @@ func TestRunIteration_NoProgress_FailureType(t *testing.T) {
 	setupLeafNode(t, d, "fp-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_COMPLETE"}}
 
@@ -916,11 +916,11 @@ func TestRunIteration_NoMarker_FailureType(t *testing.T) {
 	setupLeafNode(t, d, "ftm-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"just some text"}}
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
 
 	idx, _ := d.Store.ReadIndex()

@@ -73,6 +73,16 @@ a higher tier to delete it entirely.
 Prompt templates that drive Wolfcastle's pipeline stages. Each file here is a
 Markdown template injected into model calls during task execution.
 
+Organized into subdirectories by purpose:
+
+- **stages/** -- Pipeline stage prompts (intake, execute, planning variants).
+- **classes/** -- Task class prompts. Empty in the base tier; add your own
+  under system/custom/prompts/classes/ to guide execution by task type.
+- **audits/** -- Audit command prompts.
+
+Shared support templates (script-reference, context-headers, etc.) remain at
+this level.
+
 These are the base tier copies. Wolfcastle regenerates them on every
 ` + "`wolfcastle init --force`" + `. Do not edit these files directly.
 
@@ -84,8 +94,8 @@ loads prompts using the same three-tier resolution as config: local beats
 custom beats base.
 
 If you want to tweak the execution prompt for your team, copy
-` + "`system/base/prompts/execute.md`" + ` to ` + "`system/custom/prompts/execute.md`" + ` and
-edit the copy. The base version stays intact and gets refreshed on upgrades.
+` + "`system/base/prompts/stages/execute.md`" + ` to ` + "`system/custom/prompts/stages/execute.md`" + `
+and edit the copy. The base version stays intact and gets refreshed on upgrades.
 Your custom version stays yours.
 `,
 
@@ -150,11 +160,16 @@ func (s *ScaffoldService) Init(identity *config.Identity) error {
 	// Derive tier directories from tierfs (the canonical source of
 	// truth for tier names), then add scaffold-specific subdirectories.
 	dirs := append([]string{}, tierfs.SystemTierPaths()...)
-	// Base tier needs subdirectories for prompts, rules, and audits
+	// Base tier needs subdirectories for prompts (with stage, class, and
+	// audit sub-categories), rules, and audits
+	baseTier := tierfs.SystemPrefix + "/" + tierfs.TierNames[0]
 	dirs = append(dirs,
-		tierfs.SystemPrefix+"/"+tierfs.TierNames[0]+"/prompts",
-		tierfs.SystemPrefix+"/"+tierfs.TierNames[0]+"/rules",
-		tierfs.SystemPrefix+"/"+tierfs.TierNames[0]+"/audits",
+		baseTier+"/prompts",
+		baseTier+"/prompts/stages",
+		baseTier+"/prompts/classes",
+		baseTier+"/prompts/audits",
+		baseTier+"/rules",
+		baseTier+"/audits",
 	)
 	dirs = append(dirs,
 		"system/projects",
@@ -275,6 +290,9 @@ func (s *ScaffoldService) Reinit() error {
 	if err := m.MigrateOldConfig(); err != nil {
 		return fmt.Errorf("scaffold: migrating old config: %w", err)
 	}
+	if err := m.MigratePromptLayout(); err != nil {
+		return fmt.Errorf("scaffold: migrating prompt layout: %w", err)
+	}
 
 	// Remove and recreate the base tier directory
 	baseTierPath := tierfs.SystemPrefix + "/" + tierfs.TierNames[0]
@@ -284,6 +302,9 @@ func (s *ScaffoldService) Reinit() error {
 	}
 	baseDirs := []string{
 		baseTierPath + "/prompts",
+		baseTierPath + "/prompts/stages",
+		baseTierPath + "/prompts/classes",
+		baseTierPath + "/prompts/audits",
 		baseTierPath + "/rules",
 		baseTierPath + "/audits",
 	}

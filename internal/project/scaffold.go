@@ -20,6 +20,9 @@ import (
 func Scaffold(wolfcastleDir string) error {
 	dirs := []string{
 		"system/base/prompts",
+		"system/base/prompts/stages",
+		"system/base/prompts/classes",
+		"system/base/prompts/audits",
 		"system/base/rules",
 		"system/base/audits",
 		"system/custom",
@@ -204,6 +207,9 @@ func ReScaffold(wolfcastleDir string) error {
 	}
 	baseDirs := []string{
 		"system/base/prompts",
+		"system/base/prompts/stages",
+		"system/base/prompts/classes",
+		"system/base/prompts/audits",
 		"system/base/rules",
 		"system/base/audits",
 	}

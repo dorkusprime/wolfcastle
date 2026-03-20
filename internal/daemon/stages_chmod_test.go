@@ -22,7 +22,7 @@ func TestRunIntakeStage_SaveInboxError_ReadOnly(t *testing.T) {
 	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"filed output"}}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
@@ -34,7 +34,7 @@ func TestRunIntakeStage_SaveInboxError_ReadOnly(t *testing.T) {
 	_ = os.Chmod(projDir, 0555)
 	t.Cleanup(func() { _ = os.Chmod(projDir, 0755) })
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Error("expected error when SaveInbox fails after intake")

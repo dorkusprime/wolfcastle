@@ -117,7 +117,7 @@ func testConfig() *config.Config {
 		},
 		Pipeline: config.PipelineConfig{
 			Stages: []config.PipelineStage{
-				{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+				{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 			},
 		},
 		Logs:    config.LogsConfig{MaxFiles: 100, MaxAgeDays: 30},
@@ -218,12 +218,13 @@ func setupLeafNode(t *testing.T, d *Daemon, nodeAddr string, tasks []state.Task)
 }
 
 // writePromptFile creates a minimal prompt file so AssemblePrompt succeeds.
+// The filename may include subdirectory prefixes (e.g., "stages/execute.md").
 func writePromptFile(t *testing.T, wolfDir, filename string) {
 	t.Helper()
 	// Prompt resolution checks local/ first, then custom/, then base/
-	dir := filepath.Join(wolfDir, "system", "base", "prompts")
-	_ = os.MkdirAll(dir, 0755)
-	_ = os.WriteFile(filepath.Join(dir, filename), []byte("test prompt"), 0644)
+	path := filepath.Join(wolfDir, "system", "base", "prompts", filename)
+	_ = os.MkdirAll(filepath.Dir(path), 0755)
+	_ = os.WriteFile(path, []byte("test prompt"), 0644)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -601,7 +602,7 @@ func TestRunOnce_WorkFound(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "do a thing", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -622,13 +623,13 @@ func TestRunOnce_IterationError(t *testing.T) {
 
 	// Point to a model that does not exist
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "execute.md"},
+		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
 
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -651,7 +652,7 @@ func TestRunIteration_ClaimTask(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "claim me", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -688,7 +689,7 @@ func TestRunIteration_TerminalMarkers(t *testing.T) {
 			setupLeafNode(t, d, "my-node", []state.Task{
 				{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 			})
-			writePromptFile(t, d.WolfcastleDir, "execute.md")
+			writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 			idx, _ := d.Store.ReadIndex()
 			nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -708,7 +709,7 @@ func TestRunIteration_NoTerminalMarker_IncrFailure(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -741,7 +742,7 @@ func TestRunIteration_DecompositionThreshold(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted, FailureCount: 1},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -785,7 +786,7 @@ func TestRunIteration_DecompAtMaxDepth_AutoBlocks(t *testing.T) {
 	ns.DecompositionDepth = 1
 	ns.Tasks = []state.Task{{ID: "task-0001", Description: "work", State: state.StatusNotStarted, FailureCount: 1}}
 	writeJSON(t, filepath.Join(projDir, "my-node", "state.json"), ns)
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx2, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -818,7 +819,7 @@ func TestRunIteration_HardCap_AutoBlocks(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted, FailureCount: 1},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -843,7 +844,7 @@ func TestRunIteration_HardCap_AutoBlocks(t *testing.T) {
 func TestRunIteration_ModelNotFound(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "execute.md"},
+		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -851,7 +852,7 @@ func TestRunIteration_ModelNotFound(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -865,7 +866,7 @@ func TestRunIteration_DisabledStageSkipped(t *testing.T) {
 	d := testDaemon(t)
 	f := false
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "execute.md", Enabled: &f},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md", Enabled: &f},
 	}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -873,7 +874,7 @@ func TestRunIteration_DisabledStageSkipped(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -885,8 +886,8 @@ func TestRunIteration_DisabledStageSkipped(t *testing.T) {
 func TestRunIteration_IntakeStageSkippedInPipeline(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "echo", PromptFile: "intake.md"},
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -894,8 +895,8 @@ func TestRunIteration_IntakeStageSkippedInPipeline(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -913,7 +914,7 @@ func TestRunIteration_InvocationTimeout(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -931,7 +932,7 @@ func TestRunIteration_ZeroInvocationTimeout(t *testing.T) {
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 	})
-	writePromptFile(t, d.WolfcastleDir, "execute.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
@@ -949,7 +950,7 @@ func TestRunIntakeStage_NoInbox(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Errorf("should succeed with no inbox: %v", err)
 	}
@@ -959,14 +960,14 @@ func TestRunIntakeStage_WithNewItems(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
 		{Status: "new", Text: "add feature X", Timestamp: "2024-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -987,7 +988,7 @@ func TestRunIntakeStage_NoNewItems(t *testing.T) {
 		{Status: "filed", Text: "already done"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Errorf("should return nil for no new items: %v", err)
 	}
@@ -1003,7 +1004,7 @@ func TestRunIntakeStage_ModelNotFound(t *testing.T) {
 		{Status: "new", Text: "item"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "nonexistent", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "nonexistent", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Error("expected error for missing model")
@@ -1014,7 +1015,7 @@ func TestRunIntakeStage_MultipleNewItems(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
@@ -1022,7 +1023,7 @@ func TestRunIntakeStage_MultipleNewItems(t *testing.T) {
 		{Status: "new", Text: "item 2", Timestamp: "2024-01-01T00:01:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}

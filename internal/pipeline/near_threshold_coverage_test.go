@@ -499,7 +499,7 @@ func TestAssemblePrompt_FragmentResolutionError(t *testing.T) {
 	cfg := config.Defaults()
 	stage := config.PipelineStage{
 		Name:       "execute",
-		PromptFile: "execute.md",
+		PromptFile: "stages/execute.md",
 	}
 
 	_, err := pipeline.AssemblePrompt(dir, cfg, stage, "")

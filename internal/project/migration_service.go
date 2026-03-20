@@ -66,6 +66,64 @@ func (m *MigrationService) MigrateDirectoryLayout() error {
 	return nil
 }
 
+// MigratePromptLayout moves flat prompt files into the new subdirectory
+// structure (stages/, audits/). If prompts/stages/ already exists, the call
+// is a no-op. This handles all three tiers (base, custom, local) so that
+// user overrides in higher tiers continue to resolve correctly.
+func (m *MigrationService) MigratePromptLayout() error {
+	// Stage prompts: files that belong under prompts/stages/
+	stageFiles := []string{
+		"intake.md", "execute.md", "intake-planning.md",
+		"plan-initial.md", "plan-amend.md", "plan-review.md", "plan-remediate.md",
+	}
+	// Audit prompts: files that belong under prompts/audits/
+	auditFiles := []string{"audit.md"}
+
+	for _, tier := range tierfs.TierNames {
+		promptsDir := filepath.Join(m.root, tierfs.SystemPrefix, tier, "prompts")
+		if _, err := os.Stat(promptsDir); os.IsNotExist(err) {
+			continue
+		}
+
+		// If stages/ already exists in this tier, skip it entirely
+		stagesDir := filepath.Join(promptsDir, "stages")
+		if _, err := os.Stat(stagesDir); err == nil {
+			continue
+		}
+
+		// Move stage files
+		for _, f := range stageFiles {
+			src := filepath.Join(promptsDir, f)
+			if _, err := os.Stat(src); os.IsNotExist(err) {
+				continue
+			}
+			if err := os.MkdirAll(stagesDir, 0755); err != nil {
+				return fmt.Errorf("creating %s/prompts/stages/: %w", tier, err)
+			}
+			if err := os.Rename(src, filepath.Join(stagesDir, f)); err != nil {
+				return fmt.Errorf("migrating %s/prompts/%s to stages/: %w", tier, f, err)
+			}
+		}
+
+		// Move audit files
+		for _, f := range auditFiles {
+			src := filepath.Join(promptsDir, f)
+			if _, err := os.Stat(src); os.IsNotExist(err) {
+				continue
+			}
+			auditsDir := filepath.Join(promptsDir, "audits")
+			if err := os.MkdirAll(auditsDir, 0755); err != nil {
+				return fmt.Errorf("creating %s/prompts/audits/: %w", tier, err)
+			}
+			if err := os.Rename(src, filepath.Join(auditsDir, f)); err != nil {
+				return fmt.Errorf("migrating %s/prompts/%s to audits/: %w", tier, f, err)
+			}
+		}
+	}
+
+	return nil
+}
+
 // MigrateOldConfig migrates pre-ADR-063 config files from the wolfcastle root
 // into the three-tier layout under system/. Root config.json goes to
 // system/custom/config.json (if absent). config.local.json is deep-merged

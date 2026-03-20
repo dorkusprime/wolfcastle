@@ -70,9 +70,9 @@ func TestRunInboxWithPolling_ProcessesInbox(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Daemon.InboxPollIntervalSeconds = 1
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "echo", PromptFile: "intake.md", Enabled: boolPtr(true)},
+		{Name: "intake", Model: "echo", PromptFile: "stages/intake.md", Enabled: boolPtr(true)},
 	}
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	// Put a new item in the inbox
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
@@ -161,7 +161,7 @@ func TestProcessInbox_NoIntakeStage(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "execute.md"},
+		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
 	}
 
 	// Should not panic with no intake stage
@@ -172,7 +172,7 @@ func TestProcessInbox_IntakeStageDisabled(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "echo", PromptFile: "intake.md", Enabled: boolPtr(false)},
+		{Name: "intake", Model: "echo", PromptFile: "stages/intake.md", Enabled: boolPtr(false)},
 	}
 
 	d.processInbox(context.Background(), 1)
@@ -216,7 +216,7 @@ func TestRunIntakeStage_MissingModel(t *testing.T) {
 	}})
 
 	// Use a model key that doesn't exist
-	stage := config.PipelineStage{Name: "intake", Model: "nonexistent", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "nonexistent", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Error("expected error for missing model")
@@ -234,7 +234,7 @@ func TestRunIntakeStage_AllItemsFiled(t *testing.T) {
 		{Status: "filed", Text: "already done", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err != nil {
 		t.Errorf("expected nil for no new items, got: %v", err)
@@ -248,7 +248,7 @@ func TestRunIntakeStage_NoInboxFile(t *testing.T) {
 	defer d.InboxLogger.Close()
 
 	// No inbox file on disk
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err != nil {
 		t.Errorf("expected nil for missing inbox, got: %v", err)
@@ -260,7 +260,7 @@ func TestRunIntakeStage_WithExistingTree(t *testing.T) {
 	d := testDaemon(t)
 	_ = d.InboxLogger.StartIterationWithPrefix("intake")
 	defer d.InboxLogger.Close()
-	writePromptFile(t, d.WolfcastleDir, "intake.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
 
 	// Create a tree so the intake context includes existing projects
 	setupLeafNode(t, d, "existing-project", []state.Task{
@@ -272,7 +272,7 @@ func TestRunIntakeStage_WithExistingTree(t *testing.T) {
 		{Status: "new", Text: "new work", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "intake.md"}
+	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err != nil {
 		t.Fatalf("intake stage error: %v", err)
