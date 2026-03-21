@@ -19,6 +19,7 @@ This spec defines how pipeline stages are configured, invoked, and how they inte
 ## Related Specs
 
 - [Dict-Format Pipeline Stages](2026-03-21T03-11Z-dict-format-stages.md): defines the map-based `pipeline.stages` schema, `stage_order` field, merge semantics, and migration contract.
+- [Orchestrator Planning Pipeline](2026-03-17T00-00Z-orchestrator-planning-pipeline.md): defines the recursive planning pipeline for orchestrator nodes, including planning-specific prompt variants and markers.
 
 ---
 
@@ -203,6 +204,7 @@ Wolfcastle injects dynamic context at the end of the assembled prompt. This incl
 - The current node's tree address.
 - The current node's state (task list, statuses, breadcrumbs, audit state).
 - Failure history for the current node (failure count, decomposition depth), so the model is aware of prior attempts.
+- After Action Reviews (AARs) from prior tasks in the node, providing structured retrospective data (objective, what happened, went well, improvements, action items) that subsequent tasks can learn from.
 - The inbox contents (for stages that process the inbox, e.g. `intake`).
 
 The iteration context is always injected regardless of `skip_prompt_assembly`.
@@ -262,7 +264,7 @@ The model's **meaningful output** is not its stdout text but its **side effects*
 | Stage | Expected Input State | Expected Side Effects |
 |-------|---------------------|----------------------|
 | `intake` | Inbox has items with status "new" | Reads inbox items, calls `wolfcastle project create` and `wolfcastle task add` directly to create projects and tasks in the tree. Runs in a parallel goroutine (ADR-064). |
-| `execute` | A navigable task exists in `not_started` or `in_progress` state | Claims a task, does the work (writes code, runs tests, etc.), writes breadcrumbs, marks tasks complete or blocked. May create subtasks. |
+| `execute` | A navigable task exists in `not_started` or `in_progress` state | Claims a task, does the work (writes code, runs tests, etc.), writes breadcrumbs, marks tasks complete or blocked. May create subtasks. When a task with `task_type: "spec"` completes, the daemon auto-creates a sibling `spec-review` task (see Spec Review Auto-Trigger below). |
 | (summary) | N/A — inline | Per ADR-036, summaries are emitted inline by the executing model via `WOLFCASTLE_SUMMARY:` marker, not as a separate stage invocation. |
 
 ---
@@ -399,6 +401,21 @@ Setting `"enabled": false` disables summary generation entirely. When disabled:
 ### Output
 
 The daemon's `applyModelMarkers` function detects the `WOLFCASTLE_SUMMARY:` prefix in model output and writes the text to `audit.result_summary` in the node's state. The archive rollup (ADR-016) reads this field when generating the archive entry.
+
+---
+
+## 7.5 Spec Review Auto-Trigger
+
+When the daemon completes a task with `task_type: "spec"`, it automatically creates a sibling review task that audits the spec before downstream implementation begins. This is implemented in `daemon/spec_review.go`.
+
+The review task:
+- Has a deterministic ID derived from the spec task: `{specTaskID}-review`.
+- Carries `task_type: "spec-review"` and is inserted before the audit task.
+- References the same spec documents as the original spec task.
+- Uses the `spec-review.md` prompt, which instructs the model to perform an adversarial review for logical gaps, missing signatures, contradictions, under-specified behavior, incomplete error handling, and missing edge cases.
+- Emits `WOLFCASTLE_COMPLETE` if the spec passes review, or `WOLFCASTLE_BLOCKED` with specific issues if revision is needed.
+
+If the review task blocks, `handleSpecReviewBlocked` feeds the review feedback back to the original spec task, resets it to `not_started`, and appends the issues to its body so the spec author can revise.
 
 ---
 

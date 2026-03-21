@@ -215,7 +215,39 @@ Daemon artifacts are operational files that can be left behind when the daemon c
 
 **Example**: The `stop` file exists but no daemon is running. The next `wolfcastle start` would immediately shut down upon seeing it.
 
-### Audit State Integrity
+#### ORPHANED_TEMP_FILE
+
+**Description**: A temporary file (e.g., `*.tmp`, `*.doctor.tmp`) exists in the `.wolfcastle/` directory tree, left behind from an interrupted write operation.
+
+**Detection**: Walk the filesystem under `.wolfcastle/system/projects/` looking for files with temporary suffixes (`.tmp`, `.doctor.tmp`).
+
+**Severity**: Warning
+
+**Fix Strategy**: **Deterministic**. Delete the orphaned temporary file. The interrupted operation that created it either completed (and the temp file is a leftover) or failed (and the temp file contains incomplete data).
+
+#### INVALID_TASK_ID
+
+**Description**: A task has an ID that does not match the expected format: `task-NNNN`, `audit`, or hierarchical variants like `task-NNNN.NNNN` or `audit.NNNN`.
+
+**Detection**: For every task in every node, validate the ID against the pattern `^(task-\d{4}|audit)(\.\d{4})*$`.
+
+**Severity**: Warning
+
+**Fix Strategy**: **Deterministic**. Rename the task ID to a valid format derived from its position in the task list. Excluded from startup categories because renaming IDs at startup could break references.
+
+### 1.14 Parent-Child Consistency
+
+#### CHILDREF_STATE_MISMATCH
+
+**Description**: An orchestrator's `children` array contains a ChildRef entry whose `state` field does not match the actual state of the referenced child node on disk.
+
+**Detection**: For every orchestrator node, load each child referenced in `children` and compare the ChildRef's `state` to the child's persisted `state` field. Any mismatch is reported.
+
+**Severity**: Error
+
+**Fix Strategy**: **Deterministic**. Update the ChildRef's `state` to match the child's actual persisted state, then recompute the orchestrator's own state via `RecomputeState`. This is the same reconciliation that `reconcileOrchestratorStates` performs at runtime.
+
+### 1.15 Audit State Integrity
 
 These categories validate the audit metadata on each node: scope, status, gaps, escalations, and the relationship between the audit task's state and the computed audit status.
 
@@ -284,6 +316,14 @@ Every issue found by the validation engine is classified into one of three sever
 | `NEGATIVE_FAILURE_COUNT` | Error |
 | `MISSING_REQUIRED_FIELD` | Error |
 | `MALFORMED_JSON` | Error |
+| `CHILDREF_STATE_MISMATCH` | Error |
+| `ORPHANED_TEMP_FILE` | Warning |
+| `INVALID_TASK_ID` | Warning |
+| `INVALID_AUDIT_SCOPE` | Warning |
+| `INVALID_AUDIT_STATUS` | Error |
+| `INVALID_AUDIT_GAP` | Warning |
+| `INVALID_AUDIT_ESCALATION` | Warning |
+| `AUDIT_STATUS_TASK_MISMATCH` | Warning |
 
 ---
 
@@ -314,14 +354,22 @@ Some issues are unfixable by the engine and require manual intervention.
 | `NEGATIVE_FAILURE_COUNT` | **Deterministic** | Set `failure_count` to `0`. Negative failure counts are always invalid and zero is the safe default. |
 | `MISSING_REQUIRED_FIELD` | **Deterministic** (for fields with obvious defaults) / **Model-assisted** (for fields like `name`, `id`) | Fields with schema defaults (`decomposition_depth: 0`, `failure_count: 0`, `state: "not_started"`) are filled deterministically. Fields that require semantic content (`name`, `description`) use the model to infer from context (directory name, sibling nodes, definition file content). |
 | `MALFORMED_JSON` | **Manual** | Cannot be auto-fixed. Doctor reports the parse error with file path and byte offset. The user must repair or delete the file. If a backup exists (from a prior successful write), doctor may offer to restore from git history. |
+| `CHILDREF_STATE_MISMATCH` | **Deterministic** | Update the ChildRef's `state` to match the child's actual persisted state, then recompute the orchestrator's own state via `RecomputeState`. |
+| `ORPHANED_TEMP_FILE` | **Deterministic** | Delete the orphaned temporary file. |
+| `INVALID_TASK_ID` | **Deterministic** | Rename the task ID to a valid format based on its position. |
+| `INVALID_AUDIT_SCOPE` | **No fix** | Cosmetic. The scope can be populated by the model during execution. |
+| `INVALID_AUDIT_STATUS` | **Deterministic** | Reset to `pending` (the safe default). |
+| `INVALID_AUDIT_GAP` | **Deterministic** | Remove gaps with invalid status values. |
+| `INVALID_AUDIT_ESCALATION` | **Deterministic** | Remove escalations with invalid status values. |
+| `AUDIT_STATUS_TASK_MISMATCH` | **Deterministic** | Recompute audit status from the audit task state and open gap count via `SyncAuditLifecycle`. |
 
 ### Fix Strategy Summary
 
 | Strategy | Count | Description |
 |----------|-------|-------------|
-| Deterministic | 9 | Go code fixes directly. No model tokens spent. |
+| Deterministic | 16 | Go code fixes directly. No model tokens spent. |
 | Model-assisted | 5 | Requires model reasoning. Bounded by guardrails (Section 8). |
-| No fix | 1 | Intentionally deferred to daemon self-healing. |
+| No fix | 2 | Intentionally deferred to daemon self-healing or cosmetic. |
 | Manual | 1 | Requires human intervention. |
 
 ---
@@ -478,6 +526,10 @@ The engine ships with these checks, each implementing the `Check` interface:
 | `failure_counters` | `DEPTH_MISMATCH`, `NEGATIVE_FAILURE_COUNT` | No | Yes |
 | `required_fields` | `MISSING_REQUIRED_FIELD` | Yes | Yes |
 | `json_integrity` | `MALFORMED_JSON` | Yes | Yes |
+| `childref_state` | `CHILDREF_STATE_MISMATCH` | Yes | Yes |
+| `daemon_artifacts` | `STALE_PID_FILE`, `STALE_STOP_FILE`, `ORPHANED_TEMP_FILE` | Partial (ORPHANED_TEMP_FILE) | Yes |
+| `task_ids` | `INVALID_TASK_ID` | No | Yes |
+| `audit_state` | `INVALID_AUDIT_SCOPE`, `INVALID_AUDIT_STATUS`, `INVALID_AUDIT_GAP`, `INVALID_AUDIT_ESCALATION`, `AUDIT_STATUS_TASK_MISMATCH` | No | Yes |
 
 ### 4.4 Runner
 
@@ -561,6 +613,7 @@ When the daemon starts (`wolfcastle start`), it runs a subset of validation chec
 | `state_propagation` | Wrong derived states cause the daemon to skip or repeat work. |
 | `audit_task` | Missing or misplaced audit tasks break the execution invariant. |
 | `in_progress` | Detects crash recovery scenario; single stale task is expected and logged. Multiple `in_progress` is fatal. |
+| `childref_state` | Stale ChildRef entries cause wrong orchestrator state derivation. |
 
 ### Checks NOT Run at Startup
 
@@ -568,6 +621,8 @@ When the daemon starts (`wolfcastle start`), it runs a subset of validation chec
 |-------|----------------------|
 | `orphan_definition` | Requires a full filesystem walk for `.md` files. Cosmetic issue that does not affect correctness. |
 | `failure_counters` | Depth mismatches and negative counts are edge cases that do not affect navigation or execution safety. Worth checking but not blocking startup. |
+| `task_ids` | Renaming task IDs at startup could break references from other state files. Worth checking and fixing interactively but not safe to auto-fix at startup. |
+| `audit_state` | Audit metadata issues are cosmetic and do not affect navigation or execution safety. |
 
 ### Startup Behavior
 

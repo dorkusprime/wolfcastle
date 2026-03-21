@@ -182,6 +182,8 @@ The `Load()` function changes to: `DefaultConfig()` → overlay `base/config.jso
 
 ## 5. Callback-Based Marker Parsing
 
+> **Status: Not implemented.** The `applyModelMarkers` function remains in the daemon package and mutates state directly. Marker parsing is tested through integration tests rather than via callbacks. This item remains on the backlog as a P1 improvement.
+
 ### Current Limitation
 
 `applyModelMarkers` in daemon.go directly mutates `NodeState` and logs to the daemon logger, making marker parsing untestable without a full `Daemon` struct.
@@ -219,6 +221,8 @@ The daemon wires callbacks that close over `NodeState`, `NavigationResult`, and 
 
 ## 6. Property-Based Propagation Tests
 
+> **Status: Not implemented.** Propagation testing uses hand-crafted scenarios and fuzz tests (`scanterminalmarker-fuzz-test`) rather than `testing/quick` property-based tests. The fuzz testing infrastructure is in place for marker parsing, but the propagation-specific property tests described below have not been built. This item remains on the backlog as P2.
+
 ### Current Limitation
 
 Propagation tests use hand-crafted scenarios covering a finite set of tree shapes and mutation sequences.
@@ -247,12 +251,12 @@ Invariants verified: parent-child state consistency, root index accuracy, depth 
 
 ## Implementation Priority
 
-| Item | Priority | Effort | Impact |
-|------|----------|--------|--------|
-| Integration test suite | **P0** — before beta | Large (50+ tests) | Closes the biggest quality gap |
-| Multi-pass doctor | **P1** — before beta | Small (wrapper function) | Fixes cascading repair issues |
-| Callback marker parsing | **P1** — with daemon decomposition | Medium (extract + refactor) | Enables marker testing without daemon |
-| Centralized defaults | **P2** — before 1.0 | Small (consolidation) | Improves config discoverability |
-| Time injection | **P2** — before 1.0 | Medium (incremental) | Enables deterministic time tests |
-| Property-based tests | **P2** — before 1.0 | Medium (test infrastructure) | Catches edge cases in propagation |
-| Cobra evaluation | **P3** — review trigger | None (decision recorded) | Risk documentation |
+| Item | Priority | Effort | Impact | Status |
+|------|----------|--------|--------|--------|
+| Integration test suite | **P0** — before beta | Large (50+ tests) | Closes the biggest quality gap | **Implemented** |
+| Multi-pass doctor | **P1** — before beta | Small (wrapper function) | Fixes cascading repair issues | **Implemented** (`FixWithVerification`) |
+| Callback marker parsing | **P1** — with daemon decomposition | Medium (extract + refactor) | Enables marker testing without daemon | Not implemented |
+| Centralized defaults | **P2** — before 1.0 | Small (consolidation) | Improves config discoverability | **Implemented** (`DefaultConfig()`) |
+| Time injection | **P2** — before 1.0 | Medium (incremental) | Enables deterministic time tests | **Implemented** (`clock.Clock` interface) |
+| Property-based tests | **P2** — before 1.0 | Medium (test infrastructure) | Catches edge cases in propagation | Not implemented (fuzz tests exist for markers) |
+| Cobra evaluation | **P3** — review trigger | None (decision recorded) | Risk documentation | Retained (Cobra in use) |
