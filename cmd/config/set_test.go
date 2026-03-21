@@ -150,6 +150,105 @@ func TestSet_BareStringFallback(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// config set: top-level scalar (single segment key)
+// ---------------------------------------------------------------------------
+
+func TestSet_TopLevelScalar(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.RootCmd.SetArgs([]string{"config", "set", "version", "42"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("config set top-level key failed: %v", err)
+	}
+
+	m := readLocalOverlay(t, env)
+	if m["version"] != float64(42) {
+		t.Errorf("version = %v, want 42", m["version"])
+	}
+}
+
+// ---------------------------------------------------------------------------
+// config set: deeply nested map-keyed structure (auto-vivification)
+// ---------------------------------------------------------------------------
+
+func TestSet_DeeplyNestedKey(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.RootCmd.SetArgs([]string{"config", "set", "models.fast.command", "claude"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("config set deeply nested key failed: %v", err)
+	}
+
+	m := readLocalOverlay(t, env)
+	models, ok := m["models"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected models to be a map, got %T", m["models"])
+	}
+	fast, ok := models["fast"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected models.fast to be a map, got %T", models["fast"])
+	}
+	if fast["command"] != "claude" {
+		t.Errorf("models.fast.command = %v, want %q", fast["command"], "claude")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// config set: validation failure triggers rollback
+// ---------------------------------------------------------------------------
+
+func TestSet_ValidationFailureRollback(t *testing.T) {
+	env := newTestEnv(t)
+
+	// Snapshot the local overlay before the invalid mutation.
+	overlayPath := filepath.Join(env.WolfcastleDir, "system", "local", "config.json")
+	before, err := os.ReadFile(overlayPath)
+	if err != nil {
+		t.Fatalf("reading local overlay before mutation: %v", err)
+	}
+
+	// Setting daemon.poll_interval_seconds to 0 violates "must be > 0".
+	env.RootCmd.SetArgs([]string{"config", "set", "daemon.poll_interval_seconds", "0"})
+	err = env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected validation error for daemon.poll_interval_seconds = 0")
+	}
+
+	// The local overlay should be restored to its original content.
+	after, readErr := os.ReadFile(overlayPath)
+	if readErr != nil {
+		t.Fatalf("reading local overlay after rollback: %v", readErr)
+	}
+	if string(after) != string(before) {
+		t.Errorf("local overlay was not rolled back:\nbefore: %s\nafter:  %s", before, after)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// config set: invalid key formats
+// ---------------------------------------------------------------------------
+
+func TestSet_EmptySegmentKey(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.RootCmd.SetArgs([]string{"config", "set", "logs..level", "debug"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for key with empty segment")
+	}
+}
+
+func TestSet_TrailingDotKey(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.RootCmd.SetArgs([]string{"config", "set", "logs.", "debug"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for key with trailing dot")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // --tier flag
 // ---------------------------------------------------------------------------
 
