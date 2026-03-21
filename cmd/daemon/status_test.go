@@ -719,6 +719,138 @@ func TestStatusCmd_ArchivedFlag(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// --all flag with archived nodes
+// ---------------------------------------------------------------------------
+
+func TestShowAllStatus_IncludesArchivedCount(t *testing.T) {
+	env := newTestEnv(t)
+	now := time.Now()
+	archivedAt := now.Add(-48 * time.Hour)
+
+	// Write an index with both active and archived nodes.
+	idx := state.NewRootIndex()
+	idx.Root = []string{"proj-a"}
+	idx.ArchivedRoot = []string{"proj-b"}
+	idx.Nodes["proj-a"] = state.IndexEntry{
+		Name: "Project A", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "proj-a",
+	}
+	idx.Nodes["proj-b"] = state.IndexEntry{
+		Name: "Project B", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "proj-b", Archived: true, ArchivedAt: &archivedAt,
+	}
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	out := captureStdout(t, func() {
+		_ = showAllStatus(env.App)
+	})
+
+	if !strings.Contains(out, "1 archived") {
+		t.Errorf("--all should show archived count, got:\n%s", out)
+	}
+	// Total should exclude archived nodes.
+	if !strings.Contains(out, "1 nodes") {
+		t.Errorf("--all total should exclude archived nodes, got:\n%s", out)
+	}
+}
+
+func TestShowAllStatus_NoArchivedLine_WhenNoneArchived(t *testing.T) {
+	env := newStatusTestEnv(t)
+	out := captureStdout(t, func() {
+		_ = showAllStatus(env.App)
+	})
+
+	if strings.Contains(out, "archived") {
+		t.Error("--all should not show archived count when no nodes are archived")
+	}
+}
+
+func TestShowAllStatus_JSON_IncludesArchivedField(t *testing.T) {
+	env := newTestEnv(t)
+	now := time.Now()
+	archivedAt := now.Add(-48 * time.Hour)
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"proj-a"}
+	idx.ArchivedRoot = []string{"proj-b"}
+	idx.Nodes["proj-a"] = state.IndexEntry{
+		Name: "Project A", Type: state.NodeLeaf, State: state.StatusComplete, Address: "proj-a",
+	}
+	idx.Nodes["proj-b"] = state.IndexEntry{
+		Name: "Project B", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "proj-b", Archived: true, ArchivedAt: &archivedAt,
+	}
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
+
+	out := captureStdout(t, func() {
+		_ = showAllStatus(env.App)
+	})
+
+	var resp map[string]any
+	if err := json.Unmarshal([]byte(out), &resp); err != nil {
+		t.Fatalf("invalid JSON output: %v", err)
+	}
+	data := resp["data"].(map[string]any)
+	namespaces := data["namespaces"].([]any)
+	if len(namespaces) != 1 {
+		t.Fatalf("expected 1 namespace, got %d", len(namespaces))
+	}
+	ns := namespaces[0].(map[string]any)
+	archived := ns["archived"].(float64)
+	if archived != 1 {
+		t.Errorf("expected archived=1, got %v", archived)
+	}
+	total := ns["total"].(float64)
+	if total != 1 {
+		t.Errorf("expected total=1 (excluding archived), got %v", total)
+	}
+}
+
+func TestShowAllStatus_MultipleNamespacesWithArchived(t *testing.T) {
+	env := newTestEnv(t)
+	now := time.Now()
+	archivedAt := now.Add(-24 * time.Hour)
+
+	// First namespace: has archived nodes
+	idx1 := state.NewRootIndex()
+	idx1.Root = []string{"active-1"}
+	idx1.ArchivedRoot = []string{"old-1"}
+	idx1.Nodes["active-1"] = state.IndexEntry{
+		Name: "Active 1", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "active-1",
+	}
+	idx1.Nodes["old-1"] = state.IndexEntry{
+		Name: "Old 1", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "old-1", Archived: true, ArchivedAt: &archivedAt,
+	}
+	data1, _ := json.MarshalIndent(idx1, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), data1, 0644)
+
+	// Second namespace: no archived nodes
+	ns2Dir := filepath.Join(env.WolfcastleDir, "system", "projects", "other-eng")
+	_ = os.MkdirAll(ns2Dir, 0755)
+	idx2 := state.NewRootIndex()
+	idx2.Root = []string{"proj-x"}
+	idx2.Nodes["proj-x"] = state.IndexEntry{
+		Name: "Project X", Type: state.NodeLeaf, State: state.StatusComplete, Address: "proj-x",
+	}
+	data2, _ := json.MarshalIndent(idx2, "", "  ")
+	_ = os.WriteFile(filepath.Join(ns2Dir, "state.json"), data2, 0644)
+
+	out := captureStdout(t, func() {
+		_ = showAllStatus(env.App)
+	})
+
+	// First namespace should show archived count
+	if !strings.Contains(out, "1 archived") {
+		t.Errorf("namespace with archived nodes should show count, got:\n%s", out)
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	cases := []struct {
 		in     string

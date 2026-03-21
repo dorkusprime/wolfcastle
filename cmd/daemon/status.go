@@ -627,6 +627,7 @@ func showAllStatus(app *cmdutil.App) error {
 		InProgress int    `json:"in_progress"`
 		Blocked    int    `json:"blocked"`
 		NotStarted int    `json:"not_started"`
+		Archived   int    `json:"archived"`
 	}
 
 	var summaries []namespaceSummary
@@ -641,16 +642,22 @@ func showAllStatus(app *cmdutil.App) error {
 			continue
 		}
 		counts := map[state.NodeStatus]int{}
+		archivedN := 0
 		for _, e := range idx.Nodes {
+			if e.Archived {
+				archivedN++
+				continue
+			}
 			counts[e.State]++
 		}
 		summaries = append(summaries, namespaceSummary{
 			Namespace:  entry.Name(),
-			Total:      len(idx.Nodes),
+			Total:      len(idx.Nodes) - archivedN,
 			Complete:   counts[state.StatusComplete],
 			InProgress: counts[state.StatusInProgress],
 			Blocked:    counts[state.StatusBlocked],
 			NotStarted: counts[state.StatusNotStarted],
+			Archived:   archivedN,
 		})
 	}
 
@@ -664,8 +671,12 @@ func showAllStatus(app *cmdutil.App) error {
 			output.PrintHuman("No namespaces found. The battlefield is empty.")
 		} else {
 			for _, s := range summaries {
-				output.PrintHuman("[%s] %d nodes: %d complete, %d in-progress, %d blocked",
+				line := fmt.Sprintf("[%s] %d nodes: %d complete, %d in-progress, %d blocked",
 					s.Namespace, s.Total, s.Complete, s.InProgress, s.Blocked)
+				if s.Archived > 0 {
+					line += fmt.Sprintf(", %d archived", s.Archived)
+				}
+				output.PrintHuman("%s", line)
 			}
 		}
 	}
