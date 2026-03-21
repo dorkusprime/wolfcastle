@@ -36,9 +36,11 @@ Agents produce code. Nobody checks it. Or worse, the agent checks its own work i
 
 Wolfcastle [audits](docs/humans/audits.md#the-audit-system) every piece of work from a separate agent invocation with a separate context. Audits are hierarchical: each [leaf](docs/humans/how-it-works.md#the-project-tree) gets its own audit scoped to what that leaf built, and each orchestrator gets an audit scoped to how its children integrate. The auditor reads [breadcrumbs](docs/humans/audits.md#breadcrumbs), checks them against acceptance criteria, and files gaps. Gaps that can't be resolved locally [escalate upward](docs/humans/audits.md#gap-escalation) to the parent, and escalation can propagate to the root. No code ships without a second pair of eyes, and those eyes belong to a process that didn't write the code.
 
-### The Result
+### The Human Dependency Problem
 
-You point Wolfcastle at work. It handles the rest. You check in, steer priorities, make the judgment calls that the system doesn't have enough signal to make on its own. The daemon does the volume. You do the thinking.
+Most agent workflows require a human at every turn. Approve this plan. Review this code. Decide what to do next. The agent is capable, but the process assumes someone is always watching. Scale is limited by the human's availability, not the agent's throughput.
+
+Wolfcastle inverts the relationship. The daemon runs the full lifecycle: intake, planning, execution, audit, remediation, commit. The human's role is to steer, not operate. Check [`wolfcastle status`](docs/humans/cli/status.md), adjust priorities, [unblock](docs/humans/failure-and-recovery.md#the-unblock-workflow) the rare task that genuinely needs judgment. The system does the volume. You do the thinking.
 
 ## Quick Start
 
