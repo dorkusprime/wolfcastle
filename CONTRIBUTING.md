@@ -62,6 +62,95 @@ The `cmd/` directory mirrors the CLI surface: `cmd/daemon/` (start, stop, log, s
 - PRs auto-merge when CI passes
 - Keep commits focused. One concern per commit.
 
-## Architectural Context
+## Architecture
+
+```mermaid
+graph TD
+    subgraph CLI["cmd/ (CLI surface)"]
+        root[cmd]
+        cmdutil[cmd/cmdutil]
+        cmddaemon[cmd/daemon]
+        cmdtask[cmd/task]
+        cmdaudit[cmd/audit]
+        cmdconfig[cmd/config]
+        cmdinbox[cmd/inbox]
+        cmdproject[cmd/project]
+        cmdorch[cmd/orchestrator]
+    end
+
+    subgraph Domain["Domain packages"]
+        daemon[daemon]
+        pipeline[pipeline]
+        validate[validate]
+        archive[archive]
+        project[project]
+    end
+
+    subgraph Core["Core packages"]
+        state[state]
+        config[config]
+        invoke[invoke]
+        tierfs[tierfs]
+        tree[tree]
+    end
+
+    subgraph Foundation["Leaf packages (no internal deps)"]
+        clock[clock]
+        errors[errors]
+        git[git]
+        output[output]
+        logging[logging]
+        signals[signals]
+    end
+
+    root --> cmdutil
+    cmddaemon --> cmdutil
+    cmdtask --> cmdutil
+    cmdaudit --> cmdutil
+    cmdconfig --> cmdutil
+    cmdinbox --> cmdutil
+    cmdproject --> cmdutil
+    cmdorch --> cmdutil
+
+    cmdutil --> daemon
+    cmdutil --> state
+    cmdutil --> config
+    cmdutil --> pipeline
+    cmdutil --> git
+    cmdutil --> invoke
+
+    daemon --> state
+    daemon --> pipeline
+    daemon --> invoke
+    daemon --> logging
+    daemon --> archive
+    daemon --> signals
+    daemon --> tree
+
+    pipeline --> config
+    pipeline --> invoke
+    pipeline --> state
+    pipeline --> tierfs
+
+    validate --> state
+    validate --> config
+    validate --> tree
+    validate --> invoke
+
+    archive --> state
+    archive --> config
+    archive --> clock
+
+    project --> config
+    project --> state
+    project --> tierfs
+
+    state --> clock
+    config --> tierfs
+    invoke --> config
+    logging --> output
+```
+
+Dependencies flow strictly downward. Domain packages orchestrate core packages. Core packages depend only on each other and on leaf packages. Leaf packages have no internal dependencies.
 
 79 ADRs document every major design decision. Read `docs/decisions/INDEX.md` before making architectural changes. If your change introduces a new pattern or reverses an existing decision, write an ADR.
