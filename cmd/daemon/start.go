@@ -102,7 +102,7 @@ Examples:
 					output.PrintHuman("Pre-start self-heal error: %v", healErr)
 				}
 				if len(healFixes) > 0 {
-					output.PrintHuman("Self-healed %d issue(s) before startup:", len(healFixes))
+					output.PrintHuman("Self-healed %s before startup:", output.Plural(len(healFixes), "issue", "issues"))
 					for _, f := range healFixes {
 						output.PrintHuman("  FIXED [%s] %s: %s", f.Category, f.Node, f.Description)
 					}

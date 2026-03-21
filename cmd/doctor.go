@@ -104,7 +104,7 @@ Examples:
 			}
 
 			if len(postFixWarnings) > 0 {
-				output.PrintHuman("\n%d issue(s) survived the fix:", len(postFixWarnings))
+				output.PrintHuman("\n%s survived the fix:", output.Plural(len(postFixWarnings), "issue", "issues"))
 				for _, w := range postFixWarnings {
 					output.PrintHuman("  WARN  [%s] %s: %s", w.Category, w.Node, w.Description)
 				}
@@ -128,7 +128,7 @@ Examples:
 					}
 				}
 				if len(modelIssues) > 0 {
-					output.PrintHuman("\nCalling in model-assisted repair for %d issue(s)...", len(modelIssues))
+					output.PrintHuman("\nCalling in model-assisted repair for %s...", output.Plural(len(modelIssues), "issue", "issues"))
 					ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 					defer cancel()
 					for _, issue := range modelIssues {
@@ -215,7 +215,7 @@ func reportValidationIssues(issues []validate.Issue) error {
 		}
 	}
 	if fixable > 0 {
-		output.PrintHuman("%d issue(s) can be repaired automatically. Run 'wolfcastle doctor --fix' to apply.", fixable)
+		output.PrintHuman("%s can be repaired automatically. Run 'wolfcastle doctor --fix' to apply.", output.Plural(fixable, "issue", "issues"))
 	}
 	return nil
 }

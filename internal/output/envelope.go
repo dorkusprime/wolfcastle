@@ -51,3 +51,12 @@ func PrintHuman(format string, args ...any) {
 func PrintError(format string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
 }
+
+// Plural returns singular when n == 1, plural otherwise.
+// Example: Plural(3, "issue", "issues") => "3 issues"
+func Plural(n int, singular, plural string) string {
+	if n == 1 {
+		return fmt.Sprintf("%d %s", n, singular)
+	}
+	return fmt.Sprintf("%d %s", n, plural)
+}
