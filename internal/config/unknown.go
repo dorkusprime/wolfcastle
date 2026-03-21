@@ -52,6 +52,20 @@ func diffKeys(have, known map[string]any, prefix, tier string, warnings *[]strin
 		knownMap, knownIsMap := knownVal.(map[string]any)
 		if haveIsMap && knownIsMap {
 			diffKeys(haveMap, knownMap, path, tier, warnings)
+			continue
+		}
+		// Recurse into arrays of objects (e.g. pipeline.stages, validation.commands).
+		haveSlice, haveIsSlice := v.([]any)
+		knownSlice, knownIsSlice := knownVal.([]any)
+		if haveIsSlice && knownIsSlice {
+			for i := 0; i < len(haveSlice) && i < len(knownSlice); i++ {
+				hElem, hOk := haveSlice[i].(map[string]any)
+				kElem, kOk := knownSlice[i].(map[string]any)
+				if hOk && kOk {
+					elemPath := fmt.Sprintf("%s[%d]", path, i)
+					diffKeys(hElem, kElem, elemPath, tier, warnings)
+				}
+			}
 		}
 	}
 }

@@ -145,6 +145,68 @@ func TestDiffKeys_NestedPathPrefix(t *testing.T) {
 	}
 }
 
+func TestCheckUnknownFields_UnknownFieldInPipelineStage(t *testing.T) {
+	t.Parallel()
+	raw := []byte(`{"pipeline": {"stages": [{"name": "exec", "model": "fast", "prompt_file": "exec.md", "typo_field": true}]}}`)
+	warnings := checkUnknownFields(raw, "custom/config.json")
+
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
+	}
+	if !strings.Contains(warnings[0], "pipeline.stages[0].typo_field") {
+		t.Errorf("expected path 'pipeline.stages[0].typo_field', got: %s", warnings[0])
+	}
+}
+
+func TestCheckUnknownFields_UnknownFieldInValidationCommand(t *testing.T) {
+	t.Parallel()
+	raw := []byte(`{"validation": {"commands": [{"name": "lint", "run": "go vet", "timeout_seconds": 30, "retries": 3}]}}`)
+	warnings := checkUnknownFields(raw, "local/config.json")
+
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
+	}
+	if !strings.Contains(warnings[0], "validation.commands[0].retries") {
+		t.Errorf("expected path 'validation.commands[0].retries', got: %s", warnings[0])
+	}
+}
+
+func TestCheckUnknownFields_MultipleArrayElements(t *testing.T) {
+	t.Parallel()
+	raw := []byte(`{"pipeline": {"stages": [
+		{"name": "a", "model": "m", "prompt_file": "a.md", "bad1": true},
+		{"name": "b", "model": "m", "prompt_file": "b.md"},
+		{"name": "c", "model": "m", "prompt_file": "c.md", "bad2": false}
+	]}}`)
+	warnings := checkUnknownFields(raw, "base/config.json")
+
+	if len(warnings) != 2 {
+		t.Fatalf("expected 2 warnings, got %d: %v", len(warnings), warnings)
+	}
+	found0, found2 := false, false
+	for _, w := range warnings {
+		if strings.Contains(w, "pipeline.stages[0].bad1") {
+			found0 = true
+		}
+		if strings.Contains(w, "pipeline.stages[2].bad2") {
+			found2 = true
+		}
+	}
+	if !found0 || !found2 {
+		t.Errorf("expected warnings for stages[0] and stages[2], got: %v", warnings)
+	}
+}
+
+func TestCheckUnknownFields_CleanArrayElements_NoWarnings(t *testing.T) {
+	t.Parallel()
+	raw := []byte(`{"pipeline": {"stages": [{"name": "exec", "model": "fast", "prompt_file": "exec.md"}]}}`)
+	warnings := checkUnknownFields(raw, "base/config.json")
+
+	if len(warnings) != 0 {
+		t.Errorf("expected 0 warnings for clean array elements, got %d: %v", len(warnings), warnings)
+	}
+}
+
 // Integration test: Load with unknown fields produces warnings but succeeds.
 func TestLoad_UnknownField_ProducesWarning(t *testing.T) {
 	t.Parallel()
