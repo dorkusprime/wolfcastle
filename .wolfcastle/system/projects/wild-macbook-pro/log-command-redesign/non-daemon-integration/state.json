@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "id": "non-daemon-integration",
+  "name": "Non-Daemon Integration",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Wire interleaved renderer into execute command",
+      "description": "Wire interleaved renderer into execute command",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/execute.go"
+      ],
+      "body": "When wolfcastle execute runs in non-daemon mode, start a goroutine that tails the NDJSON log file being written by the execute loop and renders interleaved output to stdout using logrender.InterleavedRenderer. The goroutine should start after the logger creates its first iteration file and stop when execution completes. Use a done channel or context cancellation for clean shutdown. The rendering goroutine reads from the log file (not from memory), so the display code path is identical to wolfcastle log --interleaved --follow."
+    },
+    {
+      "id": "task-0002",
+      "title": "Wire interleaved renderer into intake command",
+      "description": "Wire interleaved renderer into intake command",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/intake.go"
+      ],
+      "body": "Same pattern as execute: when wolfcastle intake runs in non-daemon mode, tail its NDJSON log file and render interleaved output to stdout. The intake goroutine uses a separate logger (InboxLogger) with 'intake' trace prefix, so the renderer should handle this trace ID naturally. Verify that the output matches what wolfcastle log --interleaved would show for the same log file."
+    },
+    {
+      "id": "task-0003",
+      "title": "Test non-daemon output matches log command output",
+      "description": "Test non-daemon output matches log command output",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/execute_test.go"
+      ],
+      "body": "Write integration tests that verify the stdout output from non-daemon execute/intake matches what wolfcastle log --interleaved produces for the same NDJSON data. Create test fixtures with known NDJSON records and assert identical rendered output from both code paths. This confirms the rendering logic is truly shared, not just similar."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Non-Daemon Integration is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify execute and intake non-daemon modes produce interleaved output on stdout"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

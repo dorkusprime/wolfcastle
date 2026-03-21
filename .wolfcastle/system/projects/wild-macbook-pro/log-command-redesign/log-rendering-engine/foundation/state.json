@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "id": "foundation",
+  "name": "Foundation",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Define the Record struct and NDJSON line parser",
+      "description": "Define the Record struct and NDJSON line parser",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/record.go",
+        "internal/logrender/record_test.go"
+      ],
+      "body": "Create internal/logrender/record.go. Define a Record struct with typed fields for every NDJSON record the renderers consume: Type, Timestamp (time.Time parsed from RFC3339), Level, Trace, Stage, Node, Task, ExitCode, Text, Path, Marker, Error, and a raw map[string]any fallback for forward compatibility. Write a ParseRecord(line string) (Record, error) function that unmarshals a JSON line into the struct. The parser must never panic on malformed input; return an error instead. Include a StageLabel() method that maps stage field values to display labels per the spec: intake-\u003eintake, plan-\u003eplan, execute-\u003eexecute, audit-\u003eaudit, remediate-\u003eremediate, spec-review-\u003espec-review. Records with unrecognized type fields should parse without error (the renderers will skip them).",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement compact duration formatting",
+      "description": "Implement compact duration formatting",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/duration.go",
+        "internal/logrender/duration_test.go"
+      ],
+      "body": "Create internal/logrender/duration.go. Write a FormatDuration(d time.Duration) string function that produces compact human shorthand with no spaces: 34s, 1m22s, 12m5s, 1h3m. Rules: durations under 1 minute show seconds only (34s). Durations under 1 hour show minutes and seconds (1m22s), but drop the seconds component if it's zero (2m). Durations 1 hour or more show hours and minutes (1h3m), dropping zero minutes (1h). Never show sub-second precision. The function computes duration from the difference between two record timestamps; it takes a single time.Duration as input.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Implement session detection and log file enumeration",
+      "description": "Implement session detection and log file enumeration",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/session.go",
+        "internal/logrender/session_test.go"
+      ],
+      "body": "Create internal/logrender/session.go. A session is one daemon run: it starts with an iteration-1 log file and includes all consecutive iteration files until the next iteration-1 file or end of directory. Log files follow the naming convention NNNN-YYYYMMDDTHH-MMZZ.jsonl (the iteration number is the leading 4-digit segment). Implement: (1) ListSessions(logDir string) ([]Session, error) that scans the log directory, groups files into sessions by finding iteration-1 boundaries, and returns sessions ordered most-recent-first. A Session struct holds the list of file paths in iteration order. (2) ResolveSession(logDir string, index int) (Session, error) where index 0 is the latest session, 1 is the previous, etc. Returns an error if the index is out of range. Handle .jsonl.gz compressed files transparently (the logging package compresses old iterations). Use the existing logging.LatestLogFile as reference for file naming conventions but do not depend on it at runtime.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Implement record reader for replay and follow modes",
+      "description": "Implement record reader for replay and follow modes",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/reader.go",
+        "internal/logrender/reader_test.go"
+      ],
+      "body": "Create internal/logrender/reader.go. This provides the I/O abstraction that renderers use to consume records. Implement two modes: (1) ReplayReader: reads all NDJSON lines from a slice of file paths (a session's files in order), parses each into a Record, and delivers them via a channel or iterator. Handles both .jsonl and .jsonl.gz files. (2) FollowReader: tails the active log directory, detecting new files as iterations advance, parsing new lines as they're appended, and delivering Records via a channel. Accepts a context.Context for cancellation. Uses polling (not fsnotify) with a configurable interval (default 200ms) to check for new content and new files. Both readers skip malformed lines silently (log a debug record internally if needed, but never surface parse errors to the renderer). The reader interface should be simple enough that renderers don't need to know whether they're in replay or follow mode: they just range over records.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Foundation is complete and correct",
+      "state": "in_progress",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify ParseRecord handles all record types listed in the spec's NDJSON Records Used table without panicking",
+    "Verify session detection handles edge cases: single-file sessions, gaps in iteration numbering, mixed .jsonl and .jsonl.gz files"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T21:25:53.741469Z",
+        "task": "log-command-redesign/log-rendering-engine/foundation",
+        "text": "Created internal/logrender/record.go and record_test.go: Record struct with typed NDJSON fields, ParseRecord two-pass parser, StageLabel display mapping, 20 tests all passing"
+      },
+      {
+        "timestamp": "2026-03-21T21:26:53.255818Z",
+        "task": "log-command-redesign/log-rendering-engine/foundation",
+        "text": "Created internal/logrender/duration.go and duration_test.go: FormatDuration with compact shorthand (34s, 1m22s, 1h3m), zero-component elision, sub-second truncation, 17 tests all passing"
+      },
+      {
+        "timestamp": "2026-03-21T21:29:45.980667Z",
+        "task": "log-command-redesign/log-rendering-engine/foundation",
+        "text": "Created internal/logrender/session.go and session_test.go: Session struct, ListSessions (timestamp-first sort, iteration-1 boundary detection, most-recent-first), ResolveSession (indexed access), handles .jsonl and .jsonl.gz, 15 tests all passing"
+      },
+      {
+        "timestamp": "2026-03-21T21:33:50.032879Z",
+        "task": "log-command-redesign/log-rendering-engine/foundation",
+        "text": "Created internal/logrender/reader.go and reader_test.go: ReplayReader (handles .jsonl and .jsonl.gz, channel-based delivery), FollowReader (polling-based tail with offset tracking, partial-line safety, new-file detection), 21 tests all passing, 93.1% package coverage"
+      },
+      {
+        "timestamp": "2026-03-21T21:35:11.655025Z",
+        "task": "log-command-redesign/log-rendering-engine/foundation",
+        "text": "Audit reviewed 4 source files and 4 test files (548 lines of production code, 780 lines of tests, 93.1% coverage). PASS. All 43 tests pass with race detector. go vet and gofmt clean. Findings: (1) session_test.go contains hand-rolled contains/searchString helpers that duplicate strings.Contains; test-only, accepted. (2) reader.go indexOf duplicates bytes.IndexByte; acknowledged in AAR, accepted for 6-line function. (3) ReplayReader.Records lacks context cancellation; acceptable for finite replay over small log files. (4) No ADRs filed for design decisions (two-pass unmarshal, timestamp-first session sort, poll-with-offset tailing); AARs document the rationale well enough, but future nodes should file ADRs for non-obvious choices. Quality: clean, well-structured code with strong test coverage. The timestamp-first sort in session.go and the partial-line safety in reader.go show careful attention to real-world edge cases."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-21T21:24:00.999786Z",
+    "result_summary": "Built the foundation layer of the log rendering engine: Record struct with two-pass NDJSON parsing (typed fields plus forward-compatible Raw map), compact FormatDuration for stage timing display, session detection via timestamp-first sort with iteration-1 boundary splitting, and dual-mode record readers (ReplayReader for historical playback including gzip decompression, FollowReader for live tailing with poll-based offset tracking and partial-line safety). Four source files, four test files, 93.1% coverage, 43 tests all passing with race detector clean."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T21:35:27.214787Z",
+      "objective": "Verify all foundation work is complete and correct",
+      "what_happened": "Read all 8 files (4 source, 4 test). Ran build, go vet, gofmt, and full test suite with race detector. Reviewed correctness, error handling, nil safety, concurrency, edge cases, and code quality against the rubric. Found no issues requiring remediation.",
+      "went_well": [
+        "93.1% coverage with meaningful tests that exercise real edge cases (partial lines, cross-session interleaving, gzip transparency, context cancellation)",
+        "Race detector clean confirms channel-based concurrency is correctly structured",
+        "Code is concise with no dead code, no duplication, and clear naming throughout"
+      ],
+      "improvements": [
+        "Future tasks in this tree should file ADRs for non-obvious design decisions rather than relying solely on AARs"
+      ],
+      "action_items": [
+        "Downstream renderers should be aware that ReplayReader has no context cancellation; if large log replay becomes a concern, a context parameter could be added later"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T21:25:52.247838Z",
+      "objective": "Define the Record struct and NDJSON line parser for the log rendering engine",
+      "what_happened": "Created internal/logrender/record.go with a Record struct covering all NDJSON fields (Type, Timestamp, Level, Trace, Stage, Node, Task, ExitCode, Text, Path, Marker, Error) plus a Raw map for forward compatibility. ParseRecord does a two-pass unmarshal: once into the raw map to capture unknown fields, once into the typed struct. StageLabel maps the six known stage values to display labels. ExitCode uses *int so absence is distinguishable from zero.",
+      "went_well": [
+        "Two-pass unmarshal cleanly separates typed access from forward-compat raw access",
+        "Test suite covers full records, minimal fields, malformed input, unknown types, real-world daemon record shapes, and nil vs zero ExitCode"
+      ],
+      "improvements": [
+        "StageLabel currently returns the raw value for unknowns, which is fine but could log a warning if that becomes useful later"
+      ],
+      "action_items": [
+        "Downstream renderers should use Record.Raw for fields like output_len and model that aren't in the typed struct"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T21:26:51.325414Z",
+      "objective": "Implement compact duration formatting for stage-line rendering",
+      "what_happened": "Created internal/logrender/duration.go with FormatDuration(time.Duration) string. Integer arithmetic on truncated seconds, three-tier branching (hours, minutes, seconds) with zero-component elision. Negative durations clamp to zero. 17 table-driven tests cover every boundary: zero, sub-second, exact minute/hour, large durations, negative input.",
+      "went_well": [
+        "Clean integer math avoids floating-point drift",
+        "Table-driven tests caught the hours-with-leftover-seconds edge case (1h + 45s should be 1h, not 1h0m45s)"
+      ],
+      "improvements": [
+        "None identified; the function is small enough that there's nothing to simplify further"
+      ],
+      "action_items": [
+        "Downstream renderers should call FormatDuration with stage_complete.Timestamp minus stage_start.Timestamp"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T21:29:44.287778Z",
+      "objective": "Implement session detection and log file enumeration for grouping daemon-run log files",
+      "what_happened": "Created internal/logrender/session.go with Session struct, ListSessions, and ResolveSession. The key subtlety was sort order: lexicographic sort interleaves files from different sessions when iteration numbers overlap across daemon runs. Fixed by sorting on the timestamp portion of the filename first, with iteration as a tiebreaker, so files from the same daemon run cluster together before the iteration-1 boundary detection splits them into sessions.",
+      "went_well": [
+        "Timestamp-first sort cleanly solves the cross-session interleaving problem",
+        "15 test cases cover single/multiple/three sessions, compressed files, empty dirs, non-log files, subdirectories, ordering, and all ResolveSession error paths"
+      ],
+      "improvements": [
+        "ListSessions reads the entire directory and builds all sessions even when only one is needed. ResolveSession could short-circuit, but the log directory is small enough that this doesn't matter in practice."
+      ],
+      "action_items": [
+        "Downstream renderers will need to open .jsonl.gz files through a gzip reader; the session package only enumerates paths, it does not read content"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-21T21:33:47.804825Z",
+      "objective": "Implement record reader for replay and follow modes",
+      "what_happened": "Created internal/logrender/reader.go with two reader types. ReplayReader opens files sequentially (decompressing .gz transparently), scans lines, parses via ParseRecord, and sends to a buffered channel. FollowReader polls the log directory on a configurable interval (default 200ms), tracks per-file byte offsets to detect appended lines, discovers new iteration files each cycle, and delivers records through a channel governed by context.Context. The offset tracking uses io.ReadAll from the last offset and only consumes complete lines (newline-terminated), leaving partial writes for the next poll cycle. Both readers silently skip malformed JSON.",
+      "went_well": [
+        "Offset tracking correctly handles partial lines at EOF, preventing torn-read issues when the daemon is mid-write",
+        "21 reader tests cover both modes including gzip, malformed lines, empty inputs, partial line handling, file append detection, new file detection, cancellation, and iteration ordering"
+      ],
+      "improvements": [
+        "FollowReader.indexOf is a simple linear scan; bytes.IndexByte would be more idiomatic but would add an import for a trivial function"
+      ],
+      "action_items": [
+        "Downstream renderers consume records via range-over-channel regardless of replay vs follow mode"
+      ]
+    }
+  }
+}

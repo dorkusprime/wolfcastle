@@ -134,6 +134,16 @@
       "timestamp": "2026-03-21T12:39:37Z",
       "text": "Config write commands: config set, config unset, config append, config remove. 'config set key value --tier local' writes a key (dot-notation for nested paths, value must be valid JSON including arrays/objects, strings can be bare). 'config unset key --tier local' removes a key (writes null for deletion semantics). 'config append key value --tier local' appends to an array. 'config remove key value --tier local' removes by value from an array. Tier defaults to local. No array indexing. All commands validate the resulting config after writing.",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T21:04:08Z",
+      "text": "Implement the wolfcastle log command redesign per spec docs/specs/2026-03-21T18-00Z-log-command-design.md. The spec is the source of truth. Read it before planning.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T21:33:56Z",
+      "text": "make sure all --- 10001-20260321T21-04Z.jsonl ---\n\n[intake-10001] [intake] Starting\n[intake-10001] [intake] Complete (exit=0, 24611 bytes) structures have \u003e= 90% code coverage",
+      "status": "filed"
     }
   ]
 }

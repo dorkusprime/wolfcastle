@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "summary-renderer",
+  "name": "Summary Renderer",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement summary renderer for replay mode",
+      "description": "Implement summary renderer for replay mode",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/summary.go",
+        "internal/logrender/summary_test.go"
+      ],
+      "body": "Create internal/logrender/summary.go. Implement a SummaryRenderer struct that accepts an io.Writer for output. The Replay(records \u003c-chan Record) method consumes records and produces the summary format: one line per completed stage. The renderer must track stage_start records to pair them with stage_complete records for duration calculation. Output format per the spec: '[stage-label] node-address (duration)' with column alignment. The stage label comes from StageLabel(). Node address includes the task path when present (node/task-id). Use ✓ for exit_code 0 and ✗ for non-zero. For audit_report_written records, print the report path indented on the next line: '  report: \u003cpath\u003e'. planning_start/planning_complete should be rendered as [plan] stages. Skip terminal_marker, assistant, and other record types. Filter out daemon_start/daemon_stop records (they are not stages).",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Add follow mode to summary renderer",
+      "description": "Add follow mode to summary renderer",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/summary.go",
+        "internal/logrender/summary_test.go"
+      ],
+      "body": "Extend the SummaryRenderer with a Follow(ctx context.Context, records \u003c-chan Record) method. In follow mode, stage_start records print immediately with the ▶ glyph: '▶ [stage-label] node-address'. When the matching stage_complete arrives, print the completion line with ✓ or ✗ glyph and duration: '✓ [stage-label] node-address (duration)'. The renderer must buffer the start timestamp keyed by (stage, node, task) to compute duration when the completion record arrives. audit_report_written records print indented below the most recent audit completion. The method returns when the context is cancelled or the records channel closes.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Summary Renderer is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify output format matches spec examples exactly: column alignment, glyph usage, audit report path indentation"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

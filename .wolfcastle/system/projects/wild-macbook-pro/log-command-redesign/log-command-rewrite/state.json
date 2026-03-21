@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "id": "log-command-rewrite",
+  "name": "Log Command Rewrite",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Rewrite wolfcastle log cobra command",
+      "description": "Rewrite wolfcastle log cobra command",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/follow.go"
+      ],
+      "body": "Replace follow.go with a new implementation. Register flags: --follow/-f (bool), --thoughts/-t (bool), --interleaved/-i (bool), --json (bool), --session/-s (int, default 0). Remove --lines and --level flags. The command should: (1) resolve the session from --session flag using logrender.SessionFiles(), (2) detect whether daemon is running to set implicit --follow, (3) select the output mode (summary/thoughts/interleaved/json), (4) delegate to the appropriate logrender renderer. Keep the 'follow' alias for backward compat but update the help text.",
+      "references": [
+        "docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Handle mutual exclusivity and last-wins semantics",
+      "description": "Handle mutual exclusivity and last-wins semantics",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/follow_test.go"
+      ],
+      "body": "When multiple output mode flags are passed (--thoughts, --interleaved, --json), the last one on the command line wins. Cobra doesn't natively support last-wins for bool flags, so implement this by checking raw os.Args order or by using a custom flag type. Write tests covering: single flag, multiple flags (last wins), no flags (defaults to summary), and --json output (raw NDJSON passthrough with no formatting)."
+    },
+    {
+      "id": "task-0003",
+      "title": "Exit code semantics and edge cases",
+      "description": "Exit code semantics and edge cases",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/follow_test.go"
+      ],
+      "body": "Exit 0 on success or when follow mode is interrupted by Ctrl+C. Exit 1 when no log files are found or the project is not initialized. Handle edge cases: empty log directory, corrupted NDJSON lines (skip gracefully), compressed .jsonl.gz files from older sessions. Write tests covering each exit scenario."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Log Command Rewrite is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify all three output modes produce output matching the spec examples exactly",
+    "Verify --follow behavior: implicit when daemon running, explicit flag works when stopped"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

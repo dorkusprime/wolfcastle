@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "id": "thoughts-renderer",
+  "name": "Thoughts Renderer",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement thoughts renderer",
+      "description": "Implement thoughts renderer",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/thoughts.go",
+        "internal/logrender/thoughts_test.go"
+      ],
+      "body": "Create internal/logrender/thoughts.go. Implement a ThoughtsRenderer struct that accepts an io.Writer. The Render(ctx context.Context, records \u003c-chan Record) method filters for records where Type == 'assistant', extracts the Text field, and writes it to the output writer followed by a newline. All other record types are silently skipped. No formatting is applied: no timestamps, no indentation, no glyphs. Empty text fields are skipped (do not print blank lines for empty assistant records). This renderer works the same for both replay and follow mode since it simply processes records as they arrive. The method returns when records closes or ctx is cancelled.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Thoughts Renderer is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that only assistant record text is emitted, with no decoration, timestamps, or blank lines from empty records"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

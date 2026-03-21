@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "log-rendering-engine",
+  "name": "Log Rendering Engine",
+  "type": "orchestrator",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "foundation",
+      "address": "log-command-redesign/log-rendering-engine/foundation",
+      "state": "in_progress"
+    },
+    {
+      "id": "summary-renderer",
+      "address": "log-command-redesign/log-rendering-engine/summary-renderer",
+      "state": "not_started"
+    },
+    {
+      "id": "thoughts-renderer",
+      "address": "log-command-redesign/log-rendering-engine/thoughts-renderer",
+      "state": "not_started"
+    },
+    {
+      "id": "interleaved-renderer",
+      "address": "log-command-redesign/log-rendering-engine/interleaved-renderer",
+      "state": "not_started"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Log Rendering Engine is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "A new internal/logrender package containing session detection, duration formatting, and three output renderers (summary, thoughts, interleaved). This package is the shared rendering layer used by both the wolfcastle log command and non-daemon mode stdout. It reads NDJSON records and produces formatted terminal output. The renderers must handle both historical replay (reading completed log files) and live follow mode (tailing active files). The package has no dependency on the cobra command layer.",
+  "success_criteria": [
+    "internal/logrender package exists with record.go, duration.go, session.go, reader.go, summary.go, thoughts.go, interleaved.go and corresponding test files",
+    "All three renderers produce output matching the spec examples in 2026-03-21T18-00Z-log-command-design.md",
+    "The package has no imports from cmd/ or cobra; it depends only on internal/ packages and the standard library",
+    "Session detection correctly groups log files by iteration-1 boundaries and handles compressed .jsonl.gz files",
+    "Duration formatting matches the spec exactly: 34s, 1m22s, 12m5s, 1h3m with no spaces",
+    "Follow mode readers deliver records incrementally via channels and respect context cancellation"
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T21:24:00.892817Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T21:23:58.810013Z",
+        "task": "log-command-redesign/log-rendering-engine",
+        "text": "Created 4 children: foundation, summary-renderer, thoughts-renderer, interleaved-renderer. Ordering: foundation first (all renderers depend on Record types, duration formatting, session detection, and the reader abstraction), then the three renderers which are independent of each other. Spec reference: .wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md. No new specs needed; the design spec fully defines the rendering contracts. Existing follow.go in cmd/daemon/ shows the code being replaced but is not referenced by this package."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
