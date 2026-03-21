@@ -78,9 +78,10 @@ with open('%s','w') as f: json.dump(data, f)
 " 2>/dev/null; echo WOLFCASTLE_YIELD`, stateFile, stateFile,
 		)},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "yield-add", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "yield-add", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "yield-decomp", TaskID: "task-0001", Found: true}
@@ -136,9 +137,10 @@ with open('%s','w') as f: json.dump(data, f)
 " 2>/dev/null; echo WOLFCASTLE_YIELD`, stateFile, stateFile,
 		)},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "yield-plan", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "yield-plan", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "yield-plan", TaskID: "task-0001", Found: true}
@@ -169,9 +171,10 @@ func TestRunIteration_YieldNoNewTasks(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Pipeline.Planning.Enabled = false
 	d.Config.Models["yield"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_YIELD"}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "yield", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "yield", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
@@ -215,9 +218,10 @@ func TestRunIteration_BlockedSuperseded_TreatedAsSkip(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "blocked", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "blocked", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "superseded-node", TaskID: "task-0001", Found: true}
@@ -266,9 +270,10 @@ func TestRunIteration_BlockedAudit_CreatesRemediationSubtasks(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "blocked", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "blocked", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "audit-remediation", TaskID: "audit", Found: true}
@@ -310,9 +315,10 @@ func TestRunIteration_BlockedNormal_BlocksAndPropagates(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "blocked", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "blocked", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "blocked-normal", TaskID: "task-0001", Found: true}
@@ -477,9 +483,10 @@ func TestRunIteration_Skip_AutoCompleteDecomposedParent(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["skip"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_SKIP already done"}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "skip", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "skip", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "skip-auto", TaskID: "task-0003", Found: true}
@@ -919,9 +926,10 @@ func TestRunIteration_NoMarker_FailureType(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"just some text"}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "echo", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "ftm-node", TaskID: "task-0001", Found: true}

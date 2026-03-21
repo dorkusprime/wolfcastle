@@ -265,9 +265,10 @@ echo "I analyzed the codebase and here is what I found."
 echo "The architecture looks solid. I would recommend refactoring the widget module."
 echo "Let me know if you have questions."`},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "chatty", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "chatty", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
 	d.Config.Failure.HardCap = 0
@@ -316,9 +317,10 @@ func TestRunIteration_NonzeroExitCode_NoMarker(t *testing.T) {
 		Command: "sh",
 		Args:    []string{"-c", "echo 'Error: authentication failed'; exit 1"},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "failing", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "failing", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
 	d.Config.Failure.HardCap = 0
@@ -367,9 +369,10 @@ echo "WARNING: test coverage below 80%"
 echo "Task completed with warnings."
 echo "WOLFCASTLE_COMPLETE"`},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "warn", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "warn", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -534,9 +537,10 @@ func TestRunIteration_ContextCancelledDuringExecution(t *testing.T) {
 		Command: "sh",
 		Args:    []string{"-c", "read BLOCK; echo WOLFCASTLE_COMPLETE"},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "slow", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "slow", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Daemon.InvocationTimeoutSeconds = 0
 	d.Config.Failure.DecompositionThreshold = 0
@@ -603,9 +607,10 @@ func TestRunIteration_PartialMarkerOutput(t *testing.T) {
 				Command: "echo",
 				Args:    []string{tt.output},
 			}
-			d.Config.Pipeline.Stages = []config.PipelineStage{
-				{Name: "execute", Model: "partial", PromptFile: "stages/execute.md"},
+			d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+				"execute": {Model: "partial", PromptFile: "stages/execute.md"},
 			}
+			d.Config.Pipeline.StageOrder = []string{"execute"}
 			d.Config.Retries.MaxRetries = 0
 			d.Config.Failure.DecompositionThreshold = 0
 			d.Config.Failure.HardCap = 0
@@ -652,9 +657,10 @@ echo '{"broken json here'
 echo ']}}}}'
 echo 'random text at the end'`},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "garbage", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "garbage", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
 	d.Config.Failure.HardCap = 0
@@ -696,9 +702,10 @@ func TestRunIteration_EmptyOutput(t *testing.T) {
 		Command: "true",
 		Args:    []string{},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "silent", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "silent", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
 	d.Config.Failure.HardCap = 0
@@ -736,9 +743,10 @@ func TestRunIteration_EmptyOutput(t *testing.T) {
 func TestRunIteration_PromptAssemblyError(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "nonexistent-prompt-xyz.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "echo", PromptFile: "nonexistent-prompt-xyz.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
@@ -797,9 +805,10 @@ func TestRunIteration_NoGitProgress_RejectsComplete(t *testing.T) {
 		Command: "echo",
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "noop-complete", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "noop-complete", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
 	d.Config.Failure.HardCap = 0
@@ -976,10 +985,11 @@ func TestRunOnce_NoWorkDeduplication(t *testing.T) {
 func TestRunIteration_MultipleStages_CustomStagesRun(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"},
-		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"intake":  {Model: "echo", PromptFile: "stages/intake.md"},
+		"execute": {Model: "echo", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"intake", "execute"}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
