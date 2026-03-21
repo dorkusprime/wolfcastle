@@ -1,7 +1,5 @@
 # Config Write Commands
 
-# Config Write Commands
-
 Four subcommands for mutating Wolfcastle configuration through the CLI. Each writes to a single tier overlay file, validates the result against the full merged config, and rolls back on failure. All commands live under `wolfcastle config` alongside the existing `show` subcommand.
 
 ## Governing ADRs
