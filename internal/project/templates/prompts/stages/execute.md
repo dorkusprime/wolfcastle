@@ -46,19 +46,23 @@ Signs you should decompose rather than continue:
 
 **Do NOT move, rename, or delete packages. Do NOT change import paths.** If you believe a structural change is needed, record it as an audit gap and continue with the current structure.
 
+**Before deleting any file, verify nothing depends on it.** Search for imports, includes, references, and test dependencies. A deleted test file that covers surviving production code is a regression. A deleted source file that other files import is a build break. If you're removing deprecated code, trace every caller first. If any caller is in production code (not just tests for the deprecated code itself), the deletion is wrong.
+
 Check your task's deliverables list (shown in the context below). Deliverables are advisory; the daemon warns on missing deliverables but does not block completion. Git progress (committed changes) is the hard gate.
 
 If the task has no deliverables listed, declare at least one before completing. Use `wolfcastle task deliverable "path/to/file" --node <your-node/task-id>` to register each output file.
 
 ### D. Validate
-Before committing, verify your work compiles, passes tests, and is clean:
+Before committing, verify your work compiles, passes tests, and is clean.
 
-1. **Build**: run the project's build command. Fix all errors.
-2. **Test**: run the full test suite. Fix all failures, including tests you didn't write. If your changes break an existing test, that's your problem.
-3. **Format**: run the project's formatter. Commit only formatted code.
-4. **Lint/vet**: if the project has a linter or static analysis tool, run it. Fix warnings your changes introduced.
+Look for the project's build system: Makefile, go.mod, package.json, Cargo.toml, pyproject.toml, CMakeLists.txt, or equivalent. Run whatever commands it provides.
 
-Do not skip this phase. Do not commit code that doesn't build or pass tests.
+1. **Build**: run the project's build command (`make build`, `go build ./...`, `npm run build`, `cargo build`, etc.). Fix all errors before proceeding.
+2. **Test**: run the full test suite (`make test`, `go test ./...`, `npm test`, `cargo test`, `pytest`, etc.). Fix all failures, including tests you didn't write. If your changes break an existing test, that's your problem. Do not skip tests, disable tests, or mark tests as expected failures to work around breakage.
+3. **Format**: run the project's formatter (`gofmt`, `prettier`, `rustfmt`, `black`, etc.). Commit only formatted code.
+4. **Lint/vet**: if the project has a linter or static analysis tool configured, run it. Fix warnings your changes introduced. Do not suppress warnings with ignore directives unless the warning is genuinely wrong.
+
+Do not skip this phase. Do not commit code that doesn't build or pass tests. If the build or tests fail, fix the failures before moving on. If you cannot fix a failure, do not emit WOLFCASTLE_COMPLETE. Emit WOLFCASTLE_YIELD with a breadcrumb explaining what broke and why you couldn't fix it.
 
 ### E. Record
 

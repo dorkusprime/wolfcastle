@@ -168,6 +168,31 @@ func (d *Daemon) selfHeal() error {
 				needsHeal = true
 				break
 			}
+			// Blocked audit with open gaps but no remediation subtasks:
+			// the daemon crashed or exited before creating them.
+			if t.IsAudit && t.State == state.StatusBlocked {
+				hasOpenGaps := false
+				for _, g := range ns.Audit.Gaps {
+					if g.Status == state.GapOpen {
+						hasOpenGaps = true
+						break
+					}
+				}
+				if hasOpenGaps {
+					hasSubtasks := false
+					prefix := t.ID + "."
+					for _, other := range ns.Tasks {
+						if len(other.ID) > len(prefix) && other.ID[:len(prefix)] == prefix {
+							hasSubtasks = true
+							break
+						}
+					}
+					if !hasSubtasks {
+						needsHeal = true
+						break
+					}
+				}
+			}
 		}
 		if !needsHeal {
 			continue
@@ -194,6 +219,62 @@ func (d *Daemon) selfHeal() error {
 					healed++
 				}
 			}
+			// Blocked audit with open gaps but no remediation subtasks:
+			// create the subtasks that should have been created when
+			// the audit first blocked.
+			for i := range ns.Tasks {
+				t := &ns.Tasks[i]
+				if !t.IsAudit || t.State != state.StatusBlocked {
+					continue
+				}
+				prefix := t.ID + "."
+				hasSubtasks := false
+				for _, other := range ns.Tasks {
+					if len(other.ID) > len(prefix) && other.ID[:len(prefix)] == prefix {
+						hasSubtasks = true
+						break
+					}
+				}
+				if hasSubtasks {
+					continue
+				}
+				// Find existing subtask numbers to avoid duplicates.
+				existingSubs := make(map[string]bool)
+				subPrefix := t.ID + "."
+				for _, other := range ns.Tasks {
+					if len(other.ID) > len(subPrefix) && other.ID[:len(subPrefix)] == subPrefix {
+						existingSubs[other.ID] = true
+					}
+				}
+				nextNum := len(existingSubs) + 1
+				subCount := 0
+				for _, g := range ns.Audit.Gaps {
+					if g.Status != state.GapOpen {
+						continue
+					}
+					childID := fmt.Sprintf("%s.%04d", t.ID, nextNum)
+					for existingSubs[childID] {
+						nextNum++
+						childID = fmt.Sprintf("%s.%04d", t.ID, nextNum)
+					}
+					ns.Tasks = append(ns.Tasks, state.Task{
+						ID:          childID,
+						Description: fmt.Sprintf("Fix: %s\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node %s %s", g.Description, addr, g.ID),
+						State:       state.StatusNotStarted,
+					})
+					nextNum++
+					subCount++
+				}
+				if subCount > 0 {
+					// Re-index after append may have reallocated the slice.
+					ns.Tasks[i].State = state.StatusNotStarted
+					ns.Tasks[i].BlockedReason = ""
+					output.PrintHuman("  Created %d remediation subtask(s) for %s/%s", subCount, addr, ns.Tasks[i].ID)
+					changed = true
+					healed += subCount
+				}
+			}
+
 			if !changed {
 				return errNoChange
 			}

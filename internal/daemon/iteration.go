@@ -662,14 +662,29 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 			return nil
 		}
 
-		// Create a subtask for each open gap
-		for i, g := range openGaps {
-			childID := fmt.Sprintf("%s.%04d", taskID, i+1)
+		// Find existing subtask IDs to avoid duplicates.
+		existingSubtasks := make(map[string]bool)
+		prefix := taskID + "."
+		for _, t := range ns.Tasks {
+			if len(t.ID) > len(prefix) && t.ID[:len(prefix)] == prefix {
+				existingSubtasks[t.ID] = true
+			}
+		}
+
+		// Create a subtask for each open gap that doesn't already have one.
+		nextNum := len(existingSubtasks) + 1
+		for _, g := range openGaps {
+			childID := fmt.Sprintf("%s.%04d", taskID, nextNum)
+			if existingSubtasks[childID] {
+				nextNum++
+				childID = fmt.Sprintf("%s.%04d", taskID, nextNum)
+			}
 			ns.Tasks = append(ns.Tasks, state.Task{
 				ID:          childID,
-				Description: fmt.Sprintf("Fix: %s", g.Description),
+				Description: fmt.Sprintf("Fix: %s\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node %s %s", g.Description, nodeAddr, g.ID),
 				State:       state.StatusNotStarted,
 			})
+			nextNum++
 			created++
 		}
 
