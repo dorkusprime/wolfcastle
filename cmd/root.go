@@ -80,6 +80,7 @@ func setupCommands() {
 	updateCmd.GroupID = "lifecycle"
 	navigateCmd.GroupID = "work"
 	archiveCmd.GroupID = "work"
+	executeCmd.GroupID = "lifecycle"
 	doctorCmd.GroupID = "diagnostics"
 	unblockCmd.GroupID = "diagnostics"
 	installCmd.GroupID = "integration"
