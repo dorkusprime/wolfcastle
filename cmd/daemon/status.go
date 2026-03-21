@@ -645,9 +645,9 @@ func countDescendants(idx *state.RootIndex, addr string) int {
 	return count
 }
 
-// sortChildrenByActivity reorders children so active nodes (in_progress,
-// blocked) appear first, then not_started, then complete. Within each
-// group, creation order is preserved.
+// sortChildrenByActivity reorders children as a timeline: completed work
+// at the top (past), active work in the middle (present), not-started at
+// the bottom (future). Within each group, creation order is preserved.
 func sortChildrenByActivity(children []string, idx *state.RootIndex) []string {
 	sorted := make([]string, len(children))
 	copy(sorted, children)
@@ -661,13 +661,13 @@ func sortChildrenByActivity(children []string, idx *state.RootIndex) []string {
 
 func statePriority(s state.NodeStatus) int {
 	switch s {
-	case state.StatusInProgress:
-		return 0
-	case state.StatusBlocked:
-		return 1
-	case state.StatusNotStarted:
-		return 2
 	case state.StatusComplete:
+		return 0
+	case state.StatusInProgress:
+		return 1
+	case state.StatusBlocked:
+		return 2
+	case state.StatusNotStarted:
 		return 3
 	default:
 		return 4
