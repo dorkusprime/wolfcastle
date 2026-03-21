@@ -10,29 +10,56 @@ You give Wolfcastle a goal. It breaks that goal into a tree of targets and sends
 
 Coding agents are remarkably good at writing specs and following specs. Where they struggle is the middle: deciding what to build, building it, and maintaining quality across dozens of tasks without human intervention. Not because the models aren't capable, but because the scaffolding around them wasn't designed for sustained, unsupervised work.
 
-### The Planning Problem
+Wolfcastle solves four problems that prevent coding agents from working autonomously at scale:
 
-Some coding agents offer a "planning mode" that asks the agent to think before it acts. But the agent is both the planner and the executor. Keep context and the two blur together: the agent plans five things, does two, gets creative on the third, and forgets the fourth. Clear context and the executor can reinterpret or ignore the plan because nothing enforces it. Either way, the plan is a suggestion the agent made to itself.
+### Planning
 
-Wolfcastle separates planning from execution. A planning agent creates the structure: specs, projects, task trees. An execution agent follows it. Neither can overwrite the other. The daemon enforces the contract. If the executor blocks, the system [decomposes](docs/humans/failure-and-recovery.md#decomposition) rather than letting it thrash.
+Coding agents work best when they know exactly what to do. The problem is getting from a goal to a plan. Some agents offer a "planning mode" to bridge this gap, but the agent is still both planner and executor.
 
-### The Context Problem
+- _Keep_ context and the two blur together: the agent plans five things, does two, gets creative on the third, and forgets the fourth.
+- _Clear_ context and the executor can reinterpret the plan because nothing enforces it. Either way, the plan is a suggestion the agent made to itself.
 
-Context degrades. Windows fill up, conversations get compacted, and earlier decisions contradict later ones. When context contains contradictions, the model has to resolve those conflicts on every single turn, burning capacity on reconciliation instead of work. The agent that spent twenty minutes understanding your authentication flow loses the nuance by the time the next task begins. Decisions evaporate. Lessons from failures disappear. This is the [Ralph loop](https://ghuntley.com/loop/): the agent running in circles, solving the same problems over and over, because it has no memory of what it already learned.
+Wolfcastle separates planning from execution. A planning agent creates the structure: [specs](docs/specs/), projects, task trees. An execution agent follows it. Neither can overwrite the other. The [daemon](docs/humans/how-it-works.md#the-daemon) enforces the contract. If the executor blocks, the system [decomposes](docs/humans/failure-and-recovery.md#decomposition) rather than letting it thrash.
 
-Wolfcastle materializes context as artifacts. [Architecture Decision Records](docs/decisions/INDEX.md) capture the "why" behind design choices, so the next agent doesn't reverse a deliberate decision. [Specifications](docs/specs/) capture the "what," giving executors a contract instead of re-interpreting the goal each time. [After Action Reviews](docs/humans/audits.md) capture the "what happened," so mistakes don't repeat. The daemon injects these into context automatically.
+### Context
 
-### The Quality Problem
+Context degrades. Windows fill up, conversations get compacted, and earlier decisions contradict later ones. When context contradicts itself, the model reconciles those conflicts on every turn, burning capacity on bookkeeping instead of work.
 
-Agents produce code. Nobody checks it. Or worse, the agent checks its own work in the same context where it wrote the code. Errors of assumption survive because the assumptions were never questioned by a separate process.
+Wolfcastle gives each task a fresh invocation with clean context and materializes knowledge as persistent artifacts. [Architecture Decision Records](docs/decisions/INDEX.md) (ADRs) capture the "why" behind design choices, so the next agent doesn't reverse a deliberate decision. [Specifications](docs/specs/) capture the "what," giving executors a contract instead of re-interpreting the goal each time. [After Action Reviews](docs/humans/audits.md) (AARs) capture lessons learned, so mistakes don't repeat. The daemon injects these into context automatically: each invocation starts informed, not polluted.
 
-Wolfcastle [audits](docs/humans/audits.md#the-audit-system) every piece of work from a separate invocation with fresh context. Audits are hierarchical: each [leaf](docs/humans/how-it-works.md#the-project-tree) gets its own audit scoped to what that leaf built, and each orchestrator gets an audit scoped to how its children integrate. The auditor reads [breadcrumbs](docs/humans/audits.md#breadcrumbs), checks them against acceptance criteria, and files gaps. Gaps that can't be resolved locally [escalate upward](docs/humans/audits.md#gap-escalation) to the parent, and escalation can propagate to the root. No code ships without a second pair of eyes, and those eyes belong to a process that didn't write the code.
+### Quality
 
-### The Human Dependency Problem
+Agents produce code. Nobody checks it, or worse, the agent checks its own work in the same context where it wrote the code. Errors of assumption survive because the assumptions were never questioned by a separate process.
 
-Most agent workflows require a human at every turn. Approve this plan. Review this code. Decide what to do next. The agent is capable, but the process assumes someone is always watching. Scale is limited by the human's availability, not the agent's throughput.
+Wolfcastle [audits](docs/humans/audits.md#the-audit-system) every piece of work from a separate invocation with fresh context. Audits are hierarchical: each leaf gets its own audit scoped to what it built, and each orchestrator gets an audit scoped to how its children integrate. The auditor reads [breadcrumbs](docs/humans/audits.md#breadcrumbs) (timestamped records of what each task produced), checks them against acceptance criteria, and files gaps. Gaps that can't be resolved locally [escalate upward](docs/humans/audits.md#gap-escalation).
 
-Wolfcastle inverts the relationship. The daemon runs the full lifecycle: intake, planning, execution, audit, remediation, commit. The human's role is to steer, not operate. Check [`wolfcastle status`](docs/humans/cli/status.md), adjust priorities, [unblock](docs/humans/failure-and-recovery.md#the-unblock-workflow) the rare task that genuinely needs judgment. The system does the volume. You do the thinking.
+### Human Dependency
+
+Most agent workflows assume someone is always watching. Approve this plan. Review this code. Decide what to do next. Scale is limited by the human's availability, not the agent's throughput.
+
+Wolfcastle runs the full lifecycle without waiting for a human: intake, planning, execution, audit, [remediation](docs/humans/audits.md#gap-escalation), commit. The human's role is to steer, not operate. Check [`wolfcastle status`](docs/humans/cli/status.md), adjust priorities, [unblock](docs/humans/failure-and-recovery.md#the-unblock-workflow) the rare task that genuinely needs judgment. The system does the volume. You do the thinking.
+
+## Standing on Ralph's Shoulders
+
+The [Ralph loop](https://ghuntley.com/ralph/) changed how people think about coding agents. Put an agent in a `while` loop, feed it a spec, let it run. Each iteration does one thing. Fresh context every pass. Backpressure (tests, compilation, linting) keeps the output honest. Simple, effective, and [proven at scale](https://ghuntley.com/loop/).
+
+Ralph works because it respects a fundamental constraint: context degrades. The specs get re-read every pass, but they're read _clean_, with no competing noise from failed attempts or abandoned approaches. The signal-to-noise ratio is what matters, not the token count.
+
+Wolfcastle inherits these ideas. Fresh context per task. Backpressure validation. One thing at a time. It also pushes further on a principle Ralph hints at: don't make the model do work that doesn't require a model. Finding the next task, grooming a backlog, propagating state, validating structure: these are deterministic operations. Asking a non-deterministic agent to perform them reliably is a recipe for a soup sandwich. Wolfcastle handles all of it with [CLI scripts](docs/humans/cli.md) and daemon logic. The agent reads code and writes code. Everything else is handled by Go binaries that never hallucinate, never drift, and never burn tokens on bookkeeping.
+
+The difference is what sits around the core loop: planning agents that decide what to work on next, structured artifacts that carry knowledge forward without static files that grow until they hit the context ceiling, hierarchical audits that catch what compile-test-lint cannot, and a daemon that runs the loop without a human at the keyboard.
+
+Ralph is the insight. Wolfcastle is the infrastructure.
+
+## How It Works
+
+Wolfcastle organizes code changes into a [project tree](docs/humans/how-it-works.md#the-project-tree). Orchestrators represent features, modules, or milestones. Leaves are where the actual coding tasks live. Every node ends with an automatic [audit](docs/humans/audits.md#the-audit-system) and, if gaps are found, [remediation](docs/humans/audits.md#gap-escalation). Nodes have [four states](docs/humans/how-it-works.md#four-states): `not_started`, `in_progress`, `complete`, `blocked`. State [propagates upward](docs/humans/how-it-works.md#state-propagation) deterministically: when a task completes, its leaf recomputes, then its parent, all the way to the root. No node decides its own fate.
+
+The daemon runs a [pipeline of stages](docs/humans/how-it-works.md#the-pipeline). Intake triages inbox items into projects. Planning agents decompose projects into specs, task trees, and acceptance criteria. Execution claims tasks and points agents at code. Audits verify the results from a separate invocation with fresh context. Each stage is a separate model call with a specific role. Stages are [configured as a dictionary](docs/humans/configuration.md#pipelines), overridable per tier.
+
+The tree grows at runtime. Tasks that fail [decompose](docs/humans/failure-and-recovery.md#decomposition) into smaller problems. Agents can trigger decomposition mid-task when they recognize the work is too broad. Orchestrators spawn new children when planning reveals additional work. A [hard cap](docs/humans/failure-and-recovery.md#task-failure-escalation) stops any task from fighting forever. If the daemon crashes, it [recovers on restart](docs/humans/failure-and-recovery.md#self-healing). Completed trees are [auto-archived](docs/humans/collaboration.md#archive).
+
+Everything is deterministic except the model's output. State, specs, ADRs, AARs, breadcrumbs, and audit findings all live as [files on disk](docs/humans/how-it-works.md#distributed-state). Nothing important stays in memory. Every decision, every lesson, every result persists across invocations, restarts, and crashes. The model handles what models are good at: reading code, writing code, making judgment calls. [CLI scripts](docs/humans/cli.md) handle what's deterministic: state transitions, propagation, validation, navigation. Neither does the other's job.
 
 ## Status
 
@@ -62,16 +89,6 @@ wolfcastle status -w                                       # watch it work
 
 Feed it work through the [CLI](docs/humans/cli.md) or let your coding agent inject work directly. The [daemon](docs/humans/how-it-works.md#the-daemon) takes it from there: triage, planning, execution, audit, commit. Serial, depth-first, until the [tree](docs/humans/how-it-works.md#the-project-tree) is conquered or something gets in the way.
 
-## How It Works
-
-Wolfcastle organizes code changes into a [tree](docs/humans/how-it-works.md#the-project-tree) of orchestrators (features, modules, milestones) and leaves (where the coding happens). Every node ends with an automatic audit and, if necessary, remediation. Nodes have [four states](docs/humans/how-it-works.md#four-states): `not_started`, `in_progress`, `complete`, `blocked`. State [propagates upward](docs/humans/how-it-works.md#state-propagation) deterministically. No node decides its own fate.
-
-The daemon runs a [pipeline of stages](docs/humans/how-it-works.md#the-pipeline). Intake triages inbox items into projects. Execution claims tasks and points agents at code. Audits verify the results. Each stage is a separate model invocation with a specific role. Stages are [configured as a dictionary](docs/humans/configuration.md#pipelines), overridable per tier.
-
-The tree grows at runtime. Tasks that fail [decompose](docs/humans/failure-and-recovery.md#decomposition) into smaller problems. Agents can trigger decomposition mid-task when they recognize the work is too broad. Orchestrators spawn new children when planning reveals additional work. A [hard cap](docs/humans/failure-and-recovery.md#task-failure-escalation) stops any task from fighting forever. If the daemon crashes, it [recovers on restart](docs/humans/failure-and-recovery.md#self-healing). Completed trees are [auto-archived](docs/humans/collaboration.md#archive).
-
-Everything is deterministic except the model's output. State, specs, ADRs, AARs, breadcrumbs, and audit findings all live as [files on disk](docs/humans/how-it-works.md#distributed-state). Nothing important stays in memory. Every decision, every lesson, every result persists across invocations, restarts, and crashes.
-
 ## Configuration
 
 Config [merges across three tiers](docs/humans/configuration.md#three-tiers): base (defaults, gitignored), custom (team-shared, committed), local (personal, gitignored). Manage it through [`wolfcastle config`](docs/humans/cli/config-show.md) commands or edit the JSON directly.
@@ -82,16 +99,16 @@ Config [merges across three tiers](docs/humans/configuration.md#three-tiers): ba
 
 Each engineer's work lives in its own [namespace](docs/humans/collaboration.md#engineer-namespacing). Everyone can see everyone else's state, but nobody writes to anyone else's. No merge conflicts. Wolfcastle [commits to your current branch](docs/humans/collaboration.md#git-integration) with safety checks, or to an [isolated worktree](docs/humans/collaboration.md#worktree-isolation) if you prefer.
 
+## Token Usage
+
+Wolfcastle turns tokens into code. It uses a lot of them. Every planning pass, every execution, every audit, every remediation is a separate model invocation. The scaffolding makes each invocation more efficient: persistent artifacts mean less re-discovery, CLI scripts handle state instead of the model reasoning through it, and deterministic operations like propagation and validation never touch the model at all. But the volume is real. If you're using a metered API, expect meaningful spend. An unlimited plan (like Anthropic's Max plan for Claude Code) is the practical choice for sustained use.
+
 ## Requirements
 
 - **Git** (branch verification, progress detection, auto-commit)
 - **A coding agent** that reads stdin and writes stdout
 - **Go 1.26+** (only if building from source)
 - **Local filesystem** for `.wolfcastle/` ([why](SECURITY.md))
-
-## Token Usage
-
-Wolfcastle turns tokens into code. It uses a lot of them. Every planning pass, every execution, every audit, every remediation is a separate model invocation. The scaffolding makes each invocation more efficient (persistent context means less re-discovery, CLI scripts handle state instead of the model reasoning through it, deterministic operations like propagation and validation never touch the model at all), but the volume is real. If you're using a metered API, expect meaningful spend. An unlimited plan (like Anthropic's Max plan for Claude Code) is the practical choice for sustained use.
 
 ## More
 
