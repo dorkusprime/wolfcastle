@@ -146,9 +146,10 @@ func TestProcessInbox_IntakeStageError(t *testing.T) {
 
 	// Configure with a model that doesn't exist, so runIntakeStage
 	// returns an error from the model-not-found path.
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "nonexistent-model", PromptFile: "stages/intake.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"intake": {Model: "nonexistent-model", PromptFile: "stages/intake.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"intake"}
 
 	// Write an inbox with "new" items so runIntakeStage gets past the
 	// empty-inbox early return.
@@ -169,9 +170,10 @@ func TestProcessInbox_DisabledIntakeStage(t *testing.T) {
 	d := testDaemon(t)
 
 	f := false
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "echo", PromptFile: "stages/intake.md", Enabled: &f},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"intake": {Model: "echo", PromptFile: "stages/intake.md", Enabled: &f},
 	}
+	d.Config.Pipeline.StageOrder = []string{"intake"}
 
 	// Disabled stage should be skipped
 	d.processInbox(context.Background(), 1)
@@ -190,7 +192,7 @@ func TestRunIntakeStage_LoadInboxError(t *testing.T) {
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	_ = os.WriteFile(inboxPath, []byte("{corrupt"), 0644)
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	// LoadInbox error returns nil (treated as no inbox)
 	if err != nil {
@@ -214,7 +216,7 @@ func TestRunIntakeStage_PlanningEnabled(t *testing.T) {
 		{Status: "new", Text: "planning item", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -244,7 +246,7 @@ func TestRunIntakeStage_PromptAssemblyError(t *testing.T) {
 		{Status: "new", Text: "item", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "nonexistent-prompt.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "nonexistent-prompt.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Error("expected error for missing prompt file")
@@ -271,7 +273,7 @@ func TestRunIntakeStage_InvocationError(t *testing.T) {
 		{Status: "new", Text: "item", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "bad-cmd", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "bad-cmd", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Error("expected error for bad model command")
@@ -297,7 +299,7 @@ func TestRunIntakeStage_NonZeroExitCode(t *testing.T) {
 		{Status: "new", Text: "should stay new", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "fail", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "fail", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err != nil {
 		t.Fatalf("non-zero exit should not be a fatal error: %v", err)
@@ -330,7 +332,7 @@ func TestRunIntakeStage_ExistingTreeContext(t *testing.T) {
 		{Status: "new", Text: "add to existing", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -366,7 +368,7 @@ func TestRunIntakeStage_ExistingTreeWithParent(t *testing.T) {
 		{Status: "new", Text: "new work", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -399,7 +401,7 @@ func TestRunIntakeStage_PlanningWithOverlapMarkers(t *testing.T) {
 		{Status: "new", Text: "overlapping work", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "overlap-echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "overlap-echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -433,7 +435,7 @@ func TestRunIntakeStage_WorkAvailableAlreadyFull(t *testing.T) {
 	// hits the default branch
 	d.workAvailable <- struct{}{}
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}

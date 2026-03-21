@@ -63,7 +63,7 @@ func TestAssemblePrompt_IncludesRuleFragments(t *testing.T) {
 	setupPromptDir(t, dir)
 
 	cfg := config.Defaults()
-	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "stages/execute.md"}
+	stage := config.PipelineStage{Model: "heavy", PromptFile: "stages/execute.md"}
 
 	result, err := AssemblePrompt(dir, cfg, stage, "")
 	if err != nil {
@@ -81,7 +81,7 @@ func TestAssemblePrompt_IncludesStagePrompt(t *testing.T) {
 	setupPromptDir(t, dir)
 
 	cfg := config.Defaults()
-	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "stages/execute.md"}
+	stage := config.PipelineStage{Model: "heavy", PromptFile: "stages/execute.md"}
 
 	result, err := AssemblePrompt(dir, cfg, stage, "")
 	if err != nil {
@@ -99,7 +99,7 @@ func TestAssemblePrompt_IncludesIterationContext(t *testing.T) {
 	setupPromptDir(t, dir)
 
 	cfg := config.Defaults()
-	stage := config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "stages/execute.md"}
+	stage := config.PipelineStage{Model: "heavy", PromptFile: "stages/execute.md"}
 
 	result, err := AssemblePrompt(dir, cfg, stage, "task context here")
 	if err != nil {
@@ -122,7 +122,6 @@ func TestAssemblePrompt_SkipPromptAssembly(t *testing.T) {
 	cfg := config.Defaults()
 	skip := true
 	stage := config.PipelineStage{
-		Name:               "expand",
 		Model:              "fast",
 		PromptFile:         "expand.md",
 		SkipPromptAssembly: &skip,
@@ -157,7 +156,7 @@ func TestAssemblePrompt_ExecuteStageContainsTerminalMarkers(t *testing.T) {
 	setupEmbeddedPrompts(t, dir)
 
 	cfg := config.Defaults()
-	stage := cfg.Pipeline.Stages[1] // execute with AllowedCommands
+	stage := cfg.Pipeline.Stages["execute"] // execute with AllowedCommands
 
 	result, err := AssemblePrompt(dir, cfg, stage, "task context")
 	if err != nil {
@@ -206,7 +205,7 @@ func TestAssemblePrompt_IntakeStageContainsProjectCreation(t *testing.T) {
 	setupEmbeddedPrompts(t, dir)
 
 	cfg := config.Defaults()
-	stage := cfg.Pipeline.Stages[0] // intake with AllowedCommands
+	stage := cfg.Pipeline.Stages["intake"] // intake with AllowedCommands
 
 	result, err := AssemblePrompt(dir, cfg, stage, "inbox context")
 	if err != nil {
@@ -259,14 +258,14 @@ func TestAssemblePrompt_StagesProduceDifferentPrompts(t *testing.T) {
 	cfg := config.Defaults()
 
 	intake, err := AssemblePrompt(dir, cfg,
-		config.PipelineStage{Name: "intake", Model: "mid", PromptFile: "stages/intake.md"},
+		config.PipelineStage{Model: "mid", PromptFile: "stages/intake.md"},
 		"inbox items")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	execute, err := AssemblePrompt(dir, cfg,
-		config.PipelineStage{Name: "execute", Model: "heavy", PromptFile: "stages/execute.md"},
+		config.PipelineStage{Model: "heavy", PromptFile: "stages/execute.md"},
 		"task context")
 	if err != nil {
 		t.Fatal(err)

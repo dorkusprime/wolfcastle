@@ -35,8 +35,9 @@ type ModelDef struct {
 
 // PipelineConfig defines the stage pipeline.
 type PipelineConfig struct {
-	Stages   []PipelineStage `json:"stages"`
-	Planning PlanningConfig  `json:"planning"`
+	Stages     map[string]PipelineStage `json:"stages"`
+	StageOrder []string                 `json:"stage_order,omitempty"`
+	Planning   PlanningConfig           `json:"planning"`
 }
 
 // PlanningConfig controls orchestrator planning passes.
@@ -50,7 +51,6 @@ type PlanningConfig struct {
 
 // PipelineStage defines a single pipeline stage.
 type PipelineStage struct {
-	Name               string   `json:"name"`
 	Model              string   `json:"model"`
 	PromptFile         string   `json:"prompt_file"`
 	Enabled            *bool    `json:"enabled,omitempty"`

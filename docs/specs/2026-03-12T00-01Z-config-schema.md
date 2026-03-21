@@ -18,7 +18,9 @@ Per ADR-018 and ADR-063, the three files are merged via **recursive deep merge**
 
 Example: if `base/config.json` defines models `fast` and `heavy`, and `local/config.json` redefines only `heavy`, the resolved config contains both models, with `fast` from base and `heavy` from local.
 
-Arrays are **not** deep-merged. An array in a higher tier replaces the entire array from the tier below. This applies to `pipeline.stages`, model `args`, `prompts.fragments`, and any other array-valued field.
+Arrays are **not** deep-merged. An array in a higher tier replaces the entire array from the tier below. This applies to `pipeline.stage_order`, model `args`, `prompts.fragments`, and any other array-valued field.
+
+Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by stage name, so a higher tier can override individual properties of a single stage without redeclaring the entire set. This follows the same merge pattern as `models`.
 
 ---
 
@@ -96,21 +98,17 @@ Arrays are **not** deep-merged. An array in a higher tier replaces the entire ar
 
     "pipeline": {
       "type": "object",
-      "description": "Pipeline stage configuration. Stages execute in order each daemon iteration. (ADR-006, ADR-013)",
+      "description": "Pipeline stage configuration. Stages execute in the order specified by stage_order each daemon iteration. (ADR-006, ADR-013)",
       "additionalProperties": false,
       "properties": {
         "stages": {
-          "type": "array",
-          "description": "Ordered list of pipeline stages. Each stage runs one model invocation.",
-          "items": {
+          "type": "object",
+          "description": "Named pipeline stages. Keys are stage slugs (matching [a-z][a-z0-9_-]*), values are PipelineStage objects. Deep-merged by key across tiers.",
+          "additionalProperties": {
             "type": "object",
-            "required": ["name", "model", "prompt_file"],
+            "required": ["model", "prompt_file"],
             "additionalProperties": false,
             "properties": {
-              "name": {
-                "type": "string",
-                "description": "Human-readable stage identifier. Must be unique within the pipeline."
-              },
               "model": {
                 "type": "string",
                 "description": "Key referencing an entry in the top-level `models` dictionary."
@@ -128,14 +126,24 @@ Arrays are **not** deep-merged. An array in a higher tier replaces the entire ar
                 "type": "boolean",
                 "default": false,
                 "description": "When true, the stage receives only its own prompt_file content as the prompt, without the full system prompt assembly (no rule fragments, no script reference). Useful for lightweight stages like summary."
+              },
+              "allowed_commands": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Restricts which wolfcastle CLI commands the stage may invoke. When absent or null, all commands are allowed."
               }
             }
           },
-          "default": [
-            { "name": "expand", "model": "fast", "prompt_file": "expand.md" },
-            { "name": "file", "model": "mid", "prompt_file": "file.md" },
-            { "name": "execute", "model": "heavy", "prompt_file": "execute.md" }
-          ]
+          "default": {
+            "intake": { "model": "mid", "prompt_file": "intake.md" },
+            "execute": { "model": "heavy", "prompt_file": "execute.md" }
+          }
+        },
+        "stage_order": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Execution order of pipeline stages. Each entry must name a key in stages. If omitted, stage keys are sorted alphabetically.",
+          "default": ["intake", "execute"]
         }
       }
     },
@@ -549,7 +557,8 @@ All fields are optional. Omitted fields use the defaults specified above. A comp
 | `models.fast` | `claude -p --model claude-haiku-4-5-20251001 --output-format stream-json --dangerously-skip-permissions` |
 | `models.mid` | `claude -p --model claude-sonnet-4-6 --output-format stream-json --dangerously-skip-permissions` |
 | `models.heavy` | `claude -p --model claude-opus-4-6 --output-format stream-json --verbose --dangerously-skip-permissions` |
-| `pipeline.stages` | expand (fast) -> file (mid) -> execute (heavy) |
+| `pipeline.stages` | intake (mid) -> execute (heavy) |
+| `pipeline.stage_order` | `["intake", "execute"]` |
 | `logs.max_files` | `100` |
 | `logs.max_age_days` | `30` |
 | `logs.compress` | `true` |
@@ -626,11 +635,11 @@ This is the team-shared configuration committed to git. Shows all fields with th
   },
 
   "pipeline": {
-    "stages": [
-      { "name": "expand", "model": "fast", "prompt_file": "expand.md" },
-      { "name": "file", "model": "mid", "prompt_file": "file.md" },
-      { "name": "execute", "model": "heavy", "prompt_file": "execute.md" }
-    ]
+    "stages": {
+      "intake": { "model": "mid", "prompt_file": "intake.md" },
+      "execute": { "model": "heavy", "prompt_file": "execute.md" }
+    },
+    "stage_order": ["intake", "execute"]
   },
 
   "logs": {
@@ -777,9 +786,11 @@ For every key at every nesting level, tiers are merged in order (base, then cust
 ### Arrays: Full Replacement
 
 Arrays are never element-merged. If a higher tier provides an array value for any key, it completely replaces the array from lower tiers. This means:
-- Overriding `pipeline.stages` replaces the entire stage list.
+- Overriding `pipeline.stage_order` replaces the entire ordering.
 - Overriding a model's `args` replaces the entire args array.
 - Overriding `prompts.fragments` replaces the entire fragment list.
+
+Note that `pipeline.stages` is a map, not an array. It follows the recursive deep-merge rules for objects: a higher tier can override a single stage's properties (e.g., `stages.execute.model`) without affecting other stages.
 
 ### Null Deletion
 
@@ -799,12 +810,19 @@ The Go binary carries hardcoded defaults for every field. `base/config.json` con
 
 The following validation is performed when config is loaded:
 
-1. **Model references**: Every `model` value in `pipeline.stages`, `summary.model`, `doctor.model`, `unblock.model`, and `audit.model` must reference a key that exists in the resolved `models` dictionary (after merge). Note: `overlap_advisory.model` is not validated — overlap detection is algorithmic per ADR-041.
-2. **Stage name uniqueness**: No two entries in `pipeline.stages` may share the same `name`.
-3. **No identity in custom/config.json**: If `identity` appears in `custom/config.json`, emit a warning. Identity is personal and should only be in `local/config.json`.
-4. **Type checking**: All fields must match their declared types. Unknown keys at the top level are rejected (`additionalProperties: false`).
-5. **Constraint checking**: Numeric fields respect their `minimum` constraints. `hard_cap` must be >= `decomposition_threshold`.
-6. **Prompt file existence**: `prompt_file` values in `pipeline.stages`, `summary.prompt_file`, `doctor.prompt_file`, `unblock.prompt_file`, and `audit.prompt_file` should resolve to an existing file in at least one tier (base/, custom/, or local/). Missing prompt files produce a startup error.
+1. **Model references**: Every `model` value in `pipeline.stages` (each stage's `model` field), `summary.model`, `doctor.model`, `unblock.model`, and `audit.model` must reference a key that exists in the resolved `models` dictionary (after merge). Note: `overlap_advisory.model` is not validated, as overlap detection is algorithmic per ADR-041.
+2. **Stage name format**: Stage names (map keys in `pipeline.stages`) must match `[a-z][a-z0-9_-]*`. Because stages are a map, duplicate names are structurally impossible at the JSON level.
+3. **Stage order integrity**: Every name in `pipeline.stage_order` must exist as a key in `pipeline.stages` (fatal error if not). Every key in `pipeline.stages` should appear in `pipeline.stage_order` (warning if not, since the stage will never execute).
+4. **No identity in custom/config.json**: If `identity` appears in `custom/config.json`, emit a warning. Identity is personal and should only be in `local/config.json`.
+5. **Type checking**: All fields must match their declared types. Unknown keys at the top level are rejected (`additionalProperties: false`).
+6. **Constraint checking**: Numeric fields respect their `minimum` constraints. `hard_cap` must be >= `decomposition_threshold`.
+7. **Prompt file existence**: `prompt_file` values in `pipeline.stages` (each stage), `summary.prompt_file`, `doctor.prompt_file`, `unblock.prompt_file`, and `audit.prompt_file` should resolve to an existing file in at least one tier (base/, custom/, or local/). Missing prompt files produce a startup error.
+
+---
+
+## Related Specs
+
+- [Dict-Format Pipeline Stages](.wolfcastle/docs/specs/2026-03-21T03-11Z-dict-format-stages.md): defines the `pipeline.stages` map schema, `stage_order` semantics, merge behavior, validation rules, and migration contract. The config schema above implements that specification.
 
 ---
 

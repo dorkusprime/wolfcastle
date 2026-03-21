@@ -39,15 +39,14 @@ func Defaults() *Config {
 				MaxTasksPerLeaf: 8,
 				MaxReplans:      3,
 			},
-			Stages: []PipelineStage{
-				{
-					Name:            "intake",
+			StageOrder: []string{"intake", "execute"},
+			Stages: map[string]PipelineStage{
+				"intake": {
 					Model:           "mid",
 					PromptFile:      "stages/intake.md",
 					AllowedCommands: []string{"project create", "task add", "status"},
 				},
-				{
-					Name:            "execute",
+				"execute": {
 					Model:           "heavy",
 					PromptFile:      "stages/execute.md",
 					AllowedCommands: []string{"project create", "task add", "task block", "task deliverable", "audit breadcrumb", "audit escalate", "audit gap", "audit fix-gap", "audit scope", "audit summary", "audit resolve-escalation", "status", "adr create", "spec create", "spec link", "spec list"},

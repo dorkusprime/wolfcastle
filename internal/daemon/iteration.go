@@ -57,13 +57,14 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 	// Run pipeline stages. Intake runs in a parallel goroutine
 	// (ADR-064), so the iteration loop only handles execute and
 	// custom stages.
-	for _, stage := range d.Config.Pipeline.Stages {
+	for _, stageName := range d.Config.Pipeline.StageOrder {
+		stage := d.Config.Pipeline.Stages[stageName]
 		if !stage.IsEnabled() {
 			continue
 		}
 
 		// Skip intake stage here; it runs in the parallel inbox goroutine.
-		if stage.Name == "intake" {
+		if stageName == "intake" {
 			continue
 		}
 
@@ -76,12 +77,12 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, stage, iterCtx)
 		if err != nil {
-			return werrors.Config(fmt.Errorf("assembling prompt for stage %s: %w", stage.Name, err))
+			return werrors.Config(fmt.Errorf("assembling prompt for stage %s: %w", stageName, err))
 		}
 
 		model, ok := d.Config.Models[stage.Model]
 		if !ok {
-			return werrors.Config(fmt.Errorf("model %q not found for stage %s", stage.Model, stage.Name))
+			return werrors.Config(fmt.Errorf("model %q not found for stage %s", stage.Model, stageName))
 		}
 
 		invokeCtx := ctx
@@ -92,7 +93,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		_ = d.Logger.Log(map[string]any{
 			"type":  "stage_start",
-			"stage": stage.Name,
+			"stage": stageName,
 			"model": stage.Model,
 			"node":  nav.NodeAddress,
 			"task":  nav.TaskID,
@@ -103,20 +104,20 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		beforeHEAD := gitHEAD(d.RepoDir)
 		preInvocationNS := ns
 
-		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), stage.Name)
+		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), stageName)
 		if cancel != nil {
 			cancel()
 		}
 
 		// Restore terminal to cooked mode in case the child left it in raw mode.
 		if err != nil {
-			_ = d.Logger.Log(map[string]any{"type": "stage_error", "stage": stage.Name, "error": err.Error()})
+			_ = d.Logger.Log(map[string]any{"type": "stage_error", "stage": stageName, "error": err.Error()})
 			return err
 		}
 
 		_ = d.Logger.Log(map[string]any{
 			"type":       "stage_complete",
-			"stage":      stage.Name,
+			"stage":      stageName,
 			"exit_code":  result.ExitCode,
 			"output_len": len(result.Stdout),
 		})

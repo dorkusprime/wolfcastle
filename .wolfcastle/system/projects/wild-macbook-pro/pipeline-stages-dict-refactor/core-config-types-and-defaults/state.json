@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "id": "core-config-types-and-defaults",
+  "name": "Core Config Types and Defaults",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update PipelineConfig and PipelineStage structs",
+      "description": "Update PipelineConfig and PipelineStage structs",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/types.go"
+      ],
+      "body": "In internal/config/types.go: (1) Change PipelineConfig.Stages from []PipelineStage to map[string]PipelineStage with json tag 'stages'. (2) Add StageOrder []string field with json tag 'stage_order'. (3) Remove the Name field from PipelineStage (the name is now the map key). (4) Keep all other PipelineStage fields (Model, PromptFile, Enabled, SkipPromptAssembly, AllowedCommands) and methods (IsEnabled, ShouldSkipPromptAssembly) unchanged. Reference the dict-format stages spec for the exact schema.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T03-11Z-dict-format-stages.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Rewrite Defaults() for dict-format stages",
+      "description": "Rewrite Defaults() for dict-format stages",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/config.go"
+      ],
+      "body": "In internal/config/config.go Defaults() function (lines 34-56): rewrite the two default stages ('intake' and 'execute') from a []PipelineStage slice literal to a map[string]PipelineStage map literal, keyed by stage name. Add StageOrder: []string{'intake', 'execute'} to the PipelineConfig. Remove the Name field from each stage value since the name is now the map key. Preserve all other field values (Model, PromptFile, AllowedCommands) exactly as they are.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T03-11Z-dict-format-stages.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Update stage validation rules",
+      "description": "Update stage validation rules",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/validate.go"
+      ],
+      "body": "In internal/config/validate.go: (1) Replace 'len(cfg.Pipeline.Stages) == 0' check with 'len(cfg.Pipeline.Stages) == 0' on the map (same semantic, different type). (2) Remove the duplicate-name check (lines 27-35) since map keys are inherently unique. (3) Remove the empty-name check since empty map keys are handled at parse time. (4) Add stage_order integrity validation: every entry in StageOrder must exist as a key in Stages, every key in Stages must appear in StageOrder, and StageOrder must not contain duplicates. (5) Keep model reference validation but iterate via map values. (6) Keep prompt_file non-empty validation but iterate via map values. (7) Update all tests in validate_test.go to construct configs with map-format stages and StageOrder. Maintain \u003e90% coverage.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T03-11Z-dict-format-stages.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Verify and test unknown-field detection for dict-format stages",
+      "description": "Verify and test unknown-field detection for dict-format stages",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/unknown.go",
+        "internal/config/unknown_test.go"
+      ],
+      "body": "In internal/config/unknown.go: the diffKeys function currently has special-case handling for arrays (lines 57-69) that iterates slice elements by index. With dict-format stages, pipeline.stages becomes a nested map, so the existing recursive map traversal (lines 43-55) handles it naturally. Verify this by: (1) confirming that diffKeys recurses into pipeline.stages.\u003cname\u003e as a map, not as an array element, (2) adding test cases in unknown_test.go that prove typos inside stage configs (e.g. 'promt_file' inside pipeline.stages.execute) are detected with the correct dot-notation path (pipeline.stages.execute.promt_file), (3) verifying that valid stage keys are not flagged as unknown. The array special-case code in lines 57-69 may become dead code for stages but is still needed for other array fields (like allowed_commands), so leave it in place. Maintain \u003e90% coverage.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-20T15-57Z-unknown-field-detection.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Core Config Types and Defaults is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    },
+    {
+      "id": "audit.0001",
+      "description": "Fix: Config test suite cannot run: daemon package still references removed PipelineStage.Name field, causing transitive compile failure through testutil. Will be resolved when daemon package is updated in a later node.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node pipeline-stages-dict-refactor/core-config-types-and-defaults gap-core-config-types-and-defaults-1",
+      "state": "complete",
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify PipelineStage no longer has a Name field and that all json tags are correct on both PipelineConfig and PipelineStage",
+    "Run 'go vet ./internal/config/...' and confirm no compilation errors from the type change"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T05:21:29.121885Z",
+        "task": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "text": "task-0001: Updated PipelineConfig.Stages to map[string]PipelineStage, added StageOrder []string, removed PipelineStage.Name field in types.go"
+      },
+      {
+        "timestamp": "2026-03-21T05:22:19.901452Z",
+        "task": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "text": "task-0002: Rewrote Defaults() stages from []PipelineStage slice to map[string]PipelineStage map literal, added StageOrder field, removed Name from stage values"
+      },
+      {
+        "timestamp": "2026-03-21T05:26:49.640939Z",
+        "task": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "text": "task-0003: Updated validate.go stage validation for dict-format stages: removed duplicate/empty-name checks, added stage_order integrity validation, updated map iteration for model refs and prompt_file. All config_test.go tests updated to map-format stages."
+      },
+      {
+        "timestamp": "2026-03-21T05:29:23.94934Z",
+        "task": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "text": "task-0004: Updated unknown_test.go for dict-format stages. Converted 3 array-format tests to dict-format, added 3 new tests (typo detection with dot-notation path, stage name map keys not flagged, clean stages no warnings). No changes to unknown.go needed."
+      },
+      {
+        "timestamp": "2026-03-21T05:31:10.882856Z",
+        "task": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "text": "Audit reviewed 5 files (types.go, config.go, validate.go, unknown.go, unknown_test.go) plus config_test.go and validate_extra_test.go (~900 lines of changes). PASS. Config package builds cleanly. One escalation: test binary fails to compile due to daemon package still referencing removed PipelineStage.Name via testutil transitive dependency — this is the expected intermediate state and will resolve when the daemon-update node completes. Code quality is high: the struct changes are minimal and mechanical, validation covers all three integrity axes of stage_order (duplicates, unknown refs, missing entries), unknown-field detection works naturally via existing map recursion with zero production code changes, and all tests were properly updated from slice to dict format with three new coverage tests added."
+      },
+      {
+        "timestamp": "2026-03-21T05:34:11.901959Z",
+        "task": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "text": "audit.0001: Updated daemon production code (iteration.go, stages.go, planning.go) to use map+StageOrder for pipeline stages, removing all references to removed PipelineStage.Name field. Config test suite now compiles and passes."
+      },
+      {
+        "timestamp": "2026-03-21T05:36:10.836619Z",
+        "task": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "text": "Final audit reviewed 8 files across config and daemon packages (~1100 lines of changes). PASS. Config package builds and tests pass with race detector. Daemon production code builds clean. Findings: (1) Daemon and pipeline test files still reference old slice format and PipelineStage.Name, causing build failures in those test suites; these are out of scope for this node and will be addressed by the daemon-update node. (2) All stage_order integrity validation is thorough: duplicates, unknown refs, missing entries. (3) Unknown-field detection adapted to dict format with zero production code changes, relying on existing map recursion. (4) Daemon iteration.go correctly iterates StageOrder with map lookup; stages.go uses direct map key lookup for intake. Quality: high. All changes are minimal, mechanical, and correct. The refactoring maintains full backward compatibility for the config loading pipeline via JSON round-trip."
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-core-config-types-and-defaults-1",
+        "timestamp": "2026-03-21T05:26:54.809609Z",
+        "description": "Config test suite cannot run: daemon package still references removed PipelineStage.Name field, causing transitive compile failure through testutil. Will be resolved when daemon package is updated in a later node.",
+        "source": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "status": "fixed",
+        "fixed_by": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "fixed_at": "2026-03-21T05:34:07.702538Z"
+      }
+    ],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T05:20:41.190388Z",
+    "completed_at": "2026-03-21T05:36:32.951591Z",
+    "result_summary": "Converted core config types and defaults from slice-format to dict-format pipeline stages. PipelineConfig.Stages changed from []PipelineStage to map[string]PipelineStage with a new StageOrder []string field for ordering; PipelineStage.Name was removed since map keys serve that role. Defaults() rewritten as a map literal. Validation updated to cover stage_order integrity (duplicates, unknown refs, missing entries) plus existing model-ref and prompt_file checks. Unknown-field detection required zero production code changes thanks to existing map recursion in diffKeys. Daemon production code (iteration.go, stages.go, planning.go) updated to iterate StageOrder with map lookups. All config tests pass with race detector. Daemon/pipeline test file updates deferred to the daemon-update node."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T05:36:22.418054Z",
+      "objective": "Verify all work in Core Config Types and Defaults node is complete and correct",
+      "what_happened": "Read all 8 files touched by this node (types.go, config.go, validate.go, unknown.go, config_test.go, unknown_test.go, validate_extra_test.go, plus daemon production files iteration.go, stages.go, planning.go). Config package builds and tests pass with race detector (zero failures). Daemon production code builds clean. Full project go vet passes for config; daemon/pipeline test files fail due to out-of-scope references to removed Name field.",
+      "went_well": [
+        "All six tasks produced clean, mechanical transformations with no correctness issues",
+        "Validation coverage is thorough across three integrity axes of stage_order",
+        "Unknown-field detection adapted naturally to dict format with zero production code changes"
+      ],
+      "improvements": [
+        "Daemon and pipeline test files still reference old format, blocking full test suite; out of scope for this node"
+      ],
+      "action_items": [
+        "Daemon-update node must convert daemon test files (audit_complete_gaps_test.go, audit_coverage_test.go) and pipeline test files (category_a_test.go, prompt_coverage_test.go, prompt_test.go) to dict-format stages"
+      ]
+    },
+    "audit.0001": {
+      "task_id": "audit.0001",
+      "timestamp": "2026-03-21T05:34:20.952729Z",
+      "objective": "Fix transitive compile failure in daemon production code so the config test suite can run",
+      "what_happened": "Updated three daemon production files: iteration.go (changed stage loop from slice range to StageOrder iteration with map lookup, replaced all stage.Name references with stageName variable), stages.go (replaced slice iteration in processInbox with direct map lookup of the intake stage), planning.go (removed Name field from PipelineStage struct literal). The config test suite now compiles and passes.",
+      "went_well": [
+        "Clean mechanical transformation, each file needed only a single edit",
+        "Full project build (go build ./...) passes with zero errors"
+      ],
+      "improvements": [
+        "Daemon and pipeline test files still reference the old slice format and Name field, but those are out of scope for this node"
+      ],
+      "action_items": [
+        "Daemon test files need the same slice-to-map conversion in the daemon-update node",
+        "Pipeline test files also reference PipelineStage.Name and need updating"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T05:21:27.824039Z",
+      "objective": "Update PipelineConfig and PipelineStage structs in types.go for dict-format stages",
+      "what_happened": "Made three targeted changes to internal/config/types.go: changed PipelineConfig.Stages from []PipelineStage to map[string]PipelineStage, added StageOrder []string field with omitempty json tag, and removed the Name field from PipelineStage. All other fields and both methods (IsEnabled, ShouldSkipPromptAssembly) are unchanged.",
+      "went_well": [
+        "Changes are minimal and match the spec exactly. The PipelineStage methods remain self-consistent with no internal compile errors."
+      ],
+      "improvements": [
+        "None; the change is purely mechanical."
+      ],
+      "action_items": [
+        "Tasks 2 and 3 must update config.go (Defaults) and validate.go respectively to fix the downstream compile errors caused by this type change."
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T05:22:18.569923Z",
+      "objective": "Rewrite Defaults() to use dict-format stages instead of slice-format",
+      "what_happened": "Changed the Pipeline.Stages literal in Defaults() from a []PipelineStage slice to a map[string]PipelineStage map, keyed by stage name. Added StageOrder: []string{\"intake\", \"execute\"} to preserve ordering. Removed Name field from each stage value. All other field values (Model, PromptFile, AllowedCommands) are unchanged.",
+      "went_well": [
+        "Mechanical change, no surprises. gofmt clean, no new warnings."
+      ],
+      "improvements": [
+        "None; the change is purely mechanical."
+      ],
+      "action_items": [
+        "Task 3 must update validate.go to iterate the map by StageOrder keys instead of ranging over a slice with stage.Name references."
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T05:26:45.392451Z",
+      "objective": "Update stage validation rules for dict-format stages",
+      "what_happened": "Removed duplicate-name check (lines 27-35) and empty-name check since map keys handle both. Added stage_order integrity validation: duplicate entries, references to unknown stages, and stages missing from stage_order. Updated model reference and prompt_file validation to iterate map values with the key as stage name. Updated all tests in config_test.go to construct map-format stages and StageOrder. validate_extra_test.go needed no changes (all its tests use Defaults() which was already updated in task-0002).",
+      "went_well": [
+        "Clean mechanical transformation, no surprises. All three validation categories (stage_order integrity, model refs, prompt_file) now use the map key as the stage name consistently."
+      ],
+      "improvements": [
+        "Tests cannot be run because the daemon package (out of scope) still references the removed PipelineStage.Name field, causing a transitive compile failure via testutil. The next node's daemon update task will unblock test execution."
+      ],
+      "action_items": [
+        "Once the daemon package is updated to use map-format stages, run the full config test suite to verify end-to-end correctness"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-21T05:29:19.925901Z",
+      "objective": "Verify and test unknown-field detection for dict-format stages",
+      "what_happened": "Confirmed that diffKeys in unknown.go handles dict-format stages via its existing map recursion (lines 51-55): pipeline.stages.\u003cname\u003e is traversed as a nested map, with each stage name acting as a map key (like model names). Updated three existing tests from array-format JSON to dict-format JSON. Added three new tests: TypoPromptFileInDictStage (verifies 'promt_file' typo produces path pipeline.stages.execute.promt_file), StageNamesNotFlaggedAsUnknown (arbitrary stage names as map keys don't trigger warnings), and CleanDictStages_NoWarnings (valid stage fields pass cleanly). The array special-case code (lines 57-69) remains in place for validation.commands and other slice fields. No changes to unknown.go were needed.",
+      "went_well": [
+        "The round-trip detection strategy adapts to the dict format with zero production code changes",
+        "The three new tests cover all three verification requirements from the task description"
+      ],
+      "improvements": [
+        "Tests cannot be executed due to transitive compile failure from daemon package (same issue as task-0003). Will be unblocked when the daemon node updates its stage references."
+      ],
+      "action_items": [
+        "Run the full config test suite once daemon package is updated to verify all unknown-field tests pass end-to-end"
+      ]
+    }
+  }
+}

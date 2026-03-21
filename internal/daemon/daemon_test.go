@@ -116,9 +116,10 @@ func testConfig() *config.Config {
 			"echo": {Command: "echo", Args: []string{"WOLFCASTLE_COMPLETE"}},
 		},
 		Pipeline: config.PipelineConfig{
-			Stages: []config.PipelineStage{
-				{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
+			Stages: map[string]config.PipelineStage{
+				"execute": {Model: "echo", PromptFile: "stages/execute.md"},
 			},
+			StageOrder: []string{"execute"},
 		},
 		Logs:    config.LogsConfig{MaxFiles: 100, MaxAgeDays: 30},
 		Retries: config.RetriesConfig{InitialDelaySeconds: 0, MaxDelaySeconds: 1, MaxRetries: 0},
@@ -622,9 +623,10 @@ func TestRunOnce_IterationError(t *testing.T) {
 	defer d.Logger.Close()
 
 	// Point to a model that does not exist
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
@@ -843,9 +845,10 @@ func TestRunIteration_HardCap_AutoBlocks(t *testing.T) {
 
 func TestRunIteration_ModelNotFound(t *testing.T) {
 	d := testDaemon(t)
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
@@ -865,9 +868,10 @@ func TestRunIteration_ModelNotFound(t *testing.T) {
 func TestRunIteration_DisabledStageSkipped(t *testing.T) {
 	d := testDaemon(t)
 	f := false
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md", Enabled: &f},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "echo", PromptFile: "stages/execute.md", Enabled: &f},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
@@ -885,10 +889,11 @@ func TestRunIteration_DisabledStageSkipped(t *testing.T) {
 
 func TestRunIteration_IntakeStageSkippedInPipeline(t *testing.T) {
 	d := testDaemon(t)
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"},
-		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"intake":  {Model: "echo", PromptFile: "stages/intake.md"},
+		"execute": {Model: "echo", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"intake", "execute"}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
@@ -950,7 +955,7 @@ func TestRunIntakeStage_NoInbox(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Errorf("should succeed with no inbox: %v", err)
 	}
@@ -967,7 +972,7 @@ func TestRunIntakeStage_WithNewItems(t *testing.T) {
 		{Status: "new", Text: "add feature X", Timestamp: "2024-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -988,7 +993,7 @@ func TestRunIntakeStage_NoNewItems(t *testing.T) {
 		{Status: "filed", Text: "already done"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Errorf("should return nil for no new items: %v", err)
 	}
@@ -1004,7 +1009,7 @@ func TestRunIntakeStage_ModelNotFound(t *testing.T) {
 		{Status: "new", Text: "item"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "nonexistent", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "nonexistent", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Error("expected error for missing model")
@@ -1023,7 +1028,7 @@ func TestRunIntakeStage_MultipleNewItems(t *testing.T) {
 		{Status: "new", Text: "item 2", Timestamp: "2024-01-01T00:01:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}

@@ -34,7 +34,7 @@ func TestRunIntakeStage_SaveInboxError_ReadOnly(t *testing.T) {
 	_ = os.Chmod(projDir, 0555)
 	t.Cleanup(func() { _ = os.Chmod(projDir, 0755) })
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Error("expected error when SaveInbox fails after intake")

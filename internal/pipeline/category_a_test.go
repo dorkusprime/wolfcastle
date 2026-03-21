@@ -69,7 +69,6 @@ func TestAssemblePrompt_SkipAssembly_MissingPromptFile(t *testing.T) {
 	cfg := config.Defaults()
 	skip := true
 	stage := config.PipelineStage{
-		Name:               "navigate",
 		PromptFile:         "nonexistent.md",
 		SkipPromptAssembly: &skip,
 	}
@@ -98,7 +97,6 @@ func TestAssemblePrompt_FragmentResolutionError(t *testing.T) {
 	cfg.Prompts.Fragments = []string{"nonexistent-fragment.md"}
 
 	stage := config.PipelineStage{
-		Name:       "execute",
 		PromptFile: "stages/execute.md",
 	}
 

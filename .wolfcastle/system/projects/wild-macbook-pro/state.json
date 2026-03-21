@@ -15,7 +15,8 @@
     "github-repository-meta",
     "global-lock-leak-in-tests",
     "delete-deprecated-scaffold",
-    "doctor-childref-state-mismatch"
+    "doctor-childref-state-mismatch",
+    "pipeline-stages-dict-refactor"
   ],
   "nodes": {
     "ci-and-lint-tooling": {
@@ -562,6 +563,51 @@
       "address": "global-lock-leak-in-tests/fix-leaking-tests",
       "decomposition_depth": 0,
       "parent": "global-lock-leak-in-tests"
+    },
+    "pipeline-stages-dict-refactor": {
+      "name": "Pipeline Stages Dict Refactor",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor",
+      "decomposition_depth": 0,
+      "children": [
+        "pipeline-stages-dict-refactor/dict-format-stages-spec",
+        "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "pipeline-stages-dict-refactor/stages-migration",
+        "pipeline-stages-dict-refactor/consumer-updates"
+      ]
+    },
+    "pipeline-stages-dict-refactor/consumer-updates": {
+      "name": "Consumer Updates",
+      "type": "leaf",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor/consumer-updates",
+      "decomposition_depth": 0,
+      "parent": "pipeline-stages-dict-refactor"
+    },
+    "pipeline-stages-dict-refactor/core-config-types-and-defaults": {
+      "name": "Core Config Types and Defaults",
+      "type": "leaf",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+      "decomposition_depth": 0,
+      "parent": "pipeline-stages-dict-refactor"
+    },
+    "pipeline-stages-dict-refactor/dict-format-stages-spec": {
+      "name": "Dict-Format Stages Spec",
+      "type": "leaf",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor/dict-format-stages-spec",
+      "decomposition_depth": 0,
+      "parent": "pipeline-stages-dict-refactor"
+    },
+    "pipeline-stages-dict-refactor/stages-migration": {
+      "name": "Stages Migration",
+      "type": "leaf",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor/stages-migration",
+      "decomposition_depth": 0,
+      "parent": "pipeline-stages-dict-refactor"
     },
     "property-and-fuzz-tests": {
       "name": "Property and Fuzz Tests",

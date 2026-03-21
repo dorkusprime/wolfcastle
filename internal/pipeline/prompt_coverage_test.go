@@ -21,7 +21,6 @@ func TestAssemblePrompt_LightweightStage(t *testing.T) {
 	cfg := config.Defaults()
 	skip := true
 	stage := config.PipelineStage{
-		Name:               "navigate",
 		PromptFile:         "navigate.md",
 		SkipPromptAssembly: &skip,
 	}
@@ -52,7 +51,6 @@ func TestAssemblePrompt_FullStageWithRules(t *testing.T) {
 
 	cfg := config.Defaults()
 	stage := config.PipelineStage{
-		Name:       "execute",
 		PromptFile: "stages/execute.md",
 	}
 

@@ -41,7 +41,8 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "pending",
+    "status": "passed",
+    "completed_at": "2026-03-21T03:07:35.351631Z",
     "result_summary": "CHILDREF_STATE_MISMATCH validation category is fully implemented. checkChildRefState in engine.go detects when an orchestrator's ChildRef.State diverges from the child's actual persisted state. The deterministic fix in fix.go syncs ChildRef states to reality and recomputes the parent. Category is registered in StartupCategories. Four passing tests cover detection, false-positive avoidance, fix correctness, and startup registration."
   }
 }

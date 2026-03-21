@@ -177,9 +177,10 @@ func TestRun_IterationErrorSleepsAndRetries(t *testing.T) {
 	// Point at a model that doesn't exist, causing runIteration to fail.
 	// RunOnce returns IterationError, Run sleeps (0s) and retries.
 	// Use MaxIterations=2 to limit retries then stop via stop file.
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	setupLeafNode(t, d, "err-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
@@ -213,9 +214,10 @@ func TestRun_IterationErrorContextCancelDuringSleep(t *testing.T) {
 	d.Config.Git.VerifyBranch = false
 	d.Config.Daemon.PollIntervalSeconds = 60 // long sleep so ctx cancel fires first
 
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	setupLeafNode(t, d, "err-cancel-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
