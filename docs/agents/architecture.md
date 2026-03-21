@@ -8,7 +8,8 @@ wolfcastle/
 ├── cmd/                     # CLI command layer (Cobra)
 │   ├── root.go              # Root command, PersistentPreRunE for config loading
 │   ├── cmdutil/             # Shared App context, completions, overlap detection
-│   ├── audit/               # Audit subcommands (approve, reject, gap, etc.)
+│   ├── audit/               # Audit subcommands (approve, reject, gap, aar, etc.)
+│   ├── config/              # Config subcommands (get, set, remove, show)
 │   ├── daemon/              # start, stop, status, log
 │   ├── inbox/               # add, list, clear
 │   ├── project/             # create
@@ -44,6 +45,16 @@ wolfcastle/
 
 The daemon uses lazy, recursive planning for orchestrator nodes. Rather than decomposing the entire project tree up front during intake, each orchestrator is planned on demand, right before its subtree needs work. The full design is in [docs/specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md](../specs/2026-03-17T00-00Z-orchestrator-planning-pipeline.md).
 
+## Execution Pipeline and Side Flows
+
+The daemon's `StageOrder` contains two stages: **intake** (inbox processing, runs in a parallel goroutine per ADR-064) and **execute** (task work, runs sequentially in the main loop). Several mechanisms operate alongside or within the execute stage:
+
+**After Action Reviews (AARs):** Structured post-task narratives recorded via `wolfcastle audit aar`. Stored as `AAR` structs in per-node `state.json` (keyed by task ID). AARs feed into the audit context for subsequent tasks, giving the next agent a view of what the previous agent did, what went well, and what remains uncertain.
+
+**Spec Review:** When a task with `TaskType == "spec"` completes, the daemon auto-creates a sibling review task (`<taskID>-review`) of type `spec-review`. This blocks further work until the review passes. If the review is blocked (i.e., rejected), its feedback resets the original spec task to `not_started` for revision, creating an iterative review loop. Implemented in `internal/daemon/spec_review.go`.
+
+**Auto-Archive:** Completed nodes are archived inline during `RunOnce`, throttled to a 5-minute poll interval. The daemon imports `internal/archive` directly for this. See ADR on auto-archive running inline rather than as a separate goroutine.
+
 ## Key Design Principles
 
 - **cmd/ is thin.** Commands parse flags, call into `internal/`, and format output. No business logic lives in `cmd/`.
@@ -72,7 +83,7 @@ User input → cmd/ → internal/ → filesystem (.wolfcastle/)
 
 Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
-- `daemon` → `clock`, `config`, `errors`, `invoke`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
+- `daemon` → `archive`, `clock`, `config`, `errors`, `invoke`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
 - `validate` → `config`, `daemon`, `invoke`, `pipeline`, `state`, `tree`
 - `pipeline` → `config`, `invoke`, `state`, `tierfs`
 - `archive` → `clock`, `config`, `state`
