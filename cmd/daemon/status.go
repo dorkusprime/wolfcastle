@@ -364,24 +364,24 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		return
 	}
 
+	tp := nodeTypePrefix(nd.entry)
+
 	// Collapse completed nodes unless --expand is set.
 	if nd.entry.State == state.StatusComplete && !expand {
+		glyph := nodeGlyph(nd.entry.State)
 		childCount := countDescendants(idx, addr)
 		if childCount > 0 {
-			glyph := nodeGlyph(nd.entry.State)
-			output.PrintHuman("%s%s %s  (%d nodes)", indent, glyph, nd.entry.Name, childCount+1)
+			output.PrintHuman("%s%s %s: %s  (%d nodes)", indent, glyph, tp, nd.entry.Name, childCount+1)
 			return
 		}
-		// Completed leaf: show node name with task count.
 		if nd.ns != nil && len(nd.ns.Tasks) > 0 {
-			glyph := nodeGlyph(nd.entry.State)
-			output.PrintHuman("%s%s %s  (%d tasks)", indent, glyph, nd.entry.Name, len(nd.ns.Tasks))
+			output.PrintHuman("%s%s %s: %s  (%d tasks)", indent, glyph, tp, nd.entry.Name, len(nd.ns.Tasks))
 			return
 		}
 	}
 
 	glyph := nodeGlyph(nd.entry.State)
-	output.PrintHuman("%s%s %s  (%s)", indent, glyph, nd.entry.Name, addr)
+	output.PrintHuman("%s%s %s: %s  (%s)", indent, glyph, tp, nd.entry.Name, addr)
 
 	// Show most recent breadcrumb for in_progress nodes when --detail is set.
 	if detail && nd.ns != nil && nd.entry.State == state.StatusInProgress && len(nd.ns.Audit.Breadcrumbs) > 0 {
@@ -390,9 +390,11 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		output.PrintHuman("%s  breadcrumb: %s", indent, text)
 	}
 
-	// For orchestrators, print children then show audit task if active
+	// For orchestrators, print children as a timeline: completed work
+	// at top (past), active work in middle (present), pending at bottom
+	// (future). Within each group, creation order is preserved.
 	if nd.entry.Type == state.NodeOrchestrator {
-		for _, childAddr := range nd.entry.Children {
+		for _, childAddr := range sortChildrenTimeline(nd.entry.Children, idx) {
 			printNodeTree(app, idx, details, childAddr, indent+"  ", expand, detail)
 		}
 		if nd.ns != nil {
@@ -555,6 +557,18 @@ const (
 	colorDim    = "\033[2m"
 	colorReset  = "\033[0m"
 )
+
+// nodeTypePrefix returns "Proj" for root orchestrators, "Orch" for child
+// orchestrators, and "Leaf" for leaf nodes.
+func nodeTypePrefix(entry state.IndexEntry) string {
+	if entry.Type == state.NodeOrchestrator {
+		if entry.Parent == "" {
+			return "Proj"
+		}
+		return "Orch"
+	}
+	return "Leaf"
+}
 
 // nodeGlyph returns the TUI-consistent colored status glyph for a node.
 func nodeGlyph(s state.NodeStatus) string {
@@ -753,6 +767,33 @@ func countDescendants(idx *state.RootIndex, addr string) int {
 		count += countDescendants(idx, child)
 	}
 	return count
+}
+
+// sortChildrenTimeline reorders children so completed nodes appear first
+// (they finished in the past), then in-progress/blocked (happening now),
+// then not-started (future). Creation order preserved within each group.
+func sortChildrenTimeline(children []string, idx *state.RootIndex) []string {
+	sorted := make([]string, len(children))
+	copy(sorted, children)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return timelinePriority(idx.Nodes[sorted[i]].State) < timelinePriority(idx.Nodes[sorted[j]].State)
+	})
+	return sorted
+}
+
+func timelinePriority(s state.NodeStatus) int {
+	switch s {
+	case state.StatusComplete:
+		return 0
+	case state.StatusInProgress:
+		return 1
+	case state.StatusBlocked:
+		return 2
+	case state.StatusNotStarted:
+		return 3
+	default:
+		return 4
+	}
 }
 
 // isInSubtree checks whether addr is the scope node or a descendant of it.

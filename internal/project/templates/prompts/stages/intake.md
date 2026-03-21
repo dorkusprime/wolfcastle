@@ -109,8 +109,7 @@ For each inbox item provided below:
 - Always use `--json` flag with wolfcastle commands.
 - Every `project create` MUST include `--description`. The description is the primary context for execution and auditing. Use the inbox item's text as the basis. A project without a description is useless to the agents that work on it.
 - Create projects at the root level unless there is a clear parent-child relationship.
-- Before creating a new root-level project, check if the work belongs under an existing project.
-- Do not create duplicate projects. Check the item descriptions carefully.
+- **Never create a project whose scope overlaps with an existing root project.** Check the "Existing Root Projects" list above. If an inbox item is related to an existing project (e.g., "ensure coverage for X" when project X exists, or "fix bug in X" when X exists), file the work under the existing project with --node, not as a new root. Two projects about the same feature is always wrong.
 - Each leaf node must have at least one task (besides the auto-generated audit task).
 - Execute the commands directly. Do not just output them as text.
 - **Never invent structure for technologies you don't know.** If you can't confidently describe a framework's project layout, component model, and build system, create a discovery task instead of guessing.
