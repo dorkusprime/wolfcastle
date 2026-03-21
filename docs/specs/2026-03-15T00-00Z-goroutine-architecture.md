@@ -174,50 +174,51 @@ fsnotify uses kqueue (macOS), inotify (Linux), ReadDirectoryChangesW (Windows). 
 
 ---
 
-## 6. Real-Time Marker Detection (io.Pipe)
+## 6. Real-Time Marker Detection
 
-### 6.1 Current behavior
+### 6.1 Implemented behavior
 
-Model stdout is captured into a buffer. After the process exits, `scanTerminalMarker` scans the buffer for WOLFCASTLE_COMPLETE/YIELD/BLOCKED. State transitions happen after the model is done.
+The invoker (`internal/invoke/invoker.go`) uses `cmd.StdoutPipe()` with a `bufio.Scanner` goroutine that reads lines as they arrive. Each line is simultaneously:
 
-### 6.2 New behavior
-
-Model stdout flows through an `io.Pipe`. A scanner goroutine reads lines from the pipe, detects markers in real time, and signals the daemon. State transitions can begin before the model process exits.
+1. Written to the captured output buffer for post-processing
+2. Streamed to the log writer (if provided) for real-time `wolfcastle follow` output
+3. Checked for markers via `detectLineMarker` (first-match streaming detection)
+4. Checked against the stall timeout (reset on each line received)
 
 ```go
-pr, pw := io.Pipe()
-cmd.Stdout = pw
-
+stdoutPipe, _ := cmd.StdoutPipe()
+// ...
 go func() {
-    scanner := bufio.NewScanner(pr)
+    scanner := bufio.NewScanner(stdoutPipe)
     for scanner.Scan() {
         line := scanner.Text()
         captured.WriteString(line + "\n")
-
-        // Real-time marker detection
-        text := extractAssistantText(line)
-        if marker := checkMarker(text); marker != "" {
-            markerChan <- marker
-        }
-
         // Stream to log writer
         if logWriter != nil {
             fmt.Fprintln(logWriter, line)
         }
+        // Real-time marker detection (first-match)
+        text := extractAssistantText(line)
+        if m := detectLineMarker(text); m != MarkerNone {
+            // record first detected marker
+        }
     }
-    close(markerChan)
 }()
 ```
 
-### 6.3 Benefits
+The original spec proposed `io.Pipe`; the implementation achieves the same goals using `cmd.StdoutPipe()` directly, which is simpler (no extra pipe layer) and equally effective.
 
-- Faster state transitions: WOLFCASTLE_COMPLETE is detected mid-stream, not after process exit
-- Streaming log output is unified with marker detection (one scanner, not two passes)
-- The `result.Stdout` buffer is still fully captured for post-processing (breadcrumbs, gaps, etc.)
+### 6.2 Stall detection
 
-### 6.4 Marker priority
+The stall detector lives in the invoke layer, not as a separate daemon goroutine. It uses a timer that resets on each line received from the scanner. If no output arrives within the configured stall timeout, the invoker returns `ErrStallTimeout`. This catches models that hang without producing output.
 
-Real-time detection sees markers as they arrive. The priority system (COMPLETE > BLOCKED > YIELD) still applies, but now it's evaluated across the full output after the process exits. Real-time detection provides early awareness, not early commitment. The final marker determination uses the same `scanTerminalMarker` function on the complete output.
+### 6.3 Post-process marker determination
+
+After the model process exits, `scanTerminalMarker` runs on the complete captured output. It scans all lines and returns the highest-priority marker found. Priority order: COMPLETE > SKIP > CONTINUE > BLOCKED > YIELD. This post-process scan is the authoritative determination; the streaming first-match detection provides early awareness but does not commit to a marker until the full output is available.
+
+### 6.4 Auto-archive (inline)
+
+Per ADR 2026-03-21T12-57Z, auto-archive runs inline in `RunOnce`, not as a separate goroutine. After each iteration, `tryAutoArchive` checks whether enough time has elapsed since the last archive poll, finds eligible completed nodes (whose `CompletedAt` exceeds the configured delay), and archives at most one per iteration. This was a deliberate design decision to keep archive operations within the daemon's serial execution model rather than introducing concurrency.
 
 ---
 
@@ -310,13 +311,15 @@ Error types are defined in a new `internal/errors` package to avoid circular imp
 - Trace IDs in Logger: StartIterationWithPrefix("exec"/"intake") produces "exec-0042", "intake-0007"
 - Every log record includes a `trace` field when set
 
-### Phase 3: Real-time I/O (complete)
+### Phase 3: Real-time I/O (partially complete)
 
 - fsnotify dependency (github.com/fsnotify/fsnotify v1.9.0)
 - Inbox watcher uses fsnotify with polling fallback when unavailable
 - Stop file polling remains via os.Stat (fsnotify for stop file deferred; the existing check is cheap and reliable)
-- ProcessInvoker already streams stdout via StdoutPipe + bufio.Scanner with real-time marker detection
+- ProcessInvoker streams stdout via `StdoutPipe` + `bufio.Scanner` with real-time marker detection and stall timeout detection (see note below)
 - Streaming is unified with marker detection in the scanner goroutine
+- The `io.Pipe` approach described in Section 6.2 was not adopted as-is; instead, the invoker uses `cmd.StdoutPipe()` directly with a scanner goroutine, achieving the same streaming and marker detection goals without the extra pipe layer
+- **Stall detector**: The stall timeout lives in the invoke layer (`internal/invoke/invoker.go`), not as a separate daemon goroutine. It monitors time since last output from the scanner and returns `ErrStallTimeout` if the model produces no output within the configured threshold
 
 ### Phase 4: Optimization (deferred)
 

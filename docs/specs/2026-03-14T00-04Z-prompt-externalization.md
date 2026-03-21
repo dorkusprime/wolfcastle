@@ -42,16 +42,31 @@ This spec details the full inventory of model-facing text in Wolfcastle, the ext
 | `dry.md` | `templates/audits/` | DRY principle audit |
 | `modularity.md` | `templates/audits/` | Module boundaries audit |
 
-### Still Hardcoded (to be externalized)
+### Externalized (since spec was written)
 
-| Source Location | Content | New File |
-|----------------|---------|----------|
-| `validate/model_fix.go:28-40` | Doctor repair agent system prompt | `doctor.md` |
-| `cmd/unblock.go:156-159` | Unblock session preamble (bypasses existing unblock.md) | Fix: use existing `unblock.md` |
-| `pipeline/context.go:40-52` | Failure history + decomposition instructions | `decomposition-guidance.md` |
-| `pipeline/context.go:87-90` | Summary required instructions | `summary-required.md` |
-| `daemon/daemon.go:489` | Expand stage context header | `expand-context.md` |
-| `daemon/daemon.go:594` | File stage context header | `file-context.md` |
+All prompts listed below have been externalized to `templates/prompts/`. The rename from `decomposition-guidance.md` to `decomposition.md` has been applied.
+
+| Original Spec Name | Actual File | Notes |
+|---------------------|-------------|-------|
+| `decomposition-guidance.md` | `decomposition.md` | Renamed; contains failure history template variables (`{{.FailureCount}}`, `{{.DecompThreshold}}`, etc.) |
+| `summary-required.md` | `summary-required.md` | Uses a CLI command approach (`wolfcastle audit summary`) rather than the `WOLFCASTLE_SUMMARY` marker originally specified |
+| `doctor.md` | `doctor.md` | Externalized with template variables for `{{.Node}}`, `{{.Category}}`, `{{.FixType}}`, `{{.Description}}` |
+| `expand-context.md` | `expand-context.md` | Static preamble; item details appended at runtime |
+| `file-context.md` | `file-context.md` | Static preamble; item details appended at runtime |
+
+### New Prompts (not in original spec)
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `context-headers.md` | `templates/prompts/` | Failure history formatting with template variables for decomposition thresholds and depth |
+| `spec-review.md` | `templates/prompts/` | Adversarial spec review prompt used by auto-created spec-review tasks |
+| `stages/intake-planning.md` | `templates/prompts/stages/` | Intake prompt variant for planning-aware intake |
+| `stages/plan-initial.md` | `templates/prompts/stages/` | Initial planning pass prompt for orchestrators |
+| `stages/plan-amend.md` | `templates/prompts/stages/` | Amend planning pass prompt (new_scope trigger) |
+| `stages/plan-remediate.md` | `templates/prompts/stages/` | Remediation planning prompt (child_blocked trigger) |
+| `stages/plan-review.md` | `templates/prompts/stages/` | Completion review prompt (all children complete) |
+| `stages/execute.md` | `templates/prompts/stages/` | Execute stage prompt (moved into stages/ subdirectory) |
+| `stages/intake.md` | `templates/prompts/stages/` | Intake stage prompt (moved into stages/ subdirectory) |
 
 ---
 
@@ -103,7 +118,7 @@ Output a single JSON object with your resolution. Nothing else.
 | `{{.FixType}}` | string | `issue.FixType` |
 | `{{.Description}}` | string | `issue.Description` |
 
-### 2.2 `decomposition-guidance.md`
+### 2.2 `decomposition.md` (originally `decomposition-guidance.md`)
 
 **Replaces:** `pipeline/context.go:46-52`
 
@@ -309,17 +324,30 @@ Writes all prompt files to `base/prompts/`:
 
 ```
 .wolfcastle/system/base/prompts/
-├── audit.md
-├── decomposition-guidance.md    # NEW
-├── doctor.md                    # NEW
-├── execute.md
+├── audits/
+│   ├── comments.md
+│   ├── decomposition.md
+│   ├── dry.md
+│   └── modularity.md
+├── context-headers.md
+├── decomposition.md
+├── doctor.md
+├── expand-context.md
 ├── expand.md
-├── expand-context.md            # NEW
+├── file-context.md
 ├── file.md
-├── file-context.md              # NEW
 ├── script-reference.md
+├── spec-review.md
+├── stages/
+│   ├── execute.md
+│   ├── intake-planning.md
+│   ├── intake.md
+│   ├── plan-amend.md
+│   ├── plan-initial.md
+│   ├── plan-remediate.md
+│   └── plan-review.md
+├── summary-required.md
 ├── summary.md
-├── summary-required.md          # NEW
 └── unblock.md
 ```
 

@@ -331,7 +331,7 @@ wolfcastle stop --force
 ### Synopsis
 
 ```
-wolfcastle status [--node <path>] [--all] [--expand] [--watch [-w]] [--interval <seconds>] [--json]
+wolfcastle status [--node <path>] [--all] [--expand] [--detail] [--archived] [--watch [-w]] [--interval <seconds>] [--json]
 ```
 
 ### Description
@@ -353,6 +353,8 @@ With `--watch` (or `-w`), the display refreshes on an interval until interrupted
 | `-w`, `--watch` | boolean | No | `false` | Refresh status on an interval until interrupted |
 | `--interval <seconds>` | float64 | No | `5` | Refresh interval in seconds (only meaningful with `--watch`) |
 | `--expand` | boolean | No | `false` | Show completed nodes and tasks expanded. By default, completed nodes are collapsed to a single line showing only a descendant/subtask count. Completed parent tasks whose children are all complete are similarly collapsed. When `--expand` is set, all nodes and tasks are shown in full regardless of completion state |
+| `--detail` | boolean | No | `false` | Show extended detail for each node and task: task bodies, failure types, deliverable summaries, and the most recent breadcrumb for in-progress nodes. Combine with `--expand` for the fullest view |
+| `--archived` | boolean | No | `false` | Show only archived nodes instead of the active tree. Renders each archived node's address, name, type, completion timestamp, and archive timestamp |
 | `--json` | boolean | No | `false` | Output as structured JSON instead of human-readable text |
 
 ### Behavior
@@ -3580,6 +3582,84 @@ wolfcastle audit history --json | jq '[.data.entries[].decisions[] | select(.act
 | Error | Message | Code |
 |-------|---------|------|
 | Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+
+---
+
+## wolfcastle audit aar
+
+### Synopsis
+
+```
+wolfcastle audit aar --node <path> --task <task-id> --objective <text> --what-happened <text> [--went-well <text>]... [--improvements <text>]... [--action-items <text>]... [--json]
+```
+
+### Description
+
+Records a structured After Action Review (AAR) for a completed task. AARs capture what was attempted, what happened, what went well, and what should change. They flow into the iteration context for subsequent tasks and into audit reports and archives.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Target node address (ADR-008) |
+| `--task <task-id>` | string | Yes | -- | Task ID the AAR covers |
+| `--objective <text>` | string | Yes | -- | What the task set out to do |
+| `--what-happened <text>` | string | Yes | -- | What actually happened |
+| `--went-well <text>` | []string | No | nil | Things that went well (repeatable) |
+| `--improvements <text>` | []string | No | nil | Things that could be improved (repeatable) |
+| `--action-items <text>` | []string | No | nil | Follow-up items for subsequent tasks (repeatable) |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Validate that `--node`, `--task`, `--objective`, and `--what-happened` are provided and non-empty.
+2. Construct an AAR record with the provided fields and the current timestamp.
+3. Append the AAR to the node's `audit.aars` array via `state.AddAAR`.
+4. Output confirmation.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | AAR recorded successfully |
+| 1 | Missing required flags or node not found |
+
+---
+
+## wolfcastle audit report
+
+### Synopsis
+
+```
+wolfcastle audit report --node <path> [--path] [--json]
+```
+
+### Description
+
+Displays the latest audit report for a node. If a persisted report file exists on disk (from a prior `WriteAuditReport` call), displays its contents. If no report file exists, generates a live preview from the node's current audit state.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Target node address (ADR-008) |
+| `--path` | boolean | No | `false` | Print only the report file path (empty string if no persisted report exists) |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Check for the latest persisted report file in the node's directory (files matching `audit-*.md`).
+3. If `--path` is set, output the report file path (or empty/message if none exists).
+4. If a report file exists, display its contents.
+5. If no report file exists, load the node's `state.json`, generate a report preview via `state.GenerateAuditReport`, and display it.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Report displayed or path printed |
+| 1 | Node not found or `.wolfcastle/` missing |
 
 ---
 

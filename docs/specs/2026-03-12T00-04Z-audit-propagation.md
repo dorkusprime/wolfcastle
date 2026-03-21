@@ -34,14 +34,14 @@ Each node in the work tree contains an `audit` object in its JSON state. This is
     },
     "breadcrumbs": [
       {
-        "timestamp": "string — ISO 8601 with second precision, e.g. 2026-03-12T18:45:32Z",
+        "timestamp": "time.Time — Go time.Time serialized as ISO 8601 (precision determined by clock implementation; typically nanosecond in Go's JSON marshaler)",
         "task": "string — tree address of the task that wrote this breadcrumb",
         "text": "string — what changed, what was done, what to verify"
       }
     ],
     "gaps": [
       {
-        "id": "string — deterministic ID: gap-{node-slug}-{sequential-int}",
+        "id": "string — deterministic ID: gap-{node-internal-id}-{sequential-int}, where node-internal-id is the node's `id` field (e.g. gap-fire-impl-1)",
         "timestamp": "string — ISO 8601",
         "description": "string — what is missing or broken",
         "source": "string — tree address of the task or audit that found the gap",
@@ -150,6 +150,37 @@ Breadcrumbs feed directly into the archive (ADR-016). Terse or cryptic breadcrum
 ```
 
 The second example illustrates a breadcrumb that hints at a cross-cutting concern. The leaf audit may choose to escalate this to the parent orchestrator's audit if verification requires checking sibling nodes.
+
+---
+
+## 2.5. After Action Reviews (AARs)
+
+AARs are a structured retrospective format that complements breadcrumbs. While breadcrumbs capture real-time observations during task execution, AARs capture structured reflection after a task completes.
+
+### AAR Schema
+
+```json
+{
+  "task_id": "string — ID of the task this AAR covers",
+  "timestamp": "time.Time — when the AAR was recorded",
+  "objective": "string — what the task set out to do",
+  "what_happened": "string — what actually happened",
+  "went_well": ["string — things that went well (repeatable)"],
+  "improvements": ["string — things that could be improved (repeatable)"],
+  "action_items": ["string — follow-up items for subsequent tasks (repeatable)"]
+}
+```
+
+AARs are stored in the node's `audit.aars` array and recorded via `wolfcastle audit aar`. They flow into the iteration context for subsequent tasks, so the executing model can learn from prior task outcomes within the same node. They also feed into archive entries alongside breadcrumbs.
+
+### When AARs Are Written
+
+The executing model writes an AAR after completing a task, particularly when:
+- The task involved unexpected challenges or course corrections
+- There are lessons that subsequent tasks in the same node should know about
+- The approach taken differs from what was originally planned
+
+AARs are richer than breadcrumbs and more structured. A breadcrumb says "did X." An AAR says "tried to do X, Y actually happened, Z went well, W needs improvement."
 
 ---
 
@@ -403,12 +434,12 @@ wolfcastle audit breadcrumb --node <path> "text"
 **Behavior:**
 1. Validates that `<path>` exists in the work tree
 2. Generates a timestamp (current UTC time, ISO 8601 with second precision)
-3. Resolves the calling task's tree address (from the daemon's current execution context)
+3. Sets the `task` field to the `--node` address provided by the caller (the CLI does not resolve execution context; the model passes whichever address it is working on)
 4. Appends a breadcrumb object to `audit.breadcrumbs`:
    ```json
    {
      "timestamp": "2026-03-12T18:45:32Z",
-     "task": "<resolved from execution context>",
+     "task": "<the --node argument value>",
      "text": "<provided text>"
    }
    ```
@@ -430,7 +461,7 @@ wolfcastle audit breadcrumb --node <path> "text"
 
 **Invariants enforced:**
 - Breadcrumbs are append-only. There is no command to edit or delete a breadcrumb.
-- The `task` field is set by the script from execution context, not by the caller. The model cannot spoof which task wrote a breadcrumb.
+- The `task` field is set from the `--node` argument provided by the caller. The model supplies the node address it is working on. (The original design intended resolution from daemon execution context, but the implementation uses the caller-supplied address for simplicity.)
 
 ---
 

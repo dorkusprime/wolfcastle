@@ -162,20 +162,27 @@ Planning prompts use a subset of terminal markers with one addition:
 - `WOLFCASTLE_BLOCKED`: Planning cannot proceed (escalate).
 - `WOLFCASTLE_CONTINUE`: Review found gaps and created new work; transition back to Active. (Planning-only marker, not used in execution.)
 
-Planning does not use `WOLFCASTLE_YIELD` or `WOLFCASTLE_SKIP`. These are execution-only markers with decomposition and already-done semantics that don't apply to planning. The daemon's marker handler branches on whether the current iteration is a planning pass or an execution pass: planning passes recognize `WOLFCASTLE_CONTINUE`, execution passes recognize `WOLFCASTLE_YIELD` and `WOLFCASTLE_SKIP`.
+Planning does not use `WOLFCASTLE_YIELD` or `WOLFCASTLE_SKIP`. These are execution-only markers with decomposition and already-done semantics that don't apply to planning. The daemon's marker handler branches by pass type: execution passes call `scanTerminalMarker` with an explicit marker list (`COMPLETE`, `SKIP`, `BLOCKED`, `YIELD`) that excludes `CONTINUE`; planning passes call `scanTerminalMarker` without a restricted set, defaulting to all five markers (which includes `CONTINUE`). This asymmetry is intentional: the execution side must never see `CONTINUE` (it would fall through to the failure path), while the planning side handles `CONTINUE` explicitly alongside `COMPLETE` and `BLOCKED`. If a planning model emits `YIELD` or `SKIP`, these are technically detected but fall through to the default "no recognized marker" handler, which increments the replan count.
 
 The daemon selects the prompt variant based on the trigger type recorded in the orchestrator's state.
 
 ### Planning Context Assembly
 
-Planning invocations use a dedicated context builder (`BuildPlanningContext()`) separate from the execution context builder. The planning context includes:
+Planning invocations use a dedicated context builder (`BuildPlanningContext()` in `internal/pipeline/planning_context.go`) separate from the execution context builder. The planning context currently includes:
 
-1. **Scope** (always included, first priority): the orchestrator's scope description and any pending scope items.
-2. **Success criteria** (always included): what the parent expects.
-3. **Children state** (included for re-planning): each child's ID, type, state, task summary (titles and states, not full bodies), block reasons, audit gaps.
-4. **Planning history** (included, last 3 passes): prior decisions and their outcomes. Older history is truncated.
-5. **Linked specs and ADRs** (included by reference): paths listed, content not inlined. The orchestrator reads them during the Study phase if needed.
-6. **Codebase** (available via agent access, not inlined): the orchestrator explores the codebase during its invocation, same as the executor.
+1. **Orchestrator address and trigger type** (always included).
+2. **Remediation attempt counter** (included when replans > 0): shows current attempt vs maximum.
+3. **Scope** (always included, never truncated): the orchestrator's scope description.
+4. **Pending scope items** (included when present): new work items to integrate, truncated to first 5.
+5. **Success criteria** (included when defined): what the parent expects.
+6. **Children state** (included for re-planning): each child's ID, address, and state. Currently rendered as ID + address + state; extended metadata (type, deliverables, constraints, acceptance criteria) is available on the `Task` struct but not yet surfaced in the planning context builder.
+7. **Task state** (included when tasks exist): each task's ID, description, state, and block reason.
+8. **Planning history** (included, last 3 passes): timestamp, trigger, and outcome summary.
+9. **Open audit gaps** (included when gaps exist): gap ID and description for open gaps.
+10. **Linked specs** (included by reference): paths listed, content not inlined.
+11. **Codebase** (available via agent access, not inlined): the orchestrator explores the codebase during its invocation, same as the executor.
+
+> **Note on extended task metadata:** The `state.Task` struct includes `Body`, `TaskType`, `Constraints`, `AcceptanceCriteria`, `References`, `Integration`, and `Deliverables` fields (added by the planning pipeline spec). These are set by the planning model during task creation and consumed by the executor. However, `BuildPlanningContext()` does not yet surface these extended fields in the children/task state sections of the planning context. The planning model only sees task ID, description, state, and block reason. Surfacing extended metadata in the planning context is a future enhancement that would improve re-planning quality.
 
 Truncation priority when context exceeds budget:
 1. Planning history beyond the last 3 passes (drop oldest first).

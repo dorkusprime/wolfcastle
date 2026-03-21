@@ -430,24 +430,42 @@ This is the single most important guardrail. Ralph had the same rule and it was 
 
 The model emits terminal markers as bare text on their own line. The Go daemon detects these via substring match on the model's output. Markers must not be wrapped in code fences, backticks, or Markdown formatting.
 
-| Marker | Meaning | When emitted |
-|--------|---------|-------------|
-| `WOLFCASTLE_YIELD` | Task completed, iteration finished | After completing, recording, and committing one task |
-| `WOLFCASTLE_COMPLETE` | All work in the scoped tree is done | When the last task in the entire tree (or scoped subtree) completes |
-| `WOLFCASTLE_BLOCKED` | Cannot proceed | When a task is blocked and no unblocked tasks remain in the current scope |
+| Marker | Meaning | When emitted | Pass type |
+|--------|---------|-------------|-----------|
+| `WOLFCASTLE_YIELD` | Task completed, iteration finished | After completing, recording, and committing one task | Execution only |
+| `WOLFCASTLE_COMPLETE` | All work in the scoped tree is done | When the last task in the entire tree (or scoped subtree) completes, or when a planning pass verifies all success criteria are met | Both |
+| `WOLFCASTLE_BLOCKED` | Cannot proceed | When a task is blocked and no unblocked tasks remain in the current scope, or when a planning pass cannot resolve an issue | Both |
+| `WOLFCASTLE_SKIP` | Task already done or not applicable | When the model determines the assigned task does not need execution | Execution only |
+| `WOLFCASTLE_CONTINUE` | Planning created new work | When a planning review pass finds gaps and creates new children | Planning only |
 
 ### Rules for Terminal Markers
 
-1. **Exactly one marker per iteration.** The model emits one of the three markers and then stops.
+1. **Exactly one marker per iteration.** The model emits one of the valid markers for its pass type and then stops.
 2. **Nothing follows the marker.** No summary, no planning, no tool calls. The marker is the final output.
 3. **Never use marker text in prose.** Do not write "I will now emit WOLFCASTLE_YIELD" or "this would normally trigger WOLFCASTLE_BLOCKED." The daemon cannot distinguish a marker from a sentence containing the marker text. If the model needs to discuss the concept, it must paraphrase without using the exact marker string.
 4. **Bare text only.** No `\`WOLFCASTLE_YIELD\``, no `**WOLFCASTLE_YIELD**`, no `> WOLFCASTLE_YIELD`. Just the plain string on its own line.
 
+### Marker Namespace Isolation
+
+The daemon's `scanTerminalMarker` function accepts a `validMarkers` parameter that restricts which markers are recognized for a given pass type. When called with no arguments, it defaults to scanning for all five markers. The daemon calls it with restricted marker sets depending on context:
+
+- **Execution passes:** COMPLETE, SKIP, BLOCKED, YIELD (not CONTINUE)
+- **Planning passes:** COMPLETE, BLOCKED, CONTINUE (not YIELD or SKIP)
+
+This prevents a planning model from accidentally emitting YIELD (which has task-completion semantics the planning pipeline doesn't handle) or an execution model from emitting CONTINUE (which has re-planning semantics the execution pipeline doesn't handle). The `scanTerminalMarker` function scans the full output and returns the highest-priority marker found among the valid set. Priority order: COMPLETE > SKIP > CONTINUE > BLOCKED > YIELD.
+
 ### Daemon Behavior on Marker Detection
 
+**Execution pass markers:**
 - **WOLFCASTLE_YIELD:** Daemon terminates the model process, increments the iteration counter, and begins the next iteration (navigation, prompt assembly, model invocation).
-- **WOLFCASTLE_COMPLETE:** Daemon terminates the model process, runs archive generation if configured, and exits the daemon loop cleanly.
+- **WOLFCASTLE_COMPLETE:** Daemon terminates the model process, runs archive generation if configured, and exits the daemon loop cleanly. For orchestrator audit tasks, propagates completion state to ancestors.
 - **WOLFCASTLE_BLOCKED:** Daemon terminates the model process, logs the blocked state, and pauses. The daemon remains running but does not start new iterations until `wolfcastle task unblock` is called (or the user restarts with a different `--node` scope).
+- **WOLFCASTLE_SKIP:** Daemon terminates the model process, treats the task as already done (the model determined no work was needed), and continues to the next iteration.
+
+**Planning pass markers:**
+- **WOLFCASTLE_COMPLETE:** Planning finished successfully. The daemon clears `needs_planning`, completes the orchestrator's audit task, propagates state, and continues to the next iteration.
+- **WOLFCASTLE_BLOCKED:** The orchestrator cannot plan (external dependency, insufficient information). The daemon blocks the orchestrator and continues.
+- **WOLFCASTLE_CONTINUE:** The review found gaps and created new children. The daemon clears `needs_planning` (it will be re-set when the new children complete) and continues.
 
 ### No Marker Detected
 

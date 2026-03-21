@@ -14,22 +14,36 @@ Each spec was verified against current code. Status meanings:
 | State Machine | Current | |
 | Config Schema | Current | Code adds fields (Archive, TaskClasses, Planning) beyond spec, but these follow the same patterns and don't contradict it |
 | Tree Addressing | Current | Code extends with archived node tracking and hierarchical child tasks; no contradictions |
-| Pipeline Stage Contract | **Needs update** | Missing AARs (richer than breadcrumbs, fully integrated into execution context), spec-review auto-trigger mechanism, and cross-reference to planning pipeline |
-| Audit Propagation | **Needs update** | Breadcrumb timestamps use minute precision (spec says second); gap IDs use node internal ID, not path slug; CLI breadcrumb command doesn't resolve execution context for task field |
-| Archive Format | **Needs update** | Missing Commit SHA in metadata table; no `summary.enabled` config gate; audit section combines gaps+fixes into single list with status badges instead of separate sections |
-| CLI Commands | **Needs update** | Missing `audit aar` and `audit report` subcommands; missing `status --detail` and `status --archived` flags |
-| Orchestrator Prompt | **Needs update** | `scanTerminalMarker` does not branch between planning and execution passes; CONTINUE marker is in the execution-path scan list, violating the spec's marker namespace isolation |
-| Structural Validation | **Needs update** | Missing CHILDREF_STATE_MISMATCH category (Error severity, deterministic fix, fully tested); five audit state integrity categories defined in Section 1 but absent from severity and fix tables |
+| Pipeline Stage Contract | Current | Updated: added AARs in iteration context, spec-review auto-trigger section, planning pipeline cross-reference |
+| Audit Propagation | Current | Updated: breadcrumb timestamp precision corrected to time.Time, gap ID format corrected to use node internal ID, breadcrumb task field sourced from --node argument, AAR section added |
+| Archive Format | Current | Updated: Commit SHA documented in metadata table, summary.enabled config gate documented, audit section rendering updated to match combined Findings format with status badges |
+| CLI Commands | Current | Updated: added `audit aar` and `audit report` subcommands, added `--detail` and `--archived` flags to `status` |
+| Orchestrator Prompt | Current | Updated: marker table expanded with SKIP and CONTINUE markers and pass-type column, namespace isolation section added documenting scanTerminalMarker's validMarkers parameter, daemon behavior split by pass type |
+| Structural Validation | Current | Updated: added CHILDREF_STATE_MISMATCH, ORPHANED_TEMP_FILE, INVALID_TASK_ID categories; five audit state categories added to severity and fix tables; built-in checks table updated |
 | CI/CD Pipeline | Current | Integration timeout intentionally expanded to 300s (spec says 120s); `govulncheck` job added post-spec |
 | Test Strategy | Current | `internal/testutil` shared helper package not yet extracted (low priority) |
 | Production Hardening | Current | Readline integration for `unblock` pending; CONTRIBUTING.md not yet created |
-| Testability and Decoupling | **Needs update** | Callback-based marker parsing (P1) not implemented; property-based propagation tests via `testing/quick` (P2) not implemented; ~75% of spec realized |
-| Prompt Externalization | **Needs update** | `decomposition-guidance.md` renamed to `decomposition.md`; `summary-required.md` uses CLI command instead of WOLFCASTLE_SUMMARY marker; `expand-context.md` and `file-context.md` are minimal stubs; new prompts (intake-context.md, context-headers.md, spec-review.md) not documented |
-| Goroutine Architecture | **Needs update** | Real-time I/O via `io.Pipe` (spec Phase 3) not implemented; marker scanning still blocks on full output post-process; stall detector lives in invoke layer, not daemon goroutine topology; auto-archive runs inline per ADR 2026-03-21T12-57Z (spec predates this decision) |
+| Testability and Decoupling | Current | Updated: callback marker parsing and property-based tests marked as not implemented with status notes; implementation priority table updated with status column |
+| Prompt Externalization | Current | Updated: file renames documented, new prompts documented (context-headers.md, spec-review.md, stages/ subdirectory), deployment tree updated |
+| Goroutine Architecture | Current | Updated: Phase 3 status corrected (StdoutPipe not io.Pipe), stall detector location documented, auto-archive inline documented, Section 6 rewritten |
 | Store | Current | |
 | Domain Repository Architecture | Current | |
-| Orchestrator Planning Pipeline | **Needs update** | Marker scanning doesn't branch by pass type (planning vs execution); planning context omits extended task metadata (type, deliverables, constraints, acceptance criteria) |
+| Orchestrator Planning Pipeline | Current | Updated: marker scanning branching documented (execution excludes CONTINUE, planning defaults to all), planning context updated to match BuildPlanningContext with note on extended metadata |
 | Unknown Field Detection | Current | Implemented via `DisallowUnknownFields` in `internal/config/unknown.go`; warnings on Config struct per spec recommendation |
+| tierfs Resolver Contract | Current | |
+| RenderContext Rendering Contract | Current | |
+| Git Provider Contract | Current | |
+| Identity Domain Type Contract | Current | |
+| ConfigRepository Contract | Current | |
+| ClassRepository Contract | Current | |
+| MigrationService Contract | Current | |
+| ScaffoldService Contract | Current | |
+| ContextBuilder Contract | Current | |
+| FindNextTask Navigation Invariants | Current | Property-based test invariants for navigation; no implementation drift |
+| Config Show Command | Current | |
+| Auto-Archive Service Contract | Current | |
+| Config Write Commands | Current | |
+| Dict-Format Pipeline Stages | Current | Implemented; `StageOrder` field and dict-format stages in source |
 
 ## Specs
 
@@ -54,6 +68,20 @@ Each spec was verified against current code. Status meanings:
 | [Domain Repository Architecture](2026-03-16T00-00Z-domain-repository-architecture.md) | Domain-specific repositories replacing raw filepath.Join I/O |
 | [Orchestrator Planning Pipeline](2026-03-17T00-00Z-orchestrator-planning-pipeline.md) | Lazy recursive planning for orchestrator nodes |
 | [Unknown Field Detection](2026-03-20T15-57Z-unknown-field-detection.md) | Detection and reporting of unrecognized fields in config unmarshalling |
+| [tierfs Resolver Contract](2026-03-18T20-23Z-tierfs-resolver-contract.md) | Resolver interface and FS implementation for three-tier file resolution |
+| [RenderContext Rendering Contract](2026-03-18T21-05Z-rendercontext-rendering-contract.md) | Output format, section ordering, and division of responsibility for domain RenderContext methods and ContextBuilder |
+| [Git Provider Contract](2026-03-18T21-44Z-git-provider-contract.md) | Provider interface and Service implementation for git operations via shell-out |
+| [Identity Domain Type Contract](2026-03-18T21-50Z-identity-domain-type-contract.md) | Identity struct, constructors (IdentityFromConfig, DetectIdentity), and namespace derivation |
+| [ConfigRepository Contract](2026-03-18T21-57Z-configrepository-contract.md) | Three-tier config resolution, merge algorithm, Write methods, and error behavior |
+| [ClassRepository Contract](2026-03-18T22-31Z-classrepository-contract.md) | Class prompt resolution with hierarchical fallback, goroutine-safe Reload, Validate |
+| [MigrationService Contract](2026-03-18T22-45Z-migrationservice-contract.md) | Directory layout and config migration for upgrading users |
+| [ScaffoldService Contract](2026-03-18T22-48Z-scaffoldservice-contract.md) | Init and Reinit algorithms for .wolfcastle/ directory lifecycle |
+| [ContextBuilder Contract](2026-03-18T23-11Z-contextbuilder-contract.md) | Full iteration context assembly, template resolution, and migration path from legacy functions |
+| [FindNextTask Navigation Invariants](2026-03-20T15-22Z-findnexttask-navigation-invariants.md) | Seven property-based invariants for task navigation, suitable for direct translation to test predicates |
+| [Config Show Command](2026-03-20T15-46Z-config-show-command.md) | CLI spec for `wolfcastle config show` with tier filtering, section filtering, and JSON envelope |
+| [Dict-Format Pipeline Stages](2026-03-21T03-11Z-dict-format-stages.md) | Migration of pipeline.stages from array to dict format, stage_order field, validation rules |
+| [Auto-Archive Service Contract](2026-03-21T12-27Z-auto-archive-service-contract.md) | Archive state model, file layout, move/restore/delete operations, daemon timer integration |
+| [Config Write Commands](2026-03-21T14-23Z-config-write-commands.md) | CLI spec for `config set`, `unset`, `append`, `remove` with dot-notation paths and rollback |
 
 ## Drafts
 
