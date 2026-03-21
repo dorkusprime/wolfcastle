@@ -833,6 +833,120 @@ func TestDeleteArchivedNode_NotInArchivedRoot(t *testing.T) {
 	}
 }
 
+func TestDeleteArchivedNode_DeepSubtreePurgesAllDescendants(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+
+	// Build a three-level tree: root -> mid -> leaf
+	projDir := d.Store.Dir()
+	idx, _ := d.Store.ReadIndex()
+	idx.Root = append(idx.Root, "deep-proj")
+	idx.Nodes["deep-proj"] = state.IndexEntry{
+		Name:     "deep-proj",
+		Type:     state.NodeOrchestrator,
+		State:    state.StatusComplete,
+		Address:  "deep-proj",
+		Children: []string{"deep-proj/mid"},
+	}
+	idx.Nodes["deep-proj/mid"] = state.IndexEntry{
+		Name:     "mid",
+		Type:     state.NodeOrchestrator,
+		State:    state.StatusComplete,
+		Address:  "deep-proj/mid",
+		Parent:   "deep-proj",
+		Children: []string{"deep-proj/mid/leaf"},
+	}
+	idx.Nodes["deep-proj/mid/leaf"] = state.IndexEntry{
+		Name:    "leaf",
+		Type:    state.NodeLeaf,
+		State:   state.StatusComplete,
+		Address: "deep-proj/mid/leaf",
+		Parent:  "deep-proj/mid",
+	}
+	writeJSON(t, filepath.Join(projDir, "state.json"), idx)
+
+	ns := state.NewNodeState("deep-proj", "deep-proj", state.NodeOrchestrator)
+	ns.State = state.StatusComplete
+	ns.Audit.CompletedAt = &completedAt
+	ns.Audit.ResultSummary = "Done."
+	writeJSON(t, filepath.Join(projDir, "deep-proj", "state.json"), ns)
+
+	mns := state.NewNodeState("mid", "deep-proj/mid", state.NodeOrchestrator)
+	mns.State = state.StatusComplete
+	mns.Audit.CompletedAt = &completedAt
+	writeJSON(t, filepath.Join(projDir, "deep-proj", "mid", "state.json"), mns)
+
+	lns := state.NewNodeState("leaf", "deep-proj/mid/leaf", state.NodeLeaf)
+	lns.State = state.StatusComplete
+	lns.Audit.CompletedAt = &completedAt
+	writeJSON(t, filepath.Join(projDir, "deep-proj", "mid", "leaf", "state.json"), lns)
+
+	archiveAndVerify(t, d, "deep-proj")
+
+	if err := d.deleteArchivedNode("deep-proj"); err != nil {
+		t.Fatalf("deleteArchivedNode failed: %v", err)
+	}
+
+	idx, _ = d.Store.ReadIndex()
+	for _, addr := range []string{"deep-proj", "deep-proj/mid", "deep-proj/mid/leaf"} {
+		if _, ok := idx.Nodes[addr]; ok {
+			t.Errorf("%s should be purged from Nodes after delete", addr)
+		}
+	}
+}
+
+func TestDeleteArchivedNode_PreservesOtherArchivedNodes(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "keep-proj", completedAt, nil)
+	setupCompletedOrchestrator(t, d, "delete-proj", completedAt, nil)
+
+	archiveAndVerify(t, d, "keep-proj")
+	archiveAndVerify(t, d, "delete-proj")
+
+	if err := d.deleteArchivedNode("delete-proj"); err != nil {
+		t.Fatalf("deleteArchivedNode failed: %v", err)
+	}
+
+	idx, _ := d.Store.ReadIndex()
+
+	// delete-proj should be gone entirely.
+	if _, ok := idx.Nodes["delete-proj"]; ok {
+		t.Error("delete-proj should be purged from Nodes")
+	}
+	for _, r := range idx.ArchivedRoot {
+		if r == "delete-proj" {
+			t.Error("delete-proj should not be in ArchivedRoot")
+		}
+	}
+
+	// keep-proj should remain archived and untouched.
+	keepEntry, ok := idx.Nodes["keep-proj"]
+	if !ok {
+		t.Fatal("keep-proj should still exist in Nodes")
+	}
+	if !keepEntry.Archived {
+		t.Error("keep-proj should still be archived")
+	}
+	foundKeep := false
+	for _, r := range idx.ArchivedRoot {
+		if r == "keep-proj" {
+			foundKeep = true
+		}
+	}
+	if !foundKeep {
+		t.Error("keep-proj should still be in ArchivedRoot")
+	}
+}
+
 func TestDeleteArchivedNode_MissingArchiveDir(t *testing.T) {
 	t.Parallel()
 	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
