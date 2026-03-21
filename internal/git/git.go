@@ -112,7 +112,12 @@ func (s *Service) IsDirty(excludePaths ...string) bool {
 
 // HasProgress reports whether work has occurred since sinceCommit:
 // either HEAD moved or there are uncommitted changes outside .wolfcastle/.
+// If git is unavailable or the directory is not a repo, assumes progress
+// was made rather than blocking the pipeline.
 func (s *Service) HasProgress(sinceCommit string) bool {
+	if !s.IsRepo() {
+		return true
+	}
 	return s.HEAD() != sinceCommit || s.IsDirty(".wolfcastle/")
 }
 

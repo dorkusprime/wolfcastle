@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/archive"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/spf13/cobra"
@@ -37,21 +36,21 @@ Examples:
 
 		// Validate preconditions: node exists, is complete, is root-level,
 		// and is not already archived.
-		ns, err := app.State.ReadNode(nodeAddr)
-		if err != nil {
-			return fmt.Errorf("loading node state: %w", err)
-		}
-		if ns.State != state.StatusComplete {
-			return fmt.Errorf("node %s is %s, not complete. Finish the job first", nodeAddr, ns.State)
-		}
-
 		idx, err := app.State.ReadIndex()
 		if err != nil {
 			return fmt.Errorf("loading index: %w", err)
 		}
 		entry, ok := idx.Nodes[nodeAddr]
 		if !ok {
-			return fmt.Errorf("node %q not found in index", nodeAddr)
+			return fmt.Errorf("node %q does not exist", nodeAddr)
+		}
+
+		ns, err := app.State.ReadNode(nodeAddr)
+		if err != nil {
+			return fmt.Errorf("loading node state: %w", err)
+		}
+		if ns.State != state.StatusComplete {
+			return fmt.Errorf("node %s is %s, not complete. Finish the job first", nodeAddr, ns.State)
 		}
 		if entry.Archived {
 			return fmt.Errorf("node %q is already archived", nodeAddr)
@@ -74,10 +73,9 @@ Examples:
 
 		// Resolve current git branch for the rollup metadata.
 		branch := ""
-		branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-		branchCmd.Dir = filepath.Dir(app.Config.Root())
-		if out, err := branchCmd.Output(); err == nil {
-			branch = strings.TrimSpace(string(out))
+		gitSvc := git.NewService(filepath.Dir(app.Config.Root()))
+		if b, err := gitSvc.CurrentBranch(); err == nil {
+			branch = b
 		}
 
 		svc := &archive.Service{
