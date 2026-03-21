@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/config"
@@ -16,12 +18,16 @@ import (
 
 func newShowCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "show",
+		Use:   "show [section]",
 		Short: "Display the resolved configuration",
 		Long: `Prints the Wolfcastle configuration as indented JSON.
 
 By default the output reflects the fully resolved config: hardcoded
 defaults merged with base, custom, and local tiers.
+
+An optional section argument filters the output to a single top-level
+key (e.g. "wolfcastle config show pipeline"). If the section does not
+exist, the command lists the valid section names.
 
 Two flags modify what is shown:
   --tier   restricts output to a single tier file's raw content
@@ -29,9 +35,12 @@ Two flags modify what is shown:
 
 Examples:
   wolfcastle config show
+  wolfcastle config show pipeline
   wolfcastle config show --tier local
   wolfcastle config show --raw
+  wolfcastle config show logs --json
   wolfcastle config show --tier base --json`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tier, _ := cmd.Flags().GetString("tier")
 			raw, _ := cmd.Flags().GetBool("raw")
@@ -55,6 +64,13 @@ Examples:
 			}
 			if err != nil {
 				return err
+			}
+
+			if len(args) == 1 {
+				result, err = extractSection(result, args[0])
+				if err != nil {
+					return err
+				}
 			}
 
 			formatted, err := marshalPretty(result)
@@ -116,6 +132,32 @@ func mergeRawTiers(wolfcastleRoot string) (map[string]any, error) {
 		result = config.DeepMerge(result, m)
 	}
 	return result, nil
+}
+
+// extractSection converts result to a map and returns the value under key.
+// If the key is missing, it returns an error listing valid section names.
+func extractSection(result any, key string) (any, error) {
+	m, ok := result.(map[string]any)
+	if !ok {
+		raw, err := json.Marshal(result)
+		if err != nil {
+			return nil, fmt.Errorf("converting config to map: %w", err)
+		}
+		if err := json.Unmarshal(raw, &m); err != nil {
+			return nil, fmt.Errorf("converting config to map: %w", err)
+		}
+	}
+
+	if val, exists := m[key]; exists {
+		return val, nil
+	}
+
+	names := make([]string, 0, len(m))
+	for k := range m {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	return nil, fmt.Errorf("unknown section %q; valid sections: %s", key, strings.Join(names, ", "))
 }
 
 // marshalPretty formats v as indented JSON with HTML escaping disabled.
