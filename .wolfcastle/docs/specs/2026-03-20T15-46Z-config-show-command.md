@@ -11,12 +11,14 @@ Display the resolved Wolfcastle configuration, or inspect individual tier files 
 ## Synopsis
 
 ```
-wolfcastle config show [--tier <base|custom|local>] [--raw] [--json]
+wolfcastle config show [section] [--tier <base|custom|local>] [--raw] [--json]
 ```
 
 ## Description
 
 Prints the Wolfcastle configuration to stdout as indented JSON. By default, the output reflects the fully resolved config: hardcoded defaults merged with base, custom, and local tiers (the same object returned by `config.Load()`). The structure matches the `Config` type defined in `internal/config/types.go`.
+
+An optional positional `section` argument filters the output to a single top-level key. For example, `wolfcastle config show pipeline` prints only the `pipeline` object. If the given section name does not exist in the resolved config, the command exits with an error listing all valid section names. The section filter applies after mode resolution (default, `--tier`, or `--raw`), so it works with any combination of flags.
 
 Two flags modify what is shown:
 
@@ -27,8 +29,9 @@ These flags serve different debugging needs. A user wondering "what is my effect
 
 ## Arguments and Flags
 
-| Flag | Type | Required | Default | Description |
-|------|------|----------|---------|-------------|
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `section` | positional | No | (none) | Filter output to a single top-level key (e.g. `pipeline`, `models`, `logs`). If the key does not exist, exit 1 with the list of valid sections |
 | `--tier` | string | No | (none) | Display a single tier's raw JSON content. Accepted values: `base`, `custom`, `local`. Omitting this flag shows the fully merged config |
 | `--raw` | boolean | No | `false` | Suppress the hardcoded defaults layer. When used alone (without `--tier`), merges only the three tier files without seeding from `Defaults()`. When used with `--tier`, identical to `--tier` alone (tier files never include defaults) |
 | `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
@@ -95,6 +98,19 @@ On error:
 }
 ```
 
+### Section filtering
+
+The optional `section` positional argument is applied as the final step, after the mode (default, `--tier`, or `--raw`) has resolved the config to a JSON object. The flow is:
+
+1. Resolve the config via the selected mode (default merge, `--tier`, or `--raw`).
+2. If no section argument was given, proceed to output.
+3. If a section was given, convert the result to a map (for `*Config`, this means a JSON marshal-roundtrip), then look up the key.
+   - If the key exists, replace the output with that key's value.
+   - If the key does not exist, exit 1 with: `unknown section "X"; valid sections: a, b, c` (sections listed alphabetically).
+4. Proceed to output formatting (`--json` envelope wraps the filtered value, not the full config).
+
+The section argument composes freely with `--tier`, `--raw`, and `--json`. For example, `wolfcastle config show pipeline --tier base --json` returns only the `pipeline` key from the base tier file, wrapped in the JSON envelope.
+
 ## Identity Requirement
 
 This command does **not** require identity resolution. It reads config files only, with no need to locate a project directory. It should work immediately after `wolfcastle init`, even before the daemon has started.
@@ -123,6 +139,34 @@ $ wolfcastle config show
   "retries": { "initial_delay_seconds": 5, ... },
   ...
 }
+```
+
+### Filtered by section
+
+```bash
+$ wolfcastle config show pipeline
+{
+  "stages": [ ... ],
+  "planning": { "enabled": true, ... }
+}
+```
+
+### Section with `--tier`
+
+```bash
+$ wolfcastle config show models --tier base
+{
+  "fast": { "command": "claude", "args": [...] },
+  "mid": { ... },
+  "heavy": { ... }
+}
+```
+
+### Unknown section
+
+```bash
+$ wolfcastle config show nosuchkey
+error: unknown section "nosuchkey"; valid sections: archive, identity, logs, models, pipeline, retries, version
 ```
 
 ### Single tier (local overrides only)
@@ -167,6 +211,7 @@ $ wolfcastle config show --tier base --json
 | 1 | No `.wolfcastle/` directory found |
 | 1 | Tier file contains malformed JSON |
 | 1 | Invalid `--tier` value (not one of `base`, `custom`, `local`) |
+| 1 | Unknown section name (positional argument does not match any top-level key) |
 
 ## Error Cases
 
@@ -176,6 +221,7 @@ $ wolfcastle config show --tier base --json
 | `--tier` given invalid value | Exit 1: `error: --tier must be one of: base, custom, local` |
 | Tier file missing | Print `{}` (not an error) |
 | Tier file is malformed JSON | Exit 1: `error: {tier}/config.json is not valid JSON: {parse error}` |
+| Unknown section argument | Exit 1: `error: unknown section "X"; valid sections: a, b, c` (alphabetical) |
 | `config.Load()` fails (merged mode) | Exit 1: `error: failed to load config: {underlying error}` |
 
 ## Cobra Registration
