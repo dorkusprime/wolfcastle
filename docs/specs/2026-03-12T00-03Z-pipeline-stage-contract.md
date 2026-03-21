@@ -16,31 +16,44 @@ This spec defines how pipeline stages are configured, invoked, and how they inte
 - ADR-019: Failure handling, decomposition, and retry thresholds
 - ADR-020: Daemon lifecycle and process management
 
+## Related Specs
+
+- [Dict-Format Pipeline Stages](2026-03-21T03-11Z-dict-format-stages.md): defines the map-based `pipeline.stages` schema, `stage_order` field, merge semantics, and migration contract.
+
 ---
 
 ## 1. Stage Definition Schema
 
-Each stage is an object in the `pipeline.stages` array in `config.json`. The full schema:
+Each stage is a named entry in the `pipeline.stages` object in `config.json`. The stage name is the map key; there is no `name` field inside the stage object itself. See the [Dict-Format Pipeline Stages spec](2026-03-21T03-11Z-dict-format-stages.md) for the full rationale behind this structure.
 
 ```json
 {
-  "name": "<string, required>",
-  "model": "<string, required>",
-  "prompt_file": "<string, required>",
-  "enabled": "<boolean, optional, default: true>",
-  "skip_prompt_assembly": "<boolean, optional, default: false>"
+  "pipeline": {
+    "stages": {
+      "<stage-name>": {
+        "model": "<string, required>",
+        "prompt_file": "<string, required>",
+        "enabled": "<boolean, optional, default: true>",
+        "skip_prompt_assembly": "<boolean, optional, default: false>",
+        "allowed_commands": "<[]string, optional>"
+      }
+    },
+    "stage_order": ["<stage-name>", "..."]
+  }
 }
 ```
 
 ### Field Reference
 
+The stage name (map key) must match the pattern `[a-z][a-z0-9_-]*`. It serves as the unique identifier for the stage within the pipeline, appearing in log records, error messages, and stage-level configuration references.
+
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `name` | string | yes | -- | Unique identifier for the stage within the pipeline. Used in log records, error messages, and stage-level configuration references. Must be unique across all stages. |
 | `model` | string | yes | -- | Key into the top-level `models` dictionary. Resolved at pipeline load time; a missing key is a fatal config error. |
 | `prompt_file` | string | yes | -- | Filename (not path) of the stage-specific prompt. Resolved through the three-tier merge (base/custom/local) per ADR-009 and ADR-018. |
 | `enabled` | boolean | no | `true` | When `false`, the stage is skipped entirely during pipeline execution. Allows opt-out without removing the stage from config. |
 | `skip_prompt_assembly` | boolean | no | `false` | When `true`, the stage receives only its own `prompt_file` content as the prompt, without the full system prompt assembly (no rule fragments, no script reference). Useful for lightweight stages that do not need the full context. |
+| `allowed_commands` | []string | no | `nil` | Restricts which wolfcastle CLI commands the stage may invoke. When nil/absent, all commands are allowed. |
 
 ### Model Definition (reference)
 
@@ -258,7 +271,11 @@ The model's **meaningful output** is not its stdout text but its **side effects*
 
 ### Ordering
 
-Stages execute in the order they appear in the `pipeline.stages` array. The daemon processes them sequentially -- stage N must complete before stage N+1 begins. There is no parallel stage execution.
+Stages execute in the order specified by the `pipeline.stage_order` array. The daemon iterates `stage_order` and looks up each name in the `pipeline.stages` map. Stage N must complete before stage N+1 begins. There is no parallel stage execution.
+
+When `stage_order` is omitted from the resolved config, the daemon falls back to sorting the `stages` map keys alphabetically. This fallback is deterministic but rarely produces the desired order for a real pipeline, so the default `base/config.json` always includes an explicit `stage_order`.
+
+Every name in `stage_order` must exist as a key in `stages`; a reference to a missing stage is a fatal config error. Every key in `stages` should appear in `stage_order`. A stage present in the map but absent from `stage_order` will never execute, and the config loader emits a warning for this case.
 
 ### Conditional Stages
 
@@ -292,7 +309,7 @@ The default pipeline ships with Wolfcastle and is written into `config.json` by 
 
 ### Full Default Configuration
 
-The default `pipeline.stages` array contains two stages (ADR-064). The summary stage is controlled separately via the `summary` config key (see Section 7) and is not a pipeline stage — it runs conditionally based on `summary.enabled` after a node completes its audit.
+The default `pipeline.stages` map contains two stages (ADR-064). The summary stage is controlled separately via the `summary` config key (see Section 7) and is not a pipeline stage — it runs conditionally based on `summary.enabled` after a node completes its audit.
 
 ```json
 {
@@ -311,18 +328,17 @@ The default `pipeline.stages` array contains two stages (ADR-064). The summary s
     }
   },
   "pipeline": {
-    "stages": [
-      {
-        "name": "intake",
+    "stages": {
+      "intake": {
         "model": "mid",
         "prompt_file": "intake.md"
       },
-      {
-        "name": "execute",
+      "execute": {
         "model": "heavy",
         "prompt_file": "execute.md"
       }
-    ]
+    },
+    "stage_order": ["intake", "execute"]
   },
   "summary": {
     "enabled": true,
@@ -460,7 +476,7 @@ The daemon loop is the top-level control flow that drives pipeline execution. Ea
 ```
 1. Branch verification (ADR-015)
 2. Create iteration log file (ADR-012)
-3. For each stage in pipeline.stages:
+3. For each stage name in pipeline.stage_order (look up in pipeline.stages):
    a. Check if stage is enabled
    b. Check stage-specific preconditions (section 5)
    c. If skipped, log skip reason and continue
@@ -476,7 +492,7 @@ The daemon loop is the top-level control flow that drives pipeline execution. Ea
 
 ### One Iteration, All Stages
 
-A single iteration runs through **all enabled stages** in order, skipping the intake stage which runs in its own parallel goroutine (ADR-064). The main loop focuses on finding and executing tasks.
+A single iteration runs through **all enabled stages** in `stage_order` sequence, skipping the intake stage which runs in its own parallel goroutine (ADR-064). The main loop focuses on finding and executing tasks.
 
 Inbox processing happens concurrently. The intake goroutine creates projects and tasks in the background, and the next iteration of the main loop picks them up through navigation.
 
@@ -544,13 +560,13 @@ A simplified pipeline that skips inbox processing, going straight to execution:
     }
   },
   "pipeline": {
-    "stages": [
-      {
-        "name": "execute",
+    "stages": {
+      "execute": {
         "model": "worker",
         "prompt_file": "execute.md"
       }
-    ]
+    },
+    "stage_order": ["execute"]
   },
   "summary": {
     "enabled": false
