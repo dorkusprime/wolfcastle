@@ -20,6 +20,7 @@ type Config struct {
 	OverlapAdvisory OverlapConfig       `json:"overlap_advisory"`
 	Unblock         UnblockConfig       `json:"unblock"`
 	Audit           AuditCommandConfig  `json:"audit"`
+	Archive         ArchiveConfig       `json:"archive"`
 	TaskClasses     map[string]ClassDef `json:"task_classes,omitempty"`
 
 	// Warnings collects non-fatal diagnostic messages from config loading,
@@ -176,6 +177,13 @@ type UnblockConfig struct {
 type AuditCommandConfig struct {
 	Model      string `json:"model"`
 	PromptFile string `json:"prompt_file"`
+}
+
+// ArchiveConfig controls automatic archival of completed project trees.
+type ArchiveConfig struct {
+	AutoArchiveEnabled    bool `json:"auto_archive_enabled"`
+	AutoArchiveDelayHours int  `json:"auto_archive_delay_hours"`
+	PollIntervalSeconds   int  `json:"archive_poll_interval_seconds"`
 }
 
 // ClassDef defines a single task class entry in the config. Classes are

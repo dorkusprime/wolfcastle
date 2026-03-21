@@ -118,6 +118,11 @@ func Defaults() *Config {
 			Model:      "heavy",
 			PromptFile: "audits/audit.md",
 		},
+		Archive: ArchiveConfig{
+			AutoArchiveEnabled:    true,
+			AutoArchiveDelayHours: 24,
+			PollIntervalSeconds:   300,
+		},
 	}
 }
 

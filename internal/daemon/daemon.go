@@ -62,14 +62,15 @@ type Daemon struct {
 	ContextBuilder *pipeline.ContextBuilder
 	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
-	shutdown      chan struct{}
-	shutdownOnce  sync.Once
-	workAvailable chan struct{}
-	sigChan       chan os.Signal
-	runWg         sync.WaitGroup // tracks goroutines started by Run
-	branch        string
-	iteration     int
-	lastNoWorkMsg string // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
+	shutdown         chan struct{}
+	shutdownOnce     sync.Once
+	workAvailable    chan struct{}
+	sigChan          chan os.Signal
+	runWg            sync.WaitGroup // tracks goroutines started by Run
+	branch           string
+	iteration        int
+	lastNoWorkMsg    string    // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
+	lastArchiveCheck time.Time // throttle auto-archive polling
 }
 
 // repo returns a DaemonRepository for the daemon's wolfcastle directory.
@@ -578,7 +579,12 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		return IterationDidWork, nil
 	}
 
-	// Step 3: Nothing to execute, nothing to plan. Report why.
+	// Step 3: No tasks, no planning. Check for archive-eligible nodes.
+	if d.tryAutoArchive(idx) {
+		return IterationDidWork, nil
+	}
+
+	// Step 4: Nothing to execute, nothing to plan, nothing to archive. Report why.
 	{
 		var msg string
 		switch navResult.Reason {
