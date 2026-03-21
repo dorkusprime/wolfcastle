@@ -147,14 +147,14 @@ func TestDiffKeys_NestedPathPrefix(t *testing.T) {
 
 func TestCheckUnknownFields_UnknownFieldInPipelineStage(t *testing.T) {
 	t.Parallel()
-	raw := []byte(`{"pipeline": {"stages": [{"name": "exec", "model": "fast", "prompt_file": "exec.md", "typo_field": true}]}}`)
+	raw := []byte(`{"pipeline": {"stages": {"execute": {"model": "fast", "prompt_file": "exec.md", "typo_field": true}}}}`)
 	warnings := checkUnknownFields(raw, "custom/config.json")
 
 	if len(warnings) != 1 {
 		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
 	}
-	if !strings.Contains(warnings[0], "pipeline.stages[0].typo_field") {
-		t.Errorf("expected path 'pipeline.stages[0].typo_field', got: %s", warnings[0])
+	if !strings.Contains(warnings[0], "pipeline.stages.execute.typo_field") {
+		t.Errorf("expected path 'pipeline.stages.execute.typo_field', got: %s", warnings[0])
 	}
 }
 
@@ -171,39 +171,66 @@ func TestCheckUnknownFields_UnknownFieldInValidationCommand(t *testing.T) {
 	}
 }
 
-func TestCheckUnknownFields_MultipleArrayElements(t *testing.T) {
+func TestCheckUnknownFields_MultipleStagesWithTypos(t *testing.T) {
 	t.Parallel()
-	raw := []byte(`{"pipeline": {"stages": [
-		{"name": "a", "model": "m", "prompt_file": "a.md", "bad1": true},
-		{"name": "b", "model": "m", "prompt_file": "b.md"},
-		{"name": "c", "model": "m", "prompt_file": "c.md", "bad2": false}
-	]}}`)
+	raw := []byte(`{"pipeline": {"stages": {
+		"intake": {"model": "m", "prompt_file": "a.md", "bad1": true},
+		"execute": {"model": "m", "prompt_file": "b.md"},
+		"review": {"model": "m", "prompt_file": "c.md", "bad2": false}
+	}}}`)
 	warnings := checkUnknownFields(raw, "base/config.json")
 
 	if len(warnings) != 2 {
 		t.Fatalf("expected 2 warnings, got %d: %v", len(warnings), warnings)
 	}
-	found0, found2 := false, false
+	foundIntake, foundReview := false, false
 	for _, w := range warnings {
-		if strings.Contains(w, "pipeline.stages[0].bad1") {
-			found0 = true
+		if strings.Contains(w, "pipeline.stages.intake.bad1") {
+			foundIntake = true
 		}
-		if strings.Contains(w, "pipeline.stages[2].bad2") {
-			found2 = true
+		if strings.Contains(w, "pipeline.stages.review.bad2") {
+			foundReview = true
 		}
 	}
-	if !found0 || !found2 {
-		t.Errorf("expected warnings for stages[0] and stages[2], got: %v", warnings)
+	if !foundIntake || !foundReview {
+		t.Errorf("expected warnings for intake and review stages, got: %v", warnings)
 	}
 }
 
-func TestCheckUnknownFields_CleanArrayElements_NoWarnings(t *testing.T) {
+func TestCheckUnknownFields_CleanDictStages_NoWarnings(t *testing.T) {
 	t.Parallel()
-	raw := []byte(`{"pipeline": {"stages": [{"name": "exec", "model": "fast", "prompt_file": "exec.md"}]}}`)
+	raw := []byte(`{"pipeline": {"stages": {"execute": {"model": "fast", "prompt_file": "exec.md"}}}}`)
 	warnings := checkUnknownFields(raw, "base/config.json")
 
 	if len(warnings) != 0 {
-		t.Errorf("expected 0 warnings for clean array elements, got %d: %v", len(warnings), warnings)
+		t.Errorf("expected 0 warnings for clean dict stages, got %d: %v", len(warnings), warnings)
+	}
+}
+
+func TestCheckUnknownFields_StageNamesNotFlaggedAsUnknown(t *testing.T) {
+	t.Parallel()
+	// Stage names are map keys (like model names); arbitrary keys should not trigger warnings.
+	raw := []byte(`{"pipeline": {"stages": {"my-custom-stage": {"model": "fast", "prompt_file": "custom.md"}}}}`)
+	warnings := checkUnknownFields(raw, "custom/config.json")
+
+	if len(warnings) != 0 {
+		t.Errorf("expected 0 warnings for custom stage name, got %d: %v", len(warnings), warnings)
+	}
+}
+
+func TestCheckUnknownFields_TypoPromptFileInDictStage(t *testing.T) {
+	t.Parallel()
+	raw := []byte(`{"pipeline": {"stages": {"execute": {"model": "fast", "promt_file": "exec.md"}}}}`)
+	warnings := checkUnknownFields(raw, "local/config.json")
+
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
+	}
+	if !strings.Contains(warnings[0], "pipeline.stages.execute.promt_file") {
+		t.Errorf("expected path 'pipeline.stages.execute.promt_file', got: %s", warnings[0])
+	}
+	if !strings.Contains(warnings[0], "local/config.json") {
+		t.Errorf("expected tier in warning, got: %s", warnings[0])
 	}
 }
 
