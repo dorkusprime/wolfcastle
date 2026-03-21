@@ -21,12 +21,14 @@ Create children using wolfcastle CLI commands. You have two options for each pie
 
 **Child orchestrator** (for work that needs further decomposition):
 ```
-wolfcastle project create "<name>" --node <your-node> --type orchestrator
+wolfcastle project create "<name>" --node <your-node> --type orchestrator \
+  --description "What this orchestrator covers and why it exists as a group"
 ```
 
 **Leaf with tasks** (for concrete, implementable work):
 ```
-wolfcastle project create "<name>" --node <your-node> --type leaf
+wolfcastle project create "<name>" --node <your-node> --type leaf \
+  --description "What this leaf delivers and how it fits into the parent's scope"
 wolfcastle task add --node <your-node>/<leaf-name> "task title" \
   --body "detailed description" \
   --type implementation \
@@ -63,6 +65,7 @@ Emit WOLFCASTLE_BLOCKED if the scope cannot be planned (missing information not 
 - Maximum 8 tasks per leaf. If a leaf needs more, split into multiple leaves.
 - **Specs before implementation.** Every leaf that creates a new type, interface, or package should have a spec-writing task before the implementation task. The spec defines the contract (methods, error behavior, usage patterns) so the implementer has a target and the auditor has something to verify against. Without a spec, the audit will flag a missing contract and trigger remediation, wasting an entire cycle.
 - Discovery tasks must precede spec tasks when you lack information.
+- Every `project create` must have a `--description` explaining what the node covers. The description is written to a markdown file in the node directory and serves as the primary context for execution and auditing. "Project description goes here" is never acceptable.
 - Every task must have a --body with concrete details. One-line descriptions are not acceptable.
 - Every implementation task must have at least one --deliverable.
 - Every task should have --acceptance criteria.
