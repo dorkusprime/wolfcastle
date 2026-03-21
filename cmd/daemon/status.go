@@ -291,9 +291,9 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		output.PrintHuman("%s  breadcrumb: %s", indent, text)
 	}
 
-	// For orchestrators, print children then show audit task if active
+	// For orchestrators, print children sorted by activity then show audit task if active
 	if nd.entry.Type == state.NodeOrchestrator {
-		for _, childAddr := range nd.entry.Children {
+		for _, childAddr := range sortChildrenByActivity(nd.entry.Children, idx) {
 			printNodeTree(app, idx, details, childAddr, indent+"  ", expand, detail)
 		}
 		if nd.ns != nil {
@@ -643,6 +643,35 @@ func countDescendants(idx *state.RootIndex, addr string) int {
 		count += countDescendants(idx, child)
 	}
 	return count
+}
+
+// sortChildrenByActivity reorders children so active nodes (in_progress,
+// blocked) appear first, then not_started, then complete. Within each
+// group, creation order is preserved.
+func sortChildrenByActivity(children []string, idx *state.RootIndex) []string {
+	sorted := make([]string, len(children))
+	copy(sorted, children)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		ei := idx.Nodes[sorted[i]]
+		ej := idx.Nodes[sorted[j]]
+		return statePriority(ei.State) < statePriority(ej.State)
+	})
+	return sorted
+}
+
+func statePriority(s state.NodeStatus) int {
+	switch s {
+	case state.StatusInProgress:
+		return 0
+	case state.StatusBlocked:
+		return 1
+	case state.StatusNotStarted:
+		return 2
+	case state.StatusComplete:
+		return 3
+	default:
+		return 4
+	}
 }
 
 // isInSubtree checks whether addr is the scope node or a descendant of it.
