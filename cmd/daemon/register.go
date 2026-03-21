@@ -22,9 +22,11 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	stopCmd.Flags().Bool("force", false, "Force kill (SIGKILL) instead of graceful stop")
 
 	logCmd := newLogCmd(app)
-	logCmd.Flags().BoolP("follow", "f", false, "Stream output in real time (like tail -f)")
-	logCmd.Flags().Int("lines", 20, "Number of lines to show")
-	logCmd.Flags().StringP("level", "l", "", "Minimum log level (debug, info, warn, error)")
+	logCmd.Flags().BoolP("follow", "f", false, "Follow live output (default when daemon is running)")
+	logCmd.Flags().BoolP("thoughts", "t", false, "Raw agent output only")
+	logCmd.Flags().BoolP("interleaved", "i", false, "Stage headers and agent output with timestamps")
+	logCmd.Flags().Bool("json", false, "Raw NDJSON output, no formatting")
+	logCmd.Flags().IntP("session", "s", 0, "Session index (0 = latest, 1 = previous, etc.)")
 
 	statusCmd := newStatusCmd(app)
 	statusCmd.Flags().Bool("all", false, "Show status across all engineers")

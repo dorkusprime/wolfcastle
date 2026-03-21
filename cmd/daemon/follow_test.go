@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
-	"github.com/dorkusprime/wolfcastle/internal/logging"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -169,77 +168,4 @@ func TestFormatAssistantText_NonJSON_ExactlyAtLimit(t *testing.T) {
 	if got != exact {
 		t.Errorf("string at exactly 200 chars should not be truncated")
 	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// formatAndPrintLogLine — comprehensive type coverage
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestFormatAndPrintLogLine_AllTypeCases(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name string
-		line string
-	}{
-		{"stage_start_with_node", `{"type":"stage_start","stage":"execute","node":"proj","task":"t1","level":"info"}`},
-		{"stage_start_no_node", `{"type":"stage_start","stage":"expand","level":"info"}`},
-		{"stage_complete", `{"type":"stage_complete","stage":"execute","exit_code":0,"output_len":1024,"level":"info"}`},
-		{"stage_error", `{"type":"stage_error","stage":"execute","error":"timeout","level":"error"}`},
-		{"assistant_with_json", `{"type":"assistant","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]}}","level":"info"}`},
-		{"assistant_plain_text", `{"type":"assistant","text":"plain output","level":"info"}`},
-		{"assistant_empty_format", `{"type":"assistant","text":"{\"type\":\"system\",\"subtype\":\"other\"}","level":"info"}`},
-		{"failure_increment", `{"type":"failure_increment","task":"task-0001","count":3,"level":"warn"}`},
-		{"auto_block", `{"type":"auto_block","task":"task-0002","reason":"hard cap reached","level":"warn"}`},
-		{"terminal_marker", `{"type":"terminal_marker","marker":"WOLFCASTLE_COMPLETE","level":"info"}`},
-		{"deliverable_missing", `{"type":"deliverable_missing","task":"task-0003","level":"warn"}`},
-		{"deliverable_unchanged", `{"type":"deliverable_unchanged","task":"task-0004","level":"warn"}`},
-		{"retry", `{"type":"retry","stage":"execute","attempt":2,"error":"connection reset","level":"warn"}`},
-		{"retry_exhausted", `{"type":"retry_exhausted","stage":"execute","attempts":3,"level":"error"}`},
-		{"daemon_start", `{"type":"daemon_start","scope":"full tree","level":"info"}`},
-		{"daemon_stop", `{"type":"daemon_stop","reason":"signal","level":"info"}`},
-		{"propagate_error", `{"type":"propagate_error","error":"filesystem full","level":"error"}`},
-		{"default_with_message", `{"type":"custom_event","message":"something happened","level":"info"}`},
-		{"default_type_only", `{"type":"custom_event","level":"info"}`},
-		{"default_empty_type", `{"level":"info"}`},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			// Verify no panics; output goes to stdout.
-			formatAndPrintLogLine(tc.line, logging.LevelDebug)
-		})
-	}
-}
-
-func TestFormatAndPrintLogLine_TracePrefix(t *testing.T) {
-	t.Parallel()
-	// Lines with a trace field should include the prefix.
-	line := `{"type":"daemon_start","scope":"test","trace":"exec-001","level":"info"}`
-	formatAndPrintLogLine(line, logging.LevelDebug)
-}
-
-func TestFormatAndPrintLogLine_LevelFiltering(t *testing.T) {
-	t.Parallel()
-
-	// A debug-level line should be dropped when minLevel is info.
-	// We can't easily assert on stdout suppression here, but we confirm no panic.
-	line := `{"type":"daemon_start","scope":"test","level":"debug"}`
-	formatAndPrintLogLine(line, logging.LevelInfo)
-
-	// An error-level line should pass through when minLevel is info.
-	line2 := `{"type":"stage_error","stage":"x","error":"boom","level":"error"}`
-	formatAndPrintLogLine(line2, logging.LevelInfo)
-}
-
-func TestFormatAndPrintLogLine_MalformedJSON(t *testing.T) {
-	t.Parallel()
-	formatAndPrintLogLine("not json {{{", logging.LevelDebug)
-}
-
-func TestFormatAndPrintLogLine_NoLevelField(t *testing.T) {
-	t.Parallel()
-	// Lines without a level field should still be printed.
-	formatAndPrintLogLine(`{"type":"daemon_start","scope":"x"}`, logging.LevelDebug)
 }

@@ -1,20 +1,15 @@
 package daemon
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
-	"github.com/dorkusprime/wolfcastle/internal/invoke"
-	"github.com/dorkusprime/wolfcastle/internal/logging"
-	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/spf13/cobra"
 )
@@ -22,281 +17,154 @@ import (
 func newLogCmd(app *cmdutil.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "log",
-		Short: "Read the daemon's logs",
-		Long: `Shows daemon log output. Without --follow, prints recent log lines
-and exits (like reading a file). With --follow, streams output in
-real time and tracks new iterations automatically.
+		Short: "Display daemon activity",
+		Long: `Shows daemon activity reconstructed from NDJSON log files.
+
+Default output is a summary: one line per completed stage showing what
+the daemon did (or is doing). Flags control verbosity.
+
+When the daemon is running, output streams in real time (implicit --follow).
+When it is stopped, the last session's output is displayed and the command exits.
+
+Output modes (mutually exclusive, last flag wins):
+  (default)       Summary: one line per stage with duration
+  --thoughts/-t   Raw agent output only
+  --interleaved/-i Stage headers and agent output with timestamps
+  --json          Raw NDJSON, no formatting
 
 Examples:
   wolfcastle log
-  wolfcastle log --lines 50
-  wolfcastle log --follow
-  wolfcastle log -f -l debug`,
+  wolfcastle log --thoughts
+  wolfcastle log -i -f
+  wolfcastle log --session 1
+  wolfcastle log --json | jq '.type'`,
 		Aliases: []string{"follow"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logDir := app.Daemon.LogDir()
-			lines, _ := cmd.Flags().GetInt("lines")
+			sessionIdx, _ := cmd.Flags().GetInt("session")
 			follow, _ := cmd.Flags().GetBool("follow")
-			levelFilter, _ := cmd.Flags().GetString("level")
-			minLevel := logging.LevelInfo
-			if levelFilter != "" {
-				if parsed, ok := logging.ParseLevel(levelFilter); ok {
-					minLevel = parsed
-				} else {
-					return fmt.Errorf("unknown log level %q (use debug, info, warn, error)", levelFilter)
-				}
+			thoughts, _ := cmd.Flags().GetBool("thoughts")
+			interleaved, _ := cmd.Flags().GetBool("interleaved")
+			jsonOut, _ := cmd.Flags().GetBool("json")
+
+			// Resolve session.
+			session, err := logrender.ResolveSession(logDir, sessionIdx)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "No log files found.")
+				return nil
 			}
 
-			if !follow {
-				return showRecentLogs(logDir, lines, minLevel)
+			// Implicit follow when daemon is running and session 0.
+			if !follow && sessionIdx == 0 && app.Daemon.IsAlive() {
+				follow = true
 			}
+
+			// Determine output mode: last flag wins among mutually exclusive options.
+			// We check in order so that if multiple are set, the "last" semantically
+			// (json > interleaved > thoughts) takes precedence.
+			mode := modeSummary
+			if thoughts {
+				mode = modeThoughts
+			}
+			if interleaved {
+				mode = modeInterleaved
+			}
+			if jsonOut {
+				mode = modeJSON
+			}
+
 			ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer stop()
-			return followLogs(ctx, logDir, lines, minLevel)
+
+			return runLog(ctx, logDir, session, mode, follow)
 		},
 	}
 }
 
-// showRecentLogs prints the last N lines from the most recent log file and exits.
-func showRecentLogs(logDir string, lines int, minLevel logging.Level) error {
-	latestPath, err := logging.LatestLogFile(logDir)
-	if err != nil {
-		output.PrintHuman("No logs yet.")
+type outputMode int
+
+const (
+	modeSummary outputMode = iota
+	modeThoughts
+	modeInterleaved
+	modeJSON
+)
+
+// runLog dispatches to the appropriate renderer based on mode and follow flag.
+func runLog(ctx context.Context, logDir string, session logrender.Session, mode outputMode, follow bool) error {
+	w := os.Stdout
+
+	if mode == modeJSON {
+		return runJSONMode(ctx, logDir, session, follow)
+	}
+
+	if follow {
+		reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
+		records := reader.Records(ctx)
+
+		switch mode {
+		case modeSummary:
+			sr := logrender.NewSummaryRenderer(w)
+			sr.Follow(ctx, records)
+		case modeThoughts:
+			tr := logrender.NewThoughtsRenderer(w)
+			tr.Render(ctx, records)
+		case modeInterleaved:
+			ir := logrender.NewInterleavedRenderer(w)
+			ir.Render(ctx, records)
+		}
 		return nil
 	}
 
-	fmt.Printf("--- %s ---\n\n", filepath.Base(latestPath))
-	showHistoricalLines(latestPath, lines, minLevel)
+	// Replay mode: read from the session's files.
+	reader := logrender.NewReplayReader(session.Files)
+	records := reader.Records()
+
+	switch mode {
+	case modeSummary:
+		sr := logrender.NewSummaryRenderer(w)
+		sr.Replay(records)
+	case modeThoughts:
+		tr := logrender.NewThoughtsRenderer(w)
+		tr.Render(context.Background(), records)
+	case modeInterleaved:
+		ir := logrender.NewInterleavedRenderer(w)
+		ir.Render(context.Background(), records)
+	}
 	return nil
 }
 
-// followLogs streams log output in real time, following new iterations.
-// Returns when context is cancelled.
-func followLogs(ctx context.Context, logDir string, lines int, minLevel logging.Level) error {
-	var currentFile string
-	historicalShown := false
-	waitMessageShown := false
+// runJSONMode dumps raw NDJSON lines with no parsing or formatting.
+func runJSONMode(ctx context.Context, logDir string, session logrender.Session, follow bool) error {
+	if follow {
+		return followJSON(ctx, logDir)
+	}
+	return replayJSON(session)
+}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		latestPath, err := logging.LatestLogFile(logDir)
+// replayJSON writes raw lines from the session's files to stdout.
+func replayJSON(session logrender.Session) error {
+	for _, path := range session.Files {
+		data, err := os.ReadFile(path)
 		if err != nil {
-			if !waitMessageShown {
-				output.PrintHuman("Waiting for the daemon to produce output...")
-				waitMessageShown = true
-			}
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-time.After(2 * time.Second):
-			}
 			continue
 		}
-
-		if latestPath != currentFile {
-			if currentFile != "" {
-				fmt.Printf("\n--- New iteration: %s ---\n\n", filepath.Base(latestPath))
-			} else {
-				fmt.Printf("--- Following: %s ---\n\n", filepath.Base(latestPath))
-				if lines > 0 && !historicalShown {
-					showHistoricalLines(latestPath, lines, minLevel)
-					historicalShown = true
-				}
-			}
-			currentFile = latestPath
-		}
-
-		if err := tailFileStreaming(currentFile, minLevel); err != nil {
-			return err
-		}
-
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-time.After(500 * time.Millisecond):
-		}
+		os.Stdout.Write(data)
 	}
+	return nil
 }
 
-// showHistoricalLines reads the last N NDJSON lines from a log file and
-// formats them for display, giving the user context before live streaming begins.
-func showHistoricalLines(path string, n int, minLevel logging.Level) {
-	f, err := os.Open(path)
-	if err != nil {
-		return
-	}
-	defer func() { _ = f.Close() }()
-
-	var allLines []string
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		allLines = append(allLines, scanner.Text())
-	}
-
-	start := 0
-	if len(allLines) > n {
-		start = len(allLines) - n
-	}
-
-	for _, line := range allLines[start:] {
-		formatAndPrintLogLine(line, minLevel)
-	}
-
-	if info, err := os.Stat(path); err == nil {
-		setOffset(path, info.Size())
-	}
-}
-
-func tailFileStreaming(path string, minLevel logging.Level) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = f.Close() }()
-
-	offset := getOffset(path)
-	if offset > 0 {
-		if _, err := f.Seek(offset, 0); err != nil {
-			return err
+// followJSON tails the log directory and writes raw lines to stdout.
+func followJSON(ctx context.Context, logDir string) error {
+	reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
+	records := reader.Records(ctx)
+	for rec := range records {
+		raw, err := json.Marshal(rec.Raw)
+		if err != nil {
+			continue
 		}
+		os.Stdout.Write(raw)
+		os.Stdout.Write([]byte{'\n'})
 	}
-
-	info, err := os.Stat(path)
-	if err != nil {
-		return err
-	}
-	if info.Size() <= offset {
-		return nil
-	}
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		formatAndPrintLogLine(scanner.Text(), minLevel)
-	}
-
-	if endInfo, err := os.Stat(path); err == nil {
-		setOffset(path, endInfo.Size())
-	}
-
-	return scanner.Err()
-}
-
-// formatAndPrintLogLine parses a single NDJSON line and prints it in
-// human-readable form. Lines below minLevel are silently dropped.
-func formatAndPrintLogLine(line string, minLevel logging.Level) {
-	var record map[string]any
-	if err := json.Unmarshal([]byte(line), &record); err != nil {
-		return
-	}
-
-	if lvlStr, ok := record["level"].(string); ok {
-		if lvl, ok := logging.ParseLevel(lvlStr); ok && lvl < minLevel {
-			return
-		}
-	}
-
-	typ, _ := record["type"].(string)
-	trace, _ := record["trace"].(string)
-	prefix := ""
-	if trace != "" {
-		prefix = "[" + trace + "] "
-	}
-
-	switch typ {
-	case "stage_start":
-		stage, _ := record["stage"].(string)
-		node, _ := record["node"].(string)
-		task, _ := record["task"].(string)
-		if node != "" {
-			fmt.Printf("%s[%s] Starting %s/%s\n", prefix, stage, node, task)
-		} else {
-			fmt.Printf("%s[%s] Starting\n", prefix, stage)
-		}
-	case "stage_complete":
-		stage, _ := record["stage"].(string)
-		exitCode, _ := record["exit_code"].(float64)
-		outputLen, _ := record["output_len"].(float64)
-		fmt.Printf("%s[%s] Complete (exit=%d, %d bytes)\n", prefix, stage, int(exitCode), int(outputLen))
-	case "stage_error":
-		stage, _ := record["stage"].(string)
-		errMsg, _ := record["error"].(string)
-		fmt.Printf("%s[%s] Error: %s\n", prefix, stage, errMsg)
-	case "assistant":
-		if text, ok := record["text"].(string); ok {
-			formatted := invoke.FormatAssistantText(text)
-			if formatted != "" {
-				fmt.Println(formatted)
-			}
-		}
-	case "failure_increment":
-		task, _ := record["task"].(string)
-		count, _ := record["count"].(float64)
-		fmt.Printf("%s[failure] Task %s failure count: %d\n", prefix, task, int(count))
-	case "auto_block":
-		task, _ := record["task"].(string)
-		reason, _ := record["reason"].(string)
-		fmt.Printf("%s[blocked] Task %s auto-blocked: %s\n", prefix, task, reason)
-	case "terminal_marker":
-		marker, _ := record["marker"].(string)
-		fmt.Printf("%s%s\n", prefix, marker)
-	case "deliverable_missing":
-		task, _ := record["task"].(string)
-		fmt.Printf("%s[deliverable] Task %s: missing files\n", prefix, task)
-	case "deliverable_unchanged":
-		task, _ := record["task"].(string)
-		fmt.Printf("%s[deliverable] Task %s: files unchanged since claim\n", prefix, task)
-	case "retry":
-		stage, _ := record["stage"].(string)
-		attempt, _ := record["attempt"].(float64)
-		errMsg, _ := record["error"].(string)
-		fmt.Printf("%s[retry] %s attempt %d: %s\n", prefix, stage, int(attempt), errMsg)
-	case "retry_exhausted":
-		stage, _ := record["stage"].(string)
-		attempts, _ := record["attempts"].(float64)
-		fmt.Printf("%s[retry] %s exhausted after %d attempts\n", prefix, stage, int(attempts))
-	case "daemon_start":
-		scope, _ := record["scope"].(string)
-		fmt.Printf("%sDaemon started (scope=%s)\n", prefix, scope)
-	case "daemon_stop":
-		reason, _ := record["reason"].(string)
-		fmt.Printf("%sDaemon stopped (%s)\n", prefix, reason)
-	case "propagate_error":
-		errMsg, _ := record["error"].(string)
-		fmt.Printf("%s[propagate] Error: %s\n", prefix, errMsg)
-	default:
-		if msg, ok := record["message"].(string); ok && msg != "" {
-			fmt.Printf("%s[%s] %s\n", prefix, typ, msg)
-		} else if typ != "" {
-			fmt.Printf("%s[%s]\n", prefix, typ)
-		}
-	}
-}
-
-// Simple offset tracking for tail -f behavior
-var (
-	fileOffsetsMu sync.Mutex
-	fileOffsets   = make(map[string]int64)
-)
-
-func getOffset(path string) int64 {
-	fileOffsetsMu.Lock()
-	defer fileOffsetsMu.Unlock()
-	return fileOffsets[path]
-}
-
-func setOffset(path string, offset int64) {
-	fileOffsetsMu.Lock()
-	defer fileOffsetsMu.Unlock()
-	fileOffsets[path] = offset
-}
-
-func clearOffset(path string) {
-	fileOffsetsMu.Lock()
-	defer fileOffsetsMu.Unlock()
-	delete(fileOffsets, path)
+	return nil
 }
