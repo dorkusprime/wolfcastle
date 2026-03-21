@@ -238,17 +238,31 @@ func (d *Daemon) selfHeal() error {
 				if hasSubtasks {
 					continue
 				}
+				// Find existing subtask numbers to avoid duplicates.
+				existingSubs := make(map[string]bool)
+				subPrefix := t.ID + "."
+				for _, other := range ns.Tasks {
+					if len(other.ID) > len(subPrefix) && other.ID[:len(subPrefix)] == subPrefix {
+						existingSubs[other.ID] = true
+					}
+				}
+				nextNum := len(existingSubs) + 1
 				subCount := 0
 				for _, g := range ns.Audit.Gaps {
 					if g.Status != state.GapOpen {
 						continue
 					}
-					childID := fmt.Sprintf("%s.%04d", t.ID, subCount+1)
+					childID := fmt.Sprintf("%s.%04d", t.ID, nextNum)
+					for existingSubs[childID] {
+						nextNum++
+						childID = fmt.Sprintf("%s.%04d", t.ID, nextNum)
+					}
 					ns.Tasks = append(ns.Tasks, state.Task{
 						ID:          childID,
 						Description: fmt.Sprintf("Fix: %s", g.Description),
 						State:       state.StatusNotStarted,
 					})
+					nextNum++
 					subCount++
 				}
 				if subCount > 0 {
