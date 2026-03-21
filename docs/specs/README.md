@@ -29,6 +29,7 @@ Each spec was verified against current code. Status meanings:
 | StateStore | Current | |
 | Domain Repository Architecture | Current | |
 | Orchestrator Planning Pipeline | **Needs update** | Marker scanning doesn't branch by pass type (planning vs execution); planning context omits extended task metadata (type, deliverables, constraints, acceptance criteria) |
+| Unknown Field Detection | Current | Implemented via `DisallowUnknownFields` in `internal/config/unknown.go`; warnings on Config struct per spec recommendation |
 
 ## Specs
 
@@ -52,22 +53,23 @@ Each spec was verified against current code. Status meanings:
 | [StateStore](2026-03-15T00-01Z-state-store.md) | Unified StateStore abstraction replacing raw Load/Save pairs for file-backed state mutations |
 | [Domain Repository Architecture](2026-03-16T00-00Z-domain-repository-architecture.md) | Domain-specific repositories replacing raw filepath.Join I/O |
 | [Orchestrator Planning Pipeline](2026-03-17T00-00Z-orchestrator-planning-pipeline.md) | Lazy recursive planning for orchestrator nodes |
+| [Unknown Field Detection](2026-03-20T15-57Z-unknown-field-detection.md) | Detection and reporting of unrecognized fields in config unmarshalling |
 
 ## Drafts
 
-Specs that explore potential directions without proposing adoption.
+Specs that explore potential directions without proposing adoption. Implementation status as of 2026-03-21:
 
-| Spec | Description |
-|------|-------------|
-| [TUI](2026-03-15T00-02Z-tui.md) | Bubbletea-based terminal UI for observing and commanding the daemon |
-| [Worktree by Default](2026-03-15T00-03Z-worktree-by-default.md) | Running all daemon work in isolated git worktrees by default |
-| [Task Classes](2026-03-15T00-04Z-task-classes.md) | Classification system for tasks routing each to a behavioral prompt |
+| Spec | Description | Implementation Status |
+|------|-------------|-----------------------|
+| [TUI](2026-03-15T00-02Z-tui.md) | Bubbletea-based terminal UI for observing and commanding the daemon | Not started. No bubbletea dependency or TUI code exists |
+| [Worktree by Default](2026-03-15T00-03Z-worktree-by-default.md) | Running all daemon work in isolated git worktrees by default | Not started. The opt-in `--worktree` flag exists (spec Section 1 status quo) but none of the default-worktree behavior, auto-merge, or config gates have been built |
+| [Task Classes](2026-03-15T00-04Z-task-classes.md) | Classification system for tasks routing each to a behavioral prompt | Infrastructure built. `ClassDef` config type, `ClassRepository` with hierarchical resolution, `Class` field on Task, `--class` CLI flag, and context builder integration all exist. No behavioral prompt files (`classes/*.md`) authored yet |
 
 ## Superseded
 
-| Spec | Superseded By |
-|------|---------------|
-| [Wolfcastle FS](2026-03-16T00-00Z-wolfcastle-fs.md) | [Domain Repository Architecture](2026-03-16T00-00Z-domain-repository-architecture.md) |
+| Spec | Superseded By | Linkage Verified |
+|------|---------------|------------------|
+| [Wolfcastle FS](2026-03-16T00-00Z-wolfcastle-fs.md) | [Domain Repository Architecture](2026-03-16T00-00Z-domain-repository-architecture.md) | Yes. Frontmatter `superseded_by` field and prose link both point to the correct spec. Superseding spec is implemented and current |
 
 ## Naming
 
