@@ -122,6 +122,78 @@ func (d *Daemon) archiveNode(addr string) error {
 	})
 }
 
+// restoreNode reverses an archive operation, moving a node and its subtree
+// from .archive/ back to active state. The node must exist in the RootIndex
+// with Archived==true and must appear in ArchivedRoot.
+func (d *Daemon) restoreNode(addr string) error {
+	idx, err := d.Store.ReadIndex()
+	if err != nil {
+		return fmt.Errorf("reading index for restore: %w", err)
+	}
+
+	entry, ok := idx.Nodes[addr]
+	if !ok {
+		return fmt.Errorf("node %q not found in index", addr)
+	}
+	if !entry.Archived {
+		return fmt.Errorf("node %q is not archived", addr)
+	}
+
+	inArchivedRoot := false
+	for _, r := range idx.ArchivedRoot {
+		if r == addr {
+			inArchivedRoot = true
+			break
+		}
+	}
+	if !inArchivedRoot {
+		return fmt.Errorf("node %q is not a root-level archived node", addr)
+	}
+
+	subtree := collectSubtree(idx, addr)
+
+	// Move state directories from .archive/ back to active locations.
+	storeDir := d.Store.Dir()
+	for _, nodeAddr := range subtree {
+		parts := strings.Split(nodeAddr, "/")
+		archiveDir := filepath.Join(storeDir, ".archive", filepath.Join(parts...))
+		activeDir := filepath.Join(storeDir, filepath.Join(parts...))
+
+		if _, statErr := os.Stat(archiveDir); statErr != nil {
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(activeDir), 0o755); err != nil {
+			return fmt.Errorf("creating active dir for %s: %w", nodeAddr, err)
+		}
+		if err := os.Rename(archiveDir, activeDir); err != nil {
+			return fmt.Errorf("restoring %s from archive: %w", nodeAddr, err)
+		}
+	}
+
+	// Update the RootIndex atomically.
+	return d.Store.MutateIndex(func(idx *state.RootIndex) error {
+		// Move from ArchivedRoot to Root.
+		var newArchivedRoot []string
+		for _, r := range idx.ArchivedRoot {
+			if r != addr {
+				newArchivedRoot = append(newArchivedRoot, r)
+			}
+		}
+		idx.ArchivedRoot = newArchivedRoot
+		idx.Root = append(idx.Root, addr)
+
+		// Clear archive flags on all subtree entries.
+		for _, nodeAddr := range subtree {
+			if e, ok := idx.Nodes[nodeAddr]; ok {
+				e.Archived = false
+				e.ArchivedAt = nil
+				idx.Nodes[nodeAddr] = e
+			}
+		}
+		return nil
+	})
+}
+
 // collectSubtree returns an address and all its descendants by walking
 // the Children slices in the RootIndex. The root address is always first.
 func collectSubtree(idx *state.RootIndex, root string) []string {

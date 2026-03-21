@@ -517,3 +517,131 @@ func TestTryAutoArchive_ArchivesOneAtATime(t *testing.T) {
 		t.Errorf("expected exactly 1 archived after first call, got %d", archivedCount)
 	}
 }
+
+// --- restoreNode ---
+
+// archiveAndVerify is a test helper that archives a node and confirms it moved.
+func archiveAndVerify(t *testing.T, d *Daemon, addr string) {
+	t.Helper()
+	if err := d.archiveNode(addr); err != nil {
+		t.Fatalf("archiveNode(%s) failed: %v", addr, err)
+	}
+}
+
+func TestRestoreNode_RestoresDirectoriesAndUpdatesIndex(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "restore-proj", completedAt, []string{"restore-proj/child-a"})
+	archiveAndVerify(t, d, "restore-proj")
+
+	// Restore the archived node.
+	err := d.restoreNode("restore-proj")
+	if err != nil {
+		t.Fatalf("restoreNode failed: %v", err)
+	}
+
+	projDir := d.Store.Dir()
+
+	// Active directories should be back.
+	if _, err := os.Stat(filepath.Join(projDir, "restore-proj", "state.json")); err != nil {
+		t.Errorf("expected restored root state.json, got: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(projDir, "restore-proj", "child-a", "state.json")); err != nil {
+		t.Errorf("expected restored child state.json, got: %v", err)
+	}
+
+	// Archive directories should be gone.
+	if _, err := os.Stat(filepath.Join(projDir, ".archive", "restore-proj")); !os.IsNotExist(err) {
+		t.Error("expected .archive/restore-proj to be removed after restore")
+	}
+
+	// Index should reflect the restore.
+	idx, err := d.Store.ReadIndex()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Root should contain the address again.
+	foundInRoot := false
+	for _, r := range idx.Root {
+		if r == "restore-proj" {
+			foundInRoot = true
+		}
+	}
+	if !foundInRoot {
+		t.Error("restore-proj should be in Root after restore")
+	}
+
+	// ArchivedRoot should no longer contain it.
+	for _, r := range idx.ArchivedRoot {
+		if r == "restore-proj" {
+			t.Error("restore-proj should not be in ArchivedRoot after restore")
+		}
+	}
+
+	// IndexEntry flags should be cleared.
+	entry := idx.Nodes["restore-proj"]
+	if entry.Archived {
+		t.Error("expected Archived=false on restore-proj after restore")
+	}
+	if entry.ArchivedAt != nil {
+		t.Error("expected ArchivedAt=nil on restore-proj after restore")
+	}
+
+	childEntry := idx.Nodes["restore-proj/child-a"]
+	if childEntry.Archived {
+		t.Error("expected Archived=false on child-a after restore")
+	}
+	if childEntry.ArchivedAt != nil {
+		t.Error("expected ArchivedAt=nil on child-a after restore")
+	}
+}
+
+func TestRestoreNode_NotFoundInIndex(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	err := d.restoreNode("nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent node")
+	}
+}
+
+func TestRestoreNode_NotArchived(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "active-proj", completedAt, nil)
+
+	err := d.restoreNode("active-proj")
+	if err == nil {
+		t.Fatal("expected error when restoring a non-archived node")
+	}
+}
+
+func TestRestoreNode_NotInArchivedRoot(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	// Manually set up a node that has Archived=true but is not in ArchivedRoot
+	// (e.g. a child node that was archived as part of a parent).
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "parent", completedAt, []string{"parent/child"})
+	archiveAndVerify(t, d, "parent")
+
+	err := d.restoreNode("parent/child")
+	if err == nil {
+		t.Fatal("expected error when restoring a non-root archived node")
+	}
+}
