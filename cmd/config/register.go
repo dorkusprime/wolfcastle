@@ -26,6 +26,7 @@ Examples:
 	configCmd.AddCommand(newShowCmd(app))
 	configCmd.AddCommand(newSetCmd(app))
 	configCmd.AddCommand(newUnsetCmd(app))
+	configCmd.AddCommand(newAppendCmd(app))
 
 	configCmd.GroupID = "diagnostics"
 	rootCmd.AddCommand(configCmd)
