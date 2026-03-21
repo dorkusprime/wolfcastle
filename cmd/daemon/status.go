@@ -282,7 +282,11 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	}
 
 	glyph := nodeGlyph(nd.entry.State)
-	output.PrintHuman("%s%s %s  (%s)", indent, glyph, nd.entry.Name, addr)
+	typePrefix := "Leaf"
+	if nd.entry.Type == state.NodeOrchestrator {
+		typePrefix = "Orch"
+	}
+	output.PrintHuman("%s%s %s: %s  (%s)", indent, glyph, typePrefix, nd.entry.Name, addr)
 
 	// Show most recent breadcrumb for in_progress nodes when --detail is set.
 	if detail && nd.ns != nil && nd.entry.State == state.StatusInProgress && len(nd.ns.Audit.Breadcrumbs) > 0 {
