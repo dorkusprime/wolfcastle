@@ -84,6 +84,11 @@
       "timestamp": "2026-03-21T02:09:17Z",
       "text": "ensure test coverage for new code is over 90%",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T02:35:08Z",
+      "text": "Pre-merge review for backlog-batch-3: fix 3 lint issues (2 unchecked Close in config/show_test.go, 1 gofmt in iteration_fuzz_test.go), run go test -race, verify coverage above 95%, review unreviewed files (Makefile changes, CI workflow, CODEOWNERS, spec updates, project_create.go extraction)",
+      "status": "filed"
     }
   ]
 }
