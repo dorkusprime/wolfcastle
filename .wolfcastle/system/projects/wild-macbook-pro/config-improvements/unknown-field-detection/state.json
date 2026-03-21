@@ -31,6 +31,12 @@
       "body": "Implement unknown-field detection in config unmarshalling per the spec written in task-0001.\n\nKey implementation details:\n- Modify internal/config/config.go Load() to detect unknown fields. The most natural insertion point is after the merged JSON is produced (line ~163 in current code) but before or during the final json.Unmarshal into Config.\n- If using DisallowUnknownFields: replace the plain json.Unmarshal with json.NewDecoder + DisallowUnknownFields(). Catch the error, extract the field name, and convert to a warning rather than a hard failure.\n- If using the diff approach: after unmarshalling, round-trip the Config struct back to map[string]any and compare keys recursively against the pre-unmarshal merged map.\n- For per-tier detection: in the tier-loading loop, attempt a strict unmarshal of each tier's raw JSON against the Config struct to identify which tier introduced the unknown field. This gives better error messages.\n- Add a Warnings []string field to Config, or return warnings as a separate value from Load(). Evaluate caller impact and choose the least disruptive approach.\n- Surface warnings in the CLI: callers of app.Config.Load() (in cmd/root.go PersistentPreRunE and cmd/init.go) should print warnings to stderr.\n- Write comprehensive tests covering: single unknown top-level field, unknown nested field, unknown field in a specific tier, multiple unknown fields, no unknown fields (clean config).\n- Ensure existing tests continue to pass -- this is additive behavior."
     },
     {
+      "id": "audit.0001",
+      "description": "Fix: diffKeys does not recurse into JSON arrays, so unknown fields inside slice-of-struct elements (pipeline.stages, validation.commands) are not detected. Low priority since these are rarely user-edited in tier overlays.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node config-improvements/unknown-field-detection gap-unknown-field-detection-1",
+      "state": "complete",
+      "failure_count": 0
+    },
+    {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Unknown Field Detection is complete and correct",
@@ -38,12 +44,6 @@
       "is_audit": true,
       "failure_count": 0,
       "last_failure_type": "no_terminal_marker"
-    },
-    {
-      "id": "audit.0001",
-      "description": "Fix: diffKeys does not recurse into JSON arrays, so unknown fields inside slice-of-struct elements (pipeline.stages, validation.commands) are not detected. Low priority since these are rarely user-edited in tier overlays.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node config-improvements/unknown-field-detection gap-unknown-field-detection-1",
-      "state": "complete",
-      "failure_count": 0
     }
   ],
   "audit_enrichment": [

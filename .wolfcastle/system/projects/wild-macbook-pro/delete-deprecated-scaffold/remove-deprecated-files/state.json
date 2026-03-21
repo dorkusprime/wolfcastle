@@ -39,17 +39,17 @@
       "body": "Run the full build and test suite for the internal/project package after all deletions:\n\n1. go build ./... -- confirm no compilation errors from dangling references.\n2. go test ./internal/project/... -- confirm all remaining tests pass.\n3. go vet ./... -- confirm no vet warnings.\n4. Grep the entire codebase one final time for any remaining references to the deleted functions (Scaffold, ReScaffold, WriteBasePrompts, migrateToSystemLayout, migrateOldConfig) in non-test code. These are all unexported or deprecated functions defined in scaffold.go.\n\nIf any step fails, fix the issue before completing."
     },
     {
+      "id": "audit.0001",
+      "description": "Fix: Verification leaf missed migrate_layout_coverage_test.go (tests migrateToSystemLayout) and the cross-file contains() helper dependency. These were caught during build validation but could have caused issues if validation was skipped.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node delete-deprecated-scaffold/remove-deprecated-files gap-remove-deprecated-files-1",
+      "state": "complete",
+      "failure_count": 0
+    },
+    {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Remove Deprecated Files is complete and correct",
       "state": "complete",
       "is_audit": true,
-      "failure_count": 0
-    },
-    {
-      "id": "audit.0001",
-      "description": "Fix: Verification leaf missed migrate_layout_coverage_test.go (tests migrateToSystemLayout) and the cross-file contains() helper dependency. These were caught during build validation but could have caused issues if validation was skipped.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node delete-deprecated-scaffold/remove-deprecated-files gap-remove-deprecated-files-1",
-      "state": "complete",
       "failure_count": 0
     }
   ],
