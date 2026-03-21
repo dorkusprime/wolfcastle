@@ -468,7 +468,7 @@
     "documentation-review/agent-docs-audit": {
       "name": "Agent Docs Audit",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "documentation-review/agent-docs-audit",
       "decomposition_depth": 0,
       "parent": "documentation-review"
@@ -476,7 +476,7 @@
     "documentation-review/human-docs-audit": {
       "name": "Human Docs Audit",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "documentation-review/human-docs-audit",
       "decomposition_depth": 0,
       "parent": "documentation-review"
