@@ -259,7 +259,7 @@ func (d *Daemon) selfHeal() error {
 					}
 					ns.Tasks = append(ns.Tasks, state.Task{
 						ID:          childID,
-						Description: fmt.Sprintf("Fix: %s", g.Description),
+						Description: fmt.Sprintf("Fix: %s\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node %s %s", g.Description, addr, g.ID),
 						State:       state.StatusNotStarted,
 					})
 					nextNum++

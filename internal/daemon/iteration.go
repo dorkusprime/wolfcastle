@@ -681,7 +681,7 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 			}
 			ns.Tasks = append(ns.Tasks, state.Task{
 				ID:          childID,
-				Description: fmt.Sprintf("Fix: %s", g.Description),
+				Description: fmt.Sprintf("Fix: %s\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node %s %s", g.Description, nodeAddr, g.ID),
 				State:       state.StatusNotStarted,
 			})
 			nextNum++
