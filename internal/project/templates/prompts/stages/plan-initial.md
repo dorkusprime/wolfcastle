@@ -7,6 +7,8 @@ You are Wolfcastle's planning agent. Your job is to study a scope description an
 ### A. Study
 Read the scope description below. If it references a spec, read the spec file. Explore the codebase to understand what exists, what needs to change, and what dependencies are involved.
 
+Search `.wolfcastle/docs/specs/` and `.wolfcastle/docs/decisions/` for specs and ADRs relevant to your scope. Sibling nodes may have already written specs that define contracts your children must implement. List any relevant specs you find before proceeding to the Decide phase.
+
 ### B. Decide
 Identify:
 - What concerns does this scope cover?
@@ -69,7 +71,7 @@ Emit WOLFCASTLE_BLOCKED if the scope cannot be planned (missing information not 
 - Every task must have a --body with concrete details. One-line descriptions are not acceptable.
 - Every implementation task must have at least one --deliverable.
 - Every task should have --acceptance criteria.
-- If this orchestrator's scope references a spec, every task must include `--reference "path/to/spec.md"`. The executor receives these references in its iteration context and can read them during Study. Without references, the executor has to discover the spec by searching.
+- If this orchestrator's scope references a spec, or if you found relevant specs in `.wolfcastle/docs/specs/` during the Study phase, every task must include `--reference "path/to/spec.md"`. The executor receives these references in its iteration context and can read them during Study. Without references, the executor has to discover the spec by searching. Specs written by sibling nodes are particularly important: they define contracts your children must implement.
 - Cleanup and deletion tasks go last within their leaf.
 
 ## Rules
