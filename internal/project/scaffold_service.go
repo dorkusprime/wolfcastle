@@ -293,6 +293,9 @@ func (s *ScaffoldService) Reinit() error {
 	if err := m.MigrateOldConfig(); err != nil {
 		return fmt.Errorf("scaffold: migrating old config: %w", err)
 	}
+	if err := m.MigrateStagesFormat(); err != nil {
+		return fmt.Errorf("scaffold: migrating stages format: %w", err)
+	}
 	if err := m.MigratePromptLayout(); err != nil {
 		return fmt.Errorf("scaffold: migrating prompt layout: %w", err)
 	}

@@ -124,6 +124,109 @@ func (m *MigrationService) MigratePromptLayout() error {
 	return nil
 }
 
+// MigrateStagesFormat converts pipeline.stages from the old array format to
+// the new dict format in each tier's config.json. If stages is already a map
+// or absent, the tier is skipped (idempotent).
+func (m *MigrationService) MigrateStagesFormat() error {
+	for _, tier := range tierfs.TierNames {
+		cfgPath := filepath.Join(m.root, tierfs.SystemPrefix, tier, "config.json")
+
+		data, err := os.ReadFile(cfgPath)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("reading %s/config.json: %w", tier, err)
+		}
+
+		var root map[string]any
+		if err := json.Unmarshal(data, &root); err != nil {
+			// Invalid JSON is not our problem; other migrations will report it.
+			continue
+		}
+
+		pipelineRaw, ok := root["pipeline"]
+		if !ok {
+			continue
+		}
+		pipeline, ok := pipelineRaw.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		stagesRaw, ok := pipeline["stages"]
+		if !ok {
+			continue
+		}
+
+		// Already a map: nothing to migrate.
+		if _, isMap := stagesRaw.(map[string]any); isMap {
+			continue
+		}
+
+		stagesArr, ok := stagesRaw.([]any)
+		if !ok {
+			continue
+		}
+
+		newStages := map[string]any{}
+		var stageOrder []string
+
+		for _, elemRaw := range stagesArr {
+			elem, ok := elemRaw.(map[string]any)
+			if !ok {
+				continue
+			}
+			nameRaw, hasName := elem["name"]
+			if !hasName {
+				continue
+			}
+			name, ok := nameRaw.(string)
+			if !ok || name == "" {
+				continue
+			}
+
+			// Remove the name field from the stage object.
+			stage := make(map[string]any, len(elem)-1)
+			for k, v := range elem {
+				if k != "name" {
+					stage[k] = v
+				}
+			}
+
+			newStages[name] = stage
+			// Duplicate names: last wins in both the map and stage_order.
+			found := false
+			for _, existing := range stageOrder {
+				if existing == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				stageOrder = append(stageOrder, name)
+			}
+		}
+
+		pipeline["stages"] = newStages
+
+		// Preserve existing stage_order if present; otherwise generate from array order.
+		if _, hasOrder := pipeline["stage_order"]; !hasOrder && len(stageOrder) > 0 {
+			pipeline["stage_order"] = stageOrder
+		}
+
+		out, err := json.MarshalIndent(root, "", "  ")
+		if err != nil {
+			return fmt.Errorf("marshaling migrated %s/config.json: %w", tier, err)
+		}
+		out = append(out, '\n')
+		if err := os.WriteFile(cfgPath, out, 0644); err != nil {
+			return fmt.Errorf("writing migrated %s/config.json: %w", tier, err)
+		}
+	}
+	return nil
+}
+
 // MigrateOldConfig migrates pre-ADR-063 config files from the wolfcastle root
 // into the three-tier layout under system/. Root config.json goes to
 // system/custom/config.json (if absent). config.local.json is deep-merged
