@@ -730,6 +730,136 @@ func TestRestoreNode_RenameError(t *testing.T) {
 	}
 }
 
+// --- deleteArchivedNode ---
+
+func TestDeleteArchivedNode_RemovesDirectoriesAndPurgesIndex(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "del-proj", completedAt, []string{"del-proj/child-a"})
+	archiveAndVerify(t, d, "del-proj")
+
+	projDir := d.Store.Dir()
+
+	// Confirm archive directories exist before delete.
+	if _, err := os.Stat(filepath.Join(projDir, ".archive", "del-proj")); err != nil {
+		t.Fatalf("expected archive dir to exist before delete: %v", err)
+	}
+
+	err := d.deleteArchivedNode("del-proj")
+	if err != nil {
+		t.Fatalf("deleteArchivedNode failed: %v", err)
+	}
+
+	// Archive directories should be gone.
+	if _, err := os.Stat(filepath.Join(projDir, ".archive", "del-proj")); !os.IsNotExist(err) {
+		t.Error("expected .archive/del-proj to be removed after delete")
+	}
+
+	// Index should have no trace of the node or its children.
+	idx, err := d.Store.ReadIndex()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, ok := idx.Nodes["del-proj"]; ok {
+		t.Error("del-proj should be purged from Nodes after delete")
+	}
+	if _, ok := idx.Nodes["del-proj/child-a"]; ok {
+		t.Error("del-proj/child-a should be purged from Nodes after delete")
+	}
+
+	for _, r := range idx.ArchivedRoot {
+		if r == "del-proj" {
+			t.Error("del-proj should not be in ArchivedRoot after delete")
+		}
+	}
+
+	// Markdown rollup should still exist (permanent record).
+	archiveMarkdownDir := filepath.Join(d.WolfcastleDir, "archive")
+	entries, err := os.ReadDir(archiveMarkdownDir)
+	if err != nil {
+		t.Fatalf("reading archive markdown dir: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("expected 1 markdown rollup preserved, got %d", len(entries))
+	}
+}
+
+func TestDeleteArchivedNode_NotFoundInIndex(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	err := d.deleteArchivedNode("nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent node")
+	}
+}
+
+func TestDeleteArchivedNode_NotArchived(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "active-proj", completedAt, nil)
+
+	err := d.deleteArchivedNode("active-proj")
+	if err == nil {
+		t.Fatal("expected error when deleting a non-archived node")
+	}
+}
+
+func TestDeleteArchivedNode_NotInArchivedRoot(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "parent", completedAt, []string{"parent/child"})
+	archiveAndVerify(t, d, "parent")
+
+	// Try to delete a child node (archived but not in ArchivedRoot).
+	err := d.deleteArchivedNode("parent/child")
+	if err == nil {
+		t.Fatal("expected error when deleting a non-root archived node")
+	}
+}
+
+func TestDeleteArchivedNode_MissingArchiveDir(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "no-dir", completedAt, nil)
+	archiveAndVerify(t, d, "no-dir")
+
+	// Manually remove the archive directory before calling delete.
+	projDir := d.Store.Dir()
+	os.RemoveAll(filepath.Join(projDir, ".archive", "no-dir"))
+
+	// Should still succeed (RemoveAll on nonexistent path returns nil).
+	err := d.deleteArchivedNode("no-dir")
+	if err != nil {
+		t.Fatalf("deleteArchivedNode should tolerate missing archive dir: %v", err)
+	}
+
+	// Index should still be cleaned up.
+	idx, _ := d.Store.ReadIndex()
+	if _, ok := idx.Nodes["no-dir"]; ok {
+		t.Error("no-dir should be purged from Nodes even without archive directory")
+	}
+}
+
 func TestRestoreNode_MkdirAllError(t *testing.T) {
 	t.Parallel()
 	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)

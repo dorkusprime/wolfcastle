@@ -194,6 +194,64 @@ func (d *Daemon) restoreNode(addr string) error {
 	})
 }
 
+// deleteArchivedNode permanently removes an archived node and its subtree
+// from the archive store and RootIndex. The node must exist in the index
+// with Archived==true and must appear in ArchivedRoot. Markdown rollup
+// files in .wolfcastle/archive/ are preserved as permanent records.
+func (d *Daemon) deleteArchivedNode(addr string) error {
+	idx, err := d.Store.ReadIndex()
+	if err != nil {
+		return fmt.Errorf("reading index for delete: %w", err)
+	}
+
+	entry, ok := idx.Nodes[addr]
+	if !ok {
+		return fmt.Errorf("node %q not found in index", addr)
+	}
+	if !entry.Archived {
+		return fmt.Errorf("node %q is not archived", addr)
+	}
+
+	inArchivedRoot := false
+	for _, r := range idx.ArchivedRoot {
+		if r == addr {
+			inArchivedRoot = true
+			break
+		}
+	}
+	if !inArchivedRoot {
+		return fmt.Errorf("node %q is not a root-level archived node", addr)
+	}
+
+	subtree := collectSubtree(idx, addr)
+
+	// Remove archived state directories. RemoveAll handles nested
+	// descendants, so removing the root archive directory suffices,
+	// but we call it on the root address specifically to be precise.
+	storeDir := d.Store.Dir()
+	archiveRoot := filepath.Join(storeDir, ".archive", filepath.Join(strings.Split(addr, "/")...))
+	if err := os.RemoveAll(archiveRoot); err != nil {
+		return fmt.Errorf("removing archived directory for %s: %w", addr, err)
+	}
+
+	// Update the RootIndex atomically: remove from ArchivedRoot and
+	// purge all subtree entries from the Nodes map.
+	return d.Store.MutateIndex(func(idx *state.RootIndex) error {
+		var newArchivedRoot []string
+		for _, r := range idx.ArchivedRoot {
+			if r != addr {
+				newArchivedRoot = append(newArchivedRoot, r)
+			}
+		}
+		idx.ArchivedRoot = newArchivedRoot
+
+		for _, nodeAddr := range subtree {
+			delete(idx.Nodes, nodeAddr)
+		}
+		return nil
+	})
+}
+
 // collectSubtree returns an address and all its descendants by walking
 // the Children slices in the RootIndex. The root address is always first.
 func collectSubtree(idx *state.RootIndex, root string) []string {
