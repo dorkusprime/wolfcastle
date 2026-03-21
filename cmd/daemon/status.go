@@ -71,11 +71,7 @@ Examples:
 				return err
 			}
 
-			if archived {
-				return showArchivedStatus(app, idx, scopeNode)
-			}
-
-			return showTreeStatus(app, idx, scopeNode, expand, detail)
+			return showTreeStatus(app, idx, scopeNode, expand, detail, archived)
 		},
 	}
 }
@@ -88,20 +84,31 @@ type nodeDetail struct {
 }
 
 func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags ...bool) error {
+	expand := len(flags) > 0 && flags[0]
+	detail := len(flags) > 1 && flags[1]
+	showArchived := len(flags) > 2 && flags[2]
+
 	counts := map[state.NodeStatus]int{}
 	auditCounts := map[state.AuditStatus]int{}
 	openGaps := 0
 	openEscalations := 0
 
 	details := map[string]*nodeDetail{}
-	archivedCount := 0
+	archivedProjects := 0
 
 	for addr, entry := range idx.Nodes {
 		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
 			continue
 		}
 		if entry.Archived {
-			archivedCount++
+			if entry.Parent == "" {
+				archivedProjects++
+			}
+			if !showArchived {
+				continue
+			}
+		} else if showArchived {
+			// --archived: only show archived nodes
 			continue
 		}
 		counts[entry.State]++
@@ -180,7 +187,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 			"in_progress":       counts[state.StatusInProgress],
 			"complete":          counts[state.StatusComplete],
 			"blocked":           counts[state.StatusBlocked],
-			"archived":          archivedCount,
+			"archived":          archivedProjects,
 			"daemon":            daemonStatus,
 			"audit_pending":     auditCounts[state.AuditPending],
 			"audit_in_progress": auditCounts[state.AuditInProgress],
@@ -194,7 +201,11 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	}
 
 	// Human output: header summary + tree view
-	output.PrintHuman("Wolfcastle Status")
+	if showArchived {
+		output.PrintHuman("Wolfcastle Archived")
+	} else {
+		output.PrintHuman("Wolfcastle Status")
+	}
 	output.PrintHuman("")
 
 	// Summary line
@@ -211,36 +222,37 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	if c := counts[state.StatusNotStarted]; c > 0 {
 		parts = append(parts, fmt.Sprintf("%d not started", c))
 	}
-	if archivedCount > 0 {
-		parts = append(parts, fmt.Sprintf("%d archived", archivedCount))
+	if archivedProjects > 0 {
+		parts = append(parts, fmt.Sprintf("%d archived", archivedProjects))
 	}
-	if total == 0 && archivedCount == 0 {
+	if total == 0 && archivedProjects == 0 {
 		output.PrintHuman("  No targets. Feed the inbox.")
 	} else {
-		output.PrintHuman("  %d nodes (%s)", total+archivedCount, strings.Join(parts, ", "))
+		output.PrintHuman("  %d nodes (%s)", total+archivedProjects, strings.Join(parts, ", "))
 	}
 	output.PrintHuman("")
 
-	// Tree view: walk root nodes in order, skipping archived roots
-	expand := len(flags) > 0 && flags[0]
-	detail := len(flags) > 1 && flags[1]
+	// Tree view: walk root nodes in order
 	for _, rootAddr := range idx.Root {
 		if scope != "" && !isInSubtree(idx, rootAddr, scope) {
 			continue
 		}
-		if entry, ok := idx.Nodes[rootAddr]; ok && entry.Archived {
+		entry, ok := idx.Nodes[rootAddr]
+		if !ok {
+			continue
+		}
+		if entry.Archived && !showArchived {
+			continue
+		}
+		if !entry.Archived && showArchived {
 			continue
 		}
 		printNodeTree(app, idx, details, rootAddr, "  ", expand, detail)
 	}
 
-	if archivedCount > 0 {
+	if !showArchived && archivedProjects > 0 {
 		output.PrintHuman("")
-		if archivedCount == 1 {
-			output.PrintHuman("  1 archived node (use --archived to view)")
-		} else {
-			output.PrintHuman("  %d archived nodes (use --archived to view)", archivedCount)
-		}
+		output.PrintHuman("  %s archived (use --archived to view)", output.Plural(archivedProjects, "project", "projects"))
 	}
 
 	// Inbox count
@@ -280,79 +292,6 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	return nil
 }
 
-// showArchivedStatus renders only the archived nodes with their metadata:
-// original address, completion state, and archive timestamp.
-func showArchivedStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error {
-	type archivedNode struct {
-		Address     string     `json:"address"`
-		Name        string     `json:"name"`
-		Type        string     `json:"type"`
-		State       string     `json:"state"`
-		CompletedAt *time.Time `json:"completed_at,omitempty"`
-		ArchivedAt  *time.Time `json:"archived_at,omitempty"`
-	}
-
-	var nodes []archivedNode
-	for _, entry := range idx.Nodes {
-		if !entry.Archived {
-			continue
-		}
-		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
-			continue
-		}
-		an := archivedNode{
-			Address:    entry.Address,
-			Name:       entry.Name,
-			Type:       string(entry.Type),
-			State:      string(entry.State),
-			ArchivedAt: entry.ArchivedAt,
-		}
-		// Pull the completion timestamp from the node's audit record
-		// when available.
-		if ns, err := app.State.ReadNode(entry.Address); err == nil {
-			an.CompletedAt = ns.Audit.CompletedAt
-		}
-		nodes = append(nodes, an)
-	}
-
-	// Sort by address for stable output.
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].Address < nodes[j].Address
-	})
-
-	if app.JSON {
-		output.Print(output.Ok("archived", map[string]any{
-			"total": len(nodes),
-			"nodes": nodes,
-		}))
-		return nil
-	}
-
-	output.PrintHuman("Wolfcastle Archived Nodes")
-	output.PrintHuman("")
-
-	if len(nodes) == 0 {
-		output.PrintHuman("  No archived nodes.")
-		return nil
-	}
-
-	output.PrintHuman("  %d archived:", len(nodes))
-	output.PrintHuman("")
-
-	for _, n := range nodes {
-		glyph := "⊘"
-		if output.IsTerminal() {
-			glyph = colorDim + "⊘" + colorReset
-		}
-		output.PrintHuman("  %s %s  (%s)", glyph, n.Name, n.Address)
-		if n.ArchivedAt != nil {
-			output.PrintHuman("      archived %s", n.ArchivedAt.Format("2006-01-02 15:04"))
-		}
-	}
-
-	return nil
-}
-
 // printNodeTree recursively prints a node and its children/tasks.
 // The optional detailFlag parameter controls whether extra detail
 // (task body, failure type, deliverables, breadcrumbs) is shown.
@@ -366,8 +305,8 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 
 	tp := nodeTypePrefix(nd.entry)
 
-	// Collapse completed nodes unless --expand is set.
-	if nd.entry.State == state.StatusComplete && !expand {
+	// Collapse completed and not_started nodes unless --expand is set.
+	if (nd.entry.State == state.StatusComplete || nd.entry.State == state.StatusNotStarted) && !expand {
 		glyph := nodeGlyph(nd.entry.State)
 		childCount := countDescendants(idx, addr)
 		if childCount > 0 {
