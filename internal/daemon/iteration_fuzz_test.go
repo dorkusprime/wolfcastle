@@ -59,11 +59,11 @@ func FuzzScanTerminalMarker(f *testing.F) {
 	f.Add("WOLFCASTLE_COMPLETE\x00")
 
 	// Unicode edge cases: RTL markers, zero-width joiners, combining characters
-	f.Add("WOLFCASTLE_COMPLETE\u200F")        // RTL mark
-	f.Add("WOLFCASTLE\u200D_COMPLETE")         // zero-width joiner
-	f.Add("WOLFCASTLE_COMPLE\u0301TE")         // combining acute accent
-	f.Add("\u202EWOLFCASTLE_COMPLETE\u202C")   // RTL override + pop directional
-	f.Add("WOLFCASTLE_COMPLETE\uFEFF")         // BOM
+	f.Add("WOLFCASTLE_COMPLETE\u200F")       // RTL mark
+	f.Add("WOLFCASTLE\u200D_COMPLETE")       // zero-width joiner
+	f.Add("WOLFCASTLE_COMPLE\u0301TE")       // combining acute accent
+	f.Add("\u202EWOLFCASTLE_COMPLETE\u202C") // RTL override + pop directional
+	f.Add("WOLFCASTLE_COMPLETE\uFEFF")       // BOM
 
 	// Partial marker prefixes
 	f.Add("WOLFCASTLE_")

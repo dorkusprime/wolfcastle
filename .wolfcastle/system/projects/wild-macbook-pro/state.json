@@ -15,8 +15,7 @@
     "github-repository-meta",
     "global-lock-leak-in-tests",
     "delete-deprecated-scaffold",
-    "doctor-childref-state-mismatch",
-    "pre-merge-review-backlog-batch-3"
+    "doctor-childref-state-mismatch"
   ],
   "nodes": {
     "ci-and-lint-tooling": {
@@ -563,42 +562,6 @@
       "address": "global-lock-leak-in-tests/fix-leaking-tests",
       "decomposition_depth": 0,
       "parent": "global-lock-leak-in-tests"
-    },
-    "pre-merge-review-backlog-batch-3": {
-      "name": "Pre-Merge Review: backlog-batch-3",
-      "type": "orchestrator",
-      "state": "in_progress",
-      "address": "pre-merge-review-backlog-batch-3",
-      "decomposition_depth": 0,
-      "children": [
-        "pre-merge-review-backlog-batch-3/lint-fixes",
-        "pre-merge-review-backlog-batch-3/validation",
-        "pre-merge-review-backlog-batch-3/code-review"
-      ]
-    },
-    "pre-merge-review-backlog-batch-3/code-review": {
-      "name": "Code Review",
-      "type": "leaf",
-      "state": "not_started",
-      "address": "pre-merge-review-backlog-batch-3/code-review",
-      "decomposition_depth": 0,
-      "parent": "pre-merge-review-backlog-batch-3"
-    },
-    "pre-merge-review-backlog-batch-3/lint-fixes": {
-      "name": "Lint Fixes",
-      "type": "leaf",
-      "state": "in_progress",
-      "address": "pre-merge-review-backlog-batch-3/lint-fixes",
-      "decomposition_depth": 0,
-      "parent": "pre-merge-review-backlog-batch-3"
-    },
-    "pre-merge-review-backlog-batch-3/validation": {
-      "name": "Validation",
-      "type": "leaf",
-      "state": "not_started",
-      "address": "pre-merge-review-backlog-batch-3/validation",
-      "decomposition_depth": 0,
-      "parent": "pre-merge-review-backlog-batch-3"
     },
     "property-and-fuzz-tests": {
       "name": "Property and Fuzz Tests",
