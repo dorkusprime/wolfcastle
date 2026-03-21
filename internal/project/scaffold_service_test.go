@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
@@ -199,7 +200,7 @@ func TestScaffoldService_Init_WritesGitignore(t *testing.T) {
 	}
 	content := string(data)
 	for _, want := range []string{"!system/custom/", "!system/projects/", "!docs/"} {
-		if !contains(content, want) {
+		if !strings.Contains(content, want) {
 			t.Errorf(".gitignore should contain %q", want)
 		}
 	}

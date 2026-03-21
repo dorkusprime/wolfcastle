@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,8 +36,22 @@ func setupEmbeddedPrompts(t *testing.T, dir string) {
 	t.Helper()
 	setupTiers(t, dir)
 
-	// Extract real embedded templates
-	err := project.WriteBasePrompts(dir) //nolint:staticcheck // testing deprecated function
+	// Extract real embedded templates into the base tier
+	err := fs.WalkDir(project.Templates, "templates", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		relPath := strings.TrimPrefix(path, "templates/")
+		destPath := filepath.Join(dir, "system", "base", relPath)
+		if mkErr := os.MkdirAll(filepath.Dir(destPath), 0755); mkErr != nil {
+			return mkErr
+		}
+		data, readErr := project.Templates.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		return os.WriteFile(destPath, data, 0644)
+	})
 	if err != nil {
 		t.Fatalf("writing embedded prompts: %v", err)
 	}
