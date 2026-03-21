@@ -524,7 +524,7 @@
     "property-and-fuzz-tests": {
       "name": "Property and Fuzz Tests",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "property-and-fuzz-tests",
       "decomposition_depth": 0,
       "children": [
@@ -535,7 +535,7 @@
     "property-and-fuzz-tests/findnexttask-property-test": {
       "name": "FindNextTask Property Test",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "property-and-fuzz-tests/findnexttask-property-test",
       "decomposition_depth": 0,
       "parent": "property-and-fuzz-tests"
