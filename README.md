@@ -62,7 +62,7 @@ Most agent workflows assume someone is always watching: approving plans, reviewi
 
 Wolfcastle runs the full lifecycle without waiting for a human: [intake](docs/humans/how-it-works.md#getting-work-in), [planning](docs/humans/how-it-works.md#the-pipeline), [execution](docs/humans/how-it-works.md#execution-protocol), [audit](docs/humans/audits.md#the-audit-system), [remediation](docs/humans/audits.md#gap-escalation), commit. Your role is to check [`wolfcastle status`](docs/humans/cli/status.md), adjust priorities, and [unblock](docs/humans/failure-and-recovery.md#the-unblock-workflow) the rare task that genuinely needs judgment. The system does the volume. You do the thinking.
 
-## Standing on Ralph's Shoulders
+## Standing on the Shoulders of . . . Ralph Wiggum
 
 The [Ralph loop](https://ghuntley.com/ralph/) changed how people think about coding agents. Put an agent in a `while` loop, feed it a spec, let it run. Each iteration does one thing. Fresh context every pass. Backpressure (tests, compilation, linting) keeps the output honest. Simple, effective, and [widely adopted](https://ghuntley.com/loop/), though [not without rough edges](https://news.ycombinator.com/item?id=46750937): [context rot](https://www.alibabacloud.com/blog/from-react-to-ralph-loop-a-continuous-iteration-paradigm-for-ai-agents_602799) degrades output as windows fill, [placeholder implementations](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum) slip through when the model chases compilation over correctness, and [architectural drift](http://www.zerosync.co/blog/ralph-loop-technical-deep-dive) accumulates across iterations without independent review.
 
