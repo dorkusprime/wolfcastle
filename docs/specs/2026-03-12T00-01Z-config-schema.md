@@ -126,6 +126,11 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
                 "type": "boolean",
                 "default": false,
                 "description": "When true, the stage receives only its own prompt_file content as the prompt, without the full system prompt assembly (no rule fragments, no script reference). Useful for lightweight stages like summary."
+              },
+              "allowed_commands": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Restricts which wolfcastle CLI commands the stage may invoke. When absent or null, all commands are allowed."
               }
             }
           },
