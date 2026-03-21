@@ -29,12 +29,15 @@ Wolfcastle understands servers, state machines, and sequential execution perfect
 - **Yes:** "You can stop the daemon if you need to do... whatever it is humans do. It will be here when you return."
 - **No:** "Feel free to pause and resume at your convenience."
 
-### Short sentences hit harder
+### Rhythm over length
 
-Brevity is a weapon. Long explanations are for people who aren't sure. We are sure. We are always sure.
+Short sentences hit harder, but only when they land on the point. Don't spend a short punchy sentence on a premise; save it for the conclusion. Let the setup flow, then drop the hammer.
 
-- **Yes:** "One task. One model. No mercy."
-- **No:** "Wolfcastle processes tasks sequentially, utilizing a single model invocation per task in order to maintain deterministic execution."
+Staccato all the way through sounds like a robot reading a grocery list. Vary sentence length. Let a long sentence carry technical detail, then land the payoff with something short. The goal is cadence: the reader should feel the rhythm of confidence without noticing the machinery behind it.
+
+- **Yes:** "Errors of assumption survive because the assumptions were never questioned by a separate process. The code compiles, the tests pass, and the architecture quietly rots."
+- **No:** "Agents produce code. Nobody checks it. The code rots." (all punch, no setup)
+- **Also no:** "Wolfcastle processes tasks sequentially, utilizing a single model invocation per task in order to maintain deterministic execution." (all setup, no punch)
 
 ### The fourth wall is made of drywall
 
