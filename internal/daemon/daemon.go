@@ -371,6 +371,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				d.shutdownOnce.Do(func() { close(d.shutdown) })
 				go func() {
 					time.Sleep(2 * time.Second)
+					_ = d.Logger.Log(map[string]any{"type": "force_exit", "message": "signal handler force exit after 2s grace period"})
 					_ = d.repo().RemovePID()
 					os.Exit(0)
 				}()

@@ -73,8 +73,30 @@ func AcquireGlobalLock(repoDir, worktreeDir string) error {
 		return fmt.Errorf("marshaling lock: %w", err)
 	}
 
-	if err := os.WriteFile(lockPath, data, 0644); err != nil {
-		return fmt.Errorf("writing lock file: %w", err)
+	// Atomic write: temp file + rename to avoid partial reads.
+	tmp, err := os.CreateTemp(filepath.Dir(lockPath), ".wolfcastle-tmp-*")
+	if err != nil {
+		return fmt.Errorf("creating temp lock file: %w", err)
+	}
+	tmpName := tmp.Name()
+
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("writing temp lock file: %w", err)
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("syncing temp lock file: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("closing temp lock file: %w", err)
+	}
+	if err := os.Rename(tmpName, lockPath); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("renaming temp lock file: %w", err)
 	}
 
 	return nil

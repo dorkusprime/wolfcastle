@@ -450,6 +450,20 @@ func ApplyDeterministicFixesRepo(
 			}
 			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: fmt.Sprintf("synced ChildRef states and recomputed parent to %s", ns.State)})
 
+		case CatOrphanedTempFile:
+			// The description contains the full path after "Orphaned temp file: "
+			desc := issue.Description
+			const prefix = "Orphaned temp file: "
+			if strings.HasPrefix(desc, prefix) {
+				tmpPath := strings.TrimPrefix(desc, prefix)
+				if err := os.Remove(tmpPath); err == nil {
+					fixes = append(fixes, FixResult{Category: issue.Category, Description: fmt.Sprintf("removed orphaned temp file: %s", tmpPath)})
+				}
+			}
+
+		// CatInvalidTaskID is report-only (FixManual). Renaming task IDs
+		// could break references in breadcrumbs, AARs, and audit gaps.
+
 		case CatStalePIDFile:
 			if repo != nil {
 				if err := repo.RemovePID(); err == nil {

@@ -43,6 +43,7 @@ Quick start:
 Use "wolfcastle [command] --help" for more information about a command.
 All commands support --json for machine-readable output.`,
 	SilenceErrors: true,
+	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip config loading for commands that don't need it
 		switch cmd.Name() {
