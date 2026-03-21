@@ -115,15 +115,12 @@ func (d *Daemon) runInboxWithPolling(ctx context.Context) {
 func (d *Daemon) processInbox(ctx context.Context, counter int) {
 	output.PrintHuman("inbox-%04d: Processing...", counter)
 
-	for _, stage := range d.Config.Pipeline.Stages {
-		if stage.Name == "intake" && stage.IsEnabled() {
-			_ = d.InboxLogger.StartIterationWithPrefix("intake")
-			if err := d.runIntakeStage(ctx, stage); err != nil {
-				output.PrintHuman("  Intake stage error (non-fatal): %v", err)
-			}
-			d.InboxLogger.Close()
-			break
+	if stage, ok := d.Config.Pipeline.Stages["intake"]; ok && stage.IsEnabled() {
+		_ = d.InboxLogger.StartIterationWithPrefix("intake")
+		if err := d.runIntakeStage(ctx, stage); err != nil {
+			output.PrintHuman("  Intake stage error (non-fatal): %v", err)
 		}
+		d.InboxLogger.Close()
 	}
 }
 

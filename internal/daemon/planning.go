@@ -187,7 +187,6 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 
 	// Assemble the prompt
 	prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, config.PipelineStage{
-		Name:       "plan",
 		Model:      modelName,
 		PromptFile: promptFile,
 	}, planCtx)
