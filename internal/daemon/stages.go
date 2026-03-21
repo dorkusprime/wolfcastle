@@ -138,10 +138,13 @@ func (d *Daemon) checkInboxForNew(inboxPath string) bool {
 	return false
 }
 
-// runIntakeStage processes inbox items by invoking a model that calls
-// wolfcastle CLI commands directly to create projects and tasks. Items
-// that are successfully processed (i.e., the model completes without
-// error) are marked as "filed". Items that fail remain "new" for retry.
+// runIntakeStage processes inbox items one at a time by invoking the model
+// separately for each item. Between invocations the root index is re-read
+// so the model sees projects created by earlier items in the same batch.
+// This prevents duplicate root projects when multiple inbox items relate
+// to the same feature. Items that are successfully processed (i.e., the
+// model completes without error) are marked as "filed". Items that fail
+// remain "new" for retry.
 func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage) error {
 	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
 	inboxData, err := state.LoadInbox(inboxPath)
@@ -172,106 +175,104 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		return werrors.Config(fmt.Errorf("model %q not found", intakeStage.Model))
 	}
 
-	// Build context with inbox items
-	var itemsCtx strings.Builder
+	_ = d.InboxLogger.Log(map[string]any{"type": "stage_start", "stage": "intake", "new_items": len(newItems)})
 
-	// Include root-level projects so the model can file work under
-	// existing projects instead of creating duplicates. Only show
-	// roots (not every leaf/subtask) to keep the context focused.
-	idx, err := d.Store.ReadIndex()
-	if err == nil && len(idx.Root) > 0 {
-		itemsCtx.WriteString("# Existing Root Projects\n\n")
-		itemsCtx.WriteString("Before creating a new root project, check this list. If an inbox item's work belongs under an existing project, add it there with --node instead of creating a duplicate.\n\n")
-		for _, rootAddr := range idx.Root {
-			entry, ok := idx.Nodes[rootAddr]
-			if !ok {
-				continue
-			}
-			fmt.Fprintf(&itemsCtx, "- **%s** (address: `%s`, %s, %s)", entry.Name, rootAddr, entry.Type, entry.State)
-			// Load the node to get its scope/description for better matching
-			if ns, loadErr := d.Store.ReadNode(rootAddr); loadErr == nil && ns.Scope != "" {
-				scope := ns.Scope
-				if len(scope) > 120 {
-					scope = scope[:120] + "..."
+	filedCount := 0
+	for itemIdx, item := range newItems {
+		// Re-read the root index before each item so the model sees
+		// projects created by previous invocations in this batch.
+		var itemsCtx strings.Builder
+		idx, err := d.Store.ReadIndex()
+		if err == nil && len(idx.Root) > 0 {
+			itemsCtx.WriteString("# Existing Root Projects\n\n")
+			itemsCtx.WriteString("Before creating a new root project, check this list. If an inbox item's work belongs under an existing project, add it there with --node instead of creating a duplicate.\n\n")
+			for _, rootAddr := range idx.Root {
+				entry, ok := idx.Nodes[rootAddr]
+				if !ok {
+					continue
 				}
-				fmt.Fprintf(&itemsCtx, "\n  Scope: %s", scope)
+				fmt.Fprintf(&itemsCtx, "- **%s** (address: `%s`, %s, %s)", entry.Name, rootAddr, entry.Type, entry.State)
+				if ns, loadErr := d.Store.ReadNode(rootAddr); loadErr == nil && ns.Scope != "" {
+					scope := ns.Scope
+					if len(scope) > 120 {
+						scope = scope[:120] + "..."
+					}
+					fmt.Fprintf(&itemsCtx, "\n  Scope: %s", scope)
+				}
+				itemsCtx.WriteString("\n")
 			}
 			itemsCtx.WriteString("\n")
 		}
-		itemsCtx.WriteString("\n")
-	}
 
-	intakeHeader := resolveContextHeader(d.WolfcastleDir, "intake-context.md", "# Inbox Items to Process\n")
-	itemsCtx.WriteString(intakeHeader + "\n")
-	for i, item := range newItems {
-		fmt.Fprintf(&itemsCtx, "### Item %d\n", i+1)
+		intakeHeader := resolveContextHeader(d.WolfcastleDir, "intake-context.md", "# Inbox Items to Process\n")
+		itemsCtx.WriteString(intakeHeader + "\n")
+		fmt.Fprintf(&itemsCtx, "### Item %d\n", itemIdx+1)
 		fmt.Fprintf(&itemsCtx, "- **Timestamp:** %s\n", item.Timestamp)
 		fmt.Fprintf(&itemsCtx, "- **Text:** %s\n\n", item.Text)
-	}
 
-	prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, intakeStage, itemsCtx.String())
-	if err != nil {
-		return err
-	}
-
-	_ = d.InboxLogger.Log(map[string]any{"type": "stage_start", "stage": "intake", "new_items": len(newItems)})
-
-	invokeCtx := ctx
-	if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
-		var cancel context.CancelFunc
-		invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
-		defer cancel()
-	}
-
-	result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.InboxLogger.AssistantWriter(), "intake")
-	if err != nil {
-		return err
-	}
-
-	_ = d.InboxLogger.Log(map[string]any{
-		"type":       "stage_complete",
-		"stage":      "intake",
-		"exit_code":  result.ExitCode,
-		"output_len": len(result.Stdout),
-	})
-
-	// Only mark items as filed if the model succeeded.
-	if result.ExitCode != 0 {
-		output.PrintHuman("  Intake failed (exit %d). Items queued for retry.", result.ExitCode)
-		return nil
-	}
-
-	// Parse OVERLAP markers from intake output and deliver as pending scope.
-	if d.Config.Pipeline.Planning.Enabled {
-		d.parseOverlapMarkers(result.Stdout)
-	}
-
-	// Mark processed items as filed under a lock. We re-read the inbox
-	// because new items may have been added while the model was running.
-	// We match by timestamp+text to find the items we processed.
-	processedSet := make(map[string]bool)
-	for _, item := range newItems {
-		processedSet[item.Timestamp+"|"+item.Text] = true
-	}
-	if err := state.InboxMutate(inboxPath, func(f *state.InboxFile) error {
-		for i, item := range f.Items {
-			if item.Status == state.InboxNew && processedSet[item.Timestamp+"|"+item.Text] {
-				f.Items[i].Status = state.InboxFiled
-			}
+		prompt, err := pipeline.AssemblePrompt(d.WolfcastleDir, d.Config, intakeStage, itemsCtx.String())
+		if err != nil {
+			return err
 		}
-		return nil
-	}); err != nil {
-		return fmt.Errorf("saving inbox after intake: %w", err)
+
+		invokeCtx := ctx
+		if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
+			var cancel context.CancelFunc
+			invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
+			defer cancel()
+		}
+
+		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.InboxLogger.AssistantWriter(), "intake")
+		if err != nil {
+			return err
+		}
+
+		_ = d.InboxLogger.Log(map[string]any{
+			"type":       "stage_complete",
+			"stage":      "intake",
+			"item_index": itemIdx,
+			"exit_code":  result.ExitCode,
+			"output_len": len(result.Stdout),
+		})
+
+		if result.ExitCode != 0 {
+			output.PrintHuman("  Intake item %d failed (exit %d). Queued for retry.", itemIdx+1, result.ExitCode)
+			continue
+		}
+
+		// Parse OVERLAP markers from intake output and deliver as pending scope.
+		if d.Config.Pipeline.Planning.Enabled {
+			d.parseOverlapMarkers(result.Stdout)
+		}
+
+		// Mark this single item as filed. We re-read the inbox because
+		// new items may have been added while the model was running.
+		itemKey := item.Timestamp + "|" + item.Text
+		if err := state.InboxMutate(inboxPath, func(f *state.InboxFile) error {
+			for i, fi := range f.Items {
+				if fi.Status == state.InboxNew && fi.Timestamp+"|"+fi.Text == itemKey {
+					f.Items[i].Status = state.InboxFiled
+					break
+				}
+			}
+			return nil
+		}); err != nil {
+			return fmt.Errorf("saving inbox after intake: %w", err)
+		}
+
+		filedCount++
 	}
 
-	output.PrintHuman("  Intake: %d items filed", len(newItems))
+	output.PrintHuman("  Intake: %d items filed", filedCount)
 
 	// Signal the execute loop that new work may be available.
 	// Non-blocking: if the channel already has a signal, the loop
 	// will find the work on its next navigation pass.
-	select {
-	case d.workAvailable <- struct{}{}:
-	default:
+	if filedCount > 0 {
+		select {
+		case d.workAvailable <- struct{}{}:
+		default:
+		}
 	}
 
 	return nil

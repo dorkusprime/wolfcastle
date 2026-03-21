@@ -81,3 +81,13 @@
 | 077 | [System Directory Restructure](077-system-directory-restructure.md) | Accepted | 2026-03-16 |
 | 078 | [Task.RenderContext Parameterless Refactoring](078-task-rendercontext-parameterless.md) | Accepted | 2026-03-18 |
 | 079 | [NodeState.RenderContext Phantom taskID Parameter](079-nodestate-rendercontext-phantom-taskid.md) | Accepted | 2026-03-18 |
+| 080 | [Sequential Inbox Intake](080-sequential-inbox-intake.md) | Accepted | 2026-03-21 |
+| 081 | [Use Interface for tierfs.Resolver](081-tierfs-resolver-interface.md) | Accepted | 2026-03-18 |
+| 082 | [Hardcode Tier Order in tierfs](082-hardcode-tier-order.md) | Accepted | 2026-03-18 |
+| 083 | [Fluent Builder Pattern for testutil.Environment](083-fluent-builder-testutil.md) | Accepted | 2026-03-18 |
+| 084 | [Shell Out to Git Binary for Git Operations](084-shell-out-to-git.md) | Accepted | 2026-03-18 |
+| 085 | [Concrete Identity Struct with Constructor Validation](085-concrete-identity-struct.md) | Accepted | 2026-03-18 |
+| 086 | [One-Level Hierarchical Fallback for Class Prompt Resolution](086-class-prompt-fallback.md) | Accepted | 2026-03-18 |
+| 087 | [Use Interfaces in ScaffoldService to Break Import Cycles](087-scaffoldservice-interfaces.md) | Accepted | 2026-03-18 |
+| 088 | [DaemonRepository Uses Concrete Struct with Explicit Parameters](088-daemonrepository-concrete.md) | Accepted | 2026-03-18 |
+| 089 | [Auto-Archive Runs Inline in RunOnce](089-auto-archive-inline.md) | Accepted | 2026-03-21 |
