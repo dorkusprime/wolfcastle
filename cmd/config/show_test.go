@@ -416,7 +416,9 @@ func TestShow_JSONEnvelopeStructure(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "show", "--tier", "local", "--json"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Errorf("closing pipe writer: %v", err)
+	}
 	os.Stdout = old
 
 	if err != nil {
@@ -425,7 +427,9 @@ func TestShow_JSONEnvelopeStructure(t *testing.T) {
 
 	var buf [4096]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	if err := r.Close(); err != nil {
+		t.Errorf("closing pipe reader: %v", err)
+	}
 
 	var envelope output.Response
 	if err := json.Unmarshal(buf[:n], &envelope); err != nil {
