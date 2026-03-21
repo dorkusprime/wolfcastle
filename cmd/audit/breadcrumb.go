@@ -20,8 +20,10 @@ decisions, observations. Persists across daemon iterations.
 Examples:
   wolfcastle audit breadcrumb --node my-project "refactored auth module"
   wolfcastle audit breadcrumb --node auth/login "switched to JWT tokens"`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <text>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

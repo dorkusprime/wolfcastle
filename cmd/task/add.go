@@ -25,8 +25,10 @@ Examples:
   wolfcastle task add --node my-project "implement the API endpoint"
   wolfcastle task add --node auth/login "add rate limiting" --body "Details about implementation..."
   echo "body text" | wolfcastle task add --node my-project "title" --stdin`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <title>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

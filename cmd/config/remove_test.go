@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -216,13 +217,16 @@ func TestRemove_TooFewArgs(t *testing.T) {
 	}
 }
 
-func TestRemove_TooManyArgs(t *testing.T) {
+func TestRemove_ExtraArgs_NotRejectedByArgCount(t *testing.T) {
 	env := newTestEnv(t)
 
+	// Extra args beyond the required key+value are not rejected at the arg-count
+	// level. The command may still fail for business reasons (key not found, etc.),
+	// but it should not fail with an "accepts 2 arg(s)" error.
 	env.RootCmd.SetArgs([]string{"config", "remove", "identity.tags", "a", "b"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Fatal("expected error for too many arguments")
+	if err != nil && strings.Contains(err.Error(), "accepts") {
+		t.Fatalf("should not reject based on arg count: %v", err)
 	}
 }
 

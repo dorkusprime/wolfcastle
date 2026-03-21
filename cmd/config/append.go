@@ -1,3 +1,6 @@
+// Package config implements the "wolfcastle config" command group for
+// inspecting, setting, unsetting, and modifying tier-based configuration
+// values through the CLI.
 package config
 
 import (
@@ -27,8 +30,10 @@ Examples:
   wolfcastle config append identity.tags '"quoted"'
   wolfcastle config append pipeline.steps '{"name":"lint"}'
   wolfcastle config append identity.tags bar --tier custom`,
-		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 2 {
+				return fmt.Errorf("missing required arguments: <key> <value>")
+			}
 			key := args[0]
 			rawValue := args[1]
 			tier, _ := cmd.Flags().GetString("tier")

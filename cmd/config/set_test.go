@@ -322,13 +322,14 @@ func TestSet_TooFewArgs(t *testing.T) {
 	}
 }
 
-func TestSet_TooManyArgs(t *testing.T) {
+func TestSet_ExtraArgs_Ignored(t *testing.T) {
 	env := newTestEnv(t)
 
+	// Extra args beyond the required key+value are silently ignored.
 	env.RootCmd.SetArgs([]string{"config", "set", "logs.level", "debug", "extra"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Fatal("expected error for too many arguments")
+	if err != nil {
+		t.Fatalf("unexpected error with extra args: %v", err)
 	}
 }
 

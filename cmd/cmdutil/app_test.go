@@ -543,7 +543,7 @@ func TestCompleteNodeAddresses_WithResolver(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	a := &App{
-		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteNodeAddresses(a)
 	addrs, _ := fn(nil, nil, "")
@@ -573,7 +573,7 @@ func TestLoadRootIndexForCompletion_AlreadyLoaded(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	a := &App{
-		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStore(projDir, state.DefaultLockTimeout),
 	}
 	idx, err := loadRootIndexForCompletion(a)
 	if err != nil {
@@ -609,7 +609,7 @@ func TestCompleteTaskAddresses_WithResolverAndLeaf(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(nodeJSON), 0644)
 
 	a := &App{
-		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")

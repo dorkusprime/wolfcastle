@@ -84,7 +84,7 @@ func loadRootIndexForCompletion(app *App) (*state.RootIndex, error) {
 }
 
 // storeForCompletion returns the state store, loading config if needed.
-func storeForCompletion(app *App) (*state.StateStore, error) {
+func storeForCompletion(app *App) (*state.Store, error) {
 	if app.State != nil {
 		return app.State, nil
 	}

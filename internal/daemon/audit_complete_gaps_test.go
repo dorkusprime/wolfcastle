@@ -151,7 +151,7 @@ func TestRunIteration_NonAuditCompleteWithOpenGaps_Succeeds(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 
-	// No git repo: checkGitProgress assumes true when git is unavailable,
+	// No git repo: git.HasProgress assumes true when git is unavailable,
 	// isolating the open-gaps behavior from the progress gate.
 	d.Config.Models["echo"] = config.ModelDef{
 		Command: "echo",

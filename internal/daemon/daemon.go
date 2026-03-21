@@ -16,8 +16,7 @@
 //   - stages.go      — intake stage handler, parallel inbox goroutine
 //   - deliverables.go — deliverable file verification
 //   - retry.go       — invocation retry with exponential backoff
-//   - propagate.go   — state propagation via StateStore
-//   - branch.go          — git branch detection
+//   - propagate.go   — state propagation via Store
 //   - pid.go             — PID file operations
 //   - signals_unix.go    — shutdown signals (Unix)
 //   - signals_windows.go — shutdown signals (Windows)
@@ -36,6 +35,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -53,12 +53,13 @@ const inboxIterationOffset = 10000
 type Daemon struct {
 	Config         *config.Config
 	WolfcastleDir  string
-	Store          *state.StateStore
+	Store          *state.Store
 	ScopeNode      string
 	Logger         *logging.Logger
 	InboxLogger    *logging.Logger // separate logger for the inbox goroutine
 	RepoDir        string
 	Clock          clock.Clock
+	Git            git.Provider
 	ContextBuilder *pipeline.ContextBuilder
 	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
@@ -79,7 +80,7 @@ func (d *Daemon) repo() *DaemonRepository {
 }
 
 // New creates a new daemon.
-func New(cfg *config.Config, wolfcastleDir string, store *state.StateStore, scopeNode string, repoDir string) (*Daemon, error) {
+func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode string, repoDir string) (*Daemon, error) {
 	logDir := filepath.Join(wolfcastleDir, "system", "logs")
 	logger, err := logging.NewLogger(logDir)
 	if err != nil {
@@ -124,6 +125,7 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.StateStore, scop
 		InboxLogger:    inboxLogger,
 		RepoDir:        repoDir,
 		Clock:          clock.New(),
+		Git:            git.NewService(repoDir),
 		ContextBuilder: ctxBuilder,
 		shutdown:       make(chan struct{}),
 		workAvailable:  make(chan struct{}, 1),
@@ -400,7 +402,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Record starting branch (skip if not in a git repo)
 	if d.Config.Git.VerifyBranch {
 		var err error
-		d.branch, err = currentBranch(d.RepoDir)
+		d.branch, err = d.Git.CurrentBranch()
 		if err != nil {
 			output.PrintHuman("Not a git repository. Branch verification off.")
 			d.Config.Git.VerifyBranch = false
@@ -523,7 +525,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 
 	// Verify branch hasn't changed
 	if d.Config.Git.VerifyBranch {
-		current, err := currentBranch(d.RepoDir)
+		current, err := d.Git.CurrentBranch()
 		if err == nil && current != d.branch {
 			return IterationStop, fmt.Errorf("%s: branch changed from %s to %s", invoke.MarkerStringBlocked, d.branch, current)
 		}

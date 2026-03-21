@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -83,6 +84,7 @@ func TestRunOnce_BranchMismatchDetection(t *testing.T) {
 		t.Skip("not in a git repository")
 	}
 	d.RepoDir = repoDir
+	d.Git = git.NewService(repoDir)
 
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()

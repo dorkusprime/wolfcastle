@@ -23,11 +23,13 @@ Examples:
   wolfcastle adr create "Use JWT for authentication"
   wolfcastle adr create --stdin "Migration strategy" < body.md
   wolfcastle adr create --file rationale.md "Switch to PostgreSQL"`,
-	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return fmt.Errorf("missing required argument: <title>")
+		}
 		title := args[0]
 		if strings.TrimSpace(title) == "" {
-			return fmt.Errorf("ADR title cannot be empty. Name the decision")
+			return fmt.Errorf("adr title cannot be empty")
 		}
 		useStdin, _ := cmd.Flags().GetBool("stdin")
 		bodyFile, _ := cmd.Flags().GetString("file")

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -331,8 +332,9 @@ func TestRunOnce_BranchChangeDetected(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 
-	// Set up a real git repo so currentBranch succeeds
+	// Set up a real git repo so CurrentBranch succeeds
 	initTestGitRepo(t, d.RepoDir)
+	d.Git = git.NewService(d.RepoDir)
 	d.Config.Git.VerifyBranch = true
 	d.branch = "a-branch-that-does-not-match"
 

@@ -15,4 +15,6 @@ func init() {
 	_ = unblockCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteTaskAddresses(app))
 
 	_ = archiveAddCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
+	_ = archiveDeleteCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
+	_ = archiveRestoreCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 }

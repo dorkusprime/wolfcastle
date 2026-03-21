@@ -741,7 +741,7 @@ func TestIntegration_MissingDeliverable_WarnsButCompletes(t *testing.T) {
 	})
 
 	// Model says COMPLETE but does not create the deliverable file.
-	// Without a git repo, checkGitProgress assumes progress (returns true).
+	// Without a git repo, git.HasProgress assumes progress (returns true).
 	d.Config.Models["echo"] = config.ModelDef{
 		Command: "echo",
 		Args:    []string{"WOLFCASTLE_COMPLETE"},

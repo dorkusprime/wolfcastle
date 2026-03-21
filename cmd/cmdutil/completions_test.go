@@ -40,7 +40,7 @@ func TestCompleteTaskAddresses_WithOrchestrator(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(childDir, "state.json"), []byte(childJSON), 0644)
 
 	a := &App{
-		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")
@@ -89,7 +89,7 @@ func TestCompleteTaskAddresses_BrokenNodeState(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte("invalid json"), 0644)
 
 	a := &App{
-		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")

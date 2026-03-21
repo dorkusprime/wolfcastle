@@ -1,3 +1,7 @@
+// Package project handles project creation, scaffolding, and template
+// management for Wolfcastle workspaces. It embeds the base prompt and
+// rule templates extracted during initialization (ADR-033) and provides
+// the migration service for upgrading existing project directories.
 package project
 
 import (

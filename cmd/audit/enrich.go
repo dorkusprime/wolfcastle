@@ -21,8 +21,10 @@ Duplicates are silently ignored.
 Examples:
   wolfcastle audit enrich --node my-project "check error handling in auth module"
   wolfcastle audit enrich --node my-project "verify backward compatibility"`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <text>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

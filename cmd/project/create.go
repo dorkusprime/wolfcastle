@@ -25,8 +25,10 @@ Examples:
   wolfcastle project create "auth-system"
   wolfcastle project create --type orchestrator "auth-system"
   wolfcastle project create --node auth-system "login-flow"`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <name>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

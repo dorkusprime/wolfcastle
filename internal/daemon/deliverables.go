@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -35,61 +34,6 @@ func checkDeliverables(repoDir string, ns *state.NodeState, taskID string) []str
 		}
 	}
 	return missing
-}
-
-// gitHEAD returns the current HEAD commit SHA, or empty string if
-// git is unavailable or the directory isn't a repo.
-func gitHEAD(repoDir string) string {
-	cmd := exec.Command("git", "rev-parse", "HEAD")
-	cmd.Dir = repoDir
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
-}
-
-// checkGitProgress returns true if either: (1) the git working tree
-// has uncommitted changes outside .wolfcastle/, or (2) HEAD has moved
-// since beforeHEAD (the model committed new work). Models are
-// instructed to commit, so a clean working tree with a new commit
-// still counts as progress.
-func checkGitProgress(repoDir string, beforeHEAD string) bool {
-	// Check for new commits first (handles the common case where
-	// the model committed its changes and the tree is clean).
-	if beforeHEAD != "" {
-		currentHEAD := gitHEAD(repoDir)
-		if currentHEAD != "" && currentHEAD != beforeHEAD {
-			return true
-		}
-	}
-
-	// Check for uncommitted changes outside .wolfcastle/
-	cmd := exec.Command("git", "status", "--porcelain")
-	cmd.Dir = repoDir
-	out, err := cmd.Output()
-	if err != nil {
-		// If git isn't available or this isn't a repo, assume progress
-		// was made rather than blocking the pipeline.
-		return true
-	}
-	for _, line := range strings.Split(string(out), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		path := line
-		if len(path) > 3 {
-			path = path[3:]
-		}
-		if idx := strings.Index(path, " -> "); idx >= 0 {
-			path = path[idx+4:]
-		}
-		if !strings.HasPrefix(path, ".wolfcastle/") && !strings.HasPrefix(path, ".wolfcastle\\") {
-			return true
-		}
-	}
-	return false
 }
 
 // isGlob reports whether the path contains glob metacharacters.

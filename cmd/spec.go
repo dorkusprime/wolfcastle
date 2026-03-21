@@ -38,8 +38,10 @@ to a node.
 Examples:
   wolfcastle spec create "API Authentication Flow"
   wolfcastle spec create --node auth-system "Token Refresh Spec"`,
-	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return fmt.Errorf("missing required argument: <title>")
+		}
 		title := args[0]
 		if strings.TrimSpace(title) == "" {
 			return fmt.Errorf("spec title cannot be empty. Name it")
@@ -122,8 +124,10 @@ in docs/specs/. One spec can serve multiple nodes.
 
 Examples:
   wolfcastle spec link 2025-01-15T10-30Z-auth-flow.md --node auth-system`,
-	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return fmt.Errorf("missing required argument: <filename>")
+		}
 		if err := app.RequireIdentity(); err != nil {
 			return err
 		}

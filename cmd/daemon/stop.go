@@ -31,7 +31,7 @@ Examples:
 
 			if !dmn.IsProcessRunning(pid) {
 				_ = app.Daemon.RemovePID()
-				return fmt.Errorf("PID %d is not running (stale PID file removed)", pid)
+				return fmt.Errorf("pid %d is not running (stale PID file removed)", pid)
 			}
 
 			process, err := os.FindProcess(pid)

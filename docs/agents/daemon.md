@@ -118,7 +118,7 @@ All other state mutations (breadcrumbs, gaps, scope, summary, escalations) are m
 
 ## State I/O (ADR-068)
 
-All state file mutations should go through the `StateStore` (lock, read, callback, atomic write, unlock). This prevents the read-modify-write races that occur when the daemon and model CLI subprocesses write to the same files concurrently. See the spec at `docs/specs/2026-03-15T00-01Z-state-store.md`.
+All state file mutations should go through the `Store` (lock, read, callback, atomic write, unlock). This prevents the read-modify-write races that occur when the daemon and model CLI subprocesses write to the same files concurrently. See the spec at `docs/specs/2026-03-15T00-01Z-state-store.md`.
 
 ## Model Invocation
 
@@ -143,7 +143,7 @@ All state file mutations should go through the `StateStore` (lock, read, callbac
 
 - The `sync.Once` in Daemon is reset between supervisor restarts. This is safe because all goroutines from the previous `Run()` have exited before reset occurs. The reset is documented in code.
 - `d.branch` is written in `Run()` and read in `RunOnce()`. Safe because `RunOnce` is only called from within `Run`'s serial loop.
-- The inbox goroutine and the main loop both access `inbox.json` and the project tree. Safety is provided by the StateStore's lock-read-mutate-write pattern (ADR-068). The model's CLI subprocesses also write state files during execution; the daemon reloads from disk after invocation returns.
+- The inbox goroutine and the main loop both access `inbox.json` and the project tree. Safety is provided by the Store's lock-read-mutate-write pattern (ADR-068). The model's CLI subprocesses also write state files during execution; the daemon reloads from disk after invocation returns.
 
 ## Auto-Archive
 

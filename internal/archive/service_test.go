@@ -41,7 +41,7 @@ func testService(t *testing.T, clk clock.Clock) (*Service, string) {
 	idx := state.NewRootIndex()
 	writeJSON(t, filepath.Join(projDir, "state.json"), idx)
 
-	store := state.NewStateStore(projDir, 5*time.Second)
+	store := state.NewStore(projDir, 5*time.Second)
 	svc := &Service{
 		Store:         store,
 		WolfcastleDir: wolfDir,
@@ -58,7 +58,7 @@ func setupNode(t *testing.T, projDir string, addr string, ns *state.NodeState, i
 	writeJSON(t, filepath.Join(nodeDir, "state.json"), ns)
 
 	// Merge into the existing index.
-	store := state.NewStateStore(projDir, 5*time.Second)
+	store := state.NewStore(projDir, 5*time.Second)
 	if err := store.MutateIndex(func(idx *state.RootIndex) error {
 		idx.Nodes[addr] = ie
 		return nil
@@ -70,7 +70,7 @@ func setupNode(t *testing.T, projDir string, addr string, ns *state.NodeState, i
 // addToRoot appends addr to the index's Root list.
 func addToRoot(t *testing.T, projDir string, addr string) {
 	t.Helper()
-	store := state.NewStateStore(projDir, 5*time.Second)
+	store := state.NewStore(projDir, 5*time.Second)
 	if err := store.MutateIndex(func(idx *state.RootIndex) error {
 		idx.Root = append(idx.Root, addr)
 		return nil
@@ -224,7 +224,7 @@ func TestRestore_MovesBackAndUpdatesIndex(t *testing.T) {
 	ns.State = state.StatusComplete
 	writeJSON(t, filepath.Join(archiveDir, "state.json"), ns)
 
-	store := state.NewStateStore(projDir, 5*time.Second)
+	store := state.NewStore(projDir, 5*time.Second)
 	if err := store.MutateIndex(func(idx *state.RootIndex) error {
 		idx.ArchivedRoot = append(idx.ArchivedRoot, "old-project")
 		idx.Nodes["old-project"] = state.IndexEntry{
@@ -305,7 +305,7 @@ func TestRestore_RejectsNonRootArchived(t *testing.T) {
 
 	// A node that's archived but not in ArchivedRoot (a child).
 	now := time.Now()
-	store := state.NewStateStore(projDir, 5*time.Second)
+	store := state.NewStore(projDir, 5*time.Second)
 	if err := store.MutateIndex(func(idx *state.RootIndex) error {
 		idx.Nodes["parent/child"] = state.IndexEntry{
 			Name:       "child",
@@ -342,7 +342,7 @@ func TestDelete_RemovesArchivedDirAndIndex(t *testing.T) {
 	writeJSON(t, filepath.Join(archiveRoot, "state.json"), map[string]string{"id": "dead-project"})
 	writeJSON(t, filepath.Join(archiveRoot, "child", "state.json"), map[string]string{"id": "child"})
 
-	store := state.NewStateStore(projDir, 5*time.Second)
+	store := state.NewStore(projDir, 5*time.Second)
 	if err := store.MutateIndex(func(idx *state.RootIndex) error {
 		idx.ArchivedRoot = append(idx.ArchivedRoot, "dead-project")
 		idx.Nodes["dead-project"] = state.IndexEntry{
@@ -418,7 +418,7 @@ func TestDelete_RejectsNonRootArchived(t *testing.T) {
 	svc, projDir := testService(t, clock.NewMock(time.Now()))
 
 	now := time.Now()
-	store := state.NewStateStore(projDir, 5*time.Second)
+	store := state.NewStore(projDir, 5*time.Second)
 	if err := store.MutateIndex(func(idx *state.RootIndex) error {
 		idx.Nodes["parent/child"] = state.IndexEntry{
 			Name:       "child",
