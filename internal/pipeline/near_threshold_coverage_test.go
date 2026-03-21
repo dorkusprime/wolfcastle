@@ -461,7 +461,6 @@ func TestAssemblePrompt_LightweightStageMissingPrompt(t *testing.T) {
 	cfg := config.Defaults()
 	skip := true
 	stage := config.PipelineStage{
-		Name:               "missing",
 		PromptFile:         "nonexistent.md",
 		SkipPromptAssembly: &skip,
 	}
@@ -498,7 +497,6 @@ func TestAssemblePrompt_FragmentResolutionError(t *testing.T) {
 
 	cfg := config.Defaults()
 	stage := config.PipelineStage{
-		Name:       "execute",
 		PromptFile: "stages/execute.md",
 	}
 
@@ -520,7 +518,6 @@ func TestAssemblePrompt_FullStageMissingPrompt(t *testing.T) {
 	// No rule fragments, but stage prompt file is missing.
 	cfg := config.Defaults()
 	stage := config.PipelineStage{
-		Name:       "execute",
 		PromptFile: "nonexistent.md",
 	}
 
