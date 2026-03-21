@@ -144,6 +144,11 @@
       "timestamp": "2026-03-21T21:33:56Z",
       "text": "make sure all --- 10001-20260321T21-04Z.jsonl ---\n\n[intake-10001] [intake] Starting\n[intake-10001] [intake] Complete (exit=0, 24611 bytes) structures have \u003e= 90% code coverage",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T21:42:00Z",
+      "text": "make sure all wolfcastle log structures have \u003e= 90% code coverage",
+      "status": "filed"
     }
   ]
 }

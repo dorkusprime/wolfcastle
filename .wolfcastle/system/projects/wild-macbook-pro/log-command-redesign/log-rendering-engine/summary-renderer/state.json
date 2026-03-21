@@ -3,14 +3,14 @@
   "id": "summary-renderer",
   "name": "Summary Renderer",
   "type": "leaf",
-  "state": "not_started",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Implement summary renderer for replay mode",
       "description": "Implement summary renderer for replay mode",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/summary.go",
@@ -25,7 +25,7 @@
       "id": "task-0002",
       "title": "Add follow mode to summary renderer",
       "description": "Add follow mode to summary renderer",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/summary.go",
@@ -40,7 +40,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Summary Renderer is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -52,9 +52,79 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T21:37:58.544771Z",
+        "task": "log-command-redesign/log-rendering-engine/summary-renderer",
+        "text": "Implemented SummaryRenderer with Replay method, 12 tests, all passing. Handles stage pairing, planning records, audit reports, daemon filtering, and column alignment."
+      },
+      {
+        "timestamp": "2026-03-21T21:40:34.724378Z",
+        "task": "log-command-redesign/log-rendering-engine/summary-renderer",
+        "text": "Added Follow method with streaming ▶/✓/✗ output, 10 tests, all passing"
+      },
+      {
+        "timestamp": "2026-03-21T21:41:46.928554Z",
+        "task": "log-command-redesign/log-rendering-engine/summary-renderer",
+        "text": "Audit reviewed summary.go (222 lines) and summary_test.go (453 lines). All 22 tests pass with race detector. go vet clean. Verified against log-command-design spec: Replay column-aligns completion lines with glyphs and durations, Follow streams start/complete pairs in real time. Both methods correctly handle planning records, audit_report_written, daemon stage filtering, missing starts, nil exit codes, empty channels, and context cancellation. No discarded errors on meaningful I/O paths. No concurrency issues. No dead code. Helper functions (glyphFor, nodeAddress, keyFor, skipStage) are well-scoped and unexported. The starts map could grow unbounded with orphan start records, but session sizes make this academic. No node-level spec created; the parent design spec covers the renderer contract adequately. PASS."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "passed",
+    "started_at": "2026-03-21T21:35:35.714799Z",
+    "completed_at": "2026-03-21T21:42:04.332653Z",
+    "result_summary": "SummaryRenderer implements both replay and follow modes for the wolfcastle log summary view. Replay buffers all stage completion records, computes column widths, and writes aligned output with ✓/✗ glyphs and human-readable durations. Follow streams stage_start lines immediately with ▶ glyphs, then prints completion lines with duration as each stage finishes. Both modes handle planning records, audit report paths, daemon stage filtering, and edge cases (missing starts, nil exit codes, empty channels). The implementation is clean, well-tested (22 tests, race-clean), and faithful to the log-command-design spec."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T21:42:01.779217Z",
+      "objective": "Verify all work in the summary-renderer node is complete, correct, and high-quality",
+      "what_happened": "Read summary.go (222 lines) and summary_test.go (453 lines). Ran all 22 tests with race detector, go vet, and go build. Verified output against the log-command-design spec. Checked for nil safety, error handling, dead code, concurrency, and security. Found no issues warranting remediation.",
+      "went_well": [
+        "Code is clean and well-factored: Replay and Follow share helpers without duplication",
+        "Test coverage is thorough, including edge cases like orphan completes, nil exit codes, context cancellation, and empty channels",
+        "Column alignment in Replay verified by byte-offset assertion, not just visual inspection"
+      ],
+      "improvements": [
+        "No node-level spec was created. The parent design spec covers the contract, but a formal SummaryRenderer spec would help downstream consumers."
+      ],
+      "action_items": [
+        "When the interleaved renderer is built, extract glyphFor and nodeAddress into a shared helpers file rather than duplicating them"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T21:37:57.267614Z",
+      "objective": "Implement the SummaryRenderer that consumes a record channel and writes column-aligned stage summaries for replay mode",
+      "what_happened": "Created internal/logrender/summary.go with SummaryRenderer struct, Replay method, and helpers for glyph selection, address formatting, column alignment, and stage filtering. Created summary_test.go with 12 tests covering success/failure glyphs, column alignment, planning records, audit reports, daemon filtering, missing starts, empty channels, and a full-session integration test.",
+      "went_well": [
+        "The buffered-then-align approach keeps the code simple: collect summaryLine structs, compute max widths, print. Column alignment verified by byte-offset comparison in tests.",
+        "Stage key design (node+task+stage) handles concurrent stages on different tasks without collision."
+      ],
+      "improvements": [
+        "The alignment pass allocates a second traversal over all lines. For very large sessions this is fine, but a streaming mode would need a different strategy."
+      ],
+      "action_items": [
+        "The follow-mode renderer (future task) will need a different output path since it streams start/complete lines individually without alignment."
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T21:40:33.484027Z",
+      "objective": "Add Follow method to SummaryRenderer for streaming live stage output",
+      "what_happened": "Added Follow(ctx, \u003c-chan Record) method to summary.go with a handleFollowRecord helper. Follow uses a select loop over context and records channel, printing stage_start lines immediately with ▶ glyph and stage_complete lines with ✓/✗ glyph plus computed duration. Planning records and audit_report_written handled identically to Replay. Added 10 new tests covering start/complete pairing, failure glyphs, planning records, audit reports, daemon filtering, irrelevant types, missing starts, context cancellation, empty channel, and full session.",
+      "went_well": [
+        "Clean separation: handleFollowRecord keeps the select loop minimal. All existing Replay tests still pass unchanged.",
+        "Context cancellation test verifies Follow exits promptly without leaking goroutines."
+      ],
+      "improvements": [
+        "Follow output is unaligned (no column padding). The AAR from task-0001 flagged this as intentional since streaming precludes knowing max widths ahead of time."
+      ],
+      "action_items": [
+        "No follow-up needed for this renderer. The interleaved renderer (separate node) will share glyphFor and nodeAddress helpers from this package."
+      ]
+    }
   }
 }

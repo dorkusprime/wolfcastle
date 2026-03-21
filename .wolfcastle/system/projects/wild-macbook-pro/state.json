@@ -946,7 +946,7 @@
     "log-command-redesign/log-rendering-engine/foundation": {
       "name": "Foundation",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/foundation",
       "decomposition_depth": 0,
       "parent": "log-command-redesign/log-rendering-engine"
@@ -954,7 +954,7 @@
     "log-command-redesign/log-rendering-engine/interleaved-renderer": {
       "name": "Interleaved Renderer",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "log-command-redesign/log-rendering-engine/interleaved-renderer",
       "decomposition_depth": 0,
       "parent": "log-command-redesign/log-rendering-engine"
@@ -962,7 +962,7 @@
     "log-command-redesign/log-rendering-engine/summary-renderer": {
       "name": "Summary Renderer",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/summary-renderer",
       "decomposition_depth": 0,
       "parent": "log-command-redesign/log-rendering-engine"
@@ -970,7 +970,7 @@
     "log-command-redesign/log-rendering-engine/thoughts-renderer": {
       "name": "Thoughts Renderer",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/thoughts-renderer",
       "decomposition_depth": 0,
       "parent": "log-command-redesign/log-rendering-engine"
