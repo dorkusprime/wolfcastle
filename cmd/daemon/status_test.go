@@ -460,6 +460,16 @@ func setupArchivedEnv(t *testing.T) (*testEnv, *state.RootIndex) {
 	nsData, _ := json.MarshalIndent(ns, "", "  ")
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
+	// Write archived node state with completion timestamp.
+	completedAt := now.Add(-72 * time.Hour)
+	archivedDir := filepath.Join(env.ProjectsDir, "old-proj")
+	_ = os.MkdirAll(archivedDir, 0755)
+	archivedNS := state.NewNodeState("old-proj", "Old Project", state.NodeLeaf)
+	archivedNS.State = state.StatusComplete
+	archivedNS.Audit.CompletedAt = &completedAt
+	archivedNSData, _ := json.MarshalIndent(archivedNS, "", "  ")
+	_ = os.WriteFile(filepath.Join(archivedDir, "state.json"), archivedNSData, 0644)
+
 	return env, idx
 }
 
@@ -672,6 +682,9 @@ func TestShowArchivedStatus_JSON(t *testing.T) {
 	}
 	if _, ok := node["archived_at"]; !ok {
 		t.Error("JSON should include archived_at")
+	}
+	if _, ok := node["completed_at"]; !ok {
+		t.Error("JSON should include completed_at")
 	}
 }
 

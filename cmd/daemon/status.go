@@ -284,11 +284,12 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 // original address, completion state, and archive timestamp.
 func showArchivedStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error {
 	type archivedNode struct {
-		Address    string     `json:"address"`
-		Name       string     `json:"name"`
-		Type       string     `json:"type"`
-		State      string     `json:"state"`
-		ArchivedAt *time.Time `json:"archived_at,omitempty"`
+		Address     string     `json:"address"`
+		Name        string     `json:"name"`
+		Type        string     `json:"type"`
+		State       string     `json:"state"`
+		CompletedAt *time.Time `json:"completed_at,omitempty"`
+		ArchivedAt  *time.Time `json:"archived_at,omitempty"`
 	}
 
 	var nodes []archivedNode
@@ -299,13 +300,19 @@ func showArchivedStatus(app *cmdutil.App, idx *state.RootIndex, scope string) er
 		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
 			continue
 		}
-		nodes = append(nodes, archivedNode{
+		an := archivedNode{
 			Address:    entry.Address,
 			Name:       entry.Name,
 			Type:       string(entry.Type),
 			State:      string(entry.State),
 			ArchivedAt: entry.ArchivedAt,
-		})
+		}
+		// Pull the completion timestamp from the node's audit record
+		// when available.
+		if ns, err := app.State.ReadNode(entry.Address); err == nil {
+			an.CompletedAt = ns.Audit.CompletedAt
+		}
+		nodes = append(nodes, an)
 	}
 
 	// Sort by address for stable output.
