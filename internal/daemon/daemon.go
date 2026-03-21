@@ -617,6 +617,7 @@ execute:
 
 	// Start iteration log with "exec" trace prefix
 	_ = d.Logger.StartIterationWithPrefix("exec")
+	_ = d.Logger.LogIterationStart("execute", navResult.NodeAddress)
 
 	// Run pipeline stages
 	err = d.runIteration(ctx, navResult, idx)

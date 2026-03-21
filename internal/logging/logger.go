@@ -123,6 +123,24 @@ func (l *Logger) StartIterationWithPrefix(prefix string) error {
 	return nil
 }
 
+// LogIterationStart emits an iteration_start record that marks a session
+// boundary. The log command uses these records to separate output into
+// per-iteration sections. stageType is the kind of work ("execute",
+// "plan", "intake") and nodeAddr is the tree address being worked on
+// (empty string is acceptable for stages like intake that aren't
+// node-scoped).
+func (l *Logger) LogIterationStart(stageType, nodeAddr string) error {
+	record := map[string]any{
+		"type":      "iteration_start",
+		"stage":     stageType,
+		"iteration": l.Iteration,
+	}
+	if nodeAddr != "" {
+		record["node"] = nodeAddr
+	}
+	return l.Log(record)
+}
+
 // Log writes a structured record to the current iteration's log file.
 // The level parameter is optional: if omitted, the record is logged at
 // LevelInfo (backward compatible per ADR-046).
@@ -163,6 +181,7 @@ var consoleSuppress = map[string]bool{
 	"terminal_marker":       true,
 	"no_terminal_marker":    true,
 	"deliverable_unchanged": true,
+	"iteration_start":       true,
 }
 
 // consoleMessages maps (type, stage) pairs to short, human-friendly

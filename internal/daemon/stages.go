@@ -117,6 +117,7 @@ func (d *Daemon) processInbox(ctx context.Context, counter int) {
 
 	if stage, ok := d.Config.Pipeline.Stages["intake"]; ok && stage.IsEnabled() {
 		_ = d.InboxLogger.StartIterationWithPrefix("intake")
+		_ = d.InboxLogger.LogIterationStart("intake", "")
 		if err := d.runIntakeStage(ctx, stage); err != nil {
 			output.PrintHuman("  Intake stage error (non-fatal): %v", err)
 		}

@@ -1134,6 +1134,75 @@ func TestStartIteration_SetsDefaultTracePrefix(t *testing.T) {
 	}
 }
 
+// ── LogIterationStart Tests ───────────────────────────────────────
+
+func TestLogIterationStart_EmitsRecord(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+
+	_ = logger.StartIterationWithPrefix("exec")
+	if err := logger.LogIterationStart("execute", "my-project/auth"); err != nil {
+		t.Fatalf("LogIterationStart returned error: %v", err)
+	}
+
+	// Read back the log file and parse the record.
+	logPath := logger.CurrentLogPath()
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("reading log file: %v", err)
+	}
+	var rec map[string]any
+	if err := json.Unmarshal(data, &rec); err != nil {
+		t.Fatalf("parsing log record: %v", err)
+	}
+
+	if rec["type"] != "iteration_start" {
+		t.Errorf("type = %v, want iteration_start", rec["type"])
+	}
+	if rec["stage"] != "execute" {
+		t.Errorf("stage = %v, want execute", rec["stage"])
+	}
+	if rec["node"] != "my-project/auth" {
+		t.Errorf("node = %v, want my-project/auth", rec["node"])
+	}
+	// iteration is stored as float64 by JSON unmarshal
+	if iter, ok := rec["iteration"].(float64); !ok || int(iter) != 1 {
+		t.Errorf("iteration = %v, want 1", rec["iteration"])
+	}
+}
+
+func TestLogIterationStart_OmitsNodeWhenEmpty(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+
+	_ = logger.StartIterationWithPrefix("intake")
+	_ = logger.LogIterationStart("intake", "")
+
+	data, err := os.ReadFile(logger.CurrentLogPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rec map[string]any
+	if err := json.Unmarshal(data, &rec); err != nil {
+		t.Fatal(err)
+	}
+	if _, hasNode := rec["node"]; hasNode {
+		t.Error("expected no 'node' field when nodeAddr is empty")
+	}
+}
+
 func TestLog_IncludesTraceID(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
