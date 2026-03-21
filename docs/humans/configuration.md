@@ -67,7 +67,7 @@ The [daemon](how-it-works.md#the-daemon) runs a pipeline of stages. Stages are d
 
 The dict format lets you override a single stage's model or prompt file from a higher [tier](#three-tiers) without rewriting the entire stages array. `stage_order` controls which stages run and in what sequence; omit it to run all stages in map-iteration order. Each stage can be individually disabled by setting `"enabled": false`.
 
-The intake stage runs in a parallel goroutine, watching the inbox for new items and filing them into the tree. The execute stage runs in the main loop, claiming tasks and invoking models. Summaries are generated inline during execute via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage.
+The intake stage runs in a parallel goroutine, watching the inbox for new items and filing them into the tree. The execute stage runs in the main loop, claiming tasks and invoking models. Summaries are generated inline during execute via the `WOLFCASTLE_SUMMARY:` marker ([Architecture Decision Record](../decisions/INDEX.md) ADR-036), not as a separate stage.
 
 ## Identity
 
