@@ -75,11 +75,11 @@ Examples:
 			sessionIdx, _ := cmd.Flags().GetInt("session")
 			follow, _ := cmd.Flags().GetBool("follow")
 
-			// Resolve session.
+			// Resolve session. Exit 1 when the log directory is missing
+			// (project not initialized) or contains no sessions.
 			session, err := logrender.ResolveSession(logDir, sessionIdx)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "No log files found.")
-				return nil
+				return fmt.Errorf("no log files found")
 			}
 
 			// Implicit follow when daemon is running and session 0.

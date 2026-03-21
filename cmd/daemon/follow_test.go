@@ -1,8 +1,13 @@
 package daemon
 
 import (
+	"bytes"
+	"compress/gzip"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/spf13/cobra"
@@ -284,5 +289,148 @@ func TestOutputMode_ShortAndLongMixed_LastWins(t *testing.T) {
 	t.Parallel()
 	if got := parseMode(t, []string{"--json", "-t"}); got != modeThoughts {
 		t.Errorf("expected modeThoughts (last wins), got %d", got)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Exit code semantics
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestLogCmd_Exit1_NoLogDir(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	// Log directory does not exist (project not initialized).
+	env.RootCmd.SetArgs([]string{"log"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when log directory does not exist")
+	}
+}
+
+func TestLogCmd_Exit1_EmptyLogDir(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
+	_ = os.MkdirAll(logDir, 0755)
+
+	// Directory exists but contains no log files.
+	env.RootCmd.SetArgs([]string{"log"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when log directory is empty")
+	}
+}
+
+func TestLogCmd_Exit1_SessionOutOfRange(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
+	_ = os.MkdirAll(logDir, 0755)
+	_ = os.WriteFile(filepath.Join(logDir, "0001-20260321T18-00Z.jsonl"),
+		[]byte(`{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`+"\n"), 0644)
+
+	// Only one session exists; requesting session 5 should fail.
+	env.RootCmd.SetArgs([]string{"log", "--session", "5"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for out-of-range session index")
+	}
+}
+
+func TestLogCmd_Exit0_Success(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
+	_ = os.MkdirAll(logDir, 0755)
+	_ = os.WriteFile(filepath.Join(logDir, "0001-20260321T18-00Z.jsonl"),
+		[]byte(`{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`+"\n"), 0644)
+
+	env.RootCmd.SetArgs([]string{"log"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("expected exit 0 on successful replay, got: %v", err)
+	}
+}
+
+func TestLogCmd_Exit0_FollowInterrupted(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
+	_ = os.MkdirAll(logDir, 0755)
+	_ = os.WriteFile(filepath.Join(logDir, "0001-20260321T18-00Z.jsonl"),
+		[]byte(`{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`+"\n"), 0644)
+
+	done := make(chan error, 1)
+	go func() {
+		env.RootCmd.SetArgs([]string{"log", "--follow"})
+		done <- env.RootCmd.Execute()
+	}()
+
+	// Follow mode blocks until cancelled; verify it doesn't error during streaming.
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("follow mode should exit 0, got: %v", err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		// Still streaming, which is expected behavior.
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Edge cases: corrupted NDJSON and compressed files
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestLogCmd_CorruptedNDJSON_SkipsGracefully(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
+	_ = os.MkdirAll(logDir, 0755)
+
+	// Mix of valid JSON, garbage, and more valid JSON.
+	content := `{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}
+not valid json at all {{{
+{"type":"stage_start","stage":"plan","node":"n","timestamp":"2026-03-21T18:00:01Z"}
+another broken line ~~~
+{"type":"stage_complete","stage":"plan","node":"n","exit_code":0,"timestamp":"2026-03-21T18:01:00Z"}
+`
+	_ = os.WriteFile(filepath.Join(logDir, "0001-20260321T18-00Z.jsonl"),
+		[]byte(content), 0644)
+
+	// Should succeed; corrupted lines are skipped silently.
+	env.RootCmd.SetArgs([]string{"log"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("corrupted NDJSON should be skipped gracefully, got: %v", err)
+	}
+}
+
+func TestLogCmd_CompressedGzFiles(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
+	_ = os.MkdirAll(logDir, 0755)
+
+	// Write a gzip-compressed log file from an "older session".
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	_, _ = gz.Write([]byte(`{"type":"daemon_start","timestamp":"2026-03-20T10:00:00Z"}` + "\n"))
+	_, _ = gz.Write([]byte(`{"type":"stage_start","stage":"execute","node":"old","task":"t1","timestamp":"2026-03-20T10:00:01Z"}` + "\n"))
+	_ = gz.Close()
+	_ = os.WriteFile(filepath.Join(logDir, "0001-20260320T10-00Z.jsonl.gz"), buf.Bytes(), 0644)
+
+	// Also write a plain session so session 1 resolves to the compressed one.
+	_ = os.WriteFile(filepath.Join(logDir, "0001-20260321T18-00Z.jsonl"),
+		[]byte(`{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`+"\n"), 0644)
+
+	// Replay the older (compressed) session.
+	env.RootCmd.SetArgs([]string{"log", "--session", "1"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("compressed .jsonl.gz files should be read, got: %v", err)
 	}
 }

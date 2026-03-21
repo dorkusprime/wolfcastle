@@ -18,10 +18,10 @@ func TestLogCmd_NoLogFiles(t *testing.T) {
 	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
 	_ = os.MkdirAll(logDir, 0755)
 
-	// No log files present — should print message and exit cleanly.
+	// No log files present — should return an error (exit 1).
 	env.RootCmd.SetArgs([]string{"log"})
-	if err := env.RootCmd.Execute(); err != nil {
-		t.Fatalf("log with empty dir failed: %v", err)
+	if err := env.RootCmd.Execute(); err == nil {
+		t.Fatal("expected error when no log files exist")
 	}
 }
 
