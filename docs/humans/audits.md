@@ -71,7 +71,7 @@ Audit findings do not become tasks automatically. The model generates prioritize
 
 ## Structural Validation
 
-The validation engine checks the entire [distributed state tree](how-it-works.md#distributed-state) for consistency. It classifies 24 distinct issue types across four fix strategies:
+The validation engine checks the entire [distributed state tree](how-it-works.md#distributed-state) for consistency. It classifies 25 distinct issue types across four fix strategies:
 
 - **Deterministic fixes**: Missing audit tasks, stale index entries, orphaned files, propagation mismatches, child-ref state mismatches, malformed JSON, and more. Go code fixes these directly with no model involved.
 - **Model-assisted fixes**: Conflicting state, unclear intent, invalid transitions. A configurable model reasons about the fix with strict guardrails.
