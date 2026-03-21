@@ -176,6 +176,50 @@ func TestFindArchiveEligible_NoCompletedAt(t *testing.T) {
 	}
 }
 
+func TestFindArchiveEligible_NestedNodesExcluded(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-48 * time.Hour)
+	setupCompletedOrchestrator(t, d, "parent-proj", completedAt, []string{"parent-proj/child"})
+
+	// Verify: the child is in Nodes and is complete, but NOT in Root.
+	// findArchiveEligible only iterates idx.Root, so child must be excluded.
+	idx, _ := d.Store.ReadIndex()
+	eligible := d.findArchiveEligible(idx)
+
+	for _, addr := range eligible {
+		if addr == "parent-proj/child" {
+			t.Error("nested node parent-proj/child should not be eligible for archival")
+		}
+	}
+	// Parent should be eligible.
+	if len(eligible) != 1 || eligible[0] != "parent-proj" {
+		t.Errorf("expected [parent-proj], got %v", eligible)
+	}
+}
+
+func TestFindArchiveEligible_MissingNodeEntry(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	projDir := d.Store.Dir()
+	idx := state.NewRootIndex()
+	// Address in Root but no corresponding entry in Nodes.
+	idx.Root = []string{"phantom"}
+	writeJSON(t, filepath.Join(projDir, "state.json"), idx)
+
+	idx, _ = d.Store.ReadIndex()
+	eligible := d.findArchiveEligible(idx)
+	if len(eligible) != 0 {
+		t.Errorf("expected no eligible nodes for missing Nodes entry, got %v", eligible)
+	}
+}
+
 // --- archiveNode ---
 
 func TestArchiveNode_MovesDirectoriesAndUpdatesIndex(t *testing.T) {
@@ -253,6 +297,74 @@ func TestArchiveNode_MovesDirectoriesAndUpdatesIndex(t *testing.T) {
 	}
 	if len(entries) != 1 {
 		t.Errorf("expected 1 markdown rollup file, got %d", len(entries))
+	}
+}
+
+func TestArchiveNode_CorruptNodeState(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	projDir := d.Store.Dir()
+	idx := state.NewRootIndex()
+	idx.Root = []string{"corrupt-proj"}
+	idx.Nodes["corrupt-proj"] = state.IndexEntry{
+		Name:    "corrupt-proj",
+		Type:    state.NodeOrchestrator,
+		State:   state.StatusComplete,
+		Address: "corrupt-proj",
+	}
+	writeJSON(t, filepath.Join(projDir, "state.json"), idx)
+
+	// Write corrupt JSON so ReadNode returns an error.
+	nodeDir := filepath.Join(projDir, "corrupt-proj")
+	if err := os.MkdirAll(nodeDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte("{corrupt"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := d.archiveNode("corrupt-proj")
+	if err == nil {
+		t.Fatal("expected error from archiveNode when node state is corrupt")
+	}
+}
+
+func TestArchiveNode_MarkdownDirCreationError(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "md-fail", completedAt, nil)
+
+	// Place a regular file where the archive markdown directory would go,
+	// so os.MkdirAll fails.
+	blockingFile := filepath.Join(d.WolfcastleDir, "archive")
+	if err := os.WriteFile(blockingFile, []byte("not a dir"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := d.archiveNode("md-fail")
+	if err == nil {
+		t.Fatal("expected error when archive markdown dir creation is blocked by a file")
+	}
+}
+
+func TestTryAutoArchive_NoEligibleAfterPoll(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	// No completed orchestrators at all, but auto-archive is enabled.
+	idx, _ := d.Store.ReadIndex()
+	result := d.tryAutoArchive(idx)
+	if result {
+		t.Error("tryAutoArchive should return false when no nodes are eligible")
 	}
 }
 
@@ -342,6 +454,37 @@ func TestTryAutoArchive_ThrottledByPollInterval(t *testing.T) {
 	clk.Advance(5 * time.Minute)
 	if !d.tryAutoArchive(idx) {
 		t.Error("tryAutoArchive should succeed after poll interval elapses")
+	}
+}
+
+func TestTryAutoArchive_ArchiveErrorDoesNotCrash(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-48 * time.Hour)
+
+	// Set up an eligible node with a valid state file.
+	setupCompletedOrchestrator(t, d, "broken-proj", completedAt, nil)
+
+	idx, _ := d.Store.ReadIndex()
+
+	// Make the wolfcastle archive directory unwritable so the markdown rollup
+	// write fails inside archiveNode, after ReadNode succeeds.
+	badDir := filepath.Join(d.WolfcastleDir, "archive")
+	if err := os.MkdirAll(badDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(badDir, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(badDir, 0o755) })
+
+	// tryAutoArchive should return false (error path), not panic.
+	result := d.tryAutoArchive(idx)
+	if result {
+		t.Error("tryAutoArchive should return false when archiveNode errors")
 	}
 }
 
