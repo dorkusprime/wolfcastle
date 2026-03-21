@@ -295,9 +295,11 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		output.PrintHuman("%s  breadcrumb: %s", indent, text)
 	}
 
-	// For orchestrators, print children in creation order (which is execution order)
+	// For orchestrators, print children as a timeline: completed work
+	// at top (past), active work in middle (present), pending at bottom
+	// (future). Within each group, creation order is preserved.
 	if nd.entry.Type == state.NodeOrchestrator {
-		for _, childAddr := range nd.entry.Children {
+		for _, childAddr := range sortChildrenTimeline(nd.entry.Children, idx) {
 			printNodeTree(app, idx, details, childAddr, indent+"  ", expand, detail)
 		}
 		if nd.ns != nil {
@@ -647,6 +649,33 @@ func countDescendants(idx *state.RootIndex, addr string) int {
 		count += countDescendants(idx, child)
 	}
 	return count
+}
+
+// sortChildrenTimeline reorders children so completed nodes appear first
+// (they finished in the past), then in-progress/blocked (happening now),
+// then not-started (future). Creation order preserved within each group.
+func sortChildrenTimeline(children []string, idx *state.RootIndex) []string {
+	sorted := make([]string, len(children))
+	copy(sorted, children)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return timelinePriority(idx.Nodes[sorted[i]].State) < timelinePriority(idx.Nodes[sorted[j]].State)
+	})
+	return sorted
+}
+
+func timelinePriority(s state.NodeStatus) int {
+	switch s {
+	case state.StatusComplete:
+		return 0
+	case state.StatusInProgress:
+		return 1
+	case state.StatusBlocked:
+		return 2
+	case state.StatusNotStarted:
+		return 3
+	default:
+		return 4
+	}
 }
 
 // isInSubtree checks whether addr is the scope node or a descendant of it.
