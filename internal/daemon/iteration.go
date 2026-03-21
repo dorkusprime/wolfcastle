@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -17,6 +18,10 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
+
+// validTaskIDPattern matches expected task ID formats:
+// task-NNNN, audit, and hierarchical variants like task-NNNN.NNNN or audit.NNNN.
+var validTaskIDPattern = regexp.MustCompile(`^(task-\d{4}|audit)(\.\d{4})*$`)
 
 // runIteration executes a single daemon iteration: claims the task, runs each
 // enabled pipeline stage in order, reloads state from disk (to pick up CLI
@@ -542,6 +547,12 @@ func extractAssistantText(line string) string {
 // task fails without a terminal marker. This preserves partial work that the
 // model did before failing, preventing it from being lost on the next iteration.
 func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string, skipHooks bool) {
+	// Validate task ID format before embedding in a commit message.
+	if !validTaskIDPattern.MatchString(taskID) {
+		_ = logger.Log(map[string]any{"type": "auto_commit_skip", "task": taskID, "reason": "invalid task ID format"})
+		return
+	}
+
 	// Check for uncommitted changes
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = repoDir
