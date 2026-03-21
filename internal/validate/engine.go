@@ -476,12 +476,12 @@ func (e *Engine) checkTaskState(ns *state.NodeState, addr string, categories map
 		// INVALID_TASK_ID
 		if e.include(CatInvalidTaskID, categories) && !validTaskIDRe.MatchString(t.ID) {
 			report.Issues = append(report.Issues, Issue{
-				Severity:    SeverityError,
+				Severity:    SeverityWarning,
 				Category:    CatInvalidTaskID,
 				Node:        addr,
 				Description: fmt.Sprintf("Task %q does not match expected format (task-NNNN or audit, with optional .NNNN suffixes)", t.ID),
-				CanAutoFix:  true,
-				FixType:     FixDeterministic,
+				CanAutoFix:  false,
+				FixType:     FixManual,
 			})
 		}
 

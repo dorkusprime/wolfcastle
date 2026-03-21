@@ -35,10 +35,10 @@ const (
 	CatChildRefStateMismatch = "CHILDREF_STATE_MISMATCH"
 
 	// Daemon artifact categories
-	CatStalePIDFile      = "STALE_PID_FILE"
-	CatStaleStopFile     = "STALE_STOP_FILE"
-	CatOrphanedTempFile  = "ORPHANED_TEMP_FILE"
-	CatInvalidTaskID     = "INVALID_TASK_ID"
+	CatStalePIDFile     = "STALE_PID_FILE"
+	CatStaleStopFile    = "STALE_STOP_FILE"
+	CatOrphanedTempFile = "ORPHANED_TEMP_FILE"
+	CatInvalidTaskID    = "INVALID_TASK_ID"
 )
 
 // FixType describes the repair strategy.
@@ -123,5 +123,5 @@ var StartupCategories = map[string]bool{
 	CatBlockedWithoutReason:   true,
 	CatChildRefStateMismatch:  true,
 	CatOrphanedTempFile:       true,
-	CatInvalidTaskID:          true,
+	// CatInvalidTaskID excluded: renaming IDs at startup could break references.
 }

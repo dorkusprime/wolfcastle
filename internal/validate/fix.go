@@ -461,34 +461,8 @@ func ApplyDeterministicFixesRepo(
 				}
 			}
 
-		case CatInvalidTaskID:
-			ns, statePath, err := loadOrCached(issue.Node)
-			if err != nil {
-				continue
-			}
-			// Find the next available task-NNNN ID
-			maxNum := 0
-			for _, t := range ns.Tasks {
-				if len(t.ID) >= 9 && t.ID[:5] == "task-" {
-					var n int
-					if _, scanErr := fmt.Sscanf(t.ID[5:9], "%d", &n); scanErr == nil && n > maxNum {
-						maxNum = n
-					}
-				}
-			}
-			changed := false
-			for i := range ns.Tasks {
-				if !validTaskIDRe.MatchString(ns.Tasks[i].ID) {
-					maxNum++
-					oldID := ns.Tasks[i].ID
-					ns.Tasks[i].ID = fmt.Sprintf("task-%04d", maxNum)
-					fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: fmt.Sprintf("renamed invalid task ID %q to %s", oldID, ns.Tasks[i].ID)})
-					changed = true
-				}
-			}
-			if changed {
-				modifiedStates[statePath] = ns
-			}
+		// CatInvalidTaskID is report-only (FixManual). Renaming task IDs
+		// could break references in breadcrumbs, AARs, and audit gaps.
 
 		case CatStalePIDFile:
 			if repo != nil {
