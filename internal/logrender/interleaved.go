@@ -10,7 +10,7 @@ import (
 // InterleavedRenderer writes stage headers and agent thoughts together in
 // chronological order, each prefixed with a wall-clock timestamp. Stage starts
 // get the ▶ glyph, completions get ✓/✗ with duration, and assistant text is
-// indented four spaces to separate it visually from stage headers. The behavior
+// indented five spaces to separate it visually from stage headers. The behavior
 // is identical for replay and follow since records are processed as they arrive.
 type InterleavedRenderer struct {
 	w io.Writer

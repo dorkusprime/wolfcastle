@@ -71,9 +71,9 @@ func TestInterleavedRenderer_AssistantIndentation(t *testing.T) {
 		t.Fatalf("expected 2 lines, got %d: %q", len(lines), buf.String())
 	}
 
-	// Assistant line should have 4-space indent after the timestamp.
+	// Assistant line should have 5-space indent after the timestamp.
 	if !strings.Contains(lines[1], "     thinking...") {
-		t.Errorf("expected 4-space indented text, got: %q", lines[1])
+		t.Errorf("expected 5-space indented text, got: %q", lines[1])
 	}
 }
 
