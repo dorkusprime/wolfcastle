@@ -1,0 +1,290 @@
+{
+  "version": 1,
+  "id": "consumer-updates",
+  "name": "Consumer Updates",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update daemon iteration to use StageOrder with map lookup",
+      "description": "Update daemon iteration to use StageOrder with map lookup",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration.go"
+      ],
+      "body": "In internal/daemon/iteration.go (lines 60-68): replace 'for _, stage := range d.Config.Pipeline.Stages' with iteration over d.Config.Pipeline.StageOrder, looking up each stage by name from the Stages map. The intake-skip logic (line 66: stage.Name == 'intake') becomes a comparison against the loop variable (name == 'intake'). The model lookup (line 82: d.Config.Models[stage.Model]) stays the same since stage still has a Model field. The prompt assembly call (line 77) needs to pass the stage name as a separate argument if prompt.go's signature changes. Update all tests in iteration_test.go to construct configs with map-format stages and StageOrder.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T03-11Z-dict-format-stages.md"
+      ]
+    },
+    {
+      "id": "task-0001.0001",
+      "title": "Fix testConfig and daemon_test.go for dict-format stages",
+      "description": "Fix testConfig and daemon_test.go for dict-format stages",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/daemon_test.go"
+      ],
+      "body": "Update testConfig() in daemon_test.go to use map[string]config.PipelineStage and StageOrder. Also update all 5 stage config overrides within daemon_test.go itself."
+    },
+    {
+      "id": "task-0001.0002",
+      "title": "Fix audit and remediation test files for dict-format stages",
+      "description": "Fix audit and remediation test files for dict-format stages",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/audit_complete_gaps_test.go",
+        "internal/daemon/audit_coverage_test.go",
+        "internal/daemon/remediation_test.go"
+      ],
+      "body": "Update these files to use map[string]config.PipelineStage with StageOrder: audit_complete_gaps_test.go (3 occurrences), audit_coverage_test.go (3), remediation_test.go (3). Mechanical transformation: []config.PipelineStage{{Name: \"x\", ...}} becomes map[string]config.PipelineStage{\"x\": {...}} plus d.Config.Pipeline.StageOrder = []string{\"x\"}."
+    },
+    {
+      "id": "task-0001.0003",
+      "title": "Fix edge_cases and iteration_coverage tests for dict-format stages",
+      "description": "Fix edge_cases and iteration_coverage tests for dict-format stages",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/edge_cases_test.go",
+        "internal/daemon/iteration_coverage_test.go"
+      ],
+      "body": "Update these files to use map[string]config.PipelineStage with StageOrder: edge_cases_test.go (10 occurrences), iteration_coverage_test.go (8). Mechanical transformation: []config.PipelineStage{{Name: \"x\", ...}} becomes map[string]config.PipelineStage{\"x\": {...}} plus d.Config.Pipeline.StageOrder = []string{\"x\"}."
+    },
+    {
+      "id": "task-0001.0004",
+      "title": "Fix remaining daemon test files for dict-format stages",
+      "description": "Fix remaining daemon test files for dict-format stages",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/run_loop_test.go",
+        "internal/daemon/inbox_flow_test.go",
+        "internal/daemon/category_a_test.go",
+        "internal/daemon/stages_coverage_test.go",
+        "internal/daemon/coverage_test.go",
+        "internal/daemon/runonce_branches_test.go",
+        "internal/daemon/stages_chmod_test.go",
+        "internal/daemon/edge_cases_test.go"
+      ],
+      "body": "Update these files to use map[string]config.PipelineStage with StageOrder: run_loop_test.go (2), stages_coverage_test.go (2), coverage_test.go (1), runonce_branches_test.go (1), inbox_flow_test.go (3), category_a_test.go (5). Also check planning_test.go, planning_coverage_test.go, coverage_gaps_test.go, deep_coverage_test.go, integration_test.go, multi_iteration_test.go, selfheal_audit_test.go, spec_review_test.go, stages_chmod_test.go, regression_test.go for Name field references. Mechanical transformation: same pattern as other subtasks."
+    },
+    {
+      "id": "task-0002",
+      "title": "Update daemon stages.go intake lookup",
+      "description": "Update daemon stages.go intake lookup",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/stages.go"
+      ],
+      "body": "In internal/daemon/stages.go (lines 118-127): replace the loop that searches for the intake stage by name with a direct map lookup: stage, ok := d.Config.Pipeline.Stages['intake']; check ok \u0026\u0026 stage.IsEnabled(). This is simpler and more efficient than the current linear scan. Update stage name references throughout the file. Update all tests in stages_test.go to use map-format stage configs."
+    },
+    {
+      "id": "task-0003",
+      "title": "Update pipeline prompt assembly",
+      "description": "Update pipeline prompt assembly",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/prompt.go"
+      ],
+      "body": "In internal/pipeline/prompt.go (line 15): the AssemblePrompt function currently receives a config.PipelineStage value and uses stage.PromptFile and stage.AllowedCommands. Since the Name field is removed from PipelineStage, if any logging or error messages in this function reference the stage name, add a stageName string parameter to the function signature. If the function does not reference the name, the signature can stay as-is (the PipelineStage struct still has all the fields it uses). Check all callers and update them accordingly. Update tests in prompt_test.go."
+    },
+    {
+      "id": "task-0004",
+      "title": "Ensure \u003e90% test coverage across all modified packages",
+      "description": "Ensure \u003e90% test coverage across all modified packages",
+      "state": "complete",
+      "failure_count": 0,
+      "body": "Run go test -cover on internal/config, internal/daemon, internal/pipeline, and internal/project packages. Verify each maintains \u003e90% line coverage. If any package is below threshold, add targeted test cases for uncovered paths. Pay particular attention to: (1) iteration with disabled stages in StageOrder, (2) StageOrder entries missing from the map (should be caught by validation, but test the error path), (3) empty StageOrder, (4) prompt assembly with various stage configurations. Report coverage percentages in the audit breadcrumb."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Consumer Updates is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify intake stage is found via direct map lookup rather than linear scan in stages.go",
+    "Run full test suite (go test ./...) and confirm all tests pass with \u003e90% coverage per package"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T05:45:51.187153Z",
+        "task": "pipeline-stages-dict-refactor/consumer-updates",
+        "text": "task-0001: Production code in iteration.go already uses dict-format stages (StageOrder + map lookup). Decomposed into 4 subtasks to fix 12+ test files still using the old []PipelineStage array format with Name field. No iteration_test.go exists on either branch."
+      },
+      {
+        "timestamp": "2026-03-21T05:47:31.057029Z",
+        "task": "pipeline-stages-dict-refactor/consumer-updates",
+        "text": "Updated daemon_test.go: testConfig() and 5 stage overrides converted to dict-format; 5 runIntakeStage literals cleaned of Name field"
+      },
+      {
+        "timestamp": "2026-03-21T05:49:04.565048Z",
+        "task": "pipeline-stages-dict-refactor/consumer-updates",
+        "text": "task-0001.0002: Converted audit_complete_gaps_test.go, audit_coverage_test.go, remediation_test.go to dict-format stages. 9 Stages overrides + 4 standalone PipelineStage literals updated."
+      },
+      {
+        "timestamp": "2026-03-21T05:51:13.278313Z",
+        "task": "pipeline-stages-dict-refactor/consumer-updates",
+        "text": "task-0001.0003: Converted edge_cases_test.go (10) and iteration_coverage_test.go (8) stage config overrides to dict-format with StageOrder"
+      },
+      {
+        "timestamp": "2026-03-21T05:55:11.334991Z",
+        "task": "pipeline-stages-dict-refactor/consumer-updates",
+        "text": "task-0001.0004: Converted 8 remaining test files to dict-format stages. 14 array-to-map conversions, 22 Name field removals. Also fixed 3 Name refs in edge_cases_test.go missed by prior task. All daemon tests pass."
+      },
+      {
+        "timestamp": "2026-03-21T05:55:59.689779Z",
+        "task": "pipeline-stages-dict-refactor/consumer-updates",
+        "text": "task-0002: stages.go already uses direct map lookup (d.Config.Pipeline.Stages[\"intake\"]) at line 118. Both stages_coverage_test.go and stages_chmod_test.go already use map-format configs. No changes needed."
+      },
+      {
+        "timestamp": "2026-03-21T05:58:34.964053Z",
+        "task": "pipeline-stages-dict-refactor/consumer-updates",
+        "text": "task-0003: Removed Name field from 13 PipelineStage literals in 4 pipeline test files. Converted 2 array-index stage lookups to map-key lookups. No changes to prompt.go itself (AssemblePrompt never references stage name)."
+      },
+      {
+        "timestamp": "2026-03-21T05:59:18.016205Z",
+        "task": "pipeline-stages-dict-refactor/consumer-updates",
+        "text": "task-0004: Coverage verification complete. All packages above 90%: config=96.3%, daemon=92.1%, pipeline=97.5%, project=92.1%. No additional test cases required."
+      },
+      {
+        "timestamp": "2026-03-21T06:02:03.311212Z",
+        "task": "pipeline-stages-dict-refactor/consumer-updates",
+        "text": "Audit reviewed 24 files (791 lines changed). PASS. Build, tests, vet, and race detector all clean. Coverage above 90% for all packages (config=96.3%, daemon=92.1%, pipeline=97.5%, project=92.1%). One finding: gofmt violation in migration_service_test.go, fixed and committed. No remnants of old array format remain: no []config.PipelineStage, no Name field in PipelineStage literals, no array-index stage access, no stage.Name references. Migration service is idempotent with proper error handling. Production code in iteration.go, stages.go, planning.go correctly uses StageOrder iteration and map lookups. Quality: thorough mechanical refactor with clean separation between production and test changes."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T05:43:13.997877Z",
+    "completed_at": "2026-03-21T06:02:17.63123Z",
+    "result_summary": "Converted all pipeline stage consumers from array format ([]config.PipelineStage with Name field) to dict format (map[string]config.PipelineStage with StageOrder). Updated 3 production files (iteration.go, stages.go, planning.go) and 17 test files across daemon, pipeline, config, and project packages. Added MigrateStagesFormat() migration service for on-disk config conversion. All packages build, pass tests including race detection, and maintain \u003e90% coverage. No remnants of the old format remain."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T06:02:10.66796Z",
+      "objective": "Verify all consumer-updates work converting pipeline stages from array to dict format is complete and correct",
+      "what_happened": "Reviewed all 24 changed files (791 lines). Ran build, full test suite, go vet, race detector, coverage checks, and gofmt. Searched for any remnants of old array format across all modified packages. Found and fixed one gofmt violation in migration_service_test.go.",
+      "went_well": [
+        "No old-format remnants found anywhere; the conversion is thorough",
+        "Race detector clean; no concurrency issues introduced",
+        "Coverage well above 90% threshold across all four packages",
+        "Migration service is properly idempotent with good edge case handling"
+      ],
+      "improvements": [
+        "None; the mechanical transform was done cleanly"
+      ],
+      "action_items": [
+        "None identified"
+      ]
+    },
+    "task-0001.0001": {
+      "task_id": "task-0001.0001",
+      "timestamp": "2026-03-21T05:47:29.833599Z",
+      "objective": "Convert daemon_test.go from array-format to dict-format pipeline stages",
+      "what_happened": "Updated testConfig() to use map[string]config.PipelineStage with StageOrder. Converted all 5 inline stage config overrides (RunOnce model-not-found, runIteration model-not-found, disabled-stage-skipped, intake-stage-skipped-in-pipeline, and the testConfig default). Removed Name field from 5 runIntakeStage test literals.",
+      "went_well": [
+        "Clean mechanical transform; no logic changes needed since runIntakeStage signature already takes PipelineStage without Name"
+      ],
+      "improvements": [
+        "Other test files in the daemon package (audit_complete_gaps_test.go, audit_coverage_test.go) still use old format and will fail to compile until sibling subtasks complete"
+      ],
+      "action_items": [
+        "Sibling subtasks must update remaining test files before the full test suite passes"
+      ]
+    },
+    "task-0001.0002": {
+      "task_id": "task-0001.0002",
+      "timestamp": "2026-03-21T05:49:03.081169Z",
+      "objective": "Convert audit and remediation test files from array-format to dict-format pipeline stages",
+      "what_happened": "Updated 3 test files: audit_complete_gaps_test.go (3 stage config overrides), audit_coverage_test.go (3 stage config overrides + 4 standalone PipelineStage literals stripped of Name field), remediation_test.go (3 stage config overrides). Each []config.PipelineStage became map[string]config.PipelineStage with StageOrder.",
+      "went_well": [
+        "Mechanical transform was clean; no logic changes required"
+      ],
+      "improvements": [
+        "Cannot verify compilation until sibling tasks (0001.0003, 0001.0004) convert category_a_test.go and other remaining files"
+      ],
+      "action_items": [
+        "Sibling subtasks must complete before go test ./internal/daemon/ can pass"
+      ]
+    },
+    "task-0001.0003": {
+      "task_id": "task-0001.0003",
+      "timestamp": "2026-03-21T05:51:12.055771Z",
+      "objective": "Convert edge_cases_test.go and iteration_coverage_test.go from array-format to dict-format pipeline stages",
+      "what_happened": "Updated edge_cases_test.go (10 occurrences) and iteration_coverage_test.go (8 occurrences) from []config.PipelineStage with Name field to map[string]config.PipelineStage with StageOrder. All single-stage tests use StageOrder=[\"execute\"]; one two-stage test uses [\"intake\",\"execute\"].",
+      "went_well": [
+        "Purely mechanical transform, no logic changes needed"
+      ],
+      "improvements": [
+        "Cannot run tests yet because category_a_test.go (sibling task 0001.0004) still uses old format and blocks package compilation"
+      ],
+      "action_items": [
+        "Task 0001.0004 must convert category_a_test.go before go test ./internal/daemon/ can pass"
+      ]
+    },
+    "task-0001.0004": {
+      "task_id": "task-0001.0004",
+      "timestamp": "2026-03-21T05:55:09.465439Z",
+      "objective": "Convert remaining daemon test files from array-format to dict-format pipeline stages",
+      "what_happened": "Updated 8 test files: run_loop_test.go (2 array conversions), stages_coverage_test.go (2 array conversions + 9 Name removals), coverage_test.go (1 array conversion + 3 Name removals), runonce_branches_test.go (1 array conversion), inbox_flow_test.go (3 array conversions + 3 Name removals), category_a_test.go (5 array conversions + 3 Name removals), stages_chmod_test.go (1 Name removal), edge_cases_test.go (3 Name removals missed by prior subtask).",
+      "went_well": [
+        "All tests pass on first try after conversion",
+        "Caught 3 leftover Name references in edge_cases_test.go that task-0001.0003 missed"
+      ],
+      "improvements": [
+        "None; purely mechanical transform"
+      ],
+      "action_items": [
+        "Full daemon test suite now compiles and passes with dict-format stages"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T05:58:34.626554Z",
+      "objective": "Update pipeline prompt assembly tests for dict-format stages",
+      "what_happened": "AssemblePrompt in prompt.go never references stage.Name, so the function signature needed no change. Removed Name field from 13 PipelineStage literals across 4 test files (prompt_test.go, category_a_test.go, prompt_coverage_test.go, near_threshold_coverage_test.go). Converted two array-index accesses (cfg.Pipeline.Stages[0], cfg.Pipeline.Stages[1]) to map-key lookups (cfg.Pipeline.Stages[\"intake\"], cfg.Pipeline.Stages[\"execute\"]).",
+      "went_well": [
+        "No signature change needed; purely test-literal cleanup",
+        "All pipeline and daemon tests pass on first try"
+      ],
+      "improvements": [
+        "None; mechanical transform"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-21T05:59:21.755897Z",
+      "objective": "Verify \u003e90% test coverage across all packages modified by the dict-format stages refactor",
+      "what_happened": "Ran go test -cover on internal/config, internal/daemon, internal/pipeline, and internal/project. All four packages exceeded the 90% threshold: config=96.3%, daemon=92.1%, pipeline=97.5%, project=92.1%. No additional test cases were needed.",
+      "went_well": [
+        "Prior tasks did thorough test conversion work, leaving coverage well above threshold"
+      ],
+      "improvements": [
+        "None; coverage is healthy across all packages"
+      ],
+      "action_items": [
+        "None"
+      ]
+    }
+  }
+}

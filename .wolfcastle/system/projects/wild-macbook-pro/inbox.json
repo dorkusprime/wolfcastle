@@ -99,6 +99,11 @@
       "timestamp": "2026-03-21T03:07:16Z",
       "text": "Ensure all new and modified code from the stages-dict refactor has test coverage above 90%. Run go test -coverprofile and check that no modified package dropped below its pre-refactor coverage. Pay particular attention to the migration path (old array configs must load correctly) and the validation changes.",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T03:44:24Z",
+      "text": "Write a spec for the dict-format pipeline stages refactor. Define: the new JSON schema (map[string]PipelineStage + stage_order []string), the PipelineStage struct changes (Name field removed), merge semantics (stages merges as map per three-tier rules, stage_order replaces as array), migration contract for existing array-format configs, updated validation rules, and consumer impact. This spec is the contract that all implementation and audit work verifies against. Write it to .wolfcastle/docs/specs/ via wolfcastle spec create.",
+      "status": "filed"
     }
   ]
 }

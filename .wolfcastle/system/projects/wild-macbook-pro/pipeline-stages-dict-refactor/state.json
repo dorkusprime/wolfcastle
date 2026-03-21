@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "id": "pipeline-stages-dict-refactor",
+  "name": "Pipeline Stages Dict Refactor",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "dict-format-stages-spec",
+      "address": "pipeline-stages-dict-refactor/dict-format-stages-spec",
+      "state": "complete"
+    },
+    {
+      "id": "core-config-types-and-defaults",
+      "address": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+      "state": "complete"
+    },
+    {
+      "id": "stages-migration",
+      "address": "pipeline-stages-dict-refactor/stages-migration",
+      "state": "complete"
+    },
+    {
+      "id": "consumer-updates",
+      "address": "pipeline-stages-dict-refactor/consumer-updates",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Pipeline Stages Dict Refactor is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Refactor Config.Pipeline.Stages from []PipelineStage to map[string]PipelineStage keyed by stage name, with a separate stage_order []string for execution ordering. Touches: internal/config/types.go (PipelineConfig struct), internal/config/config.go (Defaults), internal/config/validate.go (stage validation), internal/config/merge.go (deep merge semantics), internal/daemon/iteration.go and stages.go (stage lookup), internal/pipeline/prompt.go (stage resolution), docs/specs CLI command spec (schema section). Must include a migration in MigrationService for existing array-format config files. Additionally: (1) update unknown-field detection so diffKeys recurses into each stage config naturally via map keys rather than array indices, and verify that typos inside stage configs (e.g. 'promt_file') are caught, with test cases added; (2) ensure all modified packages maintain \u003e90% test coverage, paying particular attention to the migration path and validation changes; (3) write the spec for the dict-format stages refactor to .wolfcastle/docs/specs/ via wolfcastle spec create, defining: new JSON schema (map[string]PipelineStage + stage_order []string), PipelineStage struct changes (Name field removed), merge semantics, migration contract for existing array-format configs, updated validation rules, and consumer impact. The spec is the contract that implementation and audit work verifies against and should be written first.",
+  "success_criteria": [
+    "Dict-format stages spec is written, registered, and defines schema, merge semantics, migration contract, validation rules, and consumer impact",
+    "PipelineConfig.Stages is map[string]PipelineStage with StageOrder []string; PipelineStage.Name field removed; Defaults() returns map format",
+    "Validation checks stage_order integrity (every order entry in map, every map key in order, no duplicates) and retains model/prompt_file checks",
+    "Unknown-field detection catches typos inside dict-format stage configs (e.g. pipeline.stages.execute.promt_file) with test coverage",
+    "MigrateStagesFormat() converts array-format tier files to dict-format idempotently, wired into ScaffoldService.Reinit after MigrateOldConfig",
+    "All consumer code (daemon iteration, intake lookup, prompt assembly) uses StageOrder + map lookup instead of array iteration",
+    "All modified packages (internal/config, internal/daemon, internal/pipeline, internal/project) maintain \u003e90% test coverage"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T05:16:16.321159Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T05:15:51.040649Z",
+        "task": "pipeline-stages-dict-refactor",
+        "text": "Created 4 children in execution order: (1) dict-format-stages-spec — restore and register the spec that defines the contract for all subsequent work; (2) core-config-types-and-defaults — struct changes, defaults rewrite, validation rules, and unknown-field detection verification (4 tasks); (3) stages-migration — MigrateStagesFormat implementation, wiring into ScaffoldService, and migration test coverage (3 tasks); (4) consumer-updates — daemon iteration, intake lookup, prompt assembly, and cross-package coverage verification (4 tasks). Ordering: spec first because it is the contract implementation verifies against, core types second because migration and consumers depend on the new struct definitions, migration third because it handles existing data, consumers last because they depend on the new types being in place. Set 7 success criteria covering spec completeness, type correctness, validation integrity, unknown-field detection, migration idempotency, consumer updates, and \u003e90% coverage."
+      }
+    ],
+    "gaps": [],
+    "escalations": [
+      {
+        "id": "escalation-core-config-types-and-defaults-1",
+        "timestamp": "2026-03-21T05:31:02.343488Z",
+        "description": "Config package tests cannot be compiled due to daemon package still referencing removed PipelineStage.Name field. Transitive dependency chain: config_test -\u003e testutil -\u003e daemon -\u003e config.PipelineStage.Name. The daemon-update node must complete before these tests can run.",
+        "source_node": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "status": "open"
+      },
+      {
+        "id": "escalation-core-config-types-and-defaults-2",
+        "timestamp": "2026-03-21T05:36:11.925901Z",
+        "description": "Daemon test files (audit_complete_gaps_test.go, audit_coverage_test.go) and pipeline test files (category_a_test.go, prompt_coverage_test.go, prompt_test.go) still reference the removed PipelineStage.Name field and slice-format Stages, causing build failures in those test suites. These must be updated by the daemon-update node to restore full test coverage.",
+        "source_node": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "status": "open"
+      }
+    ],
+    "status": "pending"
+  },
+  "specs": [
+    "2026-03-21T03-11Z-dict-format-stages.md"
+  ]
+}

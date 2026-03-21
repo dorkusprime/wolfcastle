@@ -1,0 +1,3 @@
+# Core Config Types and Defaults
+
+Update the core config structs and defaults to use dict-format stages. Changes PipelineConfig.Stages from []PipelineStage to map[string]PipelineStage, adds StageOrder []string field, removes Name field from PipelineStage, and rewrites Defaults() to return the map-keyed format. Also updates validate.go (replace duplicate-name check with stage_order integrity validation, keep model and prompt_file checks) and unknown.go (verify diffKeys handles map-keyed stages naturally via recursive map traversal, add test cases for typos inside stage configs like 'promt_file'). All modified packages must maintain >90% test coverage.

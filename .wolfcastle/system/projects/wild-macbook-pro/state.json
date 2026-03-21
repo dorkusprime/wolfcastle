@@ -16,8 +16,7 @@
     "global-lock-leak-in-tests",
     "delete-deprecated-scaffold",
     "doctor-childref-state-mismatch",
-    "stages-dict-refactor",
-    "stages-dict-coverage"
+    "pipeline-stages-dict-refactor"
   ],
   "nodes": {
     "ci-and-lint-tooling": {
@@ -565,6 +564,51 @@
       "decomposition_depth": 0,
       "parent": "global-lock-leak-in-tests"
     },
+    "pipeline-stages-dict-refactor": {
+      "name": "Pipeline Stages Dict Refactor",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor",
+      "decomposition_depth": 0,
+      "children": [
+        "pipeline-stages-dict-refactor/dict-format-stages-spec",
+        "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+        "pipeline-stages-dict-refactor/stages-migration",
+        "pipeline-stages-dict-refactor/consumer-updates"
+      ]
+    },
+    "pipeline-stages-dict-refactor/consumer-updates": {
+      "name": "Consumer Updates",
+      "type": "leaf",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor/consumer-updates",
+      "decomposition_depth": 0,
+      "parent": "pipeline-stages-dict-refactor"
+    },
+    "pipeline-stages-dict-refactor/core-config-types-and-defaults": {
+      "name": "Core Config Types and Defaults",
+      "type": "leaf",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
+      "decomposition_depth": 0,
+      "parent": "pipeline-stages-dict-refactor"
+    },
+    "pipeline-stages-dict-refactor/dict-format-stages-spec": {
+      "name": "Dict-Format Stages Spec",
+      "type": "leaf",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor/dict-format-stages-spec",
+      "decomposition_depth": 0,
+      "parent": "pipeline-stages-dict-refactor"
+    },
+    "pipeline-stages-dict-refactor/stages-migration": {
+      "name": "Stages Migration",
+      "type": "leaf",
+      "state": "complete",
+      "address": "pipeline-stages-dict-refactor/stages-migration",
+      "decomposition_depth": 0,
+      "parent": "pipeline-stages-dict-refactor"
+    },
     "property-and-fuzz-tests": {
       "name": "Property and Fuzz Tests",
       "type": "orchestrator",
@@ -609,49 +653,6 @@
       "address": "self-update-fix/honest-stub",
       "decomposition_depth": 0,
       "parent": "self-update-fix"
-    },
-    "stages-dict-coverage": {
-      "name": "Stages Dict Coverage",
-      "type": "orchestrator",
-      "state": "not_started",
-      "address": "stages-dict-coverage",
-      "decomposition_depth": 0
-    },
-    "stages-dict-refactor": {
-      "name": "Stages Dict Refactor",
-      "type": "orchestrator",
-      "state": "in_progress",
-      "address": "stages-dict-refactor",
-      "decomposition_depth": 0,
-      "children": [
-        "stages-dict-refactor/config-layer",
-        "stages-dict-refactor/consumer-layer",
-        "stages-dict-refactor/spec-updates"
-      ]
-    },
-    "stages-dict-refactor/config-layer": {
-      "name": "Config Layer",
-      "type": "orchestrator",
-      "state": "not_started",
-      "address": "stages-dict-refactor/config-layer",
-      "decomposition_depth": 0,
-      "parent": "stages-dict-refactor"
-    },
-    "stages-dict-refactor/consumer-layer": {
-      "name": "Consumer Layer",
-      "type": "orchestrator",
-      "state": "not_started",
-      "address": "stages-dict-refactor/consumer-layer",
-      "decomposition_depth": 0,
-      "parent": "stages-dict-refactor"
-    },
-    "stages-dict-refactor/spec-updates": {
-      "name": "Spec Updates",
-      "type": "leaf",
-      "state": "in_progress",
-      "address": "stages-dict-refactor/spec-updates",
-      "decomposition_depth": 0,
-      "parent": "stages-dict-refactor"
     }
   }
 }
