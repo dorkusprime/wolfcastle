@@ -213,6 +213,7 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 
 	_ = d.Logger.Log(map[string]any{
 		"type":      "planning_complete",
+		"node":      nodeAddr,
 		"exit_code": result.ExitCode,
 	})
 
