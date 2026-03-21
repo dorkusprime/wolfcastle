@@ -19,7 +19,7 @@ Check the codebase:
 If all success criteria are met and no gaps exist, this orchestrator's work is done.
 
 If gaps exist:
-- Create new leaves to address them using `wolfcastle project create` and `wolfcastle task add`.
+- Create new leaves to address them using `wolfcastle project create`. Do NOT use `wolfcastle task add`; the execution agent creates tasks.
 - Update success criteria if the scope has evolved: `wolfcastle orchestrator criteria --node <your-node> "updated criterion"`.
 
 ### D. Record

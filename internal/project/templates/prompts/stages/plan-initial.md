@@ -27,18 +27,13 @@ wolfcastle project create "<name>" --node <your-node> --type orchestrator \
   --description "What this orchestrator covers and why it exists as a group"
 ```
 
-**Leaf with tasks** (for concrete, implementable work):
+**Leaf node** (for concrete, implementable work):
 ```
 wolfcastle project create "<name>" --node <your-node> --type leaf \
-  --description "What this leaf delivers and how it fits into the parent's scope"
-wolfcastle task add --node <your-node>/<leaf-name> "task title" \
-  --body "detailed description" \
-  --type implementation \
-  --deliverable "path/to/file" \
-  --acceptance "tests pass" \
-  --constraint "do not modify X" \
-  --reference "docs/specs/some-spec.md"
+  --description "What this leaf delivers. Include enough detail that the execution agent can create its own tasks without guessing."
 ```
+
+Do NOT call `wolfcastle task add` on child nodes. You create structure. The execution agent creates tasks when it runs on each leaf. Your job is to write a description detailed enough that the executor knows what to build, what files to touch, and what constraints to follow.
 
 Set success criteria for this orchestrator:
 ```
@@ -65,20 +60,15 @@ Emit WOLFCASTLE_BLOCKED if the scope cannot be planned (missing information not 
 - Maximum 10 direct children per orchestrator. If more are needed, group them under child orchestrators.
 - If you have more than 4 direct children, group related work under sub-orchestrators. Each sub-orchestrator gets its own audit pass, which makes verification more targeted than one audit covering everything. Prefer 2-4 children per orchestrator with sub-orchestrators over 5-10 flat children.
 - Maximum 8 tasks per leaf. If a leaf needs more, split into multiple leaves.
-- **Create children in execution order.** The daemon executes depth-first in creation order. The first child you create runs first. If child B depends on child A's output, create A before B. Spec-writing leaves go before implementation leaves. Discovery before specs. This applies to both tasks within a leaf and children within an orchestrator.
-- **Specs before implementation.** Every leaf that creates a new type, interface, or package should have a spec-writing task before the implementation task. The spec defines the contract (methods, error behavior, usage patterns) so the implementer has a target and the auditor has something to verify against. Without a spec, the audit will flag a missing contract and trigger remediation, wasting an entire cycle.
-- Discovery tasks must precede spec tasks when you lack information.
-- Every `project create` must have a `--description` explaining what the node covers. The description is written to a markdown file in the node directory and serves as the primary context for execution and auditing. "Project description goes here" is never acceptable.
-- Every task must have a --body with concrete details. One-line descriptions are not acceptable.
-- Every implementation task must have at least one --deliverable.
-- Every task should have --acceptance criteria.
-- If this orchestrator's scope references a spec, or if you found relevant specs in `.wolfcastle/docs/specs/` during the Study phase, every task must include `--reference "path/to/spec.md"`. The executor receives these references in its iteration context and can read them during Study. Without references, the executor has to discover the spec by searching. Specs written by sibling nodes are particularly important: they define contracts your children must implement.
-- Cleanup and deletion tasks go last within their leaf.
+- **Create children in execution order.** The daemon executes depth-first in creation order. The first child you create runs first. Spec leaves before implementation leaves. Discovery before specs.
+- **Specs before implementation.** If the work defines new types, interfaces, or contracts, create a spec-writing leaf BEFORE the implementation leaves. The spec leaf's description should say what contract to define. The implementation leaf's description should reference the spec. Without a spec, the audit will flag a missing contract and trigger remediation.
+- Every `project create` must have a `--description` explaining what the node covers. The description is the primary context for execution and auditing. Write enough detail that the execution agent can create its own tasks without guessing. "Project description goes here" is never acceptable.
+- If you found relevant specs in `.wolfcastle/docs/specs/` during the Study phase, mention them in the child's `--description` so the executor knows to read them.
 
 ## Rules
 
-- You do not write application code. You create structure and define tasks.
-- **Only create YOUR direct children.** If you create a child orchestrator, set its `--scope` and stop. Do not create that orchestrator's children or add tasks to its leaves. Each orchestrator plans its own level when its turn comes. If you reach into grandchildren, you're taking decisions that belong to a lower-level planner with better context.
+- You create structure, not tasks. Use `wolfcastle project create` to make children. Do NOT use `wolfcastle task add`. The execution agent creates tasks when it runs on each leaf.
+- **Only create YOUR direct children.** If you create a child orchestrator, set its `--description` and stop. Do not create that orchestrator's children. Each orchestrator plans its own level when its turn comes.
 - You may read any file in the codebase to inform your planning.
-- Do not call wolfcastle task claim, task complete, or task block.
+- Do not call wolfcastle task add, task claim, task complete, or task block.
 - Always emit exactly one terminal marker: WOLFCASTLE_COMPLETE or WOLFCASTLE_BLOCKED.
