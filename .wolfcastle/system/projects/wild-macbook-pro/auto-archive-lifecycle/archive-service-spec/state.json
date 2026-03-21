@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "id": "archive-service-spec",
+  "name": "Archive Service Spec",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write archive service specification",
+      "description": "Write archive service specification",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/auto-archive-service-contract.md",
+        ".wolfcastle/docs/specs/2026-03-21T12-27Z-auto-archive-service-contract.md"
+      ],
+      "body": "Create a spec document via wolfcastle spec create that defines the complete auto-archive service contract. The spec must cover:\n\n1. **Archive state model**: How completion timestamps are tracked on nodes (field on NodeState and/or RootIndex entries), what 'archived' means in the state machine (a new status? a flag? removal from active index with metadata preserved?).\n\n2. **File layout**: Where archived node state lives. The scope says 'system/projects/ to archive/' but clarify whether this means the .wolfcastle/archive/ directory (which currently holds markdown rollup entries) or a new .wolfcastle/system/archive/ directory. Define the directory structure for archived state (preserving the node hierarchy or flattening).\n\n3. **Operations**: move (archive a completed node), restore (un-archive back to active), delete (permanently remove archived state). Define preconditions (e.g., move requires complete status, restore places node back in not_started or complete state), side effects on RootIndex, and error cases.\n\n4. **Config schema**: An ArchiveConfig struct with at minimum auto_archive_delay_hours (int, default 24), auto_archive_enabled (bool, default true). Where this lives in the Config tree.\n\n5. **Daemon timer interface**: How the daemon discovers eligible nodes (completed top-level orchestrators with last activity older than threshold), the polling interval for archive checks, and interaction with the existing daemon loop (new goroutine? checked in RunOnce?).\n\n6. **Status integration contract**: What the status command needs from the archive system to render counts and filtered views. Define the data structures or query interface.\n\nReference existing specs: 2026-03-12T00-05Z-archive-format.md (current archive entry format), 2026-03-12T00-00Z-state-machine.md (node lifecycle). Reference ADR-016 (archive format with deterministic rollup).",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-12T00-05Z-archive-format.md",
+        ".wolfcastle/docs/specs/2026-03-12T00-00Z-state-machine.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Archive Service Spec is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify spec covers all six areas: state model, file layout, operations, config schema, daemon timer interface, and status integration contract"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T12:28:50.342473Z",
+        "task": "auto-archive-lifecycle/archive-service-spec",
+        "text": "Wrote auto-archive service contract spec (2026-03-21T12-27Z-auto-archive-service-contract.md). Covers six sections: archive state model (Archived flag on IndexEntry, ArchivedRoot on RootIndex), file layout (.archive/ inside namespace), operations (move/restore/delete), ArchiveConfig struct, daemon timer in RunOnce idle path, and status integration with --archived flag."
+      },
+      {
+        "timestamp": "2026-03-21T12:30:29.834694Z",
+        "task": "auto-archive-lifecycle/archive-service-spec",
+        "text": "Audit reviewed 1 file: .wolfcastle/docs/specs/2026-03-21T12-27Z-auto-archive-service-contract.md (260 lines). PASS. Verified all six sections against source: AuditState.CompletedAt (types.go:154), IndexEntry (types.go:78), RootIndex (types.go:68), Config (config/types.go:5), Daemon struct (daemon.go:53), archive.GenerateEntry (rollup.go:23), FindNextTask (navigation.go). Every claim about existing types and structures is accurate. Proposed extensions (Archived/ArchivedAt on IndexEntry, ArchivedRoot on RootIndex, ArchiveConfig on Config, lastArchiveCheck on Daemon) follow established patterns. The non-atomic move recovery heuristic is pragmatic and well-documented. ADR-016 reference confirmed (docs/decisions/016-archive-format-and-summary.md). No gaps found."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T12:23:16.741378Z",
+    "completed_at": "2026-03-21T12:30:38.994458Z",
+    "result_summary": "Wrote and audited the auto-archive service contract spec. The spec defines six contracts: archive state model (orthogonal Archived flag on IndexEntry, ArchivedRoot on RootIndex), file layout (.archive/ inside namespace directories), operations (move/restore/delete with recovery heuristics for non-atomic moves), ArchiveConfig struct with sensible defaults, daemon integration via RunOnce idle path processing one node per iteration with no new goroutine, and status command integration with --archived filtering. All claims verified against current source. No code changes required; the spec serves as the implementation blueprint for downstream tasks."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T12:28:43.119906Z",
+      "objective": "Write the auto-archive service contract spec covering state model, file layout, operations, config, daemon integration, and status rendering.",
+      "what_happened": "Read existing types (NodeState, RootIndex, IndexEntry, Config, DaemonConfig), the archive rollup package, the archive add CLI command, the daemon RunOnce flow, and the status command. Designed the archive as an orthogonal flag on IndexEntry rather than a new lifecycle state, to preserve the four-state machine. Chose .archive/ inside the namespace directory (not the existing .wolfcastle/archive/ which holds Markdown rollups). Placed archive checking in RunOnce's idle path, processing one node per iteration with no new goroutine.",
+      "went_well": [
+        "The existing AuditState.CompletedAt field provides exactly the timestamp needed for delay calculation, no schema changes to NodeState required.",
+        "Keeping archival orthogonal to the state machine means FindNextTask needs only a single boolean check to skip archived entries."
+      ],
+      "improvements": [
+        "The move operation is not atomic across multiple directory renames. The spec describes a recovery heuristic but a transactional approach (e.g., write-ahead log or two-phase rename) would be more robust."
+      ],
+      "action_items": [
+        "Implementation must add Archived and ArchivedAt fields to IndexEntry in internal/state/types.go",
+        "Implementation must add ArchivedRoot slice to RootIndex",
+        "Implementation must add ArchiveConfig to Config and register defaults in config.go",
+        "FindNextTask must skip entries where Archived == true",
+        "Status command needs --archived flag and archive count in summary line"
+      ]
+    }
+  },
+  "specs": [
+    "2026-03-21T12-27Z-auto-archive-service-contract.md"
+  ]
+}

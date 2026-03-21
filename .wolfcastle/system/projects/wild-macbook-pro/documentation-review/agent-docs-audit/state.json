@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "id": "agent-docs-audit",
+  "name": "Agent Docs Audit",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Verify architecture.md dependency graph",
+      "description": "Verify architecture.md dependency graph",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/agents/architecture.md"
+      ],
+      "body": "Read docs/agents/architecture.md and compare its module layout and dependency graph against the actual internal/ package structure. The codebase now has ~20 internal packages (archive, clock, config, daemon, errors, git, invoke, logging, output, pipeline, project, selfupdate, signals, state, testutil, tierfs, tree, validate). Verify import relationships are accurately depicted. Check that new packages (git, tierfs, signals) are represented and that the data flow description reflects current pipeline execution with AARs, spec review, and planning stages."
+    },
+    {
+      "id": "task-0002",
+      "title": "Verify daemon.md and commands.md",
+      "description": "Verify daemon.md and commands.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/agents/daemon.md",
+        "docs/agents/commands.md"
+      ],
+      "body": "Check docs/agents/daemon.md against current daemon loop implementation. Must reflect: (1) pipeline stages as dict with StageOrder, (2) spec review as automatic post-spec-completion stage, (3) AAR recording, (4) selfHeal behavior including blocked audit remediation and stale task reset, (5) stall detector in invoke, (6) auto-archive running inline in RunOnce per ADR. Check docs/agents/commands.md for completeness: must cover all current cmd/ subcommands including config show/set/unset/append/remove, audit aar/report/enrich, archive add, and any other recently added commands."
+    },
+    {
+      "id": "task-0003",
+      "title": "Verify state-and-types.md and remaining agent guides",
+      "description": "Verify state-and-types.md and remaining agent guides",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        "docs/agents/state-and-types.md",
+        "docs/agents/code-standards.md",
+        "docs/agents/testing.md"
+      ],
+      "last_failure_type": "no_terminal_marker",
+      "body": "Check docs/agents/state-and-types.md against internal/state types. Verify all node states, task states, and propagation rules are current. Check that PipelineStage struct fields match (Model, PromptFile, Enabled, SkipPromptAssembly, AllowedCommands). Also check code-standards.md, testing.md, documentation.md, and VOICE.md for any stale guidance. Pay particular attention to testing.md patterns which should reflect current integration test approach and testutil builder patterns."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Agent Docs Audit is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify architecture.md lists all ~20 internal packages including git, tierfs, signals; verify daemon.md covers selfHeal blocked audit remediation and stall detector; verify commands.md lists config write commands"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T15:07:38.394666Z",
+        "task": "documentation-review/agent-docs-audit",
+        "text": "Verified architecture.md: fixed daemon deps (+archive), added cmd/config/ to layout, wrote Execution Pipeline and Side Flows section covering AARs, spec review, and auto-archive"
+      },
+      {
+        "timestamp": "2026-03-21T15:11:30.97637Z",
+        "task": "documentation-review/agent-docs-audit",
+        "text": "Verified daemon.md and commands.md: added spec review, AAR, stall detector, auto-archive, dict+StageOrder pipeline, blocked audit remediation to daemon.md; added full command reference to commands.md"
+      },
+      {
+        "timestamp": "2026-03-21T15:17:23.878814Z",
+        "task": "documentation-review/agent-docs-audit",
+        "text": "Verified state-and-types.md, code-standards.md, testing.md: fixed mutations list, function signatures, archive fields, status constants, linter list, added testutil.Environment builder docs. VOICE.md and documentation.md confirmed current."
+      },
+      {
+        "timestamp": "2026-03-21T15:21:14.123971Z",
+        "task": "documentation-review/agent-docs-audit",
+        "text": "Audit reviewed 6 documentation files (architecture.md, daemon.md, commands.md, state-and-types.md, code-standards.md, testing.md) across 3 prior tasks. PASS. Verified dependency graph claims against actual internal/ imports: all 7 dependency chains accurate. Verified RunOnce four-step structure matches daemon.md description. Confirmed all cmd/ subcommands represented in commands.md. Confirmed golangci-lint linter list matches .golangci.yml. Build passes, all unit tests pass, go vet clean. No findings requiring remediation. One pre-existing note: .wolfcastle/archive/ directory doesn't exist on disk until first archive runs, which the architecture.md diagram correctly anticipates. Quality: thorough, well-structured documentation updates that close real gaps between code and docs."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T15:04:26.110313Z",
+    "completed_at": "2026-03-21T15:21:32.88774Z",
+    "result_summary": "Audited and updated six agent documentation files (architecture.md, daemon.md, commands.md, state-and-types.md, code-standards.md, testing.md) to match the current codebase. Task-0001 corrected the dependency graph, added cmd/config/ to the module layout, and wrote a new section on AARs, spec review, and auto-archive. Task-0002 added spec review, AAR, stall detector, auto-archive, and pipeline dict+StageOrder coverage to daemon.md, and wrote a full command reference in commands.md. Task-0003 fixed mutation lists, function signatures, archive fields, status constants, the linter list, and added testutil.Environment builder docs. Audit verified all claims against source: dependency graph accurate, RunOnce structure confirmed, command inventory complete, linter config matches. Build, tests, and vet all pass. No remediation needed."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T15:21:23.087577Z",
+      "objective": "Verify all documentation updates in agent-docs-audit are complete and correct",
+      "what_happened": "Read all 6 files modified by prior tasks. Verified architecture.md dependency graph against actual imports in every listed package (all 7 chains confirmed). Verified RunOnce four-step structure against daemon.go source. Verified commands.md completeness against cmd/ directory tree. Confirmed golangci-lint config matches code-standards.md. Ran build, unit tests, and go vet: all clean.",
+      "went_well": [
+        "All dependency claims verified accurate, no stale or missing edges",
+        "Agent-based parallel verification was fast and thorough"
+      ],
+      "improvements": [
+        "Could have spot-checked more of the state-and-types.md mutation signatures against actual function signatures"
+      ],
+      "action_items": [
+        "When auto-archive actually runs, verify .wolfcastle/archive/ directory creation matches the data flow diagram in architecture.md"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T15:07:36.689337Z",
+      "objective": "Verify architecture.md dependency graph and data flow against actual codebase",
+      "what_happened": "Compared the documented module layout, cmd/ tree, and package dependency graph against the actual internal/ imports (from non-test .go files) and cmd/ directory listing. Found three discrepancies: (1) daemon was missing archive in its dependency list, (2) cmd/config/ subdirectory was absent from the module layout, (3) AARs, spec review, and auto-archive were not described anywhere in the doc. Added all three corrections plus a new 'Execution Pipeline and Side Flows' section.",
+      "went_well": [
+        "Dependency verification was thorough: checked every internal package's non-test imports",
+        "The new section on side flows fills a real gap; someone reading the old doc would have no idea how AARs or spec review work"
+      ],
+      "improvements": [
+        "Could have verified the Data Flow ASCII diagram more carefully against actual .wolfcastle/ on disk (archive/ dir doesn't exist on disk yet)"
+      ],
+      "action_items": [
+        "When auto-archive lands fully, verify that .wolfcastle/archive/ actually gets created and the Data Flow diagram still holds"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T15:11:30.028667Z",
+      "objective": "Verify daemon.md and commands.md against current codebase implementation",
+      "what_happened": "Compared both docs against actual source in internal/daemon/, internal/invoke/, internal/config/, internal/state/, and cmd/. Found six gaps in daemon.md: missing spec review section, missing AAR section, pipeline stages described as flat list rather than dict+StageOrder, selfHeal missing blocked audit remediation, no stall detector coverage, no auto-archive section. RunOnce was documented as three steps but is now four. commands.md had no command inventory at all. Fixed all issues.",
+      "went_well": [
+        "Agent-based parallel exploration of daemon internals and cmd/ tree was thorough and fast",
+        "All six checklist items from the task description are now covered in daemon.md"
+      ],
+      "improvements": [
+        "Could have verified spec review prompt template path exists on disk"
+      ],
+      "action_items": [
+        "If spec review flow changes (e.g., review becomes its own pipeline stage), the daemon.md section will need updating"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T15:17:22.487267Z",
+      "objective": "Verify state-and-types.md and remaining agent guides against current codebase",
+      "what_happened": "Compared state-and-types.md against internal/state types.go, mutations.go, inbox_types.go, review_types.go. Found mutations list incomplete (missing TaskAdd, TaskChildren, AddAAR), function signatures inaccurate (missing clock.Clock params, return types), RootIndex/IndexEntry missing archive fields, NodeState JSON example missing planning/AAR/spec fields, and status constants table missing inbox/review types. Also checked code-standards.md and found golangci-lint linter list included gosimple (not in .golangci.yml) and didn't distinguish v2 formatter vs linter. testing.md was missing the testutil.Environment builder pattern entirely. Fixed all three files. VOICE.md and documentation.md were current.",
+      "went_well": [
+        "Thorough comparison of actual Go types against documented types caught several non-obvious gaps",
+        "PipelineStage fields (Model, PromptFile, Enabled, SkipPromptAssembly, AllowedCommands) confirmed to match documentation"
+      ],
+      "improvements": [
+        "Could have verified that the Propagation section accurately describes the max-depth guard (100 levels) against the actual code constant"
+      ],
+      "action_items": [
+        "When new state types are added (e.g. for future features), update the status constants table in state-and-types.md"
+      ]
+    }
+  }
+}

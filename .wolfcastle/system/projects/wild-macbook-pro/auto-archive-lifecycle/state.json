@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "auto-archive-lifecycle",
+  "name": "Auto-Archive Lifecycle",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "archive-service-spec",
+      "address": "auto-archive-lifecycle/archive-service-spec",
+      "state": "complete"
+    },
+    {
+      "id": "archive-implementation",
+      "address": "auto-archive-lifecycle/archive-implementation",
+      "state": "complete"
+    },
+    {
+      "id": "archive-status-rendering",
+      "address": "auto-archive-lifecycle/archive-status-rendering",
+      "state": "complete"
+    },
+    {
+      "id": "daemon-auto-archive",
+      "address": "auto-archive-lifecycle/daemon-auto-archive",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Auto-Archive Lifecycle is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Implement auto-archiving for completed top-level orchestrators. Fully complete orchestrators (all children, all audits) auto-archive after a configurable delay (default: 24h since last activity). Archived nodes move from system/projects/ to archive/. Status shows active work plus a count line ('N archived nodes'). New flags: status --archived (show only archived), status --all (show everything). New commands: wolfcastle archive add --node \u003caddr\u003e, wolfcastle archive restore --node \u003caddr\u003e, wolfcastle archive delete --node \u003caddr\u003e. Needs: archive state tracking (completion timestamp per node), archive move logic, status rendering changes, CLI commands, config for delay threshold, daemon auto-archive timer. Also requires test coverage above 90% for all new and modified code — particularly archive move/restore/delete logic, status rendering with archive flags, and the daemon auto-archive timer. Run go test -coverprofile and verify no package dropped below its pre-change coverage.",
+  "success_criteria": [
+    "wolfcastle archive add moves completed node state from system/projects/ to archive storage and generates markdown rollup",
+    "wolfcastle archive restore returns an archived node to the active project tree",
+    "wolfcastle archive delete permanently removes archived node state",
+    "Daemon auto-archives completed top-level orchestrators after configurable delay (default 24h)",
+    "wolfcastle status shows only active nodes by default with an 'N archived nodes' count line",
+    "wolfcastle status --archived shows only archived nodes",
+    "wolfcastle status --all shows both active and archived nodes",
+    "All new and modified code maintains \u003e90% test coverage"
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T12:23:16.65773Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T12:23:05.950953Z",
+        "task": "auto-archive-lifecycle",
+        "text": "Created 4 children: archive-service-spec (leaf, spec first), archive-implementation (orchestrator, core logic), archive-status-rendering (leaf, status command changes), daemon-auto-archive (leaf, daemon timer). Ordering: spec defines the contract before any implementation begins; archive-implementation groups config, state types, service logic, and CLI commands under a sub-orchestrator for its own decomposition; status rendering depends on the archive service being available; daemon timer is last because it depends on both the service and config."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-21T13:53:33.711358Z"
+  }
+}

@@ -96,3 +96,8 @@ When a project completes, it graduates to the archive. Each archive entry is a s
 ```
 
 Contents: model-written summary, chronological [breadcrumbs](audits.md#breadcrumbs), [audit results](audits.md#the-audit-system), and metadata (node path, timestamp, engineer, branch). Archive filenames are unique by construction. Append-only. Merge-conflict-proof.
+
+Archival can happen manually via `wolfcastle archive add`, or automatically when the daemon's [auto-archive](how-it-works.md#auto-archive) feature is enabled. Once archived, a node no longer appears in normal `wolfcastle status` output. Two additional commands manage archived state:
+
+- `wolfcastle archive restore --node <address>` moves an archived node back to active state.
+- `wolfcastle archive delete --node <address> --confirm` permanently removes an archived node. Irreversible.

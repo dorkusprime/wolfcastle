@@ -64,17 +64,17 @@
       ]
     },
     {
+      "id": "audit.0001",
+      "description": "Fix: Config test suite cannot run: daemon package still references removed PipelineStage.Name field, causing transitive compile failure through testutil. Will be resolved when daemon package is updated in a later node.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node pipeline-stages-dict-refactor/core-config-types-and-defaults gap-core-config-types-and-defaults-1",
+      "state": "complete",
+      "failure_count": 0
+    },
+    {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Core Config Types and Defaults is complete and correct",
       "state": "complete",
       "is_audit": true,
-      "failure_count": 0
-    },
-    {
-      "id": "audit.0001",
-      "description": "Fix: Config test suite cannot run: daemon package still references removed PipelineStage.Name field, causing transitive compile failure through testutil. Will be resolved when daemon package is updated in a later node.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node pipeline-stages-dict-refactor/core-config-types-and-defaults gap-core-config-types-and-defaults-1",
-      "state": "complete",
       "failure_count": 0
     }
   ],

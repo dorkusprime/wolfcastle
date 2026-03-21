@@ -15,9 +15,11 @@ Wolfcastle persists all state as JSON files under `.wolfcastle/`:
   "root_name": "...",
   "root_state": "not_started",
   "root": ["child-1", "child-2"],
+  "archived_root": ["old-project"],
   "nodes": {
-    "child-1": { "name": "...", "type": "leaf", "state": "not_started", ... },
-    "child-1/sub": { "name": "...", "type": "leaf", "state": "complete", "parent": "child-1", ... }
+    "child-1": { "name": "...", "type": "leaf", "state": "not_started", "address": "child-1", "decomposition_depth": 0, ... },
+    "child-1/sub": { "name": "...", "type": "leaf", "state": "complete", "address": "child-1/sub", "parent": "child-1", ... },
+    "old-project": { "name": "...", "type": "leaf", "state": "complete", "archived": true, "archived_at": "2026-03-20T...", ... }
   }
 }
 ```
@@ -31,7 +33,14 @@ Wolfcastle persists all state as JSON files under `.wolfcastle/`:
   "name": "Node Name",
   "type": "leaf",
   "state": "in_progress",
-  "tasks": [ { "id": "task-1", "description": "...", "state": "not_started", ... } ],
+  "decomposition_depth": 0,
+  "tasks": [ { "id": "task-1", "title": "...", "description": "...", "state": "not_started", ... } ],
+  "scope": "...",
+  "pending_scope": [],
+  "success_criteria": [],
+  "needs_planning": false,
+  "aars": {},
+  "specs": [],
   "audit": {
     "status": "pending",
     "breadcrumbs": [],
@@ -47,13 +56,16 @@ Wolfcastle persists all state as JSON files under `.wolfcastle/`:
 
 Always use typed constants from `internal/state/types.go`:
 
-| Domain | Constants |
-|--------|-----------|
-| Node/Task status | `StatusNotStarted`, `StatusInProgress`, `StatusComplete`, `StatusBlocked` |
-| Audit lifecycle | `AuditPending`, `AuditInProgress`, `AuditPassed`, `AuditFailed` |
-| Node type | `NodeOrchestrator`, `NodeLeaf` |
-| Gap status | `GapOpen`, `GapFixed` |
-| Escalation status | `EscalationOpen`, `EscalationResolved` |
+| Domain | Constants | File |
+|--------|-----------|------|
+| Node/Task status | `StatusNotStarted`, `StatusInProgress`, `StatusComplete`, `StatusBlocked` | `types.go` |
+| Audit lifecycle | `AuditPending`, `AuditInProgress`, `AuditPassed`, `AuditFailed` | `types.go` |
+| Node type | `NodeOrchestrator`, `NodeLeaf` | `types.go` |
+| Gap status | `GapOpen`, `GapFixed` | `types.go` |
+| Escalation status | `EscalationOpen`, `EscalationResolved` | `types.go` |
+| Inbox item status | `InboxNew`, `InboxFiled` | `inbox_types.go` |
+| Review batch status | `BatchPending`, `BatchCompleted` | `review_types.go` |
+| Finding status | `FindingPending`, `FindingApproved`, `FindingRejected` | `review_types.go` |
 
 ## Hierarchical Task IDs
 
@@ -73,16 +85,19 @@ Used by `selfHeal`, `PreStartSelfHeal`, `TaskComplete` (auto-completes parent wh
 
 All mutations go through functions in `internal/state/mutations.go`:
 
-- `TaskClaim(ns, taskID)`: not_started → in_progress
-- `TaskComplete(ns, taskID)`: in_progress → complete
-- `TaskBlock(ns, taskID, reason)`: → blocked
-- `TaskUnblock(ns, taskID)`: blocked → not_started
-- `TaskAddChild(ns, parentID, description)`: creates a child task under a parent
-- `DeriveParentStatus(ns, taskID)`: computes parent status from immediate children
-- `AddBreadcrumb(ns, task, text)`
-- `AddEscalation(ns, id, desc, source, gapID)`
-- `IncrementFailure(ns, taskID)`
-- `SetNeedsDecomposition(ns, taskID, needs)`
+- `TaskAdd(ns, description) (*Task, error)`: appends a new task to the node
+- `TaskAddChild(ns, parentID, description) (*Task, error)`: creates a child task under a parent
+- `TaskChildren(ns, taskID) bool`: returns whether the task has children
+- `TaskClaim(ns, taskID) error`: not_started → in_progress
+- `TaskComplete(ns, taskID) error`: in_progress → complete (auto-completes parent when all siblings finish)
+- `TaskBlock(ns, taskID, reason) error`: → blocked
+- `TaskUnblock(ns, taskID) error`: blocked → not_started (resets failure counter)
+- `DeriveParentStatus(ns, taskID) (NodeStatus, bool)`: computes parent status from immediate children
+- `AddBreadcrumb(ns, taskAddr, text, clk)`: records a timestamped breadcrumb
+- `AddEscalation(parent, sourceNode, description, sourceGapID, clk)`: creates an escalation on the parent node
+- `AddAAR(ns, aar)`: stores an After Action Review keyed by task ID
+- `IncrementFailure(ns, taskID) (int, error)`: bumps failure count, returns new count
+- `SetNeedsDecomposition(ns, taskID, needs)`: flags a task for decomposition
 
 ## State Propagation
 

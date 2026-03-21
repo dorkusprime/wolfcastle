@@ -48,4 +48,4 @@ Follow the [Go Style Guide](https://google.github.io/styleguide/go/) and these p
 ### Formatting
 - Run `gofmt -w .` before every commit
 - Run `go vet ./...`. Must pass cleanly
-- Run `golangci-lint run`. Configured in `.golangci.yml` per ADR-049. Linters: errcheck, ineffassign, staticcheck, gosimple, govet, unused, gofmt, misspell, nolintlint. CI enforces this as a hard gate.
+- Run `golangci-lint run`. Configured in `.golangci.yml` (v2 format) per ADR-049. Linters: errcheck, ineffassign, staticcheck, govet, unused, misspell, nolintlint. Formatter: gofmt. CI enforces this as a hard gate.

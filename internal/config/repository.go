@@ -134,3 +134,105 @@ func (r *ConfigRepository) writeTier(index int, overlay map[string]any, label st
 	}
 	return nil
 }
+
+// tierIndex maps a tier name to its index in TierDirs, rejecting "base"
+// since base is managed exclusively through WriteBase with a full Config.
+func tierIndex(tier string) (int, error) {
+	switch tier {
+	case "custom":
+		return 1, nil
+	case "local":
+		return 2, nil
+	case "base":
+		return 0, fmt.Errorf("config: base tier is read-only; use WriteBase with a full Config")
+	default:
+		return 0, fmt.Errorf("config: unknown tier %q; expected \"custom\" or \"local\"", tier)
+	}
+}
+
+// ReadTier reads and parses a single tier's config.json overlay. Returns an
+// empty map if the file does not exist. Accepts "custom" or "local"; rejects
+// "base" because the base tier is written only via WriteBase with a full Config.
+func (r *ConfigRepository) ReadTier(tier string) (map[string]any, error) {
+	idx, err := tierIndex(tier)
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(r.tiers.TierDirs()[idx], "config.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return map[string]any{}, nil
+		}
+		return nil, fmt.Errorf("config: reading %s/config.json: %w", tier, err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, fmt.Errorf("config: %s/config.json is not valid JSON: %w", tier, err)
+	}
+	return m, nil
+}
+
+// WriteTier writes an overlay to the specified tier. Dispatches to WriteCustom
+// or WriteLocal based on tier name. Rejects "base".
+func (r *ConfigRepository) WriteTier(tier string, overlay map[string]any) error {
+	switch tier {
+	case "custom":
+		return r.WriteCustom(overlay)
+	case "local":
+		return r.WriteLocal(overlay)
+	case "base":
+		return fmt.Errorf("config: base tier is read-only; use WriteBase with a full Config")
+	default:
+		return fmt.Errorf("config: unknown tier %q; expected \"custom\" or \"local\"", tier)
+	}
+}
+
+// ApplyMutation performs a read-modify-write-validate cycle on a tier overlay.
+// It reads the current overlay, calls mutate to modify it in-place, writes it
+// back, then runs Load() to validate the merged result. If validation fails,
+// the original tier file contents are restored and the validation error is returned.
+func (r *ConfigRepository) ApplyMutation(tier string, mutate func(overlay map[string]any) error) error {
+	// Validate the tier name before doing anything.
+	idx, err := tierIndex(tier)
+	if err != nil {
+		return err
+	}
+
+	// Snapshot the original file contents for rollback.
+	path := filepath.Join(r.tiers.TierDirs()[idx], "config.json")
+	original, readErr := os.ReadFile(path)
+	existed := readErr == nil
+	if readErr != nil && !os.IsNotExist(readErr) {
+		return fmt.Errorf("config: reading %s/config.json for snapshot: %w", tier, readErr)
+	}
+
+	// Read the current overlay.
+	overlay, err := r.ReadTier(tier)
+	if err != nil {
+		return err
+	}
+
+	// Apply the mutation.
+	if err := mutate(overlay); err != nil {
+		return fmt.Errorf("config: mutation failed: %w", err)
+	}
+
+	// Write the mutated overlay.
+	if err := r.WriteTier(tier, overlay); err != nil {
+		return err
+	}
+
+	// Validate the merged result.
+	if _, err := r.Load(); err != nil {
+		// Rollback: restore original file contents.
+		if existed {
+			_ = os.WriteFile(path, original, 0o644)
+		} else {
+			_ = os.Remove(path)
+		}
+		return fmt.Errorf("config: validation failed, changes rolled back: %w", err)
+	}
+
+	return nil
+}

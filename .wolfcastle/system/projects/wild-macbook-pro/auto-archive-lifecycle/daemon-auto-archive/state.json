@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "id": "daemon-auto-archive",
+  "name": "Daemon Auto-Archive",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement auto-archive scan in daemon",
+      "description": "Implement auto-archive scan in daemon",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/archive.go"
+      ],
+      "body": "Add an auto-archive check to the daemon loop. The check should:\n\n1. Read the ArchiveConfig from the daemon's config to determine if auto-archive is enabled and what the delay threshold is.\n2. Scan the RootIndex for top-level orchestrator nodes in 'complete' state.\n3. For each complete node, compare the completion timestamp (or last activity time from breadcrumbs/audit) against the current time minus the delay threshold.\n4. For eligible nodes, call the archive service's Move operation.\n5. Log each auto-archive action.\n\nDecide whether this runs inline in RunOnce() (checked each iteration), on a separate timer (like inbox polling), or as a periodic check at a configurable interval. Document the decision in an ADR if it introduces a new goroutine.\n\nReference the inbox goroutine pattern in internal/daemon/stages.go for the parallel goroutine approach. Reference the daemon's existing timer infrastructure (poll intervals in DaemonConfig).",
+      "references": [
+        ".wolfcastle/docs/specs/auto-archive-service-contract.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Add auto-archive configuration wiring",
+      "description": "Add auto-archive configuration wiring",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/daemon.go"
+      ],
+      "body": "Wire the ArchiveConfig into the Daemon struct so the auto-archive timer can read it. Ensure the config is available at daemon construction time (in New() or via the Config field). Add an archive_poll_interval_seconds field to DaemonConfig if using a separate timer, or document why the existing poll interval suffices."
+    },
+    {
+      "id": "task-0003",
+      "title": "Test daemon auto-archive timer",
+      "description": "Test daemon auto-archive timer",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/archive_test.go"
+      ],
+      "body": "Write tests for the auto-archive daemon integration. Cover: (1) nodes completed within threshold are NOT archived, (2) nodes completed past threshold ARE archived, (3) auto-archive disabled in config skips all archiving, (4) only top-level orchestrators are eligible (not nested nodes), (5) already-archived nodes are not re-processed, (6) archive errors are logged but don't crash the daemon, (7) the timer respects the configured interval. Use the daemon's existing test patterns (clock.Mock, StateStore with temp dirs). Target \u003e90% coverage."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Daemon Auto-Archive is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify auto-archive only targets top-level completed orchestrators, not nested children",
+    "Verify auto-archive respects the enabled flag and delay threshold from config"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T12:57:09.236392Z",
+        "task": "auto-archive-lifecycle/daemon-auto-archive",
+        "text": "Implemented auto-archive scan in daemon: added ArchiveConfig to config types/defaults, created archive.go with findArchiveEligible/archiveNode/tryAutoArchive, integrated into RunOnce idle path (step 3, after planning), added 11 tests covering eligibility, archival, throttling, and subtree collection."
+      },
+      {
+        "timestamp": "2026-03-21T12:58:18.746543Z",
+        "task": "auto-archive-lifecycle/daemon-auto-archive",
+        "text": "task-0002: ArchiveConfig wiring already complete from task-0001. Config.Archive is accessible via Daemon.Config, set at construction in New(), and includes archive_poll_interval_seconds (default 300s). No additional changes needed."
+      },
+      {
+        "timestamp": "2026-03-21T13:03:10.043291Z",
+        "task": "auto-archive-lifecycle/daemon-auto-archive",
+        "text": "task-0003: Added 7 tests to archive_test.go covering nested-node exclusion, missing index entries, corrupt state handling, markdown dir errors, archive error resilience, and no-eligible-after-poll. All archive.go functions above 90% coverage (findArchiveEligible 95.2%, archiveNode 92.3%, collectSubtree 100%, tryAutoArchive 100%)."
+      },
+      {
+        "timestamp": "2026-03-21T13:05:34.038398Z",
+        "task": "auto-archive-lifecycle/daemon-auto-archive",
+        "text": "Audit reviewed 2 files (archive.go: 181 lines, archive_test.go: 520 lines) plus config additions in types.go and config.go, integration point in daemon.go. PASS. Build clean, all 18 archive tests pass (including race detector), coverage: findArchiveEligible 95.2%, archiveNode 92.3%, collectSubtree 100%, tryAutoArchive 100%. Package-level coverage 92.3%. go vet and gofmt clean. Six findings examined: (1) findArchiveEligible silently skips ReadNode errors — acceptable, corrupt nodes should not block scanning. (2) archiveNode non-atomicity between directory moves and index update — documented in spec with recovery path, accepted. (3) Logger.Log error discarded in tryAutoArchive — matches established daemon pattern. (4) collectSubtree lacks cycle protection — pre-existing concern, Children is managed by daemon code, not user input. (5) ArchiveConfig.PollIntervalSeconds JSON tag diverges from field name — intentional disambiguation. (6) CI permission sensitivity in ArchiveErrorDoesNotCrash test (AAR flag) — verified test passes locally. Quality: clean, well-structured implementation. Good separation of concerns across four functions. Tests cover happy paths, error paths, edge cases, and throttling behavior. ADR and spec are thorough and accurate."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T12:49:11.223655Z",
+    "completed_at": "2026-03-21T13:05:58.365663Z",
+    "result_summary": "Implemented auto-archive scanning in the daemon loop. Added ArchiveConfig (auto_archive_enabled, auto_archive_delay_hours, archive_poll_interval_seconds) to config types with sensible defaults. Created archive.go with four functions: findArchiveEligible scans Root entries for completed nodes past the delay threshold, archiveNode generates a Markdown rollup and relocates state directories to .archive/ with an atomic index update, collectSubtree walks the Children graph, and tryAutoArchive gates the scan behind a poll interval and archives at most one node per iteration. Integrated into RunOnce as step 3 (after task-finding and planning, before idle reporting), requiring no new goroutine. 18 tests cover eligibility filtering, directory relocation, index mutation, throttling, error resilience, nested-node exclusion, corrupt state, and one-at-a-time archival. All functions exceed 90% coverage. ADR documents the inline-in-RunOnce decision over a separate goroutine. Service contract spec defines the archive state model, file layout, operations, config schema, daemon timer interface, and status integration."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T13:05:54.302342Z",
+      "objective": "Verify all work in daemon-auto-archive node is complete, correct, and high-quality",
+      "what_happened": "Reviewed archive.go (181 lines), archive_test.go (520 lines), config additions in types.go and config.go, and the RunOnce integration in daemon.go. Ran build, all 18 archive tests, race detector, go vet, and gofmt. All pass. Examined six potential findings; all are either intentional design choices documented in the spec/ADR, pre-existing concerns, or match established codebase patterns.",
+      "went_well": [
+        "Test coverage is strong: all four functions above 90%, with both happy-path and error-path coverage",
+        "ADR and spec are thorough, accurately reflecting the implementation",
+        "Clean integration into RunOnce with no new goroutine or synchronization primitives"
+      ],
+      "improvements": [
+        "The ArchiveErrorDoesNotCrash test relies on filesystem permission changes which may not trigger on CI runners with elevated privileges"
+      ],
+      "action_items": [
+        "Consider adding a log line in findArchiveEligible when ReadNode fails, so operators can see if nodes are being silently skipped"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T12:57:22.381124Z",
+      "objective": "Add auto-archive scanning to the daemon loop so completed projects are automatically moved to archive storage after a configurable delay.",
+      "what_happened": "Added ArchiveConfig type (auto_archive_enabled, auto_archive_delay_hours, archive_poll_interval_seconds) to config/types.go with defaults in config/config.go. Created daemon/archive.go containing findArchiveEligible (scans Root entries for complete nodes past delay threshold), archiveNode (generates Markdown rollup, moves state dirs to .archive/, updates RootIndex), collectSubtree (recursive Children walker), and tryAutoArchive (poll-interval throttle + single-node-per-iteration archival). Integrated tryAutoArchive into RunOnce between planning and idle reporting. Added lastArchiveCheck field to Daemon struct for throttling.",
+      "went_well": [
+        "Clean integration: no new goroutine needed, fits naturally into the existing idle work slot in RunOnce",
+        "11 tests pass covering eligibility filtering, directory relocation, index mutation, throttling, and subtree collection",
+        "archiveNode is idempotent on the index update side (uses MutateIndex with re-read)"
+      ],
+      "improvements": [
+        "archiveNode is not fully atomic: if directory moves succeed but index update fails, the next poll will see missing active dirs. The spec documents this as acceptable with a recovery path, but a two-phase approach could be cleaner."
+      ],
+      "action_items": [
+        "Pre-existing build failure in cmd/daemon/status.go (sortChildrenByActivity undefined) should be fixed in its own task"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T13:03:05.984501Z",
+      "objective": "Write comprehensive tests for the daemon auto-archive timer covering all seven specified scenarios",
+      "what_happened": "Added 7 new tests to archive_test.go: TestFindArchiveEligible_NestedNodesExcluded (verifies only Root entries are eligible, children excluded), TestFindArchiveEligible_MissingNodeEntry (phantom address in Root with no Nodes entry), TestArchiveNode_CorruptNodeState (ReadNode error path), TestArchiveNode_MarkdownDirCreationError (MkdirAll failure when a file blocks directory creation), TestTryAutoArchive_ArchiveErrorDoesNotCrash (archive failure is logged and returns false without panicking), TestTryAutoArchive_NoEligibleAfterPoll (poll interval passes but no eligible nodes). Combined with the existing 11 tests, coverage now exceeds 90% on all four functions.",
+      "went_well": [
+        "Discovered that ReadNode returns a default state for missing files rather than an error, requiring corrupt JSON to trigger the error path",
+        "The MkdirAll error test uses a file-as-directory-blocker pattern that is clean and portable"
+      ],
+      "improvements": [
+        "The archive error resilience test relies on filesystem permission changes which may behave differently on CI runners with elevated privileges"
+      ],
+      "action_items": [
+        "None identified"
+      ]
+    }
+  }
+}

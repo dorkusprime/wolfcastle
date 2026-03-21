@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "id": "archive-status-rendering",
+  "name": "Archive Status Rendering",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add archived node filtering to status tree rendering",
+      "description": "Add archived node filtering to status tree rendering",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/status.go",
+        "internal/state/types.go",
+        "cmd/daemon/status_test.go"
+      ],
+      "body": "Modify showTreeStatus() in cmd/daemon/status.go to filter out archived nodes from the default view. When archived nodes exist, append a summary line after the tree: 'N archived nodes (use --archived to view)'. The filtering should work with the archive state model defined in the spec (reading archived flag/status from RootIndex entries or checking the archive storage)."
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement --archived flag for status command",
+      "description": "Implement --archived flag for status command",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/status.go"
+      ],
+      "body": "Add a --archived boolean flag to the status command that, when set, shows ONLY archived nodes. The display should include archive-specific metadata: when the node was completed, when it was archived, and its original address. Wire the flag through newStatusCmd(), showTreeStatus(), and the JSON output path."
+    },
+    {
+      "id": "task-0003",
+      "title": "Update --all flag to include archived nodes",
+      "description": "Update --all flag to include archived nodes",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/status.go"
+      ],
+      "body": "Update the --all flag behavior: currently it shows all engineer namespaces. With archive support, --all should ALSO include archived nodes in the output (in addition to its cross-namespace behavior). Archived nodes should be visually distinguished in the tree (e.g., dimmed text, [archived] suffix, or a separate section)."
+    },
+    {
+      "id": "task-0004",
+      "title": "Add JSON output for archive status",
+      "description": "Add JSON output for archive status",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/status.go"
+      ],
+      "body": "Ensure the JSON output mode includes archive information: an 'archived' count in the summary, and when --archived is used, the full archived node details with completion and archive timestamps. Update the output.Ok data map to include these fields."
+    },
+    {
+      "id": "task-0005",
+      "title": "Test archive status rendering",
+      "description": "Test archive status rendering",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/status_test.go"
+      ],
+      "body": "Write comprehensive tests for all status rendering changes. Cover: (1) default view excludes archived nodes, (2) count line appears when archives exist, (3) --archived shows only archived nodes, (4) --all includes archived nodes, (5) JSON output includes archive metadata, (6) edge cases: no archived nodes, all nodes archived, mixed state. Target \u003e90% coverage for modified code paths in status.go."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Archive Status Rendering is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify status --archived and --all flags work in both human and JSON output modes",
+    "Verify the archived count line only appears when archived nodes exist"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T12:35:04.408364Z",
+        "task": "auto-archive-lifecycle/archive-status-rendering",
+        "text": "Added Archived/ArchivedAt to IndexEntry, ArchivedRoot to RootIndex. Modified showTreeStatus() to filter archived nodes from default view and append summary line. Six tests added."
+      },
+      {
+        "timestamp": "2026-03-21T12:37:16.690661Z",
+        "task": "auto-archive-lifecycle/archive-status-rendering",
+        "text": "Added --archived flag to status command. New showArchivedStatus() renders only archived nodes with name, address, and archive timestamp. Seven tests added."
+      },
+      {
+        "timestamp": "2026-03-21T12:39:09.955768Z",
+        "task": "auto-archive-lifecycle/archive-status-rendering",
+        "text": "Updated --all flag to separate archived from active node counts. Added Archived field to namespaceSummary. Four tests added covering human output, JSON, multi-namespace, and zero-archived cases."
+      },
+      {
+        "timestamp": "2026-03-21T12:41:56.549874Z",
+        "task": "auto-archive-lifecycle/archive-status-rendering",
+        "text": "Added completed_at to --archived JSON output by reading node audit state. Updated test fixtures and assertions."
+      },
+      {
+        "timestamp": "2026-03-21T12:46:26.267343Z",
+        "task": "auto-archive-lifecycle/archive-status-rendering",
+        "text": "Added 15 comprehensive tests for archive status rendering: edge cases for all-archived, mixed hierarchies, nil timestamps, ReadNode failures, scope filtering, address sorting, and JSON output paths. Archive-specific coverage above 96%."
+      },
+      {
+        "timestamp": "2026-03-21T12:48:50.892297Z",
+        "task": "auto-archive-lifecycle/archive-status-rendering",
+        "text": "Audit reviewed 4 files (957 lines added). PASS. Three accepted findings: (1) --watch --archived silently drops --archived, consistent with existing flag precedence pattern. (2) --all --archived same silent ignore. (3) ReadNode failure in showArchivedStatus silently omits completed_at, tested as intentional graceful degradation. No security, correctness, or concurrency issues. All 25 archive tests pass, race detector clean, go vet clean, gofmt clean. Coverage above 96% on archive-specific code paths. Quality: well-structured implementation with clean separation between tree, archived, and all-status views. Tests are thorough with good edge case coverage."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T12:30:39.081292Z",
+    "completed_at": "2026-03-21T12:49:11.138718Z",
+    "result_summary": "Implemented archive-aware status rendering across three display modes. Default tree view (showTreeStatus) filters archived nodes from the active tree, includes them in the total count, and appends a summary line with singular/plural handling. The new --archived flag (showArchivedStatus) renders only archived nodes with name, address, archive timestamp, and completed_at from audit state, with stable address-sorted output and scope filtering. The --all view (showAllStatus) separates archived from active counts per namespace. All three modes support both human and JSON output. 832 lines of tests cover edge cases including all-nodes-archived, mixed hierarchies, nil timestamps, ReadNode failures, scope filtering, and JSON structure. Archive-specific coverage exceeds 96%."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T12:49:08.731519Z",
+      "objective": "Verify all work in Archive Status Rendering is complete, correct, and high-quality",
+      "what_happened": "Reviewed 4 files (957 lines added across status.go, status_test.go, register.go, types.go). Ran full test suite, race detector, go vet, and gofmt. All clean. Identified three minor findings, all accepted as intentional design choices consistent with existing patterns.",
+      "went_well": [
+        "Implementation is cleanly separated: three rendering functions for three distinct views, each with human and JSON output paths",
+        "Test coverage is thorough with 25 archive-specific tests covering edge cases like ReadNode failures and nil timestamps"
+      ],
+      "improvements": [
+        "The --watch and --all flags silently take precedence over --archived; a mutual exclusion error would be friendlier"
+      ],
+      "action_items": [
+        "Consider adding flag conflict detection if more display-mode flags are added in the future"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T12:35:00.858868Z",
+      "objective": "Add archived node filtering to the status tree rendering",
+      "what_happened": "Added Archived/ArchivedAt fields to IndexEntry and ArchivedRoot slice to RootIndex in internal/state/types.go. Modified showTreeStatus() in cmd/daemon/status.go to skip entries with Archived==true during both the counting loop and the tree walk. Added a summary line after the tree for archived nodes with singular/plural handling. JSON output includes an 'archived' count field. Added six focused tests covering filtering, summary line rendering, plural form, JSON output, and the no-archived case.",
+      "went_well": [
+        "The filtering integrates cleanly into the existing loop structure without restructuring the function",
+        "Singular/plural summary line is a small but user-visible polish"
+      ],
+      "improvements": [
+        "The --archived and --all flag behaviors (showing only archived or including archived with glyph) are not yet implemented; those are separate tasks"
+      ],
+      "action_items": [
+        "Implement --archived flag to show only archived nodes in a flat list",
+        "Update --all flag to include archived nodes with the ⊘ glyph prefix"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T12:37:15.706714Z",
+      "objective": "Add --archived flag to the status command that shows only archived nodes with metadata",
+      "what_happened": "Added --archived boolean flag to register.go. In newStatusCmd, the flag gates a new showArchivedStatus() function that collects only Archived entries from the index, sorts them by address, and renders them with the ⊘ glyph, name, address, and archive timestamp. JSON path emits a dedicated 'archived' response type with total count and node array. Seven tests cover: showing only archived nodes, displaying timestamp, displaying address, empty state, JSON output structure, scope filtering, and end-to-end command execution.",
+      "went_well": [
+        "Separate function keeps the archived view cleanly isolated from the main tree rendering",
+        "Scope filtering reuses the existing isInSubtree helper without duplication"
+      ],
+      "improvements": [
+        "The --archived flag is not wired into watchStatus yet; if someone wants --watch --archived that combination is silently ignored"
+      ],
+      "action_items": [
+        "Wire --archived into watchStatus if watch+archived combination is desired"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T12:39:06.187265Z",
+      "objective": "Update --all flag to include archived node counts in namespace summaries",
+      "what_happened": "Modified showAllStatus() in cmd/daemon/status.go to separate archived nodes from active counts. Added Archived field to namespaceSummary struct. Archived nodes are excluded from Total and per-state counts, and shown as a separate ', N archived' suffix in human output. JSON output includes the archived field per namespace. Four tests cover: archived count in human output, suppression when zero archived, JSON structure, and multi-namespace scenarios.",
+      "went_well": [
+        "Clean separation: archived filtering slots into the existing loop with minimal disruption",
+        "Tests cover both human and JSON codepaths across single and multi-namespace setups"
+      ],
+      "improvements": [
+        "The --all flag still shows a flat per-namespace summary rather than a full cross-namespace tree with archived nodes inline; a future iteration could render the actual tree with archived nodes dimmed"
+      ],
+      "action_items": [
+        "Consider whether --all --archived should show archived nodes from all namespaces (currently --archived only works with the current namespace)"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-21T12:41:53.028408Z",
+      "objective": "Ensure JSON output includes archive information with both completion and archive timestamps",
+      "what_happened": "Added CompletedAt field to the archivedNode struct in showArchivedStatus(). The function now reads the node state for each archived entry to extract audit.CompletedAt. Updated setupArchivedEnv to write node state for the archived node with a CompletedAt timestamp. Extended TestShowArchivedStatus_JSON to assert completed_at presence in JSON output. The showTreeStatus JSON path already had the archived count from task-0001; no changes needed there.",
+      "went_well": [
+        "Minimal change: only two fields added to the struct and one ReadNode call in the loop",
+        "All existing tests continue to pass without modification"
+      ],
+      "improvements": [
+        "If ReadNode fails for an archived node (e.g., state file was cleaned up), completed_at silently omits; could log a warning"
+      ],
+      "action_items": [
+        "None identified"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-21T12:46:22.85061Z",
+      "objective": "Write comprehensive tests for archive status rendering changes",
+      "what_happened": "Added 15 new tests to status_test.go covering all task-specified scenarios. Tests cover: all-nodes-archived edge case (tree and JSON), mixed orchestrator hierarchies with archived children, nil ArchivedAt timestamps, ReadNode failures for archived nodes (graceful degradation in JSON), empty JSON archived list, address sort ordering, scope filtering that excludes out-of-scope archived nodes, archived subtree scoping through orchestrator parents, --archived with --node flag, --archived with JSON, watchStatus with detail flag, and deep isInSubtree traversal. Coverage for archive-related functions: showTreeStatus 98.1%, showArchivedStatus 96.8%, showAllStatus 100%, isInSubtree 100%.",
+      "went_well": [
+        "Existing test infrastructure (setupArchivedEnv, captureStdout, newTestEnv) made adding new cases straightforward",
+        "The ReadNode failure test confirms graceful degradation: completed_at is omitted rather than erroring"
+      ],
+      "improvements": [
+        "nodeGlyph/taskGlyph remain at ~55% because their terminal-mode branches require IsTerminal()=true, which tests don't get. Not archive-related."
+      ],
+      "action_items": [
+        "None: archive-specific code paths are above 90% coverage"
+      ]
+    }
+  }
+}

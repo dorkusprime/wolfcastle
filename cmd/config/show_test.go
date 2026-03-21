@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -116,7 +117,7 @@ func TestRegister_HasShowSubcommand(t *testing.T) {
 
 	found := false
 	for _, sub := range configCmd.Commands() {
-		if sub.Use == "show" {
+		if sub.Name() == "show" {
 			found = true
 			break
 		}
@@ -375,6 +376,158 @@ func TestMergeRawTiers_OverlayOrder(t *testing.T) {
 	}
 	if v, ok := m["version"]; !ok || v != float64(99) {
 		t.Errorf("expected version=99 from local override, got %v", m["version"])
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Section filtering
+// ---------------------------------------------------------------------------
+
+func TestShow_SectionDefault(t *testing.T) {
+	env := newTestEnv(t)
+
+	// "models" is a section present in the default merged config.
+	env.RootCmd.SetArgs([]string{"config", "show", "models"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("config show models failed: %v", err)
+	}
+}
+
+func TestShow_SectionWithTier(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.writeTierConfig(t, "local", map[string]any{
+		"identity": map[string]any{"user": "wild"},
+		"logs":     map[string]any{"level": "debug"},
+	})
+
+	env.RootCmd.SetArgs([]string{"config", "show", "identity", "--tier", "local"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("config show identity --tier local failed: %v", err)
+	}
+}
+
+func TestShow_SectionWithRaw(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.writeTierConfig(t, "base", map[string]any{
+		"version": float64(1),
+		"logs":    map[string]any{"level": "info"},
+	})
+
+	env.RootCmd.SetArgs([]string{"config", "show", "logs", "--raw"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("config show logs --raw failed: %v", err)
+	}
+}
+
+func TestShow_SectionInvalid(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.RootCmd.SetArgs([]string{"config", "show", "nonexistent"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for unknown section")
+	}
+	if !strings.Contains(err.Error(), "unknown section") {
+		t.Errorf("error should mention unknown section, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "valid sections") {
+		t.Errorf("error should list valid sections, got: %v", err)
+	}
+}
+
+func TestShow_SectionJSON(t *testing.T) {
+	env := newTestEnv(t)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	env.RootCmd.SetArgs([]string{"config", "show", "models", "--json"})
+	err := env.RootCmd.Execute()
+
+	if closeErr := w.Close(); closeErr != nil {
+		t.Errorf("closing pipe writer: %v", closeErr)
+	}
+	os.Stdout = old
+
+	if err != nil {
+		t.Fatalf("config show models --json failed: %v", err)
+	}
+
+	var buf [8192]byte
+	n, _ := r.Read(buf[:])
+	if closeErr := r.Close(); closeErr != nil {
+		t.Errorf("closing pipe reader: %v", closeErr)
+	}
+
+	var envelope output.Response
+	if err := json.Unmarshal(buf[:n], &envelope); err != nil {
+		t.Fatalf("parsing JSON envelope: %v\nraw: %s", err, string(buf[:n]))
+	}
+	if !envelope.OK {
+		t.Error("expected ok=true in envelope")
+	}
+	if envelope.Data == nil {
+		t.Error("expected non-nil data for section in JSON mode")
+	}
+}
+
+func TestShow_TooManyArgs(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.RootCmd.SetArgs([]string{"config", "show", "models", "extra"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for too many arguments")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// extractSection
+// ---------------------------------------------------------------------------
+
+func TestExtractSection_FromMap(t *testing.T) {
+	m := map[string]any{
+		"alpha": "one",
+		"beta":  map[string]any{"nested": true},
+	}
+	val, err := extractSection(m, "beta")
+	if err != nil {
+		t.Fatalf("extractSection(map, beta) failed: %v", err)
+	}
+	nested, ok := val.(map[string]any)
+	if !ok {
+		t.Fatalf("expected map, got %T", val)
+	}
+	if nested["nested"] != true {
+		t.Errorf("expected nested=true, got %v", nested["nested"])
+	}
+}
+
+func TestExtractSection_FromStruct(t *testing.T) {
+	type sample struct {
+		Name  string `json:"name"`
+		Count int    `json:"count"`
+	}
+	val, err := extractSection(&sample{Name: "test", Count: 42}, "count")
+	if err != nil {
+		t.Fatalf("extractSection(struct, count) failed: %v", err)
+	}
+	if val != float64(42) {
+		t.Errorf("expected 42, got %v", val)
+	}
+}
+
+func TestExtractSection_MissingKey(t *testing.T) {
+	m := map[string]any{"alpha": 1, "beta": 2}
+	_, err := extractSection(m, "gamma")
+	if err == nil {
+		t.Fatal("expected error for missing key")
+	}
+	if !strings.Contains(err.Error(), "alpha") || !strings.Contains(err.Error(), "beta") {
+		t.Errorf("error should list valid keys, got: %v", err)
 	}
 }
 

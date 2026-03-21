@@ -84,7 +84,8 @@
         "status": "open"
       }
     ],
-    "status": "pending"
+    "status": "passed",
+    "completed_at": "2026-03-21T12:15:53.791069Z"
   },
   "specs": [
     "2026-03-21T03-11Z-dict-format-stages.md"

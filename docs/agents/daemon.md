@@ -13,14 +13,15 @@ RunWithSupervisor
        ├── start inbox goroutine (ADR-064: parallel intake)
        ├── start spinner goroutine
        └── for each iteration:
-            └── RunOnce (three-step iteration)
+            └── RunOnce (four-step iteration)
                  ├── check shutdown/stop-file/iteration-cap
                  ├── Step 1 (Execute): navigate via FindNextTask, run pipeline if found
                  ├── Step 2 (Plan): if no task, find childless orchestrator, plan it
-                 └── Step 3 (Idle): report status, wait for inbox or poll timeout
+                 ├── Step 3 (Auto-archive): if no task and no planning, archive one eligible node
+                 └── Step 4 (Idle): report status, wait for inbox or poll timeout
 ```
 
-Each `RunOnce` call follows this three-step sequence. Step 1 always runs first: find a task via navigation and execute it. Only when navigation returns nothing does the daemon fall through to Step 2, which looks for an orchestrator with no children and runs the planning stage against it. If neither step finds work, Step 3 reports the idle reason and blocks on either an inbox signal or the poll interval. Planning is lazy; it fires on demand, right before a subtree needs work.
+Each `RunOnce` call follows this four-step sequence. Step 1 always runs first: find a task via navigation and execute it. Only when navigation returns nothing does the daemon fall through to Step 2, which looks for an orchestrator with no children and runs the planning stage against it. If neither step finds work, Step 3 checks for completed nodes eligible for archival (see Auto-Archive below). If nothing remains, Step 4 reports the idle reason and blocks on either an inbox signal or the poll interval. Planning is lazy; it fires on demand, right before a subtree needs work.
 
 When Step 1 does find a task, `runIteration` handles it:
 
@@ -59,10 +60,11 @@ Inbox processing runs in a background goroutine started by `Run()`. The goroutin
 
 ## Self-Healing
 
-`selfHeal()` runs at the start of every `Run()` call. It walks all nodes in the root index and does two things:
+`selfHeal()` runs at the start of every `Run()` call. It walks all nodes in the root index and does three things:
 
 1. **Reset stale in_progress tasks.** If a task is in_progress and has children, derive the correct status via `DeriveParentStatus`. If it has no children, reset to not_started (it will be re-claimed next iteration).
 2. **Derive parent status from children.** For any task that has children, if the current state disagrees with what the children say, overwrite it with the derived status. This catches parents stuck in not_started or blocked when their children tell a different story. The check applies to all parent tasks, not just in_progress ones.
+3. **Blocked audit remediation.** If an audit task is blocked with open gaps but no remediation subtasks exist, selfHeal creates them. This catches daemon crashes that occurred after an audit blocked but before subtask creation completed. The audit task is reset to not_started so it re-runs to verify fixes once the remediation subtasks finish.
 
 ### PreStartSelfHeal
 
@@ -83,14 +85,24 @@ The sequence in `cmd/daemon/start.go` is: recover stale PID → `FixWithVerifica
 
 ## Pipeline Stages
 
-Stages are defined in `config.json` under `pipeline.stages`. The default pipeline has two stages:
+Stages are stored in `PipelineConfig` as a `map[string]PipelineStage` dict keyed by stage name, paired with a `StageOrder []string` slice that controls execution order. The daemon iterates `StageOrder` and looks up each stage's configuration from the map. The default pipeline has two stages:
 
 | Stage | Model | Purpose |
 |-------|-------|---------|
 | `intake` | mid | Reads inbox items, calls wolfcastle CLI to create projects/tasks |
 | `execute` | heavy | Does the actual work on a single task per iteration |
 
-The intake stage runs in a parallel goroutine and is skipped in the main iteration pipeline. The execute stage runs in the main loop.
+The intake stage runs in a parallel goroutine (ADR-064) and is skipped during the main iteration pipeline. Custom stages and execute run in `StageOrder` sequence during each iteration.
+
+## Spec Review
+
+When a spec-type task completes, `checkSpecReviewNeeded()` in `internal/daemon/spec_review.go` automatically creates a sibling review task. The review task ID is deterministic (`{specTaskID}-review`), making the operation idempotent. The review task carries `TaskType: "spec-review"`, references the same spec files as the original, and uses a dedicated `spec-review.md` prompt template. It is inserted before the audit task in task ordering so the spec gets reviewed before the node's audit runs.
+
+If the review task blocks, `handleSpecReviewBlocked()` feeds the blocked reason back into the original spec task's body as a `## Review Feedback (Revision Required)` section and resets the spec task to not_started, sending it through another revision cycle.
+
+## After Action Reviews (AARs)
+
+Each completed task records an AAR on its parent node's state (`NodeState.AARs`, keyed by task ID). The AAR struct captures objective, what happened, what went well, improvements, and action items. AARs replace terse breadcrumbs as the primary audit input for gap detection, giving auditors a structured narrative of what each task accomplished and what doubts remain. The `AddAAR` mutation in `internal/state/mutations.go` handles storage.
 
 ## Terminal Markers (ADR-067)
 
@@ -117,6 +129,10 @@ All state file mutations should go through the `StateStore` (lock, read, callbac
 - Child processes run in their own process group (`Setpgid: true`) for clean signal propagation
 - Scanner buffer is 1MB to handle large model output lines
 
+### Stall Detector
+
+`ProcessInvoker` carries a `StallTimeout` duration field. When set and streaming mode is active (logWriter or onLine callback provided), a timer starts at process launch and resets on every output line. If no output arrives within the timeout, the invoker cancels the process context, killing the entire process group. The result carries `ErrStallTimeout` with whatever partial output was captured before the stall. This prevents hung model processes (API instability, network partitions) from blocking the daemon indefinitely.
+
 ## Retry & Failure
 
 - **Invocation retries:** exponential backoff, configured in `retries.*`
@@ -128,3 +144,13 @@ All state file mutations should go through the `StateStore` (lock, read, callbac
 - The `sync.Once` in Daemon is reset between supervisor restarts. This is safe because all goroutines from the previous `Run()` have exited before reset occurs. The reset is documented in code.
 - `d.branch` is written in `Run()` and read in `RunOnce()`. Safe because `RunOnce` is only called from within `Run`'s serial loop.
 - The inbox goroutine and the main loop both access `inbox.json` and the project tree. Safety is provided by the StateStore's lock-read-mutate-write pattern (ADR-068). The model's CLI subprocesses also write state files during execution; the daemon reloads from disk after invocation returns.
+
+## Auto-Archive
+
+Completed nodes are archived inline during RunOnce, not in a separate goroutine (per ADR). Archive checking runs as Step 3 in the iteration sequence, after task execution and planning but before the idle report.
+
+A node is eligible for archival when: it lives in the active root (not already archived), its state is complete, and its `Audit.CompletedAt` timestamp is older than the configured `AutoArchiveDelayHours`. The `findArchiveEligible()` function in `internal/daemon/archive.go` evaluates these criteria.
+
+`tryAutoArchive()` enforces two bounds: a `lastArchiveCheck` timestamp on the Daemon struct throttles checks to one per poll interval, and at most one node is archived per RunOnce call. The archive operation itself generates a markdown rollup via `GenerateEntry()`, moves the node's state directory into `.archive/`, and atomically updates the root index (removes from Root, adds to ArchivedRoot, sets `Archived` and `ArchivedAt`).
+
+The tradeoff is that archive checks only fire when the daemon is idle. A constantly-busy daemon won't archive until it runs out of work, which is acceptable since archival is not time-sensitive.

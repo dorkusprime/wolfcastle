@@ -104,6 +104,36 @@
       "timestamp": "2026-03-21T03:44:24Z",
       "text": "Write a spec for the dict-format pipeline stages refactor. Define: the new JSON schema (map[string]PipelineStage + stage_order []string), the PipelineStage struct changes (Name field removed), merge semantics (stages merges as map per three-tier rules, stage_order replaces as array), migration contract for existing array-format configs, updated validation rules, and consumer impact. This spec is the contract that all implementation and audit work verifies against. Write it to .wolfcastle/docs/specs/ via wolfcastle spec create.",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T12:12:08Z",
+      "text": "Auto-archive completed nodes. Top-level orchestrators that are fully complete (all children, all audits) auto-archive after a configurable delay (default: 24 hours since last activity). Archived nodes move from system/projects/ to archive/. Status shows active work plus a count line ('N archived nodes'). New flags: status --archived (show only archived), status --all (show everything). New commands: wolfcastle archive add --node \u003caddr\u003e (archive early), wolfcastle archive restore --node \u003caddr\u003e (bring back to active), wolfcastle archive delete --node \u003caddr\u003e (permanently remove). The archive/ directory already exists in the scaffold. Needs: archive state tracking (completion timestamp per node), archive move logic, status rendering changes, CLI commands, config for delay threshold.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T12:12:18Z",
+      "text": "Comprehensive documentation review. Verify all docs/humans/ pages match reality, all docs/specs/ are current or marked superseded, CONTRIBUTING.md package map is accurate, README feature list is complete, AGENTS.md critical rules are correct, docs/agents/architecture.md reflects current dependency graph. Major changes since last review: config schema rewritten (stages as dict), 10+ new CLI commands (config show, audit aar, audit report), prompt subdirectory restructure, AARs and spec review as new pipeline concepts, status --detail flag, unknown-field detection, stall detector, selfHeal blocked audit remediation, CHILDREF_STATE_MISMATCH in doctor, archive lifecycle.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T12:12:25Z",
+      "text": "Ensure all new and modified code has test coverage above 90%. Run go test -coverprofile and verify no package dropped below its pre-change coverage. Pay particular attention to archive move/restore/delete logic, status rendering with archive flags, and the daemon's auto-archive timer.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T12:20:37Z",
+      "text": "Bug: daemon regenerates base/config.json back to array-format stages during operation. init --force writes dict format correctly, but after the daemon runs, the file reverts to array format. Something in the daemon's lifecycle (possibly auto-commit, selfHeal, or Reinit triggered by start.go) is rewriting the config from an old template or serializing the Config struct incorrectly.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T12:20:44Z",
+      "text": "config show should support node selection: wolfcastle config show audit to show just the audit section, wolfcastle config show pipeline to show just pipeline config, etc. Currently shows the entire resolved config which is noisy for debugging a specific section.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T12:39:37Z",
+      "text": "Config write commands: config set, config unset, config append, config remove. 'config set key value --tier local' writes a key (dot-notation for nested paths, value must be valid JSON including arrays/objects, strings can be bare). 'config unset key --tier local' removes a key (writes null for deletion semantics). 'config append key value --tier local' appends to an array. 'config remove key value --tier local' removes by value from an array. Tier defaults to local. No array indexing. All commands validate the resulting config after writing.",
+      "status": "filed"
     }
   ]
 }

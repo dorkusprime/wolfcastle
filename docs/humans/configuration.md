@@ -51,20 +51,23 @@ Authentication is your problem. Use environment variables, CLI login commands, o
 
 ## Pipelines
 
-The [daemon](how-it-works.md#the-daemon) runs a pipeline of stages. Each stage names a model tier and a prompt file:
+The [daemon](how-it-works.md#the-daemon) runs a pipeline of stages. Stages are defined as a dictionary keyed by name. Execution order is controlled by a separate `stage_order` array:
 
 ```json
 {
   "pipeline": {
-    "stages": [
-      { "name": "intake",  "model": "mid",   "prompt_file": "intake.md" },
-      { "name": "execute", "model": "heavy",  "prompt_file": "execute.md" }
-    ]
+    "stages": {
+      "intake":  { "model": "mid",   "prompt_file": "intake.md" },
+      "execute": { "model": "heavy", "prompt_file": "execute.md" }
+    },
+    "stage_order": ["intake", "execute"]
   }
 }
 ```
 
-The intake stage runs in a parallel goroutine, watching the inbox for new items and filing them into the tree. The execute stage runs in the main loop, claiming tasks and invoking models. Add stages. Remove stages. Reorder stages. Run a single-stage pipeline with one model that does everything. Stages can be individually enabled or disabled. Summaries are generated inline during execute via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage.
+The dict format lets you override a single stage's model or prompt file from a higher [tier](#three-tiers) without rewriting the entire stages array. `stage_order` controls which stages run and in what sequence; omit it to run all stages in map-iteration order. Each stage can be individually disabled by setting `"enabled": false`.
+
+The intake stage runs in a parallel goroutine, watching the inbox for new items and filing them into the tree. The execute stage runs in the main loop, claiming tasks and invoking models. Summaries are generated inline during execute via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage.
 
 ## Identity
 
@@ -103,3 +106,17 @@ Wolfcastle does not sandbox anything. Security is configured at the model level 
 ```
 
 The executing model's capabilities are determined entirely by the flags you gave it. Teams enforce permissions through config review of `custom/config.json`. Individual engineers loosen permissions in gitignored `local/config.json` at their own risk.
+
+## Config Commands
+
+Beyond reading config with [`config show`](cli.md#commands), you can mutate individual fields from the CLI. All write commands default to the `custom` tier; pass `--tier local` for personal overrides or `--tier base` for defaults.
+
+| Command | What it does |
+|---------|-------------|
+| `wolfcastle config show [section]` | Display resolved config, optionally filtered to a top-level key. `--tier` shows a single tier raw. `--raw` suppresses defaults. |
+| `wolfcastle config set <path> <value>` | Set a scalar or object at a dot-delimited JSON path. |
+| `wolfcastle config unset <path>` | Remove a key from the specified tier. |
+| `wolfcastle config append <path> <value>` | Append a value to an array field. |
+| `wolfcastle config remove <path> <value>` | Remove a value from an array field. |
+
+Paths are dot-delimited: `pipeline.stages.execute.model`, `failure.hard_cap`, `logs.max_files`. The three-tier merge still applies: a `config set` in the custom tier overrides base, and a `config set --tier local` overrides both.

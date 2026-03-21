@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -13,13 +12,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// archiveAddCmd generates an archive entry for a completed node.
+// archiveAddCmd archives a completed root-level node, moving its state
+// directories to .archive/ and updating the RootIndex.
 var archiveAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Archive a completed node",
-	Long: `Generates a Markdown archive entry for a completed node. The node
-must be in the 'complete' state. Includes audit trail, results,
-and metadata.
+	Long: `Archives a completed root-level node. Generates a Markdown rollup,
+moves state directories to .archive/, and updates the RootIndex
+(moves the address to archived_root and flags entries as archived).
+
+The node must be root-level, in the 'complete' state, and not
+already archived.
 
 Examples:
   wolfcastle archive add --node my-project`,
@@ -32,13 +35,36 @@ Examples:
 			return fmt.Errorf("--node is required: specify the completed node to archive")
 		}
 
+		// Validate preconditions: node exists, is complete, is root-level,
+		// and is not already archived.
 		ns, err := app.State.ReadNode(nodeAddr)
 		if err != nil {
 			return fmt.Errorf("loading node state: %w", err)
 		}
-
 		if ns.State != state.StatusComplete {
 			return fmt.Errorf("node %s is %s, not complete. Finish the job first", nodeAddr, ns.State)
+		}
+
+		idx, err := app.State.ReadIndex()
+		if err != nil {
+			return fmt.Errorf("loading index: %w", err)
+		}
+		entry, ok := idx.Nodes[nodeAddr]
+		if !ok {
+			return fmt.Errorf("node %q not found in index", nodeAddr)
+		}
+		if entry.Archived {
+			return fmt.Errorf("node %q is already archived", nodeAddr)
+		}
+		isRoot := false
+		for _, r := range idx.Root {
+			if r == nodeAddr {
+				isRoot = true
+				break
+			}
+		}
+		if !isRoot {
+			return fmt.Errorf("node %q is not a root-level node", nodeAddr)
 		}
 
 		cfg, err := app.Config.Load()
@@ -46,36 +72,40 @@ Examples:
 			return fmt.Errorf("loading config: %w", err)
 		}
 
-		root := app.Config.Root()
-
-		// Get current branch
+		// Resolve current git branch for the rollup metadata.
 		branch := ""
 		branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-		branchCmd.Dir = filepath.Dir(root)
+		branchCmd.Dir = filepath.Dir(app.Config.Root())
 		if out, err := branchCmd.Output(); err == nil {
 			branch = strings.TrimSpace(string(out))
 		}
 
-		entry := archive.GenerateEntry(nodeAddr, ns, cfg, branch, ns.Audit.ResultSummary)
-
-		archiveDir := filepath.Join(root, "archive")
-		if err := os.MkdirAll(archiveDir, 0755); err != nil {
-			return fmt.Errorf("creating archive directory: %w", err)
+		svc := &archive.Service{
+			Store:         app.State,
+			WolfcastleDir: app.Config.Root(),
+			Clock:         app.Clock,
 		}
-		archivePath := filepath.Join(archiveDir, entry.Filename)
+		if err := svc.Archive(nodeAddr, cfg, branch); err != nil {
+			return fmt.Errorf("archiving node: %w", err)
+		}
 
-		if err := os.WriteFile(archivePath, []byte(entry.Content), 0644); err != nil {
-			return fmt.Errorf("writing archive entry: %w", err)
+		// Re-read index to get the archived_at timestamp set by the service.
+		idx, err = app.State.ReadIndex()
+		if err != nil {
+			return fmt.Errorf("reading updated index: %w", err)
 		}
 
 		if app.JSON {
-			output.Print(output.Ok("archive_add", map[string]string{
-				"node":     nodeAddr,
-				"filename": entry.Filename,
-				"path":     archivePath,
-			}))
+			result := map[string]string{
+				"action": "archived",
+				"node":   nodeAddr,
+			}
+			if e, ok := idx.Nodes[nodeAddr]; ok && e.ArchivedAt != nil {
+				result["archived_at"] = e.ArchivedAt.Format("2006-01-02T15:04:05Z07:00")
+			}
+			output.Print(output.Ok("archive_add", result))
 		} else {
-			output.PrintHuman("Archived %s → %s", nodeAddr, entry.Filename)
+			output.PrintHuman("Archived %s", nodeAddr)
 		}
 		return nil
 	},

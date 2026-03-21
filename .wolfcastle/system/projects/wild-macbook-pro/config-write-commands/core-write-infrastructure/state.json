@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "id": "core-write-infrastructure",
+  "name": "Core Write Infrastructure",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement dot-notation path utilities",
+      "description": "Implement dot-notation path utilities",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/path.go"
+      ],
+      "body": "Create internal/config/path.go with functions for navigating and mutating nested map[string]any structures using dot-delimited keys.\n\nRequired functions:\n\n- SetPath(m map[string]any, path string, value any) error\n  Splits path on dots, walks/creates intermediate maps, sets the final key.\n  Returns error if an intermediate value exists but is not a map.\n\n- DeletePath(m map[string]any, path string) error\n  Sets the value to nil at the path (null deletion semantics for DeepMerge).\n  Returns error if intermediate path segment is not a map.\n\n- GetPath(m map[string]any, path string) (any, bool)\n  Walks the path and returns the value if found.\n\n- ParsePath(path string) ([]string, error)\n  Splits on dots, validates no empty segments, no trailing dots, no array indexing syntax.\n\nEdge cases:\n- Single-segment paths (top-level keys like 'version')\n- Creating intermediate maps when they don't exist (for SetPath)\n- Path segments that happen to contain map keys in nested structures (e.g., 'models.fast.command' where 'fast' is a map key)\n\nNo array indexing support — return a clear error if brackets are detected in a path segment."
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement path utilities tests",
+      "description": "Implement path utilities tests",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/path_test.go"
+      ],
+      "body": "Create internal/config/path_test.go with comprehensive tests for all path utility functions.\n\nTest cases should cover:\n- ParsePath: valid paths, empty segments, trailing dots, bracket detection\n- SetPath: top-level set, nested set, creating intermediates, overwriting existing values, error on non-map intermediate\n- DeletePath: setting nil at path, nested deletion, error on non-map intermediate\n- GetPath: existing values, missing values, nested navigation\n- Map key paths within nested maps (e.g., pipeline.stages.audit.enabled)"
+    },
+    {
+      "id": "task-0003",
+      "title": "Add ReadTier and ApplyMutation to ConfigRepository",
+      "description": "Add ReadTier and ApplyMutation to ConfigRepository",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/repository.go"
+      ],
+      "body": "Extend internal/config/repository.go with methods that support the read-modify-write-validate cycle for config write commands.\n\nAdd these methods to ConfigRepository:\n\n- ReadTier(tier string) (map[string]any, error)\n  Reads and parses a single tier's config.json overlay. Returns empty map if file doesn't exist. Accepts 'custom' or 'local' (reject 'base' with a clear error — base is written only via WriteBase with a full Config).\n\n- WriteTier(tier string, overlay map[string]any) error\n  Writes an overlay to the specified tier. Dispatches to WriteCustom or WriteLocal based on tier name. Rejects 'base'.\n\n- ApplyMutation(tier string, mutate func(overlay map[string]any) error) error\n  High-level helper: reads the tier overlay, calls mutate to modify it in-place, writes the overlay, then calls Load() to validate the merged result. If Load() returns a validation error, restores the original tier file contents and returns the error. This provides atomic write-or-rollback semantics.\n\nNote: The cmd/config/show.go already has a readTierFile helper. The new ReadTier method on ConfigRepository should provide similar functionality but as a proper method on the repository, allowing the show.go helper to optionally be refactored later. Do not break show.go — just add the new methods."
+    },
+    {
+      "id": "task-0004",
+      "title": "Add ConfigRepository write method tests",
+      "description": "Add ConfigRepository write method tests",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/repository_test.go"
+      ],
+      "body": "Add tests for ReadTier, WriteTier, and ApplyMutation in internal/config/repository_test.go (or a new file if repository_test.go doesn't exist).\n\nTest cases:\n- ReadTier: reads existing tier file, returns empty map for missing file, errors on 'base'\n- WriteTier: writes to custom and local, errors on 'base'\n- ApplyMutation: successful mutation writes and validates, failed validation rolls back tier file to original contents, mutate function error propagates without writing\n- Round-trip: read-mutate-write-load produces expected merged config\n\nFollow existing test patterns in the codebase (look at show_test.go for how test environments are set up)."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Core Write Infrastructure is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify SetPath creates intermediate maps and errors on non-map intermediates",
+    "Verify ApplyMutation rolls back the tier file when validation fails"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T14:27:27.947226Z",
+        "task": "config-write-commands/core-write-infrastructure",
+        "text": "Implemented dot-notation path utilities in internal/config/path.go: ParsePath, GetPath, SetPath, DeletePath with full test coverage in path_test.go"
+      },
+      {
+        "timestamp": "2026-03-21T14:27:56.994319Z",
+        "task": "config-write-commands/core-write-infrastructure",
+        "text": "task-0002: path_test.go already exists with full coverage from task-0001; all 21 test cases pass"
+      },
+      {
+        "timestamp": "2026-03-21T14:30:53.547482Z",
+        "task": "config-write-commands/core-write-infrastructure",
+        "text": "task-0003: Added ReadTier, WriteTier, ApplyMutation to ConfigRepository with 17 tests covering rollback semantics, tier rejection, and error paths"
+      },
+      {
+        "timestamp": "2026-03-21T14:31:19.545938Z",
+        "task": "config-write-commands/core-write-infrastructure",
+        "text": "task-0004: All repository write method tests already exist from task-0003 (17 tests covering ReadTier, WriteTier, ApplyMutation). All pass."
+      },
+      {
+        "timestamp": "2026-03-21T14:32:28.3332Z",
+        "task": "config-write-commands/core-write-infrastructure",
+        "text": "Audit reviewed 4 files: path.go (98 lines), path_test.go (188 lines), repository.go new methods (lines 140-238), repository_test.go new tests (lines 270-631). PASS. Build clean, all tests pass with race detector, 95.7% package coverage. Three accepted findings: (1) ApplyMutation discards rollback errors on lines 230/232, acceptable since primary validation error is always returned. (2) SetPath 94.1% coverage gap is the ParsePath error branch, already exercised indirectly. (3) ApplyMutation 81% coverage from untested permission-error-during-snapshot path, straightforward error propagation. No security issues, no race conditions, no dead code. show.go readTierFile duplication noted in AAR is pre-existing, not introduced by this node."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T14:26:05.385674Z",
+    "completed_at": "2026-03-21T14:32:47.911995Z",
+    "result_summary": "Implemented core write infrastructure for config mutation: dot-notation path utilities (ParsePath, GetPath, SetPath, DeletePath) in path.go for navigating nested map structures, and tier-level read-modify-write-validate methods (ReadTier, WriteTier, ApplyMutation) in repository.go with transactional rollback semantics. ApplyMutation snapshots the tier file before mutation, writes the modified overlay, validates via Load(), and restores the original on failure. 17 new repository tests and 21 path tests cover all documented edge cases including rollback-to-absence, tier rejection, permission errors, and malformed JSON. Package coverage at 95.7%."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T14:32:44.448101Z",
+      "objective": "Verify all work in Core Write Infrastructure is complete and correct",
+      "what_happened": "Reviewed path.go (98 lines, 4 functions), path_test.go (188 lines, 21 test cases), repository.go new methods (ReadTier, WriteTier, ApplyMutation, tierIndex), and repository_test.go (17 new tests). Build passes, all tests pass with race detector, go vet and gofmt clean. 95.7% package coverage.",
+      "went_well": [
+        "Code quality is high throughout: clean separation of concerns, DRY tier validation via tierIndex, correct rollback semantics in ApplyMutation distinguishing restore-from-snapshot vs remove-if-new",
+        "Test coverage is thorough with good edge case handling: rollback-to-absence, malformed JSON, permission errors, base tier rejection"
+      ],
+      "improvements": [
+        "ApplyMutation snapshot-read permission error path (line 206-208) lacks a dedicated test, though the code path is trivial error propagation"
+      ],
+      "action_items": [
+        "show.go readTierFile helper duplicates ReadTier logic; a follow-up refactor could replace it (pre-existing, not introduced by this node)"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T14:27:26.629462Z",
+      "objective": "Implement dot-notation path utilities for navigating and mutating nested map[string]any structures",
+      "what_happened": "Created internal/config/path.go with four functions: ParsePath, GetPath, SetPath, DeletePath. All operate on dot-delimited keys over nested maps. DeletePath uses null-assignment semantics (sets to nil rather than removing) so the result feeds cleanly into DeepMerge for tier file writes. Tests cover all edge cases including empty paths, bracket rejection, non-map intermediates, and auto-creation of intermediate maps.",
+      "went_well": [
+        "Clean separation of ParsePath as a reusable validator that all other functions delegate to",
+        "100% coverage on three of four functions, 94.1% on SetPath"
+      ],
+      "improvements": [
+        "SetPath's uncovered branch is the ParsePath error path, already exercised by the empty-path test but not counted per-function by the coverage tool"
+      ],
+      "action_items": [
+        "Downstream config set/unset commands should use SetPath and DeletePath directly against unmarshaled tier JSON"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T14:30:49.519508Z",
+      "objective": "Add ReadTier, WriteTier, and ApplyMutation methods to ConfigRepository for the read-modify-write-validate cycle",
+      "what_happened": "Added three public methods and one private helper (tierIndex) to internal/config/repository.go. ReadTier reads a single tier's config.json as map[string]any, returning empty map for missing files. WriteTier dispatches to WriteCustom/WriteLocal. ApplyMutation snapshots the file, reads the overlay, applies the mutation callback, writes, validates via Load(), and rolls back on failure. Rollback handles both existing-file-restore and file-removal-if-it-didn't-exist-before cases. Added 17 tests covering all paths including rollback-to-absence, mutation errors, permission errors, malformed JSON, and base/unknown tier rejection.",
+      "went_well": [
+        "The tierIndex helper keeps tier validation DRY across ReadTier and ApplyMutation",
+        "Rollback logic correctly distinguishes between restoring an existing file and removing a newly-created one",
+        "95.7% package coverage maintained"
+      ],
+      "improvements": [
+        "The show.go readTierFile helper duplicates ReadTier logic but was deliberately left untouched per task spec; a follow-up refactor could replace it"
+      ],
+      "action_items": [
+        "Downstream config set/unset commands should call ApplyMutation with path utilities from task-0001"
+      ]
+    }
+  }
+}

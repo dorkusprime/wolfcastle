@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "id": "specs-currency-audit",
+  "name": "Specs Currency Audit",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Verify implemented specs match code",
+      "description": "Verify implemented specs match code",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        "docs/specs/README.md"
+      ],
+      "last_failure_type": "no_terminal_marker",
+      "body": "Check each of the 18 implemented specs against current code. Key areas of drift risk: (1) config-schema spec (2026-03-12T00-01Z) must reflect stages-as-dict format and three-tier merge semantics, (2) pipeline-stage-contract spec (2026-03-12T00-03Z) must cover AARs, spec review, and planning stages, (3) cli-commands spec (2026-03-12T00-06Z) must list config show/set/unset/append/remove, audit aar/report, status --detail, (4) structural-validation spec (2026-03-13T00-00Z) must include CHILDREF_STATE_MISMATCH and unknown-field detection, (5) goroutine-architecture spec (2026-03-15T00-00Z) must reflect stall detector and inline auto-archive (per ADR 2026-03-21T12-57Z), (6) prompt-externalization spec (2026-03-14T00-04Z) must reflect prompt subdirectory restructure. For each spec, note whether it is accurate, needs update, or should be marked superseded."
+    },
+    {
+      "id": "task-0002",
+      "title": "Verify draft and superseded specs",
+      "description": "Verify draft and superseded specs",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/README.md"
+      ],
+      "body": "Check the 3 draft specs (tui, worktree-by-default, task-classes) and 1 superseded spec (wolfcastle-fs). For drafts: determine if the feature has been implemented (making the spec implementable and needing update) or if the draft is still aspirational. For superseded: confirm the superseding spec (domain-repository-architecture) is accurate and the superseded spec links to it correctly. Update the specs README index to reflect current status of all specs."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Specs Currency Audit is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify config-schema spec reflects stages-as-dict and StageOrder; verify pipeline-stage-contract covers AARs and spec review; verify goroutine-architecture spec reflects inline auto-archive per ADR 2026-03-21T12-57Z"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T14:57:53.142274Z",
+        "task": "documentation-review/specs-currency-audit",
+        "text": "Completed currency audit of all 18 implemented specs. Eight current, ten need updates. Drift table added to docs/specs/README.md."
+      },
+      {
+        "timestamp": "2026-03-21T15:00:37.661266Z",
+        "task": "documentation-review/specs-currency-audit",
+        "text": "Verified 3 draft specs (TUI: not started, worktree-by-default: not started, task-classes: infrastructure built but no prompt files) and 1 superseded spec (wolfcastle-fs: linkage correct). Added missing unknown-field-detection spec to README. Updated drafts table with implementation status column and superseded table with linkage verification."
+      },
+      {
+        "timestamp": "2026-03-21T15:04:04.919361Z",
+        "task": "documentation-review/specs-currency-audit",
+        "text": "Audit of specs-currency-audit node. Reviewed docs/specs/README.md (77 lines), the sole file modified by tasks 0001 and 0002. Two commits: 63642ec (currency audit table) and e97aed3 (draft/superseded sections, missing spec addition). PASS. Findings: (1) Spot-checked 5 of 19 currency claims against code — all accurate. 'Needs update' entries correctly identify spec-vs-code drift (e.g., CHILDREF_STATE_MISMATCH exists in code but not in structural-validation spec; audit aar command exists but CLI Commands spec doesn't document it). (2) All 23 spec file links resolve to real files. (3) Escalated: findnexttask-invariants.md exists in docs/specs/ but was never added to the README index; predates this node (commit a742b36). (4) Draft implementation status column and superseded linkage verification column are valuable additions. Build clean, all tests pass. Quality: thorough, well-organized work. The currency table is specific and actionable, with drift notes precise enough to drive follow-up update tasks."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T14:51:32.516799Z",
+    "completed_at": "2026-03-21T15:04:26.025385Z",
+    "result_summary": "Audited all 22 specs (19 implemented, 3 draft, 1 superseded) against current code. Produced a currency audit table in docs/specs/README.md identifying 8 current and 10 drifted specs with specific, actionable drift notes. Enhanced the draft specs section with implementation status and verified superseded spec linkage. Added the previously missing unknown-field-detection spec to the README index. One pre-existing omission escalated: findnexttask-invariants.md not in the README. All spec file links verified, build and tests clean."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T15:04:16.614783Z",
+      "objective": "Verify all work in specs-currency-audit node is complete and correct",
+      "what_happened": "Read the full README diff across both commits (63642ec, e97aed3). Spot-checked 5 currency claims against code: Unknown Field Detection (current, confirmed), Structural Validation (needs update for CHILDREF_STATE_MISMATCH, confirmed in code but absent from spec), CLI Commands (needs update for audit aar, confirmed command exists undocumented in spec), StateStore (current, confirmed), findnexttask-invariants.md missing from index (confirmed, pre-existing). Verified all 23 spec file links resolve. Ran build and full test suite — both pass.",
+      "went_well": [
+        "Currency audit claims are accurate and specific enough to be directly actionable",
+        "Draft implementation status column and superseded linkage verification are good additions beyond the original task scope",
+        "The node caught the unknown-field-detection README omission that task-0001 missed"
+      ],
+      "improvements": [
+        "findnexttask-invariants.md omission from README was not caught by either prior task; escalated as pre-existing"
+      ],
+      "action_items": [
+        "Add findnexttask-invariants.md to the README specs index (escalated to parent node)"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T14:57:51.834204Z",
+      "objective": "Verify all 18 implemented specs against current code and record drift",
+      "what_happened": "Read every spec in docs/specs/ and compared against implementation in parallel. Created a currency audit table in the specs README with status (Current or Needs update) and specific drift notes for each spec. Eight specs are current, ten need updates. The six priority areas from the task description were all confirmed: config-schema is accurate, pipeline-stage-contract is missing AARs/planning/spec-review, CLI commands is missing audit aar/report and status --detail, structural-validation is missing CHILDREF_STATE_MISMATCH, goroutine-architecture has unimplemented io.Pipe and needs auto-archive inline update, prompt-externalization has filename and content drift.",
+      "went_well": [
+        "Parallel agent research covered all 18 specs efficiently",
+        "Drift findings are specific enough (file names, line references, exact mismatches) to be directly actionable for follow-up update tasks"
+      ],
+      "improvements": [
+        "Some agents reported on code locations that could shift; the audit table references concepts not line numbers, which is more durable"
+      ],
+      "action_items": [
+        "Create follow-up tasks to update the 10 specs flagged as needing updates, prioritizing pipeline-stage-contract, goroutine-architecture, and structural-validation as the most significant drifts"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T15:00:35.824015Z",
+      "objective": "Verify draft and superseded specs, update README index to reflect current status",
+      "what_happened": "Read all three draft specs (TUI, worktree-by-default, task-classes) and the superseded wolfcastle-fs spec. Searched the codebase for implementation evidence of each. TUI has zero implementation. Worktree-by-default has only the opt-in --worktree flag (the spec's status quo). Task classes has substantial infrastructure (ClassDef, ClassRepository, Class on Task, --class CLI flag, context builder integration) but no classes/*.md prompt files. Wolfcastle FS supersession links are correct. Also discovered the unknown-field-detection spec was missing from the README entirely.",
+      "went_well": [
+        "Codebase grep patterns quickly identified exact implementation status for each draft",
+        "Found the missing unknown-field-detection spec that task-0001 missed"
+      ],
+      "improvements": [
+        "Could have checked whether any draft specs need frontmatter status fields added (they currently have no YAML frontmatter, only prose DRAFT banners)"
+      ],
+      "action_items": [
+        "Consider adding YAML frontmatter with status: draft to the three draft specs for consistency with the superseded spec's frontmatter pattern"
+      ]
+    }
+  }
+}

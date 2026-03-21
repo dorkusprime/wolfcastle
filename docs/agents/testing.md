@@ -217,6 +217,60 @@ For this to work in integration tests, the `wolfcastle` binary must be on `PATH`
 | `setFailureAndIterationConfig(t, dir, decomp, maxDepth, hardCap, maxIter)` | Merges both failure thresholds and iteration cap |
 | `mergeLocalConfig(t, dir, overrides)` | Generic shallow-merge into `local/config.json` |
 
+## testutil Environment Builder
+
+The `internal/testutil` package provides a structured `Environment` builder for tests that need a full `.wolfcastle/` directory with repositories wired up. This is the preferred way to set up test state for unit tests in `internal/` packages.
+
+### Basic Usage
+
+```go
+env := testutil.NewEnvironment(t)
+```
+
+This creates a temp directory with a complete `.wolfcastle/` structure, three-tier config, empty root index, and all repository objects pre-wired (`env.State`, `env.Config`, `env.Prompts`, `env.Classes`, `env.Daemon`).
+
+### Building Trees with NodeSpec
+
+Use `Leaf` and `Orchestrator` helpers to describe tree shape declaratively:
+
+```go
+env := testutil.NewEnvironment(t).
+    WithProject("My Project", testutil.Orchestrator("root",
+        testutil.Leaf("auth", "task-0001", "task-0002"),
+        testutil.Leaf("api", "task-0001"),
+    ))
+```
+
+Each leaf automatically receives an audit task. Task descriptions are auto-generated from IDs.
+
+### Chaining Configuration
+
+```go
+env := testutil.NewEnvironment(t).
+    WithConfig(map[string]any{"max_iterations": 5}).
+    WithPrompt("stages/execute.md", "# Execute\n{{.Task}}").
+    WithRule("no-force-push.md", "Never force push.").
+    WithClasses(map[string]config.ClassDef{"research": {Model: "opus"}}).
+    WithGit(myGitProvider)
+```
+
+### Extracting App Fields
+
+For tests in `cmd/` that need a `cmdutil.App`, use `ToAppFields()`:
+
+```go
+fields := env.ToAppFields()
+app := cmdutil.App{
+    Config: fields.Config,
+    State:  fields.State,
+    // ...
+}
+```
+
+### When to Use Environment vs SetupWolfcastle
+
+Use `NewEnvironment(t)` when your test needs repository objects (ConfigRepository, StateStore, PromptRepository). Use `SetupWolfcastle(t)` or `SetupTree(t)` when you only need raw directory paths and are constructing state files yourself.
+
 ## Common Patterns and Gotchas
 
 **Always set `d.Config.Git.VerifyBranch = false` in Layer 1 tests.** The daemon checks that the current git branch matches the expected branch. Temp directories aren't git repos, so this check will fail unless disabled.

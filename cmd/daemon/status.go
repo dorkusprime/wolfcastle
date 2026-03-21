@@ -44,6 +44,7 @@ Examples:
 			interval, _ := cmd.Flags().GetFloat64("interval")
 			expand, _ := cmd.Flags().GetBool("expand")
 			detail, _ := cmd.Flags().GetBool("detail")
+			archived, _ := cmd.Flags().GetBool("archived")
 
 			if !showAll {
 				if err := app.RequireIdentity(); err != nil {
@@ -70,6 +71,10 @@ Examples:
 				return err
 			}
 
+			if archived {
+				return showArchivedStatus(app, idx, scopeNode)
+			}
+
 			return showTreeStatus(app, idx, scopeNode, expand, detail)
 		},
 	}
@@ -89,9 +94,14 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	openEscalations := 0
 
 	details := map[string]*nodeDetail{}
+	archivedCount := 0
 
 	for addr, entry := range idx.Nodes {
 		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
+			continue
+		}
+		if entry.Archived {
+			archivedCount++
 			continue
 		}
 		counts[entry.State]++
@@ -170,6 +180,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 			"in_progress":       counts[state.StatusInProgress],
 			"complete":          counts[state.StatusComplete],
 			"blocked":           counts[state.StatusBlocked],
+			"archived":          archivedCount,
 			"daemon":            daemonStatus,
 			"audit_pending":     auditCounts[state.AuditPending],
 			"audit_in_progress": auditCounts[state.AuditInProgress],
@@ -200,21 +211,36 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	if c := counts[state.StatusNotStarted]; c > 0 {
 		parts = append(parts, fmt.Sprintf("%d not started", c))
 	}
-	if total == 0 {
+	if archivedCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d archived", archivedCount))
+	}
+	if total == 0 && archivedCount == 0 {
 		output.PrintHuman("  No targets. Feed the inbox.")
 	} else {
-		output.PrintHuman("  %d nodes (%s)", total, strings.Join(parts, ", "))
+		output.PrintHuman("  %d nodes (%s)", total+archivedCount, strings.Join(parts, ", "))
 	}
 	output.PrintHuman("")
 
-	// Tree view: walk root nodes in order
+	// Tree view: walk root nodes in order, skipping archived roots
 	expand := len(flags) > 0 && flags[0]
 	detail := len(flags) > 1 && flags[1]
 	for _, rootAddr := range idx.Root {
 		if scope != "" && !isInSubtree(idx, rootAddr, scope) {
 			continue
 		}
+		if entry, ok := idx.Nodes[rootAddr]; ok && entry.Archived {
+			continue
+		}
 		printNodeTree(app, idx, details, rootAddr, "  ", expand, detail)
+	}
+
+	if archivedCount > 0 {
+		output.PrintHuman("")
+		if archivedCount == 1 {
+			output.PrintHuman("  1 archived node (use --archived to view)")
+		} else {
+			output.PrintHuman("  %d archived nodes (use --archived to view)", archivedCount)
+		}
 	}
 
 	// Inbox count
@@ -251,6 +277,79 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	}
 
 	output.PrintHuman("  Daemon: %s", daemonStatus)
+	return nil
+}
+
+// showArchivedStatus renders only the archived nodes with their metadata:
+// original address, completion state, and archive timestamp.
+func showArchivedStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error {
+	type archivedNode struct {
+		Address     string     `json:"address"`
+		Name        string     `json:"name"`
+		Type        string     `json:"type"`
+		State       string     `json:"state"`
+		CompletedAt *time.Time `json:"completed_at,omitempty"`
+		ArchivedAt  *time.Time `json:"archived_at,omitempty"`
+	}
+
+	var nodes []archivedNode
+	for _, entry := range idx.Nodes {
+		if !entry.Archived {
+			continue
+		}
+		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
+			continue
+		}
+		an := archivedNode{
+			Address:    entry.Address,
+			Name:       entry.Name,
+			Type:       string(entry.Type),
+			State:      string(entry.State),
+			ArchivedAt: entry.ArchivedAt,
+		}
+		// Pull the completion timestamp from the node's audit record
+		// when available.
+		if ns, err := app.State.ReadNode(entry.Address); err == nil {
+			an.CompletedAt = ns.Audit.CompletedAt
+		}
+		nodes = append(nodes, an)
+	}
+
+	// Sort by address for stable output.
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Address < nodes[j].Address
+	})
+
+	if app.JSON {
+		output.Print(output.Ok("archived", map[string]any{
+			"total": len(nodes),
+			"nodes": nodes,
+		}))
+		return nil
+	}
+
+	output.PrintHuman("Wolfcastle Archived Nodes")
+	output.PrintHuman("")
+
+	if len(nodes) == 0 {
+		output.PrintHuman("  No archived nodes.")
+		return nil
+	}
+
+	output.PrintHuman("  %d archived:", len(nodes))
+	output.PrintHuman("")
+
+	for _, n := range nodes {
+		glyph := "⊘"
+		if output.IsTerminal() {
+			glyph = colorDim + "⊘" + colorReset
+		}
+		output.PrintHuman("  %s %s  (%s)", glyph, n.Name, n.Address)
+		if n.ArchivedAt != nil {
+			output.PrintHuman("      archived %s", n.ArchivedAt.Format("2006-01-02 15:04"))
+		}
+	}
+
 	return nil
 }
 
@@ -549,6 +648,7 @@ func showAllStatus(app *cmdutil.App) error {
 		InProgress int    `json:"in_progress"`
 		Blocked    int    `json:"blocked"`
 		NotStarted int    `json:"not_started"`
+		Archived   int    `json:"archived"`
 	}
 
 	var summaries []namespaceSummary
@@ -563,16 +663,22 @@ func showAllStatus(app *cmdutil.App) error {
 			continue
 		}
 		counts := map[state.NodeStatus]int{}
+		archivedN := 0
 		for _, e := range idx.Nodes {
+			if e.Archived {
+				archivedN++
+				continue
+			}
 			counts[e.State]++
 		}
 		summaries = append(summaries, namespaceSummary{
 			Namespace:  entry.Name(),
-			Total:      len(idx.Nodes),
+			Total:      len(idx.Nodes) - archivedN,
 			Complete:   counts[state.StatusComplete],
 			InProgress: counts[state.StatusInProgress],
 			Blocked:    counts[state.StatusBlocked],
 			NotStarted: counts[state.StatusNotStarted],
+			Archived:   archivedN,
 		})
 	}
 
@@ -586,8 +692,12 @@ func showAllStatus(app *cmdutil.App) error {
 			output.PrintHuman("No namespaces found. The battlefield is empty.")
 		} else {
 			for _, s := range summaries {
-				output.PrintHuman("[%s] %d nodes: %d complete, %d in-progress, %d blocked",
+				line := fmt.Sprintf("[%s] %d nodes: %d complete, %d in-progress, %d blocked",
 					s.Namespace, s.Total, s.Complete, s.InProgress, s.Blocked)
+				if s.Archived > 0 {
+					line += fmt.Sprintf(", %d archived", s.Archived)
+				}
+				output.PrintHuman("%s", line)
 			}
 		}
 	}

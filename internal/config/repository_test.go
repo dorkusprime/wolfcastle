@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -263,5 +264,367 @@ func TestConfigRepository_NewConfigRepository_UsesCaching(t *testing.T) {
 	// We verify the constructor doesn't break Load.
 	if cfg2.Failure.HardCap != 42 {
 		t.Fatalf("expected hard_cap=42 (direct read), got %d", cfg2.Failure.HardCap)
+	}
+}
+
+// --- ReadTier tests ---
+
+func TestConfigRepository_ReadTier_ReturnsEmptyMapWhenMissing(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	m, err := repo.ReadTier("custom")
+	if err != nil {
+		t.Fatalf("ReadTier(custom) error: %v", err)
+	}
+	if len(m) != 0 {
+		t.Errorf("expected empty map for missing tier, got %v", m)
+	}
+}
+
+func TestConfigRepository_ReadTier_ParsesExistingOverlay(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	overlay := map[string]any{"failure": map[string]any{"hard_cap": float64(55)}}
+	if err := repo.WriteCustom(overlay); err != nil {
+		t.Fatalf("WriteCustom: %v", err)
+	}
+
+	m, err := repo.ReadTier("custom")
+	if err != nil {
+		t.Fatalf("ReadTier(custom) error: %v", err)
+	}
+	failure, ok := m["failure"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected failure key as map, got %T", m["failure"])
+	}
+	if failure["hard_cap"] != float64(55) {
+		t.Errorf("expected hard_cap=55, got %v", failure["hard_cap"])
+	}
+}
+
+func TestConfigRepository_ReadTier_RejectsBase(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	_, err := repo.ReadTier("base")
+	if err == nil {
+		t.Fatal("expected error for base tier")
+	}
+	if !strings.Contains(err.Error(), "read-only") {
+		t.Errorf("expected read-only error, got: %v", err)
+	}
+}
+
+func TestConfigRepository_ReadTier_RejectsUnknown(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	_, err := repo.ReadTier("bogus")
+	if err == nil {
+		t.Fatal("expected error for unknown tier")
+	}
+	if !strings.Contains(err.Error(), "unknown tier") {
+		t.Errorf("expected unknown tier error, got: %v", err)
+	}
+}
+
+func TestConfigRepository_ReadTier_MalformedJSON(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	tierDirs := env.Tiers.TierDirs()
+	if err := os.WriteFile(filepath.Join(tierDirs[1], "config.json"), []byte("{bad"), 0o644); err != nil {
+		t.Fatalf("writing corrupt config: %v", err)
+	}
+
+	_, err := repo.ReadTier("custom")
+	if err == nil {
+		t.Fatal("expected error for malformed JSON")
+	}
+	if !strings.Contains(err.Error(), "not valid JSON") {
+		t.Errorf("expected JSON parse error, got: %v", err)
+	}
+}
+
+func TestConfigRepository_ReadTier_PermissionError(t *testing.T) {
+	t.Parallel()
+	if os.Getuid() == 0 {
+		t.Skip("skipping permission test when running as root")
+	}
+
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	tierDirs := env.Tiers.TierDirs()
+	path := filepath.Join(tierDirs[1], "config.json")
+	if err := os.WriteFile(path, []byte(`{}`), 0o644); err != nil {
+		t.Fatalf("writing config: %v", err)
+	}
+	if err := os.Chmod(path, 0o000); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(path, 0o644) })
+
+	_, err := repo.ReadTier("custom")
+	if err == nil {
+		t.Fatal("expected error for permission-denied")
+	}
+}
+
+func TestConfigRepository_ReadTier_Local(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	overlay := map[string]any{
+		"failure":  map[string]any{"hard_cap": float64(88)},
+		"identity": map[string]any{"user": "test", "machine": "machine"},
+	}
+	if err := repo.WriteLocal(overlay); err != nil {
+		t.Fatalf("WriteLocal: %v", err)
+	}
+
+	m, err := repo.ReadTier("local")
+	if err != nil {
+		t.Fatalf("ReadTier(local) error: %v", err)
+	}
+	failure, ok := m["failure"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected failure key as map, got %T", m["failure"])
+	}
+	if failure["hard_cap"] != float64(88) {
+		t.Errorf("expected hard_cap=88, got %v", failure["hard_cap"])
+	}
+}
+
+// --- WriteTier tests ---
+
+func TestConfigRepository_WriteTier_Custom(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	overlay := map[string]any{"failure": map[string]any{"hard_cap": float64(33)}}
+	if err := repo.WriteTier("custom", overlay); err != nil {
+		t.Fatalf("WriteTier(custom) error: %v", err)
+	}
+
+	m, err := repo.ReadTier("custom")
+	if err != nil {
+		t.Fatalf("ReadTier: %v", err)
+	}
+	failure := m["failure"].(map[string]any)
+	if failure["hard_cap"] != float64(33) {
+		t.Errorf("expected hard_cap=33, got %v", failure["hard_cap"])
+	}
+}
+
+func TestConfigRepository_WriteTier_Local(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	overlay := map[string]any{
+		"failure":  map[string]any{"hard_cap": float64(44)},
+		"identity": map[string]any{"user": "test", "machine": "machine"},
+	}
+	if err := repo.WriteTier("local", overlay); err != nil {
+		t.Fatalf("WriteTier(local) error: %v", err)
+	}
+
+	cfg, err := repo.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Failure.HardCap != 44 {
+		t.Errorf("expected hard_cap=44, got %d", cfg.Failure.HardCap)
+	}
+}
+
+func TestConfigRepository_WriteTier_RejectsBase(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	err := repo.WriteTier("base", map[string]any{})
+	if err == nil {
+		t.Fatal("expected error for base tier")
+	}
+	if !strings.Contains(err.Error(), "read-only") {
+		t.Errorf("expected read-only error, got: %v", err)
+	}
+}
+
+func TestConfigRepository_WriteTier_RejectsUnknown(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	err := repo.WriteTier("bogus", map[string]any{})
+	if err == nil {
+		t.Fatal("expected error for unknown tier")
+	}
+	if !strings.Contains(err.Error(), "unknown tier") {
+		t.Errorf("expected unknown tier error, got: %v", err)
+	}
+}
+
+// --- ApplyMutation tests ---
+
+func TestConfigRepository_ApplyMutation_SuccessfulMutation(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	err := repo.ApplyMutation("custom", func(overlay map[string]any) error {
+		overlay["failure"] = map[string]any{"hard_cap": float64(77)}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("ApplyMutation error: %v", err)
+	}
+
+	cfg, err := repo.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Failure.HardCap != 77 {
+		t.Errorf("expected hard_cap=77, got %d", cfg.Failure.HardCap)
+	}
+}
+
+func TestConfigRepository_ApplyMutation_MutationErrorDoesNotWrite(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	err := repo.ApplyMutation("custom", func(overlay map[string]any) error {
+		return fmt.Errorf("deliberate failure")
+	})
+	if err == nil {
+		t.Fatal("expected error from failed mutation")
+	}
+	if !strings.Contains(err.Error(), "deliberate failure") {
+		t.Errorf("expected mutation error, got: %v", err)
+	}
+
+	// Tier file should not exist since the mutation failed before write.
+	m, err := repo.ReadTier("custom")
+	if err != nil {
+		t.Fatalf("ReadTier: %v", err)
+	}
+	if len(m) != 0 {
+		t.Errorf("expected empty overlay after mutation failure, got %v", m)
+	}
+}
+
+func TestConfigRepository_ApplyMutation_RollsBackOnValidationFailure(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	// Seed the custom tier with a valid overlay.
+	if err := repo.WriteCustom(map[string]any{"failure": map[string]any{"hard_cap": float64(10)}}); err != nil {
+		t.Fatalf("WriteCustom seed: %v", err)
+	}
+
+	// Apply a mutation that produces an invalid config (negative hard_cap
+	// should fail validation, but if it doesn't, use a value that will
+	// at least let us detect whether rollback happened).
+	// We need to produce something that actually fails Load(). The
+	// pipeline.stages key expects a specific shape. Let's write something
+	// that will break parsing: a string where an int is expected.
+	err := repo.ApplyMutation("custom", func(overlay map[string]any) error {
+		overlay["failure"] = map[string]any{"hard_cap": "not-a-number"}
+		return nil
+	})
+	if err == nil {
+		t.Fatal("expected validation error from invalid config")
+	}
+	if !strings.Contains(err.Error(), "rolled back") {
+		t.Errorf("expected rolled-back error, got: %v", err)
+	}
+
+	// The original overlay should be restored.
+	m, err := repo.ReadTier("custom")
+	if err != nil {
+		t.Fatalf("ReadTier after rollback: %v", err)
+	}
+	failure, ok := m["failure"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected failure key after rollback, got %v", m)
+	}
+	if failure["hard_cap"] != float64(10) {
+		t.Errorf("expected hard_cap=10 after rollback, got %v", failure["hard_cap"])
+	}
+}
+
+func TestConfigRepository_ApplyMutation_RollsBackToAbsence(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	// No custom tier file exists. Apply a mutation that breaks validation.
+	err := repo.ApplyMutation("custom", func(overlay map[string]any) error {
+		overlay["failure"] = map[string]any{"hard_cap": "bad"}
+		return nil
+	})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+
+	// The custom tier file should not exist after rollback.
+	m, err := repo.ReadTier("custom")
+	if err != nil {
+		t.Fatalf("ReadTier after rollback: %v", err)
+	}
+	if len(m) != 0 {
+		t.Errorf("expected empty overlay after rollback-to-absence, got %v", m)
+	}
+}
+
+func TestConfigRepository_ApplyMutation_RejectsBase(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	err := repo.ApplyMutation("base", func(overlay map[string]any) error {
+		return nil
+	})
+	if err == nil {
+		t.Fatal("expected error for base tier")
+	}
+	if !strings.Contains(err.Error(), "read-only") {
+		t.Errorf("expected read-only error, got: %v", err)
+	}
+}
+
+func TestConfigRepository_ApplyMutation_Local(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+
+	err := repo.ApplyMutation("local", func(overlay map[string]any) error {
+		overlay["failure"] = map[string]any{"hard_cap": float64(99)}
+		overlay["identity"] = map[string]any{"user": "test", "machine": "machine"}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("ApplyMutation(local) error: %v", err)
+	}
+
+	cfg, err := repo.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Failure.HardCap != 99 {
+		t.Errorf("expected hard_cap=99, got %d", cfg.Failure.HardCap)
 	}
 }

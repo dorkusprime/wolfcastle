@@ -47,9 +47,19 @@ Model API failures (timeouts, rate limits, server errors) get exponential backof
 
 `max_retries: -1` means unlimited. Wolfcastle will wait as long as it takes.
 
+## Stall Detection
+
+Model processes sometimes hang: the API stops responding, the subprocess deadlocks, output just stops flowing. The stall detector watches for this. When a model invocation produces no stdout output for a configurable timeout period, Wolfcastle kills the entire process group and returns `ErrStallTimeout`. Any output at all (a single line, a partial token) resets the timer, so a slow but active model is left alone. Only truly silent processes get killed. The stall timeout is configured per-invocation; a zero value disables detection entirely.
+
 ## Self-Healing
 
 If [the daemon](how-it-works.md#the-daemon) crashes mid-task (power failure, OOM, act of god), it recovers on restart. It finds the task left `in_progress`, hands the situation to the model, and lets it decide: resume, roll back, or block. Stale PID files are detected and ignored.
+
+Self-healing also handles two structural problems that a crash can leave behind:
+
+**Blocked audits with orphaned gaps.** When an audit task finds gaps, it blocks and the daemon creates remediation subtasks. If the daemon crashes between the block and the subtask creation, the audit is stuck: blocked with open gaps but no remediation work queued. On restart, self-healing detects this state, creates the missing remediation subtasks, and resets the audit to `not_started` so the cycle can resume.
+
+**CHILDREF_STATE_MISMATCH.** When an orchestrator's recorded child state diverges from the child's actual state (another crash artifact), the [structural validator](audits.md#structural-validation) detects it as a deterministic fix. The repair rewrites the orchestrator's state on disk, correcting both the stale child reference and recomputing the orchestrator's own state. This runs as part of the startup validation checks, before the daemon begins its first iteration.
 
 ## The Unblock Workflow
 
