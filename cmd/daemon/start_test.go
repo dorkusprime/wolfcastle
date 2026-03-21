@@ -18,6 +18,10 @@ import (
 func TestStartCmd_ValidationErrors(t *testing.T) {
 	env := newStatusTestEnv(t)
 
+	lockDir := t.TempDir()
+	dmn.GlobalLockDir = lockDir
+	defer func() { dmn.GlobalLockDir = "" }()
+
 	// Set node to "complete" with incomplete tasks. This is
 	// COMPLETE_WITH_INCOMPLETE (model-assisted), which pre-start
 	// self-heal cannot fix deterministically. Validation blocks startup.
@@ -40,6 +44,10 @@ func TestStartCmd_ValidationErrors(t *testing.T) {
 
 func TestStartCmd_ValidationWarnings(t *testing.T) {
 	env := newStatusTestEnv(t)
+
+	lockDir := t.TempDir()
+	dmn.GlobalLockDir = lockDir
+	defer func() { dmn.GlobalLockDir = "" }()
 
 	// Place a stop file so the daemon exits after starting.
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
@@ -119,6 +127,10 @@ func TestShowAllStatus_MissingProjectsDir(t *testing.T) {
 
 func TestStartCmd_VerboseFlag(t *testing.T) {
 	env := newStatusTestEnv(t)
+
+	lockDir := t.TempDir()
+	dmn.GlobalLockDir = lockDir
+	defer func() { dmn.GlobalLockDir = "" }()
 
 	// Place a stop file so the daemon exits immediately.
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
