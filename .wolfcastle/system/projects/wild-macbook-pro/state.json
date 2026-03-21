@@ -288,7 +288,7 @@
     "delete-deprecated-scaffold": {
       "name": "Delete Deprecated Scaffold",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "delete-deprecated-scaffold",
       "decomposition_depth": 0,
       "children": [
@@ -299,7 +299,7 @@
     "delete-deprecated-scaffold/remove-deprecated-files": {
       "name": "Remove Deprecated Files",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "delete-deprecated-scaffold/remove-deprecated-files",
       "decomposition_depth": 0,
       "parent": "delete-deprecated-scaffold"
@@ -307,7 +307,7 @@
     "delete-deprecated-scaffold/verify-no-production-callers": {
       "name": "Verify No Production Callers",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "delete-deprecated-scaffold/verify-no-production-callers",
       "decomposition_depth": 0,
       "parent": "delete-deprecated-scaffold"
@@ -315,7 +315,7 @@
     "doctor-childref-state-mismatch": {
       "name": "Doctor ChildRef State Mismatch",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "complete",
       "address": "doctor-childref-state-mismatch",
       "decomposition_depth": 0
     },

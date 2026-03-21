@@ -3,7 +3,7 @@
   "id": "verify-no-production-callers",
   "name": "Verify No Production Callers",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -21,7 +21,7 @@
       "id": "task-0002",
       "title": "Catalog all test files calling deprecated Scaffold/ReScaffold",
       "description": "Catalog all test files calling deprecated Scaffold/ReScaffold",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/scaffold_readme_test.go"
@@ -32,7 +32,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Verify No Production Callers is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -54,15 +54,48 @@
         "timestamp": "2026-03-21T02:04:59.536693Z",
         "task": "delete-deprecated-scaffold/verify-no-production-callers",
         "text": "Catalog of test files calling deprecated Scaffold/ReScaffold:\n\nFILES TO DELETE (only test deprecated functions):\n1. internal/project/scaffold_test.go — 14 tests, all call deprecated Scaffold()/ReScaffold()/WriteBasePrompts()\n2. internal/project/deprecated_coverage_test.go — 12 tests, all call deprecated Scaffold()/ReScaffold()/migrateOldConfig()\n3. internal/project/category_a_test.go — 1 test (TestReScaffold_InvalidJSONInLocalConfig), calls deprecated Scaffold()/ReScaffold()\n4. internal/project/scaffold_chmod_test.go — 8 tests, all call deprecated Scaffold()/ReScaffold()\n5. internal/project/scaffold_coverage_test.go — 14 tests, all call deprecated Scaffold()/ReScaffold()/WriteBasePrompts()\n6. internal/project/scaffold_extra_test.go — 10 tests, all call deprecated Scaffold()/ReScaffold()/WriteBasePrompts()/detectIdentity()\n\nFILES TO EDIT (mix of deprecated and non-deprecated):\n7. internal/project/scaffold_readme_test.go — 4 tests total. 3 use ScaffoldService.Init() (KEEP), 1 uses deprecated Scaffold() (REMOVE: TestScaffold_CreatesREADMEs)\n\nFILES TO KEEP (no deprecated calls):\n8. internal/project/reinit_coverage_test.go — 7 tests, ALL use ScaffoldService.Init()/Reinit(). Tests the replacement service error paths. Do NOT delete.\n\nTotal: 6 files to delete, 1 file to edit (remove 1 test function), 1 file to keep unchanged."
+      },
+      {
+        "timestamp": "2026-03-21T02:07:07.579894Z",
+        "task": "delete-deprecated-scaffold/verify-no-production-callers",
+        "text": "AUDIT REVIEW — Scope: Verified claims from task-0001 and task-0002 across internal/project/ (scaffold.go, scaffold_service.go, 8 test files, cmd/init.go, cmd/update.go, cmd/project/create.go, cmd/audit/approve.go). Verdict: PASS with one accepted finding and one escalation.\n\nFindings:\n(1) create_test.go:221 calls detectIdentity() from scaffold.go but was omitted from task-0002's catalog (listed 8 files, should be 9). Accepted: the core conclusion (zero production callers of Scaffold/ReScaffold) is unaffected, and the gap is now documented for the deletion node.\n(2) Escalated: scaffold.go contains non-deprecated production functions WriteAuditTaskMD and CreateProject, called from cmd/project/create.go and cmd/audit/approve.go. The sibling remove-deprecated-files node must extract or preserve these before deleting deprecated code.\n\nQuality: task-0001 was thorough and accurate — the zero-production-callers claim holds up. task-0002's catalog is solid and the delete/edit/keep classification is correct, with the minor omission of create_test.go noted above. The breadcrumb trail is detailed enough for the deletion node to act on without re-investigation."
       }
     ],
-    "gaps": [],
+    "gaps": [
+      {
+        "id": "gap-verify-no-production-callers-1",
+        "timestamp": "2026-03-21T02:06:50.052433Z",
+        "description": "task-0002 catalog missed create_test.go:221 (TestDetectIdentity_ReturnsNonEmptyValues) which calls detectIdentity() from scaffold.go. When scaffold.go is deleted, this test breaks. The deletion node must account for 9 files, not 8.",
+        "source": "delete-deprecated-scaffold/verify-no-production-callers",
+        "status": "fixed",
+        "fixed_by": "delete-deprecated-scaffold/verify-no-production-callers",
+        "fixed_at": "2026-03-21T02:06:57.326325Z"
+      }
+    ],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-21T02:03:01.63546Z",
-    "result_summary": "Verified zero production callers of deprecated Scaffold() and ReScaffold() functions. All ~60 call sites are in test files. ScaffoldService in scaffold_service.go is fully self-contained with no delegation to the deprecated functions. cmd/init.go and cmd/update.go exclusively use ScaffoldService. The deprecated functions in scaffold.go can be safely deleted, though their test files will need removal or migration as part of that work."
+    "completed_at": "2026-03-21T02:07:26.116965Z",
+    "result_summary": "Verified that no production code calls the deprecated Scaffold() or ReScaffold() functions. All ~60 call sites are in test files; scaffold_service.go is fully self-contained, and cmd/init.go and cmd/update.go use only ScaffoldService. Cataloged 9 test files: 6 for deletion (test only deprecated functions), 1 for editing (scaffold_readme_test.go has 1 deprecated test among 3 valid ones), 1 to keep (reinit_coverage_test.go tests the replacement), and 1 omitted from the original catalog (create_test.go calls detectIdentity() which lives in scaffold.go). Escalated that scaffold.go also contains non-deprecated production functions (WriteAuditTaskMD, CreateProject) that the deletion node must preserve."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T02:07:23.723347Z",
+      "objective": "Verify all work in the verify-no-production-callers node is complete and correct",
+      "what_happened": "Re-ran all grep searches from task-0001 and task-0002. Confirmed zero production callers of Scaffold/ReScaffold. Found one catalog omission: create_test.go calls detectIdentity() from scaffold.go, making 9 affected test files not 8. Discovered scaffold.go contains non-deprecated production functions WriteAuditTaskMD and CreateProject called from cmd/. Escalated the latter to the parent node.",
+      "went_well": [
+        "The core verification from task-0001 is airtight: no production code calls Scaffold or ReScaffold",
+        "task-0002's delete/edit/keep classification is correct for all files it listed"
+      ],
+      "improvements": [
+        "task-0002 searched for detectIdentity() but missed create_test.go in its catalog, likely because the test calls detectIdentity directly rather than through Scaffold/ReScaffold"
+      ],
+      "action_items": [
+        "Deletion node must extract WriteAuditTaskMD and CreateProject from scaffold.go before removing deprecated code",
+        "Deletion node must handle create_test.go:221 TestDetectIdentity_ReturnsNonEmptyValues in addition to the 8 cataloged files"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-21T02:03:38.612142Z",

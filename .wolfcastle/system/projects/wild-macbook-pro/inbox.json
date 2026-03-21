@@ -79,6 +79,11 @@
       "timestamp": "2026-03-20T10:27:29Z",
       "text": "Doctor should detect parent-child state mismatch: when a parent ChildRef.State says complete but the actual child node state is not_started, doctor reports clean. Add a CHILDREF_STATE_MISMATCH validation category that compares ChildRef.State against the child's actual persisted state. Include a deterministic fix that updates the ChildRef to match reality.",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T02:09:17Z",
+      "text": "ensure test coverage for new code is over 90%",
+      "status": "filed"
     }
   ]
 }
