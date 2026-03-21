@@ -645,3 +645,118 @@ func TestRestoreNode_NotInArchivedRoot(t *testing.T) {
 		t.Fatal("expected error when restoring a non-root archived node")
 	}
 }
+
+func TestRestoreNode_RoundTripPreservesDirectoryStructure(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "round-trip", completedAt, []string{"round-trip/leaf-a", "round-trip/leaf-b"})
+
+	projDir := d.Store.Dir()
+
+	// Snapshot the original directory entries before archiving.
+	originalRoot, err := os.ReadDir(filepath.Join(projDir, "round-trip"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	originalNames := make(map[string]bool)
+	for _, e := range originalRoot {
+		originalNames[e.Name()] = true
+	}
+
+	archiveAndVerify(t, d, "round-trip")
+
+	if err := d.restoreNode("round-trip"); err != nil {
+		t.Fatalf("restoreNode failed: %v", err)
+	}
+
+	// After round-trip, the directory listing should match the original.
+	restoredRoot, err := os.ReadDir(filepath.Join(projDir, "round-trip"))
+	if err != nil {
+		t.Fatalf("reading restored dir: %v", err)
+	}
+	restoredNames := make(map[string]bool)
+	for _, e := range restoredRoot {
+		restoredNames[e.Name()] = true
+	}
+
+	for name := range originalNames {
+		if !restoredNames[name] {
+			t.Errorf("directory entry %q present before archive but missing after restore", name)
+		}
+	}
+	for name := range restoredNames {
+		if !originalNames[name] {
+			t.Errorf("unexpected directory entry %q appeared after restore", name)
+		}
+	}
+
+	// Verify index symmetry: flags should be fully cleared.
+	idx, _ := d.Store.ReadIndex()
+	for _, addr := range []string{"round-trip", "round-trip/leaf-a", "round-trip/leaf-b"} {
+		e := idx.Nodes[addr]
+		if e.Archived {
+			t.Errorf("%s should not be archived after round-trip", addr)
+		}
+		if e.ArchivedAt != nil {
+			t.Errorf("%s ArchivedAt should be nil after round-trip", addr)
+		}
+	}
+}
+
+func TestRestoreNode_RenameError(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	setupCompletedOrchestrator(t, d, "rename-fail", completedAt, nil)
+	archiveAndVerify(t, d, "rename-fail")
+
+	projDir := d.Store.Dir()
+
+	// Place a regular file where the active directory would go, blocking os.Rename.
+	if err := os.WriteFile(filepath.Join(projDir, "rename-fail"), []byte("blocker"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := d.restoreNode("rename-fail")
+	if err == nil {
+		t.Fatal("expected error when os.Rename cannot restore the directory")
+	}
+}
+
+func TestRestoreNode_MkdirAllError(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	clk := clock.NewMock(now)
+	d := archiveTestDaemon(t, clk)
+
+	completedAt := now.Add(-25 * time.Hour)
+	children := []string{"rename-mkfail/nested/deep-child"}
+	setupCompletedOrchestrator(t, d, "rename-mkfail", completedAt, children)
+	archiveAndVerify(t, d, "rename-mkfail")
+
+	projDir := d.Store.Dir()
+
+	// The root node restores fine, but we block creation of the nested parent.
+	// Place a read-only file where "rename-mkfail/nested" would need to be
+	// created, so MkdirAll fails for the deep-child.
+	nestParent := filepath.Join(projDir, "rename-mkfail", "nested")
+	if err := os.MkdirAll(filepath.Dir(nestParent), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(nestParent, []byte("blocker"), 0o444); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(nestParent, 0o755); os.Remove(nestParent) })
+
+	err := d.restoreNode("rename-mkfail")
+	if err == nil {
+		t.Fatal("expected error when MkdirAll cannot create parent directory for restore")
+	}
+}
