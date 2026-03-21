@@ -14,10 +14,7 @@ Wolfcastle solves four problems that prevent coding agents from working autonomo
 
 ### Planning
 
-Coding agents work best when they know exactly what to do. The problem is getting from a goal to a plan. Some agents offer a "planning mode" to bridge this gap, but the agent is still both planner and executor.
-
-- _Keep_ context and the two blur together: the agent plans five things, does two, gets creative on the third, and forgets the fourth.
-- _Clear_ context and the executor can reinterpret the plan because nothing enforces it. Either way, the plan is a suggestion the agent made to itself.
+Coding agents work best when they know exactly what to do. The problem is getting from a goal to a plan. Some agents offer a "planning mode" to bridge this gap, but the agent is still both planner and executor. _Keep_ context and the two blur together: the agent plans five things, does two, gets creative on the third, and forgets the fourth. _Clear_ context and the executor can reinterpret the plan because nothing enforces it. Either way, the plan is a suggestion the agent made to itself.
 
 Wolfcastle separates planning from execution. A planning agent creates the structure: [specs](docs/specs/), projects, task trees. An execution agent follows it. Neither can overwrite the other. The [daemon](docs/humans/how-it-works.md#the-daemon) enforces the contract. If the executor blocks, the system [decomposes](docs/humans/failure-and-recovery.md#decomposition) rather than letting it thrash.
 
