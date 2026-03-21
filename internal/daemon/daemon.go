@@ -343,6 +343,20 @@ const (
 	IterationError
 )
 
+// RunInbox runs only the inbox processing loop, blocking until the context
+// is cancelled. This is the non-daemon counterpart to the inbox goroutine
+// that Run starts in the background: same intake pipeline, same fsnotify
+// watcher with polling fallback, but without the main execution loop.
+func (d *Daemon) RunInbox(ctx context.Context) {
+	d.shutdown = make(chan struct{})
+	d.workAvailable = make(chan struct{}, 1)
+	go func() {
+		<-ctx.Done()
+		d.shutdownOnce.Do(func() { close(d.shutdown) })
+	}()
+	d.runInboxLoop(ctx)
+}
+
 // Run executes the daemon loop.
 func (d *Daemon) Run(ctx context.Context) error {
 	// Root the daemon in a cancelable signal context so shutdown signals
