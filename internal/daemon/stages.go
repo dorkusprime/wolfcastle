@@ -175,18 +175,28 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 	// Build context with inbox items
 	var itemsCtx strings.Builder
 
-	// Include current tree state so the model can file work under existing projects
+	// Include root-level projects so the model can file work under
+	// existing projects instead of creating duplicates. Only show
+	// roots (not every leaf/subtask) to keep the context focused.
 	idx, err := d.Store.ReadIndex()
-	if err == nil && len(idx.Nodes) > 0 {
-		itemsCtx.WriteString("# Existing Project Tree\n\n")
-		itemsCtx.WriteString("These projects already exist. File new work under existing projects when appropriate rather than creating duplicates.\n\n")
-		for addr, entry := range idx.Nodes {
-			fmt.Fprintf(&itemsCtx, "- **%s** (%s, %s)\n", entry.Name, entry.Type, entry.State)
-			if entry.Parent != "" {
-				fmt.Fprintf(&itemsCtx, "  Address: %s (child of %s)\n", addr, entry.Parent)
-			} else {
-				fmt.Fprintf(&itemsCtx, "  Address: %s\n", addr)
+	if err == nil && len(idx.Root) > 0 {
+		itemsCtx.WriteString("# Existing Root Projects\n\n")
+		itemsCtx.WriteString("Before creating a new root project, check this list. If an inbox item's work belongs under an existing project, add it there with --node instead of creating a duplicate.\n\n")
+		for _, rootAddr := range idx.Root {
+			entry, ok := idx.Nodes[rootAddr]
+			if !ok {
+				continue
 			}
+			fmt.Fprintf(&itemsCtx, "- **%s** (address: `%s`, %s, %s)", entry.Name, rootAddr, entry.Type, entry.State)
+			// Load the node to get its scope/description for better matching
+			if ns, loadErr := d.Store.ReadNode(rootAddr); loadErr == nil && ns.Scope != "" {
+				scope := ns.Scope
+				if len(scope) > 120 {
+					scope = scope[:120] + "..."
+				}
+				fmt.Fprintf(&itemsCtx, "\n  Scope: %s", scope)
+			}
+			itemsCtx.WriteString("\n")
 		}
 		itemsCtx.WriteString("\n")
 	}

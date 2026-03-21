@@ -49,3 +49,4 @@ When done processing all items, emit WOLFCASTLE_COMPLETE on its own line.
 - Do not write specs, ADRs, or any files.
 - Always use --type orchestrator with --scope.
 - Always emit WOLFCASTLE_COMPLETE when done.
+- **Never create a project whose scope overlaps with an existing root project.** If an inbox item is related to an existing project (e.g., "ensure coverage for X" when project X exists, or "fix bug in X" when X exists), use OVERLAP instead of creating a new project. Two projects about the same feature is always wrong.
