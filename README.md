@@ -6,6 +6,34 @@
 
 You give Wolfcastle a goal. It breaks that goal into a tree of targets and sends AI coding agents to destroy them, depth-first, until the tree is conquered. While you do whatever it is you do.
 
+## Status
+
+[![CI](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/dorkusprime/wolfcastle/actions/workflows/codeql.yml/badge.svg)](https://github.com/dorkusprime/wolfcastle/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/dorkusprime/wolfcastle/branch/main/graph/badge.svg)](https://codecov.io/gh/dorkusprime/wolfcastle)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dorkusprime/wolfcastle)](https://goreportcard.com/report/github.com/dorkusprime/wolfcastle)
+[![Go Reference](https://pkg.go.dev/badge/github.com/dorkusprime/wolfcastle.svg)](https://pkg.go.dev/github.com/dorkusprime/wolfcastle)
+[![Go version](https://img.shields.io/github/go-mod/go-version/dorkusprime/wolfcastle)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/dorkusprime/wolfcastle?include_prereleases)](https://github.com/dorkusprime/wolfcastle/releases)
+
+Pre-release. Probably broken. Then fixed. Then broken again. On repeat until release. Install if you're feeling brave:
+
+```bash
+brew install dorkusprime/tap/wolfcastle
+cd your-repo
+wolfcastle init                                            # scaffold .wolfcastle/
+wolfcastle inbox add "Build a website for my donut stand"  # queue up work
+wolfcastle start                                           # the daemon wakes up
+
+# in another terminal:
+wolfcastle status -w                                       # watch it work
+```
+
+`init` creates the `.wolfcastle/` directory with config, prompts, and state scaffolding. `inbox add` queues a feature request for the daemon to decompose into projects and tasks. `start` launches the daemon, which runs the full pipeline until there's nothing left to do. `status` shows you what's happening.
+
+Feed it work through the [CLI](docs/humans/cli.md) or let your coding agent inject work directly. The [daemon](docs/humans/how-it-works.md#the-daemon) takes it from there: triage, planning, execution, audit, commit. Serial, depth-first, until the [tree](docs/humans/how-it-works.md#the-project-tree) is conquered or something gets in the way.
+
 ## Why This Exists
 
 Coding agents are remarkably good at writing specs and following specs. Where they struggle is the middle: deciding what to build, building it, and maintaining quality across dozens of tasks without human intervention. Not because the models aren't capable, but because the scaffolding around them wasn't designed for sustained, unsupervised work.
@@ -58,34 +86,6 @@ The tree grows at runtime. Tasks that fail [decompose](docs/humans/failure-and-r
 
 Everything is deterministic except the model's output. State, specs, ADRs, AARs, breadcrumbs, and audit findings all live as [files on disk](docs/humans/how-it-works.md#distributed-state). Nothing important stays in memory. Every decision, every lesson, every result persists across invocations, restarts, and crashes. The model handles what models are good at: reading code, writing code, making judgment calls. [CLI scripts](docs/humans/cli.md) handle what's deterministic: state transitions, propagation, validation, navigation. Neither does the other's job.
 
-## Status
-
-[![CI](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/dorkusprime/wolfcastle/actions/workflows/codeql.yml/badge.svg)](https://github.com/dorkusprime/wolfcastle/actions/workflows/codeql.yml)
-[![codecov](https://codecov.io/gh/dorkusprime/wolfcastle/branch/main/graph/badge.svg)](https://codecov.io/gh/dorkusprime/wolfcastle)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dorkusprime/wolfcastle)](https://goreportcard.com/report/github.com/dorkusprime/wolfcastle)
-[![Go Reference](https://pkg.go.dev/badge/github.com/dorkusprime/wolfcastle.svg)](https://pkg.go.dev/github.com/dorkusprime/wolfcastle)
-[![Go version](https://img.shields.io/github/go-mod/go-version/dorkusprime/wolfcastle)](https://go.dev/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/dorkusprime/wolfcastle?include_prereleases)](https://github.com/dorkusprime/wolfcastle/releases)
-
-Pre-release. Probably broken. Then fixed. Then broken again. On repeat until release. Install if you're feeling brave:
-
-```bash
-brew install dorkusprime/tap/wolfcastle
-cd your-repo
-wolfcastle init                                            # scaffold .wolfcastle/
-wolfcastle inbox add "Build a website for my donut stand"  # queue up work
-wolfcastle start                                           # the daemon wakes up
-
-# in another terminal:
-wolfcastle status -w                                       # watch it work
-```
-
-`init` creates the `.wolfcastle/` directory with config, prompts, and state scaffolding. `inbox add` queues a feature request for the daemon to decompose into projects and tasks. `start` launches the daemon, which runs the full pipeline until there's nothing left to do. `status` shows you what's happening.
-
-Feed it work through the [CLI](docs/humans/cli.md) or let your coding agent inject work directly. The [daemon](docs/humans/how-it-works.md#the-daemon) takes it from there: triage, planning, execution, audit, commit. Serial, depth-first, until the [tree](docs/humans/how-it-works.md#the-project-tree) is conquered or something gets in the way.
-
 ## Configuration
 
 Config [merges across three tiers](docs/humans/configuration.md#three-tiers): base (defaults, gitignored), custom (team-shared, committed), local (personal, gitignored). Manage it through [`wolfcastle config`](docs/humans/cli/config-show.md) commands or edit the JSON directly.
@@ -110,7 +110,7 @@ Wolfcastle turns tokens into code. It uses a lot of them. Every planning pass, e
 ## More
 
 - [53 CLI commands](docs/humans/cli.md)
-- [Architecture Decision Records](docs/decisions/INDEX.md) (79 and counting)
+- [Architecture Decision Records](docs/decisions/INDEX.md) (89 and counting)
 - [Specifications](docs/specs/)
 - [Developer guides](docs/agents/)
 - [AGENTS.md](AGENTS.md)

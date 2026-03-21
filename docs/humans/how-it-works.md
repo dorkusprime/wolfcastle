@@ -91,7 +91,7 @@ At the start of each daemon iteration, the daemon reconciles every orchestrator'
 
 ## Auto-Archive
 
-When a root-level project completes, the daemon can automatically archive it. Auto-archive runs inline in the main daemon loop (ADR-064), after the execute and planning stages find nothing to do. The daemon polls for eligible nodes at a configurable interval, and each completed project must sit idle for a configurable delay (default 24 hours) before archival triggers. One node is archived per poll cycle, generating an archive rollup entry and moving the project tree to archived state. Archived nodes can be restored or permanently deleted via the CLI. The feature is disabled by default; enable it in [configuration](configuration.md):
+When a root-level project completes, the daemon can automatically archive it. Auto-archive runs inline in the main daemon loop ([Architecture Decision Record](../decisions/INDEX.md) ADR-064), after the execute and planning stages find nothing to do. The daemon polls for eligible nodes at a configurable interval, and each completed project must sit idle for a configurable delay (default 24 hours) before archival triggers. One node is archived per poll cycle, generating an archive rollup entry and moving the project tree to archived state. Archived nodes can be restored or permanently deleted via the CLI. The feature is disabled by default; enable it in [configuration](configuration.md):
 
 ```json
 {
