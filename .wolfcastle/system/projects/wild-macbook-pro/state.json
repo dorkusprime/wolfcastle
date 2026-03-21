@@ -468,7 +468,7 @@
     "documentation-review/agent-docs-audit": {
       "name": "Agent Docs Audit",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "documentation-review/agent-docs-audit",
       "decomposition_depth": 0,
       "parent": "documentation-review"
@@ -492,7 +492,7 @@
     "documentation-review/specs-currency-audit": {
       "name": "Specs Currency Audit",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "documentation-review/specs-currency-audit",
       "decomposition_depth": 0,
       "parent": "documentation-review"
