@@ -182,7 +182,9 @@ func TestValidate_CatchesMissingModelReferences(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
 	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
-	cfg.Pipeline.Stages[0].Model = "nonexistent"
+	intake := cfg.Pipeline.Stages["intake"]
+	intake.Model = "nonexistent"
+	cfg.Pipeline.Stages["intake"] = intake
 
 	err := Validate(cfg)
 	if err == nil {
@@ -190,17 +192,15 @@ func TestValidate_CatchesMissingModelReferences(t *testing.T) {
 	}
 }
 
-func TestValidate_CatchesDuplicateStageNames(t *testing.T) {
+func TestValidate_CatchesStageOrderDuplicates(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
 	cfg.Identity = &IdentityConfig{User: "u", Machine: "m"}
-	cfg.Pipeline.Stages = append(cfg.Pipeline.Stages, PipelineStage{
-		Name: "intake", Model: "mid", PromptFile: "dup.md",
-	})
+	cfg.Pipeline.StageOrder = []string{"intake", "execute", "intake"}
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Error("expected error for duplicate stage names")
+		t.Error("expected error for duplicate entry in stage_order")
 	}
 }
 
@@ -352,7 +352,8 @@ func TestValidateStructure_CatchesEmptyModelCommand(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
 	cfg.Models["broken"] = ModelDef{Command: ""}
-	cfg.Pipeline.Stages = []PipelineStage{{Name: "test", Model: "broken", PromptFile: "test.md"}}
+	cfg.Pipeline.Stages = map[string]PipelineStage{"test": {Model: "broken", PromptFile: "test.md"}}
+	cfg.Pipeline.StageOrder = []string{"test"}
 
 	err := ValidateStructure(cfg)
 	if err == nil {
@@ -363,7 +364,9 @@ func TestValidateStructure_CatchesEmptyModelCommand(t *testing.T) {
 func TestValidateStructure_CatchesEmptyStagePromptFile(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
-	cfg.Pipeline.Stages[0].PromptFile = ""
+	intake := cfg.Pipeline.Stages["intake"]
+	intake.PromptFile = ""
+	cfg.Pipeline.Stages["intake"] = intake
 
 	err := ValidateStructure(cfg)
 	if err == nil {
@@ -448,7 +451,7 @@ func TestValidateStructure_AcceptsOverlapThresholdAtBoundaries(t *testing.T) {
 
 func TestPipelineStage_IsEnabled_DefaultTrue(t *testing.T) {
 	t.Parallel()
-	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md"}
+	s := PipelineStage{Model: "fast", PromptFile: "test.md"}
 	if !s.IsEnabled() {
 		t.Error("expected IsEnabled() to return true by default")
 	}
@@ -457,7 +460,7 @@ func TestPipelineStage_IsEnabled_DefaultTrue(t *testing.T) {
 func TestPipelineStage_IsEnabled_ExplicitTrue(t *testing.T) {
 	t.Parallel()
 	enabled := true
-	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md", Enabled: &enabled}
+	s := PipelineStage{Model: "fast", PromptFile: "test.md", Enabled: &enabled}
 	if !s.IsEnabled() {
 		t.Error("expected IsEnabled() to return true when explicitly set true")
 	}
@@ -466,7 +469,7 @@ func TestPipelineStage_IsEnabled_ExplicitTrue(t *testing.T) {
 func TestPipelineStage_IsEnabled_ExplicitFalse(t *testing.T) {
 	t.Parallel()
 	enabled := false
-	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md", Enabled: &enabled}
+	s := PipelineStage{Model: "fast", PromptFile: "test.md", Enabled: &enabled}
 	if s.IsEnabled() {
 		t.Error("expected IsEnabled() to return false when explicitly set false")
 	}
@@ -474,7 +477,7 @@ func TestPipelineStage_IsEnabled_ExplicitFalse(t *testing.T) {
 
 func TestPipelineStage_ShouldSkipPromptAssembly_DefaultFalse(t *testing.T) {
 	t.Parallel()
-	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md"}
+	s := PipelineStage{Model: "fast", PromptFile: "test.md"}
 	if s.ShouldSkipPromptAssembly() {
 		t.Error("expected ShouldSkipPromptAssembly() to return false by default")
 	}
@@ -483,7 +486,7 @@ func TestPipelineStage_ShouldSkipPromptAssembly_DefaultFalse(t *testing.T) {
 func TestPipelineStage_ShouldSkipPromptAssembly_ExplicitTrue(t *testing.T) {
 	t.Parallel()
 	skip := true
-	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md", SkipPromptAssembly: &skip}
+	s := PipelineStage{Model: "fast", PromptFile: "test.md", SkipPromptAssembly: &skip}
 	if !s.ShouldSkipPromptAssembly() {
 		t.Error("expected ShouldSkipPromptAssembly() to return true when explicitly set true")
 	}
@@ -492,7 +495,7 @@ func TestPipelineStage_ShouldSkipPromptAssembly_ExplicitTrue(t *testing.T) {
 func TestPipelineStage_ShouldSkipPromptAssembly_ExplicitFalse(t *testing.T) {
 	t.Parallel()
 	skip := false
-	s := PipelineStage{Name: "test", Model: "fast", PromptFile: "test.md", SkipPromptAssembly: &skip}
+	s := PipelineStage{Model: "fast", PromptFile: "test.md", SkipPromptAssembly: &skip}
 	if s.ShouldSkipPromptAssembly() {
 		t.Error("expected ShouldSkipPromptAssembly() to return false when explicitly set false")
 	}
@@ -556,9 +559,9 @@ func TestLoad_ValidationFailure_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	// Set pipeline stages to empty array, which should fail structural validation
+	// Set pipeline stages to empty map, which should fail structural validation
 	_ = os.MkdirAll(filepath.Join(dir, "system", "custom"), 0755)
-	configJSON := `{"pipeline": {"stages": []}}`
+	configJSON := `{"pipeline": {"stages": {}, "stage_order": []}}`
 	if err := os.WriteFile(filepath.Join(dir, "system", "custom", "config.json"), []byte(configJSON), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -586,19 +589,31 @@ func TestValidateStructure_CatchesZeroMaxAgeDays(t *testing.T) {
 	}
 }
 
-func TestValidateStructure_CatchesEmptyStageName(t *testing.T) {
+func TestValidateStructure_CatchesStageOrderReferencingUnknownStage(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
-	cfg.Pipeline.Stages = []PipelineStage{
-		{Name: "", Model: "fast", PromptFile: "test.md"},
-	}
+	cfg.Pipeline.StageOrder = []string{"intake", "execute", "ghost"}
 
 	err := ValidateStructure(cfg)
 	if err == nil {
-		t.Error("expected error for empty stage name")
+		t.Error("expected error for stage_order referencing unknown stage")
 	}
-	if !strings.Contains(err.Error(), "empty name") {
-		t.Errorf("expected 'empty name' in error, got: %v", err)
+	if !strings.Contains(err.Error(), "unknown stage") {
+		t.Errorf("expected 'unknown stage' in error, got: %v", err)
+	}
+}
+
+func TestValidateStructure_CatchesStageMissingFromStageOrder(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Pipeline.StageOrder = []string{"intake"} // missing "execute"
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for stage missing from stage_order")
+	}
+	if !strings.Contains(err.Error(), "missing from stage_order") {
+		t.Errorf("expected 'missing from stage_order' in error, got: %v", err)
 	}
 }
 
@@ -691,7 +706,9 @@ func TestValidateStructure_PassesOnDefaults(t *testing.T) {
 func TestValidateStructure_CatchesUnknownStageModel(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
-	cfg.Pipeline.Stages[0].Model = "nonexistent"
+	intake := cfg.Pipeline.Stages["intake"]
+	intake.Model = "nonexistent"
+	cfg.Pipeline.Stages["intake"] = intake
 
 	err := ValidateStructure(cfg)
 	if err == nil {

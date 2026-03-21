@@ -16,28 +16,35 @@ func ValidateStructure(cfg *Config) error {
 		errs = append(errs, "pipeline has no stages: at least one stage is required")
 	}
 
-	// All stage model references must exist
-	for _, stage := range cfg.Pipeline.Stages {
-		if _, ok := cfg.Models[stage.Model]; !ok {
-			errs = append(errs, fmt.Sprintf("pipeline stage %q references unknown model %q", stage.Name, stage.Model))
+	// Stage order integrity: no duplicates, every entry must exist in Stages
+	orderSeen := make(map[string]bool, len(cfg.Pipeline.StageOrder))
+	for _, name := range cfg.Pipeline.StageOrder {
+		if orderSeen[name] {
+			errs = append(errs, fmt.Sprintf("duplicate entry %q in stage_order", name))
+		}
+		orderSeen[name] = true
+		if _, ok := cfg.Pipeline.Stages[name]; !ok {
+			errs = append(errs, fmt.Sprintf("stage_order references unknown stage %q", name))
+		}
+	}
+	// Every key in Stages must appear in StageOrder
+	for name := range cfg.Pipeline.Stages {
+		if !orderSeen[name] {
+			errs = append(errs, fmt.Sprintf("stage %q exists in stages but is missing from stage_order", name))
 		}
 	}
 
-	// Stage names must be unique
-	names := make(map[string]bool)
-	for _, stage := range cfg.Pipeline.Stages {
-		if stage.Name == "" {
-			errs = append(errs, "pipeline stage has empty name")
-		} else if names[stage.Name] {
-			errs = append(errs, fmt.Sprintf("duplicate pipeline stage name %q", stage.Name))
+	// All stage model references must exist
+	for name, stage := range cfg.Pipeline.Stages {
+		if _, ok := cfg.Models[stage.Model]; !ok {
+			errs = append(errs, fmt.Sprintf("pipeline stage %q references unknown model %q", name, stage.Model))
 		}
-		names[stage.Name] = true
 	}
 
 	// Stage prompt files must be non-empty
-	for _, stage := range cfg.Pipeline.Stages {
+	for name, stage := range cfg.Pipeline.Stages {
 		if stage.PromptFile == "" {
-			errs = append(errs, fmt.Sprintf("pipeline stage %q has empty prompt_file", stage.Name))
+			errs = append(errs, fmt.Sprintf("pipeline stage %q has empty prompt_file", name))
 		}
 	}
 
