@@ -155,7 +155,7 @@ Is the test suite thorough enough to trust?
 - [ ] No internal/ package is below 85%.
 - [ ] No cmd/ package is below 65%.
 - [ ] Run `go tool cover -func=cover.out | awk` to find all functions below 80%. For each one, either write a test or document why it's untestable.
-- [ ] Category A gaps (testable today) should have zero items. See `docs/coverage-roadmap.md`.
+- [ ] Category A gaps (testable today) should have zero items.
 - [ ] Category B gaps (filesystem tricks) should be covered with chmod-based tests on Unix, skipped on Windows.
 - [ ] Category C gaps (interface extraction) should be resolved by injecting mockable dependencies.
 - [ ] Category E gaps (inherently untestable: os.Exit, readline, process forking) are documented and accepted.
