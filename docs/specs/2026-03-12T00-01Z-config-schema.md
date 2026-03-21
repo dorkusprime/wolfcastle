@@ -820,6 +820,12 @@ The following validation is performed when config is loaded:
 
 ---
 
+## Related Specs
+
+- [Dict-Format Pipeline Stages](.wolfcastle/docs/specs/2026-03-21T03-11Z-dict-format-stages.md): defines the `pipeline.stages` map schema, `stage_order` semantics, merge behavior, validation rules, and migration contract. The config schema above implements that specification.
+
+---
+
 ## ADR Traceability
 
 | Config section | Source ADR(s) |
