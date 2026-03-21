@@ -30,7 +30,7 @@ Consult these topic-specific files before making changes in their domain:
 ## Design References
 
 - [Architecture Decision Records](docs/decisions/INDEX.md) (79 ADRs) document every major design choice. Consult these before making architectural decisions.
-- [Specifications](docs/specs/) (18 implemented specs, 3 drafts) describe the current system in detail. Consult these before modifying behavior.
+- [Specifications](docs/specs/) (20 implemented specs, 3 drafts) describe the current system in detail. Consult these before modifying behavior.
 - [Full documentation hub](docs/)
 
 ## Critical Rules
@@ -42,6 +42,6 @@ Consult these topic-specific files before making changes in their domain:
 5. **Specs track implementation, not aspirations.** If you change behavior, update the corresponding spec. ADRs override specs when there's a conflict.
 6. **Never rebase main.** Use `git pull` (merge), not `git pull --rebase`. Rebasing rewrites commit SHAs, which breaks Codecov and any other service that tracks by commit hash.
 7. **`.wolfcastle/system/` is off-limits (ADR-077).** Never write directly to `.wolfcastle/system/`. That directory contains config, state, logs, and prompts managed by the scaffold and daemon. Write model outputs to `.wolfcastle/docs/` (specs, ADRs) and `.wolfcastle/artifacts/` (research) only. Configuration is Go code (`internal/config/`), not JSON files.
-8. **Planning is lazy.** The daemon executes first (Step 1), plans only when no task is found (Step 2), and idles only when both fail (Step 3). Orchestrators get planned right before their subtree needs work, not before.
-9. **selfHeal derives parents.** On startup, `selfHeal` resets stale in_progress tasks and derives parent task status from children for any parent whose state disagrees with what its children say. `PreStartSelfHeal` provides the same logic as a standalone function that can run before the Daemon is constructed.
+8. **Planning is lazy, archive is lazier.** The daemon executes first (Step 1), plans only when no task is found (Step 2), checks for auto-archive-eligible nodes only when both execute and plan find nothing (Step 3), and idles only when all three fail (Step 4). Orchestrators get planned right before their subtree needs work, not before.
+9. **selfHeal derives parents.** On startup, `selfHeal` resets stale in_progress tasks and derives parent task status from children for any parent whose state disagrees with what its children say.
 10. **Pre-start repair before validation.** The start command runs `FixWithVerification` (multi-pass deterministic repair) before the startup validation gate. It omits `wolfcastleDir` to skip daemon artifact checks, since PID/stop files are expected at startup.

@@ -64,4 +64,4 @@ The `cmd/` directory mirrors the CLI surface: `cmd/daemon/` (start, stop, log, s
 
 ## Architectural Context
 
-80 ADRs document every major design decision. Read `docs/decisions/INDEX.md` before making architectural changes. If your change introduces a new pattern or reverses an existing decision, write an ADR.
+79 ADRs document every major design decision. Read `docs/decisions/INDEX.md` before making architectural changes. If your change introduces a new pattern or reverses an existing decision, write an ADR.
