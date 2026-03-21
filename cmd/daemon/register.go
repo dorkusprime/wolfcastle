@@ -23,9 +23,6 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 
 	logCmd := newLogCmd(app)
 	logCmd.Flags().BoolP("follow", "f", false, "Follow live output (default when daemon is running)")
-	logCmd.Flags().BoolP("thoughts", "t", false, "Raw agent output only")
-	logCmd.Flags().BoolP("interleaved", "i", false, "Stage headers and agent output with timestamps")
-	logCmd.Flags().Bool("json", false, "Raw NDJSON output, no formatting")
 	logCmd.Flags().IntP("session", "s", 0, "Session index (0 = latest, 1 = previous, etc.)")
 
 	statusCmd := newStatusCmd(app)

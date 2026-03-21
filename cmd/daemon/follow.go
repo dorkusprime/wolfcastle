@@ -14,8 +14,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// modeFlag implements pflag.Value for output mode flags with last-wins
+// semantics. Each flag instance writes its designated mode to a shared
+// *outputMode when parsed. Because pflag processes flags left-to-right,
+// the last mode flag on the command line wins naturally.
+type modeFlag struct {
+	target *outputMode
+	value  outputMode
+}
+
+func (f *modeFlag) String() string   { return "false" }
+func (f *modeFlag) Set(string) error { *f.target = f.value; return nil }
+func (f *modeFlag) Type() string     { return "bool" }
+func (f *modeFlag) IsBoolFlag() bool { return true }
+
+// registerModeFlags adds the mutually exclusive output mode flags to cmd,
+// wiring them to write into *mode on parse. NoOptDefVal makes each flag
+// behave like a boolean: --thoughts (no argument) is equivalent to
+// --thoughts=true.
+func registerModeFlags(cmd *cobra.Command, mode *outputMode) {
+	cmd.Flags().VarP(&modeFlag{target: mode, value: modeThoughts}, "thoughts", "t", "Raw agent output only")
+	cmd.Flags().Lookup("thoughts").NoOptDefVal = "true"
+
+	cmd.Flags().VarP(&modeFlag{target: mode, value: modeInterleaved}, "interleaved", "i", "Stage headers and agent output with timestamps")
+	cmd.Flags().Lookup("interleaved").NoOptDefVal = "true"
+
+	cmd.Flags().Var(&modeFlag{target: mode, value: modeJSON}, "json", "Raw NDJSON output, no formatting")
+	cmd.Flags().Lookup("json").NoOptDefVal = "true"
+}
+
 func newLogCmd(app *cmdutil.App) *cobra.Command {
-	return &cobra.Command{
+	mode := modeSummary
+
+	cmd := &cobra.Command{
 		Use:   "log",
 		Short: "Display daemon activity",
 		Long: `Shows daemon activity reconstructed from NDJSON log files.
@@ -43,9 +74,6 @@ Examples:
 			logDir := app.Daemon.LogDir()
 			sessionIdx, _ := cmd.Flags().GetInt("session")
 			follow, _ := cmd.Flags().GetBool("follow")
-			thoughts, _ := cmd.Flags().GetBool("thoughts")
-			interleaved, _ := cmd.Flags().GetBool("interleaved")
-			jsonOut, _ := cmd.Flags().GetBool("json")
 
 			// Resolve session.
 			session, err := logrender.ResolveSession(logDir, sessionIdx)
@@ -59,26 +87,16 @@ Examples:
 				follow = true
 			}
 
-			// Determine output mode: last flag wins among mutually exclusive options.
-			// We check in order so that if multiple are set, the "last" semantically
-			// (json > interleaved > thoughts) takes precedence.
-			mode := modeSummary
-			if thoughts {
-				mode = modeThoughts
-			}
-			if interleaved {
-				mode = modeInterleaved
-			}
-			if jsonOut {
-				mode = modeJSON
-			}
-
 			ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer stop()
 
 			return runLog(ctx, logDir, session, mode, follow)
 		},
 	}
+
+	registerModeFlags(cmd, &mode)
+
+	return cmd
 }
 
 type outputMode int

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
+	"github.com/spf13/cobra"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -167,5 +168,121 @@ func TestFormatAssistantText_NonJSON_ExactlyAtLimit(t *testing.T) {
 	got := invoke.FormatAssistantText(exact)
 	if got != exact {
 		t.Errorf("string at exactly 200 chars should not be truncated")
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Output mode resolution (last-wins semantics)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// parseMode creates a minimal cobra command with mode flags, parses the
+// given args, and returns the resolved output mode.
+func parseMode(t *testing.T, args []string) outputMode {
+	t.Helper()
+	mode := modeSummary
+	cmd := &cobra.Command{RunE: func(*cobra.Command, []string) error { return nil }}
+	registerModeFlags(cmd, &mode)
+	cmd.SetArgs(args)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	return mode
+}
+
+func TestOutputMode_NoFlags_DefaultsSummary(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, nil); got != modeSummary {
+		t.Errorf("expected modeSummary, got %d", got)
+	}
+}
+
+func TestOutputMode_SingleThoughts(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--thoughts"}); got != modeThoughts {
+		t.Errorf("expected modeThoughts, got %d", got)
+	}
+}
+
+func TestOutputMode_SingleThoughtsShort(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"-t"}); got != modeThoughts {
+		t.Errorf("expected modeThoughts, got %d", got)
+	}
+}
+
+func TestOutputMode_SingleInterleaved(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--interleaved"}); got != modeInterleaved {
+		t.Errorf("expected modeInterleaved, got %d", got)
+	}
+}
+
+func TestOutputMode_SingleInterleavedShort(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"-i"}); got != modeInterleaved {
+		t.Errorf("expected modeInterleaved, got %d", got)
+	}
+}
+
+func TestOutputMode_SingleJSON(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--json"}); got != modeJSON {
+		t.Errorf("expected modeJSON, got %d", got)
+	}
+}
+
+func TestOutputMode_ThoughtsThenJSON_LastWins(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--thoughts", "--json"}); got != modeJSON {
+		t.Errorf("expected modeJSON (last wins), got %d", got)
+	}
+}
+
+func TestOutputMode_JSONThenThoughts_LastWins(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--json", "--thoughts"}); got != modeThoughts {
+		t.Errorf("expected modeThoughts (last wins), got %d", got)
+	}
+}
+
+func TestOutputMode_InterleavedThenThoughts_LastWins(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--interleaved", "--thoughts"}); got != modeThoughts {
+		t.Errorf("expected modeThoughts (last wins), got %d", got)
+	}
+}
+
+func TestOutputMode_ThoughtsThenInterleaved_LastWins(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--thoughts", "--interleaved"}); got != modeInterleaved {
+		t.Errorf("expected modeInterleaved (last wins), got %d", got)
+	}
+}
+
+func TestOutputMode_AllThree_LastWins(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--json", "--thoughts", "--interleaved"}); got != modeInterleaved {
+		t.Errorf("expected modeInterleaved (last wins), got %d", got)
+	}
+}
+
+func TestOutputMode_AllThreeReversed_LastWins(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--interleaved", "--thoughts", "--json"}); got != modeJSON {
+		t.Errorf("expected modeJSON (last wins), got %d", got)
+	}
+}
+
+func TestOutputMode_ShortFlagsMixed_LastWins(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"-t", "-i"}); got != modeInterleaved {
+		t.Errorf("expected modeInterleaved (last wins), got %d", got)
+	}
+}
+
+func TestOutputMode_ShortAndLongMixed_LastWins(t *testing.T) {
+	t.Parallel()
+	if got := parseMode(t, []string{"--json", "-t"}); got != modeThoughts {
+		t.Errorf("expected modeThoughts (last wins), got %d", got)
 	}
 }
