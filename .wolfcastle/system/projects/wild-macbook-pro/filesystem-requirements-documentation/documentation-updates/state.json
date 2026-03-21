@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "id": "documentation-updates",
+  "name": "Documentation Updates",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add filesystem requirements section to README.md",
+      "description": "Add filesystem requirements section to README.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "README.md"
+      ],
+      "body": "Add a section to README.md documenting that the .wolfcastle/ directory must reside on a local filesystem (ext4, APFS, etc.), not on NFS or other network-mounted filesystems. Explain that Wolfcastle uses flock(2) advisory locking to protect state from concurrent access, and that flock(2) is not honored by NFS or most network filesystems. State the specific risk: concurrent access from network-mounted directories can corrupt state silently, with no error reported to the user. Place this section near the configuration or collaboration sections where users would naturally look for deployment constraints. Keep it concise: a short paragraph with the requirement, the reason, and the consequence of violating it."
+    },
+    {
+      "id": "task-0002",
+      "title": "Add filesystem requirements to SECURITY.md",
+      "description": "Add filesystem requirements to SECURITY.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "SECURITY.md"
+      ],
+      "body": "Add a section to SECURITY.md documenting the filesystem locality requirement as a security consideration. The current SECURITY.md already lists 'State file corruption bypassing flock mechanism' as an in-scope vulnerability. Expand on this by adding a dedicated section (e.g., 'Filesystem Requirements') that explains: (1) .wolfcastle/ must reside on a local filesystem, (2) flock(2) advisory locks are not propagated over NFS or network filesystems, (3) running Wolfcastle against a network-mounted .wolfcastle/ directory means the locking mechanism silently becomes a no-op, allowing concurrent processes to read and write state without mutual exclusion, (4) the result is silent state corruption with no error or warning. Frame this as a deployment constraint that operators must respect."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Documentation Updates is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify README section mentions flock(2), NFS, and silent corruption risk specifically",
+    "Verify SECURITY.md section is consistent with existing in-scope vulnerability list (state file corruption bypassing flock)"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T15:17:00.31841Z",
+        "task": "filesystem-requirements-documentation/documentation-updates",
+        "text": "Added local filesystem requirement to README.md Requirements section, documenting flock(2) dependency and NFS incompatibility"
+      },
+      {
+        "timestamp": "2026-03-20T15:18:16.541936Z",
+        "task": "filesystem-requirements-documentation/documentation-updates",
+        "text": "Added Filesystem Requirements section to SECURITY.md documenting flock(2) locality constraint and silent corruption risk on network filesystems"
+      },
+      {
+        "timestamp": "2026-03-20T15:19:59.579997Z",
+        "task": "filesystem-requirements-documentation/documentation-updates",
+        "text": "Audit reviewed 2 files (README.md, SECURITY.md) with ~10 lines of additions total. PASS. Both additions accurately document the flock(2) local-filesystem constraint: README.md adds a bullet to the Requirements section, SECURITY.md adds a dedicated Filesystem Requirements section between Scope and Supported Versions that ties back to the existing in-scope threat. No factual errors, no misplaced content, no missing context. The README bullet is long but appropriately dense for a requirements list. No code changes to verify against build/test/lint. Quality: clean, well-placed documentation that fills a real gap in deployment guidance."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-20T15:16:13.722726Z",
+    "completed_at": "2026-03-20T15:20:07.496707Z",
+    "result_summary": "Documented the local-filesystem requirement for the .wolfcastle/ directory in both README.md and SECURITY.md. The additions explain that Wolfcastle depends on flock(2) advisory locking, that NFS and network-mounted filesystems silently ignore these locks, and that the consequence is undetectable state corruption. README.md received a new bullet in the Requirements section; SECURITY.md received a dedicated Filesystem Requirements section positioned between Scope and Supported Versions, tying the constraint back to the existing in-scope threat about state file corruption bypassing flock. Audit passed with no findings requiring remediation."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-20T15:16:59.851481Z",
+      "objective": "Document that .wolfcastle/ must live on a local filesystem, not NFS",
+      "what_happened": "Added a bullet point to the Requirements section of README.md explaining the flock(2) dependency, why network filesystems break it, and the consequence (silent state corruption).",
+      "went_well": [
+        "Fits naturally into the existing requirements list without disrupting the document structure"
+      ],
+      "improvements": [
+        "None; the change is minimal and self-contained"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-20T15:18:15.380135Z",
+      "objective": "Document the flock(2) local-filesystem constraint in SECURITY.md as a security consideration",
+      "what_happened": "Added a Filesystem Requirements section to SECURITY.md between the Scope and Supported Versions sections. The section explains that flock(2) locks are kernel-local, that network filesystems silently break them, and that the consequence is undetectable state corruption. Tied it back to the existing in-scope vulnerability about state file corruption bypassing flock.",
+      "went_well": [
+        "Section slots naturally between Scope and Supported Versions, reinforcing the existing threat model"
+      ],
+      "improvements": [
+        "None; the change is a single self-contained documentation section"
+      ],
+      "action_items": [
+        "None"
+      ]
+    }
+  }
+}

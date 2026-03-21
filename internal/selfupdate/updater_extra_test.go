@@ -27,15 +27,32 @@ func TestResult_Fields(t *testing.T) {
 	}
 }
 
-func TestStubUpdater_Check_VersionsMatch(t *testing.T) {
+func TestResult_UnavailableField(t *testing.T) {
+	t.Parallel()
+	r := &Result{Unavailable: true}
+	if !r.Unavailable {
+		t.Error("expected Unavailable to be true")
+	}
+	if r.AlreadyCurrent {
+		t.Error("Unavailable result should not be AlreadyCurrent")
+	}
+	if r.Updated {
+		t.Error("Unavailable result should not be Updated")
+	}
+}
+
+func TestStubUpdater_Check_VersionPreserved(t *testing.T) {
 	t.Parallel()
 	u := NewUpdater("dev-build")
 	result, err := u.Check()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.CurrentVersion != result.LatestVersion {
-		t.Errorf("stub Check should report same current and latest version")
+	if result.CurrentVersion != "dev-build" {
+		t.Errorf("expected dev-build, got %s", result.CurrentVersion)
+	}
+	if !result.Unavailable {
+		t.Error("stub should report unavailable")
 	}
 }
 
@@ -49,8 +66,8 @@ func TestStubUpdater_Apply_DelegatesToCheck(t *testing.T) {
 	if result.CurrentVersion != "v0.2.0" {
 		t.Errorf("expected version v0.2.0, got %s", result.CurrentVersion)
 	}
-	if result.LatestVersion != "v0.2.0" {
-		t.Errorf("expected latest version v0.2.0, got %s", result.LatestVersion)
+	if !result.Unavailable {
+		t.Error("stub should report unavailable")
 	}
 }
 
@@ -64,8 +81,8 @@ func TestStubUpdater_EmptyVersion(t *testing.T) {
 	if result.CurrentVersion != "" {
 		t.Errorf("expected empty version, got %q", result.CurrentVersion)
 	}
-	if !result.AlreadyCurrent {
-		t.Error("should be already current even with empty version")
+	if !result.Unavailable {
+		t.Error("should be unavailable even with empty version")
 	}
 }
 

@@ -76,21 +76,6 @@ func TestScaffoldService_Init_READMEsHaveExpectedContent(t *testing.T) {
 	}
 }
 
-func TestScaffold_CreatesREADMEs(t *testing.T) {
-	t.Parallel()
-	dir := filepath.Join(t.TempDir(), ".wolfcastle")
-
-	if err := Scaffold(dir); err != nil {
-		t.Fatal(err)
-	}
-
-	for relPath := range scaffoldREADMEs {
-		if _, err := os.Stat(filepath.Join(dir, relPath)); err != nil {
-			t.Errorf("Scaffold should create %s: %v", relPath, err)
-		}
-	}
-}
-
 func TestScaffoldService_Init_GitignoreTracksREADMEs(t *testing.T) {
 	t.Parallel()
 	svc, _, root := newScaffoldService(t)

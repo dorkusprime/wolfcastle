@@ -3,13 +3,13 @@
   "id": "code-coverage",
   "name": "Code Coverage",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
       "id": "cmd-coverage",
       "address": "code-coverage/cmd-coverage",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "internal-core-coverage",
@@ -52,7 +52,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Code Coverage is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -63,6 +63,8 @@
     "Overall project coverage reaches 94%+ (currently 88.8%)",
     "No test-only changes break existing tests (go test ./... passes clean)"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-19T02:47:13.505466Z",
@@ -109,12 +111,18 @@
         "timestamp": "2026-03-19T16:13:42.187777Z",
         "task": "code-coverage",
         "text": "Completion review: PASS. All 26 packages at 94%+ coverage. Overall coverage 95.8% (target 94%). All tests pass clean. Navigator reports all_complete, no gaps or open escalations."
+      },
+      {
+        "timestamp": "2026-03-20T10:00:26.572794Z",
+        "task": "code-coverage",
+        "text": "Final audit complete. 95.5% overall coverage, all 26 packages at 94%+, all tests pass, no gaps, no escalations. Node work is done."
       }
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-19T03:23:52.268664Z",
-    "result_summary": "Raised project-wide test coverage from 88.8% to 95.8%, exceeding the 94% target. Every package now meets or exceeds 94% statement coverage. Work spanned 8 child nodes covering cmd/*, internal/*, and utility packages. All tests pass."
+    "completed_at": "2026-03-20T10:00:30.140342Z",
+    "result_summary": "Raised project-wide test coverage from 88.8% to 95.5%, exceeding the 94% target. Work proceeded in waves: first three sub-orchestrators (cmd-coverage, internal-core-coverage, internal-utility-coverage) addressed the bulk of 13 packages; a second pass created four targeted leaves for the 11 packages still below threshold; a final pass closed the last gap in cmd/cmdutil. All 26 testable packages now meet or exceed the 94% per-package floor. All tests pass clean with no open gaps or escalations."
   }
 }

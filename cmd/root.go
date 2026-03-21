@@ -9,6 +9,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/audit"
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	wcconfig "github.com/dorkusprime/wolfcastle/cmd/config"
 	"github.com/dorkusprime/wolfcastle/cmd/daemon"
 	"github.com/dorkusprime/wolfcastle/cmd/inbox"
 	"github.com/dorkusprime/wolfcastle/cmd/orchestrator"
@@ -85,6 +86,7 @@ func setupCommands() {
 	adrCmd.GroupID = "docs"
 
 	audit.Register(app, rootCmd)
+	wcconfig.Register(app, rootCmd)
 	daemon.Register(app, rootCmd)
 	inbox.Register(app, rootCmd)
 	orchestrator.Register(app, rootCmd)

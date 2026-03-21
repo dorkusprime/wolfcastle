@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "id": "cli-command-spec-update",
+  "name": "CLI Command Spec Update",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "spec-gap-analysis",
+      "address": "cli-command-spec-update/spec-gap-analysis",
+      "state": "complete"
+    },
+    {
+      "id": "add-missing-commands",
+      "address": "cli-command-spec-update/add-missing-commands",
+      "state": "complete"
+    },
+    {
+      "id": "update-existing-command-flags",
+      "address": "cli-command-spec-update/update-existing-command-flags",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in CLI Command Spec Update is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "docs/specs/2026-03-12T00-06Z-cli-commands.md lists 39 commands but the actual CLI has approximately 50. Audit the real CLI and add all missing commands from orchestrator, audit, and task subcommands to the spec document.",
+  "success_criteria": [
+    "Every command registered in cmd/ has a corresponding ## section in the spec",
+    "Every flag registered via cmd.Flags() in the Go source appears in the spec's Arguments and Flags table for that command",
+    "The spec header command count matches the actual number of leaf command sections",
+    "New sections follow the same format as existing spec sections (Synopsis, Description, Arguments/Flags, Behavior, Output, Exit Codes, Examples, Error Cases)"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-20T14:43:15.12402Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T14:43:08.414167Z",
+        "task": "cli-command-spec-update",
+        "text": "Created 3 children: spec-gap-analysis (discovery), add-missing-commands (3 new command specs), update-existing-command-flags (flag gaps + header cleanup). Ordering: discovery first produces the gap manifest that guides implementation; add-missing-commands and update-existing-command-flags can proceed in parallel after discovery; header count update runs last."
+      }
+    ],
+    "gaps": [],
+    "escalations": [
+      {
+        "id": "escalation-update-existing-command-flags-1",
+        "timestamp": "2026-03-20T15:06:29.722505Z",
+        "description": "docs/humans/cli/ contains outdated command documentation that does not reflect flags added in this spec update (e.g., docs/humans/cli/project-create.md is missing --type, --description, --scope). These files predate this node's work and were not in scope, but should be updated for consistency.",
+        "source_node": "cli-command-spec-update/update-existing-command-flags",
+        "status": "open"
+      }
+    ],
+    "status": "passed",
+    "completed_at": "2026-03-20T23:25:39.525447Z"
+  }
+}

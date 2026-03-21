@@ -1,6 +1,6 @@
 # CLI Command Specification
 
-This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 39 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `inbox`, `spec`, `adr`, `archive`, `install`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
+This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 43 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `install`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
 
 ## Conventions
 
@@ -331,7 +331,7 @@ wolfcastle stop --force
 ### Synopsis
 
 ```
-wolfcastle status [--node <path>] [--all] [--watch [-w]] [--interval <seconds>] [--json]
+wolfcastle status [--node <path>] [--all] [--expand] [--watch [-w]] [--interval <seconds>] [--json]
 ```
 
 ### Description
@@ -352,6 +352,7 @@ With `--watch` (or `-w`), the display refreshes on an interval until interrupted
 | `--all` | boolean | No | `false` | Aggregate status across all engineer directories, not just the current engineer's |
 | `-w`, `--watch` | boolean | No | `false` | Refresh status on an interval until interrupted |
 | `--interval <seconds>` | float64 | No | `5` | Refresh interval in seconds (only meaningful with `--watch`) |
+| `--expand` | boolean | No | `false` | Show completed nodes and tasks expanded. By default, completed nodes are collapsed to a single line showing only a descendant/subtask count. Completed parent tasks whose children are all complete are similarly collapsed. When `--expand` is set, all nodes and tasks are shown in full regardless of completion state |
 | `--json` | boolean | No | `false` | Output as structured JSON instead of human-readable text |
 
 ### Behavior
@@ -368,7 +369,8 @@ With `--watch` (or `-w`), the display refreshes on an interval until interrupted
    - If PID file exists but process is dead: stale (report as not running).
    - If no PID file: not running (or foreground -- cannot distinguish without more info).
 6. **If `--all` is specified**: scan `projects/` for all engineer directories. For each, repeat steps 3-4 using that engineer's root `state.json`. Aggregate results grouped by engineer identity. Daemon status (step 5) still reflects only the local engineer's daemon.
-7. Output the status.
+7. **Display collapsing** (unless `--expand` is set): completed nodes are collapsed to a single summary line showing only the count of descendants or subtasks rather than listing each one. Completed parent tasks whose children are all complete are similarly collapsed, displaying only the child count. When `--expand` is set, all nodes and tasks are rendered in full regardless of completion state.
+8. Output the status.
 
 ### Output
 
@@ -527,6 +529,12 @@ wolfcastle status --json
 
 # JSON status for all engineers
 wolfcastle status --all --json
+
+# Show completed nodes expanded instead of collapsed
+wolfcastle status --expand
+
+# Combine --expand with --node for a detailed subtree view
+wolfcastle status --node attunement-tree/fire-impl --expand
 ```
 
 ### Error Cases
@@ -779,7 +787,7 @@ None. This command always exits 0.
 ### Synopsis
 
 ```
-wolfcastle task add --node <path> "<description>"
+wolfcastle task add --node <path> "<title>" [--body "<text>"] [--stdin] [--deliverable "<path>"] [--type <type>] [--class <class>] [--constraint "<text>"] [--acceptance "<text>"] [--reference "<path>"] [--integration "<text>"] [--parent <task-id>]
 ```
 
 ### Description
@@ -790,39 +798,69 @@ Adds a new task to a leaf node's task list, inserting it before the audit task (
 
 | Flag/Arg | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
+| `"<title>"` | string (positional) | Yes | -- | Human-readable title of the task |
 | `--node <path>` | string | Yes | -- | Tree address of the leaf node to add the task to (ADR-008) |
-| `"<description>"` | string (positional) | Yes | -- | Human-readable description of the task |
+| `--body "<text>"` | string | No | `""` | Detailed task description/body text |
+| `--stdin` | bool | No | `false` | Read task body from stdin (overrides `--body`) |
+| `--deliverable "<path>"` | string slice | No | `[]` | Expected output file path (repeatable) |
+| `--type <type>` | string | No | `""` | Task type: `discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup` |
+| `--class <class>` | string | No | `""` | Task class override (e.g., `lang-go`) |
+| `--constraint "<text>"` | string slice | No | `[]` | What not to do (repeatable) |
+| `--acceptance "<text>"` | string slice | No | `[]` | Acceptance criterion (repeatable) |
+| `--reference "<path>"` | string slice | No | `[]` | Reference material path (repeatable) |
+| `--integration "<text>"` | string | No | `""` | How this task connects to other work |
+| `--parent <task-id>` | string | No | `""` | Parent task ID for hierarchical decomposition (e.g., `task-0001`) |
 
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
 2. Resolve engineer identity.
-3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
-4. Validate the `--node` path exists in the tree index.
-5. Validate the target node is a leaf node (tasks live in leaves, not orchestrators).
-6. Load the leaf's `state.json`.
-7. Generate the next task ID (`task-N` where N is one greater than the current highest).
-8. Insert a new task entry into the leaf's `tasks` array before the audit task:
+3. Validate the title positional argument is non-empty (whitespace-only is rejected).
+4. Validate `--node` is provided and resolves to a valid leaf node address.
+5. Resolve the task body:
+   - If `--stdin` is set, read all of stdin and use it as the body. This overrides any value passed via `--body`.
+   - Otherwise, use the `--body` value (empty string if omitted).
+6. If `--type` is provided, validate it against the allowed set: `discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup`. Fail with an error on invalid values.
+7. Load the leaf's `state.json` via `MutateNode`.
+8. Generate the next task ID:
+   - If `--parent` is provided, create a hierarchical child ID under the parent (e.g., `task-0001.0001`). The parent task must exist. The parent auto-completes when all children finish.
+   - Otherwise, generate a top-level ID (`task-N` where N is one greater than the current highest).
+9. Insert a new task entry into the leaf's `tasks` array with:
    - `id`: the generated task ID
-   - `description`: the provided description
+   - `title`: the provided title
    - `state`: `"not_started"`
-   - `failure_count`: `0`
-9. Write the updated leaf `state.json`. Adding a `not_started` task does not change the node's state, so no propagation is needed.
-10. Output the result as JSON (model-facing command).
+   - `body`: the resolved body text (stored in `Body` field)
+   - `deliverables`: the `--deliverable` values (stored in `Deliverables`)
+   - `task_type`: the `--type` value (stored in `TaskType`)
+   - `class`: the `--class` value (stored in `Class`)
+   - `constraints`: the `--constraint` values (stored in `Constraints`)
+   - `acceptance_criteria`: the `--acceptance` values (stored in `AcceptanceCriteria`)
+   - `references`: the `--reference` values (stored in `References`)
+   - `integration`: the `--integration` value (stored in `Integration`)
+   Only non-empty/non-nil values are written; omitted flags leave their fields at zero value.
+10. Write the updated leaf `state.json`. Adding a `not_started` task does not change the node's state, so no propagation is needed.
+11. Write a `{task-id}.md` file in the node directory containing the title as a heading and the body (if any) as content.
+12. Output the result.
 
 ### Output
+
+JSON mode (`--json`):
 
 ```json
 {
   "ok": true,
-  "action": "task_added",
-  "node": "attunement-tree/fire-impl",
+  "action": "task_add",
+  "address": "attunement-tree/fire-impl/task-4",
   "task_id": "task-4",
-  "task_address": "attunement-tree/fire-impl/task-4",
   "description": "Wire stamina cost into fire ability",
-  "state": "not_started"
+  "state": "not_started",
+  "deliverables": ["internal/fire/stamina.go"]
 }
 ```
+
+The `deliverables` key is present only when `--deliverable` was provided.
+
+Human-readable mode prints: `Added task attunement-tree/fire-impl/task-4: Wire stamina cost into fire ability`
 
 ### Exit Codes
 
@@ -832,13 +870,37 @@ Adds a new task to a leaf node's task list, inserting it before the audit task (
 | 1 | `.wolfcastle/` not found or identity not configured |
 | 2 | Node path not found |
 | 3 | Target node is not a leaf (tasks can only be added to leaves) |
-| 4 | Description is empty |
+| 4 | Title is empty |
+| 5 | Invalid `--type` value |
 
 ### Examples
 
 ```bash
-# Add a task to a leaf node
+# Add a simple task
 wolfcastle task add --node attunement-tree/fire-impl "Wire stamina cost into fire ability"
+
+# Add a task with a body describing the work
+wolfcastle task add --node auth/login "Add rate limiting" \
+  --body "Implement token-bucket rate limiting at 100 req/s per user."
+
+# Read body from stdin (useful for long descriptions or piping)
+echo "Detailed implementation spec..." | wolfcastle task add --node my-project "Implement caching" --stdin
+
+# Add a task with deliverables the daemon will verify on completion
+wolfcastle task add --node my-project/auth "Write auth middleware" \
+  --deliverable "internal/auth/middleware.go" \
+  --deliverable "internal/auth/middleware_test.go"
+
+# Add a typed task with constraints and acceptance criteria
+wolfcastle task add --node my-project/api "Design REST endpoints" \
+  --type spec \
+  --acceptance "All endpoints documented with request/response schemas" \
+  --constraint "Do not introduce GraphQL"
+
+# Create a child task under an existing parent for decomposition
+wolfcastle task add --node my-project/auth "Implement token refresh" \
+  --parent task-0001 \
+  --type implementation
 
 # Add a task to a deeply nested leaf
 wolfcastle task add --node attunement-tree/balance-pass/pvp "Adjust fire spell damage for PvP"
@@ -850,7 +912,108 @@ wolfcastle task add --node attunement-tree/balance-pass/pvp "Adjust fire spell d
 |-------|---------------|------|
 | Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
 | Node is not a leaf | `{"ok": false, "error": "cannot add tasks to orchestrator node 'foo/bar' — use wolfcastle project create for child nodes", "code": "INVALID_NODE_TYPE"}` | 3 |
-| Empty description | `{"ok": false, "error": "description must not be empty", "code": "EMPTY_DESCRIPTION"}` | 4 |
+| Empty title | `{"ok": false, "error": "task title cannot be empty. Name the target", "code": "EMPTY_TITLE"}` | 4 |
+| Invalid task type | `{"ok": false, "error": "invalid task type \"foo\": must be one of discovery, spec, adr, implementation, integration, cleanup", "code": "INVALID_TASK_TYPE"}` | 5 |
+
+---
+
+## wolfcastle task amend
+
+### Synopsis
+
+```
+wolfcastle task amend --node <task-address> [--body "<text>"] [--type <type>] [--integration "<text>"] [--add-deliverable "<path>"] [--add-constraint "<text>"] [--add-acceptance "<text>"] [--add-reference "<text>"]
+```
+
+### Description
+
+Modifies fields on a task that has not yet started or is blocked. Tasks in `in_progress` or `complete` state cannot be amended. Only the flags you provide are applied; everything else stays untouched. List fields (deliverables, constraints, acceptance criteria, references) are appended with deduplication, so adding a value that already exists is a no-op.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <task-address>` | string | Yes | -- | Full task address: node-path/task-id (e.g. `my-project/task-0001`) |
+| `--body "<text>"` | string | No | -- | Replace the task's body/description text |
+| `--type <type>` | string | No | -- | Set task type. Must be one of: `discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup` |
+| `--integration "<text>"` | string | No | -- | Set how this task connects to other work |
+| `--add-deliverable "<path>"` | string slice | No | -- | Append a deliverable path (repeatable, deduplicated) |
+| `--add-constraint "<text>"` | string slice | No | -- | Append a constraint (repeatable, deduplicated) |
+| `--add-acceptance "<text>"` | string slice | No | -- | Append an acceptance criterion (repeatable, deduplicated) |
+| `--add-reference "<text>"` | string slice | No | -- | Append a reference (repeatable, deduplicated) |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Parse `--node` as a task address using `tree.SplitTaskAddress`, extracting the node path and task ID. Fail if the address does not contain a task ID component.
+4. Load the node's `state.json` via `MutateNode`.
+5. Find the task by ID within the node's task list. Fail if no task matches.
+6. Validate the task's state is `not_started` or `blocked`. Fail if the task is `in_progress` or `complete`.
+7. If `--type` is provided, validate it against the allowed set (`discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup`). Fail on invalid values.
+8. Apply provided scalar fields:
+   - If `--body` is non-empty, replace the task's body.
+   - If `--type` is non-empty, replace the task's type.
+   - If `--integration` is non-empty, replace the task's integration text.
+9. Append list fields with deduplication (values already present are silently skipped):
+   - `--add-deliverable` values appended to `Deliverables`.
+   - `--add-constraint` values appended to `Constraints`.
+   - `--add-acceptance` values appended to `AcceptanceCriteria`.
+   - `--add-reference` values appended to `References`.
+10. Write the updated node `state.json`.
+11. Output the result.
+
+### Output
+
+```json
+{
+  "ok": true,
+  "action": "task_amend",
+  "address": "my-project/task-0001",
+  "task_id": "task-0001"
+}
+```
+
+Human-readable mode prints: `Amended task my-project/task-0001`
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Task amended successfully |
+| 1 | `.wolfcastle/` not found, identity not configured, or `--node` missing |
+| 2 | `--node` is not a valid task address (no task ID component) |
+| 3 | Task not found in the specified node |
+| 4 | Task state is `in_progress` or `complete` (cannot amend) |
+| 5 | Invalid `--type` value |
+
+### Examples
+
+```bash
+# Replace a task's body text
+wolfcastle task amend --node my-project/task-0001 --body "Updated requirements after discovery phase"
+
+# Add deliverables to an existing task
+wolfcastle task amend --node my-project/task-0001 --add-deliverable "docs/api.md" --add-deliverable "docs/schema.md"
+
+# Set the task type and integration context
+wolfcastle task amend --node my-project/task-0001 --type implementation --integration "feeds into auth module"
+
+# Add acceptance criteria and constraints
+wolfcastle task amend --node my-project/task-0001 --add-acceptance "all tests pass" --add-constraint "no new dependencies"
+
+# Combine multiple amendments in one call
+wolfcastle task amend --node my-project/task-0001 --body "Revised spec" --type spec --add-reference "docs/prior-art.md"
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Invalid task address | `{"ok": false, "error": "--node must be a task address: ...", "code": "INVALID_ADDRESS"}` | 2 |
+| Task not found | `{"ok": false, "error": "task task-0099 not found in node my-project", "code": "TASK_NOT_FOUND"}` | 3 |
+| Wrong state | `{"ok": false, "error": "cannot amend task task-0001: state is in_progress (must be not_started or blocked)", "code": "INVALID_STATE"}` | 4 |
+| Invalid type | `{"ok": false, "error": "invalid task type \"bogus\": must be one of discovery, spec, adr, implementation, integration, cleanup", "code": "INVALID_TYPE"}` | 5 |
 
 ---
 
@@ -1383,49 +1546,54 @@ Agent mode does not invoke a model and ignores these settings.
 ### Synopsis
 
 ```
-wolfcastle project create [--node <parent>] "<name>"
+wolfcastle project create "<name>" [--node <parent>] [--type <leaf|orchestrator>] [--description "<text>"] [--scope "<text>"]
 ```
 
 ### Description
 
-Creates a new project or sub-project node. When `--node` is omitted, creates a root-level project. When `--node` is provided, creates a child node under the specified parent. The new node is an orchestrator (can have children) rather than a leaf task. Used during discovery to structure work into a tree hierarchy.
+Creates a new project or sub-project node. When `--node` is omitted, creates a root-level project. When `--node` is provided, creates a child node under the specified parent. The `--type` flag controls whether the new node is a leaf (holds tasks) or an orchestrator (holds child projects); it defaults to `leaf`. Used during discovery to structure work into a tree hierarchy.
 
 ### Arguments and Flags
 
 | Flag/Arg | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `--node <parent>` | string | No | (none -- root level) | Tree address of the parent node (ADR-008). When omitted, the project is created at the root level |
 | `"<name>"` | string (positional) | Yes | -- | Name for the new project node (used as its slug in the tree path) |
+| `--node <parent>` | string | No | (none, root level) | Tree address of the parent node (ADR-008). When omitted, the project is created at the root level |
+| `--type <leaf\|orchestrator>` | string | No | `"leaf"` | Node type. `leaf` nodes hold tasks; `orchestrator` nodes hold child projects |
+| `--description "<text>"` | string | No | `""` | Project description text written to the project `.md` file. When empty, a placeholder is used |
+| `--scope "<text>"` | string | No | `""` | Planning scope for orchestrator nodes. Sets the node's `Scope` field, which the planning agent reads to understand what the orchestrator covers. Ignored for leaf nodes |
 
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
 2. Resolve engineer identity.
 3. Load the root state index at `projects/{identity}/state.json` (ADR-024).
-4. If `--node` is provided, validate the parent path exists in the tree index and is an orchestrator node. If `--node` is omitted, create the project at the root level.
-5. (When `--node` is provided) Validate the parent is an orchestrator node.
-6. Generate a slug from the name (lowercase, hyphens for spaces, strip special characters).
+4. Validate `--type` is either `"leaf"` or `"orchestrator"`. Fail with an error if unrecognized.
+5. If `--node` is provided, validate the parent path exists in the tree index. If the parent is currently a leaf node with no non-audit tasks, auto-promote it to an orchestrator (clear its task list, update its type in both node state and root index). If the parent is a leaf with existing tasks, fail with an error.
+6. Generate a slug from the name (lowercase, hyphens for spaces, strip special characters). Validate the slug.
 7. Check that no sibling node already has the same slug. If collision, append a numeric suffix.
 8. Create the new project's directory at `projects/{identity}/{parent-path}/{slug}/` and write its co-located `state.json` (ADR-024):
    - `name`: the provided name
-   - `type`: `"orchestrator"`
+   - `type`: the value of `--type` (`"leaf"` or `"orchestrator"`)
+   - For orchestrator nodes: set `Scope` to `--scope` if provided, otherwise `--description` if provided, otherwise the project name
    - `children`: `[]`
    - `audit`: `null`
-9. Create the project description Markdown file at `projects/{identity}/{parent-path}/{slug}/{slug}.md` (ADR-024).
-10. Append the new node to the parent's `children` list in the parent's `state.json`.
-11. Update the root `state.json` index to register the new node.
-12. Output the result as JSON.
+9. For leaf nodes, write the audit task Markdown template into the node directory.
+10. Create the project description Markdown file at `projects/{identity}/{parent-path}/{slug}/{slug}.md` containing the project name as a heading and `--description` as body text (or a placeholder if `--description` is empty).
+11. Append the new node to the parent's `children` list in the parent's `state.json`.
+12. Update the root `state.json` index to register the new node. If this is the first root-level project, set it as the tree root.
+13. Output the result as JSON.
+14. If overlap advisory is enabled in config, run overlap detection using the project name and description.
 
 ### Output
 
 ```json
 {
   "ok": true,
-  "action": "project_created",
-  "node": "attunement-tree/fire-implementation",
-  "parent": "attunement-tree",
-  "name": "Fire Implementation",
-  "type": "orchestrator"
+  "action": "project_create",
+  "address": "attunement-tree/fire-implementation",
+  "type": "leaf",
+  "name": "Fire Implementation"
 }
 ```
 
@@ -1436,26 +1604,159 @@ Creates a new project or sub-project node. When `--node` is omitted, creates a r
 | 0 | Project created successfully |
 | 1 | `.wolfcastle/` not found or identity not configured |
 | 2 | Parent node path not found |
-| 3 | Parent is a leaf task (cannot nest projects under leaf tasks) |
-| 4 | Name is empty |
+| 3 | Parent is a leaf with existing tasks (cannot nest under a leaf that has tasks) |
+| 4 | Name is empty or slug is invalid |
+| 5 | Unknown `--type` value (not `"leaf"` or `"orchestrator"`) |
 
 ### Examples
 
 ```bash
-# Create a root-level project (no --node flag)
+# Create a root-level leaf project (default type)
 wolfcastle project create "Attunement Tree"
+
+# Create an orchestrator project
+wolfcastle project create --type orchestrator "API Gateway"
 
 # Create a sub-project under an existing parent
 wolfcastle project create --node attunement-tree "Fire Implementation"
+
+# Create a leaf with a description
+wolfcastle project create --node attunement-tree "Water Implementation" --description "Implement water attunement abilities and resistance calculations"
+
+# Create an orchestrator with scope for the planning agent
+wolfcastle project create --type orchestrator --node api-gateway "Auth Module" --scope "JWT-based authentication: token issuance, validation, refresh, and revocation"
 ```
 
 ### Error Cases
 
 | Error | Output (JSON) | Code |
 |-------|---------------|------|
-| Parent not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
-| Parent is a leaf | `{"ok": false, "error": "cannot create project under leaf node 'foo/bar/task-1'", "code": "INVALID_NODE_TYPE"}` | 3 |
-| Empty name | `{"ok": false, "error": "project name must not be empty", "code": "EMPTY_NAME"}` | 4 |
+| Parent not found | `{"ok": false, "error": "parent node \"foo/bar\" not found. Check your address", "code": "NODE_NOT_FOUND"}` | 2 |
+| Parent is leaf with tasks | `{"ok": false, "error": "cannot create child under leaf \"foo/bar\": it has 3 existing task(s). Remove tasks before decomposing", "code": "INVALID_NODE_TYPE"}` | 3 |
+| Empty/invalid name | `{"ok": false, "error": "invalid project name: ...", "code": "INVALID_NAME"}` | 4 |
+| Invalid type | `{"ok": false, "error": "unknown node type \"custom\": pick 'leaf' or 'orchestrator'", "code": "INVALID_TYPE"}` | 5 |
+
+---
+
+## wolfcastle orchestrator criteria
+
+### Synopsis
+
+```
+wolfcastle orchestrator criteria --node <path> ["<criterion>"] [--list]
+```
+
+### Description
+
+Manages success criteria on an orchestrator node. In its default (add) mode, it appends a success criterion to the node's `SuccessCriteria` list in `state.json`. Duplicates are silently ignored. In list mode (`--list`), it displays the node's current criteria without modification. Exactly one of a positional criterion argument or `--list` must be provided; omitting both is an error.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the target node (ADR-008) |
+| `"<criterion>"` | string (positional) | No | -- | Success criterion text to add. Required unless `--list` is set |
+| `--list` | boolean | No | `false` | List current success criteria instead of adding one |
+
+### Behavior
+
+#### Add mode (default)
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Validate `--node` is provided. Fail if absent.
+4. Validate a positional criterion argument is present. Fail if missing and `--list` is not set.
+5. Validate the criterion text is not blank after trimming whitespace.
+6. Call `MutateNode` on the target node:
+   - Iterate the existing `SuccessCriteria` slice. If the criterion already exists (exact string match), return without modification.
+   - Otherwise, append the criterion to the slice.
+7. Write the updated node `state.json`.
+8. Output the result.
+
+#### List mode (`--list`)
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Validate `--node` is provided. Fail if absent.
+4. Read the node's `state.json`.
+5. Output the node's `SuccessCriteria` list.
+   - Human mode: if the list is empty, print `No success criteria defined for <node>`. Otherwise print each criterion as a bulleted line.
+   - JSON mode: output the full criteria array.
+
+### Output
+
+**Add mode (JSON):**
+
+```json
+{
+  "ok": true,
+  "action": "success_criteria_add",
+  "node": "my-project",
+  "criterion": "all tests pass"
+}
+```
+
+**List mode (JSON):**
+
+```json
+{
+  "ok": true,
+  "action": "success_criteria",
+  "node": "my-project",
+  "criteria": ["all tests pass", "lint clean"]
+}
+```
+
+**Add mode (human):**
+
+```
+Added success criterion to my-project: all tests pass
+```
+
+**List mode (human):**
+
+```
+Success criteria for my-project:
+  - all tests pass
+  - lint clean
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Criterion added or criteria listed successfully |
+| 1 | `.wolfcastle/` not found, identity not configured, or `--node` missing |
+| 2 | Node path not found |
+| 3 | Criterion text is empty or missing (neither positional arg nor `--list` provided) |
+
+### Examples
+
+```bash
+# Add a success criterion to a project node
+wolfcastle orchestrator criteria --node my-project "all tests pass"
+
+# Add another (duplicates are silently ignored)
+wolfcastle orchestrator criteria --node my-project "all tests pass"
+
+# List current criteria
+wolfcastle orchestrator criteria --node my-project --list
+
+# JSON output for add
+wolfcastle orchestrator criteria --node my-project --json "lint clean"
+
+# JSON output for list
+wolfcastle orchestrator criteria --node my-project --list --json
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
+| No criterion and no --list | `{"ok": false, "error": "criterion text is required (or use --list to view existing criteria)", "code": "MISSING_CRITERION"}` | 3 |
+| Empty criterion text | `{"ok": false, "error": "criterion text cannot be empty", "code": "EMPTY_TEXT"}` | 3 |
+| --node missing | `{"ok": false, "error": "--node is required: specify the target node address", "code": "MISSING_FLAG"}` | 1 |
 
 ---
 
@@ -1563,12 +1864,12 @@ echo "## Status\nAccepted\n..." | wolfcastle adr create "Adopt Conventional Comm
 ### Synopsis
 
 ```
-wolfcastle spec create [--node <path>] "<title>"
+wolfcastle spec create [--node <path>] [--body "<text>"] [--stdin] "<title>"
 ```
 
 ### Description
 
-Creates a new specification document in `.wolfcastle/docs/specs/` and optionally links it to a node. The filename follows the ISO 8601 timestamp format (ADR-011). Specs are Markdown files that travel with work: when linked to a node, they are injected into the model's context during task execution on that node.
+Creates a new specification document in `.wolfcastle/docs/specs/` and optionally links it to a node. The filename follows the ISO 8601 timestamp format (ADR-011). Specs are Markdown files that travel with work: when linked to a node, they are injected into the model's context during task execution on that node. The spec body can be provided inline via `--body`, piped through `--stdin`, or left empty for a placeholder template.
 
 ### Arguments and Flags
 
@@ -1576,6 +1877,8 @@ Creates a new specification document in `.wolfcastle/docs/specs/` and optionally
 |----------|------|----------|---------|-------------|
 | `"<title>"` | string (positional) | Yes | -- | Title of the spec |
 | `--node <path>` | string | No | -- | Link the new spec to this node immediately |
+| `--body "<text>"` | string | No | `""` | Spec body text. When provided, this content replaces the default placeholder template |
+| `--stdin` | boolean | No | `false` | Read spec body from standard input instead of using `--body` or the template. Takes precedence over `--body` |
 | `--json` | boolean | No | `false` | Output as structured JSON |
 
 ### Behavior
@@ -1587,14 +1890,18 @@ Creates a new specification document in `.wolfcastle/docs/specs/` and optionally
    - Format as `{YYYY}-{MM}-{DD}T{HH}-{mm}Z-{slug}.md` (ADR-011).
    - Slug is derived from the title (lowercase, hyphens for spaces, strip special characters).
 4. Ensure the `docs/specs/` directory exists (create if needed).
-5. Write a template spec file:
+5. Assemble the spec content:
+   - If `--stdin` is set, read body from standard input and trim surrounding whitespace.
+   - Otherwise, if `--body` is provided, use that string as the body.
+   - If neither is provided, use the placeholder: `[Spec content goes here.]`
+6. Write the spec file with the title as a Markdown heading followed by the assembled body:
    ```markdown
    # {title}
 
-   [Spec content goes here.]
+   {body}
    ```
-6. If `--node` is provided, load the node's `state.json` and append the filename to its `specs` array.
-7. Output the result.
+7. If `--node` is provided, load the node's `state.json` and append the filename to its `specs` array.
+8. Output the result.
 
 ### Output
 
@@ -1636,11 +1943,20 @@ JSON (`--json`):
 ### Examples
 
 ```bash
-# Create a spec (no node link)
+# Create a spec (no node link) -- uses placeholder template
 wolfcastle spec create "Authentication Protocol"
 
 # Create a spec and link it to a node
 wolfcastle spec create --node backend/auth "Authentication Protocol"
+
+# Create a spec with inline body text
+wolfcastle spec create "Token Refresh Spec" --body "## Overview\n\nTokens are refreshed using a sliding-window strategy with a 15-minute grace period."
+
+# Create a spec with body piped from stdin
+echo "## API Contract\n\nAll endpoints return JSON." | wolfcastle spec create --stdin "API Contract Spec"
+
+# Combine --stdin with --node to create and link in one step
+cat design-notes.md | wolfcastle spec create --stdin --node backend/auth "Auth Design Notes"
 
 # Create with JSON output
 wolfcastle spec create "Token Refresh Spec" --json
@@ -1902,6 +2218,84 @@ wolfcastle audit breadcrumb --node attunement-tree/fire-impl/task-3 \
 |-------|---------------|------|
 | Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
 | Empty text | `{"ok": false, "error": "breadcrumb text must not be empty", "code": "EMPTY_TEXT"}` | 3 |
+
+---
+
+## wolfcastle audit enrich
+
+### Synopsis
+
+```
+wolfcastle audit enrich --node <path> "<text>"
+```
+
+### Description
+
+Appends enrichment text to a node's audit enrichment list. Enrichment entries provide additional context an auditor should consider when evaluating the node, such as areas to scrutinize or cross-cutting concerns that surfaced during implementation. Duplicate entries are silently ignored.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the target node (ADR-008) |
+| `"<text>"` | string (positional) | Yes | -- | Enrichment text describing the context to add |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity.
+3. Load the node's co-located `state.json` at `projects/{identity}/{node-path}/state.json`.
+4. Validate the `--node` path exists in the tree.
+5. Trim and validate that the positional text argument is non-empty.
+6. Scan the node's existing `AuditEnrichment` list for an exact match. If the text already exists, skip the append (silent deduplication).
+7. Append the text to the node's `AuditEnrichment` list.
+8. Write the updated node `state.json`.
+9. Output the result.
+
+### Output
+
+```json
+{
+  "ok": true,
+  "action": "audit_enrich",
+  "node": "my-project/auth",
+  "text": "check error handling in auth module"
+}
+```
+
+Human-readable mode prints:
+
+```
+Added audit enrichment to my-project/auth: check error handling in auth module
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Enrichment added (or already present) |
+| 1 | `.wolfcastle/` not found or identity not configured |
+| 2 | Node path not found |
+| 3 | Text is empty |
+
+### Examples
+
+```bash
+# Add an enrichment note for auditors
+wolfcastle audit enrich --node my-project "check error handling in auth module"
+
+# Add a second enrichment; duplicates are silently ignored
+wolfcastle audit enrich --node my-project "verify backward compatibility"
+wolfcastle audit enrich --node my-project "check error handling in auth module"  # no-op
+```
+
+### Error Cases
+
+| Error | Output (JSON) | Code |
+|-------|---------------|------|
+| Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
+| Empty text | `{"ok": false, "error": "enrichment text cannot be empty. Describe the context to add", "code": "EMPTY_TEXT"}` | 3 |
+| Missing --node | `{"ok": false, "error": "--node is required: specify the target node address", "code": "MISSING_FLAG"}` | 1 |
 
 ---
 

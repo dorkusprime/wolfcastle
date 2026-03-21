@@ -9,6 +9,81 @@
       "timestamp": "2026-03-19T01:51:49Z",
       "text": "Ensure all code added in this worktree has maximum unit code coverage. The overall goal for the work in this worktree is 94%",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:24Z",
+      "text": "Hide or fix selfupdate stub: update command misleads users into thinking they're current. Either implement GitHub releases checking or change the message to say self-update isn't available yet.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:34Z",
+      "text": "Update CLI command spec: docs/specs/2026-03-12T00-06Z-cli-commands.md lists 39 commands but actual CLI has ~50. Add missing commands from orchestrator, audit, and task subcommands.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:36Z",
+      "text": "Add golangci-lint to make lint: .golangci.yml config exists and CI uses it, but Makefile lint target only runs go vet and gofmt. Wire it up.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:37Z",
+      "text": "Add govulncheck to CI: automated dependency vulnerability scanning in .github/workflows/ci.yml.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:39Z",
+      "text": "Document local filesystem requirement: flock(2) advisory locking not honored on NFS/network filesystems. Add to README and SECURITY.md that .wolfcastle/ must be on a local filesystem.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:42Z",
+      "text": "Property-based test for FindNextTask: verify it always returns an actionable task (not blocked, not complete, not audit when non-audit work remains). Random tree generation similar to propagation_property_test.go.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:43Z",
+      "text": "Fuzz test for scanTerminalMarker: verify it handles adversarial input without panicking. Model output is untrusted.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:45Z",
+      "text": "wolfcastle config show command: display fully resolved config after three-tier merge so users can debug override behavior.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:46Z",
+      "text": "Unknown-field detection in config: json.Unmarshal silently ignores typos like modles. Add post-unmarshal diff or DisallowUnknownFields to warn users.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:48Z",
+      "text": "Issue templates: create .github/ISSUE_TEMPLATE/ with bug report and feature request templates.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:49Z",
+      "text": "CODEOWNERS file: map packages to @dorkusprime for automatic review assignment.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:01:50Z",
+      "text": "Fix global lock leak in tests: start_test.go TestStartCmd_ValidationErrors calls start without setting GlobalLockDir, acquiring the real ~/.wolfcastle/daemon.lock. Every test that invokes the start command must redirect GlobalLockDir to t.TempDir().",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:18:37Z",
+      "text": "Delete deprecated scaffold.go: zero production callers. ScaffoldService replaced it. Remove scaffold.go, scaffold_test.go, deprecated_coverage_test.go, reinit_coverage_test.go, and category_a_test.go's Scaffold/ReScaffold calls.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-20T10:27:29Z",
+      "text": "Doctor should detect parent-child state mismatch: when a parent ChildRef.State says complete but the actual child node state is not_started, doctor reports clean. Add a CHILDREF_STATE_MISMATCH validation category that compares ChildRef.State against the child's actual persisted state. Include a deterministic fix that updates the ChildRef to match reality.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-21T02:09:17Z",
+      "text": "ensure test coverage for new code is over 90%",
+      "status": "filed"
     }
   ]
 }

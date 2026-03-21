@@ -5,13 +5,86 @@
   "root_state": "complete",
   "root": [
     "domain-repository-architecture",
-    "code-coverage"
+    "code-coverage",
+    "self-update-fix",
+    "cli-command-spec-update",
+    "ci-and-lint-tooling",
+    "filesystem-requirements-documentation",
+    "property-and-fuzz-tests",
+    "config-improvements",
+    "github-repository-meta",
+    "global-lock-leak-in-tests",
+    "delete-deprecated-scaffold",
+    "doctor-childref-state-mismatch"
   ],
   "nodes": {
+    "ci-and-lint-tooling": {
+      "name": "CI and Lint Tooling",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "ci-and-lint-tooling",
+      "decomposition_depth": 0,
+      "children": [
+        "ci-and-lint-tooling/makefile-lint-integration",
+        "ci-and-lint-tooling/ci-govulncheck"
+      ]
+    },
+    "ci-and-lint-tooling/ci-govulncheck": {
+      "name": "CI Govulncheck",
+      "type": "leaf",
+      "state": "complete",
+      "address": "ci-and-lint-tooling/ci-govulncheck",
+      "decomposition_depth": 0,
+      "parent": "ci-and-lint-tooling"
+    },
+    "ci-and-lint-tooling/makefile-lint-integration": {
+      "name": "Makefile Lint Integration",
+      "type": "leaf",
+      "state": "complete",
+      "address": "ci-and-lint-tooling/makefile-lint-integration",
+      "decomposition_depth": 0,
+      "parent": "ci-and-lint-tooling"
+    },
+    "cli-command-spec-update": {
+      "name": "CLI Command Spec Update",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "cli-command-spec-update",
+      "decomposition_depth": 0,
+      "children": [
+        "cli-command-spec-update/spec-gap-analysis",
+        "cli-command-spec-update/add-missing-commands",
+        "cli-command-spec-update/update-existing-command-flags"
+      ]
+    },
+    "cli-command-spec-update/add-missing-commands": {
+      "name": "Add Missing Commands",
+      "type": "leaf",
+      "state": "complete",
+      "address": "cli-command-spec-update/add-missing-commands",
+      "decomposition_depth": 0,
+      "parent": "cli-command-spec-update"
+    },
+    "cli-command-spec-update/spec-gap-analysis": {
+      "name": "Spec Gap Analysis",
+      "type": "leaf",
+      "state": "complete",
+      "address": "cli-command-spec-update/spec-gap-analysis",
+      "decomposition_depth": 0,
+      "parent": "cli-command-spec-update"
+    },
+    "cli-command-spec-update/update-existing-command-flags": {
+      "name": "Update Existing Command Flags",
+      "type": "leaf",
+      "state": "complete",
+      "address": "cli-command-spec-update/update-existing-command-flags",
+      "decomposition_depth": 0,
+      "parent": "cli-command-spec-update"
+    },
     "code-coverage": {
       "name": "Code Coverage",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "code-coverage",
       "decomposition_depth": 0,
       "children": [
@@ -185,6 +258,67 @@
       "decomposition_depth": 0,
       "parent": "code-coverage/internal-utility-coverage"
     },
+    "config-improvements": {
+      "name": "Config Improvements",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "config-improvements",
+      "decomposition_depth": 0,
+      "children": [
+        "config-improvements/config-show-command",
+        "config-improvements/unknown-field-detection"
+      ]
+    },
+    "config-improvements/config-show-command": {
+      "name": "Config Show Command",
+      "type": "leaf",
+      "state": "complete",
+      "address": "config-improvements/config-show-command",
+      "decomposition_depth": 0,
+      "parent": "config-improvements"
+    },
+    "config-improvements/unknown-field-detection": {
+      "name": "Unknown Field Detection",
+      "type": "leaf",
+      "state": "complete",
+      "address": "config-improvements/unknown-field-detection",
+      "decomposition_depth": 0,
+      "parent": "config-improvements"
+    },
+    "delete-deprecated-scaffold": {
+      "name": "Delete Deprecated Scaffold",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "delete-deprecated-scaffold",
+      "decomposition_depth": 0,
+      "children": [
+        "delete-deprecated-scaffold/verify-no-production-callers",
+        "delete-deprecated-scaffold/remove-deprecated-files"
+      ]
+    },
+    "delete-deprecated-scaffold/remove-deprecated-files": {
+      "name": "Remove Deprecated Files",
+      "type": "leaf",
+      "state": "complete",
+      "address": "delete-deprecated-scaffold/remove-deprecated-files",
+      "decomposition_depth": 0,
+      "parent": "delete-deprecated-scaffold"
+    },
+    "delete-deprecated-scaffold/verify-no-production-callers": {
+      "name": "Verify No Production Callers",
+      "type": "leaf",
+      "state": "complete",
+      "address": "delete-deprecated-scaffold/verify-no-production-callers",
+      "decomposition_depth": 0,
+      "parent": "delete-deprecated-scaffold"
+    },
+    "doctor-childref-state-mismatch": {
+      "name": "Doctor ChildRef State Mismatch",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "doctor-childref-state-mismatch",
+      "decomposition_depth": 0
+    },
     "domain-repository-architecture": {
       "name": "Domain Repository Architecture",
       "type": "orchestrator",
@@ -212,7 +346,7 @@
     "domain-repository-architecture/foundation/test-environment": {
       "name": "Test Environment",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "domain-repository-architecture/foundation/test-environment",
       "decomposition_depth": 0,
       "parent": "domain-repository-architecture/foundation"
@@ -220,7 +354,7 @@
     "domain-repository-architecture/foundation/tier-resolution-primitive": {
       "name": "Tier Resolution Primitive",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "domain-repository-architecture/foundation/tier-resolution-primitive",
       "decomposition_depth": 0,
       "parent": "domain-repository-architecture/foundation"
@@ -374,6 +508,105 @@
       "address": "domain-repository-architecture/repositories/tier-based-repositories/promptrepository",
       "decomposition_depth": 0,
       "parent": "domain-repository-architecture/repositories/tier-based-repositories"
+    },
+    "filesystem-requirements-documentation": {
+      "name": "Filesystem Requirements Documentation",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "filesystem-requirements-documentation",
+      "decomposition_depth": 0,
+      "children": [
+        "filesystem-requirements-documentation/documentation-updates"
+      ]
+    },
+    "filesystem-requirements-documentation/documentation-updates": {
+      "name": "Documentation Updates",
+      "type": "leaf",
+      "state": "complete",
+      "address": "filesystem-requirements-documentation/documentation-updates",
+      "decomposition_depth": 0,
+      "parent": "filesystem-requirements-documentation"
+    },
+    "github-repository-meta": {
+      "name": "GitHub Repository Meta",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "github-repository-meta",
+      "decomposition_depth": 0,
+      "children": [
+        "github-repository-meta/codeowners"
+      ]
+    },
+    "github-repository-meta/codeowners": {
+      "name": "CODEOWNERS",
+      "type": "leaf",
+      "state": "complete",
+      "address": "github-repository-meta/codeowners",
+      "decomposition_depth": 0,
+      "parent": "github-repository-meta"
+    },
+    "global-lock-leak-in-tests": {
+      "name": "Global Lock Leak in Tests",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "global-lock-leak-in-tests",
+      "decomposition_depth": 0,
+      "children": [
+        "global-lock-leak-in-tests/fix-leaking-tests"
+      ]
+    },
+    "global-lock-leak-in-tests/fix-leaking-tests": {
+      "name": "Fix Leaking Tests",
+      "type": "leaf",
+      "state": "complete",
+      "address": "global-lock-leak-in-tests/fix-leaking-tests",
+      "decomposition_depth": 0,
+      "parent": "global-lock-leak-in-tests"
+    },
+    "property-and-fuzz-tests": {
+      "name": "Property and Fuzz Tests",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "property-and-fuzz-tests",
+      "decomposition_depth": 0,
+      "children": [
+        "property-and-fuzz-tests/findnexttask-property-test",
+        "property-and-fuzz-tests/scanterminalmarker-fuzz-test"
+      ]
+    },
+    "property-and-fuzz-tests/findnexttask-property-test": {
+      "name": "FindNextTask Property Test",
+      "type": "leaf",
+      "state": "complete",
+      "address": "property-and-fuzz-tests/findnexttask-property-test",
+      "decomposition_depth": 0,
+      "parent": "property-and-fuzz-tests"
+    },
+    "property-and-fuzz-tests/scanterminalmarker-fuzz-test": {
+      "name": "scanTerminalMarker Fuzz Test",
+      "type": "leaf",
+      "state": "complete",
+      "address": "property-and-fuzz-tests/scanterminalmarker-fuzz-test",
+      "decomposition_depth": 0,
+      "parent": "property-and-fuzz-tests"
+    },
+    "self-update-fix": {
+      "name": "Self-Update Fix",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "self-update-fix",
+      "decomposition_depth": 0,
+      "children": [
+        "self-update-fix/honest-stub"
+      ]
+    },
+    "self-update-fix/honest-stub": {
+      "name": "Honest Stub",
+      "type": "leaf",
+      "state": "complete",
+      "address": "self-update-fix/honest-stub",
+      "decomposition_depth": 0,
+      "parent": "self-update-fix"
     }
   }
 }

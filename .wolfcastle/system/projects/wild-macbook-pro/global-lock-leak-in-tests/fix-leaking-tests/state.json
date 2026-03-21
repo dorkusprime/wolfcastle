@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "id": "fix-leaking-tests",
+  "name": "Fix Leaking Tests",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Redirect GlobalLockDir in start_test.go",
+      "description": "Redirect GlobalLockDir in start_test.go",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/start_test.go"
+      ],
+      "body": "Three test functions in cmd/daemon/start_test.go invoke the start command without redirecting GlobalLockDir, causing them to acquire the real ~/.wolfcastle/daemon.lock:\n\n- TestStartCmd_ValidationErrors (line ~18)\n- TestStartCmd_ValidationWarnings (line ~41)\n- TestStartCmd_VerboseFlag (line ~120)\n\nAdd the standard redirection pattern to each function, immediately after creating the test environment:\n\n    lockDir := t.TempDir()\n    dmn.GlobalLockDir = lockDir\n    defer func() { dmn.GlobalLockDir = \"\" }()\n\nThe established pattern is visible in start_validation_test.go for reference. Ensure the dmn import (internal/daemon) is present."
+    },
+    {
+      "id": "task-0002",
+      "title": "Redirect GlobalLockDir in start_coverage_test.go",
+      "description": "Redirect GlobalLockDir in start_coverage_test.go",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/start_coverage_test.go"
+      ],
+      "body": "TestStartCmd_AlreadyRunning_OwnPID (line ~17) in cmd/daemon/start_coverage_test.go invokes the start command without redirecting GlobalLockDir.\n\nAdd the standard redirection pattern:\n\n    lockDir := t.TempDir()\n    dmn.GlobalLockDir = lockDir\n    defer func() { dmn.GlobalLockDir = \"\" }()\n\nEnsure the dmn import (internal/daemon) is present."
+    },
+    {
+      "id": "task-0003",
+      "title": "Redirect GlobalLockDir in start_deep_coverage_test.go",
+      "description": "Redirect GlobalLockDir in start_deep_coverage_test.go",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/start_deep_coverage_test.go"
+      ],
+      "body": "TestStartCmd_StalePIDRecoveredBeforeStart (line ~53) in cmd/daemon/start_deep_coverage_test.go invokes the start command without redirecting GlobalLockDir.\n\nAdd the standard redirection pattern:\n\n    lockDir := t.TempDir()\n    dmn.GlobalLockDir = lockDir\n    defer func() { dmn.GlobalLockDir = \"\" }()\n\nEnsure the dmn import (internal/daemon) is present."
+    },
+    {
+      "id": "task-0004",
+      "title": "Run affected tests and verify no real locks created",
+      "description": "Run affected tests and verify no real locks created",
+      "state": "complete",
+      "failure_count": 0,
+      "body": "Run all tests in cmd/daemon/ and verify:\n\n1. All tests pass: go test ./cmd/daemon/ -run 'TestStartCmd_ValidationErrors|TestStartCmd_ValidationWarnings|TestStartCmd_VerboseFlag|TestStartCmd_AlreadyRunning_OwnPID|TestStartCmd_StalePIDRecoveredBeforeStart' -v\n2. No daemon.lock file is created in ~/.wolfcastle/ during the test run (check before and after)\n3. The full cmd/daemon test suite still passes: go test ./cmd/daemon/ -count=1"
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Fix Leaking Tests is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T01:56:01.53846Z",
+        "task": "global-lock-leak-in-tests/fix-leaking-tests",
+        "text": "Added GlobalLockDir redirection to three test functions in cmd/daemon/start_test.go that were leaking the real daemon.lock"
+      },
+      {
+        "timestamp": "2026-03-21T01:57:06.767106Z",
+        "task": "global-lock-leak-in-tests/fix-leaking-tests",
+        "text": "Added GlobalLockDir redirection to three test functions in cmd/daemon/start_coverage_test.go that were leaking the real daemon.lock"
+      },
+      {
+        "timestamp": "2026-03-21T01:58:25.562967Z",
+        "task": "global-lock-leak-in-tests/fix-leaking-tests",
+        "text": "Added GlobalLockDir redirection to TestStartCmd_AlreadyRunning_ErrorContainsPID in cmd/daemon/start_deep_coverage_test.go"
+      },
+      {
+        "timestamp": "2026-03-21T01:59:03.426633Z",
+        "task": "global-lock-leak-in-tests/fix-leaking-tests",
+        "text": "Verified all affected tests pass and daemon.lock is untouched: 5/5 named tests green, full suite green, lock mtime unchanged"
+      },
+      {
+        "timestamp": "2026-03-21T02:00:42.161415Z",
+        "task": "global-lock-leak-in-tests/fix-leaking-tests",
+        "text": "Audit reviewed 3 files (start_test.go, start_coverage_test.go, start_deep_coverage_test.go) totaling ~240 lines of test code across 7 modified test functions. PASS. All functions correctly apply the lockDir := t.TempDir() / dmn.GlobalLockDir = lockDir / defer reset pattern matching the convention in start_validation_test.go. The dmn import was correctly added where missing. Build, tests (with -race), formatting, and vet all clean. One escalation: TestStartCmd_AlreadyRunning in daemon_test.go:672 is a pre-existing test that also leaks the real daemon.lock but was not in this node's scope."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T01:55:11.652594Z",
+    "completed_at": "2026-03-21T02:00:56.790161Z",
+    "result_summary": "Fixed GlobalLockDir leakage in 7 test functions across cmd/daemon/start_test.go, start_coverage_test.go, and start_deep_coverage_test.go. Each function now redirects dmn.GlobalLockDir to t.TempDir() with a deferred reset, matching the convention already established in start_validation_test.go. Verification confirmed all tests pass with the race detector, the real daemon.lock file is untouched during test runs, and no formatting or vet issues exist. One pre-existing leak in daemon_test.go:TestStartCmd_AlreadyRunning was escalated."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T02:00:54.538891Z",
+      "objective": "Verify all GlobalLockDir redirection fixes are complete and correct",
+      "what_happened": "Reviewed all 3 modified files (7 test functions). Confirmed the lockDir pattern is consistent across all functions, imports are correct, build/test/format/vet all clean. Identified one pre-existing leak in daemon_test.go:TestStartCmd_AlreadyRunning and escalated it.",
+      "went_well": [
+        "Clean mechanical changes, zero issues introduced by this node",
+        "Escalation caught a pre-existing leak that would otherwise go unnoticed"
+      ],
+      "improvements": [
+        "None; the work was well-executed"
+      ],
+      "action_items": [
+        "Fix TestStartCmd_AlreadyRunning in daemon_test.go:672 with the same GlobalLockDir redirect pattern"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T01:56:00.613208Z",
+      "objective": "Redirect GlobalLockDir in start_test.go so tests stop acquiring the real daemon.lock",
+      "what_happened": "Added the standard lockDir := t.TempDir() / dmn.GlobalLockDir = lockDir / defer reset pattern to TestStartCmd_ValidationErrors, TestStartCmd_ValidationWarnings, and TestStartCmd_VerboseFlag. The dmn import was already present. All three tests pass, full cmd/daemon suite green.",
+      "went_well": [
+        "Straightforward mechanical fix, pattern already well-established in start_validation_test.go"
+      ],
+      "improvements": [
+        "None; the fix is minimal and matches the existing convention exactly"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T01:57:02.813358Z",
+      "objective": "Redirect GlobalLockDir in start_coverage_test.go so tests stop acquiring the real daemon.lock",
+      "what_happened": "Added the standard lockDir := t.TempDir() / dmn.GlobalLockDir = lockDir / defer reset pattern to TestStartCmd_AlreadyRunning_OwnPID, TestStartCmd_ValidationBlocksWithErrors, and TestStartCmd_StalePIDRecoveredBeforeStart. Added the dmn import that was missing from this file. All three tests pass, full cmd/daemon suite green.",
+      "went_well": [
+        "Straightforward mechanical fix matching the established convention"
+      ],
+      "improvements": [
+        "None; the fix is minimal and matches existing convention exactly"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T01:58:25.462642Z",
+      "objective": "Redirect GlobalLockDir in start_deep_coverage_test.go to prevent leaking the real daemon.lock",
+      "what_happened": "Added the standard lockDir redirection pattern to TestStartCmd_AlreadyRunning_ErrorContainsPID, the only test in this file that executes the start command. Added the missing dmn import. The other tests in the file (TestRecoverStaleDaemonState_* and TestStartCmd_FlagsRegistered) operate on temp dirs or only inspect flags, so they don't need redirection. Note: the task description referenced TestStartCmd_StalePIDRecoveredBeforeStart at line ~53, but that function lives in start_coverage_test.go and was already fixed by task-0002.",
+      "went_well": [
+        "Quick identification that only one of the six tests in the file actually needed the fix"
+      ],
+      "improvements": [
+        "None; minimal mechanical change"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-21T01:59:02.077278Z",
+      "objective": "Verify all affected tests pass and no real daemon.lock is created during test runs",
+      "what_happened": "Ran all five named tests with -v (all passed). Captured the modification timestamp of ~/.wolfcastle/daemon.lock before and after the full cmd/daemon suite; timestamp was unchanged (1774057785), confirming no test touched the real lock. Full suite passed clean in 6s.",
+      "went_well": [
+        "All fixes from tasks 0001-0003 hold under both targeted and full-suite runs",
+        "Lock file modification timestamp comparison cleanly proves no leakage"
+      ],
+      "improvements": [
+        "None; this was a pure verification task"
+      ],
+      "action_items": [
+        "None"
+      ]
+    }
+  }
+}

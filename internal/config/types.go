@@ -21,6 +21,10 @@ type Config struct {
 	Unblock         UnblockConfig       `json:"unblock"`
 	Audit           AuditCommandConfig  `json:"audit"`
 	TaskClasses     map[string]ClassDef `json:"task_classes,omitempty"`
+
+	// Warnings collects non-fatal diagnostic messages from config loading,
+	// such as unknown fields in tier files. Excluded from JSON serialization.
+	Warnings []string `json:"-"`
 }
 
 // ModelDef defines a CLI model invocation.

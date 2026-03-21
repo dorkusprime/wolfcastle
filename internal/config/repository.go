@@ -46,13 +46,16 @@ func (r *ConfigRepository) Root() string {
 
 // Load resolves the merged configuration across all tiers. Missing tier
 // files are silently skipped; permission and parse errors propagate.
+// Unknown fields in tier files are collected as warnings on Config.Warnings.
 func (r *ConfigRepository) Load() (*Config, error) {
 	result, err := structToMap(Defaults())
 	if err != nil {
 		return nil, fmt.Errorf("config: marshaling defaults: %w", err)
 	}
 
-	for _, dir := range r.tiers.TierDirs() {
+	var warnings []string
+
+	for i, dir := range r.tiers.TierDirs() {
 		path := filepath.Join(dir, "config.json")
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -61,6 +64,11 @@ func (r *ConfigRepository) Load() (*Config, error) {
 			}
 			return nil, fmt.Errorf("config: reading %s: %w", path, err)
 		}
+
+		// Check this tier's raw JSON for unknown fields
+		tierLabel := tierfs.TierNames[i] + "/config.json"
+		warnings = append(warnings, checkUnknownFields(data, tierLabel)...)
+
 		var overlay map[string]any
 		if err := json.Unmarshal(data, &overlay); err != nil {
 			return nil, fmt.Errorf("config: parsing %s: %w", path, err)
@@ -76,6 +84,8 @@ func (r *ConfigRepository) Load() (*Config, error) {
 	if err := json.Unmarshal(merged, &cfg); err != nil {
 		return nil, fmt.Errorf("config: unmarshaling merged config: %w", err)
 	}
+
+	cfg.Warnings = warnings
 
 	if err := ValidateStructure(&cfg); err != nil {
 		return nil, fmt.Errorf("config: %w", err)

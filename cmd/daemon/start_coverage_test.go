@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -15,6 +16,10 @@ import (
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_AlreadyRunning_OwnPID(t *testing.T) {
+	lockDir := t.TempDir()
+	dmn.GlobalLockDir = lockDir
+	defer func() { dmn.GlobalLockDir = "" }()
+
 	env := newStatusTestEnv(t)
 	// Write our own PID as the running daemon
 	pid := os.Getpid()
@@ -28,6 +33,10 @@ func TestStartCmd_AlreadyRunning_OwnPID(t *testing.T) {
 }
 
 func TestStartCmd_ValidationBlocksWithErrors(t *testing.T) {
+	lockDir := t.TempDir()
+	dmn.GlobalLockDir = lockDir
+	defer func() { dmn.GlobalLockDir = "" }()
+
 	env := newStatusTestEnv(t)
 
 	// Set the node to "complete" while leaving tasks incomplete.
@@ -51,6 +60,10 @@ func TestStartCmd_ValidationBlocksWithErrors(t *testing.T) {
 }
 
 func TestStartCmd_StalePIDRecoveredBeforeStart(t *testing.T) {
+	lockDir := t.TempDir()
+	dmn.GlobalLockDir = lockDir
+	defer func() { dmn.GlobalLockDir = "" }()
+
 	env := newStatusTestEnv(t)
 
 	// Write a stale PID file (process doesn't exist) and a stop file.

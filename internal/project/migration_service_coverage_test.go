@@ -40,8 +40,7 @@ func TestMigrateDirectoryLayout_MkdirAllFailsWhenOldLayoutExists(t *testing.T) {
 // NOTE: os.Rename error paths (lines 46-48, 58-60) are structurally
 // untestable without concurrent filesystem manipulation. The function
 // creates system/ via MkdirAll and immediately renames into it; we
-// cannot inject a blocker between those two calls. Same constraint
-// documented in the migrateToSystemLayout breadcrumb.
+// cannot inject a blocker between those two calls.
 
 func TestMigrateDirectoryLayout_MkdirAllFailsFreshInstall(t *testing.T) {
 	if runtime.GOOS == "windows" {

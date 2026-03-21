@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "id": "makefile-lint-integration",
+  "name": "Makefile Lint Integration",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Wire golangci-lint into Makefile lint target",
+      "description": "Wire golangci-lint into Makefile lint target",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "Makefile"
+      ],
+      "body": "The Makefile lint target (line 30) currently depends only on vet and fmt. Add a golangci-lint target that runs 'golangci-lint run ./...' and wire it as a dependency of lint alongside vet and fmt. The .golangci.yml config already exists at the repo root with v2 format, so no config work is needed. Also update the help target's lint description to mention golangci-lint."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Makefile Lint Integration is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T15:09:41.746041Z",
+        "task": "ci-and-lint-tooling/makefile-lint-integration",
+        "text": "Wired golangci-lint into Makefile: new golangci-lint target, added as lint dependency, updated help text"
+      },
+      {
+        "timestamp": "2026-03-20T15:10:50.229851Z",
+        "task": "ci-and-lint-tooling/makefile-lint-integration",
+        "text": "Audit reviewed 1 file (Makefile, 7 lines changed). PASS. The golangci-lint target is correctly declared as phony, wired as a lint dependency alongside vet and fmt, uses canonical invocation, and help text is updated. Build, tests, vet, and fmt all pass. No findings. The AAR action item about CI runner installation is an operational concern outside this node's scope."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-20T15:07:38.249807Z",
+    "completed_at": "2026-03-20T15:10:56.478924Z",
+    "result_summary": "Wired golangci-lint into the Makefile as a first-class lint target. A new golangci-lint phony target runs 'golangci-lint run ./...' and is included as a dependency of the lint target alongside vet and fmt. Help text updated to reflect the new target. The change is minimal, correct, and consistent with the existing Makefile conventions. Audit found no issues."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-20T15:09:40.876462Z",
+      "objective": "Wire golangci-lint into the Makefile lint target",
+      "what_happened": "Added a golangci-lint phony target running 'golangci-lint run ./...' to the Makefile. Wired it as a dependency of the lint target alongside vet and fmt. Updated the .PHONY declaration and help text to include the new target.",
+      "went_well": [
+        "Minimal, focused change; dry-run confirmed correct dependency ordering"
+      ],
+      "improvements": [
+        "None; this was a straightforward wiring task"
+      ],
+      "action_items": [
+        "Ensure golangci-lint is installed in CI runners if not already present"
+      ]
+    }
+  }
+}

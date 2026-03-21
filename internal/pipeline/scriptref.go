@@ -4,11 +4,11 @@ package pipeline
 // command the model can call, with syntax, description, required flags, and
 // example usage. This is injected into the model's system prompt per ADR-017.
 //
-// NOTE: The authoritative copy of the script reference is written directly by
-// WriteBasePrompts in the project package (base/prompts/script-reference.md).
-// This function exists so that pipeline code can also access the reference at
-// runtime without reading from disk — for example, when assembling the system
-// prompt for a model invocation.
+// NOTE: The authoritative copy of the script reference is written to
+// base/prompts/script-reference.md during scaffold. This function exists so
+// that pipeline code can also access the reference at runtime without reading
+// from disk, for example when assembling the system prompt for a model
+// invocation.
 func GenerateScriptReference() string {
 	return scriptReferenceMarkdown
 }

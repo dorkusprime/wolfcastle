@@ -14,7 +14,7 @@ import (
 
 // promptWriter is the subset of pipeline.PromptRepository that ScaffoldService
 // needs. Defined here as an interface to avoid an import cycle between project
-// and pipeline (pipeline's tests import project for WriteBasePrompts).
+// and pipeline.
 type promptWriter interface {
 	WriteAllBase(templates fs.FS) error
 }

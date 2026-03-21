@@ -27,6 +27,8 @@ Examples:
 				output.PrintHuman("Update check failed: %v. Regenerating system/base/ anyway.", err)
 			} else if result.Updated {
 				output.PrintHuman("Upgraded: %s -> %s", result.CurrentVersion, result.LatestVersion)
+			} else if result.Unavailable {
+				output.PrintHuman("Update checking not available. Regenerating system/base/ only.")
 			} else if result.AlreadyCurrent {
 				output.PrintHuman("Already running %s. No upgrade needed.", result.CurrentVersion)
 			}
@@ -45,6 +47,8 @@ Examples:
 				updateStatus = "check_failed"
 			} else if result.Updated {
 				updateStatus = "updated"
+			} else if result.Unavailable {
+				updateStatus = "unavailable"
 			}
 			output.Print(output.Ok("update", map[string]string{
 				"path":          root,

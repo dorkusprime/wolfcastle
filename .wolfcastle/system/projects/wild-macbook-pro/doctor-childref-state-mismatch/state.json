@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "id": "doctor-childref-state-mismatch",
+  "name": "Doctor ChildRef State Mismatch",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Doctor ChildRef State Mismatch is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "wolfcastle doctor reports clean when a parent ChildRef.State says complete but the actual child node state is not_started (or any other mismatch). Add a CHILDREF_STATE_MISMATCH validation category that compares each ChildRef.State against the child's actual persisted state. Include a deterministic fix that updates the ChildRef to match reality (the child's persisted state is authoritative).",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T02:20:56.512931Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T02:20:33.491659Z",
+        "task": "doctor-childref-state-mismatch",
+        "text": "Feature fully implemented prior to planning. Validation at engine.go:265-300, fix at fix.go:425-451, constant at types.go:35, startup category at types.go:122, tests at childref_state_test.go. All 4 tests pass."
+      },
+      {
+        "timestamp": "2026-03-21T02:20:49.031006Z",
+        "task": "doctor-childref-state-mismatch",
+        "text": "Planning: no children needed. The entire CHILDREF_STATE_MISMATCH feature (validation, deterministic fix, startup registration, tests) was implemented in prior commits on this branch. The audit task on this orchestrator is the only remaining work."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending",
+    "result_summary": "CHILDREF_STATE_MISMATCH validation category is fully implemented. checkChildRefState in engine.go detects when an orchestrator's ChildRef.State diverges from the child's actual persisted state. The deterministic fix in fix.go syncs ChildRef states to reality and recomputes the parent. Category is registered in StartupCategories. Four passing tests cover detection, false-positive avoidance, fix correctness, and startup registration."
+  }
+}

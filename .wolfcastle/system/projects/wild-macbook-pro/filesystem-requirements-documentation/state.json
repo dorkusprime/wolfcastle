@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "filesystem-requirements-documentation",
+  "name": "Filesystem Requirements Documentation",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "documentation-updates",
+      "address": "filesystem-requirements-documentation/documentation-updates",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Filesystem Requirements Documentation is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "flock(2) advisory locking is not honored on NFS or network filesystems. Document in README and SECURITY.md that .wolfcastle/ must reside on a local filesystem. Note the specific risk: concurrent access from network-mounted directories can corrupt state silently.",
+  "success_criteria": [
+    "README.md contains a section documenting that .wolfcastle/ must reside on a local filesystem, with the flock(2)/NFS rationale and silent corruption risk",
+    "SECURITY.md contains a filesystem requirements section explaining the locking limitation and deployment constraint"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-20T15:16:13.637698Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T15:16:11.636105Z",
+        "task": "filesystem-requirements-documentation",
+        "text": "Created 1 leaf child: documentation-updates (2 tasks). Task ordering: README first, then SECURITY.md. Both are independent but logically grouped since they document the same flock(2)/NFS limitation. No specs needed; this is pure documentation against well-understood syscall behavior."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-20T23:25:39.52561Z"
+  }
+}

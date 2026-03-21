@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "id": "config-improvements",
+  "name": "Config Improvements",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "config-show-command",
+      "address": "config-improvements/config-show-command",
+      "state": "complete"
+    },
+    {
+      "id": "unknown-field-detection",
+      "address": "config-improvements/unknown-field-detection",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Config Improvements is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Two config subsystem improvements: (1) Add a 'wolfcastle config show' command that displays the fully resolved config after the three-tier merge so users can debug override behavior. (2) Add unknown-field detection to config unmarshalling -- json.Unmarshal silently ignores typos like 'modles'. Add post-unmarshal diff or use DisallowUnknownFields to warn users of unrecognized keys.",
+  "success_criteria": [
+    "wolfcastle config show prints fully resolved config as valid JSON and supports --tier flag for individual tier inspection",
+    "Unknown fields in any config tier produce a warning naming the field and source tier without preventing config loading",
+    "All new code has tests and maintains \u003e90% coverage"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-20T15:44:20.46935Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T15:43:50.745677Z",
+        "task": "config-improvements",
+        "text": "Created 2 leaf children: config-show-command (2 tasks: spec + implementation) and unknown-field-detection (2 tasks: spec + implementation). The two features are independent and can be worked in parallel. Each leaf starts with a spec task because both introduce new interfaces: a new CLI command surface and a new warning return path from config.Load(). Ordering: specs before implementation within each leaf; no cross-leaf dependencies."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-20T23:25:39.525397Z"
+  }
+}

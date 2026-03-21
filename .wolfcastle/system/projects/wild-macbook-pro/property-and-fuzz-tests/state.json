@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "property-and-fuzz-tests",
+  "name": "Property and Fuzz Tests",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "findnexttask-property-test",
+      "address": "property-and-fuzz-tests/findnexttask-property-test",
+      "state": "complete"
+    },
+    {
+      "id": "scanterminalmarker-fuzz-test",
+      "address": "property-and-fuzz-tests/scanterminalmarker-fuzz-test",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Property and Fuzz Tests is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Two new test additions: (1) Property-based test for FindNextTask verifying it always returns an actionable task (not blocked, not complete, not audit when non-audit work remains). Use random tree generation similar to propagation_property_test.go. (2) Fuzz test for scanTerminalMarker verifying it handles adversarial input without panicking -- model output is untrusted input.",
+  "success_criteria": [
+    "FindNextTask property test passes 500+ random cases with all navigation invariants verified",
+    "Fuzz tests for scanTerminalMarker and extractAssistantText run for 30s each without panics",
+    "All tests integrate into existing test suites (go test ./internal/state/ and go test ./internal/daemon/)"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-20T15:22:27.546526Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T15:22:16.802536Z",
+        "task": "property-and-fuzz-tests",
+        "text": "Created 2 children: findnexttask-property-test (leaf, 2 tasks: invariant spec then implementation), scanterminalmarker-fuzz-test (leaf, 2 tasks: scanTerminalMarker fuzz and extractAssistantText fuzz). Ordering: spec precedes implementation for FindNextTask; fuzz tasks are independent and parallelizable. Both leaves can proceed concurrently."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-20T23:25:39.525364Z",
+    "completed_at": "2026-03-21T01:47:11.612Z"
+  }
+}

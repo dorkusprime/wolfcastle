@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -93,6 +95,10 @@ func TestStartCmd_FlagsRegistered(t *testing.T) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_AlreadyRunning_ErrorContainsPID(t *testing.T) {
+	lockDir := t.TempDir()
+	dmn.GlobalLockDir = lockDir
+	defer func() { dmn.GlobalLockDir = "" }()
+
 	env := newStatusTestEnv(t)
 	pid := os.Getpid()
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
