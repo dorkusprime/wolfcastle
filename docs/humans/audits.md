@@ -39,6 +39,10 @@ AARs are richer than breadcrumbs. Breadcrumbs are timestamped notes written duri
 
 When the audit task runs, it reads every AAR in the node alongside the breadcrumbs. Patterns across AARs (repeated improvement suggestions, recurring action items) signal systemic issues that the audit can escalate.
 
+### Audit Enrichment
+
+Tasks and orchestrators can inject extra context into a node's audit via `wolfcastle audit enrich`. Each enrichment is a freeform text entry appended to the node's `AuditEnrichment` list. Duplicates are silently ignored. Use this to surface cross-cutting concerns, external constraints, or anything the audit task should consider that is not captured in breadcrumbs or AARs.
+
 ### Audit Reports
 
 Audit reports are Markdown summaries generated when an audit completes. They contain the audit verdict (passed, failed, in progress), scope definitions, breadcrumb summaries, gap details, and escalation records. Reports are saved as files in the node's directory for permanent reference.
@@ -67,13 +71,12 @@ Audit findings do not become tasks automatically. The model generates prioritize
 
 ## Structural Validation
 
-The validation engine checks the entire [distributed state tree](how-it-works.md#distributed-state) for consistency. It classifies 17 distinct issue types by severity:
+The validation engine checks the entire [distributed state tree](how-it-works.md#distributed-state) for consistency. It classifies 24 distinct issue types across four fix strategies:
 
-- **9 deterministic fixes**: Missing audit task, stale index entry, orphaned files. Go code fixes these directly.
-- **5 ambiguous fixes**: Conflicting state, unclear intent. A configurable model reasons about the fix with strict guardrails.
-- **1 daemon [self-healing](failure-and-recovery.md#self-healing)**: Crash recovery, handled on next startup.
-- **1 manual**: Requires human judgment.
-- **1 cross-engineer**: Overlap or conflict across [namespaces](collaboration.md#engineer-namespacing).
+- **Deterministic fixes**: Missing audit tasks, stale index entries, orphaned files, propagation mismatches, child-ref state mismatches, malformed JSON, and more. Go code fixes these directly with no model involved.
+- **Model-assisted fixes**: Conflicting state, unclear intent, invalid transitions. A configurable model reasons about the fix with strict guardrails.
+- **Manual fixes**: Require human judgment.
+- **Daemon [self-healing](failure-and-recovery.md#self-healing)**: Stale in-progress tasks, blocked audits with orphaned gaps. Handled automatically on next startup.
 
 ### wolfcastle doctor
 

@@ -89,6 +89,20 @@ When a spec task completes, the daemon automatically creates a review task. The 
 
 At the start of each daemon iteration, the daemon reconciles every orchestrator's persisted state against its children. If a parent says "in progress" but all its children are complete, the parent gets corrected. This handles edge cases where state mutations from a previous iteration (or a crash) left the tree inconsistent. The reconciliation runs before planning or navigation, so the daemon always operates on an accurate picture.
 
+## Auto-Archive
+
+When a root-level project completes, the daemon can automatically archive it. Auto-archive runs inline in the main daemon loop (ADR-064), after the execute and planning stages find nothing to do. The daemon polls for eligible nodes at a configurable interval, and each completed project must sit idle for a configurable delay (default 24 hours) before archival triggers. One node is archived per poll cycle, generating an archive rollup entry and moving the project tree to archived state. Archived nodes can be restored or permanently deleted via the CLI. The feature is disabled by default; enable it in [configuration](configuration.md):
+
+```json
+{
+  "archive": {
+    "auto_archive_enabled": true,
+    "auto_archive_delay_hours": 24,
+    "archive_poll_interval_seconds": 300
+  }
+}
+```
+
 ## The Daemon
 
 `wolfcastle start` launches the daemon. It owns the pipeline loop.
@@ -111,7 +125,7 @@ The daemon runs a pipeline of stages. Each stage invokes a model with a specific
 | **intake**  | mid        | Reads the inbox. Creates projects and tasks directly.     |
 | **execute** | capable    | Claims a task. Does the work. Writes code. Makes commits. |
 
-The intake stage runs in a parallel background goroutine (ADR-064), polling for new inbox items independently of the main execution loop. The execute stage runs in the main loop.
+The intake stage runs in a parallel background goroutine, polling for new inbox items independently of the main execution loop. The execute stage runs in the main loop.
 
 Summaries are generated inline during execution via the `WOLFCASTLE_SUMMARY:` marker (ADR-036), not as a separate stage.
 
