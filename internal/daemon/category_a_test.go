@@ -130,9 +130,10 @@ func TestRunIteration_InvokeErrorReturnsError(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Models["failing"] = config.ModelDef{Command: "/nonexistent/binary", Args: []string{}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "failing", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "failing", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -158,9 +159,10 @@ func TestRunIteration_DecompThreshold_SetsNeedsDecomposition(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Models["silent"] = config.ModelDef{Command: "true", Args: []string{}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "silent", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "silent", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 1
 	d.Config.Failure.MaxDecompositionDepth = 5
@@ -206,9 +208,10 @@ func TestRunIteration_DecompAtMaxDepth_TaskAutoBlocked(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Models["silent"] = config.ModelDef{Command: "true", Args: []string{}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "silent", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "silent", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 1
 	d.Config.Failure.MaxDecompositionDepth = 0
@@ -266,9 +269,10 @@ func TestRunIteration_HardCapReached_TaskAutoBlocked(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Models["silent"] = config.ModelDef{Command: "true", Args: []string{}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "silent", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "silent", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
 	d.Config.Failure.HardCap = 1
@@ -316,9 +320,10 @@ func TestRunIteration_NoTerminalMarker_FailureIncremented(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Models["noop"] = config.ModelDef{Command: "echo", Args: []string{"some output without markers"}}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "noop", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "noop", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	d.Config.Failure.DecompositionThreshold = 0
 	d.Config.Failure.HardCap = 0
@@ -465,7 +470,7 @@ func TestRunIntakeStage_MissingModelWithPrompt(t *testing.T) {
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "absent-model-x", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "absent-model-x", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Fatal("expected error for nonexistent model")
@@ -493,7 +498,7 @@ func TestRunIntakeStage_BrokenCommand(t *testing.T) {
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "broken", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "broken", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Fatal("expected invoke error in intake stage")
@@ -515,7 +520,7 @@ func TestRunIntakeStage_MissingPromptFile(t *testing.T) {
 		{Status: "new", Text: "item", Timestamp: "2026-03-14T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "nonexistent-prompt.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "nonexistent-prompt.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err == nil {
 		t.Fatal("expected prompt assembly error in intake stage")

@@ -304,9 +304,10 @@ func TestRunOnce_NonStateErrorReturnsIterationError(t *testing.T) {
 	d := testDaemon(t)
 
 	// Model not in config: runIteration returns a non-StateError.
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "nonexistent", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "nonexistent", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 
 	setupLeafNode(t, d, "nonfatal-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},

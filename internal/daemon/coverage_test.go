@@ -272,10 +272,11 @@ func TestSelfHeal_MissingStateFileSkipped(t *testing.T) {
 
 func TestRunIteration_IntakeStageSkipped(t *testing.T) {
 	d := testDaemon(t)
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"},
-		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"intake":  {Model: "echo", PromptFile: "stages/intake.md"},
+		"execute": {Model: "echo", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"intake", "execute"}
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
@@ -340,7 +341,7 @@ func TestRunIntakeStage_InvocationTimeout(t *testing.T) {
 		{Status: "new", Text: "item", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -362,7 +363,7 @@ func TestRunIntakeStage_NoInvocationTimeout(t *testing.T) {
 		{Status: "new", Text: "item", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}
@@ -494,7 +495,7 @@ func TestRunIntakeStage_FilesItemsOnSuccess(t *testing.T) {
 		{Status: "new", Text: "item to file", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake stage error: %v", err)
 	}

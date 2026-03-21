@@ -422,7 +422,7 @@ func TestRunIntakeStage_NonzeroExitCode_ItemsStayNew(t *testing.T) {
 		{Status: "new", Text: "should stay new", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "fail-intake", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "fail-intake", PromptFile: "stages/intake.md"}
 	err := d.runIntakeStage(context.Background(), stage)
 	if err != nil {
 		t.Fatalf("intake stage returned error: %v", err)
@@ -475,7 +475,7 @@ echo "WOLFCASTLE_COMPLETE"
 		{Status: "new", Text: "new work", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "checker", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "checker", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake error: %v", err)
 	}
@@ -928,7 +928,7 @@ func TestIntakeStage_SignalsWorkAvailable(t *testing.T) {
 		{Status: "new", Text: "trigger work signal", Timestamp: "2026-01-01T00:00:00Z"},
 	}})
 
-	stage := config.PipelineStage{Name: "intake", Model: "intake-echo", PromptFile: "stages/intake.md"}
+	stage := config.PipelineStage{Model: "intake-echo", PromptFile: "stages/intake.md"}
 	if err := d.runIntakeStage(context.Background(), stage); err != nil {
 		t.Fatalf("intake error: %v", err)
 	}
