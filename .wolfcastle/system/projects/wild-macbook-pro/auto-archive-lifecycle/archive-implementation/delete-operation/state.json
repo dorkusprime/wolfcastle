@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "id": "delete-operation",
+  "name": "Delete Operation",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement deleteArchivedNode function",
+      "description": "Implement deleteArchivedNode function",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/archive.go"
+      ],
+      "body": "Add a deleteArchivedNode method to the archive service layer. Preconditions: node must exist in RootIndex.Nodes with Archived==true, must be in ArchivedRoot. Procedure: (1) Remove .archive/{addr}/ and all descendant directories via os.RemoveAll. (2) Mutate RootIndex: remove all subtree entries from Nodes map, remove root address from ArchivedRoot. (3) Write updated index. Markdown rollup files in .wolfcastle/archive/ are NOT deleted (they are permanent records per spec Section 3). Return clear errors for precondition violations."
+    },
+    {
+      "id": "task-0002",
+      "title": "Add archive delete CLI command",
+      "description": "Add archive delete CLI command",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/archive_delete.go"
+      ],
+      "body": "Create cmd/archive_delete.go with a cobra command registered under archiveCmd. Usage: wolfcastle archive delete --node \u003caddr\u003e --confirm. The --confirm flag is required; if absent, print a warning and exit with error (do not prompt interactively). The command loads the RootIndex, validates the node is archived, calls deleteArchivedNode, and reports success. Support --json output. Register in init() under archiveCmd."
+    },
+    {
+      "id": "task-0003",
+      "title": "Write delete tests with \u003e90% coverage",
+      "description": "Write delete tests with \u003e90% coverage",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/archive_test.go"
+      ],
+      "body": "Add tests for deleteArchivedNode covering: successful deletion (archive node, then delete, verify directories gone and index entries removed), precondition failures (node not archived, node not found), verify markdown rollup files survive deletion, verify Nodes map entries for all subtree members are removed. Use the existing test patterns and helpers."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Delete Operation is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Markdown rollup files in .wolfcastle/archive/ survive node deletion"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T13:24:48.776504Z",
+        "task": "auto-archive-lifecycle/archive-implementation/delete-operation",
+        "text": "Implemented deleteArchivedNode in archive.go with five tests. Precondition checks mirror restoreNode. Uses RemoveAll for directory cleanup, delete() for index purging. Markdown rollups preserved."
+      },
+      {
+        "timestamp": "2026-03-21T13:27:36.257704Z",
+        "task": "auto-archive-lifecycle/archive-implementation/delete-operation",
+        "text": "Added cmd/archive_delete.go and cmd/archive_delete_test.go. Command requires --confirm flag, validates node is archived and root-level, then removes archive directory and purges index entries. Seven tests, 92.9% package coverage."
+      },
+      {
+        "timestamp": "2026-03-21T13:30:38.153708Z",
+        "task": "auto-archive-lifecycle/archive-implementation/delete-operation",
+        "text": "Added two delete tests: deep subtree purging (3-level tree) and sibling preservation (multi-archive ArchivedRoot filtering). deleteArchivedNode coverage 89.7% -\u003e 93.1%, daemon package 92.5%."
+      },
+      {
+        "timestamp": "2026-03-21T13:33:09.327826Z",
+        "task": "auto-archive-lifecycle/archive-implementation/delete-operation",
+        "text": "Audit reviewed 4 files: archive.go (deleteArchivedNode, lines 197-253), archive_delete.go (109 lines), archive_delete_test.go (165 lines), archive_test.go delete section (lines 733-975). PASS. Build clean, all 14 delete tests pass, go vet clean, daemon coverage 92.4%, deleteArchivedNode 93.1%. Two observations, both pre-existing: (1) CLI duplicates daemon logic (precondition checks, subtree walk, index mutation) because cmd cannot import internal/daemon; matches restore command pattern. (2) collectArchiveSubtree in cmd/ is identical to collectSubtree in daemon/; same layering constraint. No issues introduced by this node. Tests are thorough: happy path with markdown preservation, all three precondition error branches, deep three-level subtree purging, sibling preservation across multiple archived nodes, missing directory tolerance, JSON output, and missing flag validation."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T13:21:36.663295Z",
+    "completed_at": "2026-03-21T13:33:29.454964Z",
+    "result_summary": "Implemented permanent deletion of archived nodes across both daemon and CLI layers. The daemon's deleteArchivedNode method (archive.go) enforces three preconditions (index presence, Archived flag, ArchivedRoot membership), removes the archive directory tree with os.RemoveAll, and atomically purges all subtree entries from the RootIndex. The CLI command (archive_delete.go) mirrors this logic with a --confirm safety gate and JSON output support. Seven daemon tests and seven CLI tests cover the happy path, all error branches, deep subtree purging, sibling preservation, missing directory tolerance, and output formatting. Coverage holds at 93.1% for the function and 92.4% for the daemon package overall. Markdown rollup files are deliberately preserved as permanent audit records."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T13:33:27.577548Z",
+      "objective": "Verify all work in the delete-operation node is complete and correct",
+      "what_happened": "Read all four files touched by the node (archive.go, archive_delete.go, archive_delete_test.go, archive_test.go delete section). Ran full build, go vet, and test suite. Checked coverage. Compiled findings against the rubric. Found no issues introduced by this node; two observations about CLI/daemon duplication are pre-existing architectural choices from the restore command.",
+      "went_well": [
+        "Implementation is clean and symmetric with restoreNode",
+        "Test coverage is thorough at 93.1% with edge cases well-covered",
+        "Markdown rollup preservation is explicitly tested"
+      ],
+      "improvements": [
+        "None identified; the code follows established patterns faithfully"
+      ],
+      "action_items": [
+        "If the archive CLI commands grow further, consider extracting shared precondition validation into a helper in internal/state to reduce cmd/daemon duplication"
+      ]
+    },
+    "auto-archive-lifecycle/archive-implementation/delete-operation/task-0001": {
+      "task_id": "auto-archive-lifecycle/archive-implementation/delete-operation/task-0001",
+      "timestamp": "2026-03-21T13:24:47.507439Z",
+      "objective": "Implement deleteArchivedNode function for permanently removing archived nodes",
+      "what_happened": "Added deleteArchivedNode method to archive.go following the exact pattern of restoreNode. Same three precondition checks (index lookup, Archived flag, ArchivedRoot membership), then os.RemoveAll on the archive root directory, then MutateIndex to purge subtree entries and remove from ArchivedRoot. Added five tests covering the happy path (with markdown preservation check), three precondition error paths, and a missing-directory tolerance case.",
+      "went_well": [
+        "Pattern symmetry with restoreNode kept the implementation minimal and consistent",
+        "os.RemoveAll naturally handles nested descendants, simplifying directory cleanup"
+      ],
+      "improvements": [
+        "RemoveAll error path is untested (89.7% function coverage) since it is hard to trigger reliably without platform-specific tricks"
+      ],
+      "action_items": [
+        "Wire deleteArchivedNode into a CLI command (archive delete subcommand) when that task comes up"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T13:27:31.839818Z",
+      "objective": "Create the archive delete CLI command with --confirm safety gate",
+      "what_happened": "Added cmd/archive_delete.go mirroring the restore command pattern. Cobra command validates --confirm flag first, then checks index preconditions (exists, archived, in ArchivedRoot), removes the archive directory with RemoveAll, and purges all subtree entries from the index via MutateIndex. Seven tests cover success, missing-confirm, not-found, not-archived, not-in-archived-root, JSON output, and missing-node-flag.",
+      "went_well": [
+        "Pattern symmetry with archive_restore.go kept the implementation tight and predictable",
+        "Caught a cobra boolean-flag persistence bug in tests (--confirm leaking between test runs) and fixed with explicit --confirm=false"
+      ],
+      "improvements": [
+        "None identified; the command is straightforward"
+      ],
+      "action_items": [
+        "None; the delete operation CLI is self-contained"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T13:30:37.363641Z",
+      "objective": "Bring deleteArchivedNode test coverage above 90%",
+      "what_happened": "Added two new tests to archive_test.go. TestDeleteArchivedNode_DeepSubtreePurgesAllDescendants verifies a three-level tree (root/mid/leaf) has all Nodes entries removed after delete. TestDeleteArchivedNode_PreservesOtherArchivedNodes archives two nodes, deletes one, and confirms the other remains in both ArchivedRoot and Nodes with Archived=true. The second test covers the previously-uncovered 'keep other entries' branch in the ArchivedRoot filter loop.",
+      "went_well": [
+        "The PreservesOtherArchivedNodes test hit the exact uncovered branch (line 337), pushing deleteArchivedNode from 89.7% to 93.1%",
+        "All 7 delete tests pass, full daemon coverage holds at 92.5%"
+      ],
+      "improvements": [
+        "The ReadIndex error path (line 203) and RemoveAll error path (line 233) remain uncovered; both require filesystem-level fault injection that would be fragile"
+      ],
+      "action_items": [
+        "None; the remaining uncovered paths are error returns from OS calls that are impractical to test portably"
+      ]
+    }
+  }
+}

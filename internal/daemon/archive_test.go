@@ -479,7 +479,7 @@ func TestTryAutoArchive_ArchiveErrorDoesNotCrash(t *testing.T) {
 	if err := os.Chmod(badDir, 0o000); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(badDir, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(badDir, 0o755) })
 
 	// tryAutoArchive should return false (error path), not panic.
 	result := d.tryAutoArchive(idx)
@@ -959,7 +959,7 @@ func TestDeleteArchivedNode_MissingArchiveDir(t *testing.T) {
 
 	// Manually remove the archive directory before calling delete.
 	projDir := d.Store.Dir()
-	os.RemoveAll(filepath.Join(projDir, ".archive", "no-dir"))
+	_ = os.RemoveAll(filepath.Join(projDir, ".archive", "no-dir"))
 
 	// Should still succeed (RemoveAll on nonexistent path returns nil).
 	err := d.deleteArchivedNode("no-dir")
@@ -997,7 +997,7 @@ func TestRestoreNode_MkdirAllError(t *testing.T) {
 	if err := os.WriteFile(nestParent, []byte("blocker"), 0o444); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(nestParent, 0o755); os.Remove(nestParent) })
+	t.Cleanup(func() { _ = os.Chmod(nestParent, 0o755); _ = os.Remove(nestParent) })
 
 	err := d.restoreNode("rename-mkfail")
 	if err == nil {

@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "id": "config-write-spec",
+  "name": "Config Write Spec",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write config write commands spec",
+      "description": "Write config write commands spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/config-write-commands.md",
+        ".wolfcastle/docs/specs/2026-03-21T14-23Z-config-write-commands.md"
+      ],
+      "body": "Create a spec document via 'wolfcastle spec create' that defines all four config write commands: set, unset, append, remove.\n\nThe spec must cover:\n\n1. CLI interface for each command:\n   - 'wolfcastle config set \u003ckey\u003e \u003cvalue\u003e [--tier local|custom]' — sets a config key using dot-notation. Value is parsed as JSON (bare strings allowed). Tier defaults to local.\n   - 'wolfcastle config unset \u003ckey\u003e [--tier local|custom]' — removes a key by writing null (deletion semantics via DeepMerge). Tier defaults to local.\n   - 'wolfcastle config append \u003ckey\u003e \u003cvalue\u003e [--tier local|custom]' — appends a value to an existing array. Tier defaults to local.\n   - 'wolfcastle config remove \u003ckey\u003e \u003cvalue\u003e [--tier local|custom]' — removes a value from an array. Tier defaults to local.\n\n2. Dot-notation path semantics:\n   - Paths like 'daemon.poll_interval_seconds' or 'pipeline.stages.audit.enabled' split on dots\n   - No array indexing (e.g., 'commands[0]' is NOT supported)\n   - Map keys within nested maps (like pipeline.stages, models) addressed by their key name\n   - Intermediate paths that don't exist are created automatically for set\n\n3. Value parsing:\n   - Values are first tried as JSON (numbers, booleans, null, objects, arrays)\n   - If JSON parse fails, the raw string is used as a JSON string value\n   - This means 'wolfcastle config set logs.max_files 5' sets an integer, and 'wolfcastle config set identity.user alice' sets a string\n\n4. Tier targeting:\n   - --tier flag accepts 'local' or 'custom' only (writing to base is not allowed)\n   - Default tier is 'local'\n   - Note existing ADR: WithConfig writes to custom tier, but user-facing CLI defaults to local per scope definition\n\n5. Read-modify-write flow:\n   - Read the current tier overlay file (may be empty/missing)\n   - Apply the mutation to the overlay map\n   - Write the modified overlay back to the tier file\n   - Load the fully merged config (all tiers + defaults) and run ValidateStructure\n   - If validation fails, roll back the tier file and return the validation error\n   - If validation passes, print a success message\n\n6. Output:\n   - Human mode: print 'Set \u003ckey\u003e = \u003cvalue\u003e in \u003ctier\u003e/config.json' (or equivalent for other commands)\n   - JSON mode: output.Ok envelope with the key, value, and tier\n\n7. Error conditions:\n   - Invalid tier name\n   - Malformed dot-notation key (empty segments, trailing dots)\n   - config append/remove on a non-array value\n   - config remove for a value not present in the array\n   - Validation failure after write (must roll back)\n   - Cannot write to base tier\n\nReference existing patterns: cmd/config/show.go for CLI structure, readTierFile for tier reading, internal/config/repository.go for WriteCustom/WriteLocal, internal/config/merge.go for DeepMerge semantics.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-20T15-46Z-config-show-command.md",
+        ".wolfcastle/docs/specs/2026-03-18T21-57Z-configrepository-contract.md",
+        ".wolfcastle/docs/decisions/2026-03-18T20-37Z-withconfig-writes-to-custom-tier.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Config Write Spec is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T14:24:04.929856Z",
+        "task": "config-write-commands/config-write-spec",
+        "text": "Wrote config write commands spec covering set/unset/append/remove with full CLI interface, dot-notation semantics, value parsing, tier targeting, read-modify-write with rollback, output formats, and error conditions"
+      },
+      {
+        "timestamp": "2026-03-21T14:25:41.86834Z",
+        "task": "config-write-commands/config-write-spec",
+        "text": "Audit reviewed 1 file (178 lines): .wolfcastle/docs/specs/2026-03-21T14-23Z-config-write-commands.md. PASS. Findings: (1) Duplicate H1 heading on lines 1 and 3, fixed directly and committed. (2) Spec accurately references existing code: readTierFile in cmd/config/show.go, WriteCustom/WriteLocal in internal/config/repository.go, DeepMerge null-deletion semantics in internal/config/merge.go, ValidateStructure in internal/config/validate.go. (3) The unset-via-nil claim is correct: Go json.Marshal serializes nil map values as JSON null, and DeepMerge deletes keys with nil values. (4) AAR action item about extracting readTierFile to a shared helper is reasonable implementation guidance, not an audit concern. Quality: thorough, well-structured spec with clear error tables, correct tier semantics, and sound transactional rollback design. Build and tests pass."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T14:22:28.102405Z",
+    "completed_at": "2026-03-21T14:26:05.307838Z",
+    "result_summary": "Produced a spec defining four config write commands (set, unset, append, remove) with full CLI interface, dot-notation path semantics, JSON value parsing, tier targeting, transactional read-modify-write with validation rollback, human and JSON output formats, and comprehensive error conditions. All code references verified against the codebase. Audit found and fixed one duplicate heading; no substantive issues."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T14:25:50.23028Z",
+      "objective": "Verify the config write commands spec is complete and correct",
+      "what_happened": "Read the full spec (178 lines). Verified all code references against the actual codebase: readTierFile, WriteCustom/WriteLocal, DeepMerge null-deletion, ValidateStructure. Confirmed the nil-to-JSON-null serialization chain. Found and fixed a duplicate H1 heading. Ran build and full test suite, both clean.",
+      "went_well": [
+        "Spec is well-structured with clear sections, accurate code references, and a complete error condition table",
+        "The read-modify-write flow with rollback is well-designed and matches existing ConfigRepository contracts"
+      ],
+      "improvements": [
+        "None significant; the duplicate heading was the only issue"
+      ],
+      "action_items": [
+        "Implementation tasks should verify readTierFile extraction as noted in the AAR from task-0001"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T14:24:03.899022Z",
+      "objective": "Write a spec defining the four config write commands (set, unset, append, remove)",
+      "what_happened": "Studied the existing config show spec, ConfigRepository contract, DeepMerge semantics, and the WithConfig ADR. Wrote a spec covering CLI interface, dot-notation path semantics, value parsing, tier targeting, read-modify-write with validation rollback, output formats, and error conditions.",
+      "went_well": [
+        "The existing config show spec provided a clear template for structure and level of detail",
+        "DeepMerge null-deletion semantics fit naturally into the unset command design"
+      ],
+      "improvements": [
+        "The spec references readTierFile in cmd/config/show.go which may need extraction to a shared location during implementation"
+      ],
+      "action_items": [
+        "Implementation tasks should extract readTierFile and the dot-notation path walker into shared helpers within cmd/config/"
+      ]
+    }
+  },
+  "specs": [
+    "2026-03-21T14-23Z-config-write-commands.md"
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "id": "documentation-review",
+  "name": "Documentation Review",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "specs-currency-audit",
+      "address": "documentation-review/specs-currency-audit",
+      "state": "complete"
+    },
+    {
+      "id": "agent-docs-audit",
+      "address": "documentation-review/agent-docs-audit",
+      "state": "complete"
+    },
+    {
+      "id": "human-docs-audit",
+      "address": "documentation-review/human-docs-audit",
+      "state": "complete"
+    },
+    {
+      "id": "root-docs-audit",
+      "address": "documentation-review/root-docs-audit",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Documentation Review is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Comprehensive documentation audit. Verify all docs/humans/ pages match reality, all docs/specs/ are current or marked superseded, CONTRIBUTING.md package map is accurate, README feature list is complete, AGENTS.md critical rules are correct, docs/agents/architecture.md reflects current dependency graph. Major changes since last review: config schema rewritten (stages as dict), 10+ new CLI commands (config show, audit aar, audit report), prompt subdirectory restructure, AARs and spec review as new pipeline concepts, status --detail flag, unknown-field detection, stall detector, selfHeal blocked audit remediation, CHILDREF_STATE_MISMATCH in doctor, archive lifecycle.",
+  "success_criteria": [
+    "Every docs/specs/ file is either accurate, updated, or marked superseded",
+    "CONTRIBUTING.md package map lists all internal/ packages with correct descriptions",
+    "README feature list covers all capabilities added since last review",
+    "AGENTS.md critical rules are verified against code and complete",
+    "docs/agents/architecture.md dependency graph matches actual import structure",
+    "All docs/humans/ pages reflect current CLI behavior including new commands and flags"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "total_replans": 1,
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T13:47:57.814805Z",
+      "trigger": "initial",
+      "summary": "marker="
+    },
+    {
+      "timestamp": "2026-03-21T14:51:32.440888Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T14:51:30.017756Z",
+        "task": "documentation-review",
+        "text": "Created 4 children: specs-currency-audit, agent-docs-audit, human-docs-audit, root-docs-audit. Ordering: specs first (foundational truth source), then agent docs (technical accuracy), then human docs (user-facing), then root docs (summary-level). Each leaf independently verifiable. Major drift risks identified: stages-as-dict in config spec, 5 missing packages in CONTRIBUTING.md, new CLI commands undocumented, auto-archive ADR not yet reflected in goroutine spec."
+      }
+    ],
+    "gaps": [],
+    "escalations": [
+      {
+        "id": "escalation-specs-currency-audit-1",
+        "timestamp": "2026-03-21T15:03:53.91159Z",
+        "description": "findnexttask-invariants.md spec exists in docs/specs/ but is missing from the README index. Pre-existing omission, not introduced by this node.",
+        "source_node": "documentation-review/specs-currency-audit",
+        "status": "open"
+      },
+      {
+        "id": "escalation-root-docs-audit-2",
+        "timestamp": "2026-03-21T15:59:58.29286Z",
+        "description": "PreStartSelfHeal is still referenced in docs/agents/state-and-types.md:82 and docs/agents/daemon.md:69-71 but the function does not exist in the codebase. These references were introduced by commits 51038fa and ebfc370 (a different node), not by root-docs-audit.",
+        "source_node": "documentation-review/root-docs-audit",
+        "status": "open"
+      },
+      {
+        "id": "escalation-root-docs-audit-3",
+        "timestamp": "2026-03-21T15:59:59.197082Z",
+        "description": "internal/archive/service_test.go has a gofmt formatting violation (map literal alignment). Introduced by commit 2a31bf0 from a different node.",
+        "source_node": "documentation-review/root-docs-audit",
+        "status": "open"
+      }
+    ],
+    "status": "in_progress",
+    "started_at": "2026-03-21T14:53:03.09247Z"
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "id": "root-docs-audit",
+  "name": "Root Docs Audit",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Verify README feature list and overview",
+      "description": "Verify README feature list and overview",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "README.md"
+      ],
+      "body": "Read README.md and verify the feature list and architecture summary are complete. Must mention: (1) stages-as-dict configuration, (2) config show/set/unset/append/remove commands, (3) audit aar and audit report commands, (4) auto-archive lifecycle, (5) unknown-field detection, (6) stall detector, (7) status --detail flag, (8) spec review pipeline stage, (9) CHILDREF_STATE_MISMATCH doctor check. The architecture summary should reflect the current module structure. Update where incomplete."
+    },
+    {
+      "id": "task-0002",
+      "title": "Verify CONTRIBUTING.md package map",
+      "description": "Verify CONTRIBUTING.md package map",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "CONTRIBUTING.md"
+      ],
+      "body": "Read CONTRIBUTING.md and compare its package map against actual internal/ packages. Current packages include ~20 directories: archive, clock, config, daemon, errors, git, invoke, logging, output, pipeline, project, selfupdate, signals, state, testutil, tierfs, tree, validate. The documented list shows 15 packages. Identify missing packages (likely git, tierfs, signals, and possibly others added recently). Verify existing package descriptions are still accurate. Update the table."
+    },
+    {
+      "id": "task-0003",
+      "title": "Verify AGENTS.md critical rules",
+      "description": "Verify AGENTS.md critical rules",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "AGENTS.md"
+      ],
+      "body": "Read AGENTS.md and verify all critical rules are correct and complete. Current rules cover: output package usage, status constants, error handling, gofmt, specs track implementation, never rebase main, .wolfcastle/system/ off-limits, planning is lazy, selfHeal derives parents, pre-start repair. Verify each rule against current code. Check whether new rules are needed for: (1) stages-as-dict format, (2) unknown-field detection behavior, (3) auto-archive lifecycle, (4) spec review feedback loop, (5) AAR recording conventions. Also verify the detailed guides index points to all current docs/agents/ files."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Root Docs Audit is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Diff internal/ package list against CONTRIBUTING.md table; verify AGENTS.md rules 8-10 (lazy planning, selfHeal, pre-start repair) match current daemon code"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T15:48:31.168613Z",
+        "task": "documentation-review/root-docs-audit",
+        "text": "Updated README.md with all 9 required feature mentions: stages-as-dict, config commands, audit aar/report, auto-archive, unknown-field detection, stall detector, status --detail, spec review stage, CHILDREF_STATE_MISMATCH"
+      },
+      {
+        "timestamp": "2026-03-21T15:51:21.996997Z",
+        "task": "documentation-review/root-docs-audit",
+        "text": "Updated CONTRIBUTING.md: added git, signals, tierfs packages; fixed validate count 24→25; updated totals 15→18 packages; added cmd/config, cmd/orchestrator, cmd/cmdutil to cmd/ listing; corrected ADR count 76→80"
+      },
+      {
+        "timestamp": "2026-03-21T15:55:21.473736Z",
+        "task": "documentation-review/root-docs-audit",
+        "text": "Verified AGENTS.md: fixed rule 8 (added auto-archive Step 3), rule 9 (removed phantom PreStartSelfHeal), spec count 18→20, CONTRIBUTING.md ADR count 80→79. No new critical rules needed for stages-as-dict, unknown-field detection, auto-archive, spec review, or AAR conventions."
+      },
+      {
+        "timestamp": "2026-03-21T16:00:10.464884Z",
+        "task": "documentation-review/root-docs-audit",
+        "text": "Audit of root-docs-audit complete. Reviewed 3 files (README.md, CONTRIBUTING.md, AGENTS.md) covering all changes from commits 3cc58a2, 2eaf444, 3a44eb2. PASS. Verified 12 factual claims against codebase: package count (18), validation categories (25), ADR count (79), spec count (20 implemented + 3 drafts), auto-archive as daemon step 3, PreStartSelfHeal removal, all 7 linked CLI doc pages exist, CHILDREF_STATE_MISMATCH check, stages-as-dict config, stall detector, new package descriptions (git/signals/tierfs), cmd/ subdirectories. All correct. Two escalations filed for pre-existing issues: (1) phantom PreStartSelfHeal references in docs/agents/state-and-types.md:82 and docs/agents/daemon.md:69-71 from a different node. (2) gofmt violation in internal/archive/service_test.go from commit 2a31bf0. Build passes, all tests pass with race detector, no new issues introduced. Quality: thorough, accurate documentation updates with well-integrated prose."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T15:45:27.664682Z",
+    "completed_at": "2026-03-21T16:00:38.95536Z",
+    "result_summary": "Root docs audit verified README.md, CONTRIBUTING.md, and AGENTS.md updates across three tasks. Task 1 added 9 missing features to README (stages-as-dict, config commands, audit aar/report, auto-archive, unknown-field detection, stall detector, status --detail, spec review, CHILDREF_STATE_MISMATCH). Task 2 added 3 missing packages to CONTRIBUTING.md (git, signals, tierfs), corrected validate count to 25, updated totals to 18, added cmd/ subdirectories, and fixed ADR count. Task 3 fixed AGENTS.md rule 8 (auto-archive as step 3), removed phantom PreStartSelfHeal from rule 9, and corrected spec count to 20. Audit verified all 12 factual claims against the codebase. Two pre-existing issues escalated: stale PreStartSelfHeal references in docs/agents/ and a gofmt violation in archive service tests. No issues introduced by this node."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T16:00:20.323979Z",
+      "objective": "Verify all work in Root Docs Audit is complete, correct, and high-quality",
+      "what_happened": "Read all three files modified by this node (README.md, CONTRIBUTING.md, AGENTS.md). Verified 12 factual claims against codebase: package count, validation categories, ADR count, spec count, auto-archive daemon step, PreStartSelfHeal removal, CLI doc page existence, CHILDREF_STATE_MISMATCH, stages-as-dict, stall detector, new package descriptions, cmd/ directories. All verified correct. Ran build and full test suite with race detector; all pass. Found two pre-existing issues from other nodes and escalated them.",
+      "went_well": [
+        "Every factual claim in the documentation edits was verified as accurate against the actual codebase",
+        "The daemon loop code at lines 556-598 confirmed the auto-archive step 3 description exactly"
+      ],
+      "improvements": [
+        "Could have also verified link targets (anchor fragments like #the-pipeline, #archive) resolve to actual headings in target docs"
+      ],
+      "action_items": [
+        "Resolve escalated PreStartSelfHeal phantom references in docs/agents/state-and-types.md and docs/agents/daemon.md",
+        "Fix gofmt violation in internal/archive/service_test.go"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T15:48:29.835523Z",
+      "objective": "Verify README.md feature list is complete against 9 required features and update where missing",
+      "what_happened": "Read README.md and checked all 9 features against codebase. All existed in code but none were mentioned in the README. Added: stages-as-dict config format, config show/set/unset/append/remove CLI commands, audit aar and report commands, auto-archive lifecycle, unknown-field detection warnings, stall detector, status --detail flag, spec review pipeline stage, CHILDREF_STATE_MISMATCH doctor check with 25-category count.",
+      "went_well": [
+        "All 9 features confirmed in codebase before writing; edits wove naturally into existing prose sections"
+      ],
+      "improvements": [
+        "Some doc link targets (e.g. docs/humans/cli/config-show.md) assumed but not verified to exist"
+      ],
+      "action_items": [
+        "Verify that linked CLI doc pages (config-show, config-set, audit-aar, audit-report) exist and are accurate"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T15:51:21.891978Z",
+      "objective": "Verify CONTRIBUTING.md package map matches actual codebase structure",
+      "what_happened": "Compared CONTRIBUTING.md against actual internal/ packages and found 3 missing (git, signals, tierfs), a stale validate category count (24→25), a stale total package count (15→18), missing cmd/ subdirectories (config, orchestrator, cmdutil), and a stale ADR count (76→80). Updated all.",
+      "went_well": [
+        "Parallel exploration agents verified all 15 existing descriptions; 14 of 15 were accurate with only validate needing a number correction"
+      ],
+      "improvements": [
+        "Could have also verified that the Adding a CLI Command and Adding a Validation Check sections reference current file paths"
+      ],
+      "action_items": [
+        "If new packages are added, update CONTRIBUTING.md package count and table"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T15:55:19.214956Z",
+      "objective": "Verify AGENTS.md critical rules are correct and complete",
+      "what_happened": "Read all 10 critical rules and verified each against the codebase via parallel agent exploration. Found three issues: rule 8 was missing auto-archive as Step 3 of the daemon loop, rule 9 referenced a nonexistent PreStartSelfHeal function, and the Design References spec count was stale (18 vs 20 implemented). Also caught a prior-task error in CONTRIBUTING.md (80 ADRs vs actual 79). Evaluated 5 candidate new rules (stages-as-dict, unknown-field detection, auto-archive lifecycle, spec review feedback loop, AAR conventions) and determined none warrant critical rules since they are features and conventions rather than behavioral constraints. Verified the detailed guides index covers all 9 docs/agents/ files (README.md excluded as it is the directory's own index).",
+      "went_well": [
+        "Parallel agent verification of all 10 rules was efficient and caught the PreStartSelfHeal phantom cleanly",
+        "Caught the prior-task CONTRIBUTING.md ADR miscount (80 vs 79) as a side effect"
+      ],
+      "improvements": [
+        "Could have also verified that each guide file linked in the index actually covers the domain described in the When to read column"
+      ],
+      "action_items": [
+        "The output package rule (rule 1) has ~20 violations in follow.go and report.go worth filing as tech debt"
+      ]
+    }
+  }
+}

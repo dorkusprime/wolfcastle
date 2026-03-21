@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "id": "config-show-section-filter",
+  "name": "Config Show Section Filter",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "section-argument",
+      "address": "config-show-section-filter/section-argument",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Config Show Section Filter is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Add section selection to wolfcastle config show. Users should be able to run wolfcastle config show audit to see just the audit section, wolfcastle config show pipeline to see just the pipeline config, etc. Currently the command dumps the entire resolved config, which is noisy when debugging a specific section. Enhance the command to accept an optional section argument that filters the resolved config output to the named top-level key.",
+  "success_criteria": [
+    "wolfcastle config show pipeline outputs only the pipeline section as indented JSON",
+    "wolfcastle config show with no argument continues to output the full resolved config",
+    "wolfcastle config show invalid-section exits with an error listing valid section names",
+    "Section filtering works with --tier, --raw, and --json flags"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T14:11:32.596478Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T14:11:30.629223Z",
+        "task": "config-show-section-filter",
+        "text": "Created 1 child leaf: section-argument. Single leaf is sufficient because the feature is a focused enhancement to an existing command (cmd/config/show.go) with clear scope: add optional positional arg, filter output, update tests and spec. No spec-first leaf needed since the existing spec at 2026-03-20T15-46Z-config-show-command.md will be updated as part of the implementation leaf. Tasks ordered: implementation first, tests second, spec update third."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-21T14:53:03.09255Z"
+  }
+}

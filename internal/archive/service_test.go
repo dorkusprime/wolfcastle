@@ -79,18 +79,6 @@ func addToRoot(t *testing.T, projDir string, addr string) {
 	}
 }
 
-// addToArchivedRoot appends addr to the index's ArchivedRoot list.
-func addToArchivedRoot(t *testing.T, projDir string, addr string) {
-	t.Helper()
-	store := state.NewStateStore(projDir, 5*time.Second)
-	if err := store.MutateIndex(func(idx *state.RootIndex) error {
-		idx.ArchivedRoot = append(idx.ArchivedRoot, addr)
-		return nil
-	}); err != nil {
-		t.Fatal(err)
-	}
-}
-
 // ── Archive tests ───────────────────────────────────────────────────────
 
 func TestArchive_MovesDirectoriesAndUpdatesIndex(t *testing.T) {
@@ -473,10 +461,10 @@ func TestCollectSubtree_DeepTree(t *testing.T) {
 	t.Parallel()
 	idx := &state.RootIndex{
 		Nodes: map[string]state.IndexEntry{
-			"root":             {Name: "Root", Address: "root", Children: []string{"root/a", "root/b"}},
-			"root/a":          {Name: "A", Address: "root/a", Children: []string{"root/a/deep"}},
-			"root/b":          {Name: "B", Address: "root/b"},
-			"root/a/deep":     {Name: "Deep", Address: "root/a/deep"},
+			"root":        {Name: "Root", Address: "root", Children: []string{"root/a", "root/b"}},
+			"root/a":      {Name: "A", Address: "root/a", Children: []string{"root/a/deep"}},
+			"root/b":      {Name: "B", Address: "root/b"},
+			"root/a/deep": {Name: "Deep", Address: "root/a/deep"},
 		},
 	}
 	result := CollectSubtree(idx, "root")

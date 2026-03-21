@@ -455,7 +455,7 @@
     "documentation-review": {
       "name": "Documentation Review",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "documentation-review",
       "decomposition_depth": 0,
       "children": [
@@ -476,7 +476,7 @@
     "documentation-review/human-docs-audit": {
       "name": "Human Docs Audit",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "documentation-review/human-docs-audit",
       "decomposition_depth": 0,
       "parent": "documentation-review"
@@ -484,7 +484,7 @@
     "documentation-review/root-docs-audit": {
       "name": "Root Docs Audit",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "documentation-review/root-docs-audit",
       "decomposition_depth": 0,
       "parent": "documentation-review"

@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "id": "config-write-commands",
+  "name": "Config Write Commands",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "config-write-spec",
+      "address": "config-write-commands/config-write-spec",
+      "state": "complete"
+    },
+    {
+      "id": "core-write-infrastructure",
+      "address": "config-write-commands/core-write-infrastructure",
+      "state": "complete"
+    },
+    {
+      "id": "cli-write-commands",
+      "address": "config-write-commands/cli-write-commands",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Config Write Commands is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Implement config set, config unset, config append, and config remove commands. 'config set key value --tier local' writes a key using dot-notation for nested paths; value must be valid JSON including arrays/objects, strings can be bare. 'config unset key --tier local' removes a key (writes null for deletion semantics). 'config append key value --tier local' appends a value to an array. 'config remove key value --tier local' removes a value from an array. Tier defaults to local. No array indexing supported. All commands validate the resulting config after writing.",
+  "success_criteria": [
+    "All four config write commands (set, unset, append, remove) are implemented, registered, and pass comprehensive tests",
+    "Dot-notation path parsing handles nested maps, rejects array indexing, and validates path structure",
+    "Write operations use read-modify-write-validate flow with rollback on validation failure",
+    "Tests cover success paths, error conditions, tier targeting, validation rollback, and both output modes"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T14:22:28.009484Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T14:22:20.781196Z",
+        "task": "config-write-commands",
+        "text": "Created 3 children in execution order: config-write-spec (spec), core-write-infrastructure (path utils + repository methods), cli-write-commands (4 cobra commands + tests). Ordering: spec first because it defines the contract; core infra second because CLI commands depend on path utilities and ApplyMutation; CLI commands last as the consumer of both."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-21T14:53:03.092514Z"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "section-argument",
+  "name": "Section Argument",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement section filtering in config show",
+      "description": "Implement section filtering in config show",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/show.go",
+        "cmd/config/show_test.go"
+      ],
+      "body": "Modify cmd/config/show.go to accept an optional positional argument (the section name). After resolving the config through any of the three existing code paths (default merged, --tier, --raw), convert the result to map[string]any if needed, then extract the named key. If the key exists, output only its value. If the key does not exist, return an error listing the valid section names. The argument should work with --json output as well, wrapping the filtered value in the standard envelope. Update the command's Use string to 'show [section]' and add the section argument to the Long description. Use cobra.MaximumNArgs(1) to allow zero or one positional argument."
+    },
+    {
+      "id": "task-0002",
+      "title": "Add tests for section filtering",
+      "description": "Add tests for section filtering",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/show_test.go"
+      ],
+      "body": "Add tests to cmd/config/show_test.go covering: (1) config show pipeline outputs only the pipeline section, (2) config show --tier local identity filters the tier output to just the identity key, (3) config show --raw models filters the raw-merged output, (4) config show bogus-section returns an error, (5) config show pipeline --json wraps the filtered section in the standard envelope with action=config_show, (6) config show (no argument) continues to work as before, outputting the full config. Verify that the output for a known section round-trips through JSON and contains the expected keys."
+    },
+    {
+      "id": "task-0003",
+      "title": "Update config show spec with section argument",
+      "description": "Update config show spec with section argument",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/2026-03-20T15-46Z-config-show-command.md"
+      ],
+      "body": "Update the existing spec at .wolfcastle/docs/specs/2026-03-20T15-46Z-config-show-command.md to document the optional section positional argument. Add a new section describing the argument, its interaction with --tier and --raw, error behavior for unknown sections, and output examples showing filtered output (e.g. wolfcastle config show pipeline). Update the Synopsis to show 'wolfcastle config show [section] [--tier ...] [--raw] [--json]'. Add an entry to the Arguments and Flags table for the positional section argument."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Section Argument is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that the resolved config is converted to map[string]any before section extraction, since config.Load() returns *Config not a map",
+    "Verify error message for unknown section includes the full list of valid section names sorted alphabetically"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T14:14:11.481143Z",
+        "task": "config-show-section-filter/section-argument",
+        "text": "Implemented section filtering: optional positional arg on config show, extractSection function, 10 new tests, 93.3% coverage"
+      },
+      {
+        "timestamp": "2026-03-21T14:14:45.420751Z",
+        "task": "config-show-section-filter/section-argument",
+        "text": "task-0002 verified: all six required test scenarios already exist from task-0001, all 31 tests pass"
+      },
+      {
+        "timestamp": "2026-03-21T14:15:59.155298Z",
+        "task": "config-show-section-filter/section-argument",
+        "text": "Updated config show spec: added section argument to synopsis, arguments table, behavior section, output examples, and error tables"
+      },
+      {
+        "timestamp": "2026-03-21T14:17:16.345577Z",
+        "task": "config-show-section-filter/section-argument",
+        "text": "Audit reviewed 2 source files (show.go: 175 lines, show_test.go: 601 lines) and 1 spec (243 lines). PASS. Build clean, all 31 tests pass, go vet clean, 93.3% coverage. No correctness issues, no security concerns, no dead code. Two accepted findings: (1) extractSection marshal-roundtrip allocates per call for *Config; negligible for CLI use. (2) Discarded errors on cobra flag lookups (lines 45-46) are safe because the flags are registered on the same command. Spec is accurate and comprehensive, matching the implementation in error messages, section listing order, and flag composition semantics. The section filtering is clean: applied as a final step after mode resolution, type-agnostic via the marshal fallback, and produces a helpful error listing valid sections alphabetically."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T14:11:32.680511Z",
+    "completed_at": "2026-03-21T14:17:26.337055Z",
+    "result_summary": "Added optional section positional argument to wolfcastle config show, allowing users to filter output to a single top-level config key (e.g. wolfcastle config show pipeline). The section filter applies after mode resolution and composes with --tier, --raw, and --json. Unknown sections produce a helpful error listing valid section names alphabetically. Implementation is in cmd/config/show.go with the extractSection function handling both map and struct inputs via type assertion with JSON marshal fallback. 31 tests cover all modes, edge cases, and the JSON envelope, achieving 93.3% coverage. The config show spec was updated to document the new argument, including synopsis, arguments table, behavior section, output examples, and error tables."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T14:14:07.794326Z",
+      "objective": "Add optional section argument to wolfcastle config show",
+      "what_happened": "Modified cmd/config/show.go: updated Use to 'show [section]', added cobra.MaximumNArgs(1), inserted extractSection call after config resolution. extractSection handles both map[string]any (tier/raw paths) and *Config (default path) by marshaling through JSON when needed. Added 10 new tests covering section with default/tier/raw modes, JSON envelope, invalid section error, too-many-args rejection, and extractSection unit tests.",
+      "went_well": [
+        "The marshal-roundtrip in extractSection keeps the function agnostic to input type without coupling to config internals",
+        "93.3% coverage on the package, all 31 tests pass"
+      ],
+      "improvements": [
+        "extractSection's marshal roundtrip allocates on every call for *Config; a direct struct-to-map utility would be more efficient, though the cost is negligible for CLI use"
+      ],
+      "action_items": [
+        "None identified"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T14:15:58.428744Z",
+      "objective": "Update the config show spec to document the optional section positional argument",
+      "what_happened": "Edited .wolfcastle/docs/specs/2026-03-20T15-46Z-config-show-command.md: updated Synopsis to include [section], added section description to the Description prose, added a positional argument row to the Arguments and Flags table, added a new 'Section filtering' Behavior subsection explaining the resolution flow, added three Output Examples (filtered section, section with --tier, unknown section error), and added error rows to both the Exit Codes and Error Cases tables.",
+      "went_well": [
+        "Spec stays consistent with the implementation in show.go: error message format, alphabetical section listing, and compose-with-any-flag semantics all match"
+      ],
+      "improvements": [
+        "None identified"
+      ],
+      "action_items": [
+        "None identified"
+      ]
+    }
+  }
+}

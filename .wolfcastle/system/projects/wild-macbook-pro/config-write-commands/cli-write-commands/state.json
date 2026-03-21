@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "id": "cli-write-commands",
+  "name": "CLI Write Commands",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement config set command",
+      "description": "Implement config set command",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/set.go",
+        "cmd/config/set_test.go"
+      ],
+      "body": "Create cmd/config/set.go with the 'config set' cobra command.\n\nUsage: wolfcastle config set \u003ckey\u003e \u003cvalue\u003e [--tier local|custom]\n\nBehavior:\n- Takes exactly 2 positional args: key (dot-notation path) and value\n- Parses value as JSON first (handles numbers, booleans, null, objects, arrays); falls back to treating it as a bare string\n- Uses app.Config.ApplyMutation(tier, func) to read-modify-write the tier overlay\n- Inside the mutation function, uses SetPath to set the value at the parsed path\n- --tier flag defaults to 'local', accepts 'local' or 'custom' only\n- Human output: 'Set \u003ckey\u003e = \u003cvalue\u003e in \u003ctier\u003e/config.json'\n- JSON output: output.Ok envelope\n\nRegister the command in register.go via configCmd.AddCommand(newSetCmd(app))."
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement config unset command",
+      "description": "Implement config unset command",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/unset.go"
+      ],
+      "body": "Create cmd/config/unset.go with the 'config unset' cobra command.\n\nUsage: wolfcastle config unset \u003ckey\u003e [--tier local|custom]\n\nBehavior:\n- Takes exactly 1 positional arg: key (dot-notation path)\n- Uses app.Config.ApplyMutation to write nil at the path (DeletePath), which DeepMerge interprets as key deletion\n- --tier flag defaults to 'local', accepts 'local' or 'custom' only\n- Human output: 'Unset \u003ckey\u003e from \u003ctier\u003e/config.json'\n- JSON output: output.Ok envelope\n\nRegister in register.go."
+    },
+    {
+      "id": "task-0003",
+      "title": "Implement config append command",
+      "description": "Implement config append command",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/append.go"
+      ],
+      "body": "Create cmd/config/append.go with the 'config append' cobra command.\n\nUsage: wolfcastle config append \u003ckey\u003e \u003cvalue\u003e [--tier local|custom]\n\nBehavior:\n- Takes exactly 2 positional args: key (dot-notation path) and value\n- Parses value as JSON first; falls back to bare string\n- Inside ApplyMutation: uses GetPath to read the current value at the path\n  - If the value is an array ([]any), append the parsed value and SetPath the result\n  - If the value is nil/missing, create a new single-element array and SetPath it\n  - If the value exists but is not an array, return an error: '\u003ckey\u003e is not an array'\n- --tier flag defaults to 'local', accepts 'local' or 'custom' only\n- Human output: 'Appended \u003cvalue\u003e to \u003ckey\u003e in \u003ctier\u003e/config.json'\n- JSON output: output.Ok envelope\n\nRegister in register.go."
+    },
+    {
+      "id": "task-0004",
+      "title": "Implement config remove command",
+      "description": "Implement config remove command",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/remove.go"
+      ],
+      "body": "Create cmd/config/remove.go with the 'config remove' cobra command.\n\nUsage: wolfcastle config remove \u003ckey\u003e \u003cvalue\u003e [--tier local|custom]\n\nBehavior:\n- Takes exactly 2 positional args: key (dot-notation path) and value\n- Parses value as JSON first; falls back to bare string\n- Inside ApplyMutation: uses GetPath to read the current value at the path\n  - If the value is an array, find and remove the first matching element, SetPath the result\n  - If the value is not an array, return error: '\u003ckey\u003e is not an array'\n  - If the element is not found in the array, return error: '\u003cvalue\u003e not found in \u003ckey\u003e'\n  - Comparison should use JSON equality (marshal both to JSON and compare strings) for reliable matching of numbers, strings, objects\n- --tier flag defaults to 'local', accepts 'local' or 'custom' only\n- Human output: 'Removed \u003cvalue\u003e from \u003ckey\u003e in \u003ctier\u003e/config.json'\n- JSON output: output.Ok envelope\n\nRegister in register.go."
+    },
+    {
+      "id": "task-0005",
+      "title": "Update register.go and config command description",
+      "description": "Update register.go and config command description",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/register.go"
+      ],
+      "body": "Update cmd/config/register.go to:\n1. Register all four new commands: configCmd.AddCommand(newSetCmd(app), newUnsetCmd(app), newAppendCmd(app), newRemoveCmd(app))\n2. Update the command group Long description to reflect that config is no longer read-only — it now supports both inspection (show) and mutation (set, unset, append, remove)\n3. Update the Short description if needed\n\nThe current description says 'Read-only access to the Wolfcastle configuration' which will no longer be accurate."
+    },
+    {
+      "id": "task-0006",
+      "title": "Write comprehensive tests for all config write commands",
+      "description": "Write comprehensive tests for all config write commands",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/write_test.go",
+        "cmd/config/set_test.go",
+        "cmd/config/unset_test.go",
+        "cmd/config/append_test.go",
+        "cmd/config/remove_test.go"
+      ],
+      "body": "Create cmd/config/write_test.go (or set_test.go, unset_test.go, etc.) with tests for all four write commands.\n\nFollow the testing patterns established in show_test.go:\n- Use testEnv setup with a real ConfigRepository\n- Test through the cobra command execution (cmd.Execute)\n\nTest cases for config set:\n- Set a top-level scalar (version)\n- Set a nested value (daemon.poll_interval_seconds)\n- Set a value in a map-keyed structure (models.fast.command)\n- Set with JSON value (object, array, number, boolean)\n- Set with bare string value\n- Set to custom tier\n- Set that fails validation (e.g., daemon.poll_interval_seconds to negative) — verify rollback\n- Invalid key (empty segment, trailing dot)\n- Invalid tier name\n\nTest cases for config unset:\n- Unset an existing key\n- Unset a nested key\n- Unset a non-existent key (should succeed silently — writing nil is idempotent)\n\nTest cases for config append:\n- Append to existing array\n- Append to non-existent key (creates single-element array)\n- Append to non-array value (error)\n\nTest cases for config remove:\n- Remove from existing array\n- Remove value not in array (error)\n- Remove from non-array (error)\n\nAll tests should verify both human and JSON output modes."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in CLI Write Commands is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify all four commands are registered in register.go and the command group description is updated",
+    "Verify config set parses JSON values correctly (numbers, booleans, arrays, objects) and falls back to bare strings",
+    "Verify config append and remove correctly handle array operations and error on non-array values"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T14:36:11.342278Z",
+        "task": "config-write-commands/cli-write-commands",
+        "text": "Implemented config set command in cmd/config/set.go with full test coverage (93.8%). Command accepts dot-notation keys, JSON-parsed values, and --tier flag defaulting to local."
+      },
+      {
+        "timestamp": "2026-03-21T14:39:07.860117Z",
+        "task": "config-write-commands/cli-write-commands",
+        "text": "Implemented config unset command in cmd/config/unset.go with 13 tests (93.8% coverage). Command uses DeletePath null-deletion semantics via ApplyMutation."
+      },
+      {
+        "timestamp": "2026-03-21T14:41:02.747452Z",
+        "task": "config-write-commands/cli-write-commands",
+        "text": "Implemented config append command in cmd/config/append.go with 14 tests (94.9% coverage). Command appends to existing arrays, creates new arrays for missing/nil keys, and errors on non-array values."
+      },
+      {
+        "timestamp": "2026-03-21T14:42:38.740049Z",
+        "task": "config-write-commands/cli-write-commands",
+        "text": "Implemented config remove command in cmd/config/remove.go with 15 tests (94.9% coverage). Command removes first matching element from arrays using JSON equality comparison."
+      },
+      {
+        "timestamp": "2026-03-21T14:43:20.346279Z",
+        "task": "config-write-commands/cli-write-commands",
+        "text": "task-0005: register.go already updated by prior tasks (task-0001 through task-0004). All four write commands registered, Short/Long descriptions reflect read-write capabilities."
+      },
+      {
+        "timestamp": "2026-03-21T14:47:04.497477Z",
+        "task": "config-write-commands/cli-write-commands",
+        "text": "task-0006: Added 5 missing test cases to set_test.go (top-level scalar, deep nesting, validation rollback, empty segment, trailing dot). All 64 config tests pass at 95.4% coverage."
+      },
+      {
+        "timestamp": "2026-03-21T14:48:03.386241Z",
+        "task": "config-write-commands/cli-write-commands",
+        "text": "Audit reviewed 5 source files (set.go, unset.go, append.go, remove.go, register.go) and 4 test files (59+5=64 tests). PASS. Build clean, all tests pass, 95.4% coverage, gofmt and go vet clean. Findings: (1) remove.go:74 mutates backing array in-place before SetPath overwrites — harmless, accepted. (2) Tier validation duplicated 4x across commands — flagged in AARs, accepted as each file is self-contained. (3) GetString error discarded in all commands — safe because flag is registered with default. No security issues, no nil safety issues, no dead code."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T14:32:47.987932Z",
+    "completed_at": "2026-03-21T14:48:11.074186Z",
+    "result_summary": "Implemented four config write commands (set, unset, append, remove) as cobra subcommands under 'config'. Each command follows a consistent pattern: parse args, validate tier (local/custom), delegate to ApplyMutation with the appropriate config path operation (SetPath, DeletePath, GetPath+SetPath), and emit human or JSON output. Values are parsed as JSON with bare-string fallback via a shared parseValue function. The append command creates new arrays for missing keys and errors on non-arrays. The remove command uses JSON equality for element matching and removes only the first match. All commands are registered in register.go with updated Long description. Test coverage stands at 95.4% across 64 tests covering all value types, tier selection, argument validation, JSON envelope output, edge cases (empty segments, trailing dots, validation rollback, deep nesting), and subcommand registration."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T14:36:07.417356Z",
+      "objective": "Implement the 'config set' cobra command for writing values into tier overlay files",
+      "what_happened": "Created cmd/config/set.go with newSetCmd() following the same pattern as newShowCmd(). The command takes two positional args (key and value), parses the value as JSON with string fallback via parseValue(), and delegates to ApplyMutation + SetPath. Registered the command in register.go and updated the config group's Long description since it's no longer read-only. Also created set_test.go with 17 test cases covering JSON types (number, bool, null, array, object), bare string fallback, tier selection, argument validation, JSON envelope output, and registration.",
+      "went_well": [
+        "parseValue is clean and covers all JSON value types naturally",
+        "93.8% test coverage across the config package"
+      ],
+      "improvements": [
+        "The tier validation duplicates logic that ApplyMutation already performs internally; could rely solely on ApplyMutation's error, but the early check gives a better user-facing error message"
+      ],
+      "action_items": [
+        "Implement config unset, append, and remove commands following this same pattern"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T14:39:03.172649Z",
+      "objective": "Implement the config unset cobra command for removing keys from tier overlay files",
+      "what_happened": "Created cmd/config/unset.go following the same pattern as set.go. The command takes one positional arg (key), delegates to ApplyMutation + DeletePath which writes nil at the path (null-deletion semantics for DeepMerge). Registered in register.go. Created unset_test.go with 13 tests. Initial test assertions assumed DeletePath removes the key entirely, but it actually sets the value to nil; corrected all assertions accordingly.",
+      "went_well": [
+        "Clean mirror of set.go pattern made this fast to implement",
+        "93.8% test coverage maintained across the config package"
+      ],
+      "improvements": [
+        "The tier validation is duplicated across set and unset commands; could extract a shared validateTier helper, but two instances isn't worth the abstraction yet"
+      ],
+      "action_items": [
+        "Implement config append and remove commands following the same pattern"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T14:40:58.433715Z",
+      "objective": "Implement the config append cobra command for appending values to array-typed config keys",
+      "what_happened": "Created cmd/config/append.go following the same pattern as set.go and unset.go. The command takes two positional args (key and value), parses the value as JSON with string fallback via parseValue(), then inside ApplyMutation uses GetPath to read the current value. If missing/nil, creates a new single-element array. If an existing array, appends and writes back. If non-array, returns an error. Registered in register.go. Created append_test.go with 14 tests covering new array creation, existing array append, nil-to-array promotion, non-array error, JSON value types, tier selection, argument validation, JSON envelope output, and registration.",
+      "went_well": [
+        "Clean mirror of the set/unset pattern, straightforward to implement",
+        "94.9% test coverage across the config package"
+      ],
+      "improvements": [
+        "Three commands now duplicate the tier validation check; a shared helper would reduce repetition if a fourth command follows the same pattern"
+      ],
+      "action_items": [
+        "Implement config remove command following the same pattern"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-21T14:42:50.36843Z",
+      "objective": "Implement the config remove cobra command for removing values from array-typed config keys",
+      "what_happened": "Created cmd/config/remove.go following the same pattern as append.go. The command takes two positional args (key and value), parses the value via parseValue(), then inside ApplyMutation uses GetPath to read the current value. If missing/nil or non-array, returns an error. For arrays, iterates to find the first element matching by JSON equality (marshal both sides and compare strings), removes it, and writes back via SetPath. Registered in register.go. Created remove_test.go with 15 tests covering string removal, number removal, object removal, first-match-only behavior, not-found error, non-array error, missing key error, tier selection, argument validation, JSON envelope output, and registration.",
+      "went_well": [
+        "JSON equality comparison works cleanly for all value types including objects",
+        "94.9% test coverage maintained across the config package"
+      ],
+      "improvements": [
+        "Four commands now duplicate the tier validation check; extracting a shared validateTier helper would reduce repetition"
+      ],
+      "action_items": [
+        "Consider extracting shared tier validation if more write commands are added"
+      ]
+    },
+    "task-0006": {
+      "task_id": "task-0006",
+      "timestamp": "2026-03-21T14:46:58.855474Z",
+      "objective": "Write comprehensive tests for all config write commands",
+      "what_happened": "The four prior tasks (0001-0004) already created individual test files (set_test.go, unset_test.go, append_test.go, remove_test.go) with 59 tests total. Reviewed each file against the task spec and found 5 missing test cases in set_test.go: top-level scalar key, deeply nested auto-vivification (models.fast.command), validation failure with rollback verification, empty segment key, and trailing dot key. Added all five. The unset, append, and remove test files already covered every case from the spec.",
+      "went_well": [
+        "Rollback test caught a subtlety: the test env pre-creates local/config.json with identity, so rollback restores content rather than deleting the file. Testing the before/after content equality is the right assertion.",
+        "Coverage rose from 94.9% to 95.4% across the config package"
+      ],
+      "improvements": [
+        "The deliverable was listed as write_test.go but the tests live in four separate files; the task description permitted this with the parenthetical 'or set_test.go, unset_test.go, etc.'"
+      ],
+      "action_items": [
+        "None; all test cases from the spec are now covered"
+      ]
+    }
+  }
+}

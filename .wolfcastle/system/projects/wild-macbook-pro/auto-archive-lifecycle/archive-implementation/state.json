@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "id": "archive-implementation",
+  "name": "Archive Implementation",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "restore-operation",
+      "address": "auto-archive-lifecycle/archive-implementation/restore-operation",
+      "state": "complete"
+    },
+    {
+      "id": "delete-operation",
+      "address": "auto-archive-lifecycle/archive-implementation/delete-operation",
+      "state": "complete"
+    },
+    {
+      "id": "archive-add-state-move",
+      "address": "auto-archive-lifecycle/archive-implementation/archive-add-state-move",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Archive Implementation is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Implements the core auto-archive system as defined by the archive service spec. Covers four concerns: (1) Config types and defaults: add ArchiveConfig to the config tree with auto_archive_delay_hours and auto_archive_enabled fields, wire defaults into base config. (2) State type extensions: add completion timestamp tracking to NodeState/RootIndex, add archived status or flag to index entries so archived nodes are distinguishable from active ones. (3) Core archive service: implement move (relocate node state from active tree to archive storage, update RootIndex), restore (reverse the move, re-integrate into active tree), and delete (permanently remove archived state). (4) CLI commands: wolfcastle archive restore --node \u003caddr\u003e, wolfcastle archive delete --node \u003caddr\u003e, update archive add to also move node state (not just generate markdown). All new and modified code must maintain \u003e90% test coverage.",
+  "success_criteria": [
+    "All three archive operations (move, restore, delete) are implemented and tested with \u003e90% coverage",
+    "CLI commands archive add (updated), archive restore, and archive delete are registered and functional",
+    "Archive-then-restore round-trip preserves original directory structure and index state",
+    "Delete permanently removes archived state but preserves Markdown rollup entries"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T13:10:32.140511Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T13:10:28.21874Z",
+        "task": "auto-archive-lifecycle/archive-implementation",
+        "text": "Created 3 children: restore-operation, delete-operation, archive-add-state-move. Ordering: restore first (inverse of move, validates round-trip symmetry), delete second (builds on same infrastructure), archive-add-state-move last (refactors shared logic, requires existing tests as safety net). Config types, state extensions, move operation, daemon integration, and status rendering are already implemented on the branch; this plan covers the remaining restore/delete operations and the archive-add upgrade."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-21T13:53:33.711306Z"
+  }
+}
