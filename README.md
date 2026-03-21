@@ -38,7 +38,7 @@ Wolfcastle runs the full lifecycle without waiting for a human: intake, planning
 
 ## Standing on Ralph's Shoulders
 
-The [Ralph loop](https://ghuntley.com/ralph/) changed how people think about coding agents. Put an agent in a `while` loop, feed it a spec, let it run. Each iteration does one thing. Fresh context every pass. Backpressure (tests, compilation, linting) keeps the output honest. Simple, effective, and [proven at scale](https://ghuntley.com/loop/).
+The [Ralph loop](https://ghuntley.com/ralph/) changed how people think about coding agents. Put an agent in a `while` loop, feed it a spec, let it run. Each iteration does one thing. Fresh context every pass. Backpressure (tests, compilation, linting) keeps the output honest. Simple, effective, and [widely adopted](https://ghuntley.com/loop/), though [not without rough edges](https://news.ycombinator.com/item?id=46750937): [context rot](https://www.alibabacloud.com/blog/from-react-to-ralph-loop-a-continuous-iteration-paradigm-for-ai-agents_602799) degrades output as windows fill, [placeholder implementations](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum) slip through when the model chases compilation over correctness, and [architectural drift](http://www.zerosync.co/blog/ralph-loop-technical-deep-dive) accumulates across iterations without independent review.
 
 Ralph works because it respects a fundamental constraint: context degrades. The specs get re-read every pass, but they're read _clean_, with no competing noise from failed attempts or abandoned approaches. The signal-to-noise ratio is what matters, not the token count.
 
