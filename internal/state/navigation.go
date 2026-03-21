@@ -84,8 +84,24 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 	}
 
 	if entry.Type == NodeOrchestrator {
-		// Traverse children in order
+		// Traverse children in order. If an earlier child needs planning
+		// (orchestrator with no children), stop: don't skip ahead to
+		// later siblings that might have executable tasks. This ensures
+		// creation order is respected as execution order.
 		for _, childAddr := range entry.Children {
+			childEntry, childOk := idx.Nodes[childAddr]
+			if !childOk {
+				continue
+			}
+			if childEntry.State == StatusComplete || childEntry.State == StatusBlocked {
+				continue
+			}
+			// If this child is an orchestrator that needs planning (no
+			// children yet), stop searching. The daemon's planning pass
+			// will handle it before any later sibling executes.
+			if childEntry.Type == NodeOrchestrator && len(childEntry.Children) == 0 {
+				return nil, nil
+			}
 			result, err := dfs(idx, childAddr, loadNode)
 			if err != nil {
 				return nil, err
