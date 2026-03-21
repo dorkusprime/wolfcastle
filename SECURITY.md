@@ -39,6 +39,10 @@ Running Wolfcastle against a `.wolfcastle/` directory on NFS, CIFS, or any other
 
 Operators must ensure that `.wolfcastle/` resides on a local filesystem (ext4, APFS, etc.). This is not a recommendation; it is a hard requirement for data integrity. The "state file corruption bypassing flock mechanism" threat listed above is exactly what happens when this constraint is violated.
 
+## Subprocess Environment Inheritance
+
+Model CLIs invoked by the daemon inherit all environment variables from the parent process. This means API keys, credentials, and any other sensitive env vars present in the shell that launched `wolfcastle start` will be visible to the model subprocess. This is intentional: models need API keys to authenticate with their provider. Operators who run Wolfcastle in environments with sensitive env vars beyond what the model needs should consider launching the daemon from a sanitized shell or using a process wrapper that filters the environment.
+
 ## Supported Versions
 
 Only the latest release receives security updates. Upgrade to the latest version before reporting.
