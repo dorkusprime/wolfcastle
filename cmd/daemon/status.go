@@ -265,19 +265,16 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		return
 	}
 
+	tp := nodeTypePrefix(nd.entry)
+
 	// Collapse completed nodes unless --expand is set.
 	if nd.entry.State == state.StatusComplete && !expand {
 		glyph := nodeGlyph(nd.entry.State)
-		tp := "Leaf"
-		if nd.entry.Type == state.NodeOrchestrator {
-			tp = "Orch"
-		}
 		childCount := countDescendants(idx, addr)
 		if childCount > 0 {
 			output.PrintHuman("%s%s %s: %s  (%d nodes)", indent, glyph, tp, nd.entry.Name, childCount+1)
 			return
 		}
-		// Completed leaf: show node name with task count.
 		if nd.ns != nil && len(nd.ns.Tasks) > 0 {
 			output.PrintHuman("%s%s %s: %s  (%d tasks)", indent, glyph, tp, nd.entry.Name, len(nd.ns.Tasks))
 			return
@@ -285,11 +282,7 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	}
 
 	glyph := nodeGlyph(nd.entry.State)
-	typePrefix := "Leaf"
-	if nd.entry.Type == state.NodeOrchestrator {
-		typePrefix = "Orch"
-	}
-	output.PrintHuman("%s%s %s: %s  (%s)", indent, glyph, typePrefix, nd.entry.Name, addr)
+	output.PrintHuman("%s%s %s: %s  (%s)", indent, glyph, tp, nd.entry.Name, addr)
 
 	// Show most recent breadcrumb for in_progress nodes when --detail is set.
 	if detail && nd.ns != nil && nd.entry.State == state.StatusInProgress && len(nd.ns.Audit.Breadcrumbs) > 0 {
@@ -463,6 +456,18 @@ const (
 	colorDim    = "\033[2m"
 	colorReset  = "\033[0m"
 )
+
+// nodeTypePrefix returns "Proj" for root orchestrators, "Orch" for child
+// orchestrators, and "Leaf" for leaf nodes.
+func nodeTypePrefix(entry state.IndexEntry) string {
+	if entry.Type == state.NodeOrchestrator {
+		if entry.Parent == "" {
+			return "Proj"
+		}
+		return "Orch"
+	}
+	return "Leaf"
+}
 
 // nodeGlyph returns the TUI-consistent colored status glyph for a node.
 func nodeGlyph(s state.NodeStatus) string {
