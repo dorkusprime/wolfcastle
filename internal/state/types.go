@@ -66,12 +66,13 @@ const (
 
 // RootIndex is the centralized tree index at the engineer namespace root.
 type RootIndex struct {
-	Version   int                   `json:"version"`
-	RootID    string                `json:"root_id,omitempty"`
-	RootName  string                `json:"root_name,omitempty"`
-	RootState NodeStatus            `json:"root_state,omitempty"`
-	Root      []string              `json:"root,omitempty"`
-	Nodes     map[string]IndexEntry `json:"nodes"`
+	Version      int                   `json:"version"`
+	RootID       string                `json:"root_id,omitempty"`
+	RootName     string                `json:"root_name,omitempty"`
+	RootState    NodeStatus            `json:"root_state,omitempty"`
+	Root         []string              `json:"root,omitempty"`
+	ArchivedRoot []string              `json:"archived_root,omitempty"`
+	Nodes        map[string]IndexEntry `json:"nodes"`
 }
 
 // IndexEntry is a single node in the root index.
@@ -83,6 +84,8 @@ type IndexEntry struct {
 	DecompositionDepth int        `json:"decomposition_depth"`
 	Parent             string     `json:"parent,omitempty"`
 	Children           []string   `json:"children,omitempty"`
+	Archived           bool       `json:"archived,omitempty"`
+	ArchivedAt         *time.Time `json:"archived_at,omitempty"`
 }
 
 // NodeState is the per-node state file.

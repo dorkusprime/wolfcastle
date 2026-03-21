@@ -419,6 +419,173 @@ func TestStatusCmd_ExpandAndDetailFlags(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Archived node filtering
+// ---------------------------------------------------------------------------
+
+func setupArchivedEnv(t *testing.T) (*testEnv, *state.RootIndex) {
+	t.Helper()
+	env := newTestEnv(t)
+
+	now := time.Now()
+	archivedAt := now.Add(-48 * time.Hour)
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"active-proj"}
+	idx.ArchivedRoot = []string{"old-proj"}
+
+	idx.Nodes["active-proj"] = state.IndexEntry{
+		Name:    "Active Project",
+		Type:    state.NodeLeaf,
+		State:   state.StatusInProgress,
+		Address: "active-proj",
+	}
+	idx.Nodes["old-proj"] = state.IndexEntry{
+		Name:       "Old Project",
+		Type:       state.NodeLeaf,
+		State:      state.StatusComplete,
+		Address:    "old-proj",
+		Archived:   true,
+		ArchivedAt: &archivedAt,
+	}
+
+	// Write index and active node state
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	nodeDir := filepath.Join(env.ProjectsDir, "active-proj")
+	_ = os.MkdirAll(nodeDir, 0755)
+	ns := state.NewNodeState("active-proj", "Active Project", state.NodeLeaf)
+	ns.State = state.StatusInProgress
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+
+	return env, idx
+}
+
+func TestShowTreeStatus_FiltersArchivedNodes(t *testing.T) {
+	env, idx := setupArchivedEnv(t)
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "")
+	})
+
+	if strings.Contains(out, "Old Project") {
+		t.Error("archived node should not appear in default tree view")
+	}
+	if !strings.Contains(out, "Active Project") {
+		t.Error("active node should appear in default tree view")
+	}
+}
+
+func TestShowTreeStatus_ShowsArchivedSummaryLine(t *testing.T) {
+	env, idx := setupArchivedEnv(t)
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "")
+	})
+
+	if !strings.Contains(out, "1 archived node (use --archived to view)") {
+		t.Errorf("expected archived summary line, got:\n%s", out)
+	}
+}
+
+func TestShowTreeStatus_ArchivedCountInSummary(t *testing.T) {
+	env, idx := setupArchivedEnv(t)
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "")
+	})
+
+	if !strings.Contains(out, "1 archived") {
+		t.Errorf("summary line should include archived count, got:\n%s", out)
+	}
+	// Total should be 2 (1 active + 1 archived)
+	if !strings.Contains(out, "2 nodes") {
+		t.Errorf("total should include archived nodes in count, got:\n%s", out)
+	}
+}
+
+func TestShowTreeStatus_NoArchivedLine_WhenNoneArchived(t *testing.T) {
+	env := newStatusTestEnv(t)
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "")
+	})
+
+	if strings.Contains(out, "archived") {
+		t.Error("should not show archived line when no nodes are archived")
+	}
+}
+
+func TestShowTreeStatus_JSON_IncludesArchivedCount(t *testing.T) {
+	env, idx := setupArchivedEnv(t)
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
+
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "")
+	})
+
+	var resp map[string]any
+	if err := json.Unmarshal([]byte(out), &resp); err != nil {
+		t.Fatalf("invalid JSON output: %v", err)
+	}
+	data := resp["data"].(map[string]any)
+
+	archived, ok := data["archived"].(float64)
+	if !ok {
+		t.Fatal("expected archived field in JSON data")
+	}
+	if archived != 1 {
+		t.Errorf("expected archived=1, got %v", archived)
+	}
+
+	// Archived nodes should not appear in nodes map
+	nodes := data["nodes"].(map[string]any)
+	if _, ok := nodes["old-proj"]; ok {
+		t.Error("archived node should not appear in JSON nodes map")
+	}
+}
+
+func TestShowTreeStatus_PluralArchivedLine(t *testing.T) {
+	env := newTestEnv(t)
+
+	now := time.Now()
+	archivedAt := now.Add(-48 * time.Hour)
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"active"}
+	idx.ArchivedRoot = []string{"old-a", "old-b"}
+
+	idx.Nodes["active"] = state.IndexEntry{
+		Name: "Active", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "active",
+	}
+	idx.Nodes["old-a"] = state.IndexEntry{
+		Name: "Old A", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "old-a", Archived: true, ArchivedAt: &archivedAt,
+	}
+	idx.Nodes["old-b"] = state.IndexEntry{
+		Name: "Old B", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "old-b", Archived: true, ArchivedAt: &archivedAt,
+	}
+
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	nodeDir := filepath.Join(env.ProjectsDir, "active")
+	_ = os.MkdirAll(nodeDir, 0755)
+	ns := state.NewNodeState("active", "Active", state.NodeLeaf)
+	ns.State = state.StatusInProgress
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "")
+	})
+
+	if !strings.Contains(out, "2 archived nodes (use --archived to view)") {
+		t.Errorf("expected plural archived summary line, got:\n%s", out)
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	cases := []struct {
 		in     string

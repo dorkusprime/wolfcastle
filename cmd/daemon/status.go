@@ -89,9 +89,14 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	openEscalations := 0
 
 	details := map[string]*nodeDetail{}
+	archivedCount := 0
 
 	for addr, entry := range idx.Nodes {
 		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
+			continue
+		}
+		if entry.Archived {
+			archivedCount++
 			continue
 		}
 		counts[entry.State]++
@@ -170,6 +175,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 			"in_progress":       counts[state.StatusInProgress],
 			"complete":          counts[state.StatusComplete],
 			"blocked":           counts[state.StatusBlocked],
+			"archived":          archivedCount,
 			"daemon":            daemonStatus,
 			"audit_pending":     auditCounts[state.AuditPending],
 			"audit_in_progress": auditCounts[state.AuditInProgress],
@@ -200,21 +206,36 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	if c := counts[state.StatusNotStarted]; c > 0 {
 		parts = append(parts, fmt.Sprintf("%d not started", c))
 	}
-	if total == 0 {
+	if archivedCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d archived", archivedCount))
+	}
+	if total == 0 && archivedCount == 0 {
 		output.PrintHuman("  No targets. Feed the inbox.")
 	} else {
-		output.PrintHuman("  %d nodes (%s)", total, strings.Join(parts, ", "))
+		output.PrintHuman("  %d nodes (%s)", total+archivedCount, strings.Join(parts, ", "))
 	}
 	output.PrintHuman("")
 
-	// Tree view: walk root nodes in order
+	// Tree view: walk root nodes in order, skipping archived roots
 	expand := len(flags) > 0 && flags[0]
 	detail := len(flags) > 1 && flags[1]
 	for _, rootAddr := range idx.Root {
 		if scope != "" && !isInSubtree(idx, rootAddr, scope) {
 			continue
 		}
+		if entry, ok := idx.Nodes[rootAddr]; ok && entry.Archived {
+			continue
+		}
 		printNodeTree(app, idx, details, rootAddr, "  ", expand, detail)
+	}
+
+	if archivedCount > 0 {
+		output.PrintHuman("")
+		if archivedCount == 1 {
+			output.PrintHuman("  1 archived node (use --archived to view)")
+		} else {
+			output.PrintHuman("  %d archived nodes (use --archived to view)", archivedCount)
+		}
 	}
 
 	// Inbox count
