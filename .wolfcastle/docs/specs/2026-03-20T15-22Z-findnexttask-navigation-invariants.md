@@ -31,6 +31,7 @@ Two additional constraints: (1) `findActionableTask` also skips audit tasks when
 ```
 if task.IsAudit && task.State == StatusNotStarted {
     assert(computeAllNonAuditDone(node) == true)
+    assert(computeAllNonAuditBlocked(node) == false)
 }
 ```
 
@@ -47,10 +48,14 @@ if hasChildren {
 
 ### INV-4: Child tasks with not_started non-audit ancestors are blocked
 
-If `result.Found == true`, then `hasNotStartedAncestor(result.TaskID, nodeState)` must return `false`. A child task cannot run before its parent has been claimed. Audit ancestors are exempt per `hasNotStartedAncestor`'s semantics.
+If `result.Found == true` and the returned task has `State == StatusNotStarted`, then `hasNotStartedAncestor(result.TaskID, nodeState)` must return `false`. A child task cannot run before its parent has been claimed. Audit ancestors are exempt per `hasNotStartedAncestor`'s semantics.
+
+The ancestor check applies only to `StatusNotStarted` tasks. `StatusInProgress` tasks bypass it because the self-healing loop (lines 171-184) returns any in_progress non-parent task without checking ancestry; crashed work resumes regardless of ancestor state.
 
 ```
-assert(!hasNotStartedAncestor(task.ID, ns))
+if task.State == StatusNotStarted {
+    assert(!hasNotStartedAncestor(task.ID, ns))
+}
 ```
 
 ### INV-5: All-complete yields `Found == false` with reason `all_complete`

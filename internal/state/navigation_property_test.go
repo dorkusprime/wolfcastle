@@ -185,6 +185,14 @@ func verifyINV2(t *testing.T, tree *testTree, result *NavigationResult) bool {
 			result.TaskID, result.NodeAddress)
 		return false
 	}
+	// The code also skips not_started audit tasks when all non-audit tasks
+	// are blocked (navigation.go:207-209). A returned audit task means
+	// allNonAuditBlocked must be false.
+	if computeAllNonAuditBlocked(ns) {
+		t.Logf("INV-2 violated: audit task %s returned in node %s but allNonAuditBlocked is true",
+			result.TaskID, result.NodeAddress)
+		return false
+	}
 	return true
 }
 
@@ -228,6 +236,33 @@ func computeAllNonAuditDone(ns *NodeState) bool {
 		allDone = allChildrenComplete
 	}
 	return allDone
+}
+
+// computeAllNonAuditBlocked mirrors findActionableTask's allNonAuditBlocked logic.
+// Returns true when all non-audit top-level tasks are blocked.
+func computeAllNonAuditBlocked(ns *NodeState) bool {
+	sorted := make([]Task, len(ns.Tasks))
+	copy(sorted, ns.Tasks)
+
+	nonAuditCount := 0
+	nonAuditBlocked := 0
+	for _, task := range sorted {
+		if task.IsAudit {
+			continue
+		}
+		if isChildTask(task.ID) && parentInList(task.ID, sorted) {
+			continue
+		}
+		nonAuditCount++
+		status := task.State
+		if derived, hasChildren := DeriveParentStatus(ns, task.ID); hasChildren {
+			status = derived
+		}
+		if status == StatusBlocked {
+			nonAuditBlocked++
+		}
+	}
+	return nonAuditCount > 0 && nonAuditBlocked == nonAuditCount
 }
 
 // verifyINV3 checks that parent tasks with children are never returned
