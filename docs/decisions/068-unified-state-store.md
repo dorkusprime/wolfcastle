@@ -1,4 +1,4 @@
-# ADR-068: Unified StateStore for File-Backed State
+# ADR-068: Unified Store for File-Backed State
 
 ## Status
 Accepted
@@ -14,7 +14,7 @@ The building blocks are already in place: `FileLock` (ADR-042) provides per-name
 
 ## Decision
 
-Introduce a `StateStore` type in `internal/state/` that provides `Mutate*` methods for all three state file types: node state, root index, and inbox. Every mutation follows the same sequence: acquire lock, read current state from disk, invoke a caller-supplied callback to modify it, atomically write the result, release lock.
+Introduce a `Store` type in `internal/state/` that provides `Mutate*` methods for all three state file types: node state, root index, and inbox. Every mutation follows the same sequence: acquire lock, read current state from disk, invoke a caller-supplied callback to modify it, atomically write the result, release lock.
 
 Read operations (`ReadNode`, `ReadIndex`, `ReadInbox`) do not acquire the lock. Because `atomicWriteJSON` uses temp-file-then-rename, readers are guaranteed to see either the previous complete file or the new complete file, never a torn write.
 

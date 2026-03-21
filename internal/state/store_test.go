@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-func TestNewStateStore(t *testing.T) {
+func TestNewStore(t *testing.T) {
 	t.Parallel()
-	s := NewStateStore("/tmp/test", 3*time.Second)
+	s := NewStore("/tmp/test", 3*time.Second)
 	if s.Dir() != "/tmp/test" {
 		t.Errorf("expected dir /tmp/test, got %s", s.Dir())
 	}
@@ -26,7 +26,7 @@ func TestNewStateStore(t *testing.T) {
 func TestReadNode_MissingFile_ReturnsDefault(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	ns, err := s.ReadNode("some-node")
 	if err != nil {
@@ -43,7 +43,7 @@ func TestReadNode_MissingFile_ReturnsDefault(t *testing.T) {
 func TestReadNode_RoundTrip(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	// Write a node state manually
 	nodeDir := filepath.Join(dir, "my-node")
@@ -71,7 +71,7 @@ func TestReadNode_RoundTrip(t *testing.T) {
 func TestReadNode_NestedAddress(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	nodeDir := filepath.Join(dir, "parent", "child")
 	if err := os.MkdirAll(nodeDir, 0755); err != nil {
@@ -94,7 +94,7 @@ func TestReadNode_NestedAddress(t *testing.T) {
 func TestReadNode_InvalidAddress(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	_, err := s.ReadNode("INVALID ADDRESS")
 	if err == nil {
@@ -107,7 +107,7 @@ func TestReadNode_InvalidAddress(t *testing.T) {
 func TestReadIndex_MissingFile_ReturnsDefault(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	idx, err := s.ReadIndex()
 	if err != nil {
@@ -124,7 +124,7 @@ func TestReadIndex_MissingFile_ReturnsDefault(t *testing.T) {
 func TestReadIndex_RoundTrip(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	idx := NewRootIndex()
 	idx.Nodes["test"] = IndexEntry{Name: "Test", Type: NodeLeaf, State: StatusNotStarted, Address: "test"}
@@ -146,7 +146,7 @@ func TestReadIndex_RoundTrip(t *testing.T) {
 func TestReadInbox_MissingFile_ReturnsEmpty(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	f, err := s.ReadInbox()
 	if err != nil {
@@ -160,7 +160,7 @@ func TestReadInbox_MissingFile_ReturnsEmpty(t *testing.T) {
 func TestReadInbox_RoundTrip(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	f := &InboxFile{Items: []InboxItem{
 		{Timestamp: "2026-01-01T00:00:00Z", Text: "hello", Status: "new"},
@@ -183,7 +183,7 @@ func TestReadInbox_RoundTrip(t *testing.T) {
 func TestMutateNode_ModifiesState(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	// Seed a node
 	nodeDir := filepath.Join(dir, "my-node")
@@ -221,7 +221,7 @@ func TestMutateNode_ModifiesState(t *testing.T) {
 func TestMutateNode_MissingFile_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	err := s.MutateNode("new-node", func(ns *NodeState) error {
 		ns.Name = "Created"
@@ -235,7 +235,7 @@ func TestMutateNode_MissingFile_ReturnsError(t *testing.T) {
 func TestMutateNode_CallbackError_AbortsWrite(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	// Seed a node
 	nodeDir := filepath.Join(dir, "my-node")
@@ -268,7 +268,7 @@ func TestMutateNode_CallbackError_AbortsWrite(t *testing.T) {
 func TestMutateIndex_AddsNode(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	// Seed an empty index
 	if err := SaveRootIndex(filepath.Join(dir, "state.json"), NewRootIndex()); err != nil {
@@ -295,7 +295,7 @@ func TestMutateIndex_AddsNode(t *testing.T) {
 func TestMutateIndex_CallbackError_AbortsWrite(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	if err := SaveRootIndex(filepath.Join(dir, "state.json"), NewRootIndex()); err != nil {
 		t.Fatal(err)
@@ -321,7 +321,7 @@ func TestMutateIndex_CallbackError_AbortsWrite(t *testing.T) {
 func TestMutateInbox_MarksItemsFiled(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	f := &InboxFile{Items: []InboxItem{
 		{Timestamp: "t1", Text: "item1", Status: "new"},
@@ -352,7 +352,7 @@ func TestMutateInbox_MarksItemsFiled(t *testing.T) {
 func TestMutateInbox_CallbackError_AbortsWrite(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	f := &InboxFile{Items: []InboxItem{
 		{Timestamp: "t1", Text: "item1", Status: "new"},
@@ -381,7 +381,7 @@ func TestMutateInbox_CallbackError_AbortsWrite(t *testing.T) {
 func TestMutateNode_Concurrent_NoDataLoss(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 10*time.Second)
+	s := NewStore(dir, 10*time.Second)
 
 	// Seed with a node that has tasks
 	nodeDir := filepath.Join(dir, "my-node")
@@ -430,7 +430,7 @@ func TestMutateNode_Concurrent_NoDataLoss(t *testing.T) {
 func TestMutateInbox_Concurrent_NoItemLoss(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 10*time.Second)
+	s := NewStore(dir, 10*time.Second)
 
 	// Seed empty inbox
 	if err := SaveInbox(filepath.Join(dir, "inbox.json"), &InboxFile{}); err != nil {
@@ -476,7 +476,7 @@ func TestMutateInbox_Concurrent_NoItemLoss(t *testing.T) {
 func TestWithLock_ExclusiveAccess(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	err := s.WithLock(func() error {
 		// Just verify we can hold the lock and do work
@@ -498,7 +498,7 @@ func TestWithLock_ExclusiveAccess(t *testing.T) {
 func TestMutateIndex_MissingFile_CreatesDefault(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	err := s.MutateIndex(func(idx *RootIndex) error {
 		idx.RootName = "test"
@@ -517,7 +517,7 @@ func TestMutateIndex_MissingFile_CreatesDefault(t *testing.T) {
 func TestMutateInbox_MissingFile_CreatesDefault(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	err := s.MutateInbox(func(f *InboxFile) error {
 		f.Items = append(f.Items, InboxItem{Status: "new", Text: "hello"})

@@ -14,7 +14,7 @@ import (
 
 // TestConcurrentDaemonLoopInboxAndCLI exercises the highest-risk runtime
 // scenario: the daemon's execute loop, the inbox goroutine, and CLI-driven
-// state mutations all contending on the same StateStore simultaneously.
+// state mutations all contending on the same Store simultaneously.
 //
 // The test scaffolds a project tree with an orchestrator and two leaf nodes,
 // then launches three goroutines that hammer the state store in parallel:
@@ -49,10 +49,10 @@ func TestConcurrentDaemonLoopInboxAndCLI(t *testing.T) {
 	run(t, dir, "task", "add", "--node", "orch/leaf-b", "task beta one")
 	run(t, dir, "task", "add", "--node", "orch/leaf-b", "task beta two")
 
-	// Discover the namespace so we can build a StateStore directly.
+	// Discover the namespace so we can build a Store directly.
 	ns := discoverNamespace(t, dir)
 	storeDir := dir + "/.wolfcastle/system/projects/" + ns
-	store := state.NewStateStore(storeDir, 5*time.Second)
+	store := state.NewStore(storeDir, 5*time.Second)
 
 	// Coordination: the CLI goroutine needs to know which task is
 	// currently in_progress so it can do something meaningful (add
@@ -309,7 +309,7 @@ func TestConcurrentDaemonLoopInboxAndCLI(t *testing.T) {
 }
 
 // verifyLeafTasks checks that specific tasks in a leaf node are complete.
-func verifyLeafTasks(t *testing.T, store *state.StateStore, addr string, taskIDs []string) {
+func verifyLeafTasks(t *testing.T, store *state.Store, addr string, taskIDs []string) {
 	t.Helper()
 	ns, err := store.ReadNode(addr)
 	if err != nil {
@@ -345,7 +345,7 @@ func TestConcurrentMutateNodeContention(t *testing.T) {
 
 	ns := discoverNamespace(t, dir)
 	storeDir := dir + "/.wolfcastle/system/projects/" + ns
-	store := state.NewStateStore(storeDir, 10*time.Second)
+	store := state.NewStore(storeDir, 10*time.Second)
 
 	// Launch goroutines that each claim and complete a different task.
 	var wg sync.WaitGroup

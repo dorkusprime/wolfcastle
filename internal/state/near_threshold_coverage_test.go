@@ -17,7 +17,7 @@ import (
 func TestMutateNode_PropagatesStateToIndex(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	// Seed a leaf node with a task.
 	nodeDir := filepath.Join(dir, "my-leaf")
@@ -69,7 +69,7 @@ func TestMutateNode_PropagatesStateToIndex(t *testing.T) {
 func TestMutateNode_PropagatesUpThroughParent(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	// Seed an orchestrator parent.
 	parentDir := filepath.Join(dir, "parent")
@@ -132,7 +132,7 @@ func TestMutateNode_PropagatesUpThroughParent(t *testing.T) {
 func TestMutateNode_InvalidAddress_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	err := s.MutateNode("", func(*NodeState) error { return nil })
 	if err == nil {
@@ -146,7 +146,7 @@ func TestMutateNode_SaveError_AfterMutation(t *testing.T) {
 	}
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	// Seed a node.
 	nodeDir := filepath.Join(dir, "locked-node")
@@ -180,7 +180,7 @@ func TestMutateNode_SaveError_AfterMutation(t *testing.T) {
 func TestReadNode_CorruptJSON_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	nodeDir := filepath.Join(dir, "bad-node")
 	if err := os.MkdirAll(nodeDir, 0755); err != nil {
@@ -199,7 +199,7 @@ func TestReadNode_CorruptJSON_ReturnsError(t *testing.T) {
 func TestReadIndex_CorruptJSON_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	if err := os.WriteFile(filepath.Join(dir, "state.json"), []byte("not-json"), 0644); err != nil {
 		t.Fatal(err)
@@ -218,7 +218,7 @@ func TestReadIndex_CorruptJSON_ReturnsError(t *testing.T) {
 func TestNodePath_DotSegment_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	_, err := s.ReadNode("parent/./child")
 	if err == nil {
@@ -229,7 +229,7 @@ func TestNodePath_DotSegment_ReturnsError(t *testing.T) {
 func TestNodePath_DotDotSegment_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	_, err := s.ReadNode("parent/../escape")
 	if err == nil {
@@ -240,7 +240,7 @@ func TestNodePath_DotDotSegment_ReturnsError(t *testing.T) {
 func TestNodePath_EmptySegment_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	_, err := s.ReadNode("parent//child")
 	if err == nil {
@@ -251,7 +251,7 @@ func TestNodePath_EmptySegment_ReturnsError(t *testing.T) {
 func TestNodePath_TabInSegment_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	_, err := s.ReadNode("bad\tnode")
 	if err == nil {
@@ -266,7 +266,7 @@ func TestNodePath_TabInSegment_ReturnsError(t *testing.T) {
 func TestMutateIndex_CorruptJSON_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	if err := os.WriteFile(filepath.Join(dir, "state.json"), []byte("bad{"), 0644); err != nil {
 		t.Fatal(err)
@@ -555,7 +555,7 @@ func TestLoadInbox_CorruptJSON(t *testing.T) {
 func TestMutateInbox_CorruptInbox_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	if err := os.WriteFile(filepath.Join(dir, "inbox.json"), []byte("broken"), 0644); err != nil {
 		t.Fatal(err)

@@ -29,7 +29,7 @@ type App struct {
 	Prompts  *pipeline.PromptRepository
 	Classes  *pipeline.ClassRepository
 	Daemon   *daemon.DaemonRepository
-	State    *state.StateStore // nil if identity not configured
+	State    *state.Store // nil if identity not configured
 	Git      git.Provider
 
 	// Retained fields.
@@ -91,7 +91,7 @@ func (a *App) Init() error {
 	id, err := config.IdentityFromConfig(cfg)
 	if err == nil {
 		a.Identity = id
-		a.State = state.NewStateStore(id.ProjectsDir(root), state.DefaultLockTimeout)
+		a.State = state.NewStore(id.ProjectsDir(root), state.DefaultLockTimeout)
 		a.Classes.Reload(cfg.TaskClasses)
 	}
 

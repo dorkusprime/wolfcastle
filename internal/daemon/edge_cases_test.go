@@ -796,7 +796,7 @@ func TestRunIteration_NoGitProgress_RejectsComplete(t *testing.T) {
 	d := testDaemon(t)
 	projDir := d.Store.Dir()
 
-	// Initialize a git repo in the daemon's RepoDir so checkGitProgress
+	// Initialize a git repo in the daemon's RepoDir so git.HasProgress
 	// can detect the absence of changes.
 	initTestGitRepo(t, d.RepoDir)
 

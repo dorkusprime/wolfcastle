@@ -9,7 +9,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-func setupSelfHealEnv(t *testing.T) (*state.StateStore, string) {
+func setupSelfHealEnv(t *testing.T) (*state.Store, string) {
 	t.Helper()
 	tmp := t.TempDir()
 	projDir := filepath.Join(tmp, "projects", "test-ns")
@@ -38,7 +38,7 @@ func setupSelfHealEnv(t *testing.T) (*state.StateStore, string) {
 	}
 	_ = state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns)
 
-	store := state.NewStateStore(projDir, 5)
+	store := state.NewStore(projDir, 5)
 	return store, projDir
 }
 

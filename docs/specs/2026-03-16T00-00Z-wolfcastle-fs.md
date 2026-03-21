@@ -18,7 +18,7 @@ Packages that perform direct filesystem I/O against `.wolfcastle/`:
 - `internal/daemon` (logs, PID file, stop file, deliverable checks)
 - `internal/validate` (stale PID/stop detection, orphan scanning)
 - `internal/tree` (resolver, namespace, node paths)
-- `internal/state` (StateStore, already partially abstracted)
+- `internal/state` (Store, already partially abstracted)
 - `cmd/*` (init, doctor, status, install, unblock preamble)
 - `test/*` (dozens of test helpers constructing paths manually)
 
@@ -64,8 +64,8 @@ type WolfcastleFS interface {
     ListSpecs() ([]string, error)
     ListADRs() ([]string, error)
 
-    // State delegation (wraps StateStore)
-    StateStore(namespace string) *state.StateStore
+    // State delegation (wraps Store)
+    Store(namespace string) *state.Store
 }
 ```
 
@@ -121,11 +121,11 @@ Each step is independently mergeable. No big-bang rewrite.
 - Directory layout changes in one file (`DiskFS` method implementations), not across the codebase.
 - Tests become shorter and more readable: `fs.WriteBaseFile("prompts/execute.md", data)` instead of `os.WriteFile(filepath.Join(dir, "system", "base", "prompts", "execute.md"), data, 0644)`.
 - The `system/` vs model-output boundary is enforced by the interface: there's a `WriteBaseFile` for system files and `WriteSpec`/`WriteArtifact` for model outputs. No method exposes raw system paths to callers.
-- The `Resolver` and `StateStore` become subordinate to `WolfcastleFS` rather than operating independently.
+- The `Resolver` and `Store` become subordinate to `WolfcastleFS` rather than operating independently.
 - Fragment resolution, config loading, and tier merging become implementation details of `WolfcastleFS`, not separate package responsibilities.
 
 ## Open Questions
 
 - Should `WolfcastleFS` also own the repo-dir side (deliverable checks, git operations)? Or is that a separate concern?
-- Should `StateStore` be folded into `WolfcastleFS` or remain separate (it already has its own locking and mutation semantics)?
+- Should `Store` be folded into `WolfcastleFS` or remain separate (it already has its own locking and mutation semantics)?
 - Should prompt assembly move into `WolfcastleFS` (it combines fragments, templates, and context) or stay in `pipeline` with `WolfcastleFS` as a dependency?

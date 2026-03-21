@@ -9,7 +9,7 @@ import (
 func TestIndexPath_ReturnsExpectedPath(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	got := s.IndexPath()
 	want := filepath.Join(dir, "state.json")
@@ -21,7 +21,7 @@ func TestIndexPath_ReturnsExpectedPath(t *testing.T) {
 func TestNodePath_ValidAddress(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	got, err := s.NodePath("root/child")
 	if err != nil {
@@ -36,7 +36,7 @@ func TestNodePath_ValidAddress(t *testing.T) {
 func TestNodePath_EmptyAddress_ReturnsError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	_, err := s.NodePath("")
 	if err == nil {
@@ -47,7 +47,7 @@ func TestNodePath_EmptyAddress_ReturnsError(t *testing.T) {
 func TestInboxPath_ReturnsExpectedPath(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	got := s.InboxPath()
 	want := filepath.Join(dir, "inbox.json")

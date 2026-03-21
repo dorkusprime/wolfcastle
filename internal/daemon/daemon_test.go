@@ -11,6 +11,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -171,11 +172,12 @@ func testDaemon(t *testing.T) *Daemon {
 	return &Daemon{
 		Config:         testConfig(),
 		WolfcastleDir:  wolfDir,
-		Store:          state.NewStateStore(projDir, 5*time.Second),
+		Store:          state.NewStore(projDir, 5*time.Second),
 		Logger:         logger,
 		InboxLogger:    inboxLogger,
 		Clock:          clock.New(),
 		RepoDir:        tmp,
+		Git:            git.NewService(tmp),
 		ContextBuilder: ctxBuilder,
 		shutdown:       make(chan struct{}),
 		workAvailable:  make(chan struct{}, 1),
@@ -238,7 +240,7 @@ func TestNew(t *testing.T) {
 	_ = os.MkdirAll(wolfDir, 0755)
 
 	cfg := testConfig()
-	store := state.NewStateStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
+	store := state.NewStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
 	d, err := New(cfg, wolfDir, store, "", tmp)
 	if err != nil {
 		t.Fatalf("New() error: %v", err)
@@ -542,7 +544,7 @@ func TestRunOnce_BranchChange(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	// Init a git repo in the temp dir so currentBranch works
+	// Git service points at temp dir (no git repo) so CurrentBranch errors
 	result, err := d.RunOnce(context.Background())
 	// Either branch check errors or root index load errors — both acceptable
 	_ = result
@@ -1463,13 +1465,13 @@ func TestIterationResultValues(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// currentBranch
+// git.CurrentBranch
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCurrentBranch(t *testing.T) {
 	// Use the real repo; skip if not available
 	repoDir := "/Users/wild/repository/dorkusprime/wolfcastle/main/.claude/worktrees/agent-a059ee3b"
-	branch, err := currentBranch(repoDir)
+	branch, err := git.NewService(repoDir).CurrentBranch()
 	if err != nil {
 		t.Skipf("not in a git repo: %v", err)
 	}
@@ -1479,7 +1481,7 @@ func TestCurrentBranch(t *testing.T) {
 }
 
 func TestCurrentBranch_BadDir(t *testing.T) {
-	_, err := currentBranch("/nonexistent/dir")
+	_, err := git.NewService("/nonexistent/dir").CurrentBranch()
 	if err == nil {
 		t.Error("expected error for nonexistent dir")
 	}

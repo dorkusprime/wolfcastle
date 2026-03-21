@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -151,14 +152,14 @@ func TestIsProcessRunning_ZeroPID(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// currentBranch
+// git.CurrentBranch
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCurrentBranch_NormalRepo(t *testing.T) {
 	t.Parallel()
 	dir := initGitRepo(t)
 
-	branch, err := currentBranch(dir)
+	branch, err := git.NewService(dir).CurrentBranch()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +186,7 @@ func TestCurrentBranch_DetachedHEAD(t *testing.T) {
 	}
 	gitRun(t, dir, "checkout", string(sha[:len(sha)-1]))
 
-	branch, err := currentBranch(dir)
+	branch, err := git.NewService(dir).CurrentBranch()
 	if err != nil {
 		t.Fatalf("expected success for detached HEAD: %v", err)
 	}
@@ -280,17 +281,17 @@ func TestPropagateState_SaveRootIndexFailure(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkGitProgress – git status failure and rename path
+// git.HasProgress – git status failure and rename path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCheckGitProgress_GitStatusFailure(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir() // not a git repo
 
-	// With a non-empty beforeHEAD, gitHEAD returns "" (no repo),
+	// With a non-empty beforeHEAD, git.HEAD returns "" (no repo),
 	// so the HEAD comparison is skipped. Then git status fails,
 	// and the function returns true (assumes progress).
-	if !checkGitProgress(dir, "abc123") {
+	if !git.NewService(dir).HasProgress("abc123") {
 		t.Error("expected true when git status fails")
 	}
 }
@@ -303,12 +304,12 @@ func TestCheckGitProgress_RenamedFile(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "original.txt"), []byte("content"), 0644)
 	gitRun(t, dir, "add", ".")
 	gitRun(t, dir, "commit", "-m", "add original")
-	head := gitHEAD(dir)
+	head := git.NewService(dir).HEAD()
 
 	// Rename via git mv so porcelain output includes " -> ".
 	gitRun(t, dir, "mv", "original.txt", "renamed.txt")
 
-	if !checkGitProgress(dir, head) {
+	if !git.NewService(dir).HasProgress(head) {
 		t.Error("renamed file should report progress")
 	}
 }

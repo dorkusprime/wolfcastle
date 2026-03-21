@@ -107,7 +107,7 @@ func TestCompleteTaskAddresses_IndexSucceedsResolverFails(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(`{"nodes":{"my-node":{"name":"My Node","type":"leaf","state":"not_started","address":"my-node","children":[]}}}`), 0644)
 
 	a := &App{
-		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStore(projDir, state.DefaultLockTimeout),
 	}
 
 	fn := CompleteTaskAddresses(a)
@@ -156,14 +156,14 @@ func TestStoreForCompletion_AlreadyLoaded(t *testing.T) {
 	projDir := filepath.Join(tmp, "projects")
 	_ = os.MkdirAll(projDir, 0755)
 
-	ss := state.NewStateStore(projDir, state.DefaultLockTimeout)
+	ss := state.NewStore(projDir, state.DefaultLockTimeout)
 	a := &App{State: ss}
 	got, err := storeForCompletion(a)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got != ss {
-		t.Error("expected same StateStore back")
+		t.Error("expected same Store back")
 	}
 }
 
@@ -217,7 +217,7 @@ func TestStoreForCompletion_FallbackSuccess(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got == nil {
-		t.Error("expected non-nil StateStore")
+		t.Error("expected non-nil Store")
 	}
 }
 
@@ -237,7 +237,7 @@ func TestCompleteTaskAddresses_InvalidAddressInIndex(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(projDir, "state.json"), []byte(idxJSON), 0644)
 
 	a := &App{
-		State: state.NewStateStore(projDir, state.DefaultLockTimeout),
+		State: state.NewStore(projDir, state.DefaultLockTimeout),
 	}
 	fn := CompleteTaskAddresses(a)
 	addrs, _ := fn(nil, nil, "")

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
@@ -366,7 +367,7 @@ func TestRunIteration_Complete_MissingDeliverables(t *testing.T) {
 	}
 
 	// Deliverables are advisory. The echo model outputs WOLFCASTLE_COMPLETE;
-	// in a non-git temp dir, checkGitProgress returns true (git unavailable
+	// in a non-git temp dir, git.HasProgress returns true (git unavailable
 	// is treated as progress), so the task completes.
 	ns, _ := d.Store.ReadNode("deliv-warn")
 	for _, task := range ns.Tasks {
@@ -429,6 +430,7 @@ func TestRunIteration_CompleteNoGitProgress_FailsTask(t *testing.T) {
 	// Use the existing initGitRepo which returns the dir
 	repoDir := initGitRepo(t)
 	d.RepoDir = repoDir
+	d.Git = git.NewService(repoDir)
 
 	setupLeafNode(t, d, "no-progress", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
@@ -888,6 +890,7 @@ func TestRunIteration_NoProgress_FailureType(t *testing.T) {
 
 	repoDir := initGitRepo(t)
 	d.RepoDir = repoDir
+	d.Git = git.NewService(repoDir)
 
 	setupLeafNode(t, d, "fp-node", []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},

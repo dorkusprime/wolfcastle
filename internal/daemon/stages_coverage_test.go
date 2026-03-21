@@ -25,7 +25,7 @@ func TestRunInboxLoop_FallbackToPolling_WatcherAddFails(t *testing.T) {
 	// while watcher creation itself succeeds.
 	origDir := d.Store.Dir()
 	badDir := filepath.Join(origDir, "nonexistent-subdir-for-watcher")
-	d.Store = state.NewStateStore(badDir, 5*time.Second)
+	d.Store = state.NewStore(badDir, 5*time.Second)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	// Cancel immediately so the polling loop exits after one pass

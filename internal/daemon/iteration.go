@@ -101,7 +101,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		// Record HEAD and task list before invocation so we can detect
 		// new commits and new tasks (for YIELD+decomposition).
-		beforeHEAD := gitHEAD(d.RepoDir)
+		beforeHEAD := d.Git.HEAD()
 		preInvocationNS := ns
 
 		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), stageName)
@@ -132,7 +132,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		// Check for terminal markers and transition task state.
 		// Use line-by-line scanning to avoid false matches against
 		// prompt instructions echoed in the model's JSON stream.
-		marker := scanTerminalMarker(result.Stdout)
+		// During execution, CONTINUE is not a valid marker (it is
+		// only meaningful during planning). Excluding it here prevents
+		// a stray CONTINUE from falling through to the failure path.
+		marker := scanTerminalMarker(result.Stdout,
+			invoke.MarkerStringComplete, invoke.MarkerStringSkip,
+			invoke.MarkerStringBlocked, invoke.MarkerStringYield,
+		)
 		if marker == invoke.MarkerStringYield {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringYield})
 
@@ -270,7 +276,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 					break
 				}
 			}
-			if !isAudit && !checkGitProgress(d.RepoDir, beforeHEAD) {
+			if !isAudit && !d.Git.HasProgress(beforeHEAD) {
 				_ = d.Logger.Log(map[string]any{
 					"type": "no_progress",
 					"task": nav.TaskID,
@@ -431,14 +437,22 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 //  2. JSON stream (Claude Code --output-format stream-json): marker appears
 //     inside the "text" field of a {"type":"assistant","text":"..."} envelope
 //
+// The validMarkers parameter controls which markers are recognized. During
+// execution, WOLFCASTLE_CONTINUE is invalid and should not be passed. During
+// planning, all markers including CONTINUE are valid. If validMarkers is nil,
+// all markers are accepted (backward-compatible default).
+//
 // Returns the marker name or empty string if none found.
-func scanTerminalMarker(output string) string {
+func scanTerminalMarker(output string, validMarkers ...string) string {
 	// Scan all lines and collect all matched markers, then return
 	// the highest-priority one. Priority: COMPLETE > BLOCKED > YIELD.
 	// This prevents an early YIELD (from prompt echo or an intermediate
 	// model message) from shadowing a later COMPLETE.
 	found := map[string]bool{}
-	markers := []string{invoke.MarkerStringComplete, invoke.MarkerStringSkip, invoke.MarkerStringContinue, invoke.MarkerStringBlocked, invoke.MarkerStringYield}
+	markers := validMarkers
+	if len(markers) == 0 {
+		markers = []string{invoke.MarkerStringComplete, invoke.MarkerStringSkip, invoke.MarkerStringContinue, invoke.MarkerStringBlocked, invoke.MarkerStringYield}
+	}
 
 	for _, line := range strings.Split(output, "\n") {
 		trimmed := strings.TrimSpace(line)

@@ -26,7 +26,7 @@ Each spec was verified against current code. Status meanings:
 | Testability and Decoupling | **Needs update** | Callback-based marker parsing (P1) not implemented; property-based propagation tests via `testing/quick` (P2) not implemented; ~75% of spec realized |
 | Prompt Externalization | **Needs update** | `decomposition-guidance.md` renamed to `decomposition.md`; `summary-required.md` uses CLI command instead of WOLFCASTLE_SUMMARY marker; `expand-context.md` and `file-context.md` are minimal stubs; new prompts (intake-context.md, context-headers.md, spec-review.md) not documented |
 | Goroutine Architecture | **Needs update** | Real-time I/O via `io.Pipe` (spec Phase 3) not implemented; marker scanning still blocks on full output post-process; stall detector lives in invoke layer, not daemon goroutine topology; auto-archive runs inline per ADR 2026-03-21T12-57Z (spec predates this decision) |
-| StateStore | Current | |
+| Store | Current | |
 | Domain Repository Architecture | Current | |
 | Orchestrator Planning Pipeline | **Needs update** | Marker scanning doesn't branch by pass type (planning vs execution); planning context omits extended task metadata (type, deliverables, constraints, acceptance criteria) |
 | Unknown Field Detection | Current | Implemented via `DisallowUnknownFields` in `internal/config/unknown.go`; warnings on Config struct per spec recommendation |
@@ -50,7 +50,7 @@ Each spec was verified against current code. Status meanings:
 | [Testability and Decoupling](2026-03-14T00-03Z-testability-and-decoupling.md) | Integration tests, multi-pass doctor, time injection, centralized defaults, callback marker parsing, property-based propagation tests |
 | [Prompt Externalization](2026-03-14T00-04Z-prompt-externalization.md) | Full prompt inventory, template variable system, new prompt files, override examples, migration plan |
 | [Goroutine Architecture](2026-03-15T00-00Z-goroutine-architecture.md) | Communication architecture between concurrent goroutines, signal chain, real-time I/O pipeline |
-| [StateStore](2026-03-15T00-01Z-state-store.md) | Unified StateStore abstraction replacing raw Load/Save pairs for file-backed state mutations |
+| [Store](2026-03-15T00-01Z-state-store.md) | Unified Store abstraction replacing raw Load/Save pairs for file-backed state mutations |
 | [Domain Repository Architecture](2026-03-16T00-00Z-domain-repository-architecture.md) | Domain-specific repositories replacing raw filepath.Join I/O |
 | [Orchestrator Planning Pipeline](2026-03-17T00-00Z-orchestrator-planning-pipeline.md) | Lazy recursive planning for orchestrator nodes |
 | [Unknown Field Detection](2026-03-20T15-57Z-unknown-field-detection.md) | Detection and reporting of unrecognized fields in config unmarshalling |

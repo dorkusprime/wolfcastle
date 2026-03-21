@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -25,7 +26,7 @@ func TestNew_LogDirCreationFails(t *testing.T) {
 	_ = os.WriteFile(blocker, []byte("block"), 0644)
 
 	cfg := testConfig()
-	store := state.NewStateStore(filepath.Join(tmp, ".wolfcastle", "system", "projects", "test"), 5*time.Second)
+	store := state.NewStore(filepath.Join(tmp, ".wolfcastle", "system", "projects", "test"), 5*time.Second)
 	_, err := New(cfg, filepath.Join(tmp, ".wolfcastle"), store, "", tmp)
 	if err == nil {
 		t.Error("expected error when log dir creation fails")
@@ -40,7 +41,7 @@ func TestNew_LogLevelFromConfig(t *testing.T) {
 
 	cfg := testConfig()
 	cfg.Daemon.LogLevel = "debug"
-	store := state.NewStateStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
+	store := state.NewStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
 	d, err := New(cfg, wolfDir, store, "", tmp)
 	if err != nil {
 		t.Fatal(err)
@@ -62,7 +63,7 @@ func TestNew_ResumesIteration(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(logDir, "0005-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
 
 	cfg := testConfig()
-	store := state.NewStateStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
+	store := state.NewStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
 	d, err := New(cfg, wolfDir, store, "", tmp)
 	if err != nil {
 		t.Fatal(err)
@@ -83,7 +84,7 @@ func TestRunOnce_NoRootIndex(t *testing.T) {
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
-	// No root index file => StateStore returns empty default index,
+	// No root index file => Store returns empty default index,
 	// navigation finds no work, result is IterationNoWork (not fatal).
 	result, err := d.RunOnce(context.Background())
 	if err != nil {
@@ -99,6 +100,7 @@ func TestRunOnce_BranchVerifyError(t *testing.T) {
 	d.Config.Git.VerifyBranch = true
 	d.branch = "main"
 	d.RepoDir = "/nonexistent/repo/dir"
+	d.Git = git.NewService(d.RepoDir)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
@@ -107,7 +109,7 @@ func TestRunOnce_BranchVerifyError(t *testing.T) {
 	})
 
 	result, err := d.RunOnce(context.Background())
-	// currentBranch fails for nonexistent dir, but err==nil && current != d.branch
+	// git.CurrentBranch fails for nonexistent dir, but err==nil && current != d.branch
 	// won't match because err != nil. So it skips the branch check silently.
 	_ = result
 	_ = err
@@ -117,8 +119,9 @@ func TestRunOnce_BranchChanged(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Git.VerifyBranch = true
 	d.branch = "old-branch"
-	// Use current repo so currentBranch succeeds but returns a different branch
+	// Use current repo so CurrentBranch succeeds but returns a different branch
 	d.RepoDir = "/Users/wild/repository/dorkusprime/wolfcastle/main/.claude/worktrees/agent-a99352cf"
+	d.Git = git.NewService(d.RepoDir)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
@@ -303,7 +306,7 @@ func TestRunIteration_IntakeStageSkipped(t *testing.T) {
 // structurally simple and verified by code review.
 
 // ═══════════════════════════════════════════════════════════════════════════
-// currentBranch — success case in current repo
+// git.CurrentBranch — success case in current repo
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCurrentBranch_CurrentRepo(t *testing.T) {
@@ -316,7 +319,7 @@ func TestCurrentBranch_CurrentRepo(t *testing.T) {
 		}
 		repoDir = filepath.Join(repoDir, "..")
 	}
-	branch, err := currentBranch(repoDir)
+	branch, err := git.NewService(repoDir).CurrentBranch()
 	if err != nil {
 		t.Skipf("not in a git repo: %v", err)
 	}
@@ -464,6 +467,7 @@ func TestRun_BranchVerifyEnabled(t *testing.T) {
 	d.Config.Git.VerifyBranch = true
 	d.Config.Daemon.MaxIterations = 1
 	d.RepoDir = "/Users/wild/repository/dorkusprime/wolfcastle/main/.claude/worktrees/agent-a99352cf"
+	d.Git = git.NewService(d.RepoDir)
 
 	setupLeafNode(t, d, "my-node", []state.Task{
 		{ID: "task-0001", State: state.StatusComplete},

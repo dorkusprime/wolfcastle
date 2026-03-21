@@ -83,7 +83,7 @@ func TestNewEnvironment_Identity(t *testing.T) {
 	}
 }
 
-func TestNewEnvironment_StateStoreFunctional(t *testing.T) {
+func TestNewEnvironment_StoreFunctional(t *testing.T) {
 	t.Parallel()
 	env := NewEnvironment(t)
 

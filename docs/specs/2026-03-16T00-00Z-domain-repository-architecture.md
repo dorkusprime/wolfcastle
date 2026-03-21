@@ -23,7 +23,7 @@ internal/tierfs/         ← shared three-tier resolution (base < custom < local
 internal/config/         ← ConfigRepository, Identity
 internal/pipeline/       ← PromptRepository, ClassRepository, ContextBuilder
 internal/daemon/         ← DaemonRepository
-internal/state/          ← StateStore (already exists, unchanged)
+internal/state/          ← Store (already exists, unchanged)
 internal/git/            ← Service, Provider interface
 internal/project/        ← ScaffoldService, MigrationService
 internal/testutil/       ← Environment, NodeSpec builders
@@ -251,7 +251,7 @@ func (r *DaemonRepository) LogDir() string
 
 Replaces: `filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")` and similar scattered across daemon.go, pid.go, start.go, validate/engine.go, validate/fix.go.
 
-### StateStore (existing)
+### Store (existing)
 
 Already follows the repository pattern. `MutateNode`, `MutateIndex`, `MutateInbox` are domain operations, not path operations. Stays as-is. Its `dir` field is set by `Identity.ProjectsDir(root)` during init.
 
@@ -363,7 +363,7 @@ Replaces: `daemon.currentBranch`, `daemon.gitHEAD`, `daemon.checkGitProgress`.
     custom/prompts/classes/*.md    ← user class overrides (ClassRepository reads)
     local/config.json              ← ConfigRepository.WriteLocal
     local/prompts/*.md             ← user overrides (PromptRepository reads)
-    projects/<namespace>/          ← StateStore (created by ScaffoldService.Init)
+    projects/<namespace>/          ← Store (created by ScaffoldService.Init)
     logs/                          ← DaemonRepository.LogDir (escape hatch)
     wolfcastle.pid                 ← DaemonRepository
     stop                           ← DaemonRepository
@@ -467,7 +467,7 @@ type App struct {
     WolfcastleDir string
     Cfg           *config.Config
     Resolver      *tree.Resolver
-    Store         *state.StateStore
+    Store         *state.Store
     Clock         clock.Clock
     Invoker       invoke.Invoker
     JSONOutput    bool
@@ -485,7 +485,7 @@ type App struct {
     Prompts  *pipeline.PromptRepository
     Classes  *pipeline.ClassRepository
     Daemon   *daemon.DaemonRepository
-    State    *state.StateStore         // nil if identity not configured
+    State    *state.Store         // nil if identity not configured
     Git      git.Provider
     Clock    clock.Clock
     Invoker  invoke.Invoker
@@ -518,7 +518,7 @@ func (a *App) Init() error {
         return nil
     }
     a.Identity = id
-    a.State = state.NewStateStore(id.ProjectsDir(root), state.DefaultLockTimeout)
+    a.State = state.NewStore(id.ProjectsDir(root), state.DefaultLockTimeout)
     a.Classes.Reload(cfg.TaskClasses)
     return nil
 }
@@ -565,7 +565,7 @@ type Environment struct {
     Prompts  *pipeline.PromptRepository
     Classes  *pipeline.ClassRepository
     Daemon   *daemon.DaemonRepository
-    State    *state.StateStore
+    State    *state.Store
     Git      git.Provider
     App      *cmdutil.App
 }
@@ -608,9 +608,9 @@ func (e *Environment) WithRule(name string, content string) *Environment
 `tree.Resolver` currently owns:
 - Namespace detection: moves to `config.Identity`
 - `ProjectsDir()`: moves to `config.Identity.ProjectsDir(root)`
-- `NodeStatePath(addr)`: moves to `StateStore`
-- `NodeDir(addr)`, `NodeDefPath(addr)`, `TaskDocPath(addr, taskID)`: move to `StateStore`
-- `RootIndexPath()`: moves to `StateStore`
+- `NodeStatePath(addr)`: moves to `Store`
+- `NodeDir(addr)`, `NodeDefPath(addr)`, `TaskDocPath(addr, taskID)`: move to `Store`
+- `RootIndexPath()`: moves to `Store`
 - `LoadRootIndex()`: already delegated to `state.LoadRootIndex`
 
 After migration, `Resolver` has no remaining responsibilities and can be removed.

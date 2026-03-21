@@ -15,7 +15,7 @@ import (
 // the daemon and CLI can share. It holds the common dependencies; callers
 // construct it with whatever Store, WolfcastleDir, and Clock they have.
 type Service struct {
-	Store         *state.StateStore
+	Store         *state.Store
 	WolfcastleDir string
 	Clock         clock.Clock
 }

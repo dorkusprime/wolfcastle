@@ -9,12 +9,12 @@ import (
 
 // scaffoldTree creates an orchestrator with N leaf children on disk,
 // each leaf having a single task and an audit task. Returns the store
-// directory and a ready-to-use StateStore. The index wires parent/child
+// directory and a ready-to-use Store. The index wires parent/child
 // relationships so MutateNode's built-in propagation can walk the tree.
-func scaffoldTree(t *testing.T, childCount int) (string, *StateStore) {
+func scaffoldTree(t *testing.T, childCount int) (string, *Store) {
 	t.Helper()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	// Build index
 	idx := NewRootIndex()
@@ -190,7 +190,7 @@ func TestMutateNode_PartialCompletion_OrchestratorStaysInProgress(t *testing.T) 
 func TestMutateNode_OrchestratorWithOwnTasks_WaitsForAll(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := NewStateStore(dir, 5*time.Second)
+	s := NewStore(dir, 5*time.Second)
 
 	// Build a tree: orchestrator with one leaf child and an audit task on the orchestrator
 	idx := NewRootIndex()

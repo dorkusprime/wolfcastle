@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -199,16 +200,16 @@ func TestCheckDeliverables_GlobWithLiteralMix(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkGitProgress
+// git.HasProgress
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCheckGitProgress_DirtyWorktree(t *testing.T) {
 	t.Parallel()
 	dir := initGitRepo(t)
-	head := gitHEAD(dir)
+	head := git.NewService(dir).HEAD()
 	_ = os.WriteFile(filepath.Join(dir, "new-file.txt"), []byte("changes"), 0644)
 
-	if !checkGitProgress(dir, head) {
+	if !git.NewService(dir).HasProgress(head) {
 		t.Error("dirty worktree should report progress")
 	}
 }
@@ -216,9 +217,9 @@ func TestCheckGitProgress_DirtyWorktree(t *testing.T) {
 func TestCheckGitProgress_CleanWorktree(t *testing.T) {
 	t.Parallel()
 	dir := initGitRepo(t)
-	head := gitHEAD(dir)
+	head := git.NewService(dir).HEAD()
 
-	if checkGitProgress(dir, head) {
+	if git.NewService(dir).HasProgress(head) {
 		t.Error("clean worktree with same HEAD should report no progress")
 	}
 }
@@ -226,7 +227,7 @@ func TestCheckGitProgress_CleanWorktree(t *testing.T) {
 func TestCheckGitProgress_NewCommit(t *testing.T) {
 	t.Parallel()
 	dir := initGitRepo(t)
-	head := gitHEAD(dir)
+	head := git.NewService(dir).HEAD()
 
 	// Make a new commit (simulates model committing its work)
 	_ = os.WriteFile(filepath.Join(dir, "new-file.txt"), []byte("changes"), 0644)
@@ -234,7 +235,7 @@ func TestCheckGitProgress_NewCommit(t *testing.T) {
 	gitRun(t, dir, "commit", "-m", "model work")
 
 	// Working tree is clean but HEAD moved
-	if !checkGitProgress(dir, head) {
+	if !git.NewService(dir).HasProgress(head) {
 		t.Error("new commit should report progress even with clean tree")
 	}
 }
@@ -243,7 +244,7 @@ func TestCheckGitProgress_NotGitRepo(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	if !checkGitProgress(dir, "") {
+	if !git.NewService(dir).HasProgress("") {
 		t.Error("non-git directory should assume progress")
 	}
 }
@@ -254,7 +255,7 @@ func TestCheckGitProgress_EmptyBeforeHEAD(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "new-file.txt"), []byte("changes"), 0644)
 
 	// Empty beforeHEAD skips commit check, falls through to status check
-	if !checkGitProgress(dir, "") {
+	if !git.NewService(dir).HasProgress("") {
 		t.Error("dirty worktree with empty beforeHEAD should report progress")
 	}
 }

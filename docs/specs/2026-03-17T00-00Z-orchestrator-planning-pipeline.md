@@ -599,7 +599,7 @@ When this spec is implemented, the following documents need updating:
 
 - **`2026-03-12T00-00Z-state-machine.md`** (State Machine). Amended. The state transitions for orchestrators change: orchestrators gain a `needs_planning` flag and the planning lifecycle (created → planning → active → re-planning → completion review → complete). The automatic "all children complete = parent complete" rule is replaced by the orchestrator's completion review for orchestrators with success criteria; orchestrators without success criteria continue to auto-complete. Task states gain hierarchical ID semantics (parent status derived from children). The spec's section on node state propagation needs rewriting.
 
-- **`2026-03-16T00-00Z-domain-repository-architecture.md`** (Domain Repository Architecture). Unaffected structurally, but the `state.Task` type changes (new fields: Body, TaskType, Class, Constraints, AcceptanceCriteria, References, Integration) need to be reflected. The `state.NodeState` type changes (new orchestrator fields) need to be reflected. The StateStore and navigation interfaces may need new methods.
+- **`2026-03-16T00-00Z-domain-repository-architecture.md`** (Domain Repository Architecture). Unaffected structurally, but the `state.Task` type changes (new fields: Body, TaskType, Class, Constraints, AcceptanceCriteria, References, Integration) need to be reflected. The `state.NodeState` type changes (new orchestrator fields) need to be reflected. The Store and navigation interfaces may need new methods.
 
 ### ADRs
 

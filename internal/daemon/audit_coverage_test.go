@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -125,13 +126,13 @@ func TestRunInboxLoop_ExitsOnCancel(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// currentBranch — fallback paths
+// git.CurrentBranch — fallback paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCurrentBranch_NotAGitRepo(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	_, err := currentBranch(dir)
+	_, err := git.NewService(dir).CurrentBranch()
 	if err == nil {
 		t.Error("expected error for non-git directory")
 	}
@@ -144,7 +145,7 @@ func TestCurrentBranch_EmptyRepo(t *testing.T) {
 	if err := runGitInit(dir); err != nil {
 		t.Skip("git not available")
 	}
-	branch, err := currentBranch(dir)
+	branch, err := git.NewService(dir).CurrentBranch()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

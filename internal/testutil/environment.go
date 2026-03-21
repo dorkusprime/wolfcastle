@@ -50,7 +50,7 @@ type AppFields struct {
 	Prompts  *pipeline.PromptRepository
 	Classes  *pipeline.ClassRepository
 	Daemon   *daemon.DaemonRepository
-	State    *state.StateStore
+	State    *state.Store
 	Git      git.Provider
 }
 
@@ -65,7 +65,7 @@ type Environment struct {
 	Tiers tierfs.Resolver
 
 	// State provides coordinated access to project state files.
-	State *state.StateStore
+	State *state.Store
 
 	// Config provides three-tier configuration resolution.
 	Config *config.ConfigRepository
@@ -168,7 +168,7 @@ func NewEnvironment(t *testing.T) *Environment {
 		t.Fatalf("writing root index: %v", err)
 	}
 
-	store := state.NewStateStore(projectsDir, 5*time.Second)
+	store := state.NewStore(projectsDir, 5*time.Second)
 
 	prompts := pipeline.NewPromptRepositoryWithTiers(tiers)
 
