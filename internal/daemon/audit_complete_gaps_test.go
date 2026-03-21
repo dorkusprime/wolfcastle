@@ -45,9 +45,10 @@ func TestRunIteration_AuditCompleteWithOpenGaps_CreatesRemediation(t *testing.T)
 		Command: "echo",
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "echo", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -106,9 +107,10 @@ func TestRunIteration_AuditCompleteNoOpenGaps_Succeeds(t *testing.T) {
 		Command: "echo",
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "echo", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
@@ -155,9 +157,10 @@ func TestRunIteration_NonAuditCompleteWithOpenGaps_Succeeds(t *testing.T) {
 		Command: "echo",
 		Args:    []string{"WOLFCASTLE_COMPLETE"},
 	}
-	d.Config.Pipeline.Stages = []config.PipelineStage{
-		{Name: "execute", Model: "echo", PromptFile: "stages/execute.md"},
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "echo", PromptFile: "stages/execute.md"},
 	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
 	d.Config.Retries.MaxRetries = 0
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
