@@ -55,7 +55,8 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
-    "started_at": "2026-03-20T23:25:39.525397Z"
+    "status": "passed",
+    "started_at": "2026-03-20T23:25:39.525397Z",
+    "completed_at": "2026-03-21T02:38:00.175946Z"
   }
 }
