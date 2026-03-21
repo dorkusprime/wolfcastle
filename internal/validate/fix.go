@@ -450,6 +450,46 @@ func ApplyDeterministicFixesRepo(
 			}
 			fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: fmt.Sprintf("synced ChildRef states and recomputed parent to %s", ns.State)})
 
+		case CatOrphanedTempFile:
+			// The description contains the full path after "Orphaned temp file: "
+			desc := issue.Description
+			const prefix = "Orphaned temp file: "
+			if strings.HasPrefix(desc, prefix) {
+				tmpPath := strings.TrimPrefix(desc, prefix)
+				if err := os.Remove(tmpPath); err == nil {
+					fixes = append(fixes, FixResult{Category: issue.Category, Description: fmt.Sprintf("removed orphaned temp file: %s", tmpPath)})
+				}
+			}
+
+		case CatInvalidTaskID:
+			ns, statePath, err := loadOrCached(issue.Node)
+			if err != nil {
+				continue
+			}
+			// Find the next available task-NNNN ID
+			maxNum := 0
+			for _, t := range ns.Tasks {
+				if len(t.ID) >= 9 && t.ID[:5] == "task-" {
+					var n int
+					if _, scanErr := fmt.Sscanf(t.ID[5:9], "%d", &n); scanErr == nil && n > maxNum {
+						maxNum = n
+					}
+				}
+			}
+			changed := false
+			for i := range ns.Tasks {
+				if !validTaskIDRe.MatchString(ns.Tasks[i].ID) {
+					maxNum++
+					oldID := ns.Tasks[i].ID
+					ns.Tasks[i].ID = fmt.Sprintf("task-%04d", maxNum)
+					fixes = append(fixes, FixResult{Category: issue.Category, Node: issue.Node, Description: fmt.Sprintf("renamed invalid task ID %q to %s", oldID, ns.Tasks[i].ID)})
+					changed = true
+				}
+			}
+			if changed {
+				modifiedStates[statePath] = ns
+			}
+
 		case CatStalePIDFile:
 			if repo != nil {
 				if err := repo.RemovePID(); err == nil {

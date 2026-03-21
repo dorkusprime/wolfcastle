@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
+
+// validTaskIDRe matches expected task ID formats for validation.
+var validTaskIDRe = regexp.MustCompile(`^(task-\d{4}|audit)(\.\d{4})*$`)
 
 // RecoveredNode tracks a node that was recovered from malformed JSON,
 // along with the steps taken and any data loss.
@@ -417,6 +421,10 @@ func (e *Engine) checkGlobalState(idx *state.RootIndex, categories map[string]bo
 			}
 		}
 	}
+
+	if e.include(CatOrphanedTempFile, categories) {
+		e.checkOrphanedTempFiles(report)
+	}
 }
 
 func (e *Engine) checkLeafAudit(ns *state.NodeState, addr string, categories map[string]bool, report *Report) {
@@ -465,6 +473,18 @@ func (e *Engine) checkLeafAudit(ns *state.NodeState, addr string, categories map
 
 func (e *Engine) checkTaskState(ns *state.NodeState, addr string, categories map[string]bool, report *Report, inProgressTasks *[]string) {
 	for _, t := range ns.Tasks {
+		// INVALID_TASK_ID
+		if e.include(CatInvalidTaskID, categories) && !validTaskIDRe.MatchString(t.ID) {
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityError,
+				Category:    CatInvalidTaskID,
+				Node:        addr,
+				Description: fmt.Sprintf("Task %q does not match expected format (task-NNNN or audit, with optional .NNNN suffixes)", t.ID),
+				CanAutoFix:  true,
+				FixType:     FixDeterministic,
+			})
+		}
+
 		// NEGATIVE_FAILURE_COUNT
 		if e.include(CatNegativeFailureCount, categories) && t.FailureCount < 0 {
 			report.Issues = append(report.Issues, Issue{
@@ -690,6 +710,27 @@ func nodeAddrFromTaskRef(ref string) string {
 		return ref
 	}
 	return ref[:idx]
+}
+
+func (e *Engine) checkOrphanedTempFiles(report *Report) {
+	_ = filepath.Walk(e.projectsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.HasPrefix(info.Name(), ".wolfcastle-tmp-") {
+			report.Issues = append(report.Issues, Issue{
+				Severity:    SeverityWarning,
+				Category:    CatOrphanedTempFile,
+				Description: fmt.Sprintf("Orphaned temp file: %s", path),
+				CanAutoFix:  true,
+				FixType:     FixDeterministic,
+			})
+		}
+		return nil
+	})
 }
 
 func isValidState(s state.NodeStatus) bool {
