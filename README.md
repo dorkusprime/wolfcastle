@@ -26,7 +26,7 @@ Wolfcastle materializes context as artifacts. [Architecture Decision Records](do
 
 Agents produce code. Nobody checks it. Or worse, the agent checks its own work in the same context where it wrote the code. Errors of assumption survive because the assumptions were never questioned by a separate process.
 
-Wolfcastle [audits](docs/humans/audits.md#the-audit-system) every piece of work from a separate agent invocation with a separate context. Audits are hierarchical: each [leaf](docs/humans/how-it-works.md#the-project-tree) gets its own audit scoped to what that leaf built, and each orchestrator gets an audit scoped to how its children integrate. The auditor reads [breadcrumbs](docs/humans/audits.md#breadcrumbs), checks them against acceptance criteria, and files gaps. Gaps that can't be resolved locally [escalate upward](docs/humans/audits.md#gap-escalation) to the parent, and escalation can propagate to the root. No code ships without a second pair of eyes, and those eyes belong to a process that didn't write the code.
+Wolfcastle [audits](docs/humans/audits.md#the-audit-system) every piece of work from a separate invocation with fresh context. Audits are hierarchical: each [leaf](docs/humans/how-it-works.md#the-project-tree) gets its own audit scoped to what that leaf built, and each orchestrator gets an audit scoped to how its children integrate. The auditor reads [breadcrumbs](docs/humans/audits.md#breadcrumbs), checks them against acceptance criteria, and files gaps. Gaps that can't be resolved locally [escalate upward](docs/humans/audits.md#gap-escalation) to the parent, and escalation can propagate to the root. No code ships without a second pair of eyes, and those eyes belong to a process that didn't write the code.
 
 ### The Human Dependency Problem
 
@@ -34,9 +34,7 @@ Most agent workflows require a human at every turn. Approve this plan. Review th
 
 Wolfcastle inverts the relationship. The daemon runs the full lifecycle: intake, planning, execution, audit, remediation, commit. The human's role is to steer, not operate. Check [`wolfcastle status`](docs/humans/cli/status.md), adjust priorities, [unblock](docs/humans/failure-and-recovery.md#the-unblock-workflow) the rare task that genuinely needs judgment. The system does the volume. You do the thinking.
 
-## Quick Start
-
-### Status
+## Status
 
 [![CI](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dorkusprime/wolfcastle/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/dorkusprime/wolfcastle/actions/workflows/codeql.yml/badge.svg)](https://github.com/dorkusprime/wolfcastle/actions/workflows/codeql.yml)
@@ -47,20 +45,22 @@ Wolfcastle inverts the relationship. The daemon runs the full lifecycle: intake,
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/dorkusprime/wolfcastle?include_prereleases)](https://github.com/dorkusprime/wolfcastle/releases)
 
-This project is in Pre-Release. Probably broken. Then fixed. Then broken again. On repeat until release.
-
-Install via Homebrew if you're feeling brave:
-
-###
+Pre-release. Probably broken. Then fixed. Then broken again. On repeat until release. Install if you're feeling brave:
 
 ```bash
 brew install dorkusprime/tap/wolfcastle
 cd your-repo
-wolfcastle init
-wolfcastle start
+wolfcastle init                                            # scaffold .wolfcastle/
+wolfcastle inbox add "Build a website for my donut stand"  # queue up work
+wolfcastle start                                           # the daemon wakes up
+
+# in another terminal:
+wolfcastle status -w                                       # watch it work
 ```
 
-Feed it work through your coding agent ("Add OAuth2 PKCE support to the auth service") or through the [CLI](docs/humans/cli.md) directly (`wolfcastle inbox add`, `wolfcastle project create`). The [daemon](docs/humans/how-it-works.md#the-daemon) takes it from there: triage, decomposition, execution, audit, commit. Serial, depth-first, until the [tree](docs/humans/how-it-works.md#the-project-tree) is conquered or something gets in the way.
+`init` creates the `.wolfcastle/` directory with config, prompts, and state scaffolding. `inbox add` queues a feature request for the daemon to decompose into projects and tasks. `start` launches the daemon, which runs the full pipeline until there's nothing left to do. `status` shows you what's happening.
+
+Feed it work through the [CLI](docs/humans/cli.md) or let your coding agent inject work directly. The [daemon](docs/humans/how-it-works.md#the-daemon) takes it from there: triage, planning, execution, audit, commit. Serial, depth-first, until the [tree](docs/humans/how-it-works.md#the-project-tree) is conquered or something gets in the way.
 
 ## How It Works
 
@@ -68,7 +68,9 @@ Wolfcastle organizes code changes into a [tree](docs/humans/how-it-works.md#the-
 
 The daemon runs a [pipeline of stages](docs/humans/how-it-works.md#the-pipeline). Intake triages inbox items into projects. Execution claims tasks and points agents at code. Audits verify the results. Each stage is a separate model invocation with a specific role. Stages are [configured as a dictionary](docs/humans/configuration.md#pipelines), overridable per tier.
 
-The tree grows at runtime. Tasks that fail [decompose](docs/humans/failure-and-recovery.md#decomposition) into smaller problems, agents can trigger decomposition mid-task when they recognize the work is too broad, and orchestrators spawn new children when planning reveals additional work. A [hard cap](docs/humans/failure-and-recovery.md#task-failure-escalation) stops any task from fighting forever. If the daemon crashes, it [recovers on restart](docs/humans/failure-and-recovery.md#self-healing). Completed trees are [auto-archived](docs/humans/collaboration.md#archive). Everything is deterministic except the model's output. State, specs, ADRs, AARs, breadcrumbs, and audit findings all live as [files on disk](docs/humans/how-it-works.md#distributed-state). Nothing important stays in memory. Every decision, every lesson, every result persists across invocations, restarts, and crashes.
+The tree grows at runtime. Tasks that fail [decompose](docs/humans/failure-and-recovery.md#decomposition) into smaller problems. Agents can trigger decomposition mid-task when they recognize the work is too broad. Orchestrators spawn new children when planning reveals additional work. A [hard cap](docs/humans/failure-and-recovery.md#task-failure-escalation) stops any task from fighting forever. If the daemon crashes, it [recovers on restart](docs/humans/failure-and-recovery.md#self-healing). Completed trees are [auto-archived](docs/humans/collaboration.md#archive).
+
+Everything is deterministic except the model's output. State, specs, ADRs, AARs, breadcrumbs, and audit findings all live as [files on disk](docs/humans/how-it-works.md#distributed-state). Nothing important stays in memory. Every decision, every lesson, every result persists across invocations, restarts, and crashes.
 
 ## Configuration
 
@@ -86,6 +88,10 @@ Each engineer's work lives in its own [namespace](docs/humans/collaboration.md#e
 - **A coding agent** that reads stdin and writes stdout
 - **Go 1.26+** (only if building from source)
 - **Local filesystem** for `.wolfcastle/` ([why](SECURITY.md))
+
+## Token Usage
+
+Wolfcastle turns tokens into code. It uses a lot of them. Every planning pass, every execution, every audit, every remediation is a separate model invocation. The scaffolding makes each invocation more efficient (persistent context means less re-discovery, CLI scripts handle state instead of the model reasoning through it, deterministic operations like propagation and validation never touch the model at all), but the volume is real. If you're using a metered API, expect meaningful spend. An unlimited plan (like Anthropic's Max plan for Claude Code) is the practical choice for sustained use.
 
 ## More
 
