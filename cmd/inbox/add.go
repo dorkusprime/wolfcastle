@@ -20,8 +20,10 @@ func newAddCmd(app *cmdutil.App) *cobra.Command {
 Examples:
   wolfcastle inbox add "refactor the auth middleware"
   wolfcastle inbox add "investigate flaky test in CI"`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <idea>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

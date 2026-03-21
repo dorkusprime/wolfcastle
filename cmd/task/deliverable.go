@@ -24,8 +24,10 @@ deliverables count as a failure and the model is re-invoked.
 Examples:
   wolfcastle task deliverable "docs/pos-research.md" --node pizza-docs/task-0001
   wolfcastle task deliverable "src/api/handler.go" --node my-project/task-0002`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <path>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

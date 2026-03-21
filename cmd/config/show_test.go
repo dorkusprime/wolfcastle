@@ -474,13 +474,14 @@ func TestShow_SectionJSON(t *testing.T) {
 	}
 }
 
-func TestShow_TooManyArgs(t *testing.T) {
+func TestShow_ExtraArgs_Ignored(t *testing.T) {
 	env := newTestEnv(t)
 
+	// Extra args beyond the optional section are silently ignored.
 	env.RootCmd.SetArgs([]string{"config", "show", "models", "extra"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Fatal("expected error for too many arguments")
+	if err != nil {
+		t.Fatalf("unexpected error with extra args: %v", err)
 	}
 }
 

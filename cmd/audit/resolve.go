@@ -17,8 +17,10 @@ func newResolveCmd(app *cmdutil.App) *cobra.Command {
 
 Examples:
   wolfcastle audit resolve --node my-project escalation-my-project-1`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <escalation-id>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

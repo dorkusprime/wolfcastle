@@ -166,13 +166,14 @@ func TestUnset_NoArgs(t *testing.T) {
 	}
 }
 
-func TestUnset_TooManyArgs(t *testing.T) {
+func TestUnset_ExtraArgs_Ignored(t *testing.T) {
 	env := newTestEnv(t)
 
+	// Extra args beyond the required key are silently ignored (no ExactArgs).
 	env.RootCmd.SetArgs([]string{"config", "unset", "logs.level", "extra"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Fatal("expected error for too many arguments")
+	if err != nil {
+		t.Fatalf("unexpected error with extra args: %v", err)
 	}
 }
 

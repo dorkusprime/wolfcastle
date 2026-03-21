@@ -40,7 +40,6 @@ Examples:
   wolfcastle config show --raw
   wolfcastle config show logs --json
   wolfcastle config show --tier base --json`,
-		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tier, _ := cmd.Flags().GetString("tier")
 			raw, _ := cmd.Flags().GetBool("raw")

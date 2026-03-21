@@ -27,8 +27,10 @@ Examples:
   wolfcastle config remove identity.tags 42
   wolfcastle config remove pipeline.steps '{"name":"lint"}'
   wolfcastle config remove identity.tags bar --tier custom`,
-		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 2 {
+				return fmt.Errorf("missing required arguments: <key> <value>")
+			}
 			key := args[0]
 			rawValue := args[1]
 			tier, _ := cmd.Flags().GetString("tier")

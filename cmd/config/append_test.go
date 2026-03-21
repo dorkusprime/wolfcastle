@@ -192,13 +192,14 @@ func TestAppend_TooFewArgs(t *testing.T) {
 	}
 }
 
-func TestAppend_TooManyArgs(t *testing.T) {
+func TestAppend_ExtraArgs_Ignored(t *testing.T) {
 	env := newTestEnv(t)
 
+	// Extra args beyond the required key+value are silently ignored.
 	env.RootCmd.SetArgs([]string{"config", "append", "identity.tags", "a", "b"})
 	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Fatal("expected error for too many arguments")
+	if err != nil {
+		t.Fatalf("unexpected error with extra args: %v", err)
 	}
 }
 

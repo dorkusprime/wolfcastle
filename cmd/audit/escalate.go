@@ -22,8 +22,10 @@ concerns. Root-level nodes cannot escalate (no parent).
 Examples:
   wolfcastle audit escalate --node auth/login "missing error handling spec"
   wolfcastle audit escalate --node api/endpoints "rate limiting not defined"`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <gap description>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

@@ -20,8 +20,10 @@ resolution before the audit passes.
 Examples:
   wolfcastle audit gap --node my-project "missing error handling in auth module"
   wolfcastle audit gap --node api/endpoints "no rate limiting tests"`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <description>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

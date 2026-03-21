@@ -22,8 +22,10 @@ succeeds silently.
 Examples:
   wolfcastle config unset logs.level
   wolfcastle config unset pipeline.timeout --tier custom`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <key>")
+			}
 			key := args[0]
 			tier, _ := cmd.Flags().GetString("tier")
 

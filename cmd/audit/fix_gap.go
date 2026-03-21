@@ -17,8 +17,10 @@ func newFixGapCmd(app *cmdutil.App) *cobra.Command {
 
 Examples:
   wolfcastle audit fix-gap --node my-project gap-my-project-1`,
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("missing required argument: <gap-id>")
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
