@@ -1,6 +1,7 @@
 package logrender
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -92,6 +93,67 @@ func (sr *SummaryRenderer) Replay(records <-chan Record) {
 	}
 
 	sr.writeAligned(lines)
+}
+
+// Follow streams summary output in real time. Stage starts print immediately
+// with the ▶ glyph; completions print with ✓/✗ and duration. Audit report
+// paths appear indented below the most recent audit line. The method returns
+// when ctx is cancelled or the records channel closes.
+func (sr *SummaryRenderer) Follow(ctx context.Context, records <-chan Record) {
+	starts := make(map[stageKey]time.Time)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case r, ok := <-records:
+			if !ok {
+				return
+			}
+			sr.handleFollowRecord(r, starts)
+		}
+	}
+}
+
+// handleFollowRecord processes a single record in follow mode.
+func (sr *SummaryRenderer) handleFollowRecord(r Record, starts map[stageKey]time.Time) {
+	switch r.Type {
+	case "stage_start":
+		if skipStage(r.Stage) {
+			return
+		}
+		starts[keyFor(r)] = r.Timestamp
+		fmt.Fprintf(sr.w, "▶ [%s] %s\n", r.StageLabel(), nodeAddress(r))
+
+	case "stage_complete":
+		if skipStage(r.Stage) {
+			return
+		}
+		key := keyFor(r)
+		dur := time.Duration(0)
+		if t, ok := starts[key]; ok {
+			dur = r.Timestamp.Sub(t)
+			delete(starts, key)
+		}
+		fmt.Fprintf(sr.w, "%s [%s] %s (%s)\n", glyphFor(r.ExitCode), r.StageLabel(), nodeAddress(r), FormatDuration(dur))
+
+	case "planning_start":
+		pk := stageKey{node: r.Node, task: r.Task, stage: "plan"}
+		starts[pk] = r.Timestamp
+		fmt.Fprintf(sr.w, "▶ [plan] %s\n", nodeAddress(r))
+
+	case "planning_complete":
+		pk := stageKey{node: r.Node, task: r.Task, stage: "plan"}
+		dur := time.Duration(0)
+		if t, ok := starts[pk]; ok {
+			dur = r.Timestamp.Sub(t)
+			delete(starts, pk)
+		}
+		fmt.Fprintf(sr.w, "%s [plan] %s (%s)\n", glyphFor(r.ExitCode), nodeAddress(r), FormatDuration(dur))
+
+	case "audit_report_written":
+		fmt.Fprintf(sr.w, "  report: %s\n", r.Path)
+	}
 }
 
 // writeAligned pads labels and addresses so columns line up, then writes
