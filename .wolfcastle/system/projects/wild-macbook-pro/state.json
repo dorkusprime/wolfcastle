@@ -16,9 +16,87 @@
     "global-lock-leak-in-tests",
     "delete-deprecated-scaffold",
     "doctor-childref-state-mismatch",
-    "pipeline-stages-dict-refactor"
+    "pipeline-stages-dict-refactor",
+    "auto-archive-lifecycle",
+    "config-show-section-filter",
+    "config-write-commands",
+    "documentation-review"
   ],
   "nodes": {
+    "auto-archive-lifecycle": {
+      "name": "Auto-Archive Lifecycle",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "auto-archive-lifecycle",
+      "decomposition_depth": 0,
+      "children": [
+        "auto-archive-lifecycle/archive-service-spec",
+        "auto-archive-lifecycle/archive-implementation",
+        "auto-archive-lifecycle/archive-status-rendering",
+        "auto-archive-lifecycle/daemon-auto-archive"
+      ]
+    },
+    "auto-archive-lifecycle/archive-implementation": {
+      "name": "Archive Implementation",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "auto-archive-lifecycle/archive-implementation",
+      "decomposition_depth": 0,
+      "parent": "auto-archive-lifecycle",
+      "children": [
+        "auto-archive-lifecycle/archive-implementation/restore-operation",
+        "auto-archive-lifecycle/archive-implementation/delete-operation",
+        "auto-archive-lifecycle/archive-implementation/archive-add-state-move"
+      ]
+    },
+    "auto-archive-lifecycle/archive-implementation/archive-add-state-move": {
+      "name": "Archive Add State Move",
+      "type": "leaf",
+      "state": "complete",
+      "address": "auto-archive-lifecycle/archive-implementation/archive-add-state-move",
+      "decomposition_depth": 0,
+      "parent": "auto-archive-lifecycle/archive-implementation"
+    },
+    "auto-archive-lifecycle/archive-implementation/delete-operation": {
+      "name": "Delete Operation",
+      "type": "leaf",
+      "state": "complete",
+      "address": "auto-archive-lifecycle/archive-implementation/delete-operation",
+      "decomposition_depth": 0,
+      "parent": "auto-archive-lifecycle/archive-implementation"
+    },
+    "auto-archive-lifecycle/archive-implementation/restore-operation": {
+      "name": "Restore Operation",
+      "type": "leaf",
+      "state": "complete",
+      "address": "auto-archive-lifecycle/archive-implementation/restore-operation",
+      "decomposition_depth": 0,
+      "parent": "auto-archive-lifecycle/archive-implementation"
+    },
+    "auto-archive-lifecycle/archive-service-spec": {
+      "name": "Archive Service Spec",
+      "type": "leaf",
+      "state": "complete",
+      "address": "auto-archive-lifecycle/archive-service-spec",
+      "decomposition_depth": 0,
+      "parent": "auto-archive-lifecycle"
+    },
+    "auto-archive-lifecycle/archive-status-rendering": {
+      "name": "Archive Status Rendering",
+      "type": "leaf",
+      "state": "complete",
+      "address": "auto-archive-lifecycle/archive-status-rendering",
+      "decomposition_depth": 0,
+      "parent": "auto-archive-lifecycle"
+    },
+    "auto-archive-lifecycle/daemon-auto-archive": {
+      "name": "Daemon Auto-Archive",
+      "type": "leaf",
+      "state": "complete",
+      "address": "auto-archive-lifecycle/daemon-auto-archive",
+      "decomposition_depth": 0,
+      "parent": "auto-archive-lifecycle"
+    },
     "ci-and-lint-tooling": {
       "name": "CI and Lint Tooling",
       "type": "orchestrator",
@@ -286,6 +364,60 @@
       "decomposition_depth": 0,
       "parent": "config-improvements"
     },
+    "config-show-section-filter": {
+      "name": "Config Show Section Filter",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "config-show-section-filter",
+      "decomposition_depth": 0,
+      "children": [
+        "config-show-section-filter/section-argument"
+      ]
+    },
+    "config-show-section-filter/section-argument": {
+      "name": "Section Argument",
+      "type": "leaf",
+      "state": "complete",
+      "address": "config-show-section-filter/section-argument",
+      "decomposition_depth": 0,
+      "parent": "config-show-section-filter"
+    },
+    "config-write-commands": {
+      "name": "Config Write Commands",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "config-write-commands",
+      "decomposition_depth": 0,
+      "children": [
+        "config-write-commands/config-write-spec",
+        "config-write-commands/core-write-infrastructure",
+        "config-write-commands/cli-write-commands"
+      ]
+    },
+    "config-write-commands/cli-write-commands": {
+      "name": "CLI Write Commands",
+      "type": "leaf",
+      "state": "complete",
+      "address": "config-write-commands/cli-write-commands",
+      "decomposition_depth": 0,
+      "parent": "config-write-commands"
+    },
+    "config-write-commands/config-write-spec": {
+      "name": "Config Write Spec",
+      "type": "leaf",
+      "state": "complete",
+      "address": "config-write-commands/config-write-spec",
+      "decomposition_depth": 0,
+      "parent": "config-write-commands"
+    },
+    "config-write-commands/core-write-infrastructure": {
+      "name": "Core Write Infrastructure",
+      "type": "leaf",
+      "state": "complete",
+      "address": "config-write-commands/core-write-infrastructure",
+      "decomposition_depth": 0,
+      "parent": "config-write-commands"
+    },
     "delete-deprecated-scaffold": {
       "name": "Delete Deprecated Scaffold",
       "type": "orchestrator",
@@ -319,6 +451,51 @@
       "state": "complete",
       "address": "doctor-childref-state-mismatch",
       "decomposition_depth": 0
+    },
+    "documentation-review": {
+      "name": "Documentation Review",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "documentation-review",
+      "decomposition_depth": 0,
+      "children": [
+        "documentation-review/specs-currency-audit",
+        "documentation-review/agent-docs-audit",
+        "documentation-review/human-docs-audit",
+        "documentation-review/root-docs-audit"
+      ]
+    },
+    "documentation-review/agent-docs-audit": {
+      "name": "Agent Docs Audit",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "documentation-review/agent-docs-audit",
+      "decomposition_depth": 0,
+      "parent": "documentation-review"
+    },
+    "documentation-review/human-docs-audit": {
+      "name": "Human Docs Audit",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "documentation-review/human-docs-audit",
+      "decomposition_depth": 0,
+      "parent": "documentation-review"
+    },
+    "documentation-review/root-docs-audit": {
+      "name": "Root Docs Audit",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "documentation-review/root-docs-audit",
+      "decomposition_depth": 0,
+      "parent": "documentation-review"
+    },
+    "documentation-review/specs-currency-audit": {
+      "name": "Specs Currency Audit",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "documentation-review/specs-currency-audit",
+      "decomposition_depth": 0,
+      "parent": "documentation-review"
     },
     "domain-repository-architecture": {
       "name": "Domain Repository Architecture",
