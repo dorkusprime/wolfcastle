@@ -232,19 +232,17 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	}
 	output.PrintHuman("")
 
-	// Tree view: walk root nodes in order
-	for _, rootAddr := range idx.Root {
+	// Tree view: walk root nodes in order. When showing archived,
+	// walk ArchivedRoot instead of Root.
+	roots := idx.Root
+	if showArchived {
+		roots = idx.ArchivedRoot
+	}
+	for _, rootAddr := range roots {
 		if scope != "" && !isInSubtree(idx, rootAddr, scope) {
 			continue
 		}
-		entry, ok := idx.Nodes[rootAddr]
-		if !ok {
-			continue
-		}
-		if entry.Archived && !showArchived {
-			continue
-		}
-		if !entry.Archived && showArchived {
+		if _, ok := idx.Nodes[rootAddr]; !ok {
 			continue
 		}
 		printNodeTree(app, idx, details, rootAddr, "  ", expand, detail)
