@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "id": "scanterminalmarker-fuzz-test",
+  "name": "scanTerminalMarker Fuzz Test",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement scanTerminalMarker fuzz test",
+      "description": "Implement scanTerminalMarker fuzz test",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration_fuzz_test.go"
+      ],
+      "body": "Implement a Go fuzz test (func FuzzScanTerminalMarker) for the scanTerminalMarker function in internal/daemon/iteration.go.\n\nModel output is untrusted input, so this function must handle arbitrary byte sequences without panicking.\n\nKey implementation details:\n- Use Go's native fuzzing (testing.F with f.Fuzz). No external libraries needed.\n- The fuzz target receives a single string argument and calls scanTerminalMarker(input).\n- The test should NOT assert specific return values (the function returns a string, and any return value is valid). The only property under test is: does not panic.\n- Seed the corpus with realistic examples:\n  * Plain text with WOLFCASTLE_COMPLETE on its own line\n  * WOLFCASTLE_BLOCKED wrapped in asterisks/backticks\n  * WOLFCASTLE_SKIP with a reason suffix\n  * Valid JSON stream envelopes: {\"type\":\"assistant\",\"text\":\"WOLFCASTLE_COMPLETE\"}\n  * Malformed JSON: truncated, nested, missing closing braces\n  * Mixed format: some lines raw text, some lines JSON\n  * Empty string, very long strings, strings with null bytes\n  * Unicode edge cases (RTL markers, zero-width joiners, combining characters)\n  * Lines containing partial marker prefixes (WOLFCASTLE_ without a suffix)\n\nPlace the test in internal/daemon/iteration_fuzz_test.go (separate file, since fuzz tests often run independently).\n\nNote: scanTerminalMarker is unexported, so the test must be in package daemon.",
+      "acceptance_criteria": [
+        "go test ./internal/daemon/ -run FuzzScanTerminalMarker -fuzz=FuzzScanTerminalMarker -fuzztime=30s completes without panic"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement extractAssistantText fuzz test",
+      "description": "Implement extractAssistantText fuzz test",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration_fuzz_test.go"
+      ],
+      "body": "Implement a companion fuzz test (func FuzzExtractAssistantText) for the extractAssistantText helper in internal/daemon/iteration.go.\n\nThis function parses arbitrary JSON and is called on every line of model output. It must handle malformed JSON gracefully.\n\nKey implementation details:\n- Use Go's native fuzzing (testing.F with f.Fuzz).\n- Single string argument, call extractAssistantText(input), assert no panic.\n- Seed corpus with:\n  * Valid assistant envelopes in both simple and Claude Code formats\n  * Valid result envelopes in both text and result field formats\n  * Deeply nested JSON objects\n  * Very large JSON payloads\n  * JSON with unexpected types (numbers where strings expected, arrays where objects expected)\n  * Non-JSON input that starts with '{'\n  * Truncated JSON at various points\n\nAdd to the same file: internal/daemon/iteration_fuzz_test.go.",
+      "acceptance_criteria": [
+        "go test ./internal/daemon/ -run FuzzExtractAssistantText -fuzz=FuzzExtractAssistantText -fuzztime=30s completes without panic"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in scanTerminalMarker Fuzz Test is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify fuzz corpus includes realistic model output formats: plain text markers, JSON stream envelopes, markdown-wrapped markers, and adversarial edge cases",
+    "Verify both fuzz tests are in package daemon and can access the unexported functions under test"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T15:35:49.71821Z",
+        "task": "property-and-fuzz-tests/scanterminalmarker-fuzz-test",
+        "text": "Implemented FuzzScanTerminalMarker in iteration_fuzz_test.go with 44 corpus seeds. 30s fuzz run: ~12M executions, 0 panics, 369 new interesting inputs discovered."
+      },
+      {
+        "timestamp": "2026-03-20T15:38:15.629155Z",
+        "task": "property-and-fuzz-tests/scanterminalmarker-fuzz-test",
+        "text": "Implemented FuzzExtractAssistantText in iteration_fuzz_test.go with 58 corpus seeds covering all envelope formats, type mismatches, nested/large/truncated JSON, and non-JSON input. 30s fuzz run: ~10M executions, 0 panics, 269 new interesting inputs."
+      },
+      {
+        "timestamp": "2026-03-20T15:40:23.042914Z",
+        "task": "property-and-fuzz-tests/scanterminalmarker-fuzz-test",
+        "text": "Audit reviewed iteration_fuzz_test.go (181 lines, 2 fuzz targets). PASS. Build, tests, vet all clean. Both fuzz targets ran 5s each without panics (~1.9M and ~1.7M executions respectively). Corpus seeds are well-organized by category (44 seeds for scanTerminalMarker, 58 for extractAssistantText), covering plain markers, markdown-wrapped markers, JSON envelopes, malformed JSON, truncated input, unicode edge cases, large payloads, and type mismatches. No findings: no dead code, no discarded errors, no correctness issues. The fuzz targets correctly test unexported functions in the same package. Quality: clean, purposeful test code with thorough seed coverage."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-20T15:33:53.669105Z",
+    "completed_at": "2026-03-20T15:40:31.567364Z",
+    "result_summary": "Implemented two fuzz tests in internal/daemon/iteration_fuzz_test.go targeting scanTerminalMarker and extractAssistantText. FuzzScanTerminalMarker has 44 seed corpus entries covering plain markers, markdown formatting, JSON envelopes (valid and malformed), unicode edge cases, null bytes, long strings, partial prefixes, and multi-marker priority scenarios. FuzzExtractAssistantText has 58 seeds covering all four extraction paths (assistant simple, assistant Claude Code content array, result text, result result), type mismatches, deeply nested JSON, large payloads, progressive truncation points, and non-JSON input. Both targets verified panic-free across millions of fuzzer-generated inputs. Audit found no issues; code is clean and well-structured."
+  },
+  "aars": {
+    "property-and-fuzz-tests/scanterminalmarker-fuzz-test/task-0001": {
+      "task_id": "property-and-fuzz-tests/scanterminalmarker-fuzz-test/task-0001",
+      "timestamp": "2026-03-20T15:35:48.260038Z",
+      "objective": "Implement a fuzz test for scanTerminalMarker to verify it never panics on arbitrary input",
+      "what_happened": "Created internal/daemon/iteration_fuzz_test.go with FuzzScanTerminalMarker. Seeded corpus with 44 entries covering plain markers, markdown-wrapped markers, SKIP with reasons, valid and malformed JSON envelopes, mixed formats, empty/long strings, null bytes, unicode edge cases (RTL markers, ZWJ, combining chars, BOM), partial prefixes, and competing multi-marker inputs.",
+      "went_well": [
+        "The function handled ~12M fuzzer-generated inputs over 30s without any panics",
+        "Corpus seeds achieved good baseline coverage (44 seeds), and the fuzzer discovered 369 additional interesting inputs"
+      ],
+      "improvements": [
+        "Could add a second property checking that the return value is always one of the known marker strings or empty, but the task spec explicitly called for panic-only testing"
+      ],
+      "action_items": [
+        "None; this is a standalone fuzz test with no downstream dependencies"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-20T15:38:10.124006Z",
+      "objective": "Implement a fuzz test for extractAssistantText to verify it never panics on arbitrary input",
+      "what_happened": "Added FuzzExtractAssistantText to internal/daemon/iteration_fuzz_test.go with 58 seed corpus entries. Seeds target all four code paths in extractAssistantText: assistant simple text, assistant Claude Code content array, result text field, and result result field. Also seeded type mismatches (numbers/arrays/null where strings expected), deeply nested JSON, large payloads (10K chars, 100-element content arrays), truncated JSON at 15 progressive cut points, non-JSON strings starting with '{', and quick-reject inputs (empty, short, non-brace prefix).",
+      "went_well": [
+        "The fuzzer processed ~10M inputs in 30s with zero panics",
+        "269 interesting inputs discovered by the fuzzer, good coverage diversity",
+        "Corpus seeds are organized by the exact categories specified in the task description"
+      ],
+      "improvements": [
+        "Could add a property assertion that return value is always valid UTF-8 or empty, but task spec called for panic-only testing"
+      ],
+      "action_items": [
+        "None; standalone fuzz test with no downstream dependencies"
+      ]
+    }
+  }
+}

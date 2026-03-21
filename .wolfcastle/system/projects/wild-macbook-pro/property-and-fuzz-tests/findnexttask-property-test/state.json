@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "id": "findnexttask-property-test",
+  "name": "FindNextTask Property Test",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Define FindNextTask navigation invariants spec",
+      "description": "Define FindNextTask navigation invariants spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/findnexttask-invariants.md"
+      ],
+      "body": "Write a spec defining the invariants that FindNextTask must satisfy for any valid project tree. These invariants will be the assertions in the property-based test.\n\nInvariants to define:\n1. If Found is true, the returned task must not be in StatusComplete or StatusBlocked state.\n2. If Found is true and non-audit not_started tasks exist in reachable nodes, the returned task must not be an audit task.\n3. If Found is true, the returned task must not be a parent task that has children (derived status tasks are not directly actionable).\n4. If Found is true, the returned task must not have a not_started non-audit ancestor (child tasks are blocked by their parent).\n5. If all reachable tasks are complete, Found must be false with reason all_complete.\n6. If all reachable tasks are blocked (and none are complete-able), Found must be false with reason all_blocked.\n7. If the tree is empty, Found must be false with reason empty_tree.\n\nStudy findActionableTask in internal/state/navigation.go (lines 110-220) and propagation_property_test.go for the random tree generation pattern. The spec should be precise enough that a test author can implement assertions directly from it."
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement FindNextTask property-based test",
+      "description": "Implement FindNextTask property-based test",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/state/navigation_property_test.go"
+      ],
+      "body": "Implement a property-based test for FindNextTask using testing/quick (matching the pattern in internal/state/propagation_property_test.go).\n\nKey implementation details:\n- Reuse the random tree generation pattern from propagation_property_test.go (generateRandomTree, buildSubtree). The existing testTree struct with its nodes map, idx RootIndex, and leaves/orchestrators slices provides exactly the scaffolding needed.\n- Generate random trees with mixed node types, task states, audit/non-audit tasks, and hierarchical (parent/child) task IDs.\n- After generating a tree and applying random mutations (claim, complete, block tasks), call FindNextTask and verify all invariants from the spec.\n- The loadNode callback should read from the in-memory testTree.nodes map.\n- Run at least 500 random cases (matching propagation_property_test.go precedent).\n- Test both scoped (with scopeAddr) and unscoped navigation.\n- Ensure the test includes trees with: only audit tasks, mix of audit and non-audit, all tasks blocked, all tasks complete, empty trees, deeply nested orchestrators.\n\nPlace the test in internal/state/navigation_property_test.go alongside the existing navigation_test.go.",
+      "acceptance_criteria": [
+        "go test ./internal/state/ -run TestFindNextTaskInvariantsRandom -count=3 passes"
+      ],
+      "references": [
+        "docs/specs/findnexttask-invariants.md"
+      ]
+    },
+    {
+      "id": "audit.0001",
+      "description": "Fix: Spec INV-2 claims tree-wide non-audit priority but code enforces per-node deferral only. INV-4 and in-progress audit bypass also differ from spec. Spec should be updated to match code semantics or code should be strengthened.",
+      "state": "complete",
+      "failure_count": 0
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in FindNextTask Property Test is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify the property test covers all seven invariants from the spec: no complete/blocked returns, audit deferral, no parent-with-children returns, no blocked-by-ancestor returns, all_complete/all_blocked/empty_tree reasons",
+    "Verify the test generates trees with audit tasks, hierarchical task IDs, and uses scoped navigation in addition to unscoped"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T15:24:15.569835Z",
+        "task": "property-and-fuzz-tests/findnexttask-property-test",
+        "text": "Wrote FindNextTask invariants spec with 7 invariants plus in-progress priority rule. Each invariant has pseudocode and source refs. Committed as a742b36."
+      },
+      {
+        "timestamp": "2026-03-20T15:30:53.877823Z",
+        "task": "property-and-fuzz-tests/findnexttask-property-test",
+        "text": "Implemented FindNextTask property test with 7 sub-tests, 8 invariants, 500+ random cases per sub-test. Added audit/hierarchy mutations. Found and documented 3 spec-vs-code discrepancies. Committed as 89dd7fe."
+      },
+      {
+        "timestamp": "2026-03-20T15:32:51.93767Z",
+        "task": "property-and-fuzz-tests/findnexttask-property-test",
+        "text": "Audit reviewed 2 files (756 lines): navigation_property_test.go (631 lines), findnexttask-navigation-invariants.md (125 lines). Also read the production code (navigation.go, 295 lines) and test infrastructure (propagation_property_test.go, 482 lines). Build, all tests, formatting, go vet, and race detector all pass clean.\n\nPASS with accepted findings.\n\nFindings:\n(1) Spec INV-2 says audit deferral is tree-wide but code/test implement per-node semantics. AAR flagged this for spec update; not completed. Accepted: spec documentation inaccuracy, test correctly matches code behavior.\n(2) verifyINV2 does not check allNonAuditBlocked (production gate at navigation.go:207-209 that defers audit tasks when all non-audit tasks are blocked). Would not catch regression if that guard were removed. Accepted: low risk, production code is correct, and the constraint is an edge case (all-blocked nodes are skipped by the DFS anyway).\n(3) Duplicate spec committed to both .wolfcastle/docs/specs/ and docs/specs/findnexttask-invariants.md. Accepted: minor, canonical copy exists in .wolfcastle/.\n(4) Discarded Propagate errors in mutation helpers (lines 28, 50, 79). Accepted: matches existing pattern in propagation_property_test.go for in-memory test trees where I/O errors cannot occur.\n(5) Redundant scope check at line 450 (HasPrefix already covers equality). Accepted: cosmetic.\n\nRisks:\n- The allNonAuditBlocked gap means a future change removing that guard from findActionableTask would not be caught by these property tests. A targeted unit test for that condition would strengthen the safety net.\n- The spec-vs-code divergence on audit deferral scope (tree-wide vs per-node) should be resolved to prevent confusion in future work.\n\nQuality: Clean, well-structured property tests that reuse the existing test infrastructure thoughtfully. The 7 sub-tests provide good topological variety (empty, all-blocked, all-complete, audit-only, deeply nested, scoped, general random). The 3 new mutation types (audit, hierarchical child, audit-child) exercise the navigation-specific code paths that matter. The AAR documentation of spec-vs-code discrepancies was thorough and honest."
+      },
+      {
+        "timestamp": "2026-03-21T00:20:12.370893Z",
+        "task": "property-and-fuzz-tests/findnexttask-property-test",
+        "text": "Aligned spec INV-2 and INV-4 with code semantics. Added allNonAuditBlocked assertion to spec pseudocode and test verifyINV2. Narrowed INV-4 ancestor check to not_started tasks only. Committed as a6e1325."
+      },
+      {
+        "timestamp": "2026-03-21T00:21:36.206758Z",
+        "task": "property-and-fuzz-tests/findnexttask-property-test",
+        "text": "Final audit reviewed navigation_property_test.go (666 lines), findnexttask-navigation-invariants.md (129 lines), and navigation.go (295 lines). Build, all tests (7 property sub-tests, 2100+ random cases), go vet, gofmt, and race detector all pass clean. Verified spec-test-code alignment: INV-2 now documents per-node audit deferral with allNonAuditBlocked guard, INV-4 narrows ancestor check to not_started tasks, both matching code semantics exactly. computeAllNonAuditDone and computeAllNonAuditBlocked mirror production logic faithfully. Accepted: redundant HasPrefix scope check (cosmetic), discarded Propagate errors in mutations (matches existing test patterns, in-memory only), allNonAuditBlocked not independently unit-tested (low risk, edge case). No new findings. PASS."
+      },
+      {
+        "timestamp": "2026-03-21T01:20:40.707718Z",
+        "task": "property-and-fuzz-tests/findnexttask-property-test",
+        "text": "Final audit reviewed navigation_property_test.go (666 lines), findnexttask-navigation-invariants.md (129 lines), and navigation.go (295 lines). Build, all 7 property tests (2100+ random cases), go vet, gofmt, and race detector all pass clean. Verified spec-test-code alignment after audit.0001 remediation: INV-2 documents per-node audit deferral with allNonAuditBlocked guard, INV-4 narrows ancestor check to not_started tasks, both matching code semantics exactly. computeAllNonAuditDone and computeAllNonAuditBlocked mirror production logic. Accepted findings: (1) discarded Propagate errors in mutations match existing test patterns for in-memory trees, (2) redundant HasPrefix scope check is cosmetic, (3) allNonAuditBlocked not independently unit-tested but low risk. No duplicate spec file found. No new findings. PASS."
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-findnexttask-property-test-1",
+        "timestamp": "2026-03-20T15:31:01.027368Z",
+        "description": "Spec INV-2 claims tree-wide non-audit priority but code enforces per-node deferral only. INV-4 and in-progress audit bypass also differ from spec. Spec should be updated to match code semantics or code should be strengthened.",
+        "source": "property-and-fuzz-tests/findnexttask-property-test",
+        "status": "fixed"
+      },
+      {
+        "id": "gap-findnexttask-property-test-2",
+        "timestamp": "2026-03-20T15:32:56.518816Z",
+        "description": "INV-2 spec says audit deferral is tree-wide but code enforces per-node. Spec should be updated to document per-node semantics and the in_progress audit bypass. See AAR action item from task-0002.",
+        "source": "property-and-fuzz-tests/findnexttask-property-test",
+        "status": "fixed",
+        "fixed_by": "property-and-fuzz-tests/findnexttask-property-test",
+        "fixed_at": "2026-03-20T15:33:37.335161Z"
+      }
+    ],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-20T15:22:27.644499Z",
+    "completed_at": "2026-03-21T01:20:51.609179Z",
+    "result_summary": "Defined and implemented property-based testing for FindNextTask navigation. Produced a 129-line spec (7 invariants plus in-progress priority rule) with pseudocode assertions and source references, and a 666-line test file with 7 sub-tests covering empty, all-blocked, all-complete, audit-only, deeply nested, scoped, and general random topologies (2100+ random cases total). Extended the existing testTree mutation framework with 3 new mutation types (audit tasks, hierarchical child tasks, audit-child tasks). The property tests discovered 3 spec-vs-code discrepancies during development, all resolved: INV-2 audit deferral is per-node not tree-wide, INV-4 ancestor check applies only to not_started tasks, and in_progress audit tasks bypass deferral. The spec was updated to match code semantics precisely. All tests pass with race detector enabled."
+  },
+  "aars": {
+    "audit.0001": {
+      "task_id": "audit.0001",
+      "timestamp": "2026-03-21T00:20:05.806593Z",
+      "objective": "Reconcile the FindNextTask invariants spec with actual code behavior",
+      "what_happened": "Updated the spec and property test to close three spec-vs-code gaps identified by the audit: (1) INV-2 pseudocode was missing the allNonAuditBlocked assertion, (2) INV-4 prose and pseudocode were unconditional when the code only checks ancestry for not_started tasks, (3) verifyINV2 in the test lacked the allNonAuditBlocked guard. Added computeAllNonAuditBlocked helper mirroring production logic.",
+      "went_well": [
+        "Changes were surgical: two files, four hunks, no production code touched",
+        "All 7 property test sub-tests (2100+ random cases) still pass after the tightened assertions"
+      ],
+      "improvements": [
+        "A dedicated unit test targeting the allNonAuditBlocked guard in isolation would catch removal of that guard more reliably than the property test"
+      ],
+      "action_items": [
+        "Consider adding a targeted unit test for the allNonAuditBlocked edge case in findActionableTask"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-20T15:24:13.801741Z",
+      "objective": "Write a spec defining the invariants FindNextTask must satisfy for any valid project tree",
+      "what_happened": "Studied findActionableTask (navigation.go:110-220), the DFS wrapper (navigation.go:20-73), hasNotStartedAncestor, TaskChildren, DeriveParentStatus, and allChildrenComplete. Studied the random tree generator and mutation helpers in propagation_property_test.go. Wrote a spec with seven numbered invariants plus an in-progress priority supplemental rule. Each invariant includes pseudocode assertions and precise references to the source functions. Also noted that INV-2 interacts with the audit re-verification exception and that the mutation set needs audit and hierarchical task generators to exercise INV-2 through INV-4.",
+      "went_well": [
+        "The code is well-structured enough that each invariant maps cleanly to a specific guard clause in findActionableTask",
+        "INV-6 captures the subtlety that all_blocked is a heuristic over index entries, not a precise per-task scan, which would have been easy to misspecify"
+      ],
+      "improvements": [
+        "INV-2 is the most complex invariant and its test implementation will need careful handling of the reachable-node definition across the DFS, not just within a single node"
+      ],
+      "action_items": [
+        "The property test (task-0002) will need to extend the random tree generator with audit task and hierarchical task mutations to cover INV-2 through INV-4"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-20T15:30:50.357073Z",
+      "objective": "Implement property-based test for FindNextTask verifying navigation invariants on random trees",
+      "what_happened": "Created internal/state/navigation_property_test.go with 7 sub-tests covering 8 invariants. Extended the existing testTree mutation framework with 3 new mutation types: audit tasks, hierarchical child tasks, and audit-child tasks. During development, discovered three places where the spec (task-0001) was stricter than the actual code: (1) INV-2 audit deferral is per-node not tree-wide because the DFS returns the first match, (2) INV-4 ancestor check only applies to not_started tasks since in_progress tasks use the self-healing path, (3) the in_progress self-healing loop returns audit tasks without checking IsAudit. Adjusted all invariant checks to match the code's actual behavior.",
+      "went_well": [
+        "The testing/quick framework found real spec-vs-code discrepancies within seconds, validating the property test approach",
+        "Reusing the existing testTree infrastructure from propagation_property_test.go kept the new test focused on navigation-specific concerns"
+      ],
+      "improvements": [
+        "INV-2 only verifies per-node audit deferral; a tree-wide audit priority would be a stronger guarantee but would require changes to FindNextTask's DFS"
+      ],
+      "action_items": [
+        "Consider updating the spec to document that audit deferral is per-node and that in_progress audit tasks bypass the deferral check"
+      ]
+    }
+  },
+  "specs": [
+    "2026-03-20T15-22Z-findnexttask-navigation-invariants.md"
+  ]
+}

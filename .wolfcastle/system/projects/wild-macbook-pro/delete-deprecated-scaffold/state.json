@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "delete-deprecated-scaffold",
+  "name": "Delete Deprecated Scaffold",
+  "type": "orchestrator",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "verify-no-production-callers",
+      "address": "delete-deprecated-scaffold/verify-no-production-callers",
+      "state": "in_progress"
+    },
+    {
+      "id": "remove-deprecated-files",
+      "address": "delete-deprecated-scaffold/remove-deprecated-files",
+      "state": "not_started"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Delete Deprecated Scaffold is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "scaffold.go has zero production callers -- ScaffoldService replaced it. Remove scaffold.go, scaffold_test.go, deprecated_coverage_test.go, reinit_coverage_test.go, and any Scaffold/ReScaffold calls in category_a_test.go. Verify no remaining callers before deletion.",
+  "success_criteria": [
+    "No production code references Scaffold or ReScaffold after deletion",
+    "scaffold.go and all deprecated-only test files are removed from the repository",
+    "ScaffoldService test coverage (scaffold_service_test.go, reinit_coverage_test.go if applicable) is preserved",
+    "go build, go test, and go vet all pass cleanly"
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T02:03:01.55852Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T02:02:55.008307Z",
+        "task": "delete-deprecated-scaffold",
+        "text": "Created 2 children: verify-no-production-callers (leaf, 2 tasks), remove-deprecated-files (leaf, 3 tasks). Ordering: verification must complete before deletion proceeds. Key finding during planning: the scope lists 4 test files for deletion but the codebase contains 4 additional scaffold test files (scaffold_chmod_test.go, scaffold_coverage_test.go, scaffold_extra_test.go, scaffold_readme_test.go) that also call deprecated functions. Also, reinit_coverage_test.go appears to test ScaffoldService.Reinit (the replacement), not the deprecated Scaffold function -- the verification leaf will confirm before the deletion leaf acts on it."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "doctor-childref-state-mismatch",
+  "name": "Doctor ChildRef State Mismatch",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Doctor ChildRef State Mismatch is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "wolfcastle doctor reports clean when a parent ChildRef.State says complete but the actual child node state is not_started (or any other mismatch). Add a CHILDREF_STATE_MISMATCH validation category that compares each ChildRef.State against the child's actual persisted state. Include a deterministic fix that updates the ChildRef to match reality (the child's persisted state is authoritative).",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

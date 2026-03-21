@@ -261,7 +261,7 @@
     "config-improvements": {
       "name": "Config Improvements",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "config-improvements",
       "decomposition_depth": 0,
       "children": [
@@ -280,7 +280,7 @@
     "config-improvements/unknown-field-detection": {
       "name": "Unknown Field Detection",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "config-improvements/unknown-field-detection",
       "decomposition_depth": 0,
       "parent": "config-improvements"
@@ -288,9 +288,29 @@
     "delete-deprecated-scaffold": {
       "name": "Delete Deprecated Scaffold",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "delete-deprecated-scaffold",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "delete-deprecated-scaffold/verify-no-production-callers",
+        "delete-deprecated-scaffold/remove-deprecated-files"
+      ]
+    },
+    "delete-deprecated-scaffold/remove-deprecated-files": {
+      "name": "Remove Deprecated Files",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "delete-deprecated-scaffold/remove-deprecated-files",
+      "decomposition_depth": 0,
+      "parent": "delete-deprecated-scaffold"
+    },
+    "delete-deprecated-scaffold/verify-no-production-callers": {
+      "name": "Verify No Production Callers",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "delete-deprecated-scaffold/verify-no-production-callers",
+      "decomposition_depth": 0,
+      "parent": "delete-deprecated-scaffold"
     },
     "doctor-childref-state-mismatch": {
       "name": "Doctor ChildRef State Mismatch",
@@ -510,16 +530,38 @@
     "github-repository-meta": {
       "name": "GitHub Repository Meta",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "complete",
       "address": "github-repository-meta",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "github-repository-meta/codeowners"
+      ]
+    },
+    "github-repository-meta/codeowners": {
+      "name": "CODEOWNERS",
+      "type": "leaf",
+      "state": "complete",
+      "address": "github-repository-meta/codeowners",
+      "decomposition_depth": 0,
+      "parent": "github-repository-meta"
     },
     "global-lock-leak-in-tests": {
       "name": "Global Lock Leak in Tests",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "complete",
       "address": "global-lock-leak-in-tests",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "global-lock-leak-in-tests/fix-leaking-tests"
+      ]
+    },
+    "global-lock-leak-in-tests/fix-leaking-tests": {
+      "name": "Fix Leaking Tests",
+      "type": "leaf",
+      "state": "complete",
+      "address": "global-lock-leak-in-tests/fix-leaking-tests",
+      "decomposition_depth": 0,
+      "parent": "global-lock-leak-in-tests"
     },
     "property-and-fuzz-tests": {
       "name": "Property and Fuzz Tests",

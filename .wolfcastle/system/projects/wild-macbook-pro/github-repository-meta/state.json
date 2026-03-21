@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "github-repository-meta",
+  "name": "GitHub Repository Meta",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "codeowners",
+      "address": "github-repository-meta/codeowners",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in GitHub Repository Meta is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Two GitHub housekeeping items: (1) Create .github/ISSUE_TEMPLATE/ with bug report and feature request templates. (2) Add a CODEOWNERS file mapping packages to @dorkusprime for automatic review assignment on PRs.",
+  "success_criteria": [
+    ".github/CODEOWNERS exists and maps paths to @dorkusprime",
+    ".github/ISSUE_TEMPLATE/ contains bug_report.md and feature_request.md (already present)"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T01:52:36.088152Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T01:52:27.903336Z",
+        "task": "github-repository-meta",
+        "text": "Created 1 child: codeowners (leaf). Issue templates already exist at .github/ISSUE_TEMPLATE/ with bug_report.md and feature_request.md, so no work needed there. Only remaining scope item is the CODEOWNERS file."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

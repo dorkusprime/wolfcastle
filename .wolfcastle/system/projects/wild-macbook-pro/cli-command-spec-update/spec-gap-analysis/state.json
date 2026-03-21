@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "id": "spec-gap-analysis",
+  "name": "Spec Gap Analysis",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Audit CLI source against spec and produce gap manifest",
+      "description": "Audit CLI source against spec and produce gap manifest",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/system/projects/wild-macbook-pro/cli-command-spec-update/spec-gap-analysis/task-0001.md"
+      ],
+      "body": "Read every command registration in cmd/ and compare against docs/specs/2026-03-12T00-06Z-cli-commands.md. Produce a gap manifest listing:\n\n1. Commands present in the CLI but absent from the spec (currently identified: audit enrich, orchestrator criteria, task amend).\n2. Flags present in the CLI but absent from the spec (currently identified: task add missing --body/--stdin/--deliverable/--type/--class/--constraint/--acceptance/--reference/--integration/--parent; project create missing --type/--description/--scope; spec create missing --body/--stdin; status missing --expand).\n3. The updated command count (currently 39 in the spec header; should be at least 42 after additions).\n\nWrite the manifest as a checklist in the task markdown file so subsequent tasks can use it as a reference. Cross-reference each gap against the actual Go source to confirm flag names, types, defaults, and descriptions.",
+      "task_type": "discovery",
+      "references": [
+        "docs/specs/2026-03-12T00-06Z-cli-commands.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Spec Gap Analysis is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T14:46:30.504981Z",
+        "task": "cli-command-spec-update/spec-gap-analysis",
+        "text": "Completed CLI spec gap analysis: found 3 missing commands (audit enrich, orchestrator criteria, task amend), 16 missing flags across 4 commands, 2 value discrepancies in status --interval, and 2 header updates needed. Total: 23 gaps documented in task-0001.md manifest."
+      },
+      {
+        "timestamp": "2026-03-20T14:49:34.439318Z",
+        "task": "cli-command-spec-update/spec-gap-analysis",
+        "text": "Audit reviewed task-0001.md gap manifest (110 lines) against all cmd/ source files and docs/specs/2026-03-12T00-06Z-cli-commands.md. PASS. Verified all 23 gaps: 3 missing commands (audit enrich, orchestrator criteria, task amend) confirmed in source and absent from spec; 16 missing flags across 4 commands verified by reading flag registrations in add.go, create.go, spec.go, register.go; 2 status --interval discrepancies confirmed (default 2 vs spec 5, missing -n shorthand); 2 header updates confirmed (count 39→43, missing orchestrator group). Reverse gap check found no spec entries without corresponding source. Build clean, all tests pass. No code changes in this node, only the deliverable manifest. Quality: systematic, accurate analysis with clear checklist format suitable for downstream tasks."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-20T14:43:15.212936Z",
+    "completed_at": "2026-03-20T14:49:52.364989Z",
+    "result_summary": "Spec gap analysis identified 23 discrepancies between cmd/ source (43 leaf commands) and docs/specs/2026-03-12T00-06Z-cli-commands.md (40 documented commands, header claiming 39). Gaps include 3 entirely missing commands (audit enrich, orchestrator criteria, task amend), 16 missing flags across task add, project create, spec create, and status, 2 value discrepancies in status --interval, and 2 stale header fields. All gaps are documented as a checklist in task-0001.md for downstream implementation tasks to consume. Audit verified every claim against source and found no additional gaps or reverse gaps."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-20T14:49:49.390037Z",
+      "objective": "Verify the spec gap analysis deliverable is complete, accurate, and ready for downstream consumption",
+      "what_happened": "Read task-0001.md manifest and cross-referenced every claim against source files: cmd/audit/enrich.go, cmd/orchestrator/criteria.go, cmd/task/amend.go, cmd/task/add.go, cmd/project/create.go, cmd/spec.go, cmd/daemon/register.go. Counted 43 leaf commands in source against 40 in spec. Performed a reverse gap check (spec entries without source) and found none. Ran build and full test suite, both clean.",
+      "went_well": [
+        "The manifest's checklist format with source file references makes verification straightforward",
+        "The command count arithmetic (40 documented + 3 missing = 43 in source) is internally consistent and externally verified"
+      ],
+      "improvements": [
+        "None identified; the manifest is well-structured and complete"
+      ],
+      "action_items": [
+        "Downstream tasks should process the checklist items in task-0001.md to update the spec document"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-20T14:46:38.341065Z",
+      "objective": "Audit every CLI command registration against the spec and produce a gap manifest",
+      "what_happened": "Read all 43 command registrations in cmd/ via source exploration. Compared each against docs/specs/2026-03-12T00-06Z-cli-commands.md, which documents 40 commands despite its header claiming 39. Found 3 entirely missing commands, 16 missing flags across 4 commands, and 2 value discrepancies in status --interval (default and shorthand).",
+      "went_well": [
+        "Systematic comparison caught the --interval default mismatch (spec says 5, source says 2) which was not in the original task description",
+        "The orchestrator command group itself was identified as missing from the spec header group list"
+      ],
+      "improvements": [
+        "Could have also checked for commands in the spec that no longer exist in source (reverse gap check), though none were found incidentally"
+      ],
+      "action_items": [
+        "Subsequent tasks should use the checklist in task-0001.md to add each missing command/flag to the spec"
+      ]
+    }
+  }
+}

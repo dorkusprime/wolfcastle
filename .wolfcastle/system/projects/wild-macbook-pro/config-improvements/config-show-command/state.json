@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "config-show-command",
+  "name": "Config Show Command",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write config show command spec",
+      "description": "Write config show command spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/*-config-show-command.md",
+        ".wolfcastle/docs/specs/2026-03-20T15-46Z-config-show-command.md"
+      ],
+      "body": "Write a spec for the 'wolfcastle config show' command. The spec should define:\n\n- Output format: the resolved config printed as indented JSON to stdout (matching the structure in types.go). In --json mode, wrap in the standard {ok, action, data} envelope.\n- Flag: --tier \u003cbase|custom|local\u003e to display a single tier's raw content instead of the merged result. Omitting --tier shows the fully merged config (the default and most common use case).\n- Flag: --raw to suppress the defaults layer and show only what the tier files actually contain (useful for debugging what a specific tier overrides).\n- Behavior: the command must work after 'wolfcastle init' (requires a valid .wolfcastle directory). It calls config.Load() for the merged view and reads individual tier files for --tier mode.\n- No model invocation required. Pure config read.\n- Error handling: if a tier file is missing (e.g., no local/config.json), print {} for that tier rather than erroring.\n\nPlace the spec at docs/specs/ with the standard timestamped filename."
+    },
+    {
+      "id": "task-0002",
+      "title": "Implement config show command",
+      "description": "Implement config show command",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/register.go",
+        "cmd/config/show.go",
+        "cmd/config/show_test.go"
+      ],
+      "body": "Implement the 'wolfcastle config show' command per the spec written in task-0001.\n\nImplementation plan:\n- Create cmd/config/register.go following the Pattern B registration convention (see cmd/project/register.go, cmd/audit/ for examples). Register a 'config' parent command with a 'show' subcommand.\n- Create cmd/config/show.go with the show subcommand implementation.\n- Wire config.Register(app, rootCmd) in cmd/root.go setupCommands(). Assign configCmd.GroupID = \"diagnostics\" since this is a debugging/introspection tool.\n- For the merged view: call app.Config.Load() (already loaded in PersistentPreRunE) and marshal the result as indented JSON.\n- For --tier mode: read the raw tier file from the appropriate system/\u003ctier\u003e/config.json path. Return {} if the file doesn't exist.\n- For --raw mode with --tier: show only the raw tier file content without merging with defaults.\n- Support --json flag via the standard output.Print(output.OK(...)) pattern.\n- Write comprehensive tests in cmd/config/show_test.go and cmd/config/register_test.go."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Config Show Command is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify the config show command is registered in the diagnostics group alongside doctor and unblock"
+  ],
+  "audit": {
+    "scope": {
+      "description": "New CLI command: wolfcastle config show",
+      "files": [
+        "cmd/config/register.go",
+        "cmd/config/show.go",
+        "cmd/config/show_test.go",
+        "cmd/root.go"
+      ],
+      "systems": [
+        "cli",
+        "config"
+      ],
+      "criteria": [
+        "config show prints valid merged JSON",
+        "--tier flag shows individual tier content",
+        "--json flag wraps output in standard envelope",
+        "missing tier files produce {} not errors"
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T15:47:34.148189Z",
+        "task": "config-improvements/config-show-command",
+        "text": "Wrote config show command spec covering merged/tier/raw modes, --json envelope, error handling, and Cobra registration plan"
+      },
+      {
+        "timestamp": "2026-03-20T15:53:22.899204Z",
+        "task": "config-improvements/config-show-command",
+        "text": "Implemented config show command: cmd/config/{register,show,show_test}.go, wired into root.go. Supports merged/tier/raw modes with --json envelope. 24 tests, 94.7% coverage."
+      },
+      {
+        "timestamp": "2026-03-20T15:55:19.648848Z",
+        "task": "config-improvements/config-show-command",
+        "text": "Audit reviewed 4 files (cmd/config/register.go, show.go, show_test.go, cmd/root.go diff) totaling ~475 lines. PASS. Build clean, all 24 tests pass, 94.7% coverage, go vet and gofmt clean, full suite (28 packages) green. No findings requiring remediation. Flag error discards in show.go:36-37 are safe (Cobra guarantees flag existence). Path construction uses hardcoded tier names only, no injection risk. The switch statement correctly prioritizes --tier over --raw. Code is well-factored into small testable functions with clear separation of concerns. Spec is thorough and implementation matches it."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-20T15:44:20.57204Z",
+    "completed_at": "2026-03-20T15:55:36.572377Z",
+    "result_summary": "Implemented the wolfcastle config show command as a new cmd/config package with three output modes (merged, tier, raw), --json envelope support, and comprehensive error handling. The command is registered under a new 'config' command group in the diagnostics section, with show as its first subcommand. The spec documents all behavior, flags, error cases, and exit codes. 24 tests provide 94.7% coverage across all modes and error paths. Audit found no issues requiring remediation."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-20T15:55:33.506791Z",
+      "objective": "Verify all work in the config show command node is complete and correct",
+      "what_happened": "Reviewed cmd/config/register.go, show.go, show_test.go, the root.go diff, and the linked spec. Ran build, vet, fmt, package tests (24 pass, 94.7% coverage), and full suite (28 packages green). Evaluated correctness, error handling, concurrency safety, code quality, and spec conformance.",
+      "went_well": [
+        "Implementation is clean and well-factored into small testable functions",
+        "Spec is thorough with concrete examples and matches the code precisely",
+        "Error handling covers all edge cases: missing files, malformed JSON, invalid tier names"
+      ],
+      "improvements": [
+        "None identified"
+      ],
+      "action_items": [
+        "Future config subcommands (set, diff) can be added as siblings in cmd/config/register.go"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-20T15:47:47.621468Z",
+      "objective": "Write a spec for the wolfcastle config show command",
+      "what_happened": "Studied the config system (types.go, config.Load, tier file layout, DeepMerge), the JSON envelope format in output/envelope.go, and existing spec conventions. Wrote the spec covering three output modes (merged, tier, raw), the --json envelope, error handling for missing/malformed tier files, exit codes, and Cobra registration as a new config command group.",
+      "went_well": [
+        "The spec covers all six points from the task description with concrete examples",
+        "Cross-referenced actual codebase types rather than inventing structure"
+      ],
+      "improvements": [
+        "Could have included a section on shell completion for --tier values"
+      ],
+      "action_items": [
+        "Implementation task should create the config command group (new cmd/config/ directory with register.go and show.go)"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-20T15:53:18.665728Z",
+      "objective": "Implement the wolfcastle config show command per the spec from task-0001",
+      "what_happened": "Created cmd/config/register.go (Pattern B registration, diagnostics group), cmd/config/show.go (show subcommand with --tier, --raw, --json flags), and cmd/config/show_test.go (24 tests, 94.7% coverage). Wired config.Register into cmd/root.go setupCommands(). Used tierfs.TierNames as canonical tier list for validation. Constructed tier file paths from app.Config.Root() + system/\u003ctier\u003e/config.json rather than exposing the private tierfs.Resolver. Reused config.DeepMerge for --raw mode.",
+      "went_well": [
+        "Clean separation: readTierFile, mergeRawTiers, and marshalPretty are independently testable",
+        "All three output modes (merged, tier, raw) work correctly with both human and JSON output",
+        "94.7% test coverage with 24 test cases covering all error paths"
+      ],
+      "improvements": [
+        "The import alias wcconfig in root.go is necessary because cmd/config collides with internal/config; could be avoided if the package were named differently, but renaming is out of scope"
+      ],
+      "action_items": [
+        "Future config subcommands (config set, config diff) can be added to cmd/config/register.go as siblings of show"
+      ]
+    }
+  },
+  "specs": [
+    "2026-03-20T15-46Z-config-show-command.md"
+  ]
+}

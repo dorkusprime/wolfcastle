@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "id": "self-update-fix",
+  "name": "Self-Update Fix",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "honest-stub",
+      "address": "self-update-fix/honest-stub",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Self-Update Fix is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Hide or fix the selfupdate stub so users are not misled into thinking they are current. Either implement real GitHub releases checking or change the message to clearly say self-update is not available yet. See cmd/update or similar entry point.",
+  "success_criteria": [
+    "Running 'wolfcastle update' with the stub updater produces honest messaging that self-update is not yet available, in both human and JSON output modes",
+    "system/base/ regeneration continues to work as before",
+    "All tests pass with coverage above 90%"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-20T14:31:51.213253Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T14:31:44.17712Z",
+        "task": "self-update-fix",
+        "text": "Created 1 child: honest-stub (leaf, 3 tasks). The work is a single cohesive change: update the stub to stop lying, update the command to surface the truth, update the tests to match. No sub-orchestrators needed since all three tasks touch one concern. Task ordering: stub behavior first (task-0001), then command output (task-0002), then tests (task-0003)."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-20T23:25:39.525196Z"
+  }
+}

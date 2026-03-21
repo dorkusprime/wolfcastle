@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "remove-deprecated-files",
+  "name": "Remove Deprecated Files",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Delete scaffold.go and deprecated-only test files",
+      "description": "Delete scaffold.go and deprecated-only test files",
+      "state": "not_started",
+      "failure_count": 0,
+      "body": "Delete the following files (confirmed by the verification leaf):\n- internal/project/scaffold.go (the deprecated implementation)\n- internal/project/scaffold_test.go (tests only deprecated functions)\n- internal/project/deprecated_coverage_test.go (tests only deprecated error paths)\n- internal/project/scaffold_chmod_test.go (tests only deprecated Scaffold)\n- internal/project/scaffold_coverage_test.go (tests only deprecated Scaffold)\n- internal/project/scaffold_extra_test.go (tests only deprecated Scaffold)\n- internal/project/scaffold_readme_test.go (tests only deprecated Scaffold)\n\nCheck the verification leaf's audit breadcrumb for the final file list before proceeding. If reinit_coverage_test.go was confirmed to test ONLY deprecated code, delete it too. If it tests ScaffoldService (the replacement), leave it alone.\n\nDo NOT delete scaffold_service.go, scaffold_service_test.go, or any file that tests the replacement service."
+    },
+    {
+      "id": "task-0002",
+      "title": "Remove deprecated test cases from category_a_test.go",
+      "description": "Remove deprecated test cases from category_a_test.go",
+      "state": "not_started",
+      "failure_count": 0,
+      "body": "category_a_test.go contains TestReScaffold_InvalidJSONInLocalConfig, which tests the deprecated ReScaffold function. Remove this test case. If category_a_test.go contains other non-deprecated tests, preserve them. If it becomes empty after removal, delete the file entirely.\n\nCheck for any other mixed files identified by the verification leaf and apply the same treatment: remove deprecated test cases, keep everything else."
+    },
+    {
+      "id": "task-0003",
+      "title": "Verify build and tests pass after deletion",
+      "description": "Verify build and tests pass after deletion",
+      "state": "not_started",
+      "failure_count": 0,
+      "body": "Run the full build and test suite for the internal/project package after all deletions:\n\n1. go build ./... -- confirm no compilation errors from dangling references.\n2. go test ./internal/project/... -- confirm all remaining tests pass.\n3. go vet ./... -- confirm no vet warnings.\n4. Grep the entire codebase one final time for any remaining references to the deleted functions (Scaffold, ReScaffold, WriteBasePrompts, migrateToSystemLayout, migrateOldConfig) in non-test code. These are all unexported or deprecated functions defined in scaffold.go.\n\nIf any step fails, fix the issue before completing."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Remove Deprecated Files is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that reinit_coverage_test.go was handled correctly: kept if it tests ScaffoldService, deleted only if it tests deprecated functions"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

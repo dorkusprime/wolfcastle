@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "id": "verify-no-production-callers",
+  "name": "Verify No Production Callers",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Grep for all Scaffold and ReScaffold references in production code",
+      "description": "Grep for all Scaffold and ReScaffold references in production code",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "none -- this is a verification task; the deliverable is confidence that deletion is safe"
+      ],
+      "body": "Search the entire codebase for calls to Scaffold() and ReScaffold() in non-test files. The expectation is zero production callers since ScaffoldService replaced them. Check cmd/, internal/, and any other Go packages. If any production caller exists, escalate immediately -- the deletion cannot proceed until callers are migrated.\n\nAlso confirm that ScaffoldService in cmd/init.go and cmd/update.go does NOT delegate to the deprecated functions internally (i.e., scaffold_service.go is self-contained)."
+    },
+    {
+      "id": "task-0002",
+      "title": "Catalog all test files calling deprecated Scaffold/ReScaffold",
+      "description": "Catalog all test files calling deprecated Scaffold/ReScaffold",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/scaffold_readme_test.go"
+      ],
+      "body": "The scope lists scaffold_test.go, deprecated_coverage_test.go, reinit_coverage_test.go, and category_a_test.go. However, the codebase also contains scaffold_chmod_test.go, scaffold_coverage_test.go, scaffold_extra_test.go, and scaffold_readme_test.go, all of which call the deprecated functions.\n\nProduce a complete list of files to delete and files to edit. For each file:\n- If it ONLY tests deprecated functions: mark for deletion.\n- If it tests both deprecated and non-deprecated code: mark for editing (remove only the deprecated test cases).\n- CRITICAL: reinit_coverage_test.go tests ScaffoldService.Reinit() error paths, NOT the deprecated Scaffold/ReScaffold. Verify this and do NOT mark it for deletion if it provides coverage for the replacement service.\n\nRecord the final file list as an audit breadcrumb so the deletion leaf knows exactly what to remove."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Verify No Production Callers is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Confirm scaffold_service.go does not import or delegate to any function defined in scaffold.go"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T02:03:29.685014Z",
+        "task": "delete-deprecated-scaffold/verify-no-production-callers",
+        "text": "Grepped entire codebase for Scaffold() and ReScaffold() calls. All invocations are in _test.go files (scaffold_test.go, scaffold_coverage_test.go, scaffold_chmod_test.go, scaffold_extra_test.go, deprecated_coverage_test.go, category_a_test.go). Zero production callers. scaffold_service.go has no references to either deprecated function -- it is fully self-contained. cmd/init.go and cmd/update.go use only ScaffoldService. Deletion is safe."
+      },
+      {
+        "timestamp": "2026-03-21T02:04:59.536693Z",
+        "task": "delete-deprecated-scaffold/verify-no-production-callers",
+        "text": "Catalog of test files calling deprecated Scaffold/ReScaffold:\n\nFILES TO DELETE (only test deprecated functions):\n1. internal/project/scaffold_test.go — 14 tests, all call deprecated Scaffold()/ReScaffold()/WriteBasePrompts()\n2. internal/project/deprecated_coverage_test.go — 12 tests, all call deprecated Scaffold()/ReScaffold()/migrateOldConfig()\n3. internal/project/category_a_test.go — 1 test (TestReScaffold_InvalidJSONInLocalConfig), calls deprecated Scaffold()/ReScaffold()\n4. internal/project/scaffold_chmod_test.go — 8 tests, all call deprecated Scaffold()/ReScaffold()\n5. internal/project/scaffold_coverage_test.go — 14 tests, all call deprecated Scaffold()/ReScaffold()/WriteBasePrompts()\n6. internal/project/scaffold_extra_test.go — 10 tests, all call deprecated Scaffold()/ReScaffold()/WriteBasePrompts()/detectIdentity()\n\nFILES TO EDIT (mix of deprecated and non-deprecated):\n7. internal/project/scaffold_readme_test.go — 4 tests total. 3 use ScaffoldService.Init() (KEEP), 1 uses deprecated Scaffold() (REMOVE: TestScaffold_CreatesREADMEs)\n\nFILES TO KEEP (no deprecated calls):\n8. internal/project/reinit_coverage_test.go — 7 tests, ALL use ScaffoldService.Init()/Reinit(). Tests the replacement service error paths. Do NOT delete.\n\nTotal: 6 files to delete, 1 file to edit (remove 1 test function), 1 file to keep unchanged."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-21T02:03:01.63546Z",
+    "result_summary": "Verified zero production callers of deprecated Scaffold() and ReScaffold() functions. All ~60 call sites are in test files. ScaffoldService in scaffold_service.go is fully self-contained with no delegation to the deprecated functions. cmd/init.go and cmd/update.go exclusively use ScaffoldService. The deprecated functions in scaffold.go can be safely deleted, though their test files will need removal or migration as part of that work."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T02:03:38.612142Z",
+      "objective": "Verify that no production code calls the deprecated Scaffold() or ReScaffold() functions",
+      "what_happened": "Grepped the entire Go codebase for Scaffold( and ReScaffold( calls. Found ~60 references, all in _test.go files across scaffold_test.go, scaffold_coverage_test.go, scaffold_chmod_test.go, scaffold_extra_test.go, deprecated_coverage_test.go, and category_a_test.go. The only non-test occurrences are the function definitions in scaffold.go:20 and scaffold.go:194. Confirmed scaffold_service.go contains zero references to either deprecated function. Confirmed cmd/init.go and cmd/update.go use only ScaffoldService via NewScaffoldService.",
+      "went_well": [
+        "Clean separation: ScaffoldService is genuinely self-contained with no delegation to deprecated code",
+        "The deprecated functions are already marked with Deprecated: comments pointing to ScaffoldService"
+      ],
+      "improvements": [
+        "None -- this was a straightforward verification task"
+      ],
+      "action_items": [
+        "Subsequent deletion task can proceed safely. Test files calling Scaffold()/ReScaffold() will need to be removed or migrated as part of the deletion."
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T02:05:09.508419Z",
+      "objective": "Catalog all test files calling deprecated Scaffold/ReScaffold and classify each for deletion or editing",
+      "what_happened": "Searched all test files in internal/project/ for calls to Scaffold(), ReScaffold(), WriteBasePrompts(), migrateOldConfig(), and detectIdentity(). Found 8 test files with references. Verified reinit_coverage_test.go exclusively tests ScaffoldService.Reinit() (the replacement) with zero deprecated calls. Found scaffold_readme_test.go mixes both: 3 ScaffoldService tests and 1 deprecated test (TestScaffold_CreatesREADMEs). Recorded the complete file-by-file catalog as an audit breadcrumb.",
+      "went_well": [
+        "reinit_coverage_test.go confirmed safe as suspected, testing only the replacement service",
+        "scaffold_readme_test.go correctly identified as mixed, preventing accidental loss of 3 ScaffoldService tests"
+      ],
+      "improvements": [
+        "None — straightforward cataloging task"
+      ],
+      "action_items": [
+        "Deletion leaf should delete 6 files, edit scaffold_readme_test.go to remove TestScaffold_CreatesREADMEs, and leave reinit_coverage_test.go untouched"
+      ]
+    }
+  }
+}

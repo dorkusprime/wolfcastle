@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "ci-and-lint-tooling",
+  "name": "CI and Lint Tooling",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "makefile-lint-integration",
+      "address": "ci-and-lint-tooling/makefile-lint-integration",
+      "state": "complete"
+    },
+    {
+      "id": "ci-govulncheck",
+      "address": "ci-and-lint-tooling/ci-govulncheck",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in CI and Lint Tooling is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Two related tooling improvements: (1) Wire golangci-lint into the Makefile lint target alongside the existing go vet and gofmt checks -- .golangci.yml config already exists and CI already uses it, so this is just a Makefile gap. (2) Add govulncheck to .github/workflows/ci.yml for automated dependency vulnerability scanning.",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-20T15:07:38.164994Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T15:07:33.306577Z",
+        "task": "ci-and-lint-tooling",
+        "text": "Created 2 leaf children: makefile-lint-integration (wire golangci-lint into Makefile lint target) and ci-govulncheck (add govulncheck job to CI). No ordering dependency between them; both can proceed in parallel."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-20T23:25:39.525241Z"
+  }
+}

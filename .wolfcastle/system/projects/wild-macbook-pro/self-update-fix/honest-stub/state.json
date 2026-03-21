@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "id": "honest-stub",
+  "name": "Honest Stub",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update stubUpdater to report unavailability instead of false currency",
+      "description": "Update stubUpdater to report unavailability instead of false currency",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/selfupdate/updater.go"
+      ],
+      "body": "The stubUpdater in internal/selfupdate/updater.go currently sets AlreadyCurrent: true when Check() or Apply() is called, even though no release channel was queried. This misleads the caller into believing an actual check occurred.\n\nChange the stub behavior:\n- Check() should return a Result where AlreadyCurrent is false and Updated is false, plus a new signal that indicates checking is not available. Consider adding a field like 'Unavailable bool' to the Result struct, or returning a sentinel error. Whichever approach is chosen, it must be backwards-compatible with the existing Updater interface contract.\n- Apply() should similarly indicate that updates cannot be performed, without returning an error that would be confused with a transient failure.\n- Update the package-level doc comment to reflect the new behavior.\n- Keep the stubUpdater's checkFn override mechanism intact for test flexibility.\n\nThe choice between a Result field vs. sentinel error is a design decision worth capturing in an ADR after implementation.",
+      "acceptance_criteria": [
+        "stubUpdater.Check() no longer claims AlreadyCurrent when no check occurred",
+        "stubUpdater.Apply() clearly signals that update is unavailable",
+        "Updater interface and Result struct remain backwards-compatible or are updated cohesively"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update the update command to surface unavailable status honestly",
+      "description": "Update the update command to surface unavailable status honestly",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/update.go"
+      ],
+      "body": "The update command in cmd/update.go currently handles three states: error, updated, and already-current. With the stub now reporting unavailability, the command needs a fourth path.\n\nChanges needed:\n- In human output mode: print a message like 'Self-update is not available yet. Regenerating system/base/ only.' instead of the misleading 'Already running X. No upgrade needed.'\n- In JSON output mode: use update_status 'unavailable' instead of 'unchanged' when the updater reports that checking is not implemented.\n- The Reinit() call for system/base/ regeneration should still proceed regardless of update availability, since that part works fine.\n- Preserve the existing error-handling path for when a real updater is eventually wired in and encounters transient failures.",
+      "acceptance_criteria": [
+        "Human output clearly states self-update is not available when using the stub",
+        "JSON output includes update_status 'unavailable' for the stub case",
+        "system/base/ regeneration still runs unconditionally"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Update tests for new stub behavior and command output",
+      "description": "Update tests for new stub behavior and command output",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/selfupdate/updater_test.go",
+        "internal/selfupdate/updater_deep_coverage_test.go"
+      ],
+      "body": "Both the selfupdate package tests and the update command tests need to reflect the new honest behavior.\n\nFor internal/selfupdate/:\n- updater_test.go: Update assertions to expect the new unavailability signal instead of AlreadyCurrent: true.\n- updater_deep_coverage_test.go and updater_extra_test.go: Review and update any assertions that depend on the old stub behavior. Keep coverage above 90%.\n\nFor cmd/:\n- If update command tests exist, update them for the new human/JSON output strings.\n- If no update command tests exist, add basic coverage for the unavailable path in both output modes.\n\nAll existing tests that use mock updaters (via the Updater interface) should remain unaffected since they construct their own Result values.",
+      "acceptance_criteria": [
+        "All selfupdate tests pass with updated assertions",
+        "Update command output is tested for the unavailable case",
+        "Coverage remains above 90%"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Honest Stub is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that 'wolfcastle update' no longer prints 'Already running X. No upgrade needed' when using the stub updater",
+    "Verify JSON output uses 'unavailable' status, not 'unchanged', when no real update check occurred",
+    "Verify system/base/ regeneration still works regardless of updater availability"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-20T14:34:28.154573Z",
+        "task": "self-update-fix/honest-stub",
+        "text": "Added Result.Unavailable field; stubUpdater now signals unavailability instead of false AlreadyCurrent. Updated cmd/update.go caller and all test files. Filed ADR for field-vs-sentinel decision."
+      },
+      {
+        "timestamp": "2026-03-20T14:36:11.780974Z",
+        "task": "self-update-fix/honest-stub",
+        "text": "JSON output now emits update_status=unavailable when stub updater reports unavailability, completing the honest-status work across both output modes."
+      },
+      {
+        "timestamp": "2026-03-20T14:36:51.831872Z",
+        "task": "self-update-fix/honest-stub",
+        "text": "Verified task-0003 deliverables already satisfied: all three selfupdate test files and cmd tests assert new Unavailable behavior. Coverage is 100% (selfupdate) and 94% (cmd). No changes needed."
+      },
+      {
+        "timestamp": "2026-03-20T14:38:04.713272Z",
+        "task": "self-update-fix/honest-stub",
+        "text": "Audit reviewed 6 files (99 lines changed). PASS. One finding: duplicate Status header in the ADR, fixed and committed. All 21 tests pass (16 selfupdate + 5 cmd), 100% coverage on selfupdate, race detector clean, go vet clean. The Unavailable field design is sound: zero-value false preserves backwards compatibility, Apply short-circuits correctly, and both human and JSON output paths handle all four states. No security issues, no dead code, no concurrency concerns. Clean, minimal work."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-20T14:31:51.296305Z",
+    "completed_at": "2026-03-20T14:38:11.308865Z",
+    "result_summary": "The honest-stub node replaced the stubUpdater's misleading AlreadyCurrent behavior with an explicit Unavailable field on selfupdate.Result. The stub now honestly reports that no release channel was queried, and the update command surfaces this as a distinct status in both human and JSON output (update_status=unavailable). An ADR captures the field-vs-sentinel design decision. All tests pass with 100% coverage on the selfupdate package and 94% on cmd. The change is fully backwards-compatible: callers that don't inspect Unavailable see a safe no-op result."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-20T14:34:24.454289Z",
+      "objective": "Make stubUpdater report unavailability instead of falsely claiming the binary is current",
+      "what_happened": "Added Unavailable bool to selfupdate.Result. Changed stubUpdater.Check() to set Unavailable: true with empty LatestVersion instead of AlreadyCurrent: true. Updated Apply() to short-circuit on Unavailable. Updated cmd/update.go to display a distinct message. Rewrote all three test files to assert the new behavior.",
+      "went_well": [
+        "The Result field approach is fully backwards-compatible; existing callers that don't check Unavailable see a safe no-op result",
+        "All 16 selfupdate tests and 5 update command tests pass"
+      ],
+      "improvements": [
+        "The JSON output path in cmd/update.go still maps Unavailable to update_status=unchanged, which is arguably misleading; a future task could add a dedicated unavailable status"
+      ],
+      "action_items": [
+        "Consider adding update_status=unavailable to JSON output for programmatic consumers"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-20T14:36:04.85268Z",
+      "objective": "Surface unavailable status honestly in the update command's JSON output",
+      "what_happened": "Added an else-if branch for result.Unavailable in the JSON output section of cmd/update.go, mapping it to update_status=unavailable instead of falling through to unchanged. The human output path was already correct from task-0001. Single two-line change.",
+      "went_well": [
+        "Minimal, surgical change; all 27 packages pass, cmd coverage stays at 94%"
+      ],
+      "improvements": [
+        "None; the change is exactly what was needed"
+      ],
+      "action_items": [
+        "None; both human and JSON paths now correctly handle all four states (error, updated, unavailable, unchanged)"
+      ]
+    }
+  }
+}
