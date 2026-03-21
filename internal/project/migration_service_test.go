@@ -397,6 +397,449 @@ func TestMigratePromptLayout_HandlesMissingPromptDir(t *testing.T) {
 	}
 }
 
+// --- MigrateStagesFormat ---
+
+// writeTierConfig writes a JSON config to the given tier's config.json,
+// creating intermediate directories as needed.
+func writeTierConfig(t *testing.T, root, tier string, cfg map[string]any) {
+	t.Helper()
+	dir := filepath.Join(root, "system", tier)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	writeTestJSON(t, filepath.Join(dir, "config.json"), cfg)
+}
+
+// readTierConfig reads and unmarshals a tier's config.json.
+func readTierConfig(t *testing.T, root, tier string) map[string]any {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(root, "system", tier, "config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result map[string]any
+	if err := json.Unmarshal(data, &result); err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+func TestMigrateStagesFormat_ConvertsArrayToMap(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	writeTierConfig(t, root, "custom", map[string]any{
+		"pipeline": map[string]any{
+			"stages": []any{
+				map[string]any{"name": "intake", "prompt": "intake.md", "model": "fast"},
+				map[string]any{"name": "execute", "prompt": "execute.md"},
+				map[string]any{"name": "review", "prompt": "review.md", "retries": float64(3)},
+			},
+		},
+	})
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := readTierConfig(t, root, "custom")
+	pipeline := cfg["pipeline"].(map[string]any)
+	stages := pipeline["stages"].(map[string]any)
+
+	// Verify each stage was converted, name field stripped.
+	intake := stages["intake"].(map[string]any)
+	if intake["prompt"] != "intake.md" || intake["model"] != "fast" {
+		t.Errorf("intake stage: got %v", intake)
+	}
+	if _, hasName := intake["name"]; hasName {
+		t.Error("name field should be stripped from stage object")
+	}
+
+	execute := stages["execute"].(map[string]any)
+	if execute["prompt"] != "execute.md" {
+		t.Errorf("execute stage: got %v", execute)
+	}
+
+	review := stages["review"].(map[string]any)
+	if review["retries"] != float64(3) {
+		t.Errorf("review stage: got %v", review)
+	}
+
+	// Verify stage_order preserves array ordering.
+	orderRaw := pipeline["stage_order"].([]any)
+	order := make([]string, len(orderRaw))
+	for i, v := range orderRaw {
+		order[i] = v.(string)
+	}
+	expected := []string{"intake", "execute", "review"}
+	if len(order) != len(expected) {
+		t.Fatalf("stage_order length: got %d, want %d", len(order), len(expected))
+	}
+	for i := range expected {
+		if order[i] != expected[i] {
+			t.Errorf("stage_order[%d]: got %q, want %q", i, order[i], expected[i])
+		}
+	}
+}
+
+func TestMigrateStagesFormat_AlreadyMigratedIsNoop(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	original := map[string]any{
+		"pipeline": map[string]any{
+			"stages": map[string]any{
+				"intake":  map[string]any{"prompt": "intake.md"},
+				"execute": map[string]any{"prompt": "execute.md"},
+			},
+			"stage_order": []any{"intake", "execute"},
+		},
+	}
+	writeTierConfig(t, root, "base", original)
+
+	// Read file content before migration.
+	before, err := os.ReadFile(filepath.Join(root, "system", "base", "config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal(err)
+	}
+
+	after, err := os.ReadFile(filepath.Join(root, "system", "base", "config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(before) != string(after) {
+		t.Error("already-migrated config should not be rewritten")
+	}
+}
+
+func TestMigrateStagesFormat_EmptyArray(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	writeTierConfig(t, root, "local", map[string]any{
+		"pipeline": map[string]any{
+			"stages": []any{},
+		},
+	})
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := readTierConfig(t, root, "local")
+	pipeline := cfg["pipeline"].(map[string]any)
+	stages := pipeline["stages"].(map[string]any)
+
+	if len(stages) != 0 {
+		t.Errorf("empty array should produce empty map, got %v", stages)
+	}
+
+	// stage_order should not be set for empty arrays.
+	if _, hasOrder := pipeline["stage_order"]; hasOrder {
+		t.Error("empty stages should not produce stage_order")
+	}
+}
+
+func TestMigrateStagesFormat_SingleStage(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	writeTierConfig(t, root, "base", map[string]any{
+		"pipeline": map[string]any{
+			"stages": []any{
+				map[string]any{"name": "only", "prompt": "only.md"},
+			},
+		},
+	})
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := readTierConfig(t, root, "base")
+	pipeline := cfg["pipeline"].(map[string]any)
+	stages := pipeline["stages"].(map[string]any)
+
+	if len(stages) != 1 {
+		t.Fatalf("expected 1 stage, got %d", len(stages))
+	}
+	only := stages["only"].(map[string]any)
+	if only["prompt"] != "only.md" {
+		t.Errorf("single stage: got %v", only)
+	}
+
+	orderRaw := pipeline["stage_order"].([]any)
+	if len(orderRaw) != 1 || orderRaw[0] != "only" {
+		t.Errorf("stage_order: got %v, want [only]", orderRaw)
+	}
+}
+
+func TestMigrateStagesFormat_MissingNameSkipped(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	writeTierConfig(t, root, "custom", map[string]any{
+		"pipeline": map[string]any{
+			"stages": []any{
+				map[string]any{"name": "good", "prompt": "good.md"},
+				map[string]any{"prompt": "no-name.md"},           // missing name
+				map[string]any{"name": "", "prompt": "empty.md"}, // empty name
+				map[string]any{"name": float64(42)},              // non-string name
+				"not-a-map",                                       // not a map at all
+				map[string]any{"name": "also-good", "prompt": "also.md"},
+			},
+		},
+	})
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := readTierConfig(t, root, "custom")
+	pipeline := cfg["pipeline"].(map[string]any)
+	stages := pipeline["stages"].(map[string]any)
+
+	if len(stages) != 2 {
+		t.Fatalf("expected 2 valid stages, got %d: %v", len(stages), stages)
+	}
+	if _, ok := stages["good"]; !ok {
+		t.Error("stage 'good' should be present")
+	}
+	if _, ok := stages["also-good"]; !ok {
+		t.Error("stage 'also-good' should be present")
+	}
+
+	orderRaw := pipeline["stage_order"].([]any)
+	if len(orderRaw) != 2 {
+		t.Fatalf("stage_order should have 2 entries, got %v", orderRaw)
+	}
+}
+
+func TestMigrateStagesFormat_DuplicateNamesLastWins(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	writeTierConfig(t, root, "base", map[string]any{
+		"pipeline": map[string]any{
+			"stages": []any{
+				map[string]any{"name": "dup", "prompt": "first.md"},
+				map[string]any{"name": "unique", "prompt": "unique.md"},
+				map[string]any{"name": "dup", "prompt": "second.md"},
+			},
+		},
+	})
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := readTierConfig(t, root, "base")
+	pipeline := cfg["pipeline"].(map[string]any)
+	stages := pipeline["stages"].(map[string]any)
+
+	dup := stages["dup"].(map[string]any)
+	if dup["prompt"] != "second.md" {
+		t.Errorf("duplicate name should keep last value: got prompt=%v, want second.md", dup["prompt"])
+	}
+
+	// stage_order should not have duplicates.
+	orderRaw := pipeline["stage_order"].([]any)
+	dupCount := 0
+	for _, v := range orderRaw {
+		if v == "dup" {
+			dupCount++
+		}
+	}
+	if dupCount != 1 {
+		t.Errorf("stage_order should contain 'dup' exactly once, got %d times in %v", dupCount, orderRaw)
+	}
+}
+
+func TestMigrateStagesFormat_TierFileDoesNotExist(t *testing.T) {
+	t.Parallel()
+	svc, _ := newMigrationService(t)
+
+	// No tier config files exist at all. Should succeed silently.
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal("missing tier files should not cause an error:", err)
+	}
+}
+
+func TestMigrateStagesFormat_PipelineKeyAbsent(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	// Config exists but has no pipeline key.
+	writeTierConfig(t, root, "base", map[string]any{
+		"identity": map[string]any{"user": "test"},
+	})
+
+	before, err := os.ReadFile(filepath.Join(root, "system", "base", "config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal(err)
+	}
+
+	after, err := os.ReadFile(filepath.Join(root, "system", "base", "config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(before) != string(after) {
+		t.Error("config without pipeline key should not be modified")
+	}
+}
+
+func TestMigrateStagesFormat_PreservesExistingStageOrder(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	writeTierConfig(t, root, "custom", map[string]any{
+		"pipeline": map[string]any{
+			"stages": []any{
+				map[string]any{"name": "a", "prompt": "a.md"},
+				map[string]any{"name": "b", "prompt": "b.md"},
+			},
+			"stage_order": []any{"b", "a"},
+		},
+	})
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := readTierConfig(t, root, "custom")
+	pipeline := cfg["pipeline"].(map[string]any)
+
+	// Existing stage_order should be preserved, not overwritten.
+	orderRaw := pipeline["stage_order"].([]any)
+	if len(orderRaw) != 2 || orderRaw[0] != "b" || orderRaw[1] != "a" {
+		t.Errorf("existing stage_order should be preserved: got %v, want [b a]", orderRaw)
+	}
+}
+
+func TestMigrateStagesFormat_InvalidJSON(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	// Write invalid JSON to a tier config.
+	dir := filepath.Join(root, "system", "local")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte("{not json"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Should skip gracefully, not error.
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal("invalid JSON should be skipped, not cause error:", err)
+	}
+}
+
+func TestMigrateStagesFormat_PipelineNotAMap(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	// pipeline is a string instead of a map.
+	writeTierConfig(t, root, "base", map[string]any{
+		"pipeline": "not-a-map",
+	})
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal("non-map pipeline should be skipped:", err)
+	}
+}
+
+func TestMigrateStagesFormat_StagesAbsentFromPipeline(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	// Pipeline exists but has no stages key.
+	writeTierConfig(t, root, "base", map[string]any{
+		"pipeline": map[string]any{
+			"timeout": float64(30),
+		},
+	})
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal("missing stages key should be skipped:", err)
+	}
+}
+
+func TestMigrateStagesFormat_StagesNotArrayOrMap(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	// stages is a string, neither array nor map.
+	writeTierConfig(t, root, "base", map[string]any{
+		"pipeline": map[string]any{
+			"stages": "unexpected-type",
+		},
+	})
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal("non-array/map stages should be skipped:", err)
+	}
+}
+
+func TestMigrateStagesFormat_ReadError(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	dir := filepath.Join(root, "system", "base")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Create config.json as a directory to trigger a read error.
+	if err := os.MkdirAll(filepath.Join(dir, "config.json"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	err := svc.MigrateStagesFormat()
+	if err == nil {
+		t.Fatal("expected error when config.json is unreadable")
+	}
+}
+
+func TestMigrateStagesFormat_MultipleTiers(t *testing.T) {
+	t.Parallel()
+	svc, root := newMigrationService(t)
+
+	// Array-format stages in both base and custom tiers.
+	for _, tier := range []string{"base", "custom"} {
+		writeTierConfig(t, root, tier, map[string]any{
+			"pipeline": map[string]any{
+				"stages": []any{
+					map[string]any{"name": tier + "-stage", "prompt": tier + ".md"},
+				},
+			},
+		})
+	}
+
+	if err := svc.MigrateStagesFormat(); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tier := range []string{"base", "custom"} {
+		cfg := readTierConfig(t, root, tier)
+		pipeline := cfg["pipeline"].(map[string]any)
+		stages := pipeline["stages"].(map[string]any)
+		stageName := tier + "-stage"
+		if _, ok := stages[stageName]; !ok {
+			t.Errorf("%s tier: expected stage %q in migrated output", tier, stageName)
+		}
+	}
+}
+
 func writeTestJSON(t *testing.T, path string, v any) {
 	t.Helper()
 	data, err := json.MarshalIndent(v, "", "  ")
