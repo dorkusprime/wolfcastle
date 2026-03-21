@@ -590,7 +590,7 @@ func TestMigrateStagesFormat_MissingNameSkipped(t *testing.T) {
 				map[string]any{"prompt": "no-name.md"},           // missing name
 				map[string]any{"name": "", "prompt": "empty.md"}, // empty name
 				map[string]any{"name": float64(42)},              // non-string name
-				"not-a-map",                                       // not a map at all
+				"not-a-map",                                      // not a map at all
 				map[string]any{"name": "also-good", "prompt": "also.md"},
 			},
 		},
