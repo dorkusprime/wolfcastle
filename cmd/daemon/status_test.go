@@ -586,6 +586,139 @@ func TestShowTreeStatus_PluralArchivedLine(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// --archived flag
+// ---------------------------------------------------------------------------
+
+func TestShowArchivedStatus_ShowsOnlyArchived(t *testing.T) {
+	env, idx := setupArchivedEnv(t)
+	out := captureStdout(t, func() {
+		_ = showArchivedStatus(env.App, idx, "")
+	})
+
+	if !strings.Contains(out, "Old Project") {
+		t.Error("--archived should show archived nodes")
+	}
+	if strings.Contains(out, "Active Project") {
+		t.Error("--archived should not show active nodes")
+	}
+}
+
+func TestShowArchivedStatus_ShowsArchivedAt(t *testing.T) {
+	env, idx := setupArchivedEnv(t)
+	out := captureStdout(t, func() {
+		_ = showArchivedStatus(env.App, idx, "")
+	})
+
+	if !strings.Contains(out, "archived 20") {
+		t.Errorf("--archived should show archive timestamp, got:\n%s", out)
+	}
+}
+
+func TestShowArchivedStatus_ShowsAddress(t *testing.T) {
+	env, idx := setupArchivedEnv(t)
+	out := captureStdout(t, func() {
+		_ = showArchivedStatus(env.App, idx, "")
+	})
+
+	if !strings.Contains(out, "old-proj") {
+		t.Errorf("--archived should show original address, got:\n%s", out)
+	}
+}
+
+func TestShowArchivedStatus_EmptyWhenNoneArchived(t *testing.T) {
+	env := newStatusTestEnv(t)
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	out := captureStdout(t, func() {
+		_ = showArchivedStatus(env.App, idx, "")
+	})
+
+	if !strings.Contains(out, "No archived nodes") {
+		t.Errorf("should show empty message when no archived nodes, got:\n%s", out)
+	}
+}
+
+func TestShowArchivedStatus_JSON(t *testing.T) {
+	env, idx := setupArchivedEnv(t)
+	env.App.JSON = true
+	defer func() { env.App.JSON = false }()
+
+	out := captureStdout(t, func() {
+		_ = showArchivedStatus(env.App, idx, "")
+	})
+
+	var resp map[string]any
+	if err := json.Unmarshal([]byte(out), &resp); err != nil {
+		t.Fatalf("invalid JSON output: %v", err)
+	}
+	data := resp["data"].(map[string]any)
+
+	total := data["total"].(float64)
+	if total != 1 {
+		t.Errorf("expected total=1, got %v", total)
+	}
+
+	nodes := data["nodes"].([]any)
+	if len(nodes) != 1 {
+		t.Fatalf("expected 1 archived node, got %d", len(nodes))
+	}
+
+	node := nodes[0].(map[string]any)
+	if node["address"] != "old-proj" {
+		t.Errorf("expected address=old-proj, got %v", node["address"])
+	}
+	if node["name"] != "Old Project" {
+		t.Errorf("expected name=Old Project, got %v", node["name"])
+	}
+	if _, ok := node["archived_at"]; !ok {
+		t.Error("JSON should include archived_at")
+	}
+}
+
+func TestShowArchivedStatus_RespectsScope(t *testing.T) {
+	env := newTestEnv(t)
+	now := time.Now()
+	archivedAt := now.Add(-24 * time.Hour)
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"active"}
+	idx.ArchivedRoot = []string{"old-a", "other-proj"}
+
+	idx.Nodes["active"] = state.IndexEntry{
+		Name: "Active", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "active",
+	}
+	idx.Nodes["old-a"] = state.IndexEntry{
+		Name: "Old A", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "old-a", Archived: true, ArchivedAt: &archivedAt,
+	}
+	idx.Nodes["other-proj"] = state.IndexEntry{
+		Name: "Other", Type: state.NodeLeaf, State: state.StatusComplete,
+		Address: "other-proj", Archived: true, ArchivedAt: &archivedAt,
+	}
+
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	out := captureStdout(t, func() {
+		_ = showArchivedStatus(env.App, idx, "old-a")
+	})
+
+	if !strings.Contains(out, "Old A") {
+		t.Error("scoped --archived should show matching archived nodes")
+	}
+	if strings.Contains(out, "Other") {
+		t.Error("scoped --archived should not show out-of-scope archived nodes")
+	}
+}
+
+func TestStatusCmd_ArchivedFlag(t *testing.T) {
+	env, _ := setupArchivedEnv(t)
+	env.RootCmd.SetArgs([]string{"status", "--archived"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("status --archived failed: %v", err)
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	cases := []struct {
 		in     string

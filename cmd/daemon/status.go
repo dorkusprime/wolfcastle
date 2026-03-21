@@ -44,6 +44,7 @@ Examples:
 			interval, _ := cmd.Flags().GetFloat64("interval")
 			expand, _ := cmd.Flags().GetBool("expand")
 			detail, _ := cmd.Flags().GetBool("detail")
+			archived, _ := cmd.Flags().GetBool("archived")
 
 			if !showAll {
 				if err := app.RequireIdentity(); err != nil {
@@ -68,6 +69,10 @@ Examples:
 			idx, err := app.State.ReadIndex()
 			if err != nil {
 				return err
+			}
+
+			if archived {
+				return showArchivedStatus(app, idx, scopeNode)
 			}
 
 			return showTreeStatus(app, idx, scopeNode, expand, detail)
@@ -272,6 +277,72 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 	}
 
 	output.PrintHuman("  Daemon: %s", daemonStatus)
+	return nil
+}
+
+// showArchivedStatus renders only the archived nodes with their metadata:
+// original address, completion state, and archive timestamp.
+func showArchivedStatus(app *cmdutil.App, idx *state.RootIndex, scope string) error {
+	type archivedNode struct {
+		Address    string     `json:"address"`
+		Name       string     `json:"name"`
+		Type       string     `json:"type"`
+		State      string     `json:"state"`
+		ArchivedAt *time.Time `json:"archived_at,omitempty"`
+	}
+
+	var nodes []archivedNode
+	for _, entry := range idx.Nodes {
+		if !entry.Archived {
+			continue
+		}
+		if scope != "" && !isInSubtree(idx, entry.Address, scope) {
+			continue
+		}
+		nodes = append(nodes, archivedNode{
+			Address:    entry.Address,
+			Name:       entry.Name,
+			Type:       string(entry.Type),
+			State:      string(entry.State),
+			ArchivedAt: entry.ArchivedAt,
+		})
+	}
+
+	// Sort by address for stable output.
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Address < nodes[j].Address
+	})
+
+	if app.JSON {
+		output.Print(output.Ok("archived", map[string]any{
+			"total": len(nodes),
+			"nodes": nodes,
+		}))
+		return nil
+	}
+
+	output.PrintHuman("Wolfcastle Archived Nodes")
+	output.PrintHuman("")
+
+	if len(nodes) == 0 {
+		output.PrintHuman("  No archived nodes.")
+		return nil
+	}
+
+	output.PrintHuman("  %d archived:", len(nodes))
+	output.PrintHuman("")
+
+	for _, n := range nodes {
+		glyph := "⊘"
+		if output.IsTerminal() {
+			glyph = colorDim + "⊘" + colorReset
+		}
+		output.PrintHuman("  %s %s  (%s)", glyph, n.Name, n.Address)
+		if n.ArchivedAt != nil {
+			output.PrintHuman("      archived %s", n.ArchivedAt.Format("2006-01-02 15:04"))
+		}
+	}
+
 	return nil
 }
 
