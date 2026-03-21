@@ -88,17 +88,17 @@
     {
       "timestamp": "2026-03-21T03:06:34Z",
       "text": "Refactor pipeline.stages from array to dict. Currently Config.Pipeline.Stages is []PipelineStage, ordered by execution sequence. Change to map[string]PipelineStage keyed by stage name (e.g. 'intake', 'execute'). Add an Order field or use a separate []string for execution ordering. This enables unknown-field detection to recurse into individual stage configs and makes stage lookup O(1) instead of linear scan. Touches: internal/config/types.go (PipelineConfig struct), internal/config/config.go (Defaults), internal/config/validate.go (stage validation), internal/config/merge.go (deep merge semantics for the new shape), internal/daemon/iteration.go and stages.go (stage lookup), internal/pipeline/prompt.go (stage resolution), docs/specs CLI command spec (schema section). Must include a migration in MigrationService for existing config files that use the array format.",
-      "status": "new"
+      "status": "filed"
     },
     {
       "timestamp": "2026-03-21T03:06:45Z",
       "text": "Update unknown-field detection to benefit from dict stages. With stages as a dict, diffKeys can recurse into each stage's config naturally (map keys, not array indices). Verify that config typos inside individual stage definitions (e.g. 'promt_file' instead of 'prompt_file') are now caught. Add test cases for unknown fields inside stage configs.",
-      "status": "new"
+      "status": "filed"
     },
     {
       "timestamp": "2026-03-21T03:07:16Z",
       "text": "Ensure all new and modified code from the stages-dict refactor has test coverage above 90%. Run go test -coverprofile and check that no modified package dropped below its pre-refactor coverage. Pay particular attention to the migration path (old array configs must load correctly) and the validation changes.",
-      "status": "new"
+      "status": "filed"
     }
   ]
 }

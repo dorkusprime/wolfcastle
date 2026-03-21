@@ -15,7 +15,9 @@
     "github-repository-meta",
     "global-lock-leak-in-tests",
     "delete-deprecated-scaffold",
-    "doctor-childref-state-mismatch"
+    "doctor-childref-state-mismatch",
+    "stages-dict-refactor",
+    "stages-dict-coverage"
   ],
   "nodes": {
     "ci-and-lint-tooling": {
@@ -607,6 +609,49 @@
       "address": "self-update-fix/honest-stub",
       "decomposition_depth": 0,
       "parent": "self-update-fix"
+    },
+    "stages-dict-coverage": {
+      "name": "Stages Dict Coverage",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "stages-dict-coverage",
+      "decomposition_depth": 0
+    },
+    "stages-dict-refactor": {
+      "name": "Stages Dict Refactor",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "stages-dict-refactor",
+      "decomposition_depth": 0,
+      "children": [
+        "stages-dict-refactor/config-layer",
+        "stages-dict-refactor/consumer-layer",
+        "stages-dict-refactor/spec-updates"
+      ]
+    },
+    "stages-dict-refactor/config-layer": {
+      "name": "Config Layer",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "stages-dict-refactor/config-layer",
+      "decomposition_depth": 0,
+      "parent": "stages-dict-refactor"
+    },
+    "stages-dict-refactor/consumer-layer": {
+      "name": "Consumer Layer",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "stages-dict-refactor/consumer-layer",
+      "decomposition_depth": 0,
+      "parent": "stages-dict-refactor"
+    },
+    "stages-dict-refactor/spec-updates": {
+      "name": "Spec Updates",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "stages-dict-refactor/spec-updates",
+      "decomposition_depth": 0,
+      "parent": "stages-dict-refactor"
     }
   }
 }
