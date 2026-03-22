@@ -14,6 +14,10 @@ func init() {
 	// Task address completions for commands that operate on tasks
 	_ = unblockCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteTaskAddresses(app))
 
+	// Node completions for foreground execution commands
+	_ = executeCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
+	_ = intakeCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
+
 	_ = archiveAddCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 	_ = archiveDeleteCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 	_ = archiveRestoreCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
