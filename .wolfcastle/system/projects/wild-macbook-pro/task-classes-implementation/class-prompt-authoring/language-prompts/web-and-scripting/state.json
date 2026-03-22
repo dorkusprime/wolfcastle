@@ -107,6 +107,11 @@
         "timestamp": "2026-03-22T07:33:49.158399Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
         "text": "Authored TypeScript class prompt (typescript.md, 59 lines) covering style, tooling, testing, and pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T07:35:47.505291Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored Ruby class prompt (ruby.md, 53 lines) covering style, tooling, testing, and pitfalls [task-0004]"
       }
     ],
     "gaps": [],
@@ -158,6 +163,22 @@
       ],
       "improvements": [
         "Could add a section on module resolution (Node16 vs bundler) but the task description did not request it and 59 lines is already well within range"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T07:35:46.616166Z",
+      "objective": "Author the Ruby language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/ruby.md at 53 lines. Followed the established four-section format: Style, Build and Test, Testing, Common Pitfalls. Style covers frozen_string_literal, duck typing, blocks/procs/lambdas, Enumerable methods, naming conventions, Struct/Data vs OpenStruct, keyword arguments, and specific exceptions. Build and Test covers Bundler, Rake, RuboCop/Standard Ruby, and RSpec vs Minitest. Testing covers describe/context/it structure, let/subject, FactoryBot factories over fixtures, and behavior-over-implementation testing. Common Pitfalls covers monkey patching risks, method_missing without respond_to_missing?, gem version conflicts, require order sensitivity, and mutable string defaults.",
+      "went_well": [
+        "53 lines fits the 40-80 target while covering all requested topics from the task description",
+        "Consistent structure and tone with existing Go, Kotlin, Python, JavaScript, and TypeScript prompts"
+      ],
+      "improvements": [
+        "Could add a section on Rails-specific conventions (ActiveRecord, concerns, service objects) but the task description covers general Ruby, not Rails specifically"
       ],
       "action_items": [
         "No follow-ups needed"
