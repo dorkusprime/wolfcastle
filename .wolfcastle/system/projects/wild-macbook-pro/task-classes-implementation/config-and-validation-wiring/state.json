@@ -76,6 +76,11 @@
         "timestamp": "2026-03-22T09:35:23.592813Z",
         "task": "task-classes-implementation/config-and-validation-wiring",
         "text": "Added 52 TaskClasses entries to config.Defaults(): 21 language, 22 framework, 9 non-language. All keys verified against prompt files. research class uses Model: light per spec."
+      },
+      {
+        "timestamp": "2026-03-22T09:37:58.765981Z",
+        "task": "task-classes-implementation/config-and-validation-wiring",
+        "text": "Wired ClassRepository.Validate() into daemon.New(): prints warning for missing class prompt files, does not block startup. Two tests added."
       }
     ],
     "gaps": [],
@@ -98,6 +103,22 @@
       ],
       "action_items": [
         "Validation wiring (task-0002+) should ensure these keys survive round-trip through JSON merge and that unknown-field detection still ignores task_classes values"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T09:37:54.883363Z",
+      "objective": "Wire ClassRepository.Validate() into daemon startup so missing prompt files produce a warning without blocking",
+      "what_happened": "Added a three-line Validate() call right after classes.Reload() in daemon.New(). If any class keys lack prompt files, output.PrintHuman prints a sorted list. No structured log call because the logger has no active iteration file at construction time. Added two tests: one with missing prompts (verifies startup succeeds), one with all prompts present.",
+      "went_well": [
+        "Minimal change; the entire feature is three lines of production code",
+        "Both new tests pass, full daemon suite still green"
+      ],
+      "improvements": [
+        "Structured logging (to the iteration log file) would be nice but requires an active iteration. Could add a startup log event in Run() if needed later."
+      ],
+      "action_items": [
+        "If structured log queries need to find missing-prompt warnings, add a log event in Run() after the first StartIterationWithPrefix call"
       ]
     }
   }
