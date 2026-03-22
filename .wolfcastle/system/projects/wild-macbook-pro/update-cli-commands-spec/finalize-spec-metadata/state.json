@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Update intro paragraph and group counts",
       "description": "Update intro paragraph and group counts",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/specs/2026-03-12T00-06Z-cli-commands.md"
@@ -26,7 +26,7 @@
       "id": "task-0002",
       "title": "Reconcile log command with redesign spec",
       "description": "Reconcile log command with redesign spec",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/specs/2026-03-12T00-06Z-cli-commands.md"
@@ -61,6 +61,11 @@
         "timestamp": "2026-03-22T23:30:22.060681Z",
         "task": "update-cli-commands-spec/finalize-spec-metadata",
         "text": "Updated CLI spec intro: changed group count from 6 to 7 to include Additional Commands (completion, help). The 60-command count and config/knowledge subcommand entries were already correct."
+      },
+      {
+        "timestamp": "2026-03-22T23:31:34.477522Z",
+        "task": "update-cli-commands-spec/finalize-spec-metadata",
+        "text": "Rewrote log command section in CLI spec to match redesigned behavior: replaced --lines/--level flags with --thoughts/-t, --interleaved/-i, --session/-s, --json. Added three output modes (summary, thoughts, interleaved), session support, glyph formatting, and updated examples. Old spec described a simple tail-like model; new spec reflects the reconstructed-from-NDJSON design per 2026-03-21T18-00Z-log-command-design.md."
       }
     ],
     "gaps": [],
@@ -79,6 +84,21 @@
       ],
       "improvements": [
         "None; this was a straightforward metadata fix"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T23:31:42.199713Z",
+      "objective": "Reconcile the log command section in the CLI spec with the redesigned log command",
+      "what_happened": "The CLI spec described the old log command (--lines, --level, simple tail model). The redesign spec and wolfcastle log --help showed a completely different interface: three output modes (summary, thoughts, interleaved), session support, glyph-based stage tracking, and NDJSON reconstruction. Rewrote the entire section from scratch to match current behavior.",
+      "went_well": [
+        "The --help output matched the redesign spec exactly, so there was a single source of truth to write against"
+      ],
+      "improvements": [
+        "None; straightforward rewrite"
       ],
       "action_items": [
         "None"

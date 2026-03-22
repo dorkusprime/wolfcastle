@@ -691,89 +691,122 @@ wolfcastle status --node attunement-tree/fire-impl --expand
 
 ## wolfcastle log
 
+Aliases: `wolfcastle follow`
+
 ### Synopsis
 
 ```
-wolfcastle log [--follow [-f]] [--lines <n>] [--level <level>]
+wolfcastle log [--follow [-f]] [--thoughts [-t]] [--interleaved [-i]] [--json] [--session [-s] <n>]
 ```
 
 ### Description
 
-Reads the daemon's log output. Without `--follow`, prints recent log lines and exits (like reading a file). With `--follow` (or `-f`), streams output in real time and tracks new iterations automatically, similar to `tail -f`. Works in both foreground and background modes by reading from NDJSON log files (ADR-012).
+Displays daemon activity reconstructed from NDJSON log files. The default output is a groomed, human-readable summary of what the daemon did (or is doing). Flags control verbosity from summary-only to full agent output.
+
+When the daemon is running, output streams in real time (implicit `--follow`). When the daemon is stopped, the last session's output is displayed and the command exits.
+
+All output is reconstructed from NDJSON log files in `.wolfcastle/system/logs/`. The command never reads the daemon's stdout directly, so it works whether the daemon is running or stopped, and historical sessions are replayable.
 
 ### Arguments and Flags
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `-f`, `--follow` | boolean | No | `false` | Stream output in real time (like tail -f) |
-| `--lines <n>` | integer | No | `20` | Number of lines to show |
-| `-l`, `--level <level>` | string | No | (none) | Minimum log level filter (debug, info, warn, error) |
+| `-f`, `--follow` | boolean | No | `false` (implicit `true` when daemon is running) | Follow live output. No-op when daemon is stopped. |
+| `-t`, `--thoughts` | boolean | No | `false` | Raw agent output only. No stage headers or durations. |
+| `-i`, `--interleaved` | boolean | No | `false` | Stage headers and agent output together with timestamps. |
+| `--json` | boolean | No | `false` | Raw NDJSON output, no formatting. Pipe to `jq`. |
+| `-s`, `--session` | integer | No | `0` | Session index. 0 = latest (current or most recent), 1 = previous, etc. |
+
+`--thoughts`, `--interleaved`, and `--json` are mutually exclusive. If more than one is passed, the last one wins.
+
+### Output Modes
+
+Three modes control what the output looks like. The default is summary.
+
+**Summary (default):** One line per completed stage showing stage type, node address, and duration.
+
+```
+[intake]  donut-stand-website                              (12s)
+[plan]    donut-stand-website                              (45s)
+[execute] donut-stand-website/site-specification/task-0001 (1m22s)
+[execute] donut-stand-website/site-specification/task-0002 (58s)
+[audit]   donut-stand-website/site-specification           (34s)
+  report: .wolfcastle/system/projects/.../audit-2026-03-21T18-08.md
+[execute] donut-stand-website/project-foundation/task-0001 (2m5s)
+```
+
+In follow mode, each stage prints a start line and a completion line using glyphs: `▶` for start, `✓` for completion, `✗` for failure or block.
+
+```
+▶ [execute] donut-stand-website/site-specification/task-0001
+✓ [execute] donut-stand-website/site-specification/task-0001 (1m22s)
+▶ [execute] donut-stand-website/site-specification/task-0002
+✗ [execute] donut-stand-website/site-specification/task-0002 (3m41s)
+```
+
+When replaying a completed session (no `--follow`), only the completion lines are shown with `✓`/`✗` glyphs and durations.
+
+**Thoughts (`--thoughts`):** Raw agent output only. No stage headers, no durations, no timestamps, no glyphs. Just what the model said, as it said it.
+
+```
+I'll start by creating the site specification document...
+Reading the project requirements from the inbox item...
+The inbox item asks for a donut stand website, so I'll need...
+```
+
+In follow mode, this tails the active log file and extracts agent assistant records in real time. For historical sessions, all agent output from every iteration in the session is shown.
+
+**Interleaved (`--interleaved`):** Stage headers and agent thoughts together, chronologically, with wall-clock timestamps and glyphs.
+
+```
+18:01:34 ▶ [execute] donut-stand-website/site-specification/task-0001
+18:01:35     I'll start by creating the site specification document...
+18:01:36     Reading the project requirements from the inbox item...
+18:02:56 ✓ [execute] donut-stand-website/site-specification/task-0001 (1m22s)
+18:02:57 ▶ [execute] donut-stand-website/site-specification/task-0002
+18:02:58     Now I need to write the HTML structure...
+```
+
+Agent thoughts are indented to visually separate them from stage headers. Timestamps are `HH:MM:SS` in local time.
 
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
-2. Find the highest-numbered log file in `.wolfcastle/system/logs/`.
-   - If no log files exist and `--follow` is not set, report no logs and exit.
-   - If no log files exist and `--follow` is set, wait for one to appear (with a timeout message after 5 seconds).
-3. Print the last `n` lines of the current log file (parsed from NDJSON, formatted for human readability). If `--level` is specified, only lines at or above that severity are shown.
-4. **Without `--follow`**: exit 0.
-5. **With `--follow`**: tail the file, printing new lines as they are appended.
-6. Watch for new iteration files. When a new, higher-numbered file appears, switch to tailing it and print a separator:
-   ```
-   --- iteration 0042 started ---
-   ```
-7. Continue until the user presses Ctrl+C, or the daemon exits (detected by checking the PID file / process status periodically).
-8. When the daemon exits, print a final message and exit.
+2. Identify the target session from `--session`. Session boundaries are detected by finding the iteration-1 log file or by timestamp discontinuity.
+3. Read NDJSON log files for the target session from `.wolfcastle/system/logs/`.
+4. Render output according to the selected mode (summary, thoughts, interleaved, or raw JSON).
+5. **Without `--follow`**: display the session's output and exit 0.
+6. **With `--follow`**: stream new records as they are written, rendering each according to the selected mode.
+7. Continue until the user presses Ctrl+C or the daemon exits.
 
-### Output
+### Formatting Rules
 
-Recent log output (without `--follow`):
-
-```
-[18:45:03] Navigating to attunement-tree/fire-impl/task-3
-[18:45:04] Executing pipeline stage: execute (heavy)
-[18:45:05] Model: Analyzing the fire implementation stamina cost...
-[18:45:12] Script call: wolfcastle task claim --node attunement-tree/fire-impl/task-3
-[18:45:12] Task claimed: attunement-tree/fire-impl/task-3
-```
-
-Streaming output (with `--follow`):
-
-```
-[18:45:03] Navigating to attunement-tree/fire-impl/task-3
-[18:45:04] Executing pipeline stage: execute (heavy)
-[18:45:05] Model: Analyzing the fire implementation stamina cost...
-[18:45:12] Script call: wolfcastle task claim --node attunement-tree/fire-impl/task-3
-[18:45:12] Task claimed: attunement-tree/fire-impl/task-3
-...
---- iteration 0042 started ---
-[18:47:01] Navigating to attunement-tree/fire-impl/task-4
-```
+Stage labels: `[intake]`, `[plan]`, `[execute]`, `[audit]`, `[remediate]`, `[spec-review]`. Duration uses compact human shorthand with no spaces: `34s`, `1m22s`, `12m5s`, `1h3m`. Terminal markers (`WOLFCASTLE_COMPLETE`, etc.) and log levels (`[INFO]`) are never shown in output. Audit report paths appear indented below the audit completion line when a report was generated.
 
 ### Exit Codes
 
 | Code | Condition |
 |------|-----------|
-| 0 | Log output displayed, or user interrupted (Ctrl+C), or daemon exited |
-| 1 | `.wolfcastle/` not found |
+| 0 | Success, or follow mode interrupted by Ctrl+C |
+| 1 | No log files found, or not initialized |
 
 ### Examples
 
 ```bash
-# Show the last 20 log lines and exit
+# Summary of the current/last session (streams if daemon is running)
 wolfcastle log
 
-# Show the last 100 lines
-wolfcastle log --lines 100
+# Raw agent thoughts, streamed live
+wolfcastle log --thoughts
 
-# Stream logs in real time
-wolfcastle log -f
+# Interleaved stage headers and thoughts with timestamps
+wolfcastle log -i -f
 
-# Stream only warnings and errors
-wolfcastle log -f --level warn
+# View the previous session
+wolfcastle log --session 1
 
-# Show recent errors only
-wolfcastle log --level error
+# Raw NDJSON piped to jq
+wolfcastle log --json | jq '.type'
 ```
 
 ### Error Cases
@@ -781,7 +814,7 @@ wolfcastle log --level error
 | Error | Message | Code |
 |-------|---------|------|
 | Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
-| No logs, no daemon | `No log files found and no daemon running. Start wolfcastle first.` | 1 |
+| No logs found | `No log files found. Start wolfcastle first.` | 1 |
 
 ---
 
