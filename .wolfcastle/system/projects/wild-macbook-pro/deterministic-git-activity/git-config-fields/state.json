@@ -49,7 +49,7 @@
       "id": "task-0003",
       "title": "Update config-reference.md with new git fields",
       "description": "Update config-reference.md with new git fields",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/config-reference.md"
@@ -67,9 +67,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Git Config Fields is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -95,15 +96,36 @@
         "timestamp": "2026-03-22T20:27:06.47968Z",
         "task": "deterministic-git-activity/git-config-fields",
         "text": "Documented commit_on_success, commit_on_failure, commit_state in docs/humans/config-reference.md following existing git section format."
+      },
+      {
+        "timestamp": "2026-03-22T20:29:15.271259Z",
+        "task": "deterministic-git-activity/git-config-fields",
+        "text": "Audit reviewed 4 files: types.go (3 new bool fields on GitConfig), config.go (defaults set to true), validate_extra_test.go (table-driven test covering 8 field combinations plus format-unchanged regression), config-reference.md (3 new entries following established format). PASS. Zero findings. Build clean, all tests pass including race detector, gofmt and go vet clean. Booleans require no validation beyond JSON unmarshal, which is correctly handled. Defaults, struct placement, test coverage, and documentation are all consistent and correct. Quality: clean, minimal, well-scoped work across all three tasks."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T20:24:41.087125Z",
-    "result_summary": "Added three new git config fields (CommitOnSuccess, CommitOnFailure, CommitState) to GitConfig with true defaults, validated via table-driven tests covering all field combinations, and documented in config-reference.md. The fields give operators granular control over daemon commit behavior under the existing auto_commit master switch."
+    "result_summary": "Added three granular commit-control boolean fields (CommitOnSuccess, CommitOnFailure, CommitState) to GitConfig, all defaulting to true and gated by the existing AutoCommit master switch. The struct, defaults, validation tests (8-combination table-driven suite), and config-reference documentation are complete and consistent. No validation logic was needed beyond JSON unmarshal for boolean types. All tests pass, including race detector. The node is ready for downstream consumption by the daemon-commit-logic node."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T20:29:23.457635Z",
+      "objective": "Verify all work in the git-config-fields node is complete and correct",
+      "what_happened": "Reviewed types.go, config.go, validate_extra_test.go, validate.go, and config-reference.md. Ran full build, all tests, race detector, gofmt, and go vet. All pass with zero issues. Confirmed struct fields are correctly placed, defaults match documentation, tests cover the relevant matrix, and no validation logic is needed for plain booleans.",
+      "went_well": [
+        "The three tasks were well-scoped and executed cleanly; each change was minimal and correct",
+        "Table-driven test design in validate_extra_test.go covers combinations without bloating the test file"
+      ],
+      "improvements": [
+        "None identified; the scope was small enough that there is little room for error"
+      ],
+      "action_items": [
+        "Downstream daemon-commit-logic node should honor auto_commit as master switch for the three sub-fields at runtime"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T20:25:28.510088Z",
