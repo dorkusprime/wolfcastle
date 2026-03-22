@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Add execute and intake command sections",
       "description": "Add execute and intake command sections",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/specs/2026-03-12T00-06Z-cli-commands.md"
@@ -34,7 +34,7 @@
       "id": "task-0002",
       "title": "Add config subcommand sections",
       "description": "Add config subcommand sections",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/specs/2026-03-12T00-06Z-cli-commands.md"

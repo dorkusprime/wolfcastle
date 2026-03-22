@@ -1,6 +1,6 @@
 # CLI Command Specification
 
-This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 43 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `install`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
+This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 52 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `config`, `install`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
 
 ## Conventions
 
@@ -4281,6 +4281,460 @@ fi
 | Not initialized | `{"ok": false, "error": "not a wolfcastle project (no .wolfcastle/ found)", "code": "NOT_INITIALIZED"}` | 1 |
 | No identity | `{"ok": false, "error": "identity not configured", "code": "NO_IDENTITY"}` | 1 |
 | Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
+
+---
+
+## wolfcastle config show
+
+### Synopsis
+
+```
+wolfcastle config show [section] [--tier <base|custom|local>] [--raw] [--json]
+```
+
+### Description
+
+Prints the Wolfcastle configuration to stdout as indented JSON. By default, the output reflects the fully resolved config: hardcoded defaults merged with base, custom, and local tiers (the same object returned by `config.Load()`). The structure matches the `Config` type in `internal/config/types.go`.
+
+An optional positional `section` argument filters the output to a single top-level key. If the section does not exist, the command exits with an error listing valid section names. The section filter applies after mode resolution, so it composes freely with `--tier`, `--raw`, and `--json`.
+
+Two flags modify what is shown:
+
+- `--tier` restricts output to a single tier file's raw JSON content, before merge.
+- `--raw` suppresses the hardcoded defaults layer, showing only what the tier files contain.
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `section` | positional | No | (none) | Filter output to a single top-level key (e.g. `pipeline`, `models`). Unknown keys exit 1 with valid section list |
+| `--tier` | string | No | (none) | Display a single tier's raw JSON. Accepted: `base`, `custom`, `local` |
+| `--raw` | boolean | No | `false` | Suppress hardcoded defaults layer. Merges only tier files. No-op when combined with `--tier` |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Resolve config based on mode:
+   - **Default** (no flags): call `config.Load()` for fully merged config.
+   - **`--tier`**: read the single tier file (`.wolfcastle/system/{tier}/config.json`). Missing files produce `{}`.
+   - **`--raw`** (without `--tier`): deep-merge the three tier files without seeding from `Defaults()`.
+   - **`--raw` with `--tier`**: identical to `--tier` alone.
+3. If a `section` argument is given, extract that top-level key from the result. Exit 1 if the key does not exist.
+4. Marshal to indented JSON (two-space indent, HTML escaping disabled).
+5. If `--json`, wrap in the standard envelope with action `"config_show"`.
+
+### Output
+
+Default (merged config):
+
+```
+$ wolfcastle config show
+{
+  "version": 1,
+  "models": { ... },
+  "pipeline": { ... },
+  ...
+}
+```
+
+Filtered by section:
+
+```
+$ wolfcastle config show pipeline
+{
+  "stages": [ ... ],
+  "planning": { "enabled": true, ... }
+}
+```
+
+JSON envelope:
+
+```json
+{
+  "ok": true,
+  "action": "config_show",
+  "data": { "version": 1, "models": { ... } }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success |
+| 1 | No `.wolfcastle/` directory, malformed tier file, invalid `--tier` value, or unknown section name |
+
+### Examples
+
+```bash
+# Show fully merged config
+wolfcastle config show
+
+# Show only the pipeline section
+wolfcastle config show pipeline
+
+# Show what the local tier overrides
+wolfcastle config show --tier local
+
+# Show merged tier files without defaults
+wolfcastle config show --raw
+
+# JSON envelope for a specific section from a specific tier
+wolfcastle config show models --tier base --json
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be one of: base, custom, local` |
+| Tier file missing | Print `{}` (not an error) |
+| Tier file is malformed JSON | Exit 1: `error: {tier}/config.json is not valid JSON: {parse error}` |
+| Unknown section argument | Exit 1: `error: unknown section "X"; valid sections: a, b, c` (alphabetical) |
+
+---
+
+## wolfcastle config set
+
+### Synopsis
+
+```
+wolfcastle config set <key> <value> [--tier local|custom] [--json]
+```
+
+### Description
+
+Sets a configuration key to a value in a tier overlay file. Uses dot-notation paths to address nested keys (e.g. `daemon.poll_interval_seconds`). Intermediate maps are created if they do not exist. If the key already exists, its value is replaced.
+
+The value argument is parsed as JSON first (numbers, booleans, null, objects, arrays). If JSON parsing fails, the raw string is stored as a JSON string value. This means `wolfcastle config set logs.max_files 5` stores an integer, while `wolfcastle config set identity.user alice` stores a string, without quoting gymnastics.
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `key` | positional | Yes | -- | Dot-notation config path |
+| `value` | positional | Yes | -- | Value to set. Parsed as JSON first; bare strings become JSON strings |
+| `--tier` | string | No | `local` | Target tier: `local` or `custom`. Writing to `base` is rejected |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Validate the key (reject empty segments, trailing dots, array indexing syntax).
+3. Parse the value argument (JSON first, then bare string fallback).
+4. Read the current tier overlay file. If absent, start with `{}`.
+5. Walk the dot-notation path, creating intermediate maps as needed, and assign the value at the leaf.
+6. Write the modified overlay back to the tier file.
+7. Validate: call `config.Load()` to produce the merged config. If validation fails, restore the original tier file and report the error.
+8. Output confirmation.
+
+### Output
+
+Human mode:
+
+```
+Set daemon.poll_interval_seconds = 10 in local/config.json
+```
+
+JSON mode:
+
+```json
+{
+  "ok": true,
+  "action": "config_set",
+  "data": { "key": "daemon.poll_interval_seconds", "value": 10, "tier": "local" }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success |
+| 1 | No `.wolfcastle/` directory, invalid tier, malformed key, or validation failure |
+
+### Examples
+
+```bash
+# Set a numeric value
+wolfcastle config set logs.max_files 5
+
+# Set a string value
+wolfcastle config set identity.user alice
+
+# Set a boolean
+wolfcastle config set pipeline.enabled true
+
+# Set a complex value
+wolfcastle config set identity.tags '["a","b"]'
+
+# Write to custom tier instead of local
+wolfcastle config set logs.level warn --tier custom
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| `--tier base` | Exit 1: `error: cannot write to base tier (base is managed by the system)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be "local" or "custom"` |
+| Malformed key (empty segment) | Exit 1: `error: invalid key "daemon..poll": empty path segment` |
+| Malformed key (trailing dot) | Exit 1: `error: invalid key "daemon.": trailing dot` |
+| Malformed key (array indexing) | Exit 1: `error: invalid key "commands[0]": array indexing is not supported` |
+| Validation failure after write | Exit 1: `error: validation failed, rolled back: {validation error}` |
+
+---
+
+## wolfcastle config append
+
+### Synopsis
+
+```
+wolfcastle config append <key> <value> [--tier local|custom] [--json]
+```
+
+### Description
+
+Appends a value to an array at the given config key. If the key does not exist, a new single-element array is created. If the key exists but is not an array, the command returns an error. The value is parsed with the same JSON-then-string rules as `config set`.
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `key` | positional | Yes | -- | Dot-notation config path to an array |
+| `value` | positional | Yes | -- | Value to append. Parsed as JSON first; bare strings become JSON strings |
+| `--tier` | string | No | `local` | Target tier: `local` or `custom` |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Validate the key.
+3. Parse the value argument.
+4. Read the current tier overlay file. If absent, start with `{}`.
+5. Walk the dot-notation path to the leaf:
+   - If the leaf is an array, append the parsed value.
+   - If the leaf does not exist, create a single-element array.
+   - If the leaf exists but is not an array, return an error.
+6. Write the modified overlay back to the tier file.
+7. Validate via `config.Load()`. Roll back on failure.
+8. Output confirmation.
+
+### Output
+
+Human mode:
+
+```
+Appended "review" to pipeline.stage_order in custom/config.json
+```
+
+JSON mode:
+
+```json
+{
+  "ok": true,
+  "action": "config_append",
+  "data": { "key": "pipeline.stage_order", "value": "review", "tier": "custom" }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success |
+| 1 | No `.wolfcastle/` directory, invalid tier, malformed key, non-array target, or validation failure |
+
+### Examples
+
+```bash
+# Append a string to an array
+wolfcastle config append identity.tags foo
+
+# Append an object
+wolfcastle config append pipeline.steps '{"name":"lint"}'
+
+# Append to custom tier
+wolfcastle config append identity.tags bar --tier custom
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| `--tier base` | Exit 1: `error: cannot write to base tier (base is managed by the system)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be "local" or "custom"` |
+| Existing value is not an array | Exit 1: `error: cannot append to "logs.max_files": existing value is not an array` |
+| Validation failure after write | Exit 1: `error: validation failed, rolled back: {validation error}` |
+
+---
+
+## wolfcastle config remove
+
+### Synopsis
+
+```
+wolfcastle config remove <key> <value> [--tier local|custom] [--json]
+```
+
+### Description
+
+Removes the first matching value from an array at the given config key. Equality is determined by JSON serialization: both the candidate and each array element are marshaled to JSON and the resulting strings are compared. If the value is not found, the command exits with an error. If removal leaves an empty array, the empty array is written (use `config unset` to delete the key entirely).
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `key` | positional | Yes | -- | Dot-notation config path to an array |
+| `value` | positional | Yes | -- | Value to remove. Parsed as JSON first; bare strings become JSON strings |
+| `--tier` | string | No | `local` | Target tier: `local` or `custom` |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Validate the key.
+3. Parse the value argument.
+4. Read the current tier overlay file. If absent, start with `{}`.
+5. Walk the dot-notation path to the leaf:
+   - If the leaf is not an array, return an error.
+   - Search for the value by JSON-string equality and remove the first match.
+   - If the value is not found, return an error.
+6. Write the modified overlay back to the tier file.
+7. Validate via `config.Load()`. Roll back on failure.
+8. Output confirmation.
+
+### Output
+
+Human mode:
+
+```
+Removed "review" from pipeline.stage_order in custom/config.json
+```
+
+JSON mode:
+
+```json
+{
+  "ok": true,
+  "action": "config_remove",
+  "data": { "key": "pipeline.stage_order", "value": "review", "tier": "custom" }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success |
+| 1 | No `.wolfcastle/` directory, invalid tier, malformed key, non-array target, value not found, or validation failure |
+
+### Examples
+
+```bash
+# Remove a string from an array
+wolfcastle config remove identity.tags foo
+
+# Remove a numeric value
+wolfcastle config remove identity.tags 42
+
+# Remove an object
+wolfcastle config remove pipeline.steps '{"name":"lint"}'
+
+# Remove from custom tier
+wolfcastle config remove identity.tags bar --tier custom
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| `--tier base` | Exit 1: `error: cannot write to base tier (base is managed by the system)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be "local" or "custom"` |
+| Existing value is not an array | Exit 1: `error: cannot remove from "logs.max_files": existing value is not an array` |
+| Value not found in array | Exit 1: `error: value not found in array at "pipeline.stage_order"` |
+| Validation failure after write | Exit 1: `error: validation failed, rolled back: {validation error}` |
+
+---
+
+## wolfcastle config unset
+
+### Synopsis
+
+```
+wolfcastle config unset <key> [--tier local|custom] [--json]
+```
+
+### Description
+
+Removes a key from a tier overlay file. The key and any nested structure beneath it are deleted from the target tier's `config.json`. On the next `config.Load()`, the value reverts to whatever lower tiers or hardcoded defaults provide. If no lower tier sets the key, it disappears from the resolved config entirely. If the key does not exist in the tier file, the command succeeds silently.
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `key` | positional | Yes | -- | Dot-notation config path to remove |
+| `--tier` | string | No | `local` | Target tier: `local` or `custom` |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Validate the key.
+3. Read the current tier overlay file. If absent, start with `{}`.
+4. Walk the dot-notation path and delete the key at the leaf. If the key does not exist, succeed silently.
+5. Write the modified overlay back to the tier file.
+6. Validate via `config.Load()`. Roll back on failure.
+7. Output confirmation.
+
+### Output
+
+Human mode:
+
+```
+Unset pipeline.stages.audit.enabled from local/config.json
+```
+
+JSON mode:
+
+```json
+{
+  "ok": true,
+  "action": "config_unset",
+  "data": { "key": "pipeline.stages.audit.enabled", "tier": "local" }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success (including when the key did not exist) |
+| 1 | No `.wolfcastle/` directory, invalid tier, malformed key, or validation failure |
+
+### Examples
+
+```bash
+# Unset a key from local tier
+wolfcastle config unset logs.level
+
+# Unset from custom tier
+wolfcastle config unset pipeline.timeout --tier custom
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| `--tier base` | Exit 1: `error: cannot write to base tier (base is managed by the system)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be "local" or "custom"` |
+| Validation failure after write | Exit 1: `error: validation failed, rolled back: {validation error}` |
 
 ---
 
