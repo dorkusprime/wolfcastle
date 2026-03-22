@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Extract behavioral guidance from execute.md into default.md",
       "description": "Extract behavioral guidance from execute.md into default.md",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/default.md",
@@ -35,7 +35,7 @@
       "id": "task-0002",
       "title": "Wire default.md as fallback class guidance in ContextBuilder",
       "description": "Wire default.md as fallback class guidance in ContextBuilder",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/context_builder.go",
