@@ -102,6 +102,11 @@
         "timestamp": "2026-03-22T07:31:10.966503Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
         "text": "Authored JavaScript class prompt (javascript.md, 59 lines) covering style, tooling, testing, and pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T07:33:49.158399Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored TypeScript class prompt (typescript.md, 59 lines) covering style, tooling, testing, and pitfalls [task-0003]"
       }
     ],
     "gaps": [],
@@ -137,6 +142,22 @@
       ],
       "improvements": [
         "Could add a section on TypeScript interop patterns, but that belongs in a separate typescript.md prompt"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T07:33:47.890007Z",
+      "objective": "Author the TypeScript language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript.md at 59 lines. Followed the established four-section format: Style, Build and Test, Testing, Common Pitfalls. Style covers strict mode, discriminated unions, type vs interface, type-only imports, utility types, branded types, unknown over any, and satisfies. Build and Test covers tsc --noEmit, tsx/ts-node, typescript-eslint, Prettier, and Vitest/Jest. Testing covers describe/it organization, behavior testing, no any in tests, type-level tests with expectTypeOf/tsd, and boundary mocking. Common Pitfalls covers as casts, enum pitfalls (prefer unions), declaration merging, index signatures with noUncheckedIndexedAccess, overusing generics, and non-null assertion operator.",
+      "went_well": [
+        "59 lines fits the 40-80 target while covering all requested topics from the task description",
+        "Consistent structure and tone with existing Go, Kotlin, Python, and JavaScript prompts"
+      ],
+      "improvements": [
+        "Could add a section on module resolution (Node16 vs bundler) but the task description did not request it and 59 lines is already well within range"
       ],
       "action_items": [
         "No follow-ups needed"
