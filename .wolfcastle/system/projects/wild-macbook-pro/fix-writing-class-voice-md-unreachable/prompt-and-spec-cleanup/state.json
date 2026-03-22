@@ -21,7 +21,7 @@
       "id": "task-0002",
       "title": "Update ClassRepository contract spec",
       "description": "Update ClassRepository contract spec",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         ".wolfcastle/docs/specs/2026-03-18T22-31Z-classrepository-contract.md"
@@ -32,7 +32,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Prompt and Spec Cleanup is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -54,12 +54,18 @@
         "timestamp": "2026-03-22T14:41:19.474196Z",
         "task": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
         "text": "Updated ClassRepository contract spec with subdirectory assembly step in Resolve algorithm and multi-file invariant"
+      },
+      {
+        "timestamp": "2026-03-22T14:43:13.398592Z",
+        "task": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
+        "text": "Audit review of 2 files (140 lines changed). PASS. Findings: (1) writing.md: dangling voice.md reference correctly removed, no other class prompts have similar references (grep confirmed). (2) ClassRepository spec: subdirectory assembly step accurately reflects implementation in class_repository.go:83-89, verified ListFragments call, fragment joining, resolvedKey usage, and error discarding. Build passes, all tests pass with race detector. No gaps, no escalations. Quality: both changes are minimal, correct, and well-targeted."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T14:39:07.467316Z"
+    "started_at": "2026-03-22T14:39:07.467316Z",
+    "result_summary": "Cleaned up prompt and spec artifacts related to subdirectory assembly. Removed the dangling voice.md cross-reference from writing.md (line 5) since subdirectory assembly now delivers voice content automatically. Updated the ClassRepository contract spec to document the subdirectory assembly step in Resolve's algorithm and added an invariant noting that Resolve may return multi-file assembled content. Both changes verified against the implementation; build and tests pass cleanly."
   },
   "aars": {
     "task-0001": {
