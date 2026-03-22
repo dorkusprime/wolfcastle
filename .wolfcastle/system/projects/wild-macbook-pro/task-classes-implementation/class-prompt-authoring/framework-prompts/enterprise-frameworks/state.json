@@ -3,14 +3,14 @@
   "id": "enterprise-frameworks",
   "name": "Enterprise Frameworks",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Write Java/Spring class prompt",
       "description": "Write Java/Spring class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/java/spring.md"
@@ -77,9 +77,33 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T08:45:42.605644Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored Java/Spring class prompt covering Boot 3.x patterns, DI, MVC, Data JPA, transactions, security, testing, and five common pitfalls [task-0001]"
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T08:43:01.263404Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T08:45:40.843154Z",
+      "objective": "Author the Java/Spring framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/java/spring.md (43 lines). Studied existing framework prompts (Flask, Django, Rails) to match format and depth. Covered all required topics: Spring Boot 3.x application structure, dependency injection with constructor preference, @RestController web layer, Spring Data JPA with Specifications and projections, @Transactional semantics, Spring Security with SecurityFilterChain, and sliced testing annotations. All five required pitfalls are addressed (proxy-bypassed @Transactional, circular DI, N+1 lazy loading, bean scope confusion, profile drift).",
+      "went_well": [
+        "The prompt maintains consistent structure with other framework prompts while covering Spring-specific concerns without duplicating the Java language prompt"
+      ],
+      "improvements": [
+        "Could have included a section on Spring Boot Actuator and observability, but that would push past the 60-line target"
+      ],
+      "action_items": [
+        "If a Spring WebFlux reactive prompt is needed later, it should be a separate framework prompt since the programming model differs substantially from the servlet-based Spring MVC covered here"
+      ]
+    }
   }
 }

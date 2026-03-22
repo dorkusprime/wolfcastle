@@ -3,7 +3,7 @@
   "id": "backend-scripting-frameworks",
   "name": "Backend Scripting Frameworks",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -76,7 +76,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Backend Scripting Frameworks is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -127,8 +127,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T08:27:50.684887Z",
+    "completed_at": "2026-03-22T08:43:01.155523Z",
     "result_summary": "Authored six framework-specific class prompts for backend scripting languages: JavaScript/Node.js (51 lines), Python/Django (45 lines), Python/FastAPI (45 lines), Python/Flask (41 lines), Ruby/Rails (45 lines), and Ruby/Sinatra (41 lines). Each prompt covers framework-specific patterns, project structure, testing strategies, and common pitfalls without duplicating language fundamentals from the parent prompts. All files follow consistent structure (H1 header, codebase-conventions preamble, themed sections, Common Pitfalls) and use 'prefer X' phrasing throughout. Technical content reflects current framework versions (Node 20+, Django 5.x, FastAPI 0.100+/Pydantic v2, Flask 2.2+/3.x, Rails 7.x, Sinatra with modular style). Audit found no issues requiring remediation."
   },
   "aars": {
