@@ -22,7 +22,7 @@
       "id": "task-0002",
       "title": "Author research.md and architecture.md",
       "description": "Author research.md and architecture.md",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/research.md",
@@ -34,7 +34,7 @@
       "id": "task-0003",
       "title": "Author audit.md and testing.md",
       "description": "Author audit.md and testing.md",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/audit.md",
@@ -79,6 +79,11 @@
         "timestamp": "2026-03-22T09:20:50.861216Z",
         "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
         "text": "Authored research.md (35 lines) and architecture.md (35 lines). Researched PRISMA/GRADE, CRAAP/SIFT, ATAM, C4/arc42 before drafting. Both follow established class prompt conventions. Zero wolfcastle-specific content."
+      },
+      {
+        "timestamp": "2026-03-22T09:25:27.473861Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Authored audit.md (35 lines) and testing.md (43 lines). Researched Fagan/IEEE 1028/OWASP/NASA for audit; xUnit Patterns/Google flaky test research/Fowler test pyramid/Hypothesis PBT for testing. Both follow established class prompt conventions. Zero wolfcastle-specific content."
       }
     ],
     "gaps": [],
@@ -117,6 +122,22 @@
       ],
       "action_items": [
         "Consider adding an architecture/cloud.md companion for cloud-native architecture patterns (twelve-factor, cell-based architecture, multi-region considerations)"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T09:25:25.59285Z",
+      "objective": "Author audit.md and testing.md class prompts for verification and test discipline",
+      "what_happened": "Created two files: audit.md (35 lines) covers read-only review stance, anomaly-before-defect recording, two-axis severity classification, checklist-driven verification with coverage tracing, and honest handling of ambiguous findings. testing.md (43 lines) covers behavior-over-implementation coverage, boundary value analysis, test isolation and hermetic environments, scenario-based naming, flaky test prevention, property-based testing, and performance benchmarking. Researched Fagan inspections, IEEE 1028, OWASP severity classification, NASA formal inspection process, ODC, Google/Microsoft code review studies, xUnit Test Patterns, Google flaky test research, Fowler's test pyramid, Dodds' testing trophy, and Hypothesis/QuickCheck property testing.",
+      "went_well": [
+        "Audit prompt's emphasis on observation-not-correction came through cleanly by grounding it in Fagan's separation of detection from rework and IEEE 1028's anomaly terminology",
+        "Testing prompt covers the full spectrum from unit-level discipline through property-based and performance testing without exceeding the line budget"
+      ],
+      "improvements": [
+        "The testing prompt is framework-agnostic by design, but a future companion for specific test frameworks (Go testing, pytest, Jest) could add language-specific fixture patterns and assertion idioms"
+      ],
+      "action_items": [
+        "Consider adding testing/go.md or testing/python.md companions for framework-specific test patterns"
       ]
     }
   }
