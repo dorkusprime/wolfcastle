@@ -124,6 +124,12 @@ func (e *Engine) validate(idx *state.RootIndex, categories map[string]bool) *Rep
 			continue
 		}
 
+		// Archived nodes have their state files moved to .archive/.
+		// They're expected to be missing from the projects directory.
+		if entry.Archived {
+			continue
+		}
+
 		ns, err := e.loadNode(addr)
 		if err != nil {
 			if e.include(CatRootIndexDanglingRef, categories) {
@@ -633,6 +639,11 @@ func (e *Engine) checkOrphanedStateFiles(idx *state.RootIndex, report *Report) {
 	_ = filepath.Walk(e.projectsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
+		}
+		// Skip the .archive/ directory; archived state files are
+		// expected to live outside the active project tree.
+		if info.IsDir() && info.Name() == ".archive" {
+			return filepath.SkipDir
 		}
 		if info.Name() != "state.json" || path == filepath.Join(e.projectsDir, "state.json") {
 			return nil

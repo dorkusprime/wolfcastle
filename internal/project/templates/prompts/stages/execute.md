@@ -60,7 +60,10 @@ Look for the project's build system: Makefile, go.mod, package.json, Cargo.toml,
 1. **Build**: run the project's build command (`make build`, `go build ./...`, `npm run build`, `cargo build`, etc.). Fix all errors before proceeding.
 2. **Test**: run the full test suite (`make test`, `go test ./...`, `npm test`, `cargo test`, `pytest`, etc.). Fix all failures, including tests you didn't write. If your changes break an existing test, that's your problem. Do not skip tests, disable tests, or mark tests as expected failures to work around breakage.
 3. **Format**: run the project's formatter (`gofmt`, `prettier`, `rustfmt`, `black`, etc.). Commit only formatted code.
-4. **Lint/vet**: if the project has a linter or static analysis tool configured, run it. Fix warnings your changes introduced. Do not suppress warnings with ignore directives unless the warning is genuinely wrong.
+4. **Lint/vet**: run the project's linter and static analysis. Check the Makefile (`make lint`), CI config, or linter config files (`.golangci.yml`, `.eslintrc`, `.flake8`, `clippy.toml`, etc.) to find the right command. Fix all warnings your changes introduced. Do not suppress warnings with ignore directives unless the warning is genuinely wrong.
+
+5. **Spec cross-reference**: if a spec exists for the work you're doing (check `.wolfcastle/docs/specs/` and `docs/specs/`), verify every behavioral claim in the spec is implemented. Check edge cases, error paths, and flag interactions described in the spec. Missing spec behavior is a gap, not a nice-to-have.
+6. **Stdlib check**: before writing any utility function, search the standard library and existing codebase for an equivalent. Reimplementing `bytes.IndexByte`, `strings.Contains`, or similar is a waste. Use what exists.
 
 Do not skip this phase. Do not commit code that doesn't build or pass tests. If the build or tests fail, fix the failures before moving on. If you cannot fix a failure, do not emit WOLFCASTLE_COMPLETE. Emit WOLFCASTLE_YIELD with a breadcrumb explaining what broke and why you couldn't fix it.
 
