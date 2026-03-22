@@ -3,14 +3,14 @@
   "id": "scaffold-templates",
   "name": "Scaffold Templates",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Create scaffold template files",
       "description": "Create scaffold template files",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/scaffold/gitignore.tmpl",
@@ -80,6 +80,7 @@
     "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T22:07:45.535488Z"
   }
 }

@@ -3,7 +3,7 @@
   "id": "template-repository-infrastructure",
   "name": "Template Repository Infrastructure",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -92,7 +92,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Template Repository Infrastructure is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -134,8 +134,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T21:58:22.193355Z",
+    "completed_at": "2026-03-22T22:07:45.440703Z",
     "result_summary": "Template Repository Infrastructure added three capabilities to PromptRepository: ResolveTemplate for three-tier template file resolution with text/template execution, RenderToFile for consolidated resolve-execute-write in a single call, and four typed context structs (ADRData, SpecData, TaskData, AuditTaskData) for type-safe template variable passing. The WithTemplate testutil helper enables clean test fixture setup. All methods follow established PromptRepository patterns, compose cleanly (RenderToFile delegates to ResolveTemplate), and wrap errors with contextual prefixes. Test coverage is thorough: 14 table-driven cases plus 3 standalone tests covering happy paths, error propagation, tier overrides, file permissions, and write errors. Package coverage holds at 97.3%."
   },
   "aars": {

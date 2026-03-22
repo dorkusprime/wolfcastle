@@ -3,13 +3,13 @@
   "id": "call-site-migration",
   "name": "Call-Site Migration",
   "type": "orchestrator",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "children": [
     {
       "id": "scaffold-templates",
       "address": "template-based-file-generation/call-site-migration/scaffold-templates",
-      "state": "not_started"
+      "state": "in_progress"
     },
     {
       "id": "artifact-templates",

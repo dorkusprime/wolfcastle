@@ -9,12 +9,12 @@
     {
       "id": "template-repository-infrastructure",
       "address": "template-based-file-generation/template-repository-infrastructure",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "call-site-migration",
       "address": "template-based-file-generation/call-site-migration",
-      "state": "not_started"
+      "state": "in_progress"
     },
     {
       "id": "template-documentation",

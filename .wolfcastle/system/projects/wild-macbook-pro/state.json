@@ -690,7 +690,7 @@
     "template-based-file-generation/call-site-migration": {
       "name": "Call-Site Migration",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "template-based-file-generation/call-site-migration",
       "decomposition_depth": 0,
       "parent": "template-based-file-generation",
@@ -710,7 +710,7 @@
     "template-based-file-generation/call-site-migration/scaffold-templates": {
       "name": "Scaffold Templates",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "template-based-file-generation/call-site-migration/scaffold-templates",
       "decomposition_depth": 0,
       "parent": "template-based-file-generation/call-site-migration"
@@ -726,7 +726,7 @@
     "template-based-file-generation/template-repository-infrastructure": {
       "name": "Template Repository Infrastructure",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "template-based-file-generation/template-repository-infrastructure",
       "decomposition_depth": 0,
       "parent": "template-based-file-generation"
