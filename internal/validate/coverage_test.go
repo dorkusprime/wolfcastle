@@ -127,6 +127,27 @@ func TestCheckOrphanedDefinitions_KnownNodeNotFlagged(t *testing.T) {
 	}
 }
 
+func TestCheckOrphanedDefinitions_ArchiveSkipped(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	idx := state.NewRootIndex()
+
+	archiveDir := filepath.Join(dir, ".archive", "old-project")
+	_ = os.MkdirAll(archiveDir, 0755)
+	_ = os.WriteFile(filepath.Join(archiveDir, "old-project.md"), []byte("archived"), 0644)
+	_ = os.WriteFile(filepath.Join(archiveDir, "audit.md"), []byte("archived audit"), 0644)
+
+	engine := NewEngine(dir, DefaultNodeLoader(dir))
+	report := &Report{}
+	engine.checkOrphanedDefinitions(idx, report)
+
+	for _, issue := range report.Issues {
+		if issue.Category == CatOrphanDefinition {
+			t.Errorf("archived .md files should not produce ORPHAN_DEFINITION, got: %s", issue.Node)
+		}
+	}
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // FixWithVerification — multi-pass convergence
 // ═══════════════════════════════════════════════════════════════════════════
