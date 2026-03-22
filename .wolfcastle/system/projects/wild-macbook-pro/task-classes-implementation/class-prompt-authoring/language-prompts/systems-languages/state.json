@@ -40,7 +40,7 @@
       "id": "task-0003",
       "title": "Author C++ prompt",
       "description": "Author C++ prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 1,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/cpp.md"
@@ -55,7 +55,7 @@
       "id": "task-0004",
       "title": "Author C prompt",
       "description": "Author C prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/c.md"
