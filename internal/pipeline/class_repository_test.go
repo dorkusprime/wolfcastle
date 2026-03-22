@@ -132,6 +132,69 @@ func TestClassRepository_Resolve_KeyWithParentButBothMissing(t *testing.T) {
 	}
 }
 
+// ── Subdirectory assembly tests ──────────────────────────────────────────
+
+func TestClassRepository_Resolve_SubdirectoryAssembly(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/bugfix.md", "You are a bug-fixing agent.").
+		WithPrompt("classes/bugfix/voice.md", "Be concise.").
+		WithPrompt("classes/bugfix/tools.md", "Use grep.")
+
+	env.Classes.Reload(map[string]config.ClassDef{
+		"bugfix": {Description: "Fix bugs"},
+	})
+
+	got, err := env.Classes.Resolve("bugfix")
+	if err != nil {
+		t.Fatalf("Resolve() error: %v", err)
+	}
+	// Fragments are sorted lexicographically: tools.md before voice.md.
+	want := "You are a bug-fixing agent.\nUse grep.\nBe concise."
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+func TestClassRepository_Resolve_SubdirectoryAssembly_NoSubdir(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/bugfix.md", "You are a bug-fixing agent.")
+
+	env.Classes.Reload(map[string]config.ClassDef{
+		"bugfix": {Description: "Fix bugs"},
+	})
+
+	got, err := env.Classes.Resolve("bugfix")
+	if err != nil {
+		t.Fatalf("Resolve() error: %v", err)
+	}
+	if got != "You are a bug-fixing agent." {
+		t.Errorf("expected unmodified content, got %q", got)
+	}
+}
+
+func TestClassRepository_Resolve_SubdirectoryAssembly_WithFallback(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/typescript.md", "You handle TypeScript.").
+		WithPrompt("classes/typescript/style.md", "Follow Airbnb style guide.")
+
+	env.Classes.Reload(map[string]config.ClassDef{
+		"typescript/react": {Description: "React TypeScript tasks"},
+	})
+
+	got, err := env.Classes.Resolve("typescript/react")
+	if err != nil {
+		t.Fatalf("Resolve() error: %v", err)
+	}
+	// Falls back to typescript.md, assembles subdirectory from typescript/.
+	want := "You handle TypeScript.\nFollow Airbnb style guide."
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
 func TestClassRepository_Reload_ReplacesMap(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t).

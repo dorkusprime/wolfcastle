@@ -3,13 +3,13 @@
   "id": "fix-stale-class-flag-help-text",
   "name": "Fix stale --class flag help text",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
       "id": "update-help-text",
       "address": "fix-stale-class-flag-help-text/update-help-text",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -26,6 +26,8 @@
   "success_criteria": [
     "The --class flag help text in cmd/task/add.go uses coding/go as its example, matching the actual config key format"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T14:25:05.445762Z",

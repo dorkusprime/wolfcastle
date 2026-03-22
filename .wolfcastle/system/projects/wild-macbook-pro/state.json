@@ -101,7 +101,7 @@
     "fix-stale-class-flag-help-text": {
       "name": "Fix stale --class flag help text",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "fix-stale-class-flag-help-text",
       "decomposition_depth": 0,
       "children": [
@@ -111,7 +111,7 @@
     "fix-stale-class-flag-help-text/update-help-text": {
       "name": "update-help-text",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "fix-stale-class-flag-help-text/update-help-text",
       "decomposition_depth": 0,
       "parent": "fix-stale-class-flag-help-text"
@@ -119,9 +119,29 @@
     "fix-writing-class-voice-md-unreachable": {
       "name": "Fix writing class voice.md unreachable",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "fix-writing-class-voice-md-unreachable",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+        "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup"
+      ]
+    },
+    "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup": {
+      "name": "Prompt and Spec Cleanup",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
+      "decomposition_depth": 0,
+      "parent": "fix-writing-class-voice-md-unreachable"
+    },
+    "fix-writing-class-voice-md-unreachable/subdirectory-assembly": {
+      "name": "Subdirectory Assembly",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+      "decomposition_depth": 0,
+      "parent": "fix-writing-class-voice-md-unreachable"
     },
     "log-command-redesign": {
       "name": "Log Command Redesign",

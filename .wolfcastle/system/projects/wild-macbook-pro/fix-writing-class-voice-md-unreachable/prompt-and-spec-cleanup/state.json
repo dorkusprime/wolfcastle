@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "prompt-and-spec-cleanup",
+  "name": "Prompt and Spec Cleanup",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update writing.md to remove dangling voice reference",
+      "description": "Update writing.md to remove dangling voice reference",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/writing.md"
+      ],
+      "body": "Line 5 of writing.md currently reads: 'Voice and tone guidance is loaded separately so it can be overridden independently. Refer to that prompt for voice-specific direction.'\n\nNow that ClassRepository.Resolve auto-appends subdirectory assets, voice.md content IS delivered to agents alongside writing.md. The 'refer to that prompt' instruction is misleading because the agent doesn't need to do anything extra to access it.\n\nReplace line 5 with something like: 'Voice and tone guidance lives in a separate file (writing/voice.md) so it can be overridden independently. Its content is included automatically below.'\n\nOr, if the concatenation makes this sentence redundant (since the agent will see the voice content directly), consider removing the sentence entirely and letting the content speak for itself.\n\nFile: internal/project/templates/prompts/classes/writing.md"
+    },
+    {
+      "id": "task-0002",
+      "title": "Update ClassRepository contract spec",
+      "description": "Update ClassRepository contract spec",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/2026-03-18T22-31Z-classrepository-contract.md"
+      ],
+      "body": "Update .wolfcastle/docs/specs/2026-03-18T22-31Z-classrepository-contract.md to document the subdirectory assembly behavior added to Resolve.\n\nSpecifically, add a step after step 2 (or 4) in the Resolve algorithm describing:\n- After resolving the main prompt file (either exact key or parent fallback), check for subdirectory assets at prompts/classes/{resolvedKey}/.\n- Collect all .md files via PromptRepository.ListFragments.\n- Append their sorted contents to the main file content, separated by newlines.\n- Missing or empty subdirectory is not an error.\n\nAlso update the Invariants section to note that Resolve may return content assembled from multiple files (the main prompt plus any subdirectory assets)."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Prompt and Spec Cleanup is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify writing.md reads naturally without referencing content the agent cannot access"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

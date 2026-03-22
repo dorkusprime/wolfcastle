@@ -3,7 +3,7 @@
   "id": "update-help-text",
   "name": "update-help-text",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -21,7 +21,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in update-help-text is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -44,8 +44,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T14:25:05.527537Z",
+    "completed_at": "2026-03-22T14:26:41.793981Z",
     "result_summary": "Fixed stale --class flag help text in cmd/task/add.go: updated the example value from 'lang-go' (flat format) to 'coding/go' (hierarchical format) so the CLI help reflects the actual class key convention used in production configuration. Single-line change, no regressions, all tests pass."
   },
   "aars": {
