@@ -234,7 +234,7 @@
     "task-classes-implementation/class-prompt-authoring": {
       "name": "Class Prompt Authoring",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "task-classes-implementation/class-prompt-authoring",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation",
@@ -255,10 +255,48 @@
     "task-classes-implementation/class-prompt-authoring/language-prompts": {
       "name": "Language Prompts",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring"
+      "parent": "task-classes-implementation/class-prompt-authoring",
+      "children": [
+        "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages"
+      ]
+    },
+    "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net": {
+      "name": "JVM and .NET",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages": {
+      "name": "Specialized Languages",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages": {
+      "name": "Systems Languages",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting": {
+      "name": "Web and Scripting",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
     },
     "task-classes-implementation/class-prompt-authoring/non-language-prompts": {
       "name": "Non-Language Prompts",
@@ -279,7 +317,7 @@
     "task-classes-implementation/context-wiring": {
       "name": "Context Wiring",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/context-wiring",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation"

@@ -3,7 +3,7 @@
   "id": "context-wiring",
   "name": "Context Wiring",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -47,7 +47,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Context Wiring is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -94,8 +94,9 @@
       }
     ],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T06:44:47.010881Z",
+    "completed_at": "2026-03-22T06:56:09.652899Z",
     "result_summary": "Wired two-layer class guidance into ContextBuilder.Build: universal.md is always injected under Universal Guidance, and class-specific or coding/default.md fallback is injected under Class Guidance. Both layers degrade gracefully when prompt files are absent. Cleaned the last piece of behavioral guidance from execute.md (Validate section now delegates to class prompts). Added 6 new tests and updated 5 existing tests to cover all permutations of universal, classified, default, and absent guidance. All 29 pipeline tests pass with race detector. One pre-existing issue (spec cross-reference removal from Validate) escalated to parent node."
   },
   "aars": {

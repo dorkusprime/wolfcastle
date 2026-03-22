@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "id": "systems-languages",
+  "name": "Systems Languages",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Author Go prompt",
+      "description": "Author Go prompt",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/go.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/go.md (40-80 lines). This file REPLACES coding/default.md for Go-classified tasks. Cover: idiomatic Go style (accept interfaces/return structs, error wrapping with %w, table-driven tests, short variable names in tight scopes), build/test tooling (go build, go test ./..., go vet, gofmt/goimports, golangci-lint), testing conventions (testify or stdlib, subtests, testdata/), and common pitfalls (nil pointer on interface, goroutine leaks, deferred close in loops, shadowed err). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Author Rust prompt",
+      "description": "Author Rust prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/rust.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/rust.md (40-80 lines). REPLACES coding/default.md for Rust-classified tasks. Cover: ownership/borrowing idioms, Result/Option patterns (prefer ? operator, avoid unwrap in library code), build/test tooling (cargo build, cargo test, cargo clippy, cargo fmt, rustfmt.toml), testing conventions (unit tests in same file via #[cfg(test)] mod, integration tests in tests/), and common pitfalls (lifetime annotations, borrow checker fights from over-borrowing, String vs \u0026str at API boundaries, async runtime selection). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Author C++ prompt",
+      "description": "Author C++ prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/cpp.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/cpp.md (40-80 lines). REPLACES coding/default.md for C++-classified tasks. Cover: modern C++ idioms (RAII, smart pointers over raw, move semantics, constexpr where appropriate), build/test tooling (CMake, Make, clang-tidy, clang-format, cppcheck), testing conventions (Google Test, Catch2, CTest integration), and common pitfalls (undefined behavior, dangling references, implicit conversions, header-only vs compiled libraries, include-what-you-use). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Author C prompt",
+      "description": "Author C prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/c.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/c.md (40-80 lines). REPLACES coding/default.md for C-classified tasks. Cover: idiomatic C style (explicit memory management, consistent error return patterns, defensive initialization), build/test tooling (Make/CMake, gcc/clang, valgrind, AddressSanitizer, clang-format), testing conventions (Unity, CMocka, or project-established framework), and common pitfalls (buffer overflows, use-after-free, null dereference, integer overflow, missing include guards, POSIX portability). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Systems Languages is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify go.md, rust.md, cpp.md, and c.md each follow the section structure from coding/default.md (Design or Style, Build and Test, Testing, pitfalls) and contain language-specific tool invocations, not generic advice"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-22T06:59:35.929487Z"
+  }
+}

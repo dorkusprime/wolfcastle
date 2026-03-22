@@ -3,13 +3,13 @@
   "id": "class-prompt-authoring",
   "name": "Class Prompt Authoring",
   "type": "orchestrator",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "children": [
     {
       "id": "language-prompts",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts",
-      "state": "not_started"
+      "state": "in_progress"
     },
     {
       "id": "framework-prompts",

@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "id": "specialized-languages",
+  "name": "Specialized Languages",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Author Swift prompt",
+      "description": "Author Swift prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/swift.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/swift.md (40-80 lines). REPLACES coding/default.md for Swift-classified tasks. Cover: idiomatic Swift style (value types over reference types where appropriate, optionals with guard/if-let, protocol-oriented design, Result type, Codable), build/test tooling (swift build/test, Swift Package Manager, SwiftLint, SwiftFormat, Xcode), testing conventions (XCTest, async test methods, XCTAssert family, UI testing with XCUITest), and common pitfalls (retain cycles in closures, force unwrapping, implicitly unwrapped optionals leaking into APIs, ABI stability considerations). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Author Dart prompt",
+      "description": "Author Dart prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/dart.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/dart.md (40-80 lines). REPLACES coding/default.md for Dart-classified tasks. Cover: idiomatic Dart style (sound null safety, final/const, cascade notation, extension methods, named parameters with required keyword), build/test tooling (dart analyze, dart format, dart test, pub, flutter test for Flutter projects, dart_code_metrics), testing conventions (package:test, group/test structure, widget testing with testWidgets, golden tests), and common pitfalls (late keyword misuse, BuildContext across async gaps in Flutter, mutable state in widgets, pubspec version constraints). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Author Shell prompt",
+      "description": "Author Shell prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/shell.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/shell.md (40-80 lines). REPLACES coding/default.md for Shell-classified tasks. Cover: idiomatic shell style (set -euo pipefail, quote all variables, use $() over backticks, prefer builtins over external commands, POSIX sh compatibility when portability matters), build/test tooling (shellcheck, shfmt, bats-core for testing), testing conventions (bats assertions, setup/teardown, temp directories), and common pitfalls (word splitting, glob expansion in variables, unquoted command substitution, race conditions in temp files, signal handling, heredoc indentation with tabs). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Author SQL prompt",
+      "description": "Author SQL prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/sql.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/sql.md (40-80 lines). REPLACES coding/default.md for SQL-classified tasks. Cover: idiomatic SQL style (uppercase keywords, explicit JOIN syntax over implicit, always alias tables in multi-table queries, prefer CTEs over deeply nested subqueries), dialect awareness (note PostgreSQL/MySQL/SQLite/SQL Server differences where they matter), migration conventions (versioned migration files, reversible migrations, avoid data-dependent DDL), testing conventions (test data setup/teardown, transaction-wrapped tests), and common pitfalls (SQL injection in dynamic queries, NULL comparison semantics, implicit type casting, N+1 queries, missing indexes on foreign keys, large transactions holding locks). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0005",
+      "title": "Author R prompt",
+      "description": "Author R prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/r.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/r.md (40-80 lines). REPLACES coding/default.md for R-classified tasks. Cover: idiomatic R style (tidyverse conventions, pipe operator |\u003e or %\u003e%, vectorized operations over loops, tibbles over data.frames, functional programming with purrr), build/test tooling (devtools, testthat, roxygen2 for documentation, lintr, styler), testing conventions (test_that blocks, expect_* assertions, snapshot testing, test fixtures), and common pitfalls (non-standard evaluation surprises, 1-based indexing, factor vs character, copy-on-modify semantics, missing values propagation with NA, package namespace conflicts). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0006",
+      "title": "Author Lua prompt",
+      "description": "Author Lua prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/lua.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/lua.md (40-80 lines). REPLACES coding/default.md for Lua-classified tasks. Cover: idiomatic Lua style (tables as the universal data structure, metatables for OOP patterns, local by default, coroutines for cooperative multitasking, 1-based indexing), build/test tooling (LuaRocks, busted for testing, luacheck for linting), testing conventions (busted describe/it blocks, assertions, mocking with luassert), and common pitfalls (global variable leaks from missing local, nil in tables breaking # operator, string immutability, Lua 5.1 vs 5.4 differences, LuaJIT compatibility, off-by-one from 1-based indexing). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0007",
+      "title": "Author Elixir prompt",
+      "description": "Author Elixir prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/elixir.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/elixir.md (40-80 lines). REPLACES coding/default.md for Elixir-classified tasks. Cover: idiomatic Elixir style (pattern matching everywhere, pipe operator |\u003e, with for complex matches, GenServer/Agent/Task for concurrency, protocols for polymorphism), build/test tooling (mix compile/test/format, mix credo for linting, dialyzer for type checking, ExDoc), testing conventions (ExUnit, async tests, doctest, setup/setup_all, Mox for behavior mocking), and common pitfalls (process mailbox overflow, GenServer bottlenecks from serialized calls, atom table exhaustion from dynamic atoms, large binaries in process heap, OTP supervision tree design). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0008",
+      "title": "Author Haskell prompt",
+      "description": "Author Haskell prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/haskell.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/haskell.md (40-80 lines). REPLACES coding/default.md for Haskell-classified tasks. Cover: idiomatic Haskell style (type signatures on all top-level definitions, algebraic data types, pattern matching, prefer pure functions, monadic composition with do notation, type classes for ad-hoc polymorphism), build/test tooling (cabal or stack, ghc, hlint, ormolu/fourmolu for formatting, weeder for dead code), testing conventions (HSpec or tasty, QuickCheck for property-based testing, doctest), and common pitfalls (space leaks from lazy evaluation, String vs Text vs ByteString, partial functions like head/tail, orphan instances, over-abstracted monad transformer stacks). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Specialized Languages is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify all 8 files (swift.md, dart.md, shell.md, sql.md, r.md, lua.md, elixir.md, haskell.md) are within 40-80 line range and contain no crossover content that belongs in a framework-specific prompt rather than the language prompt"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "id": "web-and-scripting",
+  "name": "Web and Scripting",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Author Python prompt",
+      "description": "Author Python prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/python.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/python.md (40-80 lines). REPLACES coding/default.md for Python-classified tasks. Cover: idiomatic Python style (type hints on public APIs, dataclasses/attrs for structured data, context managers, comprehensions over map/filter, pathlib over os.path), build/test tooling (pip/uv/poetry, pytest, ruff for linting and formatting, mypy/pyright for type checking), testing conventions (pytest fixtures, parametrize, conftest.py, tmp_path), and common pitfalls (mutable default arguments, late binding closures, import cycles, bare except, forgetting __init__.py in packages). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Author JavaScript prompt",
+      "description": "Author JavaScript prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/javascript.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/javascript.md (40-80 lines). REPLACES coding/default.md for JavaScript-classified tasks. Cover: idiomatic JS style (const by default, destructuring, template literals, async/await over raw promises, ESM over CJS where possible), build/test tooling (npm/pnpm/yarn, eslint, prettier, node --test or jest/vitest), testing conventions (describe/it blocks, mocking fetch/timers at boundaries, coverage), and common pitfalls (== vs ===, this binding, prototype chain surprises, callback error handling, floating promises, implicit type coercion). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Author TypeScript prompt",
+      "description": "Author TypeScript prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/typescript.md (40-80 lines). REPLACES coding/default.md for TypeScript-classified tasks. Cover: idiomatic TS style (strict mode always, discriminated unions over type assertions, type-only imports, utility types, branded types for domain IDs), build/test tooling (tsc, tsx/ts-node for scripts, eslint with typescript-eslint, prettier, vitest/jest with ts support), testing conventions (type-level tests where appropriate, describe/it, no any in test types), and common pitfalls (as casts hiding bugs, enum pitfalls prefer unions, declaration merging surprises, index signature gotchas, overusing generics). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Author Ruby prompt",
+      "description": "Author Ruby prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/ruby.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/ruby.md (40-80 lines). REPLACES coding/default.md for Ruby-classified tasks. Cover: idiomatic Ruby style (duck typing, blocks/procs/lambdas, Enumerable methods, convention over configuration, freeze string literals), build/test tooling (bundler, rake, RuboCop, RSpec or Minitest), testing conventions (describe/context/it structure, let/subject, factories over fixtures with FactoryBot), and common pitfalls (monkey patching risks, method_missing abuse, gem version conflicts, require order sensitivity, mutable string default). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0005",
+      "title": "Author PHP prompt",
+      "description": "Author PHP prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/php.md"
+      ],
+      "body": "Write internal/project/templates/prompts/classes/coding/php.md (40-80 lines). REPLACES coding/default.md for PHP-classified tasks. Cover: idiomatic PHP style (strict_types declaration, type declarations on parameters and returns, readonly properties, enums, match expressions, named arguments), build/test tooling (Composer, PHPUnit, PHP-CS-Fixer or PHP_CodeSniffer with PSR-12, PHPStan/Psalm for static analysis), testing conventions (PHPUnit assertions, data providers, mocking with Prophecy or Mockery at boundaries), and common pitfalls (loose comparison table, variable variables, register_globals legacy, SQL injection in raw queries, inconsistent function parameter ordering). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Web and Scripting is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify python.md, javascript.md, typescript.md, ruby.md, and php.md reflect current ecosystem tools (ruff not flake8 for Python, vitest alongside jest for JS/TS) and cover language-specific pitfalls distinct from universal.md"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
