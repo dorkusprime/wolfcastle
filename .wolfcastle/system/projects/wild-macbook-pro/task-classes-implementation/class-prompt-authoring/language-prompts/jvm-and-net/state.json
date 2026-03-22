@@ -52,7 +52,7 @@
       "id": "task-0004",
       "title": "Author C# prompt",
       "description": "Author C# prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/csharp.md"
@@ -66,7 +66,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in JVM and .NET is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -98,14 +98,37 @@
         "timestamp": "2026-03-22T07:24:36.297685Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
         "text": "Authored C# class prompt (51 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T07:26:51.642342Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Audit: reviewed all 4 files (java.md 55 lines, kotlin.md 51 lines, scala.md 51 lines, csharp.md 51 lines, ~208 lines total). PASS. Build, tests (with -race), and lint all clean. All four prompts follow the established section structure (preamble, Style, Build and Test, Testing, Common Pitfalls) matching go.md and c.md conventions. Content is factually accurate across all four languages. No duplication beyond intentional structural consistency. No code quality issues. AAR-flagged improvements (missing concurrency, effect systems, source generators) are reasonable scope choices within the 40-80 line budget. No findings warranting remediation or escalation."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T07:16:28.405358Z"
+    "started_at": "2026-03-22T07:16:28.405358Z",
+    "result_summary": "Authored four language-specific coding class prompts (Java, Kotlin, Scala, C#) totaling ~208 lines, each following the established section structure from go.md and c.md: codebase-deference preamble, Style, Build and Test, Testing, and Common Pitfalls. All prompts are factually accurate, stylistically consistent, and within the 40-80 line budget. The ClassRepository resolves them by filename convention with no Go code changes required. Build, tests (with race detector), and lint pass clean. Audit found no issues warranting remediation."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T07:27:00.170994Z",
+      "objective": "Verify all work in the JVM and .NET language prompts node is complete and correct",
+      "what_happened": "Read all 4 authored prompts (java.md, kotlin.md, scala.md, csharp.md) plus reference prompts (go.md, c.md, default.md). Ran build, test with race detector, and lint — all clean. Verified ClassRepository resolves prompts by filename convention, so no Go code changes were needed. Checked structural consistency, factual accuracy, and adherence to established patterns.",
+      "went_well": [
+        "All four prompts are structurally consistent with each other and with the existing go.md/c.md templates",
+        "Language-specific advice is accurate and well-calibrated (e.g. C# ConfigureAwait library/app distinction, Kotlin platform type warnings, Scala 2/3 implicit migration)",
+        "No findings warranting remediation — clean pass"
+      ],
+      "improvements": [
+        "None identified during audit"
+      ],
+      "action_items": [
+        "None — node work is complete"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T07:18:26.095627Z",
