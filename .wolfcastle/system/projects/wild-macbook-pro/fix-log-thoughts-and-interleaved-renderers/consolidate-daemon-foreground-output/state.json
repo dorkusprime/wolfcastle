@@ -57,10 +57,35 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T18:31:07.75956Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "text": "Wired foreground start to InterleavedRenderer: silenced console loggers, added FollowReader+renderer goroutine, added signal.NotifyContext for clean shutdown"
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T18:29:24.117608Z"
+    "started_at": "2026-03-22T18:29:24.117608Z",
+    "result_summary": "Consolidated foreground output for wolfcastle start to use the InterleavedRenderer pipeline. The foreground path now silences direct console logging and instead tails NDJSON log files through a FollowReader and InterleavedRenderer goroutine, matching the pattern already established by execute and intake commands. Signal handling was also added via NotifyContext for clean Ctrl-C shutdown and renderer draining."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T18:31:02.035157Z",
+      "objective": "Wire wolfcastle start foreground mode to the InterleavedRenderer pipeline so all foreground commands share a single rendering code path",
+      "what_happened": "Modified cmd/daemon/start.go: silenced Logger.Console and InboxLogger.Console with io.Discard, added signal.NotifyContext for clean Ctrl-C handling, spawned a FollowReader+InterleavedRenderer goroutine that tails the log directory and streams formatted output to stdout. The pattern mirrors cmd/execute.go and cmd/intake.go exactly.",
+      "went_well": [
+        "The change was minimal (one file, ~25 lines added) and required no new types or interfaces",
+        "All existing daemon tests pass without modification, confirming the Logger.Console swap doesn't break anything"
+      ],
+      "improvements": [
+        "The three commands (start, execute, intake) now have near-identical renderer setup blocks; a shared helper could reduce duplication, but that's a separate concern"
+      ],
+      "action_items": [
+        "Consider extracting a startRendererGoroutine helper if a fourth command needs the same pattern"
+      ]
+    }
   }
 }
