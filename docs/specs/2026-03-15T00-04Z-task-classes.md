@@ -286,6 +286,8 @@ Do NOT include:
 
 Framework prompts should not repeat language fundamentals (the fallback mechanism handles that).
 
+**Codebase conventions take precedence.** Class prompts describe modern, community-accepted defaults, but the codebase the agent is working in has its own patterns and constraints. When the codebase uses an older language version, a different formatter, or an established convention that differs from the class prompt, the agent should follow the codebase. Prompts should phrase guidance as "prefer X" or "use X when available" rather than "always use X." For example: "prefer `slices.Contains` (Go 1.21+); in older codebases, use a manual loop" rather than "use `slices.Contains`." The agent should never be forced to choose between its prompt and the code in front of it.
+
 ---
 
 ## Migration
