@@ -159,6 +159,11 @@
         "timestamp": "2026-03-22T07:50:44.348282Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
         "text": "Authored R class prompt (66 lines) covering idiomatic style, devtools/testthat tooling, testing conventions, and common pitfalls [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T07:52:39.567097Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Lua class prompt (58 lines) covering idiomatic style, LuaRocks/busted/luacheck tooling, testing conventions, and common pitfalls [task-0006]"
       }
     ],
     "gaps": [],
@@ -245,6 +250,22 @@
       ],
       "action_items": [
         "If an r/shiny or r/package sub-classification is added later, those prompts can extend this base with framework-specific guidance"
+      ]
+    },
+    "task-0006": {
+      "task_id": "task-0006",
+      "timestamp": "2026-03-22T07:52:37.771207Z",
+      "objective": "Author the Lua language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/lua.md at 58 lines. Matched the established format from go.md, r.md, and other existing prompts. Organized into five sections: Style (local by default, tables as universal data structure, metatables for OOP, coroutines, string.format over concatenation, naming conventions), Build and Test (LuaRocks, busted, luacheck, LuaFormatter/StyLua), Testing (describe/it blocks, luassert typed assertions, setup/teardown, mock/stub), and Common Pitfalls (global variable leaks, nil holes breaking # operator, 1-based indexing, Lua version differences including LuaJIT, string immutability and O(n²) concatenation, pcall/xpcall error handling).",
+      "went_well": [
+        "Covered the full spread of Lua runtimes (5.1 through 5.4, LuaJIT) with specific feature availability differences",
+        "Common pitfalls section addresses six distinct issues including the subtle nil-in-sequence trap and version compatibility matrix"
+      ],
+      "improvements": [
+        "Could add guidance on FFI usage in LuaJIT and embedding patterns (C API) if line budget allowed"
+      ],
+      "action_items": [
+        "If a lua/love2d or lua/openresty sub-classification is added later, those prompts can extend this base with framework-specific guidance"
       ]
     }
   }
