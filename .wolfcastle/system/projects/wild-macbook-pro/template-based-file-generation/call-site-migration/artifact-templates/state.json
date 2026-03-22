@@ -102,6 +102,11 @@
         "timestamp": "2026-03-22T22:24:23.113078Z",
         "task": "template-based-file-generation/call-site-migration/artifact-templates",
         "text": "Created adr.md.tmpl, spec.md.tmpl, and task.md.tmpl under internal/project/templates/artifacts/. Each template uses typed struct fields (not map keys) and produces byte-identical output to the original inline string construction. Equivalence verified by 10 table-driven test cases covering body/no-body/multiline/whitespace-only inputs."
+      },
+      {
+        "timestamp": "2026-03-22T22:34:11.214711Z",
+        "task": "template-based-file-generation/call-site-migration/artifact-templates",
+        "text": "Migrated ADR and spec generation to templates. Replaced strings.Builder in adr_create.go and fmt.Sprintf in spec.go with RenderToFile('artifacts/adr.md', ADRData, path) and RenderToFile('artifacts/spec.md', SpecData, path). Fixed ResolveTemplate to resolve tier-FS paths directly (removed 'templates/' prefix) so artifact templates at artifacts/*.tmpl are reachable. Updated WithTemplate helper and repository_test.go tier-override test. Seeded artifact templates in cmd test helper via seedArtifactTemplates."
       }
     ],
     "gaps": [],
@@ -124,6 +129,22 @@
       ],
       "action_items": [
         "When call sites migrate to use these templates, the TrimSpace pre-check for task body needs to happen in the render call, not in the template itself"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T22:34:05.130471Z",
+      "objective": "Migrate ADR and spec file generation from inline string construction to template-based rendering via RenderToFile",
+      "what_happened": "Replaced the strings.Builder block in cmd/adr_create.go and the fmt.Sprintf branches in cmd/spec.go with RenderToFile calls using ADRData and SpecData typed context structs. This required fixing a path mismatch in ResolveTemplate: it was prepending 'templates/' to the tier-FS path, but writeBasePrompts places artifact templates at 'artifacts/' (no prefix). Since ResolveTemplate had zero production callers, I removed the prefix so it resolves directly against the tier root. Updated WithTemplate test helper and the tier-override test in repository_test.go to match. Added seedArtifactTemplates to cmd test helper to populate the tier FS from the embedded templates.",
+      "went_well": [
+        "The path mismatch discovery happened before tests ran, avoiding a confusing debugging session",
+        "All 30+ existing ADR/spec tests pass without modification to the test assertions, confirming byte-for-byte output compatibility"
+      ],
+      "improvements": [
+        "The ResolveTemplate prefix removal is a broader API change than strictly needed for this task. Could have alternatively moved the templates to internal/project/templates/templates/artifacts/ to preserve the convention, but the double nesting was ugly and the convention had no production consumers."
+      ],
+      "action_items": [
+        "task-0003 (task.md.tmpl migration) should follow the same pattern: use RenderToFile with artifacts/task.md and TaskData struct, apply TrimSpace to body before passing it as noted in task-0001 AAR"
       ]
     }
   }
