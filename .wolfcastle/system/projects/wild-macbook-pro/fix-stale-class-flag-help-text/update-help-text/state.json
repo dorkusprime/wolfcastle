@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Update --class flag example from lang-go to coding/go",
       "description": "Update --class flag example from lang-go to coding/go",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/task/add.go"
@@ -21,7 +21,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in update-help-text is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -35,13 +35,18 @@
         "timestamp": "2026-03-22T14:25:32.699039Z",
         "task": "fix-stale-class-flag-help-text/update-help-text",
         "text": "Updated --class flag help text example from lang-go to coding/go in cmd/task/add.go"
+      },
+      {
+        "timestamp": "2026-03-22T14:26:32.421985Z",
+        "task": "fix-stale-class-flag-help-text/update-help-text",
+        "text": "Audit reviewed 1 file (cmd/task/add.go, line 181). PASS. The change is a single-line fix updating the --class flag help text example from 'lang-go' to 'coding/go', matching the hierarchical class key format used in production config. Build passes, all 20 test packages green. No findings introduced by this node. Remaining 'lang-go' references in test fixtures and code comments are pre-existing test data for the flat-key format, which the system still supports; not stale help text."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T14:25:05.527537Z",
-    "result_summary": "Updated the --class flag help text in cmd/task/add.go to use coding/go instead of the stale lang-go example, aligning the CLI help with the actual task class key format in production config."
+    "result_summary": "Fixed stale --class flag help text in cmd/task/add.go: updated the example value from 'lang-go' (flat format) to 'coding/go' (hierarchical format) so the CLI help reflects the actual class key convention used in production configuration. Single-line change, no regressions, all tests pass."
   },
   "aars": {
     "task-0001": {
