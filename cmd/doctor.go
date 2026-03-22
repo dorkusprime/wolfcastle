@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,7 +33,7 @@ Examples:
 		fix, _ := cmd.Flags().GetBool("fix")
 		root := app.Config.Root()
 		projectsDir := app.State.Dir()
-		indexPath := filepath.Join(projectsDir, "state.json")
+		indexPath := app.State.IndexPath()
 
 		// Load root index, attempting recovery on failure.
 		idx, err := app.State.ReadIndex()
