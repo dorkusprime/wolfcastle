@@ -32,7 +32,7 @@ func (tr *ThoughtsRenderer) Render(ctx context.Context, records <-chan Record) {
 				return
 			}
 			if r.Type == "assistant" && r.Text != "" {
-				fmt.Fprintln(tr.w, r.Text)
+				_, _ = fmt.Fprintln(tr.w, r.Text)
 			}
 		}
 	}

@@ -449,11 +449,11 @@ func writeGzLines(t *testing.T, path string, lines ...string) {
 	if err != nil {
 		t.Fatalf("creating %s: %v", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	gz := gzip.NewWriter(f)
 	for _, l := range lines {
-		gz.Write([]byte(l))
-		gz.Write([]byte("\n"))
+		_, _ = gz.Write([]byte(l))
+		_, _ = gz.Write([]byte("\n"))
 	}
 	if err := gz.Close(); err != nil {
 		t.Fatalf("closing gzip writer: %v", err)
@@ -476,12 +476,12 @@ func captureReplayJSON(t *testing.T, session logrender.Session) string {
 	replayErr := replayJSON(session)
 
 	// Close the write end so the reader sees EOF.
-	w.Close()
+	_ = w.Close()
 	os.Stdout = origStdout
 
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	r.Close()
+	_, _ = io.Copy(&buf, r)
+	_ = r.Close()
 
 	if replayErr != nil {
 		t.Fatalf("replayJSON returned error: %v", replayErr)
@@ -497,7 +497,7 @@ func TestReplayJSON_PlainJSONL(t *testing.T) {
 		`{"type":"stage_start","stage":"plan","node":"n","timestamp":"2026-03-21T10:00:01Z"}`,
 		`{"type":"stage_complete","stage":"plan","node":"n","exit_code":0,"timestamp":"2026-03-21T10:01:00Z"}`,
 	}
-	os.WriteFile(plain, []byte(strings.Join(lines, "\n")+"\n"), 0644)
+	_ = os.WriteFile(plain, []byte(strings.Join(lines, "\n")+"\n"), 0644)
 
 	got := captureReplayJSON(t, logrender.Session{Files: []string{plain}})
 
@@ -543,7 +543,7 @@ func TestReplayJSON_MixedPlainAndGzip(t *testing.T) {
 		`{"type":"stage_start","stage":"plan","node":"a","timestamp":"2026-03-21T18:00:01Z"}`,
 	}
 	plainPath := filepath.Join(dir, "0001.jsonl")
-	os.WriteFile(plainPath, []byte(strings.Join(plainLines, "\n")+"\n"), 0644)
+	_ = os.WriteFile(plainPath, []byte(strings.Join(plainLines, "\n")+"\n"), 0644)
 
 	gzLines := []string{
 		`{"type":"daemon_start","timestamp":"2026-03-20T10:00:00Z"}`,
@@ -579,7 +579,7 @@ func TestReplayJSON_MissingFileSkipped(t *testing.T) {
 	// One real file, one missing.
 	realPath := filepath.Join(dir, "0001.jsonl")
 	line := `{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`
-	os.WriteFile(realPath, []byte(line+"\n"), 0644)
+	_ = os.WriteFile(realPath, []byte(line+"\n"), 0644)
 
 	missingPath := filepath.Join(dir, "nonexistent.jsonl")
 
@@ -602,13 +602,13 @@ func TestReplayJSON_UnreadableFileSkipped(t *testing.T) {
 
 	// Create a file with no read permission.
 	unreadable := filepath.Join(dir, "0001.jsonl")
-	os.WriteFile(unreadable, []byte(`{"type":"daemon_start"}`+"\n"), 0000)
-	defer os.Chmod(unreadable, 0644)
+	_ = os.WriteFile(unreadable, []byte(`{"type":"daemon_start"}`+"\n"), 0000)
+	defer func() { _ = os.Chmod(unreadable, 0644) }()
 
 	// A second readable file to prove streaming continues.
 	readable := filepath.Join(dir, "0002.jsonl")
 	line := `{"type":"stage_start","stage":"plan","node":"n","timestamp":"2026-03-21T18:00:01Z"}`
-	os.WriteFile(readable, []byte(line+"\n"), 0644)
+	_ = os.WriteFile(readable, []byte(line+"\n"), 0644)
 
 	got := captureReplayJSON(t, logrender.Session{Files: []string{unreadable, readable}})
 

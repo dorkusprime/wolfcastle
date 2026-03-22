@@ -47,7 +47,7 @@ func (r *ReplayReader) readFile(path string, ch chan<- Record) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var reader io.Reader = f
 	if strings.HasSuffix(path, ".gz") {
@@ -55,7 +55,7 @@ func (r *ReplayReader) readFile(path string, ch chan<- Record) {
 		if err != nil {
 			return
 		}
-		defer gz.Close()
+		defer func() { _ = gz.Close() }()
 		reader = gz
 	}
 
@@ -202,7 +202,7 @@ func (r *FollowReader) readNewLines(fs *fileState, ch chan<- Record) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Read all new bytes from the last-known offset.
 	if _, err := f.Seek(fs.offset, io.SeekStart); err != nil {

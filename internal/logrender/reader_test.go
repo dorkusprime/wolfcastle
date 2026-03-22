@@ -29,11 +29,11 @@ func writeGzLines(t *testing.T, path string, lines ...string) {
 	if err != nil {
 		t.Fatalf("creating %s: %v", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	gz := gzip.NewWriter(f)
 	for _, l := range lines {
-		gz.Write([]byte(l))
-		gz.Write([]byte("\n"))
+		_, _ = gz.Write([]byte(l))
+		_, _ = gz.Write([]byte("\n"))
 	}
 	if err := gz.Close(); err != nil {
 		t.Fatalf("closing gzip writer: %v", err)
@@ -259,8 +259,8 @@ func TestFollowReader_DetectsAppendedLines(t *testing.T) {
 	if err != nil {
 		t.Fatalf("opening file for append: %v", err)
 	}
-	f.WriteString(`{"type":"stage_complete","timestamp":"2026-03-21T18:05:00Z","level":"info"}` + "\n")
-	f.Close()
+	_, _ = f.WriteString(`{"type":"stage_complete","timestamp":"2026-03-21T18:05:00Z","level":"info"}` + "\n")
+	_ = f.Close()
 
 	// Wait for the follow reader to pick it up.
 	select {
@@ -450,8 +450,8 @@ func TestFollowReader_PartialLineCompletedLater(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.WriteString("\n")
-	f.Close()
+	_, _ = f.WriteString("\n")
+	_ = f.Close()
 
 	select {
 	case r := <-ch:
@@ -529,13 +529,11 @@ func TestFollowReader_AliveCheckDrainsFinalCycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.WriteString(`{"type":"stage_complete","timestamp":"2026-03-21T18:05:00Z","level":"info"}` + "\n")
-	f.Close()
+	_, _ = f.WriteString(`{"type":"stage_complete","timestamp":"2026-03-21T18:05:00Z","level":"info"}` + "\n")
+	_ = f.Close()
 
 	// Collect remaining records. Channel should close from the alive check.
-	var remaining []Record
-	for r := range ch {
-		remaining = append(remaining, r)
+	for range ch {
 	}
 
 	if ctx.Err() != nil {

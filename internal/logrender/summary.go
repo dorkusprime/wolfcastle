@@ -123,7 +123,7 @@ func (sr *SummaryRenderer) handleFollowRecord(r Record, starts map[stageKey]time
 			return
 		}
 		starts[keyFor(r)] = r.Timestamp
-		fmt.Fprintf(sr.w, "▶ [%s] %s\n", r.StageLabel(), nodeAddress(r))
+		_, _ = fmt.Fprintf(sr.w, "▶ [%s] %s\n", r.StageLabel(), nodeAddress(r))
 
 	case "stage_complete":
 		if skipStage(r.Stage) {
@@ -135,12 +135,12 @@ func (sr *SummaryRenderer) handleFollowRecord(r Record, starts map[stageKey]time
 			dur = r.Timestamp.Sub(t)
 			delete(starts, key)
 		}
-		fmt.Fprintf(sr.w, "%s [%s] %s (%s)\n", glyphFor(r.ExitCode), r.StageLabel(), nodeAddress(r), FormatDuration(dur))
+		_, _ = fmt.Fprintf(sr.w, "%s [%s] %s (%s)\n", glyphFor(r.ExitCode), r.StageLabel(), nodeAddress(r), FormatDuration(dur))
 
 	case "planning_start":
 		pk := stageKey{node: r.Node, task: r.Task, stage: "plan"}
 		starts[pk] = r.Timestamp
-		fmt.Fprintf(sr.w, "▶ [plan] %s\n", nodeAddress(r))
+		_, _ = fmt.Fprintf(sr.w, "▶ [plan] %s\n", nodeAddress(r))
 
 	case "planning_complete":
 		pk := stageKey{node: r.Node, task: r.Task, stage: "plan"}
@@ -149,10 +149,10 @@ func (sr *SummaryRenderer) handleFollowRecord(r Record, starts map[stageKey]time
 			dur = r.Timestamp.Sub(t)
 			delete(starts, pk)
 		}
-		fmt.Fprintf(sr.w, "%s [plan] %s (%s)\n", glyphFor(r.ExitCode), nodeAddress(r), FormatDuration(dur))
+		_, _ = fmt.Fprintf(sr.w, "%s [plan] %s (%s)\n", glyphFor(r.ExitCode), nodeAddress(r), FormatDuration(dur))
 
 	case "audit_report_written":
-		fmt.Fprintf(sr.w, "  report: %s\n", r.Path)
+		_, _ = fmt.Fprintf(sr.w, "  report: %s\n", r.Path)
 	}
 }
 
@@ -175,12 +175,12 @@ func (sr *SummaryRenderer) writeAligned(lines []summaryLine) {
 
 	for _, l := range lines {
 		if l.report != "" {
-			fmt.Fprintf(sr.w, "  report: %s\n", l.report)
+			_, _ = fmt.Fprintf(sr.w, "  report: %s\n", l.report)
 			continue
 		}
 		labelPad := maxLabel - len(l.label)
 		addrPad := maxAddr - len(l.address)
-		fmt.Fprintf(sr.w, "%s %s%s %s%s %s\n",
+		_, _ = fmt.Fprintf(sr.w, "%s %s%s %s%s %s\n",
 			l.glyph,
 			l.label, strings.Repeat(" ", labelPad),
 			l.address, strings.Repeat(" ", addrPad),

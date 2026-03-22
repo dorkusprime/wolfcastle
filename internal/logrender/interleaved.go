@@ -48,7 +48,7 @@ func (ir *InterleavedRenderer) handleRecord(r Record, starts map[stageKey]time.T
 			return
 		}
 		starts[keyFor(r)] = r.Timestamp
-		fmt.Fprintf(ir.w, "%s ▶ [%s] %s\n",
+		_, _ = fmt.Fprintf(ir.w, "%s ▶ [%s] %s\n",
 			formatTimestamp(r.Timestamp), r.StageLabel(), nodeAddress(r))
 
 	case "stage_complete":
@@ -61,14 +61,14 @@ func (ir *InterleavedRenderer) handleRecord(r Record, starts map[stageKey]time.T
 			dur = r.Timestamp.Sub(t)
 			delete(starts, key)
 		}
-		fmt.Fprintf(ir.w, "%s %s [%s] %s (%s)\n",
+		_, _ = fmt.Fprintf(ir.w, "%s %s [%s] %s (%s)\n",
 			formatTimestamp(r.Timestamp), glyphFor(r.ExitCode),
 			r.StageLabel(), nodeAddress(r), FormatDuration(dur))
 
 	case "planning_start":
 		pk := stageKey{node: r.Node, task: r.Task, stage: "plan"}
 		starts[pk] = r.Timestamp
-		fmt.Fprintf(ir.w, "%s ▶ [plan] %s\n",
+		_, _ = fmt.Fprintf(ir.w, "%s ▶ [plan] %s\n",
 			formatTimestamp(r.Timestamp), nodeAddress(r))
 
 	case "planning_complete":
@@ -78,18 +78,18 @@ func (ir *InterleavedRenderer) handleRecord(r Record, starts map[stageKey]time.T
 			dur = r.Timestamp.Sub(t)
 			delete(starts, pk)
 		}
-		fmt.Fprintf(ir.w, "%s %s [plan] %s (%s)\n",
+		_, _ = fmt.Fprintf(ir.w, "%s %s [plan] %s (%s)\n",
 			formatTimestamp(r.Timestamp), glyphFor(r.ExitCode),
 			nodeAddress(r), FormatDuration(dur))
 
 	case "assistant":
 		if r.Text != "" {
-			fmt.Fprintf(ir.w, "%s     %s\n",
+			_, _ = fmt.Fprintf(ir.w, "%s     %s\n",
 				formatTimestamp(r.Timestamp), r.Text)
 		}
 
 	case "audit_report_written":
-		fmt.Fprintf(ir.w, "%s     report: %s\n",
+		_, _ = fmt.Fprintf(ir.w, "%s     report: %s\n",
 			formatTimestamp(r.Timestamp), r.Path)
 	}
 }

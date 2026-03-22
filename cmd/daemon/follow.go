@@ -189,7 +189,7 @@ func replayJSONFile(path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var reader io.Reader = f
 	if strings.HasSuffix(path, ".gz") {
@@ -197,15 +197,15 @@ func replayJSONFile(path string) error {
 		if err != nil {
 			return err
 		}
-		defer gz.Close()
+		defer func() { _ = gz.Close() }()
 		reader = gz
 	}
 
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, 0, 256*1024), 1024*1024)
 	for scanner.Scan() {
-		os.Stdout.Write(scanner.Bytes())
-		os.Stdout.Write([]byte{'\n'})
+		_, _ = os.Stdout.Write(scanner.Bytes())
+		_, _ = os.Stdout.Write([]byte{'\n'})
 	}
 	return scanner.Err()
 }
@@ -220,8 +220,8 @@ func followJSON(ctx context.Context, logDir string, aliveCheck func() bool) erro
 		if err != nil {
 			continue
 		}
-		os.Stdout.Write(raw)
-		os.Stdout.Write([]byte{'\n'})
+		_, _ = os.Stdout.Write(raw)
+		_, _ = os.Stdout.Write([]byte{'\n'})
 	}
 	return nil
 }
