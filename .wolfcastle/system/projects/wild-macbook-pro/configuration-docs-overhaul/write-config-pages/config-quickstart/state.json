@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Write config-quickstart.md",
       "description": "Write config-quickstart.md",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/config-quickstart.md"
@@ -24,7 +24,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Config Quickstart is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -42,12 +42,18 @@
         "timestamp": "2026-03-22T19:14:59.302131Z",
         "task": "configuration-docs-overhaul/write-config-pages/config-quickstart",
         "text": "Wrote config-quickstart.md with four recipes: change model, add stage, override prompt, set task class"
+      },
+      {
+        "timestamp": "2026-03-22T19:17:26.542281Z",
+        "task": "configuration-docs-overhaul/write-config-pages/config-quickstart",
+        "text": "Audit pass for config-quickstart.md (88 lines). Verified all eight factual claims against source: model config struct fields (types.go:31-35), pipeline stage fields (types.go:53-60), three-tier prompt resolution (tierfs.go:17), --class flag (cmd/task/add.go:181), config set --tier flag (cmd/config/set.go:63), base config heavy model (base/config.json:16-27), and all three cross-referenced doc pages. Build and full test suite pass. No findings requiring remediation. Quality: tight, accurate, stays practical without drifting into theory. Matches the task spec exactly."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T19:12:38.676877Z"
+    "started_at": "2026-03-22T19:12:38.676877Z",
+    "result_summary": "Created docs/humans/config-quickstart.md as a five-minute getting-started page with four practical recipes: changing the model, adding a custom pipeline stage, overriding a prompt through the tier system, and setting a task class. All config field names and paths verified against the Go source. Audit passed with no findings."
   },
   "aars": {
     "task-0001": {
