@@ -59,6 +59,13 @@
         "description": "Pre-existing test failures: TestInitCmd_AlreadyInitialized and TestInitCmd_AlreadyInitialized_JSON in cmd/ package. These predate the branch (no diff on cmd/init_test.go). Should be investigated separately.",
         "source_node": "update-cli-commands-spec/add-missing-command-sections",
         "status": "open"
+      },
+      {
+        "id": "escalation-finalize-spec-metadata-2",
+        "timestamp": "2026-03-22T23:34:08.625467Z",
+        "description": "TestInitCmd_AlreadyInitialized and TestInitCmd_AlreadyInitialized_JSON in cmd package are failing. Pre-existing, not related to spec work.",
+        "source_node": "update-cli-commands-spec/finalize-spec-metadata",
+        "status": "open"
       }
     ],
     "status": "pending"

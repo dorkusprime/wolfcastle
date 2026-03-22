@@ -26,7 +26,7 @@
       "id": "task-0002",
       "title": "Reconcile log command with redesign spec",
       "description": "Reconcile log command with redesign spec",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/specs/2026-03-12T00-06Z-cli-commands.md"
@@ -44,9 +44,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Finalize Spec Metadata is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -66,12 +67,18 @@
         "timestamp": "2026-03-22T23:31:34.477522Z",
         "task": "update-cli-commands-spec/finalize-spec-metadata",
         "text": "Rewrote log command section in CLI spec to match redesigned behavior: replaced --lines/--level flags with --thoughts/-t, --interleaved/-i, --session/-s, --json. Added three output modes (summary, thoughts, interleaved), session support, glyph formatting, and updated examples. Old spec described a simple tail-like model; new spec reflects the reconstructed-from-NDJSON design per 2026-03-21T18-00Z-log-command-design.md."
+      },
+      {
+        "timestamp": "2026-03-22T23:34:17.144607Z",
+        "task": "update-cli-commands-spec/finalize-spec-metadata",
+        "text": "Audit of finalize-spec-metadata: reviewed 1 file (docs/specs/2026-03-12T00-06Z-cli-commands.md, ~120 lines changed across 2 commits). PASS. Verified intro metadata: 60 command sections match '60 leaf commands' claim, 7 groups confirmed against wolfcastle --help output, subcommand group list includes config and knowledge as added by prior nodes. Verified log command rewrite: all flags, output modes, examples, exit codes, and error messages match both the redesign spec (2026-03-21T18-00Z-log-command-design.md) and wolfcastle log --help output. Old --lines/--level interface fully replaced with --thoughts/--interleaved/--session/--json. Escalated: 2 pre-existing test failures in cmd package (TestInitCmd_AlreadyInitialized) unrelated to spec changes. No issues introduced by this node."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T23:29:23.880896Z"
+    "started_at": "2026-03-22T23:29:23.880896Z",
+    "result_summary": "Finalized CLI spec metadata in two tasks. Task-0001 updated the intro paragraph from 6 to 7 command groups, adding Additional Commands (completion, help) to the parenthetical list; the 60-command count and config/knowledge subcommand entries were already correct from prior nodes. Task-0002 rewrote the log command section from scratch, replacing the old --lines/--level tail model with the redesigned three-mode interface (summary, thoughts, interleaved), session support, glyph formatting, and NDJSON reconstruction semantics per the log command design spec. Audit verified all claims against wolfcastle --help output and the redesign spec; no discrepancies found."
   },
   "aars": {
     "task-0001": {
