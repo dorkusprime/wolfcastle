@@ -2,7 +2,7 @@
 
 Tasks are not all the same shape. Writing Go code requires different instincts than researching POS systems or drafting documentation. Today, every task gets the same execute prompt regardless of what it actually involves. Task classes fix that: the task's class selects a behavioral prompt that tells the execute model how to think, not what tools it has.
 
-The infrastructure for class resolution, prompt injection, and task-level classification is implemented. The behavioral prompt files themselves and the default class config entries have not yet been authored.
+The full system is implemented: class resolution, prompt injection, task-level classification, 55 behavioral prompt files (20 languages, 22 frameworks, 9 non-language disciplines, universal guidance, and a coding default), default config entries, CLI validation, daemon startup validation, audit auto-assignment, and planning-time class assignment via the planning prompt.
 
 ## Governing ADRs
 
@@ -86,9 +86,7 @@ The current implementation resolves a single prompt file per class. It does NOT 
 
 ### Validation
 
-The `ClassRepository.Validate()` method checks every configured class key for a resolvable prompt file and returns any keys whose prompts are missing from all tiers (including fallback). This is available as a library call but is not wired into daemon startup validation.
-
-**Future work:** Startup validation that enforces non-empty descriptions, valid model references, and resolvable prompt files. CLI-time validation of `--class` values against the config's `task_classes` map (the `task add` command currently accepts any string).
+The `ClassRepository.Validate()` method checks every configured class key for a resolvable prompt file and returns any keys whose prompts are missing from all tiers (including fallback). This is wired into daemon startup validation, which logs warnings for any classes with missing prompt files. CLI-time validation of `--class` values is performed in `task add` against the config's `task_classes` map; unknown values are rejected with an error listing valid classes.
 
 ---
 
@@ -117,13 +115,11 @@ wolfcastle task add "Implement auth middleware" --node my-project --class go
 wolfcastle task add "Research POS systems" --node pizza-docs --class research --deliverable "docs/pos-research.md"
 ```
 
-The `--class` flag is accepted by `task add` and stored directly on the task. No validation is performed against the config's `task_classes` map at invocation time; any string is accepted.
-
-**Future work:** Validate `--class` against the config at CLI time, rejecting unknown values with an error listing valid classes.
+The `--class` flag is accepted by `task add` and stored directly on the task. Validation is performed at invocation time against the config's `task_classes` map; unknown values are rejected with an error listing valid classes.
 
 ### Audit tasks
 
-**Future work:** Auto-assign `Class: "audit"` to audit tasks at claim time when their class is empty. The `IsAudit` field would remain the authoritative marker for audit identity; `Class` would be purely for prompt routing.
+Auto-assignment of `Class: "audit"` to audit tasks is implemented at claim time when their class is empty. The `IsAudit` field remains the authoritative marker for audit identity; `Class` is used purely for prompt routing.
 
 ---
 
@@ -225,7 +221,7 @@ The daemon wires `ClassRepository` into the `ContextBuilder` at startup. Class p
 
 The `ClassDef.Model` field exists in the config struct but the daemon does not read it during dispatch. All tasks use the execute stage's configured model regardless of class.
 
-**Future work:** Model override dispatch, where the daemon reads `ClassDef.Model` and uses a different model for classes that specify one. Auto-assignment of the `"audit"` class to audit tasks at claim time.
+**Future work:** Model override dispatch, where the daemon reads `ClassDef.Model` and uses a different model for classes that specify one.
 
 ---
 
@@ -336,6 +332,6 @@ This is additive. Existing tasks without a `Class` field continue to work exactl
 
 - **Class-specific allowed commands.** Classes don't restrict tools. If a future need arises, `allowed_commands` could be added to the class config, but that's a separate decision.
 - **Class inheritance or composition.** A task has exactly one class. No "go + research" hybrids. Split the work instead.
-- **Automatic class detection from file types.** Classification is manual (via `--class`) until intake integration is built.
+- **Automatic class detection from file types.** Classification is manual (via `--class` at the CLI or assigned by the planning agent). Intake-level automatic classification is not implemented.
 - **Class-specific validation rules.** All tasks follow the same deliverable verification and state transition rules regardless of class.
 - **Dual prompt assembly for hierarchical keys.** The spec originally proposed assembling both the parent language prompt and the child framework prompt together. The implementation uses single-file resolution with fallback instead.
