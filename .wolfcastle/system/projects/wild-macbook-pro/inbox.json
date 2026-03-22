@@ -149,6 +149,66 @@
       "timestamp": "2026-03-21T21:42:00Z",
       "text": "make sure all wolfcastle log structures have \u003e= 90% code coverage",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:25:29Z",
+      "text": "Fix replayJSON: streams files instead of loading into memory, decompress .gz files before emitting",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:25:29Z",
+      "text": "Fix followJSON: bypass Record channel and emit raw NDJSON lines to avoid unmarshal/marshal round-trip",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:25:29Z",
+      "text": "Fix --follow with stopped daemon: show last session and exit instead of hanging (spec says no-op)",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:25:29Z",
+      "text": "Replace indexOf with bytes.IndexByte, remove stageLabels identity map, remove reimplemented strings.Contains in tests",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:25:29Z",
+      "text": "Add context.Context to SummaryRenderer.Replay for cancellation parity with other renderers",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:25:29Z",
+      "text": "Extract shared renderer wiring from execute.go and intake.go into a helper function",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:25:29Z",
+      "text": "Fix 15 errcheck violations in internal/logrender: handle or explicitly discard write errors",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:27:23Z",
+      "text": "BUG: replayJSON in internal/logrender/follow.go loads entire files into memory and emits raw gzip bytes for .gz files. Must stream and decompress.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:27:23Z",
+      "text": "BUG: followJSON round-trips through JSON unmarshal/marshal, reordering keys. Should emit raw NDJSON lines directly.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:27:23Z",
+      "text": "BUG: wolfcastle log --follow with stopped daemon hangs forever. Spec says show last session and exit.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:27:23Z",
+      "text": "CLEANUP: Replace indexOf with bytes.IndexByte, remove stageLabels identity map, remove reimplemented strings.Contains in logrender tests",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T01:27:23Z",
+      "text": "CLEANUP: Add context.Context to SummaryRenderer.Replay, extract shared renderer wiring from execute.go/intake.go, fix 15 errcheck violations",
+      "status": "filed"
     }
   ]
 }

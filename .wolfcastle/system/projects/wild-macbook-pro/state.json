@@ -2,9 +2,12 @@
   "version": 1,
   "root_id": "domain-repository-architecture",
   "root_name": "Domain Repository Architecture",
-  "root_state": "in_progress",
+  "root_state": "complete",
   "root": [
-    "log-command-redesign"
+    "log-command-redesign",
+    "fix-replayjson-streaming-bug",
+    "fix-log-follow-hang-with-stopped-daemon",
+    "logrender-post-merge-cleanups"
   ],
   "archived_root": [
     "domain-repository-architecture",
@@ -26,884 +29,64 @@
     "documentation-review"
   ],
   "nodes": {
-    "auto-archive-lifecycle": {
-      "name": "Auto-Archive Lifecycle",
+    "fix-log-follow-hang-with-stopped-daemon": {
+      "name": "Fix log --follow hang with stopped daemon",
       "type": "orchestrator",
       "state": "complete",
-      "address": "auto-archive-lifecycle",
+      "address": "fix-log-follow-hang-with-stopped-daemon",
       "decomposition_depth": 0,
       "children": [
-        "auto-archive-lifecycle/archive-service-spec",
-        "auto-archive-lifecycle/archive-implementation",
-        "auto-archive-lifecycle/archive-status-rendering",
-        "auto-archive-lifecycle/daemon-auto-archive"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.607582Z"
+        "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
+        "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection"
+      ]
     },
-    "auto-archive-lifecycle/archive-implementation": {
-      "name": "Archive Implementation",
+    "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped": {
+      "name": "follow-no-op-when-stopped",
+      "type": "leaf",
+      "state": "complete",
+      "address": "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
+      "decomposition_depth": 0,
+      "parent": "fix-log-follow-hang-with-stopped-daemon"
+    },
+    "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection": {
+      "name": "follow-reader-daemon-exit-detection",
+      "type": "leaf",
+      "state": "complete",
+      "address": "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection",
+      "decomposition_depth": 0,
+      "parent": "fix-log-follow-hang-with-stopped-daemon"
+    },
+    "fix-replayjson-streaming-bug": {
+      "name": "Fix replayJSON streaming bug",
       "type": "orchestrator",
       "state": "complete",
-      "address": "auto-archive-lifecycle/archive-implementation",
-      "decomposition_depth": 0,
-      "parent": "auto-archive-lifecycle",
-      "children": [
-        "auto-archive-lifecycle/archive-implementation/restore-operation",
-        "auto-archive-lifecycle/archive-implementation/delete-operation",
-        "auto-archive-lifecycle/archive-implementation/archive-add-state-move"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.607582Z"
-    },
-    "auto-archive-lifecycle/archive-implementation/archive-add-state-move": {
-      "name": "Archive Add State Move",
-      "type": "leaf",
-      "state": "complete",
-      "address": "auto-archive-lifecycle/archive-implementation/archive-add-state-move",
-      "decomposition_depth": 0,
-      "parent": "auto-archive-lifecycle/archive-implementation",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.607582Z"
-    },
-    "auto-archive-lifecycle/archive-implementation/delete-operation": {
-      "name": "Delete Operation",
-      "type": "leaf",
-      "state": "complete",
-      "address": "auto-archive-lifecycle/archive-implementation/delete-operation",
-      "decomposition_depth": 0,
-      "parent": "auto-archive-lifecycle/archive-implementation",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.607582Z"
-    },
-    "auto-archive-lifecycle/archive-implementation/restore-operation": {
-      "name": "Restore Operation",
-      "type": "leaf",
-      "state": "complete",
-      "address": "auto-archive-lifecycle/archive-implementation/restore-operation",
-      "decomposition_depth": 0,
-      "parent": "auto-archive-lifecycle/archive-implementation",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.607582Z"
-    },
-    "auto-archive-lifecycle/archive-service-spec": {
-      "name": "Archive Service Spec",
-      "type": "leaf",
-      "state": "complete",
-      "address": "auto-archive-lifecycle/archive-service-spec",
-      "decomposition_depth": 0,
-      "parent": "auto-archive-lifecycle",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.607582Z"
-    },
-    "auto-archive-lifecycle/archive-status-rendering": {
-      "name": "Archive Status Rendering",
-      "type": "leaf",
-      "state": "complete",
-      "address": "auto-archive-lifecycle/archive-status-rendering",
-      "decomposition_depth": 0,
-      "parent": "auto-archive-lifecycle",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.607582Z"
-    },
-    "auto-archive-lifecycle/daemon-auto-archive": {
-      "name": "Daemon Auto-Archive",
-      "type": "leaf",
-      "state": "complete",
-      "address": "auto-archive-lifecycle/daemon-auto-archive",
-      "decomposition_depth": 0,
-      "parent": "auto-archive-lifecycle",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.607582Z"
-    },
-    "ci-and-lint-tooling": {
-      "name": "CI and Lint Tooling",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "ci-and-lint-tooling",
+      "address": "fix-replayjson-streaming-bug",
       "decomposition_depth": 0,
       "children": [
-        "ci-and-lint-tooling/makefile-lint-integration",
-        "ci-and-lint-tooling/ci-govulncheck"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.127872Z"
+        "fix-replayjson-streaming-bug/streaming-fix",
+        "fix-replayjson-streaming-bug/test-coverage"
+      ]
     },
-    "ci-and-lint-tooling/ci-govulncheck": {
-      "name": "CI Govulncheck",
+    "fix-replayjson-streaming-bug/streaming-fix": {
+      "name": "streaming-fix",
       "type": "leaf",
       "state": "complete",
-      "address": "ci-and-lint-tooling/ci-govulncheck",
+      "address": "fix-replayjson-streaming-bug/streaming-fix",
       "decomposition_depth": 0,
-      "parent": "ci-and-lint-tooling",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.127872Z"
+      "parent": "fix-replayjson-streaming-bug"
     },
-    "ci-and-lint-tooling/makefile-lint-integration": {
-      "name": "Makefile Lint Integration",
+    "fix-replayjson-streaming-bug/test-coverage": {
+      "name": "test-coverage",
       "type": "leaf",
       "state": "complete",
-      "address": "ci-and-lint-tooling/makefile-lint-integration",
+      "address": "fix-replayjson-streaming-bug/test-coverage",
       "decomposition_depth": 0,
-      "parent": "ci-and-lint-tooling",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.127872Z"
-    },
-    "cli-command-spec-update": {
-      "name": "CLI Command Spec Update",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "cli-command-spec-update",
-      "decomposition_depth": 0,
-      "children": [
-        "cli-command-spec-update/spec-gap-analysis",
-        "cli-command-spec-update/add-missing-commands",
-        "cli-command-spec-update/update-existing-command-flags"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.0744Z"
-    },
-    "cli-command-spec-update/add-missing-commands": {
-      "name": "Add Missing Commands",
-      "type": "leaf",
-      "state": "complete",
-      "address": "cli-command-spec-update/add-missing-commands",
-      "decomposition_depth": 0,
-      "parent": "cli-command-spec-update",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.0744Z"
-    },
-    "cli-command-spec-update/spec-gap-analysis": {
-      "name": "Spec Gap Analysis",
-      "type": "leaf",
-      "state": "complete",
-      "address": "cli-command-spec-update/spec-gap-analysis",
-      "decomposition_depth": 0,
-      "parent": "cli-command-spec-update",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.0744Z"
-    },
-    "cli-command-spec-update/update-existing-command-flags": {
-      "name": "Update Existing Command Flags",
-      "type": "leaf",
-      "state": "complete",
-      "address": "cli-command-spec-update/update-existing-command-flags",
-      "decomposition_depth": 0,
-      "parent": "cli-command-spec-update",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.0744Z"
-    },
-    "code-coverage": {
-      "name": "Code Coverage",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "code-coverage",
-      "decomposition_depth": 0,
-      "children": [
-        "code-coverage/cmd-coverage",
-        "code-coverage/internal-core-coverage",
-        "code-coverage/internal-utility-coverage",
-        "code-coverage/coverage-cmd-cmd-daemon",
-        "code-coverage/coverage-internal-daemon-internal-project",
-        "code-coverage/coverage-internal-output-internal-logging",
-        "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining",
-        "code-coverage/cmd-cmdutil-coverage-gap"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/cmd-cmdutil-coverage-gap": {
-      "name": "cmd-cmdutil-coverage-gap",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/cmd-cmdutil-coverage-gap",
-      "decomposition_depth": 0,
-      "parent": "code-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/cmd-coverage": {
-      "name": "cmd Coverage",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "code-coverage/cmd-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage",
-      "children": [
-        "code-coverage/cmd-coverage/cmd-package-coverage",
-        "code-coverage/cmd-coverage/cmd-daemon-coverage",
-        "code-coverage/cmd-coverage/cmd-task-coverage",
-        "code-coverage/cmd-coverage/cmd-orchestrator-coverage"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/cmd-coverage/cmd-daemon-coverage": {
-      "name": "cmd/daemon Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/cmd-coverage/cmd-daemon-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/cmd-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/cmd-coverage/cmd-orchestrator-coverage": {
-      "name": "cmd/orchestrator Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/cmd-coverage/cmd-orchestrator-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/cmd-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/cmd-coverage/cmd-package-coverage": {
-      "name": "cmd Package Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/cmd-coverage/cmd-package-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/cmd-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/cmd-coverage/cmd-task-coverage": {
-      "name": "cmd/task Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/cmd-coverage/cmd-task-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/cmd-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/coverage-cmd-cmd-daemon": {
-      "name": "Coverage: cmd \u0026 cmd/daemon",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/coverage-cmd-cmd-daemon",
-      "decomposition_depth": 0,
-      "parent": "code-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining": {
-      "name": "Coverage: cmd/task, cmd/orchestrator \u0026 remaining",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/coverage-cmd-task-cmd-orchestrator-remaining",
-      "decomposition_depth": 0,
-      "parent": "code-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/coverage-internal-daemon-internal-project": {
-      "name": "Coverage: internal/daemon \u0026 internal/project",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/coverage-internal-daemon-internal-project",
-      "decomposition_depth": 0,
-      "parent": "code-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/coverage-internal-output-internal-logging": {
-      "name": "Coverage: internal/output \u0026 internal/logging",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/coverage-internal-output-internal-logging",
-      "decomposition_depth": 0,
-      "parent": "code-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/internal-core-coverage": {
-      "name": "internal Core Coverage",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "code-coverage/internal-core-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage",
-      "children": [
-        "code-coverage/internal-core-coverage/daemon-coverage",
-        "code-coverage/internal-core-coverage/project-coverage",
-        "code-coverage/internal-core-coverage/near-threshold-coverage"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/internal-core-coverage/daemon-coverage": {
-      "name": "Daemon Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/internal-core-coverage/daemon-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/internal-core-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/internal-core-coverage/near-threshold-coverage": {
-      "name": "Near-Threshold Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/internal-core-coverage/near-threshold-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/internal-core-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/internal-core-coverage/project-coverage": {
-      "name": "Project Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/internal-core-coverage/project-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/internal-core-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/internal-utility-coverage": {
-      "name": "internal Utility Coverage",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "code-coverage/internal-utility-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage",
-      "children": [
-        "code-coverage/internal-utility-coverage/git-package-coverage",
-        "code-coverage/internal-utility-coverage/testutil-package-coverage",
-        "code-coverage/internal-utility-coverage/tierfs-package-coverage"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/internal-utility-coverage/git-package-coverage": {
-      "name": "Git Package Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/internal-utility-coverage/git-package-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/internal-utility-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/internal-utility-coverage/testutil-package-coverage": {
-      "name": "Testutil Package Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/internal-utility-coverage/testutil-package-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/internal-utility-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "code-coverage/internal-utility-coverage/tierfs-package-coverage": {
-      "name": "Tierfs Package Coverage",
-      "type": "leaf",
-      "state": "complete",
-      "address": "code-coverage/internal-utility-coverage/tierfs-package-coverage",
-      "decomposition_depth": 0,
-      "parent": "code-coverage/internal-utility-coverage",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:34.967166Z"
-    },
-    "config-improvements": {
-      "name": "Config Improvements",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "config-improvements",
-      "decomposition_depth": 0,
-      "children": [
-        "config-improvements/config-show-command",
-        "config-improvements/unknown-field-detection"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.285885Z"
-    },
-    "config-improvements/config-show-command": {
-      "name": "Config Show Command",
-      "type": "leaf",
-      "state": "complete",
-      "address": "config-improvements/config-show-command",
-      "decomposition_depth": 0,
-      "parent": "config-improvements",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.285885Z"
-    },
-    "config-improvements/unknown-field-detection": {
-      "name": "Unknown Field Detection",
-      "type": "leaf",
-      "state": "complete",
-      "address": "config-improvements/unknown-field-detection",
-      "decomposition_depth": 0,
-      "parent": "config-improvements",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.285885Z"
-    },
-    "config-show-section-filter": {
-      "name": "Config Show Section Filter",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "config-show-section-filter",
-      "decomposition_depth": 0,
-      "children": [
-        "config-show-section-filter/section-argument"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.663816Z"
-    },
-    "config-show-section-filter/section-argument": {
-      "name": "Section Argument",
-      "type": "leaf",
-      "state": "complete",
-      "address": "config-show-section-filter/section-argument",
-      "decomposition_depth": 0,
-      "parent": "config-show-section-filter",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.663816Z"
-    },
-    "config-write-commands": {
-      "name": "Config Write Commands",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "config-write-commands",
-      "decomposition_depth": 0,
-      "children": [
-        "config-write-commands/config-write-spec",
-        "config-write-commands/core-write-infrastructure",
-        "config-write-commands/cli-write-commands"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.716165Z"
-    },
-    "config-write-commands/cli-write-commands": {
-      "name": "CLI Write Commands",
-      "type": "leaf",
-      "state": "complete",
-      "address": "config-write-commands/cli-write-commands",
-      "decomposition_depth": 0,
-      "parent": "config-write-commands",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.716165Z"
-    },
-    "config-write-commands/config-write-spec": {
-      "name": "Config Write Spec",
-      "type": "leaf",
-      "state": "complete",
-      "address": "config-write-commands/config-write-spec",
-      "decomposition_depth": 0,
-      "parent": "config-write-commands",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.716165Z"
-    },
-    "config-write-commands/core-write-infrastructure": {
-      "name": "Core Write Infrastructure",
-      "type": "leaf",
-      "state": "complete",
-      "address": "config-write-commands/core-write-infrastructure",
-      "decomposition_depth": 0,
-      "parent": "config-write-commands",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.716165Z"
-    },
-    "delete-deprecated-scaffold": {
-      "name": "Delete Deprecated Scaffold",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "delete-deprecated-scaffold",
-      "decomposition_depth": 0,
-      "children": [
-        "delete-deprecated-scaffold/verify-no-production-callers",
-        "delete-deprecated-scaffold/remove-deprecated-files"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.443105Z"
-    },
-    "delete-deprecated-scaffold/remove-deprecated-files": {
-      "name": "Remove Deprecated Files",
-      "type": "leaf",
-      "state": "complete",
-      "address": "delete-deprecated-scaffold/remove-deprecated-files",
-      "decomposition_depth": 0,
-      "parent": "delete-deprecated-scaffold",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.443105Z"
-    },
-    "delete-deprecated-scaffold/verify-no-production-callers": {
-      "name": "Verify No Production Callers",
-      "type": "leaf",
-      "state": "complete",
-      "address": "delete-deprecated-scaffold/verify-no-production-callers",
-      "decomposition_depth": 0,
-      "parent": "delete-deprecated-scaffold",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.443105Z"
-    },
-    "doctor-childref-state-mismatch": {
-      "name": "Doctor ChildRef State Mismatch",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "doctor-childref-state-mismatch",
-      "decomposition_depth": 0,
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.497423Z"
-    },
-    "documentation-review": {
-      "name": "Documentation Review",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "documentation-review",
-      "decomposition_depth": 0,
-      "children": [
-        "documentation-review/specs-currency-audit",
-        "documentation-review/agent-docs-audit",
-        "documentation-review/human-docs-audit",
-        "documentation-review/root-docs-audit"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.769704Z"
-    },
-    "documentation-review/agent-docs-audit": {
-      "name": "Agent Docs Audit",
-      "type": "leaf",
-      "state": "complete",
-      "address": "documentation-review/agent-docs-audit",
-      "decomposition_depth": 0,
-      "parent": "documentation-review",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.769704Z"
-    },
-    "documentation-review/human-docs-audit": {
-      "name": "Human Docs Audit",
-      "type": "leaf",
-      "state": "complete",
-      "address": "documentation-review/human-docs-audit",
-      "decomposition_depth": 0,
-      "parent": "documentation-review",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.769704Z"
-    },
-    "documentation-review/root-docs-audit": {
-      "name": "Root Docs Audit",
-      "type": "leaf",
-      "state": "complete",
-      "address": "documentation-review/root-docs-audit",
-      "decomposition_depth": 0,
-      "parent": "documentation-review",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.769704Z"
-    },
-    "documentation-review/specs-currency-audit": {
-      "name": "Specs Currency Audit",
-      "type": "leaf",
-      "state": "complete",
-      "address": "documentation-review/specs-currency-audit",
-      "decomposition_depth": 0,
-      "parent": "documentation-review",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.769704Z"
-    },
-    "domain-repository-architecture": {
-      "name": "Domain Repository Architecture",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "domain-repository-architecture",
-      "decomposition_depth": 0,
-      "children": [
-        "domain-repository-architecture/foundation",
-        "domain-repository-architecture/repositories",
-        "domain-repository-architecture/integration"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/foundation": {
-      "name": "Foundation",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "domain-repository-architecture/foundation",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture",
-      "children": [
-        "domain-repository-architecture/foundation/tier-resolution-primitive",
-        "domain-repository-architecture/foundation/test-environment"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/foundation/test-environment": {
-      "name": "Test Environment",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/foundation/test-environment",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/foundation",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/foundation/tier-resolution-primitive": {
-      "name": "Tier Resolution Primitive",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/foundation/tier-resolution-primitive",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/foundation",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/integration": {
-      "name": "Integration",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "domain-repository-architecture/integration",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture",
-      "children": [
-        "domain-repository-architecture/integration/classrepository",
-        "domain-repository-architecture/integration/project-services",
-        "domain-repository-architecture/integration/contextbuilder",
-        "domain-repository-architecture/integration/app-refactor"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/integration/app-refactor": {
-      "name": "App Refactor",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/integration/app-refactor",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/integration",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/integration/classrepository": {
-      "name": "ClassRepository",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/integration/classrepository",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/integration",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/integration/contextbuilder": {
-      "name": "ContextBuilder",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/integration/contextbuilder",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/integration",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/integration/project-services": {
-      "name": "Project Services",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/integration/project-services",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/integration",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories": {
-      "name": "Repositories",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture",
-      "children": [
-        "domain-repository-architecture/repositories/independent-repositories",
-        "domain-repository-architecture/repositories/tier-based-repositories",
-        "domain-repository-architecture/repositories/render-context-methods",
-        "domain-repository-architecture/repositories/render-context-documentation"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/independent-repositories": {
-      "name": "Independent Repositories",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/independent-repositories",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories",
-      "children": [
-        "domain-repository-architecture/repositories/independent-repositories/daemonrepository",
-        "domain-repository-architecture/repositories/independent-repositories/gitservice",
-        "domain-repository-architecture/repositories/independent-repositories/identity"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/independent-repositories/daemonrepository": {
-      "name": "DaemonRepository",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/independent-repositories/daemonrepository",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories/independent-repositories",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/independent-repositories/gitservice": {
-      "name": "GitService",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/independent-repositories/gitservice",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories/independent-repositories",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/independent-repositories/identity": {
-      "name": "Identity",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/independent-repositories/identity",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories/independent-repositories",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/render-context-documentation": {
-      "name": "Render Context Documentation",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/render-context-documentation",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/render-context-methods": {
-      "name": "Render Context Methods",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/render-context-methods",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/tier-based-repositories": {
-      "name": "Tier-Based Repositories",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/tier-based-repositories",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories",
-      "children": [
-        "domain-repository-architecture/repositories/tier-based-repositories/configrepository",
-        "domain-repository-architecture/repositories/tier-based-repositories/promptrepository",
-        "domain-repository-architecture/repositories/tier-based-repositories/environment-wiring"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/tier-based-repositories/configrepository": {
-      "name": "ConfigRepository",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/tier-based-repositories/configrepository",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories/tier-based-repositories",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/tier-based-repositories/environment-wiring": {
-      "name": "Environment Wiring",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/tier-based-repositories/environment-wiring",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories/tier-based-repositories",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "domain-repository-architecture/repositories/tier-based-repositories/promptrepository": {
-      "name": "PromptRepository",
-      "type": "leaf",
-      "state": "complete",
-      "address": "domain-repository-architecture/repositories/tier-based-repositories/promptrepository",
-      "decomposition_depth": 0,
-      "parent": "domain-repository-architecture/repositories/tier-based-repositories",
-      "archived": true,
-      "archived_at": "2026-03-21T21:04:48.102616Z"
-    },
-    "filesystem-requirements-documentation": {
-      "name": "Filesystem Requirements Documentation",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "filesystem-requirements-documentation",
-      "decomposition_depth": 0,
-      "children": [
-        "filesystem-requirements-documentation/documentation-updates"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.180407Z"
-    },
-    "filesystem-requirements-documentation/documentation-updates": {
-      "name": "Documentation Updates",
-      "type": "leaf",
-      "state": "complete",
-      "address": "filesystem-requirements-documentation/documentation-updates",
-      "decomposition_depth": 0,
-      "parent": "filesystem-requirements-documentation",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.180407Z"
-    },
-    "github-repository-meta": {
-      "name": "GitHub Repository Meta",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "github-repository-meta",
-      "decomposition_depth": 0,
-      "children": [
-        "github-repository-meta/codeowners"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.337694Z"
-    },
-    "github-repository-meta/codeowners": {
-      "name": "CODEOWNERS",
-      "type": "leaf",
-      "state": "complete",
-      "address": "github-repository-meta/codeowners",
-      "decomposition_depth": 0,
-      "parent": "github-repository-meta",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.337694Z"
-    },
-    "global-lock-leak-in-tests": {
-      "name": "Global Lock Leak in Tests",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "global-lock-leak-in-tests",
-      "decomposition_depth": 0,
-      "children": [
-        "global-lock-leak-in-tests/fix-leaking-tests"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.3902Z"
-    },
-    "global-lock-leak-in-tests/fix-leaking-tests": {
-      "name": "Fix Leaking Tests",
-      "type": "leaf",
-      "state": "complete",
-      "address": "global-lock-leak-in-tests/fix-leaking-tests",
-      "decomposition_depth": 0,
-      "parent": "global-lock-leak-in-tests",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.3902Z"
+      "parent": "fix-replayjson-streaming-bug"
     },
     "log-command-redesign": {
       "name": "Log Command Redesign",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "log-command-redesign",
       "decomposition_depth": 0,
       "children": [
@@ -916,7 +99,7 @@
     "log-command-redesign/log-command-rewrite": {
       "name": "Log Command Rewrite",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "log-command-redesign/log-command-rewrite",
       "decomposition_depth": 0,
       "parent": "log-command-redesign"
@@ -932,7 +115,7 @@
     "log-command-redesign/log-rendering-engine": {
       "name": "Log Rendering Engine",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "log-command-redesign/log-rendering-engine",
       "decomposition_depth": 0,
       "parent": "log-command-redesign",
@@ -954,7 +137,7 @@
     "log-command-redesign/log-rendering-engine/interleaved-renderer": {
       "name": "Interleaved Renderer",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/interleaved-renderer",
       "decomposition_depth": 0,
       "parent": "log-command-redesign/log-rendering-engine"
@@ -978,120 +161,28 @@
     "log-command-redesign/non-daemon-integration": {
       "name": "Non-Daemon Integration",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "log-command-redesign/non-daemon-integration",
       "decomposition_depth": 0,
       "parent": "log-command-redesign"
     },
-    "pipeline-stages-dict-refactor": {
-      "name": "Pipeline Stages Dict Refactor",
+    "logrender-post-merge-cleanups": {
+      "name": "Logrender post-merge cleanups",
       "type": "orchestrator",
       "state": "complete",
-      "address": "pipeline-stages-dict-refactor",
+      "address": "logrender-post-merge-cleanups",
       "decomposition_depth": 0,
       "children": [
-        "pipeline-stages-dict-refactor/dict-format-stages-spec",
-        "pipeline-stages-dict-refactor/core-config-types-and-defaults",
-        "pipeline-stages-dict-refactor/stages-migration",
-        "pipeline-stages-dict-refactor/consumer-updates"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.553872Z"
+        "logrender-post-merge-cleanups/code-cleanups"
+      ]
     },
-    "pipeline-stages-dict-refactor/consumer-updates": {
-      "name": "Consumer Updates",
+    "logrender-post-merge-cleanups/code-cleanups": {
+      "name": "Code Cleanups",
       "type": "leaf",
       "state": "complete",
-      "address": "pipeline-stages-dict-refactor/consumer-updates",
+      "address": "logrender-post-merge-cleanups/code-cleanups",
       "decomposition_depth": 0,
-      "parent": "pipeline-stages-dict-refactor",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.553872Z"
-    },
-    "pipeline-stages-dict-refactor/core-config-types-and-defaults": {
-      "name": "Core Config Types and Defaults",
-      "type": "leaf",
-      "state": "complete",
-      "address": "pipeline-stages-dict-refactor/core-config-types-and-defaults",
-      "decomposition_depth": 0,
-      "parent": "pipeline-stages-dict-refactor",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.553872Z"
-    },
-    "pipeline-stages-dict-refactor/dict-format-stages-spec": {
-      "name": "Dict-Format Stages Spec",
-      "type": "leaf",
-      "state": "complete",
-      "address": "pipeline-stages-dict-refactor/dict-format-stages-spec",
-      "decomposition_depth": 0,
-      "parent": "pipeline-stages-dict-refactor",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.553872Z"
-    },
-    "pipeline-stages-dict-refactor/stages-migration": {
-      "name": "Stages Migration",
-      "type": "leaf",
-      "state": "complete",
-      "address": "pipeline-stages-dict-refactor/stages-migration",
-      "decomposition_depth": 0,
-      "parent": "pipeline-stages-dict-refactor",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.553872Z"
-    },
-    "property-and-fuzz-tests": {
-      "name": "Property and Fuzz Tests",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "property-and-fuzz-tests",
-      "decomposition_depth": 0,
-      "children": [
-        "property-and-fuzz-tests/findnexttask-property-test",
-        "property-and-fuzz-tests/scanterminalmarker-fuzz-test"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.234822Z"
-    },
-    "property-and-fuzz-tests/findnexttask-property-test": {
-      "name": "FindNextTask Property Test",
-      "type": "leaf",
-      "state": "complete",
-      "address": "property-and-fuzz-tests/findnexttask-property-test",
-      "decomposition_depth": 0,
-      "parent": "property-and-fuzz-tests",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.234822Z"
-    },
-    "property-and-fuzz-tests/scanterminalmarker-fuzz-test": {
-      "name": "scanTerminalMarker Fuzz Test",
-      "type": "leaf",
-      "state": "complete",
-      "address": "property-and-fuzz-tests/scanterminalmarker-fuzz-test",
-      "decomposition_depth": 0,
-      "parent": "property-and-fuzz-tests",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.234822Z"
-    },
-    "self-update-fix": {
-      "name": "Self-Update Fix",
-      "type": "orchestrator",
-      "state": "complete",
-      "address": "self-update-fix",
-      "decomposition_depth": 0,
-      "children": [
-        "self-update-fix/honest-stub"
-      ],
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.021895Z"
-    },
-    "self-update-fix/honest-stub": {
-      "name": "Honest Stub",
-      "type": "leaf",
-      "state": "complete",
-      "address": "self-update-fix/honest-stub",
-      "decomposition_depth": 0,
-      "parent": "self-update-fix",
-      "archived": true,
-      "archived_at": "2026-03-21T21:05:35.021895Z"
+      "parent": "logrender-post-merge-cleanups"
     }
   }
 }

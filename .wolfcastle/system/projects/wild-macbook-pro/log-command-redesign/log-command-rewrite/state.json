@@ -3,14 +3,14 @@
   "id": "log-command-rewrite",
   "name": "Log Command Rewrite",
   "type": "leaf",
-  "state": "not_started",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Rewrite wolfcastle log cobra command",
       "description": "Rewrite wolfcastle log cobra command",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/daemon/follow.go"
@@ -24,7 +24,7 @@
       "id": "task-0002",
       "title": "Handle mutual exclusivity and last-wins semantics",
       "description": "Handle mutual exclusivity and last-wins semantics",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/daemon/follow_test.go"
@@ -35,7 +35,7 @@
       "id": "task-0003",
       "title": "Exit code semantics and edge cases",
       "description": "Exit code semantics and edge cases",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/daemon/follow_test.go"
@@ -46,7 +46,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Log Command Rewrite is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -59,9 +59,100 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T22:05:06.171264Z",
+        "task": "log-command-redesign/log-command-rewrite",
+        "text": "Rewrote wolfcastle log command: replaced internal NDJSON formatting with logrender renderer delegation. New flags --thoughts/-t, --interleaved/-i, --json, --session/-s. Removed --lines and --level. follow alias preserved."
+      },
+      {
+        "timestamp": "2026-03-21T22:09:32.583059Z",
+        "task": "log-command-redesign/log-command-rewrite",
+        "text": "Implemented last-wins for --thoughts/--interleaved/--json via custom pflag.Value type (modeFlag). 14 tests covering single flags, multi-flag ordering, short/long mixing."
+      },
+      {
+        "timestamp": "2026-03-21T22:13:09.401477Z",
+        "task": "log-command-redesign/log-command-rewrite",
+        "text": "Exit code semantics: ResolveSession errors now exit 1. Eight tests covering missing dir, empty dir, session out-of-range, success, follow interrupt, corrupted NDJSON, and compressed .gz files."
+      },
+      {
+        "timestamp": "2026-03-21T22:15:04.579799Z",
+        "task": "log-command-redesign/log-command-rewrite",
+        "text": "Audit reviewed 4 production/test files (follow.go, register.go, follow_test.go, follow_coverage_test.go) plus removal diffs in 3 adjacent test files. PASS. Build, all 29 packages, go vet, gofmt, and race detector all clean. Findings: (1) follow.go:80-82 wraps ResolveSession errors with a generic 'no log files found' message, losing specifics like session-out-of-range; accepted because exit code is correct and the common case message is adequate. (2) replayJSON silently skips ReadFile errors; accepted because it mirrors renderer behavior and the scenario is rare. (3) followJSON discards json.Marshal errors on already-parsed RawMessage; accepted as unreachable in practice. (4) No ADR for the modeFlag custom pflag.Value design; accepted because inline comments are sufficient for the pattern's scope. Quality: clean, well-factored rewrite. Net -575 lines. The command is now a thin dispatch layer with good test coverage across all flag combinations, exit codes, edge cases, and follow-mode paths."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "passed",
+    "started_at": "2026-03-21T21:57:58.460385Z",
+    "completed_at": "2026-03-21T22:15:22.048427Z",
+    "result_summary": "Rewrote the wolfcastle log cobra command from a monolithic NDJSON parser into a thin dispatch layer delegating to logrender renderers. Replaced --lines and --level flags with --thoughts/-t, --interleaved/-i, --json, and --session/-s. Implemented last-wins semantics for mutually exclusive mode flags via a custom pflag.Value type (modeFlag). Fixed exit code semantics so missing log directories, empty directories, and out-of-range sessions return exit 1. Preserved the 'follow' alias. Net deletion of 575 lines. All 29 packages pass with race detector clean. Audit found no issues requiring remediation."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-21T22:15:19.118991Z",
+      "objective": "Verify all work in the Log Command Rewrite node is complete and correct",
+      "what_happened": "Read all files touched by the three implementation tasks (follow.go, register.go, follow_test.go, follow_coverage_test.go) plus removal diffs in category_a_coverage_test.go, coverage_deep_test.go, and daemon_test.go. Ran build, full test suite, go vet, gofmt, and race detector. Evaluated four findings against the rubric.",
+      "went_well": [
+        "The rewrite is clean and well-factored; the modeFlag approach is elegant",
+        "Old internal functions were completely removed with no dangling references",
+        "Test coverage spans all flag paths, exit codes, edge cases, and follow-mode variants"
+      ],
+      "improvements": [
+        "follow.go:80-82 could propagate the original ResolveSession error for better diagnostics"
+      ],
+      "action_items": [
+        "Consider wrapping ResolveSession errors instead of replacing them with a generic message"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T22:05:02.68088Z",
+      "objective": "Rewrite the wolfcastle log cobra command to use the new logrender rendering engine",
+      "what_happened": "Replaced the entire RunE body of newLogCmd in follow.go. The old implementation did its own NDJSON parsing, offset tracking, and line formatting. The new one resolves sessions via logrender.ResolveSession, detects daemon liveness for implicit --follow, selects an output mode (summary/thoughts/interleaved/json), and delegates to the appropriate logrender renderer. Removed --lines and --level flags from register.go, added --thoughts, --interleaved, --json, and --session. Deleted all test code that exercised the removed internals (formatAndPrintLogLine, tailFileStreaming, showHistoricalLines, offset tracking, followLogs) and wrote new tests exercising each flag path through the cobra command.",
+      "went_well": [
+        "Net deletion of 575 lines; the command is now a thin dispatch layer with no formatting logic of its own",
+        "All 29 packages still pass after the rewrite"
+      ],
+      "improvements": [
+        "The 'last flag wins' semantics for mutually exclusive modes is a simple cascade rather than cobra's MarkFlagsMutuallyExclusive; a future pass could tighten that"
+      ],
+      "action_items": [
+        "Wire the --json flag into the App.JSON persistent flag if the global convention expects it"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T22:09:29.176222Z",
+      "objective": "Implement true last-wins semantics when multiple output mode flags are passed to wolfcastle log",
+      "what_happened": "Replaced the fixed if-cascade in newLogCmd with a custom pflag.Value type (modeFlag) that writes its designated mode to a shared *outputMode pointer during parsing. Since pflag processes flags left-to-right, the last flag on the command line wins naturally. Moved mode flag registration from register.go into a new registerModeFlags function called from newLogCmd, keeping the shared mode variable local to the command closure. Added NoOptDefVal to each flag so they behave as booleans (no argument required). Wrote 14 tests via a parseMode helper that creates a minimal cobra command with mode flags.",
+      "went_well": [
+        "The modeFlag approach is clean: zero runtime overhead, no os.Args scanning, works correctly with cobra's SetArgs for testing",
+        "14 tests cover every combination: no flags, each single flag (long and short), every pair ordering, all three in both directions"
+      ],
+      "improvements": [
+        "The IsBoolFlag() interface method was ignored by this version of pflag; had to use NoOptDefVal instead. A comment explains why."
+      ],
+      "action_items": [
+        "Consider whether App.JSON persistent flag should interact with --json on the log command"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T22:13:04.886732Z",
+      "objective": "Implement exit code semantics and edge case handling for the log command",
+      "what_happened": "Changed follow.go to propagate ResolveSession errors as command errors (exit 1) instead of swallowing them with a stderr message and exit 0. The previous code masked three failure modes: missing log directory, empty log directory, and out-of-range session index. Added 8 tests in follow_test.go covering exit 1 scenarios (no log dir, empty dir, session out of range), exit 0 scenarios (success, follow-mode streaming), and edge cases (corrupted NDJSON lines skipped gracefully, compressed .jsonl.gz files from older sessions read correctly). Updated existing TestLogCmd_NoLogFiles in follow_coverage_test.go to expect an error.",
+      "went_well": [
+        "The corrupted NDJSON and compressed .gz handling were already correct in reader.go; no production changes needed for those edge cases",
+        "All 29 packages pass with the single-line code change"
+      ],
+      "improvements": [
+        "The test cobra command does not set SilenceUsage, so error tests print usage output to stderr during test runs; cosmetic only"
+      ],
+      "action_items": [
+        "Consider adding SilenceUsage/SilenceErrors to the test env root command to quiet error-path test output"
+      ]
+    }
   }
 }

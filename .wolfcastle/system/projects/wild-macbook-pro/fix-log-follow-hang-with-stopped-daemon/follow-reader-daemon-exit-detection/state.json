@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "follow-reader-daemon-exit-detection",
+  "name": "follow-reader-daemon-exit-detection",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add IsAlive callback to FollowReader poll loop",
+      "description": "Add IsAlive callback to FollowReader poll loop",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/reader.go",
+        "internal/logrender/reader_test.go",
+        "cmd/daemon/follow.go"
+      ],
+      "body": "Extend FollowReader in internal/logrender/reader.go to accept an optional 'alive check' function (func() bool). When provided, the poll loop should call it periodically (every N cycles, not every tick, to avoid hammering the PID file) and return if it reports false. Design options: (1) Add the callback as a field on FollowReader with a setter method like SetAliveCheck(fn func() bool). (2) Pass it as a parameter to NewFollowReader. Option 1 is preferable because it keeps the constructor signature stable and the callback is truly optional. In follow.go, wire it up: reader.SetAliveCheck(app.Daemon.IsAlive). The check frequency should be reasonable, something like every 5 seconds (25 cycles at 200ms interval). After the alive check returns false, do one final cycle to drain any remaining buffered lines before closing the channel."
+    },
+    {
+      "id": "task-0002",
+      "title": "Wire alive check in follow.go",
+      "description": "Wire alive check in follow.go",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/follow.go"
+      ],
+      "body": "In cmd/daemon/follow.go, after creating the FollowReader (line 124), call reader.SetAliveCheck(app.Daemon.IsAlive) to connect the daemon status to the reader's exit detection. This requires threading the daemon repository (or just the IsAlive method) through to runLog. Currently runLog takes (ctx, logDir, session, mode, follow) but has no access to the daemon. Options: (1) Add a func() bool parameter to runLog for the alive check. (2) Pass *daemon.DaemonRepository. Option 1 is cleaner since runLog shouldn't know about the daemon package. The followJSON path (line 206) also needs the same treatment."
+    },
+    {
+      "id": "task-0003",
+      "title": "Add tests for FollowReader daemon-exit detection",
+      "description": "Add tests for FollowReader daemon-exit detection",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/reader_test.go"
+      ],
+      "body": "Add tests to internal/logrender/reader_test.go that verify: (1) FollowReader with an alive check that returns false stops polling and closes the channel promptly. (2) FollowReader with an alive check that returns true continues polling normally. (3) FollowReader with no alive check set (nil) polls indefinitely as before (backward compat). (4) The final drain cycle runs before closing, so no lines are lost. Use a test-controlled alive function (a closure over a boolean or atomic) that can be flipped mid-test. Set a short poll interval (10ms) and a tight test timeout to catch hangs."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in follow-reader-daemon-exit-detection is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that FollowReader does a final drain cycle after alive check returns false, so no buffered lines are lost"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T01:50:34.404567Z",
+        "task": "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection",
+        "text": "Added SetAliveCheck(func() bool) to FollowReader with periodic invocation in poll loop (every 25 cycles). Wired app.Daemon.IsAlive through follow.go for both structured and JSON follow modes. Three tests added covering stop-on-dead, final-drain, and nil-callback paths."
+      },
+      {
+        "timestamp": "2026-03-22T01:50:52.665521Z",
+        "task": "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection",
+        "text": "task-0002: Verified follow.go already has aliveCheck wiring from task-0001. runLog and followJSON both accept aliveCheck param and call reader.SetAliveCheck. SKIP."
+      },
+      {
+        "timestamp": "2026-03-22T01:51:21.003789Z",
+        "task": "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection",
+        "text": "task-0003: All four test scenarios (alive-check-stops, continues-while-alive, nil-callback-backward-compat, final-drain) already present in reader_test.go from task-0001. Tests pass. SKIP."
+      },
+      {
+        "timestamp": "2026-03-22T01:52:56.499807Z",
+        "task": "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection",
+        "text": "Audit reviewed 4 files (~850 lines of production+test code). PASS. Build, tests (with -race), vet, and formatting all clean. Key verification points: (1) No data race on aliveCheck field — written before goroutine launch, confirmed by -race. (2) Final drain cycle correctly captures late-arriving lines before channel close. (3) Layered defense: command-level downgrade for stopped daemon at startup + poll-loop alive check for daemon death during tailing. (4) Nil callback handled safely. No findings requiring remediation. Quality: clean, well-structured implementation with good test coverage across all code paths."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T01:47:47.523208Z",
+    "completed_at": "2026-03-22T01:53:13.948982Z",
+    "result_summary": "Added daemon exit detection to FollowReader via an optional alive-check callback. The poll loop invokes the callback every 25 cycles (~5s at the 200ms default) and, when it returns false, performs one final drain cycle before closing the record channel. The log command wires app.Daemon.IsAlive through this mechanism for both structured and JSON follow modes. A separate command-level guard downgrades explicit --follow to replay when the daemon is already stopped at startup, preventing the hang that motivated this work. Three reader-level tests and three command-level tests cover the new behavior. Audit passed with no findings requiring remediation."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T01:53:12.076383Z",
+      "objective": "Verify all work in follow-reader-daemon-exit-detection is complete and correct",
+      "what_happened": "Reviewed all 4 files touched by this node (reader.go, reader_test.go, follow.go, follow_test.go). Ran build, full test suite with race detector, go vet, and gofmt. All clean. Examined concurrency safety of the aliveCheck field, correctness of the final drain cycle, nil-callback handling, and the layered defense between command-level downgrade and poll-loop exit detection.",
+      "went_well": [
+        "Implementation is clean and well-factored. The setter pattern for aliveCheck kept the constructor stable. Test coverage spans all new code paths including edge cases (nil callback, daemon already stopped, daemon dies mid-tail). Race detector confirms no concurrency issues."
+      ],
+      "improvements": [
+        "None identified. The cycle-count-based alive check interval is a conscious tradeoff noted in the prior task AAR; it's reasonable for the current single-interval design."
+      ],
+      "action_items": [
+        "None. All paths are tested and correct."
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T01:50:29.892016Z",
+      "objective": "Add an optional alive-check callback to FollowReader so the poll loop exits when the daemon stops",
+      "what_happened": "Added an aliveCheck field and SetAliveCheck setter to FollowReader in reader.go. Modified the poll loop to call the check every 25 cycles (roughly 5s at 200ms interval). When the check returns false, one final drain cycle runs before closing the channel. Wired the callback through follow.go: runLog and followJSON now accept and pass aliveCheck, and both follow-mode code paths call reader.SetAliveCheck(aliveCheck).",
+      "went_well": [
+        "Setter approach kept the constructor signature stable; no changes to any existing call sites beyond follow.go",
+        "Three new tests cover the core behaviors: alive-check stops the reader, the final drain cycle runs, and nil callback has no effect"
+      ],
+      "improvements": [
+        "The aliveCheckInterval constant is hardcoded at 25; if the poll interval changes, the check frequency changes proportionally. A time-based threshold would be more resilient but adds complexity for no current need."
+      ],
+      "action_items": [
+        "Task 2 (unit tests) and task 3 (follow.go wiring) may already be covered by this commit; verify and SKIP if so"
+      ]
+    }
+  }
+}

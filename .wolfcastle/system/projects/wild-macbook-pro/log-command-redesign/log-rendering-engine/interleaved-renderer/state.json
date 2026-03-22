@@ -3,7 +3,7 @@
   "id": "interleaved-renderer",
   "name": "Interleaved Renderer",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -25,9 +25,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Interleaved Renderer is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 1,
+      "last_failure_type": "no_terminal_marker"
     }
   ],
   "audit_enrichment": [
@@ -42,13 +43,19 @@
         "timestamp": "2026-03-21T21:49:12.772498Z",
         "task": "log-command-redesign/log-rendering-engine/interleaved-renderer",
         "text": "Implemented InterleavedRenderer in internal/logrender/interleaved.go with 15 tests at 100% coverage. Handles stage_start/complete, planning_start/complete, assistant, and audit_report_written records. Filters daemon stages and irrelevant types. Timestamps formatted as HH:MM:SS in local timezone."
+      },
+      {
+        "timestamp": "2026-03-21T21:57:51.40883Z",
+        "task": "log-command-redesign/log-rendering-engine/interleaved-renderer",
+        "text": "Audit reviewed 2 files (379 lines). PASS. One finding: doc comment and test error message said 'four-space indent' but format string uses five spaces; fixed inline (commit 8c53a0f). No correctness, safety, or concurrency issues. Build, tests (including race detector), go vet, and gofmt all clean. Implementation is tight at 101 lines, reuses shared helpers properly, and test coverage handles all edge cases including timezone portability."
       }
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-21T21:44:59.568014Z",
-    "result_summary": "InterleavedRenderer implemented with full test coverage. Processes records chronologically, printing timestamped stage headers (with ▶/✓/✗ glyphs and durations) interleaved with 4-space-indented assistant thoughts and audit report paths. Reuses existing package helpers for stage keys, duration formatting, and glyph selection. Single Render method works for both replay and follow modes."
+    "completed_at": "2026-03-21T21:57:58.344394Z",
+    "result_summary": "InterleavedRenderer implemented in internal/logrender/interleaved.go (101 lines) with 15 tests at full coverage. Renders timestamped, chronological output combining stage headers (with start/complete glyphs and duration), assistant thoughts (indented), planning records, and audit report paths. Filters daemon lifecycle stages. Works identically for replay and follow modes by processing records as they arrive from a channel. Shares stageKey, keyFor, skipStage, glyphFor, nodeAddress, and FormatDuration helpers with SummaryRenderer. Audit found one cosmetic comment discrepancy (fixed), no correctness or safety issues."
   },
   "aars": {
     "task-0001": {

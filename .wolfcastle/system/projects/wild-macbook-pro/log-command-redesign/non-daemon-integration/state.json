@@ -3,14 +3,14 @@
   "id": "non-daemon-integration",
   "name": "Non-Daemon Integration",
   "type": "leaf",
-  "state": "not_started",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Wire interleaved renderer into execute command",
       "description": "Wire interleaved renderer into execute command",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/execute.go"
@@ -21,7 +21,7 @@
       "id": "task-0002",
       "title": "Wire interleaved renderer into intake command",
       "description": "Wire interleaved renderer into intake command",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/intake.go"
@@ -32,7 +32,7 @@
       "id": "task-0003",
       "title": "Test non-daemon output matches log command output",
       "description": "Test non-daemon output matches log command output",
-      "state": "not_started",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/execute_test.go"
@@ -43,7 +43,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Non-Daemon Integration is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -55,9 +55,84 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T22:21:14.412215Z",
+        "task": "log-command-redesign/non-daemon-integration",
+        "text": "Created cmd/execute.go: new top-level command that runs the daemon loop with a FollowReader+InterleavedRenderer goroutine tailing NDJSON logs to stdout. Registered in root.go under lifecycle group. Logger console mirror suppressed via io.Discard. Context cancellation provides clean shutdown. All tests pass."
+      },
+      {
+        "timestamp": "2026-03-21T22:24:46.326054Z",
+        "task": "log-command-redesign/non-daemon-integration",
+        "text": "Created cmd/intake.go: new top-level command that runs the daemon inbox loop with a FollowReader+InterleavedRenderer goroutine tailing NDJSON logs to stdout. Added RunInbox method to Daemon struct. Registered in root.go under lifecycle group. Logger console mirrors suppressed via io.Discard. Context cancellation provides clean shutdown. All tests pass."
+      },
+      {
+        "timestamp": "2026-03-21T22:29:06.200701Z",
+        "task": "log-command-redesign/non-daemon-integration",
+        "text": "Created cmd/execute_test.go with five render-parity integration tests (TestRenderParity_SingleFile, MultipleFiles, EmptyFile, MalformedLines, PlanningRecords). Each writes NDJSON fixtures to disk, renders through both FollowReader and ReplayReader paths into InterleavedRenderer, and asserts byte-identical output. All tests pass. Full suite green."
+      },
+      {
+        "timestamp": "2026-03-21T22:31:21.488991Z",
+        "task": "log-command-redesign/non-daemon-integration",
+        "text": "Audit reviewed 5 files (execute.go 97 lines, intake.go 89 lines, execute_test.go 264 lines, root.go +2 lines, daemon.go +16 lines RunInbox method). PASS. Build clean, all tests pass (29 packages), go vet clean, race detector clean. Six findings, all accepted: (1) errDaemonRunning defined in execute.go but used from intake.go — same package, fine. (2) RunInbox does not reset shutdownOnce — daemons are single-use, hypothetical only. (3) PrintHuman calls from daemon internals intermix with renderer stdout — cosmetic, flagged in AAR. (4) 150ms sleep in test helper — pragmatic, acknowledged in AAR. (5) No ADR for io.Discard console suppression pattern — clean and well-commented, acceptable. (6) No spec for execute/intake CLI contract — Cobra Long descriptions serve as spec. Quality: solid work. The shared FollowReader+InterleavedRenderer pipeline between execute, intake, and log commands is a clean reuse pattern. Tests prove rendering parity across all code paths. RunInbox is minimal and correctly initializes only the channels its code path needs."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "passed",
+    "started_at": "2026-03-21T22:15:22.12952Z",
+    "completed_at": "2026-03-21T22:31:31.879876Z",
+    "result_summary": "Added two new top-level commands (wolfcastle execute, wolfcastle intake) that run the daemon's execution and inbox loops in the foreground with live interleaved log rendering to stdout. Both commands reuse the same FollowReader+InterleavedRenderer pipeline as 'wolfcastle log --interleaved --follow', ensuring display parity across all viewing modes. A new RunInbox method on the Daemon struct exposes the inbox processing loop without the full daemon lifecycle. Five render-parity integration tests verify byte-identical output between the FollowReader (execute/intake) and ReplayReader (log) code paths across single-file, multi-file, empty-file, malformed-line, and planning-record scenarios. All tests pass, build is clean, race detector is clean."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T22:21:09.369207Z",
+      "objective": "Wire the InterleavedRenderer into a new wolfcastle execute command for non-daemon mode",
+      "what_happened": "Created cmd/execute.go with a new top-level execute command. The command creates a daemon via dmn.New(), suppresses the logger's console mirror (io.Discard), then spawns a goroutine with a FollowReader polling the log directory at 200ms intervals feeding records to an InterleavedRenderer on os.Stdout. The daemon runs via d.Run(ctx) with signal-based context cancellation. On shutdown, the context cancels the renderer and a done channel ensures the goroutine drains before the command returns. Registered the command in root.go under the lifecycle group.",
+      "went_well": [
+        "The rendering goroutine uses the exact same FollowReader + InterleavedRenderer pipeline as wolfcastle log --interleaved --follow, so display logic exists in one place",
+        "Clean separation: Logger.Console set to io.Discard avoids duplicate output without modifying the daemon's internal logging behavior"
+      ],
+      "improvements": [
+        "The daemon's output.PrintHuman calls still write to stdout alongside the renderer output; a future task could suppress or redirect those for a cleaner interleaved-only stream"
+      ],
+      "action_items": [
+        "task-0002 needs the same pattern for wolfcastle intake with InboxLogger",
+        "task-0003 should verify the rendered output matches wolfcastle log -i for identical NDJSON input"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T22:24:34.842241Z",
+      "objective": "Wire the InterleavedRenderer into a new wolfcastle intake command for non-daemon mode",
+      "what_happened": "Created cmd/intake.go following the same pattern as cmd/execute.go. Added a RunInbox method to the Daemon struct that runs only the inbox processing loop (fsnotify watcher with polling fallback) without the main execution loop. The intake command creates a daemon, suppresses console mirrors, starts a FollowReader+InterleavedRenderer goroutine tailing the NDJSON log directory, and blocks on RunInbox until the context is cancelled. Registered the command in root.go under the lifecycle group.",
+      "went_well": [
+        "Reused the exact same FollowReader + InterleavedRenderer pipeline as execute, keeping display logic in one place",
+        "RunInbox is minimal: it initializes the shutdown/workAvailable channels and delegates to the existing runInboxLoop, avoiding code duplication"
+      ],
+      "improvements": [
+        "RunInbox does not run self-healing; if intake needs crash recovery for partially-filed items in the future, that would need to be added"
+      ],
+      "action_items": [
+        "task-0003 should verify that rendered output from both execute and intake matches wolfcastle log -i for identical NDJSON input"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-21T22:29:02.440843Z",
+      "objective": "Verify that non-daemon execute/intake rendering output is identical to wolfcastle log --interleaved for the same NDJSON data",
+      "what_happened": "Created cmd/execute_test.go with five TestRenderParity tests. Each test writes NDJSON fixture records to temp .jsonl files, renders them through both the FollowReader path (execute/intake pipeline) and the ReplayReader path (log command pipeline), and asserts byte-identical output. Fixtures cover: full session with all record types, multi-file iteration splits, empty files, malformed JSON lines, and planning records.",
+      "went_well": [
+        "The tests confirmed true rendering parity: both readers produce identical bytes through InterleavedRenderer",
+        "Test helpers (writeNDJSON, renderViaReplay, renderViaFollow) are reusable for future renderer tests"
+      ],
+      "improvements": [
+        "The FollowReader tests use a 150ms sleep to let the poller consume files; a signal-based drain would be faster but adds complexity for little gain in a test context"
+      ],
+      "action_items": [
+        "If a new renderer type is added, extend the parity tests to cover it"
+      ]
+    }
   }
 }

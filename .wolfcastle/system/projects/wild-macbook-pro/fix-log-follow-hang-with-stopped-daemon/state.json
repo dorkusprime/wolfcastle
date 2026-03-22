@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "fix-log-follow-hang-with-stopped-daemon",
+  "name": "Fix log --follow hang with stopped daemon",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "follow-no-op-when-stopped",
+      "address": "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
+      "state": "complete"
+    },
+    {
+      "id": "follow-reader-daemon-exit-detection",
+      "address": "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Fix log --follow hang with stopped daemon is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "BUG: wolfcastle log --follow with stopped daemon hangs forever. Spec says show last session and exit. See docs/specs/2026-03-21T18-00Z-log-command-design.md for the expected behavior. Fix the --follow code path to detect that the daemon is not running and exit cleanly after rendering the last session instead of blocking indefinitely.",
+  "success_criteria": [
+    "wolfcastle log --follow with a stopped daemon exits cleanly after rendering the last session",
+    "wolfcastle log --follow with a daemon that dies mid-session detects the exit and stops within a few seconds",
+    "No behavioral change when daemon is running: follow mode still streams live output"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T01:43:29.501099Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T01:43:27.89979Z",
+        "task": "fix-log-follow-hang-with-stopped-daemon",
+        "text": "Created 2 children: follow-no-op-when-stopped (2 tasks), follow-reader-daemon-exit-detection (3 tasks). Ordering: the no-op guard runs first because it's the simpler fix addressing the primary reported bug (explicit --follow with stopped daemon). The daemon-exit detection leaf runs second because it addresses the subtler scenario where the daemon dies mid-session, and it builds on the same understanding of the follow code path. Both leaves are independent and could theoretically run in parallel, but the sequential order keeps the diff reviewable."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
