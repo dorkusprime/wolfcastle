@@ -85,6 +85,11 @@
         "timestamp": "2026-03-22T20:25:29.38706Z",
         "task": "deterministic-git-activity/git-config-fields",
         "text": "Added CommitOnSuccess, CommitOnFailure, CommitState to GitConfig struct and Defaults(). Build and tests pass."
+      },
+      {
+        "timestamp": "2026-03-22T20:26:38.35221Z",
+        "task": "deterministic-git-activity/git-config-fields",
+        "text": "Added table-driven validation tests for CommitOnSuccess, CommitOnFailure, CommitState field combinations. No validation logic changes needed; booleans are self-validating via JSON unmarshal."
       }
     ],
     "gaps": [],
@@ -106,6 +111,22 @@
       ],
       "action_items": [
         "Downstream tasks will need to read these fields in the daemon commit logic and add validation if AutoCommit=false should suppress them"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T20:26:36.804686Z",
+      "objective": "Add validation and tests for the new git config boolean fields",
+      "what_happened": "The three new fields (CommitOnSuccess, CommitOnFailure, CommitState) are all booleans, so JSON unmarshal handles type enforcement. No changes to validate.go were needed. Added a table-driven test covering 8 combinations of auto_commit with the sub-fields, plus a test confirming commit_message_format validation is unaffected by the new fields.",
+      "went_well": [
+        "Table-driven test covers the matrix cleanly in a single test function",
+        "All existing tests continue to pass unchanged"
+      ],
+      "improvements": [
+        "If future fields under git config require range or enum validation, the table-driven test structure makes it easy to extend"
+      ],
+      "action_items": [
+        "Downstream daemon commit logic should honor the auto_commit master switch to suppress sub-fields at runtime, not at validation time"
       ]
     }
   }
