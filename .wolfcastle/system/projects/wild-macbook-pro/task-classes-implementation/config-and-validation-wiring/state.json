@@ -3,14 +3,14 @@
   "id": "config-and-validation-wiring",
   "name": "Config and Validation Wiring",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Add default task_classes entries to config.Defaults()",
       "description": "Add default task_classes entries to config.Defaults()",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/config/config.go"
@@ -71,9 +71,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T09:35:23.592813Z",
+        "task": "task-classes-implementation/config-and-validation-wiring",
+        "text": "Added 52 TaskClasses entries to config.Defaults(): 21 language, 22 framework, 9 non-language. All keys verified against prompt files. research class uses Model: light per spec."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T09:33:35.621204Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T09:35:22.449066Z",
+      "objective": "Populate config.Defaults() with TaskClasses entries for every class that has a prompt file",
+      "what_happened": "Added a TaskClasses map to Defaults() in internal/config/config.go with 52 entries: 21 language classes, 22 framework classes, and 9 non-language classes. Every key was verified against the prompt files in internal/project/templates/prompts/classes/. Descriptions match the spec tables verbatim. Only the research class has Model set (to 'light'), per the spec.",
+      "went_well": [
+        "One-to-one correspondence between prompt files and config entries verified before writing",
+        "Full test suite passes with zero changes to tests, confirming the new defaults integrate cleanly"
+      ],
+      "improvements": [
+        "The map is large (52 entries). If the class list grows much further, generating it from the prompt directory at build time might be worth considering"
+      ],
+      "action_items": [
+        "Validation wiring (task-0002+) should ensure these keys survive round-trip through JSON merge and that unknown-field detection still ignores task_classes values"
+      ]
+    }
   }
 }

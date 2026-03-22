@@ -234,7 +234,7 @@
     "task-classes-implementation/class-prompt-authoring": {
       "name": "Class Prompt Authoring",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation",
@@ -347,7 +347,7 @@
     "task-classes-implementation/config-and-validation-wiring": {
       "name": "Config and Validation Wiring",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "task-classes-implementation/config-and-validation-wiring",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation"

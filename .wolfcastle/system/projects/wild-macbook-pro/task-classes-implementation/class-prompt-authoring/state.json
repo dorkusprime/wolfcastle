@@ -3,7 +3,7 @@
   "id": "class-prompt-authoring",
   "name": "Class Prompt Authoring",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -27,7 +27,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Class Prompt Authoring is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -46,8 +46,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T07:00:34.719831Z",
+    "completed_at": "2026-03-22T09:33:35.537157Z",
     "result_summary": "Authored all 55 class behavioral prompt files specified in the task-classes spec. The complete set covers 20 programming languages (systems, JVM/.NET, web/scripting, and specialized), 22 framework prompts (frontend, backend-scripting, enterprise, and mobile/systems), and 9 non-language discipline prompts (architecture, research, writing, design, devops, data, security, testing, audit), plus universal guidance, a coding default fallback, and an independent voice sub-prompt for writing. Every file was individually audited at the leaf level for structural consistency, technical accuracy against current framework versions, absence of wolfcastle system references, use of 'prefer X' phrasing, and adherence to line-count targets. The hierarchical file layout under prompts/classes/ matches the ClassRepository's one-level fallback resolution, so framework prompts like typescript/react.md fall through to typescript.md when overridden or missing. No audit gaps were recorded across any child node."
   },
   "aars": {
