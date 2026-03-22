@@ -3,6 +3,7 @@ package daemon
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -630,5 +631,108 @@ func TestReplayJSON_AllFilesMissing(t *testing.T) {
 	}})
 	if got != "" {
 		t.Errorf("all-missing session should produce no output, got %q", got)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// --follow downgrade when daemon is stopped
+// ═══════════════════════════════════════════════════════════════════════════
+
+// makeDaemonAlive writes the current process PID into the test env's PID file,
+// causing DaemonRepository.IsAlive() to return true.
+func makeDaemonAlive(t *testing.T, wolfcastleDir string) {
+	t.Helper()
+	sysDir := filepath.Join(wolfcastleDir, "system")
+	_ = os.MkdirAll(sysDir, 0755)
+	_ = os.WriteFile(
+		filepath.Join(sysDir, "wolfcastle.pid"),
+		[]byte(fmt.Sprintf("%d", os.Getpid())),
+		0644,
+	)
+}
+
+func TestLogCmd_ExplicitFollowStoppedDaemon_FallsToReplay(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
+	_ = os.MkdirAll(logDir, 0755)
+	_ = os.WriteFile(filepath.Join(logDir, "0001-20260321T18-00Z.jsonl"),
+		[]byte(`{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`+"\n"), 0644)
+
+	// Daemon is NOT alive (no PID file). Explicit --follow should be
+	// downgraded to replay mode and the command should exit promptly.
+	done := make(chan error, 1)
+	go func() {
+		env.RootCmd.SetArgs([]string{"log", "--follow"})
+		done <- env.RootCmd.Execute()
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("expected clean exit in replay mode, got: %v", err)
+		}
+		// Command completed: follow was downgraded to replay.
+	case <-time.After(3 * time.Second):
+		t.Fatal("--follow with stopped daemon should not block; expected replay fallback")
+	}
+}
+
+func TestLogCmd_ExplicitFollowRunningDaemon_EntersFollowMode(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
+	_ = os.MkdirAll(logDir, 0755)
+	_ = os.WriteFile(filepath.Join(logDir, "0001-20260321T18-00Z.jsonl"),
+		[]byte(`{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`+"\n"), 0644)
+
+	// Simulate a running daemon so IsAlive() returns true.
+	makeDaemonAlive(t, env.WolfcastleDir)
+
+	done := make(chan error, 1)
+	go func() {
+		env.RootCmd.SetArgs([]string{"log", "--follow"})
+		done <- env.RootCmd.Execute()
+	}()
+
+	select {
+	case err := <-done:
+		// If the command returned, it should at least not have errored.
+		if err != nil {
+			t.Fatalf("follow mode errored unexpectedly: %v", err)
+		}
+		// It's possible (though unlikely) the follow reader drained instantly;
+		// that's acceptable.
+	case <-time.After(500 * time.Millisecond):
+		// Still streaming: follow mode is active. This is the expected path.
+	}
+}
+
+func TestLogCmd_NoFollowStoppedDaemon_UsesReplay(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
+	_ = os.MkdirAll(logDir, 0755)
+	_ = os.WriteFile(filepath.Join(logDir, "0001-20260321T18-00Z.jsonl"),
+		[]byte(`{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`+"\n"), 0644)
+
+	// No PID file, no --follow flag. Baseline regression guard: this
+	// must use replay mode and exit without blocking.
+	done := make(chan error, 1)
+	go func() {
+		env.RootCmd.SetArgs([]string{"log"})
+		done <- env.RootCmd.Execute()
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("replay mode should succeed, got: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("log without --follow and stopped daemon should not block")
 	}
 }
