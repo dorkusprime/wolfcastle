@@ -3,24 +3,50 @@
   "id": "config-validate-command",
   "name": "Config Validate Command",
   "type": "orchestrator",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "config-validate-implementation",
+      "address": "config-validate-command/config-validate-implementation",
+      "state": "in_progress"
+    }
+  ],
   "tasks": [
     {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Config Validate Command is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
   ],
   "scope": "Add a wolfcastle config validate command for standalone config checking without starting the daemon. Loads the three-tier config, runs ValidateStructure, reports errors and warnings, exits with appropriate code (0 for clean, non-zero for errors). Useful for CI and pre-commit hooks. See the existing validate package and three-tier config loading in internal/config.",
+  "success_criteria": [
+    "'wolfcastle config validate' runs successfully against a valid config and exits 0",
+    "'wolfcastle config validate' reports errors and exits non-zero for invalid configs",
+    "'wolfcastle config validate --json' produces structured output suitable for CI consumption",
+    "Test coverage on new code exceeds 90%"
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T23:50:53.008615Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
   "audit": {
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:50:45.615694Z",
+        "task": "config-validate-command",
+        "text": "Created 1 leaf child: config-validate-implementation (3 tasks: command implementation, tests, CLI docs). Single leaf is sufficient because all validation logic already exists in internal/config/validate.go — this is pure CLI wiring with no new interfaces or contracts needed. Tasks ordered: implementation first, tests second, docs third."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "pending"
