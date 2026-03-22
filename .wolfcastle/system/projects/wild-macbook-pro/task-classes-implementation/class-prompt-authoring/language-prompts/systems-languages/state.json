@@ -55,7 +55,7 @@
       "id": "task-0004",
       "title": "Author C prompt",
       "description": "Author C prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/c.md"
@@ -69,7 +69,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Systems Languages is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -101,14 +101,37 @@
         "timestamp": "2026-03-22T07:13:45.328211Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
         "text": "Authored C class prompt (71 lines) covering style, build/test, testing, memory/resource management, and pitfalls. Committed as 6217171."
+      },
+      {
+        "timestamp": "2026-03-22T07:16:06.216621Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Audit reviewed 4 prompt files (279 lines total): go.md (80), rust.md (61), cpp.md (67), c.md (71). PASS. All four follow consistent section structure (Style, Build and Test, Testing, [language-specific], Common Pitfalls). No content duplication with default.md or across files. Each prompt covers its language's distinctive concerns: Go gets concurrency/goroutines, Rust gets ownership/lifetimes/async, C++ gets RAII/smart-pointers/move-semantics, C gets explicit memory management/goto-cleanup. Code example in go.md is syntactically correct. Fallback resolution verified: files at prompts/classes/coding/\u003clang\u003e.md match ClassRepository.Resolve expectations, with context_builder.go falling back to coding/default.md when no class-specific prompt resolves. Build, tests (with -race), and lint all pass clean. No findings requiring remediation."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T06:59:35.929487Z"
+    "started_at": "2026-03-22T06:59:35.929487Z",
+    "result_summary": "Authored four language-specific class prompts for systems languages (Go, Rust, C++, C) totaling 279 lines. Each prompt replaces coding/default.md when a task is classified as the corresponding language, providing idiomatic guidance on style, build tooling, testing conventions, and common pitfalls. Go (80 lines) covers concurrency patterns and goroutine lifecycle. Rust (61 lines) covers ownership, lifetimes, and async runtime selection. C++ (67 lines) covers RAII, smart pointers, move semantics, and the static initialization order fiasco. C (71 lines) covers explicit memory management, goto-cleanup, and implicit function declarations. All files follow a consistent section structure, avoid duplicating the universal coding guidance in default.md, and resolve correctly through ClassRepository's one-level fallback chain. Audit found no gaps requiring remediation."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T07:16:21.306901Z",
+      "objective": "Verify all systems language class prompts are complete, correct, and high-quality",
+      "what_happened": "Reviewed all four prompt files (go.md, rust.md, cpp.md, c.md) plus default.md and the ClassRepository resolution code. Verified build, tests, and lint pass clean. Confirmed file placement matches ClassRepository.Resolve expectations. Found no issues requiring remediation.",
+      "went_well": [
+        "Consistent section structure across all four prompts makes them easy to compare and maintain",
+        "No duplication with default.md; each prompt stays in its language-specific lane",
+        "The code example in go.md is syntactically valid and demonstrates the table-driven pattern well"
+      ],
+      "improvements": [
+        "None identified; the prompts are well-scoped and correctly integrated"
+      ],
+      "action_items": [
+        "If additional systems languages are needed (Zig, Assembly), they follow the same pattern: create prompts/classes/coding/\u003clang\u003e.md with the established section structure"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T07:03:59.390785Z",
