@@ -9,7 +9,7 @@ Read the scope description below. If it references a spec, read the spec file. E
 
 Search `.wolfcastle/docs/specs/` and `.wolfcastle/docs/decisions/` for specs and ADRs relevant to your scope. Sibling nodes may have already written specs that define contracts your children must implement. List any relevant specs you find before proceeding to the Decide phase.
 
-Run `wolfcastle config show task_classes` to see the available task class keys. The list includes language keys (e.g., `coding/go`, `coding/python`) and framework-specific keys (e.g., `coding/typescript/react`, `coding/python/django`). Use the most specific key that applies. During Phase C you will assign a class to each task based on what that task touches (e.g., a Go implementation task gets `coding/go`, a React component gets `coding/typescript/react`, a documentation task gets `writing`, a CI pipeline task gets `devops`).
+Run `wolfcastle config show task_classes` to see the available task class keys. The list includes language keys (e.g., `coding/go`, `coding/python`) and framework-specific keys (e.g., `coding/typescript/react`, `coding/python/django`). Use the most specific key that applies: if a task touches a React component in a TypeScript project, use `coding/typescript/react`, not `coding/typescript`.
 
 ### B. Decide
 Identify:
@@ -75,7 +75,7 @@ Emit WOLFCASTLE_BLOCKED if the scope cannot be planned (missing information not 
 - Every `project create` must have a `--description` explaining what the node covers. "Project description goes here" is never acceptable.
 - Every task must have a `--body` with concrete details. One-line descriptions are not acceptable.
 - Every implementation task must have at least one `--deliverable`.
-- **Assign a task class to every task.** Use `--class` with the key that best matches what the task will touch. A leaf that modifies Go files gets `coding/go`; one that writes docs gets `writing`; one that updates CI pipelines gets `devops`. Different tasks on the same leaf can have different classes. If no class fits, omit the flag.
+- **Assign a task class to every task.** Use `--class` with the most specific key that matches what the task will touch. A task modifying Go files gets `coding/go`; a task building a Rails controller gets `coding/ruby/rails`; a task writing docs gets `writing`; a task updating CI pipelines gets `devops`. Different tasks on the same leaf can have different classes. If no class fits, omit the flag.
 - If you found relevant specs in `.wolfcastle/docs/specs/` during the Study phase, add `--reference "path/to/spec.md"` to tasks that depend on them.
 - Maximum 8 tasks per leaf. If a leaf needs more, split into multiple leaves.
 
