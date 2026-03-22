@@ -52,7 +52,7 @@
       "id": "task-0004",
       "title": "Verify renderer fixes with tests",
       "description": "Verify renderer fixes with tests",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/thoughts_test.go",
@@ -64,7 +64,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Fix Renderer Output is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -97,13 +97,18 @@
         "timestamp": "2026-03-22T18:27:42.524197Z",
         "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
         "text": "Verified all renderer tests pass: 91 logrender tests and 5 render parity tests green. Confirmed thoughts output produces only plain text (no JSON) and interleaved output produces timestamped glyphed lines (no raw JSON)."
+      },
+      {
+        "timestamp": "2026-03-22T18:29:10.622059Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "text": "Audit reviewed 4 files (thoughts.go 76 lines, interleaved.go 109 lines, thoughts_test.go 169 lines, interleaved_test.go 369 lines). PASS. Build clean, go vet clean, all 91 logrender tests and 5 render parity tests pass. Seven findings, all accepted: (1) extractThoughtText in thoughts.go used by interleaved.go is mildly awkward placement but fine for same-package code. (2) 200-char truncation on non-JSON text is defensive and unlikely to trigger on real data. (3) Discarded fmt write errors are standard for terminal renderers. (4) No race conditions, channel consumption is single-goroutine. (5) Test coverage is thorough across envelope types, edge cases, and cancellation. (6) FormatAssistantText cleanly removed from logrender package. (7) No pre-existing issues surfaced. Quality: clean, surgical implementation. The extractThoughtText function is well-designed, handling both JSON envelopes and plain text gracefully. Tests are precise and assert both presence of expected output and absence of unwanted types."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T18:12:55.460906Z",
-    "result_summary": "Fixed thoughts and interleaved renderers to produce spec-compliant output. Both renderers now use extractThoughtText to extract only text content blocks from Claude API JSON envelopes, dropping system init, result, thinking, and tool_use records. The thoughts renderer outputs plain text lines; the interleaved renderer outputs timestamped, indented text lines with glyphed stage headers. All 91 logrender tests and 5 render parity tests pass with no regressions."
+    "result_summary": "Fixed the thoughts and interleaved log renderers that were dumping raw Claude API NDJSON envelopes instead of human-readable text. Introduced extractThoughtText to parse JSON envelopes and extract only text content blocks from assistant messages, dropping system init markers, tool_use summaries, thinking blocks, and result records. Both renderers now produce spec-compliant output: thoughts mode emits bare text lines, interleaved mode emits timestamped and indented text with stage headers. All 96 tests pass including new regression tests for envelope extraction, multi-block handling, and non-text content filtering."
   },
   "aars": {
     "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output/task-0002": {
