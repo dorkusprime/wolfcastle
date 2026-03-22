@@ -339,7 +339,7 @@
     "task-classes-implementation/class-prompt-authoring/non-language-prompts": {
       "name": "Non-Language Prompts",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring"

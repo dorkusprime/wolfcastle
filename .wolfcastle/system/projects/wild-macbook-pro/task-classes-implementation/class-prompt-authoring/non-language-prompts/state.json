@@ -3,7 +3,7 @@
   "id": "non-language-prompts",
   "name": "Non-Language Prompts",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -60,7 +60,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Non-Language Prompts is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -98,8 +98,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T09:14:11.437394Z",
+    "completed_at": "2026-03-22T09:31:10.219875Z",
     "result_summary": "Authored 10 class prompt files across 8 non-language disciplines: writing (with companion voice.md), research, architecture, audit, testing, design, devops, data, and security. Each prompt was researched against authoritative sources (Google/Microsoft style guides, PRISMA/GRADE, CRAAP/SIFT, ATAM/C4/arc42, Fagan/IEEE 1028, xUnit Patterns, WCAG 2.2, Material Design 3, Apple HIG, OWASP Top 10) before drafting. All files follow established class prompt conventions and contain zero wolfcastle-specific content. The voice.md separation enables organizations to override voice guidance independently of writing discipline rules. Total output: 390 lines of production-ready prompt content."
   },
   "aars": {
