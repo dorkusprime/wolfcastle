@@ -718,3 +718,27 @@ func TestShowTreeStatus_AllStateCountParts(t *testing.T) {
 		t.Fatalf("showTreeStatus all states: %v", err)
 	}
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// timelinePriority — all status branches
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestTimelinePriority_AllStatuses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		status state.NodeStatus
+		want   int
+	}{
+		{state.StatusComplete, 0},
+		{state.StatusInProgress, 1},
+		{state.StatusBlocked, 2},
+		{state.StatusNotStarted, 3},
+		{state.NodeStatus("unknown"), 4},
+	}
+	for _, tc := range cases {
+		got := timelinePriority(tc.status)
+		if got != tc.want {
+			t.Errorf("timelinePriority(%q) = %d, want %d", tc.status, got, tc.want)
+		}
+	}
+}
