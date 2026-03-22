@@ -24,7 +24,7 @@
       "id": "task-0002",
       "title": "Author Dart prompt",
       "description": "Author Dart prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/dart.md"
@@ -38,7 +38,7 @@
       "id": "task-0003",
       "title": "Author Shell prompt",
       "description": "Author Shell prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/shell.md"
