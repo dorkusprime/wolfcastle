@@ -438,19 +438,10 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 
 		output.PrintHuman("%s%s %s  %s%s", taskIndent, tGlyph, t.ID, label, extra)
 
-		// Detail-only lines: task body, deliverable summary
+		// Detail-only lines: task body
 		if detail {
 			if t.Body != "" {
 				output.PrintHuman("%s       %s", taskIndent, truncate(t.Body, 80))
-			}
-			if len(t.Deliverables) > 0 {
-				met := 0
-				for _, d := range t.Deliverables {
-					if strings.HasPrefix(d, "[x] ") || strings.HasPrefix(d, "[X] ") {
-						met++
-					}
-				}
-				output.PrintHuman("%s       %d/%d deliverables met", taskIndent, met, len(t.Deliverables))
 			}
 		}
 	}
