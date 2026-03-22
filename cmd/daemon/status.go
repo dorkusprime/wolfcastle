@@ -436,12 +436,16 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 			extra += "\n" + taskIndent + "       " + t.Description
 		}
 
-		output.PrintHuman("%s%s %s  %s%s", taskIndent, tGlyph, t.ID, label, extra)
+		classTag := ""
+		if t.Class != "" {
+			classTag = " [" + t.Class + "]"
+		}
+		output.PrintHuman("%s%s %s  %s%s%s", taskIndent, tGlyph, t.ID, label, classTag, extra)
 
 		// Detail-only lines: task body
 		if detail {
 			if t.Body != "" {
-				output.PrintHuman("%s       %s", taskIndent, truncate(t.Body, 80))
+				output.PrintHuman("%s       %s", taskIndent, t.Body)
 			}
 		}
 	}
