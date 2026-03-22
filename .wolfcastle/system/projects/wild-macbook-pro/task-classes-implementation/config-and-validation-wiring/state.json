@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Add default task_classes entries to config.Defaults()",
       "description": "Add default task_classes entries to config.Defaults()",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/config/config.go"
@@ -24,7 +24,7 @@
       "id": "task-0002",
       "title": "Wire ClassRepository.Validate() into daemon startup",
       "description": "Wire ClassRepository.Validate() into daemon startup",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/daemon.go",

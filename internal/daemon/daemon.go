@@ -114,6 +114,9 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 	prompts := pipeline.NewPromptRepository(wolfcastleDir)
 	classes := pipeline.NewClassRepository(prompts)
 	classes.Reload(cfg.TaskClasses)
+	if missing := classes.Validate(); len(missing) > 0 {
+		output.PrintHuman("Warning: task classes with missing prompt files: %v", missing)
+	}
 	ctxBuilder := pipeline.NewContextBuilder(prompts, classes)
 
 	return &Daemon{
