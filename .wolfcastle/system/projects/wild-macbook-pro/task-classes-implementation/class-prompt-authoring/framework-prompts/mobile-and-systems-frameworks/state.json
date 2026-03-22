@@ -87,6 +87,11 @@
         "timestamp": "2026-03-22T09:04:21.369557Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
         "text": "Add Swift/iOS class prompt covering SwiftUI, MVVM, NavigationStack, UIKit interop, SwiftData/Core Data, structured concurrency, SPM, testing, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T09:06:42.20992Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Dart/Flutter class prompt covering widget architecture, Riverpod/Bloc state management, go_router navigation, platform channels, Material 3 theming, build flavors, testing with flutter_test/integration_test/patrol, and common pitfalls [task-0003]"
       }
     ],
     "gaps": [],
@@ -123,6 +128,23 @@
       ],
       "improvements": [
         "Could expand UIKit interop section with more detail on Coordinator patterns for complex delegates once more adoption data is available"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T09:06:40.807381Z",
+      "objective": "Author the Dart/Flutter framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/dart/flutter.md (47 lines). Studied the existing dart.md language prompt, kotlin/android.md, and swift/ios.md for format and depth calibration. Wrote sections covering widget architecture and composition, state management (Riverpod and Bloc/Cubit), go_router navigation, platform channels and Pigeon, Material 3 theming with ColorScheme.fromSeed, build flavors with dart-define, testing (flutter_test, integration_test, patrol, mocktail), and four pitfall entries. Carefully avoided repeating Dart fundamentals already in dart.md (null safety, late, BuildContext async gap, Future error swallowing, collection equality, pubspec constraints).",
+      "went_well": [
+        "Clean separation from dart.md; no overlap on language fundamentals, only Flutter-specific patterns",
+        "Covers both Riverpod 2.x and Bloc/Cubit patterns with guidance on when to use each",
+        "Pitfalls section addresses the specific failure modes requested: setState after dispose, unbounded ListView in Column, key misuse, platform rendering differences"
+      ],
+      "improvements": [
+        "Could expand the platform channels section with more detail on EventChannel error handling once patterns stabilize"
       ],
       "action_items": [
         "None; prompt is self-contained"
