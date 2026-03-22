@@ -108,6 +108,11 @@
         "timestamp": "2026-03-22T08:18:33.100564Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
         "text": "Authored Next.js class prompt (typescript/nextjs.md, 55 lines) covering App Router server/client components, data fetching with caching, routing conventions, metadata API, middleware, testing patterns, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T08:23:07.519651Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored Svelte class prompt (typescript/svelte.md, 51 lines) covering Svelte 5 runes, snippets, SvelteKit routing/load/form actions, SSR patterns, stores-vs-runes, testing with Svelte Testing Library, and common pitfalls [task-0005]"
       }
     ],
     "gaps": [],
@@ -178,6 +183,22 @@
       ],
       "action_items": [
         "When Next.js 16 stabilizes the use cache directive and PPR becomes default, update this prompt to cover cache boundaries"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T08:23:06.228059Z",
+      "objective": "Author the Svelte 5 / SvelteKit 2 framework class prompt for TypeScript/Svelte coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript/svelte.md (51 lines). Researched Svelte 5 runes API, snippet system, SvelteKit 2 routing, and testing patterns from official docs before writing. Covered runes ($state, $derived, $effect, $bindable, $props), deep reactivity and $state.raw, snippet blocks replacing slots, SvelteKit routing/load functions/form actions, SSR patterns, stores-vs-runes guidance, Svelte Testing Library with svelteTesting() plugin, and four common pitfalls (destructuring breaking reactivity, non-enumerable class fields, cross-module state export constraints, use:enhance callback dropping defaults).",
+      "went_well": [
+        "Research surfaced important Svelte 5 details: $state.raw for immutable patterns, $state.snapshot for serialization, svelteTesting() vite plugin requirement, and the children snippet replacing default slot",
+        "Prompt avoids repeating TypeScript fundamentals and stays within the 30-60 line target at 51 lines"
+      ],
+      "improvements": [
+        "Could add guidance on Svelte 5.25 overridable $derived values once that pattern sees broader adoption"
+      ],
+      "action_items": [
+        "When SvelteKit 3 or Svelte 6 patterns emerge, review runes API surface for additions like $host"
       ]
     }
   }
