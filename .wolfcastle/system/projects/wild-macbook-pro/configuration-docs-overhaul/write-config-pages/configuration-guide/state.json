@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Rewrite configuration.md",
       "description": "Rewrite configuration.md",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/configuration.md"
@@ -24,7 +24,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Configuration Guide is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -42,14 +42,64 @@
         "timestamp": "2026-03-22T19:08:44.313785Z",
         "task": "configuration-docs-overhaul/write-config-pages/configuration-guide",
         "text": "Rewrote configuration.md as full how-it-works guide with six sections: three-tier structure, merge semantics with before/after examples, common customizations (models, stages, classes, prompts, fragments, audit), config inspection, CLI write commands, and security model. Cross-references config-reference.md, task-classes.md, and how-it-works.md throughout."
+      },
+      {
+        "timestamp": "2026-03-22T19:12:11.925354Z",
+        "task": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "text": "Audit of configuration.md (476 lines). PASS with remediations applied. Three gaps found and fixed: (1) config show section documented as --section flag but is actually a positional argument, corrected. (2) CLI write commands documented as defaulting to custom tier but code defaults to local tier, corrected all examples and prose. (3) Broken link to nonexistent config-quickstart.md, replaced with link to how-it-works.md. One escalation: pre-existing gofmt violation in internal/daemon/coverage_test.go unrelated to this node. Technical claims verified against source: merge semantics (internal/config/merge.go), tier resolution (internal/tierfs/tierfs.go), and CLI commands (cmd/config/) all confirmed accurate after corrections. Quality: solid documentation with good structure, concrete examples, and useful cross-references. The merge semantics section with before/after JSON is particularly well done."
       }
     ],
-    "gaps": [],
+    "gaps": [
+      {
+        "id": "gap-configuration-guide-1",
+        "timestamp": "2026-03-22T19:11:54.860528Z",
+        "description": "config show --section flag documented incorrectly: section is a positional argument, not a --section flag",
+        "source": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "status": "fixed",
+        "fixed_by": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "fixed_at": "2026-03-22T19:12:01.671961Z"
+      },
+      {
+        "id": "gap-configuration-guide-2",
+        "timestamp": "2026-03-22T19:11:55.637674Z",
+        "description": "CLI write commands documented as defaulting to custom tier, but code defaults to local tier",
+        "source": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "status": "fixed",
+        "fixed_by": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "fixed_at": "2026-03-22T19:12:01.81307Z"
+      },
+      {
+        "id": "gap-configuration-guide-3",
+        "timestamp": "2026-03-22T19:11:56.547703Z",
+        "description": "Broken link to config-quickstart.md which does not exist",
+        "source": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "status": "fixed",
+        "fixed_by": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "fixed_at": "2026-03-22T19:12:02.085017Z"
+      }
+    ],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T19:06:42.215979Z"
+    "started_at": "2026-03-22T19:06:42.215979Z",
+    "result_summary": "Rewrote docs/humans/configuration.md from a 123-line overview into a 476-line guide covering three-tier directory structure, merge semantics with concrete before/after examples, common customizations (models, pipeline stages, class overrides, prompt overrides, rule fragments, audit scopes), config inspection commands, CLI write commands, and the security model. Audit verified all technical claims against Go source, found and fixed three inaccuracies (config show section syntax, default CLI tier, broken quickstart link), and confirmed cross-references to config-reference.md, task-classes.md, how-it-works.md, and CLI pages."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T19:12:20.236242Z",
+      "objective": "Verify configuration.md is complete, correct, and high-quality",
+      "what_happened": "Read the full 476-line configuration.md and verified every technical claim against Go source code. Found three inaccuracies: config show section is a positional arg not a --section flag, CLI write commands default to local not custom tier, and a broken link to nonexistent config-quickstart.md. All three fixed in-place. Escalated one pre-existing gofmt issue in coverage_test.go.",
+      "went_well": [
+        "Merge semantics, tier resolution, and CLI command existence all confirmed accurate against source",
+        "Cross-references to config-reference.md, task-classes.md, how-it-works.md, and CLI pages all valid"
+      ],
+      "improvements": [
+        "The AAR from task-0001 flagged CLI page links as aspirational, which turned out to be fine since cli/ directory has all referenced pages"
+      ],
+      "action_items": [
+        "None; all findings remediated during audit"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T19:08:55.163303Z",

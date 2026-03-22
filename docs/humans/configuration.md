@@ -1,6 +1,6 @@
 # Configuration Guide
 
-Wolfcastle's configuration lives in a layered system of JSON files, prompt templates, and rule fragments. Everything resolves through three tiers, from broadest defaults to personal overrides, and the merge rules are simple enough to hold in your head. This page explains the machinery. For a quick first customization, see the [Quickstart](config-quickstart.md). For every field and its default, see the [Config Reference](config-reference.md).
+Wolfcastle's configuration lives in a layered system of JSON files, prompt templates, and rule fragments. Everything resolves through three tiers, from broadest defaults to personal overrides, and the merge rules are simple enough to hold in your head. This page explains the machinery. For a quick first customization, see the [How It Works](how-it-works.md) page. For every field and its default, see the [Config Reference](config-reference.md).
 
 ---
 
@@ -366,12 +366,12 @@ The `wolfcastle config show` command displays the fully resolved configuration, 
 wolfcastle config show
 ```
 
-**Filter to a section:**
+**Filter to a section** (pass the section name as a positional argument):
 
 ```
-wolfcastle config show --section pipeline
-wolfcastle config show --section models
-wolfcastle config show --section daemon
+wolfcastle config show pipeline
+wolfcastle config show models
+wolfcastle config show daemon
 ```
 
 **View a single tier's raw content** (before merge):
@@ -406,7 +406,7 @@ wolfcastle config show --tier custom
 
 ## CLI Config Commands
 
-The CLI provides write commands as an alternative to hand-editing JSON files. All write commands default to the `custom` tier; pass `--tier local` for personal overrides.
+The CLI provides write commands as an alternative to hand-editing JSON files. All write commands default to the `local` tier; pass `--tier custom` for team-shared overrides.
 
 ### config set
 
@@ -415,7 +415,7 @@ Set a scalar or object at a dot-delimited JSON path.
 ```
 wolfcastle config set daemon.stall_timeout_seconds 300
 wolfcastle config set pipeline.stages.execute.model local-llama
-wolfcastle config set --tier local daemon.log_level debug
+wolfcastle config set --tier custom daemon.stall_timeout_seconds 300
 ```
 
 ### config unset
@@ -424,7 +424,7 @@ Remove a key from the specified tier.
 
 ```
 wolfcastle config unset models.fast
-wolfcastle config unset --tier local daemon.log_level
+wolfcastle config unset --tier custom models.fast
 ```
 
 ### config append
@@ -445,7 +445,7 @@ wolfcastle config remove pipeline.stage_order intake
 wolfcastle config remove prompts.exclude_fragments rules/verbose-logging.md
 ```
 
-Paths are dot-delimited and correspond to the JSON structure: `pipeline.stages.execute.model`, `failure.hard_cap`, `logs.max_files`. The three-tier merge still applies after every mutation: a `config set` in custom overrides base, and a `config set --tier local` overrides both.
+Paths are dot-delimited and correspond to the JSON structure: `pipeline.stages.execute.model`, `failure.hard_cap`, `logs.max_files`. The three-tier merge still applies after every mutation: a `config set` in local overrides both base and custom, and a `config set --tier custom` writes to the team-shared layer.
 
 For the full command syntax, see the CLI reference pages for [config show](cli/config-show.md), [config set](cli/config-set.md), [config unset](cli/config-unset.md), [config append](cli/config-append.md), and [config remove](cli/config-remove.md).
 
