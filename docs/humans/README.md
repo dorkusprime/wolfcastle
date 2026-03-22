@@ -8,9 +8,21 @@ Start with [How It Works](how-it-works.md) if you want the full picture. Start w
 
 The core of the machine. Work enters through your coding agent, the inbox, or direct CLI commands. It lands in a project tree built from orchestrator nodes (containers) and leaf nodes (where tasks live). A daemon runs a pipeline of stages in a loop, each invoking a model with a specific role. When a model executes a task, it follows a ten-phase protocol and communicates only through deterministic script calls. State is JSON on disk, propagates upward from children to parents, and every mutation is atomic.
 
+## [Configuration Quickstart](config-quickstart.md)
+
+Change your model, add a stage, override a prompt, or set a task class in under a minute.
+
 ## [Configuration](configuration.md)
 
 Config merges across three tiers: base (Wolfcastle defaults), custom (team-shared), and local (personal). Models are defined as CLI commands, so any provider that reads stdin and writes stdout works. The same three-tier system governs pipelines, prompt templates, rule fragments, audit scopes, and security boundaries.
+
+## [Config Reference](config-reference.md)
+
+Every configuration field: type, default, description, and example. The "I need to know what `daemon.stall_timeout_seconds` does" page.
+
+## [Task Classes](task-classes.md)
+
+Behavioral prompts that shape how the agent approaches work. Built-in language and framework classes, discipline classes, and how to create your own.
 
 ## [Failure and Recovery](failure-and-recovery.md)
 

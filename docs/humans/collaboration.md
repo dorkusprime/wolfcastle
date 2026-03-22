@@ -17,7 +17,7 @@ Each engineer reads and writes only their own namespace. Everyone can see everyo
 
 ### Overlap Advisory
 
-When you create a new project, Wolfcastle optionally scans other engineers' active projects and alerts you if scope overlaps. Read-only. Informational. No blocking, no state changes.
+When you create a new project, Wolfcastle optionally scans other engineers' active projects and alerts you if scope overlaps. Read-only. Informational. No blocking, no state changes. See [`overlap_advisory` reference](config-reference.md#overlap_advisory) for all fields.
 
 ```json
 {
@@ -32,7 +32,7 @@ When you create a new project, Wolfcastle optionally scans other engineers' acti
 
 ### Default Behavior
 
-Wolfcastle commits to your current branch. No branch creation. No branch management. At the start of each iteration and before every commit, Wolfcastle verifies the current branch matches the branch recorded at startup. If someone switched branches underneath it, [the daemon](how-it-works.md#the-daemon) blocks immediately. It does not commit to the wrong branch.
+Wolfcastle commits to your current branch. No branch creation. No branch management. At the start of each iteration and before every commit, Wolfcastle verifies the current branch matches the branch recorded at startup. If someone switched branches underneath it, [the daemon](how-it-works.md#the-daemon) blocks immediately. It does not commit to the wrong branch. See [`git` configuration](config-reference.md#git) for commit format, hook behavior, and branch verification settings.
 
 ### Worktree Isolation
 
@@ -73,7 +73,7 @@ Logs are NDJSON, one self-contained JSON record per line. Each daemon iteration 
 .wolfcastle/system/logs/0002-20260312T18-47Z.jsonl
 ```
 
-`wolfcastle log` finds the latest file and tails it, watching for new files as iterations advance. (`follow` still works as an alias.)
+`wolfcastle log` finds the latest file and tails it, watching for new files as iterations advance. (`follow` still works as an alias.) See [`logs` reference](config-reference.md#logs) for retention and compression settings.
 
 ```json
 {

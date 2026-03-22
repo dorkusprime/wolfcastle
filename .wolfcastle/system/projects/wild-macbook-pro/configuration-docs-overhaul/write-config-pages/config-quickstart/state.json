@@ -3,7 +3,7 @@
   "id": "config-quickstart",
   "name": "Config Quickstart",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -24,7 +24,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Config Quickstart is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -51,8 +51,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T19:12:38.676877Z",
+    "completed_at": "2026-03-22T19:17:37.169225Z",
     "result_summary": "Created docs/humans/config-quickstart.md as a five-minute getting-started page with four practical recipes: changing the model, adding a custom pipeline stage, overriding a prompt through the tier system, and setting a task class. All config field names and paths verified against the Go source. Audit passed with no findings."
   },
   "aars": {

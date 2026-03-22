@@ -3,14 +3,14 @@
   "id": "deep-linking-pass",
   "name": "Deep-Linking Pass",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Update cross-references in existing human docs",
       "description": "Update cross-references in existing human docs",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/how-it-works.md",
@@ -18,7 +18,13 @@
         "docs/humans/failure-and-recovery.md",
         "docs/humans/collaboration.md",
         "README.md",
-        "docs/humans/README.md"
+        "docs/humans/README.md",
+        "docs/humans/cli/config-show.md",
+        "docs/humans/cli/config-set.md",
+        "docs/humans/cli/config-unset.md",
+        "docs/humans/cli/config-append.md",
+        "docs/humans/cli/config-remove.md",
+        "docs/humans/cli/task-add.md"
       ],
       "body": "Review every file in docs/humans/ and README.md for references to configuration concepts that should now deep-link to the new config pages. Specific targets:\n\n1. how-it-works.md: mentions models, stages, and pipeline. Link to configuration.md model and pipeline sections.\n2. audits.md: mentions audit scopes and configuration. Link to config-reference.md audit-related fields.\n3. failure-and-recovery.md: mentions configurable thresholds. Link to config-reference.md failure and retries sections.\n4. collaboration.md: mentions git config and worktree settings. Link to config-reference.md git section.\n5. CLI pages (config-show.md, config-set.md, config-unset.md, config-append.md, config-remove.md): add links to configuration.md for context on what they modify.\n6. task-add.md: link --class flag documentation to task-classes.md.\n7. README.md Configuration section: link to config-quickstart.md as the entry point. Update existing links that pointed to old configuration.md anchors.\n8. docs/humans/README.md: update any table of contents or navigation to include the new pages.\n\nAny mention of 'three tiers,' 'base/custom/local,' 'config.json,' or specific config field names in any human doc should link to the appropriate new page and section. Do not break existing valid links.",
       "references": [
@@ -57,9 +63,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T19:27:05.800471Z",
+        "task": "configuration-docs-overhaul/deep-linking-pass",
+        "text": "Updated cross-references across 15 docs files: fixed 8 broken anchors from configuration.md heading changes, added 10 new deep links to config-reference.md and task-classes.md, added 3 new pages to docs/humans/README.md navigation, linked config-quickstart.md from root README.md"
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T19:17:37.338823Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T19:27:03.691173Z",
+      "objective": "Update cross-references across all human docs to deep-link to the new configuration pages",
+      "what_happened": "Fixed broken anchors in 15 files where configuration.md headings changed (#pipelines→#pipeline-stages, #models→#model-configuration, #three-tiers→#three-tier-directory-structure). Added deep links to config-reference.md sections from how-it-works.md (archive), audits.md (audit, doctor), failure-and-recovery.md (failure, retries, daemon), and collaboration.md (overlap_advisory, logs, git). Added config-reference.md to See Also in all 5 CLI config pages. Linked --class flag in task-add.md to task-classes.md. Added config-quickstart.md entry point to root README.md Configuration section. Added config-quickstart, config-reference, and task-classes to docs/humans/README.md navigation.",
+      "went_well": [
+        "Grep sweep after initial edits caught 5 additional broken anchors in CLI pages (init.md, audit-list.md, audit-run.md, start.md, doctor.md)",
+        "No broken builds or test failures from the documentation changes"
+      ],
+      "improvements": [
+        "Some mentions of config.json in configuration.md itself and in task-classes.md are self-referential and don't need external links, which is correct, but a future pass could add more granular anchor links within those pages"
+      ],
+      "action_items": [
+        "Verify that cli.md line 91 reference to configuration.md#identity still resolves correctly after any future heading changes"
+      ]
+    }
   }
 }

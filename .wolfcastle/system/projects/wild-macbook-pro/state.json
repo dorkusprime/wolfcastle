@@ -71,7 +71,7 @@
     "configuration-docs-overhaul/deep-linking-pass": {
       "name": "Deep-Linking Pass",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "configuration-docs-overhaul/deep-linking-pass",
       "decomposition_depth": 0,
       "parent": "configuration-docs-overhaul"
@@ -79,7 +79,7 @@
     "configuration-docs-overhaul/write-config-pages": {
       "name": "Write Config Pages",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "configuration-docs-overhaul/write-config-pages",
       "decomposition_depth": 0,
       "parent": "configuration-docs-overhaul",
@@ -93,7 +93,7 @@
     "configuration-docs-overhaul/write-config-pages/config-quickstart": {
       "name": "Config Quickstart",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "configuration-docs-overhaul/write-config-pages/config-quickstart",
       "decomposition_depth": 0,
       "parent": "configuration-docs-overhaul/write-config-pages"

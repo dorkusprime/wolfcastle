@@ -46,3 +46,4 @@ None. This command is strictly read-only.
 
 - [`wolfcastle config set`](config-set.md) to write a value into a tier overlay.
 - [Configuration](../configuration.md) for how tiers merge and what keys are available.
+- [Config Reference](../config-reference.md) for every field, its type, and default value.

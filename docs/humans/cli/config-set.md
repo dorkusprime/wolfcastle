@@ -44,3 +44,4 @@ wolfcastle config set --tier custom daemon.max_retries 5
 - [`wolfcastle config show`](config-show.md) to inspect the result.
 - [`wolfcastle config unset`](config-unset.md) to remove a key.
 - [Configuration](../configuration.md) for the tier merging model.
+- [Config Reference](../config-reference.md) for every field, its type, and default value.

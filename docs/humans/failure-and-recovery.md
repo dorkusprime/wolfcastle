@@ -4,7 +4,7 @@
 
 Tasks fail. Wolfcastle does not take it personally. It takes it systematically.
 
-Each task tracks a failure counter. All thresholds are [configurable](configuration.md):
+Each task tracks a failure counter. All thresholds are [configurable](config-reference.md#failure):
 
 | Failures | Depth OK | Action |
 |----------|----------|--------|
@@ -33,7 +33,7 @@ Decomposition can recurse. A decomposed task's children can themselves decompose
 
 ## API Failure Handling
 
-Model API failures (timeouts, rate limits, server errors) get exponential backoff:
+Model API failures (timeouts, rate limits, server errors) get exponential backoff (see [retries reference](config-reference.md#retries)):
 
 ```json
 {
@@ -49,7 +49,7 @@ Model API failures (timeouts, rate limits, server errors) get exponential backof
 
 ## Stall Detection
 
-Model processes sometimes hang: the API stops responding, the subprocess deadlocks, output just stops flowing. The stall detector watches for this. When a model invocation produces no stdout output for a configurable timeout period, Wolfcastle kills the entire process group and returns `ErrStallTimeout`. Any output at all (a single line, a partial token) resets the timer, so a slow but active model is left alone. Only truly silent processes get killed. The stall timeout is configured per-invocation; a zero value disables detection entirely.
+Model processes sometimes hang: the API stops responding, the subprocess deadlocks, output just stops flowing. The stall detector watches for this. When a model invocation produces no stdout output for a [configurable timeout](config-reference.md#daemon) period, Wolfcastle kills the entire process group and returns `ErrStallTimeout`. Any output at all (a single line, a partial token) resets the timer, so a slow but active model is left alone. Only truly silent processes get killed. The stall timeout is configured per-invocation; a zero value disables detection entirely.
 
 ## Self-Healing
 

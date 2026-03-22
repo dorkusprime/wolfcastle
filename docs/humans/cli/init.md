@@ -4,7 +4,7 @@ Scaffolds the `.wolfcastle/` directory and sets your identity. This is the first
 
 ## What It Does
 
-Creates the full `.wolfcastle/` directory structure: `base/`, `custom/`, `local/`, `projects/`, `archive/`, `docs/`, `logs/`. Writes the `.gitignore` that separates committed files from local-only files. Generates `base/config.json` with compiled defaults for [models](../configuration.md#models), [pipelines](../configuration.md#pipelines), and [failure thresholds](../failure-and-recovery.md#task-failure-escalation). Creates an empty `custom/config.json` for team overrides.
+Creates the full `.wolfcastle/` directory structure: `base/`, `custom/`, `local/`, `projects/`, `archive/`, `docs/`, `logs/`. Writes the `.gitignore` that separates committed files from local-only files. Generates `base/config.json` with compiled defaults for [models](../configuration.md#model-configuration), [pipelines](../configuration.md#pipeline-stages), and [failure thresholds](../failure-and-recovery.md#task-failure-escalation). Creates an empty `custom/config.json` for team overrides.
 
 Auto-detects your identity from `whoami` and `hostname` (stripping `.local` suffix), writes it to `local/config.json`, and creates your [namespace](../collaboration.md#engineer-namespacing) directory at `projects/{user}-{machine}/` with a root `state.json` index.
 

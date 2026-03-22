@@ -3,7 +3,7 @@
   "id": "write-config-pages",
   "name": "Write Config Pages",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -24,7 +24,7 @@
     {
       "id": "config-quickstart",
       "address": "configuration-docs-overhaul/write-config-pages/config-quickstart",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -45,6 +45,8 @@
     "Cross-references between pages are wired: quickstart links to guide and task-classes, guide links to reference and task-classes, reference links to guide, task-classes links to guide and reference",
     "No invented fields or classes — every documented item traces back to the Config struct or Defaults()"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T18:53:23.584428Z",

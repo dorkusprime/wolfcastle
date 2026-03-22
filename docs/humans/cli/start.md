@@ -4,7 +4,7 @@ Launches the daemon. This is where work gets done.
 
 ## What It Does
 
-Loads and [deep-merges configuration](../configuration.md#three-tiers) from all three tiers. Checks for an existing daemon via PID file; refuses to start if one is already running. Records the current git branch name for [branch safety checks](../collaboration.md#default-behavior).
+Loads and [deep-merges configuration](../configuration.md#three-tier-directory-structure) from all three tiers. Checks for an existing daemon via PID file; refuses to start if one is already running. Records the current git branch name for [branch safety checks](../collaboration.md#default-behavior).
 
 Before validation, the daemon runs a pre-start self-heal pass. It fixes deterministic issues automatically: stale tasks, propagation mismatches, missing audit tasks. It also derives parent task status from children; if `task-0002` has subtasks `task-0002.0001` through `task-0002.0003` all complete, `task-0002` is auto-completed. If self-heal fixes anything, it prints what it fixed. Issues that survive self-heal block startup with an error pointing to `wolfcastle doctor --fix`.
 

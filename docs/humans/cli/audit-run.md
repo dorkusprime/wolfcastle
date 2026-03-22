@@ -4,7 +4,7 @@ Runs a read-only codebase audit against composable scopes. Produces a Markdown r
 
 ## What It Does
 
-Discovers available [scopes](../audits.md#scopes) from `base/audits/`, `custom/audits/`, and `local/audits/` (all [three tiers](../configuration.md#three-tiers)). For each requested scope, invokes a model to analyze your codebase and collect findings. Saves the findings as a pending batch in `audit-state.json`.
+Discovers available [scopes](../audits.md#scopes) from `base/audits/`, `custom/audits/`, and `local/audits/` (all [three tiers](../configuration.md#three-tier-directory-structure)). For each requested scope, invokes a model to analyze your codebase and collect findings. Saves the findings as a pending batch in `audit-state.json`.
 
 The audit is strictly read-only. The model reads your code and produces a report. It does not modify files, create branches, or write code.
 
