@@ -118,6 +118,11 @@
         "timestamp": "2026-03-22T23:18:41.804613Z",
         "task": "update-cli-commands-spec/add-missing-command-sections",
         "text": "Added wolfcastle execute and wolfcastle intake sections to the CLI commands spec. Both placed in the Lifecycle group after wolfcastle start, following the existing format: Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, Error Cases. Content derived from source code (cmd/execute.go, cmd/intake.go) and --help output."
+      },
+      {
+        "timestamp": "2026-03-22T23:21:55.338336Z",
+        "task": "update-cli-commands-spec/add-missing-command-sections",
+        "text": "Added wolfcastle config show, set, append, remove, and unset sections to the CLI commands spec. Placed in Diagnostics group before wolfcastle doctor. Each section includes Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, and Error Cases. Updated leaf command count to 52 and added config to subcommand groups list."
       }
     ],
     "gaps": [],
@@ -140,6 +145,22 @@
       ],
       "action_items": [
         "Pre-existing test failures in TestInitCmd_AlreadyInitialized should be investigated separately"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T23:21:53.760577Z",
+      "objective": "Add spec sections for all 5 config subcommands to the CLI commands spec",
+      "what_happened": "Read the detailed specs for config show and config write commands, cross-referenced with source code in cmd/config/*.go and --help output. Found one discrepancy: the config write spec describes unset as writing null for DeepMerge deletion, but the implementation uses DeletePath for direct key removal. Documented the actual behavior. Added 5 sections (config show, set, append, remove, unset) before wolfcastle doctor in the Diagnostics group area. Updated the leaf command count from 43 to 52 and added config to the subcommand groups list.",
+      "went_well": [
+        "The detailed specs provided thorough behavioral descriptions that condensed well into the CLI spec format",
+        "Cross-checking against source code and --help caught the unset null-vs-delete discrepancy"
+      ],
+      "improvements": [
+        "The command count of 52 should be verified against actual registered commands since the original 43 was already stale before execute/intake were added in task-0001"
+      ],
+      "action_items": [
+        "Verify the total leaf command count matches the actual cobra command tree"
       ]
     }
   }
