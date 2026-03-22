@@ -1279,22 +1279,3 @@ func TestIsInSubtree_NestedHierarchy(t *testing.T) {
 	}
 }
 
-func TestTruncate(t *testing.T) {
-	cases := []struct {
-		in     string
-		maxLen int
-		want   string
-	}{
-		{"short", 80, "short"},
-		{"exactly ten", 11, "exactly ten"},
-		{"this is a longer string that should be truncated", 20, "this is a longer ..."},
-		{"ab", 1, "a"},
-		{"line one\nline two", 80, "line one line two"},
-	}
-	for _, tc := range cases {
-		got := truncate(tc.in, tc.maxLen)
-		if got != tc.want {
-			t.Errorf("truncate(%q, %d) = %q, want %q", tc.in, tc.maxLen, got, tc.want)
-		}
-	}
-}

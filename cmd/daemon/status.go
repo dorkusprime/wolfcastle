@@ -323,7 +323,7 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	// Show most recent breadcrumb for in_progress nodes when --detail is set.
 	if detail && nd.ns != nil && nd.entry.State == state.StatusInProgress && len(nd.ns.Audit.Breadcrumbs) > 0 {
 		bc := nd.ns.Audit.Breadcrumbs[len(nd.ns.Audit.Breadcrumbs)-1]
-		text := truncate(bc.Text, 80)
+		text := bc.Text
 		output.PrintHuman("%s  breadcrumb: %s", indent, text)
 	}
 
@@ -470,17 +470,6 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 }
 
 // truncate shortens s to maxLen characters, appending "..." if truncated.
-func truncate(s string, maxLen int) string {
-	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return s[:maxLen]
-	}
-	return s[:maxLen-3] + "..."
-}
-
 // ANSI color codes matching the TUI spec (section 2.9).
 const (
 	colorGreen  = "\033[32m"
