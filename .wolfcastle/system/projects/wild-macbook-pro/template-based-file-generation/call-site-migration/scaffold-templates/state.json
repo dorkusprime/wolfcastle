@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Create scaffold template files",
       "description": "Create scaffold template files",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/scaffold/gitignore.tmpl",
@@ -31,7 +31,7 @@
       "id": "task-0002",
       "title": "Migrate scaffold_service.go to use templates",
       "description": "Migrate scaffold_service.go to use templates",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/scaffold_service.go"

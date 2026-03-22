@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestScaffoldService_Init_CreatesREADMEs(t *testing.T) {
+func TestScaffoldService_Init_CreatesScaffoldFiles(t *testing.T) {
 	t.Parallel()
 	svc, _, root := newScaffoldService(t)
 
@@ -15,14 +15,18 @@ func TestScaffoldService_Init_CreatesREADMEs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for relPath, wantContent := range scaffoldREADMEs {
-		data, err := os.ReadFile(filepath.Join(root, relPath))
+	for tmpl, dest := range scaffoldFiles {
+		wantContent, err := Templates.ReadFile(tmpl)
 		if err != nil {
-			t.Errorf("%s should exist: %v", relPath, err)
+			t.Fatalf("reading embedded template %s: %v", tmpl, err)
+		}
+		data, err := os.ReadFile(filepath.Join(root, dest))
+		if err != nil {
+			t.Errorf("%s should exist: %v", dest, err)
 			continue
 		}
-		if string(data) != wantContent {
-			t.Errorf("%s content mismatch:\ngot:\n%s\nwant:\n%s", relPath, string(data), wantContent)
+		if string(data) != string(wantContent) {
+			t.Errorf("%s content mismatch:\ngot:\n%s\nwant:\n%s", dest, string(data), string(wantContent))
 		}
 	}
 }
