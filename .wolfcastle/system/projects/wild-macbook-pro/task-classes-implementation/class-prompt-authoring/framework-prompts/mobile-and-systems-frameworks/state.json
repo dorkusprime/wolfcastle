@@ -3,7 +3,7 @@
   "id": "mobile-and-systems-frameworks",
   "name": "Mobile and Systems Frameworks",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -65,7 +65,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Mobile and Systems Frameworks is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -121,8 +121,9 @@
       }
     ],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T08:57:58.796445Z",
+    "completed_at": "2026-03-22T09:14:11.31147Z",
     "result_summary": "Authored five framework-level class prompts for mobile and systems frameworks: Kotlin/Android (Compose, Hilt, lifecycle coroutines, Room, Retrofit), Swift/iOS (SwiftUI, MVVM, NavigationStack, SwiftData, structured concurrency), Dart/Flutter (widget architecture, Riverpod/Bloc, go_router, platform channels, Material 3), Rust/Actix Web (App builder, extractors, web::Data, ResponseError, middleware, sqlx/Diesel), and Rust/Tokio (runtime config, JoinSet, channels, select!, async I/O, sync primitives, graceful shutdown). All prompts maintain clean separation from their parent language prompts, follow a consistent prose-only format with four pitfalls each, and pass audit with one minor fix (incorrect Flutter API name corrected)."
   },
   "aars": {

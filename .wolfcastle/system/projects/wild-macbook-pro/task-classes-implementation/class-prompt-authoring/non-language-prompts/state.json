@@ -3,20 +3,20 @@
   "id": "non-language-prompts",
   "name": "Non-Language Prompts",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Author writing.md and writing/voice.md",
       "description": "Author writing.md and writing/voice.md",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/writing.md",
         "internal/project/templates/prompts/classes/writing/voice.md"
       ],
-      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate two files:\n\n1. internal/project/templates/prompts/classes/writing.md \u2014 The writing discipline class prompt. 30-60 lines. Covers: reader-first structure, concrete examples over abstract description, scannable formatting, progressive disclosure (lead with the answer, details follow), tone calibration. Must include a reference to writing/voice.md for voice-specific guidance (e.g., 'For voice and tone guidance, see the voice prompt loaded alongside this one' or similar). Research current technical writing best practices (Google developer docs style guide, Microsoft writing style guide, etc.).\n\n2. internal/project/templates/prompts/classes/writing/voice.md \u2014 Voice guidance separated so users can override it independently. 20-40 lines. Covers: default voice characteristics (clear, direct, human), when to adjust formality, how to handle jargon, audience awareness. This file exists so organizations can drop in their own voice guide without touching the writing discipline prompt.\n\nZERO wolfcastle-specific content in either file."
+      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate two files:\n\n1. internal/project/templates/prompts/classes/writing.md — The writing discipline class prompt. 30-60 lines. Covers: reader-first structure, concrete examples over abstract description, scannable formatting, progressive disclosure (lead with the answer, details follow), tone calibration. Must include a reference to writing/voice.md for voice-specific guidance (e.g., 'For voice and tone guidance, see the voice prompt loaded alongside this one' or similar). Research current technical writing best practices (Google developer docs style guide, Microsoft writing style guide, etc.).\n\n2. internal/project/templates/prompts/classes/writing/voice.md — Voice guidance separated so users can override it independently. 20-40 lines. Covers: default voice characteristics (clear, direct, human), when to adjust formality, how to handle jargon, audience awareness. This file exists so organizations can drop in their own voice guide without touching the writing discipline prompt.\n\nZERO wolfcastle-specific content in either file."
     },
     {
       "id": "task-0002",
@@ -28,7 +28,7 @@
         "internal/project/templates/prompts/classes/research.md",
         "internal/project/templates/prompts/classes/architecture.md"
       ],
-      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate two non-language class prompts:\n\n1. internal/project/templates/prompts/classes/research.md \u2014 Research/information gathering discipline. 30-60 lines. Covers: source citation and verification, accuracy over speed, structured output format, distinguishing primary from secondary sources, handling conflicting information, when to stop researching and start synthesizing. Research best practices from library science, competitive analysis frameworks, and systematic review methodology.\n\n2. internal/project/templates/prompts/classes/architecture.md \u2014 System design discipline. 30-60 lines. Covers: dependency analysis, failure mode thinking, decomposition principles, tradeoff documentation, constraint identification, how to evaluate alternatives (not just list them), when to write ADRs. Research current architecture decision frameworks (C4 model, arc42, etc.).\n\nZERO wolfcastle-specific content. No references to wolfcastle commands, markers, or system mechanics."
+      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate two non-language class prompts:\n\n1. internal/project/templates/prompts/classes/research.md — Research/information gathering discipline. 30-60 lines. Covers: source citation and verification, accuracy over speed, structured output format, distinguishing primary from secondary sources, handling conflicting information, when to stop researching and start synthesizing. Research best practices from library science, competitive analysis frameworks, and systematic review methodology.\n\n2. internal/project/templates/prompts/classes/architecture.md — System design discipline. 30-60 lines. Covers: dependency analysis, failure mode thinking, decomposition principles, tradeoff documentation, constraint identification, how to evaluate alternatives (not just list them), when to write ADRs. Research current architecture decision frameworks (C4 model, arc42, etc.).\n\nZERO wolfcastle-specific content. No references to wolfcastle commands, markers, or system mechanics."
     },
     {
       "id": "task-0003",
@@ -40,7 +40,7 @@
         "internal/project/templates/prompts/classes/audit.md",
         "internal/project/templates/prompts/classes/testing.md"
       ],
-      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate two non-language class prompts:\n\n1. internal/project/templates/prompts/classes/audit.md \u2014 Verification and review discipline. 30-60 lines. Covers: read-only review stance (do not fix, only record), gap identification and recording, verification checklist methodology, evidence-based findings, distinguishing severity levels, coverage analysis, how to handle ambiguous findings. The audit class is special: it emphasizes observation and recording over action.\n\n2. internal/project/templates/prompts/classes/testing.md \u2014 Test suite creation discipline. 30-60 lines. Covers: coverage strategy (behavior over implementation), fixture design, test naming conventions, flaky test prevention, test isolation, boundary testing, property-based testing awareness, performance test considerations. Research current testing frameworks and methodologies (TDD, BDD, property testing).\n\nZERO wolfcastle-specific content."
+      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate two non-language class prompts:\n\n1. internal/project/templates/prompts/classes/audit.md — Verification and review discipline. 30-60 lines. Covers: read-only review stance (do not fix, only record), gap identification and recording, verification checklist methodology, evidence-based findings, distinguishing severity levels, coverage analysis, how to handle ambiguous findings. The audit class is special: it emphasizes observation and recording over action.\n\n2. internal/project/templates/prompts/classes/testing.md — Test suite creation discipline. 30-60 lines. Covers: coverage strategy (behavior over implementation), fixture design, test naming conventions, flaky test prevention, test isolation, boundary testing, property-based testing awareness, performance test considerations. Research current testing frameworks and methodologies (TDD, BDD, property testing).\n\nZERO wolfcastle-specific content."
     },
     {
       "id": "task-0004",
@@ -54,7 +54,7 @@
         "internal/project/templates/prompts/classes/data.md",
         "internal/project/templates/prompts/classes/security.md"
       ],
-      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate four non-language class prompts:\n\n1. internal/project/templates/prompts/classes/design.md \u2014 UI/UX design discipline. 30-60 lines. Covers: user goal identification, interaction sequence thinking, edge state handling (empty, error, loading, overflow), accessibility considerations, responsive design awareness, design system consistency. Research current design system practices (Material Design 3, Apple HIG).\n\n2. internal/project/templates/prompts/classes/devops.md \u2014 Infrastructure and CI/CD discipline. 30-60 lines. Covers: Dockerfile best practices (multi-stage builds, layer caching), GitHub Actions patterns, Terraform conventions, deployment safety (canary, blue-green awareness), secrets management, monitoring and alerting, infrastructure as code principles. Research current DevOps tooling and practices.\n\n3. internal/project/templates/prompts/classes/data.md \u2014 Data engineering and analysis discipline. 30-60 lines. Covers: schema design principles, pipeline idempotency, data validation at boundaries, visualization clarity, SQL style, ETL vs ELT awareness, data quality checks, handling missing/null data. Research current data engineering practices.\n\n4. internal/project/templates/prompts/classes/security.md \u2014 Security review and hardening discipline. 30-60 lines. Covers: OWASP Top 10 awareness, threat modeling approach, dependency auditing, secrets detection, input validation patterns, authentication/authorization review, security header configuration, vulnerability disclosure. Research current OWASP guidelines and security best practices.\n\nZERO wolfcastle-specific content in any file."
+      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate four non-language class prompts:\n\n1. internal/project/templates/prompts/classes/design.md — UI/UX design discipline. 30-60 lines. Covers: user goal identification, interaction sequence thinking, edge state handling (empty, error, loading, overflow), accessibility considerations, responsive design awareness, design system consistency. Research current design system practices (Material Design 3, Apple HIG).\n\n2. internal/project/templates/prompts/classes/devops.md — Infrastructure and CI/CD discipline. 30-60 lines. Covers: Dockerfile best practices (multi-stage builds, layer caching), GitHub Actions patterns, Terraform conventions, deployment safety (canary, blue-green awareness), secrets management, monitoring and alerting, infrastructure as code principles. Research current DevOps tooling and practices.\n\n3. internal/project/templates/prompts/classes/data.md — Data engineering and analysis discipline. 30-60 lines. Covers: schema design principles, pipeline idempotency, data validation at boundaries, visualization clarity, SQL style, ETL vs ELT awareness, data quality checks, handling missing/null data. Research current data engineering practices.\n\n4. internal/project/templates/prompts/classes/security.md — Security review and hardening discipline. 30-60 lines. Covers: OWASP Top 10 awareness, threat modeling approach, dependency auditing, secrets detection, input validation patterns, authentication/authorization review, security header configuration, vulnerability disclosure. Research current OWASP guidelines and security best practices.\n\nZERO wolfcastle-specific content in any file."
     },
     {
       "id": "audit",
@@ -69,9 +69,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T09:18:16.372371Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Authored writing.md (53 lines) and writing/voice.md (35 lines). Researched Google, Microsoft, GitLab, Mailchimp, and Write the Docs style guides. Both files follow established class prompt conventions. Voice file separated for independent override."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T09:14:11.437394Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T09:18:15.289502Z",
+      "objective": "Author writing.md and writing/voice.md class prompts for the writing discipline",
+      "what_happened": "Created two files: writing.md (53 lines) covers structure, clarity, formatting, audience, and completeness. writing/voice.md (35 lines) covers default voice characteristics, formality calibration, jargon handling, and audience awareness. Researched Google Developer Docs Style Guide, Microsoft Writing Style Guide, GitLab docs guide, Mailchimp Content Style Guide, and Write the Docs community resources before drafting. Followed the established class prompt conventions: heading structure, codebase-deference opening, imperative tone, bold-lead list items.",
+      "went_well": [
+        "Research across six style guides produced strong cross-source consensus that mapped naturally into prompt sections",
+        "Voice separation works cleanly: organizations can drop in their own voice.md without touching writing discipline guidance"
+      ],
+      "improvements": [
+        "The writing.md prompt is general technical writing. A future companion for narrative/marketing writing would cover different ground (persuasion, storytelling, emotional resonance)"
+      ],
+      "action_items": [
+        "Consider adding a writing/api-reference.md companion for API documentation conventions (parameter tables, response schemas, error catalogs)"
+      ]
+    }
   }
 }

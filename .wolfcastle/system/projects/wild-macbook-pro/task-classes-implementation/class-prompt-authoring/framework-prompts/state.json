@@ -3,7 +3,7 @@
   "id": "framework-prompts",
   "name": "Framework Prompts",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -24,7 +24,7 @@
     {
       "id": "mobile-and-systems-frameworks",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -44,6 +44,8 @@
     "Zero wolfcastle-specific content in any prompt file",
     "Each prompt covers framework-specific patterns, testing approaches, and common pitfalls"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T08:03:54.593209Z",

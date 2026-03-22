@@ -247,7 +247,7 @@
     "task-classes-implementation/class-prompt-authoring/framework-prompts": {
       "name": "Framework Prompts",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring",
@@ -285,7 +285,7 @@
     "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks": {
       "name": "Mobile and Systems Frameworks",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
@@ -339,7 +339,7 @@
     "task-classes-implementation/class-prompt-authoring/non-language-prompts": {
       "name": "Non-Language Prompts",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring"
