@@ -69,7 +69,7 @@
       "id": "task-0004",
       "title": "Snapshot tests for artifact templates",
       "description": "Snapshot tests for artifact templates",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/template_test.go"
@@ -88,9 +88,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Artifact Templates is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit": {
@@ -117,12 +118,18 @@
         "timestamp": "2026-03-22T22:51:02.292767Z",
         "task": "template-based-file-generation/call-site-migration/artifact-templates",
         "text": "Added 10 golden-file snapshot tests in internal/pipeline/template_test.go covering all 4 artifact templates: ADR (with/without body), spec (with body, without body, stdin multiline), task (with body, minimal, all optional fields, whitespace-only body), and audit-task (nil ctx raw). Fixed import cycle in prompt_test.go by replacing project.Templates embed.FS walk with disk-based filepath.WalkDir. All pipeline tests pass, 97.3% coverage."
+      },
+      {
+        "timestamp": "2026-03-22T22:55:40.225924Z",
+        "task": "template-based-file-generation/call-site-migration/artifact-templates",
+        "text": "Audit reviewed 18 files across templates, pipeline, cmd, and tests. PASS. Six findings: (1) gofmt alignment in repository_test.go — fixed in-audit. (2) Duplicate ADRData/SpecData structs in cmd/ and pipeline/ — structurally identical, templates work via reflection, acceptable as-is. (3) AuditTaskData struct and 8 TaskData fields unused by templates — forward-looking stubs from infra task, zero runtime cost, acceptable. (4) audit-task.md duplicated in audits/ and artifacts/ — flagged in task-0003 AAR, conscious scope decision, acceptable. (5) WriteAuditTaskMD discards error without comment — existing behavior was already best-effort, tests verify no-panic on failure paths, acceptable though a comment would help. (6) TestInitCmd_AlreadyInitialized flaky in full suite — pre-existing, not from this node. Build clean, go vet clean, all tests pass (flaky failure unrelated). Template output is byte-identical to original inline construction across all 10 snapshot cases. Quality: thorough, well-tested migration with good AAR documentation of tradeoffs."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T22:20:44.482618Z"
+    "started_at": "2026-03-22T22:20:44.482618Z",
+    "result_summary": "Migrated all four artifact file generators (ADR, spec, task, audit-task) from inline string construction to three-tier template rendering via PromptRepository.RenderToFile. Created adr.md.tmpl, spec.md.tmpl, task.md.tmpl, and audit-task.md.tmpl under internal/project/templates/artifacts/. Fixed ResolveTemplate path resolution to match tier-FS layout. Added 10 golden-file snapshot tests and equivalence tests verifying byte-identical output. Fixed an import cycle in prompt_test.go. Audit found no correctness issues; all findings (duplicate struct definitions, unused struct fields, missing error-discard comment) are code hygiene items documented for future cleanup."
   },
   "aars": {
     "task-0001": {

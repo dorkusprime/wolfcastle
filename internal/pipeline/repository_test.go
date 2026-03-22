@@ -193,15 +193,15 @@ func TestPromptRepository_RenderToFile(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		tmplFile  string
-		tmplBody  string
-		resolve   string
-		ctx       any
+		name       string
+		tmplFile   string
+		tmplBody   string
+		resolve    string
+		ctx        any
 		destSuffix string // appended to t.TempDir()
-		want      string
-		wantErr   bool
-		errPrefix string
+		want       string
+		wantErr    bool
+		errPrefix  string
 	}{
 		{
 			name:       "writes executed template to new path",
