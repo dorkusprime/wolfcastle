@@ -149,6 +149,9 @@ type DaemonConfig struct {
 // GitConfig controls automatic commit behavior and branch verification.
 type GitConfig struct {
 	AutoCommit            bool   `json:"auto_commit"`
+	CommitOnSuccess       bool   `json:"commit_on_success"`
+	CommitOnFailure       bool   `json:"commit_on_failure"`
+	CommitState           bool   `json:"commit_state"`
 	CommitMessageFormat   string `json:"commit_message_format"`
 	VerifyBranch          bool   `json:"verify_branch"`
 	SkipHooksOnAutoCommit bool   `json:"skip_hooks_on_auto_commit"`

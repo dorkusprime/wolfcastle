@@ -97,6 +97,9 @@ func Defaults() *Config {
 		},
 		Git: GitConfig{
 			AutoCommit:            true,
+			CommitOnSuccess:       true,
+			CommitOnFailure:       true,
+			CommitState:           true,
 			CommitMessageFormat:   "wolfcastle: {action} [{node}]",
 			VerifyBranch:          true,
 			SkipHooksOnAutoCommit: true,
