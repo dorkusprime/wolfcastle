@@ -229,6 +229,31 @@
       "timestamp": "2026-03-22T14:24:20Z",
       "text": "writing/voice.md is unreachable: ClassRepository.Resolve('writing') returns only writing.md. Either writing.md should tell the agent to read writing/voice.md from disk, or the reference should be removed",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T16:50:47Z",
+      "text": "Fix logs --thoughts and --interleaved: both output raw NDJSON instead of formatted text.\n\nThe spec at docs/specs/2026-03-21T18-00Z-log-command-design.md defines the expected output. The summary renderer works correctly. The thoughts and interleaved renderers do not match the spec.\n\nThoughts renderer (internal/logrender/thoughts.go): should extract the text field from assistant-type NDJSON records and print it as plain text. No stage headers, no timestamps, no JSON.\n\nInterleaved renderer (internal/logrender/interleaved.go): should print stage headers with timestamps and glyphs (▶/✓/✗), with assistant text indented below. Currently dumps raw NDJSON.\n\nAlso: the daemon's foreground stdout (the output you see when running wolfcastle start in the terminal) should use the interleaved renderer instead of its own separate PrintHuman calls. The rendering code should exist in one place, shared between wolfcastle log and daemon foreground mode.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T17:07:13Z",
+      "text": "Configuration docs overhaul per spec .wolfcastle/docs/specs/2026-03-22T06-00Z-config-docs-overhaul.md\n\nRead the spec first. It defines four new pages (quickstart, guide, reference, task classes), cross-references, and a deep-linking pass across all human docs. The spec is the source of truth.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T17:18:04Z",
+      "text": "Deterministic git activity per spec .wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md\n\nRead the spec first. Move all git operations into the daemon. Agent never touches git. Daemon commits after every task (success and failure). Config knobs to control behavior. Staging area preservation. Documentation pass after implementation.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T17:33:22Z",
+      "text": "Codebase knowledge files per spec .wolfcastle/docs/specs/2026-03-22T08-00Z-codebase-knowledge.md\n\nRead the spec first. New artifact type: living knowledge files that accumulate codebase-specific learnings across tasks. Agents read them every iteration and update them when they discover something non-obvious. Token-budgeted with explicit pruning. CLI commands for add/show/prune. ContextBuilder injection.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T18:05:01Z",
+      "text": "Template-based file generation per spec .wolfcastle/docs/specs/2026-03-22T09-00Z-template-file-generation.md\n\nRead the spec first. Move all generated file content (scaffold, ADRs, specs, task markdown) from Go string literals into template files. Extend the existing PromptRepository/tierfs infrastructure, do NOT create a parallel system. Users can override any template via the three-tier system.",
+      "status": "filed"
     }
   ]
 }

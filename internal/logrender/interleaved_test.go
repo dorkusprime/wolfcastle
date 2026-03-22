@@ -287,6 +287,31 @@ func TestInterleavedRenderer_FullSession(t *testing.T) {
 	}
 }
 
+func TestInterleavedRenderer_ClaudeAPIEnvelope(t *testing.T) {
+	recs := []Record{
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"text","text":"Hello from the model"}]}}`, Timestamp: makeTime("2026-03-21T18:01:35Z")},
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"internal reasoning"}]}}`, Timestamp: makeTime("2026-03-21T18:01:36Z")},
+		{Type: "assistant", Text: `{"type":"system","subtype":"init"}`, Timestamp: makeTime("2026-03-21T18:01:37Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s     Hello from the model", localTS("2026-03-21T18:01:35Z")); !strings.Contains(got, want) {
+		t.Errorf("expected extracted text content\nwant: %s\ngot:\n%s", want, got)
+	}
+	if strings.Contains(got, "internal reasoning") {
+		t.Errorf("thinking blocks should be filtered, got:\n%s", got)
+	}
+	if want := fmt.Sprintf("%s     [session started]", localTS("2026-03-21T18:01:37Z")); !strings.Contains(got, want) {
+		t.Errorf("expected formatted system init\nwant: %s\ngot:\n%s", want, got)
+	}
+	if strings.Contains(got, `"type"`) {
+		t.Errorf("raw JSON should not appear in output, got:\n%s", got)
+	}
+}
+
 func TestInterleavedRenderer_NodeOnlyAddress(t *testing.T) {
 	recs := []Record{
 		{Type: "stage_start", Stage: "audit", Node: "my-project/sub-module", Timestamp: makeTime("2026-03-21T10:00:00Z")},

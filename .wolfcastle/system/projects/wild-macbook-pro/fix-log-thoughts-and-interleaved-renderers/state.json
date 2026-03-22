@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "fix-log-thoughts-and-interleaved-renderers",
+  "name": "Fix log --thoughts and --interleaved renderers",
+  "type": "orchestrator",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "fix-renderer-output",
+      "address": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+      "state": "in_progress"
+    },
+    {
+      "id": "consolidate-daemon-foreground-output",
+      "address": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+      "state": "not_started"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Fix log --thoughts and --interleaved renderers is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Fix logs --thoughts and --interleaved: both output raw NDJSON instead of formatted text.\n\nThe spec at docs/specs/2026-03-21T18-00Z-log-command-design.md defines the expected output. The summary renderer works correctly. The thoughts and interleaved renderers do not match the spec.\n\nThoughts renderer (internal/logrender/thoughts.go): should extract the text field from assistant-type NDJSON records and print it as plain text. No stage headers, no timestamps, no JSON.\n\nInterleaved renderer (internal/logrender/interleaved.go): should print stage headers with timestamps and glyphs (▶/✓/✗), with assistant text indented below. Currently dumps raw NDJSON.\n\nAlso: the daemon's foreground stdout (the output you see when running wolfcastle start in the terminal) should use the interleaved renderer instead of its own separate PrintHuman calls. The rendering code should exist in one place, shared between wolfcastle log and daemon foreground mode.",
+  "success_criteria": [
+    "wolfcastle log --thoughts outputs plain text from assistant records with no JSON, timestamps, or stage headers",
+    "wolfcastle log --interleaved outputs timestamped stage headers with glyphs and indented agent text, no raw NDJSON",
+    "All foreground modes (start, execute, intake) use InterleavedRenderer from internal/logrender, not Logger.writeConsole",
+    "All existing tests pass, including logrender unit tests and render parity tests"
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T18:12:55.381854Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T18:12:50.284237Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers",
+        "text": "Created 2 children: fix-renderer-output (leaf, 4 tasks), consolidate-daemon-foreground-output (leaf, 3 tasks). Ordering: fix renderers first because the consolidation leaf depends on InterleavedRenderer working correctly. The renderer code looks superficially correct so the first task is diagnosis-focused. The consolidation leaf follows the established pattern from cmd/execute.go and cmd/intake.go."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

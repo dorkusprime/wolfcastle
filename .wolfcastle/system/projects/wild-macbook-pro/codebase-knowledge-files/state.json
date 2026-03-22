@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "codebase-knowledge-files",
+  "name": "Codebase Knowledge Files",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Codebase Knowledge Files is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Codebase knowledge files per spec .wolfcastle/docs/specs/2026-03-22T08-00Z-codebase-knowledge.md\n\nNew artifact type: living knowledge files that accumulate codebase-specific learnings across tasks. Agents read them every iteration and update them when they discover something non-obvious. Token-budgeted with explicit pruning.\n\nKey deliverables:\n- .wolfcastle/docs/knowledge/\u003cnamespace\u003e.md file location and format\n- ContextBuilder injection: read knowledge file each iteration and inject under '## Codebase Knowledge' section (after universal/class guidance, before audit context)\n- CLI commands: wolfcastle knowledge add, wolfcastle knowledge show, wolfcastle knowledge edit, wolfcastle knowledge prune\n- Token budget enforcement (knowledge.max_tokens, default 2000): fail on overflow with error, no silent truncation\n- Daemon maintenance task creation when file exceeds budget\n- Execute prompt update (execute.md): instruct agents to update knowledge file when discovering non-obvious codebase facts\n- Documentation pass: docs/humans/how-it-works.md, docs/humans/configuration.md, docs/humans/cli/ pages, AGENTS.md, docs/agents/, README",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

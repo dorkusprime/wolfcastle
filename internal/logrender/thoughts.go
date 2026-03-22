@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 )
 
 // ThoughtsRenderer writes raw agent output. It filters for assistant records,
@@ -32,7 +34,10 @@ func (tr *ThoughtsRenderer) Render(ctx context.Context, records <-chan Record) {
 				return
 			}
 			if r.Type == "assistant" && r.Text != "" {
-				_, _ = fmt.Fprintln(tr.w, r.Text)
+				text := invoke.FormatAssistantText(r.Text)
+				if text != "" {
+					_, _ = fmt.Fprintln(tr.w, text)
+				}
 			}
 		}
 	}

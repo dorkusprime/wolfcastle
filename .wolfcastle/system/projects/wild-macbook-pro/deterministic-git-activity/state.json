@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "deterministic-git-activity",
+  "name": "Deterministic Git Activity",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Deterministic Git Activity is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Deterministic git activity per spec .wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md\n\nMove all git operations into the daemon. The agent never runs git add, git commit, or any other git command. The daemon commits deterministically after every task iteration (success and failure).\n\nKey work:\n- Remove Phase H (Commit) from execute.md; remove all git instruction from execute prompt\n- Add commit logic to success path in iteration.go (alongside existing failure path in autoCommitPartialWork)\n- New config fields: git.auto_commit, git.commit_on_success, git.commit_on_failure, git.commit_state (git.skip_hooks already exists)\n- Staging area preservation: save/restore user index state around daemon commits\n- Documentation pass: how-it-works.md, configuration.md, collaboration.md, failure-and-recovery.md, AGENTS.md, docs/agents/, execute.md, README",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

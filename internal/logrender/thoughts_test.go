@@ -110,6 +110,36 @@ func TestThoughtsRenderer_ContextCancellation(t *testing.T) {
 	}
 }
 
+func TestThoughtsRenderer_ClaudeAPIEnvelope(t *testing.T) {
+	recs := []Record{
+		{Type: "assistant", Text: `{"type":"system","subtype":"init"}`},
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"text","text":"Hello from the model"}]}}`},
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"internal reasoning"}]}}`},
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls -la"}}]}}`},
+		{Type: "assistant", Text: `{"type":"result","result":"Task completed"}`},
+	}
+
+	var buf bytes.Buffer
+	NewThoughtsRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if !bytes.Contains([]byte(got), []byte("[session started]")) {
+		t.Errorf("expected [session started] for system init, got:\n%s", got)
+	}
+	if !bytes.Contains([]byte(got), []byte("Hello from the model")) {
+		t.Errorf("expected extracted text content, got:\n%s", got)
+	}
+	if bytes.Contains([]byte(got), []byte("internal reasoning")) {
+		t.Errorf("thinking blocks should be filtered out, got:\n%s", got)
+	}
+	if !bytes.Contains([]byte(got), []byte("Bash")) {
+		t.Errorf("expected tool use summary, got:\n%s", got)
+	}
+	if !bytes.Contains([]byte(got), []byte("[result]")) {
+		t.Errorf("expected result prefix, got:\n%s", got)
+	}
+}
+
 func TestThoughtsRenderer_AllEmptyAssistant(t *testing.T) {
 	recs := []Record{
 		{Type: "assistant", Text: ""},

@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "configuration-docs-overhaul",
+  "name": "Configuration Docs Overhaul",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Configuration Docs Overhaul is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Configuration docs overhaul per spec .wolfcastle/docs/specs/2026-03-22T06-00Z-config-docs-overhaul.md\n\nSplit docs/humans/configuration.md into four pages:\n1. docs/humans/config-quickstart.md — gets users from init to working customization fast; covers model change, custom stage, prompt override, task class example\n2. docs/humans/configuration.md (rewritten) — how-it-works: three-tier directory structure, merge semantics, common customizations, wolfcastle config commands\n3. docs/humans/config-reference.md — every config field by section (identity, daemon, pipeline, models, retries, failure, git, overlap, archive, task_classes, validation_commands), with type/default/description/example\n4. docs/humans/task-classes.md — dedicated task classes page: what classes are, using --class flag with fallback behavior, full tables of built-in language/framework/discipline classes, custom class creation, overriding built-ins, the universal prompt\n\nCross-references: quickstart \u003c-\u003e guide \u003c-\u003e reference \u003c-\u003e task-classes, CLI command pages, README.\n\nDeep-linking pass: review every page in docs/humans/ and README for config references that should now link to specific sections in the new pages (how-it-works.md, audits.md, failure-and-recovery.md, collaboration.md, CLI pages, README Configuration section).\n\nSee spec for full details.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

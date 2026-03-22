@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/dorkusprime/wolfcastle/internal/invoke"
 )
 
 // InterleavedRenderer writes stage headers and agent thoughts together in
@@ -84,8 +86,11 @@ func (ir *InterleavedRenderer) handleRecord(r Record, starts map[stageKey]time.T
 
 	case "assistant":
 		if r.Text != "" {
-			_, _ = fmt.Fprintf(ir.w, "%s     %s\n",
-				formatTimestamp(r.Timestamp), r.Text)
+			text := invoke.FormatAssistantText(r.Text)
+			if text != "" {
+				_, _ = fmt.Fprintf(ir.w, "%s     %s\n",
+					formatTimestamp(r.Timestamp), text)
+			}
 		}
 
 	case "audit_report_written":

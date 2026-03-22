@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "id": "consolidate-daemon-foreground-output",
+  "name": "Consolidate Daemon Foreground Output",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Wire wolfcastle start foreground to InterleavedRenderer",
+      "description": "Wire wolfcastle start foreground to InterleavedRenderer",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/start.go"
+      ],
+      "body": "When wolfcastle start runs in foreground mode (no -d flag), it currently relies on Logger.writeConsole() to produce human-readable output on stderr. Instead, adopt the same pattern used by cmd/execute.go and cmd/intake.go:\n\n1. Set Logger.Console to io.Discard (disable writeConsole)\n2. Spawn a FollowReader goroutine that tails the log directory\n3. Feed records through NewInterleavedRenderer(os.Stdout)\n4. Cancel the renderer context when the daemon loop exits\n\nReference: cmd/execute.go lines 62-86 shows the pattern. The start command is in cmd/daemon/start.go around line 147 (foreground path).\n\nThis ensures the same rendering code path is used by wolfcastle start, wolfcastle execute, wolfcastle intake, and wolfcastle log --interleaved."
+    },
+    {
+      "id": "task-0002",
+      "title": "Remove duplicate console formatting from Logger",
+      "description": "Remove duplicate console formatting from Logger",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logging/logger.go",
+        "internal/daemon/daemon.go"
+      ],
+      "body": "With all foreground modes now using InterleavedRenderer, the Logger's writeConsole() method, consoleMessages map, and consoleSuppress map are dead code. Remove them:\n\n- internal/logging/logger.go: Delete writeConsole() (lines 199-244), consoleMessages (lines 189-194), consoleSuppress (lines 180-185)\n- internal/logging/logger.go: Remove the console-mirroring block from Log() (lines 170-173) if Console is always io.Discard in foreground mode. If Logger.Console is still used for background daemon log file output, keep the Log() path but remove the human formatting.\n- internal/daemon/daemon.go: Remove PrintHuman calls that duplicate renderer output (line 118 warning about missing class prompts, lines 144-149 self-heal messages). If these messages carry information the renderer wouldn't show (they aren't stage events), consider whether they should become proper NDJSON records that the interleaved renderer can display, or whether they should remain as one-off PrintHuman calls. Use judgment: PrintHuman is acceptable for one-time startup diagnostics that happen before the renderer goroutine is running.\n- internal/daemon/iteration.go: Evaluate the PrintHuman at line 196 (superseded block message). Same judgment call.\n\nBe careful not to remove output that serves a purpose the renderer can't fulfill (e.g., early startup messages before log files exist)."
+    },
+    {
+      "id": "task-0003",
+      "title": "Verify consolidated foreground output",
+      "description": "Verify consolidated foreground output",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logging/logger.go"
+      ],
+      "body": "Run the full test suite to confirm nothing is broken by the consolidation:\n\ngo test ./internal/logging/... -v\ngo test ./internal/daemon/... -v  \ngo test ./cmd/... -v\n\nIf Logger tests assert writeConsole behavior that was removed, update or delete those tests. Confirm that wolfcastle start (foreground), wolfcastle execute, and wolfcastle intake all produce consistent interleaved output through the shared renderer path."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Consolidate Daemon Foreground Output is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Logger.writeConsole is removed or disabled, and no foreground codepath calls it",
+    "Verify cmd/daemon/start.go foreground path spawns InterleavedRenderer goroutine matching the pattern in cmd/execute.go"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "template-based-file-generation",
+  "name": "Template-Based File Generation",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Template-Based File Generation is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Template-based file generation per spec .wolfcastle/docs/specs/2026-03-22T09-00Z-template-file-generation.md\n\nMove all generated file content (scaffold, ADRs, specs, task markdown) from Go string literals into template files under internal/project/templates/. Extend the existing PromptRepository/tierfs infrastructure to support a templates/ prefix alongside prompts/ -- do NOT create a parallel system. Add a shared RenderToFile convenience method. Replace all strings.Builder / fmt.Sprintf / os.WriteFile chains at each call site with RenderToFile. Verify with snapshot tests: output must be byte-for-byte identical before and after. After implementation, document the template override mechanism in docs/humans/configuration.md and update relevant CLI docs and CONTRIBUTING.md.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

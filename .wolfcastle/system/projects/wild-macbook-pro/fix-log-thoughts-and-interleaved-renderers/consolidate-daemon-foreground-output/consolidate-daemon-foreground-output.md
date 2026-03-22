@@ -1,0 +1,3 @@
+# Consolidate Daemon Foreground Output
+
+Replace the daemon's own console output machinery (Logger.writeConsole and scattered PrintHuman calls) with the shared InterleavedRenderer from internal/logrender. The spec says non-daemon mode output should match the interleaved format, and the rendering code should exist in one place. cmd/execute.go and cmd/intake.go already use InterleavedRenderer with a FollowReader goroutine, but wolfcastle start (foreground, no -d) still uses Logger.writeConsole with its hardcoded consoleMessages map and PrintHuman calls in daemon.go. Unify these so all foreground output flows through InterleavedRenderer.
