@@ -2,12 +2,9 @@
   "version": 1,
   "root_id": "domain-repository-architecture",
   "root_name": "Domain Repository Architecture",
-  "root_state": "complete",
+  "root_state": "in_progress",
   "root": [
-    "log-command-redesign",
-    "fix-replayjson-streaming-bug",
-    "fix-log-follow-hang-with-stopped-daemon",
-    "logrender-post-merge-cleanups"
+    "implement-task-classes"
   ],
   "archived_root": [
     "domain-repository-architecture",
@@ -26,7 +23,11 @@
     "auto-archive-lifecycle",
     "config-show-section-filter",
     "config-write-commands",
-    "documentation-review"
+    "documentation-review",
+    "log-command-redesign",
+    "fix-replayjson-streaming-bug",
+    "fix-log-follow-hang-with-stopped-daemon",
+    "logrender-post-merge-cleanups"
   ],
   "nodes": {
     "fix-log-follow-hang-with-stopped-daemon": {
@@ -38,7 +39,9 @@
       "children": [
         "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
         "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.503822Z"
     },
     "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped": {
       "name": "follow-no-op-when-stopped",
@@ -46,7 +49,9 @@
       "state": "complete",
       "address": "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
       "decomposition_depth": 0,
-      "parent": "fix-log-follow-hang-with-stopped-daemon"
+      "parent": "fix-log-follow-hang-with-stopped-daemon",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.503822Z"
     },
     "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection": {
       "name": "follow-reader-daemon-exit-detection",
@@ -54,7 +59,9 @@
       "state": "complete",
       "address": "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection",
       "decomposition_depth": 0,
-      "parent": "fix-log-follow-hang-with-stopped-daemon"
+      "parent": "fix-log-follow-hang-with-stopped-daemon",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.503822Z"
     },
     "fix-replayjson-streaming-bug": {
       "name": "Fix replayJSON streaming bug",
@@ -65,7 +72,9 @@
       "children": [
         "fix-replayjson-streaming-bug/streaming-fix",
         "fix-replayjson-streaming-bug/test-coverage"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.439615Z"
     },
     "fix-replayjson-streaming-bug/streaming-fix": {
       "name": "streaming-fix",
@@ -73,7 +82,9 @@
       "state": "complete",
       "address": "fix-replayjson-streaming-bug/streaming-fix",
       "decomposition_depth": 0,
-      "parent": "fix-replayjson-streaming-bug"
+      "parent": "fix-replayjson-streaming-bug",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.439615Z"
     },
     "fix-replayjson-streaming-bug/test-coverage": {
       "name": "test-coverage",
@@ -81,7 +92,45 @@
       "state": "complete",
       "address": "fix-replayjson-streaming-bug/test-coverage",
       "decomposition_depth": 0,
-      "parent": "fix-replayjson-streaming-bug"
+      "parent": "fix-replayjson-streaming-bug",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.439615Z"
+    },
+    "implement-task-classes": {
+      "name": "Implement Task Classes",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "implement-task-classes",
+      "decomposition_depth": 0,
+      "children": [
+        "implement-task-classes/refactor-execute-and-create-default",
+        "implement-task-classes/author-class-prompts",
+        "implement-task-classes/wire-defaults-and-validate"
+      ]
+    },
+    "implement-task-classes/author-class-prompts": {
+      "name": "Author Class Prompts",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "implement-task-classes/author-class-prompts",
+      "decomposition_depth": 0,
+      "parent": "implement-task-classes"
+    },
+    "implement-task-classes/refactor-execute-and-create-default": {
+      "name": "Refactor Execute and Create Default",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "implement-task-classes/refactor-execute-and-create-default",
+      "decomposition_depth": 0,
+      "parent": "implement-task-classes"
+    },
+    "implement-task-classes/wire-defaults-and-validate": {
+      "name": "Wire Defaults and Validate",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "implement-task-classes/wire-defaults-and-validate",
+      "decomposition_depth": 0,
+      "parent": "implement-task-classes"
     },
     "log-command-redesign": {
       "name": "Log Command Redesign",
@@ -94,7 +143,9 @@
         "log-command-redesign/log-rendering-engine",
         "log-command-redesign/log-command-rewrite",
         "log-command-redesign/non-daemon-integration"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-command-rewrite": {
       "name": "Log Command Rewrite",
@@ -102,7 +153,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-command-rewrite",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign"
+      "parent": "log-command-redesign",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-record-types": {
       "name": "Log Record Types",
@@ -110,7 +163,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-record-types",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign"
+      "parent": "log-command-redesign",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine": {
       "name": "Log Rendering Engine",
@@ -124,7 +179,9 @@
         "log-command-redesign/log-rendering-engine/summary-renderer",
         "log-command-redesign/log-rendering-engine/thoughts-renderer",
         "log-command-redesign/log-rendering-engine/interleaved-renderer"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine/foundation": {
       "name": "Foundation",
@@ -132,7 +189,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/foundation",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign/log-rendering-engine"
+      "parent": "log-command-redesign/log-rendering-engine",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine/interleaved-renderer": {
       "name": "Interleaved Renderer",
@@ -140,7 +199,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/interleaved-renderer",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign/log-rendering-engine"
+      "parent": "log-command-redesign/log-rendering-engine",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine/summary-renderer": {
       "name": "Summary Renderer",
@@ -148,7 +209,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/summary-renderer",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign/log-rendering-engine"
+      "parent": "log-command-redesign/log-rendering-engine",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine/thoughts-renderer": {
       "name": "Thoughts Renderer",
@@ -156,7 +219,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/thoughts-renderer",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign/log-rendering-engine"
+      "parent": "log-command-redesign/log-rendering-engine",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/non-daemon-integration": {
       "name": "Non-Daemon Integration",
@@ -164,7 +229,9 @@
       "state": "complete",
       "address": "log-command-redesign/non-daemon-integration",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign"
+      "parent": "log-command-redesign",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "logrender-post-merge-cleanups": {
       "name": "Logrender post-merge cleanups",
@@ -174,7 +241,9 @@
       "decomposition_depth": 0,
       "children": [
         "logrender-post-merge-cleanups/code-cleanups"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.565239Z"
     },
     "logrender-post-merge-cleanups/code-cleanups": {
       "name": "Code Cleanups",
@@ -182,7 +251,9 @@
       "state": "complete",
       "address": "logrender-post-merge-cleanups/code-cleanups",
       "decomposition_depth": 0,
-      "parent": "logrender-post-merge-cleanups"
+      "parent": "logrender-post-merge-cleanups",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.565239Z"
     }
   }
 }

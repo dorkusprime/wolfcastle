@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "id": "wire-defaults-and-validate",
+  "name": "Wire Defaults and Validate",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add task_classes entries to config.Defaults()",
+      "description": "Add task_classes entries to config.Defaults()",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/config.go"
+      ],
+      "body": "In internal/config/config.go, populate the TaskClasses map in the Defaults() function with an entry for every class that has a corresponding prompt file authored in Phase 2. This means 20 language entries, 22 framework entries, and 9 non-language entries (51+ total). Each entry needs a ClassDef with a meaningful Description field. Use the descriptions from the spec tables as a starting point but ensure they are concise and useful for intake classification. Framework class keys use slash separators (e.g., 'typescript/react', 'python/django'). Verify the map compiles and the keys match the prompt file names exactly (key 'typescript/react' must resolve to classes/typescript/react.md).",
+      "task_type": "implementation",
+      "acceptance_criteria": [
+        "Defaults().TaskClasses contains 51+ entries matching all authored prompt files",
+        "Every key in TaskClasses has a non-empty Description",
+        "go build ./... passes",
+        "go test ./... passes"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Wire ClassRepository.Validate() into daemon startup",
+      "description": "Wire ClassRepository.Validate() into daemon startup",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/daemon.go"
+      ],
+      "body": "In internal/daemon/daemon.go, after classes.Reload(cfg.TaskClasses) is called, invoke classes.Validate() and log warnings for any class keys that have config entries but no resolvable prompt file. This should be a warning, not a fatal error: the daemon starts regardless, but operators see which classes are degraded. Use the daemon's existing logger. The warning message should list the missing class keys so operators can author the missing prompts or remove the config entries.",
+      "task_type": "implementation",
+      "acceptance_criteria": [
+        "Daemon logs warnings for classes with missing prompt files at startup",
+        "Daemon does not fail to start due to missing class prompts",
+        "No warnings when all configured classes have prompt files",
+        "go test ./... passes"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-18T22-31Z-classrepository-contract.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Add --class validation to task add CLI",
+      "description": "Add --class validation to task add CLI",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/task/add.go"
+      ],
+      "body": "In cmd/task/add.go, validate the --class flag value against the config's TaskClasses map when it is non-empty. If the provided class key is not found in cfg.TaskClasses, reject the command with an error that lists the valid class values (sorted alphabetically). The App struct in cmd/cmdutil/app.go already has a Classes field with the loaded ClassRepository, and the config is available. Use Classes.List() to get valid keys for the error message. Empty --class values remain valid (no class assigned). This gives users immediate feedback on typos rather than discovering at execution time that the class prompt doesn't resolve.",
+      "task_type": "implementation",
+      "acceptance_criteria": [
+        "task add with unknown --class value fails with error listing valid classes",
+        "task add with valid --class value succeeds",
+        "task add with empty --class value succeeds",
+        "go test ./... passes"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Auto-assign Class 'audit' to audit tasks at claim time",
+      "description": "Auto-assign Class 'audit' to audit tasks at claim time",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/daemon.go"
+      ],
+      "body": "When the daemon claims a task (transitions it from not_started to in_progress), check if the task is an audit task (task.IsAudit is true) and its Class field is empty. If both conditions hold, set task.Class to 'audit' before persisting the state change. This ensures audit tasks always get the audit class behavioral prompt without requiring manual --class assignment. The IsAudit field remains the authoritative marker for audit identity; Class is purely for prompt routing. Find where task claiming happens in the daemon (likely internal/daemon/ or internal/state/) and add the auto-assignment there. Write a test that verifies: claiming an audit task with empty class sets class to 'audit'; claiming an audit task with an existing class does not overwrite it; claiming a non-audit task with empty class leaves it empty.",
+      "task_type": "implementation",
+      "acceptance_criteria": [
+        "Claiming an audit task with empty class auto-assigns class 'audit'",
+        "Claiming an audit task with pre-set class does not overwrite it",
+        "Claiming a non-audit task does not auto-assign any class",
+        "go test ./... passes"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Wire Defaults and Validate is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify config.Defaults() TaskClasses keys exactly match the set of authored prompt files (no extra keys, no missing keys)",
+    "Verify task add --class with an invalid value produces a clear error listing valid options"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

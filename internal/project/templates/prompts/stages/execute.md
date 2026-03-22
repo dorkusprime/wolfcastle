@@ -28,7 +28,7 @@ Read relevant code, ADRs, and specs before making changes. Use grep, find, and f
 ### C. Implement
 Make the changes needed to complete the task. Focus on one concern at a time.
 
-**Before writing code, list every file you'll need to modify.** If there are more than 8 files, create sub-tasks with `wolfcastle task add` and emit WOLFCASTLE_YIELD. Do not attempt tasks that touch more than 8 files.
+If the task touches more than 8 files, create sub-tasks with `wolfcastle task add` and emit WOLFCASTLE_YIELD. Do not attempt tasks that touch more than 8 files.
 
 To decompose: create sub-tasks with `wolfcastle task add --parent <your-task-id>`, then emit WOLFCASTLE_YIELD on its own line. The `--parent` flag creates hierarchical IDs (task-0001.0001, task-0001.0002). The parent auto-completes when all children finish. Each sub-task should be small enough to finish in a single iteration.
 
@@ -38,34 +38,12 @@ wolfcastle task block --node <your-node/old-task-id> "Superseded by new decompos
 ```
 Orphaned subtasks pollute the tree and confuse auditors. Clean up first, then decompose.
 
-Signs you should decompose rather than continue:
-- The task touches multiple unrelated files or packages with no shared concern
-- You'd need to do substantial exploration just to understand the problem, and then still build something significant
-- You're holding more than 3-4 distinct changes in your head at once
-- You catch yourself thinking "I'll just do this one more thing"
-
-**Do NOT move, rename, or delete packages. Do NOT change import paths.** If you believe a structural change is needed, record it as an audit gap and continue with the current structure.
-
-**Before deleting any file, verify nothing depends on it.** Search for imports, includes, references, and test dependencies. A deleted test file that covers surviving production code is a regression. A deleted source file that other files import is a build break. If you're removing deprecated code, trace every caller first. If any caller is in production code (not just tests for the deprecated code itself), the deletion is wrong.
-
 Check your task's deliverables list (shown in the context below). Deliverables are advisory; the daemon warns on missing deliverables but does not block completion. Git progress (committed changes) is the hard gate.
 
 If the task has no deliverables listed, declare at least one before completing. Use `wolfcastle task deliverable "path/to/file" --node <your-node/task-id>` to register each output file.
 
 ### D. Validate
-Before committing, verify your work compiles, passes tests, and is clean.
-
-Look for the project's build system: Makefile, go.mod, package.json, Cargo.toml, pyproject.toml, CMakeLists.txt, or equivalent. Run whatever commands it provides.
-
-1. **Build**: run the project's build command (`make build`, `go build ./...`, `npm run build`, `cargo build`, etc.). Fix all errors before proceeding.
-2. **Test**: run the full test suite (`make test`, `go test ./...`, `npm test`, `cargo test`, `pytest`, etc.). Fix all failures, including tests you didn't write. If your changes break an existing test, that's your problem. Do not skip tests, disable tests, or mark tests as expected failures to work around breakage.
-3. **Format**: run the project's formatter (`gofmt`, `prettier`, `rustfmt`, `black`, etc.). Commit only formatted code.
-4. **Lint/vet**: run the project's linter and static analysis. Check the Makefile (`make lint`), CI config, or linter config files (`.golangci.yml`, `.eslintrc`, `.flake8`, `clippy.toml`, etc.) to find the right command. Fix all warnings your changes introduced. Do not suppress warnings with ignore directives unless the warning is genuinely wrong.
-
-5. **Spec cross-reference**: if a spec exists for the work you're doing (check `.wolfcastle/docs/specs/` and `docs/specs/`), verify every behavioral claim in the spec is implemented. Check edge cases, error paths, and flag interactions described in the spec. Missing spec behavior is a gap, not a nice-to-have.
-6. **Stdlib check**: before writing any utility function, search the standard library and existing codebase for an equivalent. Reimplementing `bytes.IndexByte`, `strings.Contains`, or similar is a waste. Use what exists.
-
-Do not skip this phase. Do not commit code that doesn't build or pass tests. If the build or tests fail, fix the failures before moving on. If you cannot fix a failure, do not emit WOLFCASTLE_COMPLETE. Emit WOLFCASTLE_YIELD with a breadcrumb explaining what broke and why you couldn't fix it.
+Follow the validation rules in the class guidance (or the defaults if no class is active). Do not skip this phase. If the build or tests fail, fix the failures before moving on. If you cannot fix a failure, do not emit WOLFCASTLE_COMPLETE. Emit WOLFCASTLE_YIELD with a breadcrumb explaining what broke and why you couldn't fix it.
 
 ### E. Record
 
@@ -217,5 +195,4 @@ This is a hard stop. Do not continue after emitting a terminal marker.
 - Commit before signaling completion.
 - Never edit state.json files directly.
 - Always emit exactly one terminal marker as plain text on its own line: WOLFCASTLE_COMPLETE, WOLFCASTLE_SKIP, WOLFCASTLE_YIELD, or WOLFCASTLE_BLOCKED.
-- Do NOT move, rename, or delete packages or change import paths.
 - Never invent structure for technologies you haven't verified. If discovery reveals something doesn't exist, pre-block downstream tasks and explain why.

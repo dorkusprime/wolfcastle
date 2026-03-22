@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "author-class-prompts",
+  "name": "Author Class Prompts",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Author Class Prompts is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Author all behavioral prompt .md files for the task classes defined in the spec: 20 language classes, 22 framework classes, and 9 non-language classes (51 files total). All files live under internal/project/templates/prompts/classes/. Language files at top level (go.md, python.md). Framework files in subdirectories matching the parent language (typescript/react.md, python/django.md). Each prompt must be researched against current ecosystem state (official style guides, modern linters/formatters/test frameworks, current paradigms). Zero wolfcastle-specific content in any class prompt. Language prompts replace (not augment) default.md validation rules. Framework prompts do not repeat language fundamentals (the hierarchical fallback handles that). Target 40-80 lines for languages, 30-60 for frameworks and non-language. Prefer 'prefer X' over 'always X' to respect codebase conventions.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
