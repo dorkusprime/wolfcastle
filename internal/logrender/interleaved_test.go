@@ -25,8 +25,12 @@ func TestInterleavedRenderer_StageStartComplete(t *testing.T) {
 	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
 
 	got := buf.String()
-	expectContains(t, got, fmt.Sprintf("%s ▶ [execute] my-project/task-0001", localTS("2026-03-21T18:01:34Z")))
-	expectContains(t, got, fmt.Sprintf("%s ✓ [execute] my-project/task-0001 (1m22s)", localTS("2026-03-21T18:02:56Z")))
+	if want := fmt.Sprintf("%s ▶ [execute] my-project/task-0001", localTS("2026-03-21T18:01:34Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s ✓ [execute] my-project/task-0001 (1m22s)", localTS("2026-03-21T18:02:56Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
 }
 
 func TestInterleavedRenderer_FailedStage(t *testing.T) {
@@ -39,8 +43,12 @@ func TestInterleavedRenderer_FailedStage(t *testing.T) {
 	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
 
 	got := buf.String()
-	expectContains(t, got, fmt.Sprintf("%s ▶ [execute] proj/task-0001", localTS("2026-03-21T10:00:00Z")))
-	expectContains(t, got, fmt.Sprintf("%s ✗ [execute] proj/task-0001 (3m41s)", localTS("2026-03-21T10:03:41Z")))
+	if want := fmt.Sprintf("%s ▶ [execute] proj/task-0001", localTS("2026-03-21T10:00:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s ✗ [execute] proj/task-0001 (3m41s)", localTS("2026-03-21T10:03:41Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
 }
 
 func TestInterleavedRenderer_AssistantText(t *testing.T) {
@@ -53,8 +61,12 @@ func TestInterleavedRenderer_AssistantText(t *testing.T) {
 	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
 
 	got := buf.String()
-	expectContains(t, got, fmt.Sprintf("%s     I'll start by reading the file...", localTS("2026-03-21T18:01:35Z")))
-	expectContains(t, got, fmt.Sprintf("%s     Reading the project requirements...", localTS("2026-03-21T18:01:36Z")))
+	if want := fmt.Sprintf("%s     I'll start by reading the file...", localTS("2026-03-21T18:01:35Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s     Reading the project requirements...", localTS("2026-03-21T18:01:36Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
 }
 
 func TestInterleavedRenderer_AssistantIndentation(t *testing.T) {
@@ -104,8 +116,12 @@ func TestInterleavedRenderer_PlanningRecords(t *testing.T) {
 	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
 
 	got := buf.String()
-	expectContains(t, got, fmt.Sprintf("%s ▶ [plan] proj", localTS("2026-03-21T10:00:00Z")))
-	expectContains(t, got, fmt.Sprintf("%s ✓ [plan] proj (45s)", localTS("2026-03-21T10:00:45Z")))
+	if want := fmt.Sprintf("%s ▶ [plan] proj", localTS("2026-03-21T10:00:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s ✓ [plan] proj (45s)", localTS("2026-03-21T10:00:45Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
 }
 
 func TestInterleavedRenderer_AuditReportWritten(t *testing.T) {
@@ -119,7 +135,9 @@ func TestInterleavedRenderer_AuditReportWritten(t *testing.T) {
 	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
 
 	got := buf.String()
-	expectContains(t, got, fmt.Sprintf("%s     report: .wolfcastle/system/projects/proj/sub/audit.md", localTS("2026-03-21T10:00:35Z")))
+	if want := fmt.Sprintf("%s     report: .wolfcastle/system/projects/proj/sub/audit.md", localTS("2026-03-21T10:00:35Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
 }
 
 func TestInterleavedRenderer_FiltersDaemonStages(t *testing.T) {
@@ -170,7 +188,9 @@ func TestInterleavedRenderer_CompleteWithoutStart(t *testing.T) {
 	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
 
 	got := buf.String()
-	expectContains(t, got, fmt.Sprintf("%s ✓ [execute] proj/task-0001 (0s)", localTS("2026-03-21T10:01:00Z")))
+	if want := fmt.Sprintf("%s ✓ [execute] proj/task-0001 (0s)", localTS("2026-03-21T10:01:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
 }
 
 func TestInterleavedRenderer_EmptyChannel(t *testing.T) {
@@ -219,7 +239,9 @@ func TestInterleavedRenderer_NilExitCodeTreatedAsSuccess(t *testing.T) {
 	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
 
 	got := buf.String()
-	expectContains(t, got, fmt.Sprintf("%s ✓ [intake] proj (5s)", localTS("2026-03-21T10:00:05Z")))
+	if want := fmt.Sprintf("%s ✓ [intake] proj (5s)", localTS("2026-03-21T10:00:05Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
 }
 
 func TestInterleavedRenderer_FullSession(t *testing.T) {
@@ -245,20 +267,23 @@ func TestInterleavedRenderer_FullSession(t *testing.T) {
 	}
 
 	// Verify chronological order matches the spec example.
-	expectContains(t, got, fmt.Sprintf("%s ▶ [execute] donut-stand-website/site-specification/task-0001", localTS("2026-03-21T18:01:34Z")))
-	expectContains(t, got, fmt.Sprintf("%s     I'll start by creating the site specification document...", localTS("2026-03-21T18:01:35Z")))
-	expectContains(t, got, fmt.Sprintf("%s     Reading the project requirements from the inbox item...", localTS("2026-03-21T18:01:36Z")))
-	expectContains(t, got, fmt.Sprintf("%s ✓ [execute] donut-stand-website/site-specification/task-0001 (1m22s)", localTS("2026-03-21T18:02:56Z")))
-	expectContains(t, got, fmt.Sprintf("%s ▶ [execute] donut-stand-website/site-specification/task-0002", localTS("2026-03-21T18:02:57Z")))
-	expectContains(t, got, fmt.Sprintf("%s     Now I need to write the HTML structure...", localTS("2026-03-21T18:02:58Z")))
-}
-
-// expectContains is a test helper that fails with a descriptive message
-// if got does not contain the expected substring.
-func expectContains(t *testing.T, got, expected string) {
-	t.Helper()
-	if !strings.Contains(got, expected) {
-		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", expected, got)
+	if want := fmt.Sprintf("%s ▶ [execute] donut-stand-website/site-specification/task-0001", localTS("2026-03-21T18:01:34Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s     I'll start by creating the site specification document...", localTS("2026-03-21T18:01:35Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s     Reading the project requirements from the inbox item...", localTS("2026-03-21T18:01:36Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s ✓ [execute] donut-stand-website/site-specification/task-0001 (1m22s)", localTS("2026-03-21T18:02:56Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s ▶ [execute] donut-stand-website/site-specification/task-0002", localTS("2026-03-21T18:02:57Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s     Now I need to write the HTML structure...", localTS("2026-03-21T18:02:58Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
 	}
 }
 
@@ -272,6 +297,10 @@ func TestInterleavedRenderer_NodeOnlyAddress(t *testing.T) {
 	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
 
 	got := buf.String()
-	expectContains(t, got, fmt.Sprintf("%s ▶ [audit] my-project/sub-module", localTS("2026-03-21T10:00:00Z")))
-	expectContains(t, got, fmt.Sprintf("%s ✓ [audit] my-project/sub-module (34s)", localTS("2026-03-21T10:00:34Z")))
+	if want := fmt.Sprintf("%s ▶ [audit] my-project/sub-module", localTS("2026-03-21T10:00:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s ✓ [audit] my-project/sub-module (34s)", localTS("2026-03-21T10:00:34Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
 }
