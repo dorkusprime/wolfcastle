@@ -386,3 +386,99 @@ func TestScaffoldService_Reinit_HandlesMissingLocalConfig(t *testing.T) {
 		t.Error("created local/config.json should contain identity")
 	}
 }
+
+// --- Scaffold file snapshot tests ---
+
+// TestScaffoldService_Init_SnapshotScaffoldFiles verifies that Init produces
+// byte-for-byte identical output to the embedded templates for every scaffold
+// file: the .gitignore and all five READMEs.
+func TestScaffoldService_Init_SnapshotScaffoldFiles(t *testing.T) {
+	t.Parallel()
+	svc, _, root := newScaffoldService(t)
+
+	if err := svc.Init(testIdentity()); err != nil {
+		t.Fatal(err)
+	}
+
+	for tmpl, dest := range scaffoldFiles {
+		t.Run(dest, func(t *testing.T) {
+			want, err := Templates.ReadFile(tmpl)
+			if err != nil {
+				t.Fatalf("reading embedded template %s: %v", tmpl, err)
+			}
+			got, err := os.ReadFile(filepath.Join(root, dest))
+			if err != nil {
+				t.Fatalf("scaffold file %s missing after Init: %v", dest, err)
+			}
+			if string(got) != string(want) {
+				t.Errorf("snapshot mismatch for %s:\ngot %d bytes, want %d bytes\ngot:\n%s\nwant:\n%s",
+					dest, len(got), len(want), string(got), string(want))
+			}
+		})
+	}
+}
+
+// TestScaffoldService_Reinit_SnapshotScaffoldFiles verifies that Reinit
+// preserves scaffold files (.gitignore and READMEs) byte-for-byte. Files
+// outside the base tier survive the teardown-rebuild cycle. The base-prompts
+// README lives inside system/base/ and is destroyed by RemoveAll during
+// Reinit; that case is tested separately below.
+func TestScaffoldService_Reinit_SnapshotScaffoldFiles(t *testing.T) {
+	t.Parallel()
+	svc, _, root := newScaffoldService(t)
+
+	if err := svc.Init(testIdentity()); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Reinit(); err != nil {
+		t.Fatal(err)
+	}
+
+	// The base-prompts README sits inside system/base/ which Reinit wipes.
+	const baseTierTemplate = "templates/scaffold/readme-base-prompts.md.tmpl"
+
+	for tmpl, dest := range scaffoldFiles {
+		if tmpl == baseTierTemplate {
+			continue
+		}
+		t.Run(dest, func(t *testing.T) {
+			want, err := Templates.ReadFile(tmpl)
+			if err != nil {
+				t.Fatalf("reading embedded template %s: %v", tmpl, err)
+			}
+			got, err := os.ReadFile(filepath.Join(root, dest))
+			if err != nil {
+				t.Fatalf("scaffold file %s missing after Reinit: %v", dest, err)
+			}
+			if string(got) != string(want) {
+				t.Errorf("snapshot mismatch for %s after Reinit:\ngot %d bytes, want %d bytes\ngot:\n%s\nwant:\n%s",
+					dest, len(got), len(want), string(got), string(want))
+			}
+		})
+	}
+}
+
+// TestScaffoldService_Reinit_BaseTierREADMELost verifies that the
+// system/base/prompts/README.md scaffold file does not survive Reinit,
+// because Reinit tears down and rebuilds the entire base tier directory.
+func TestScaffoldService_Reinit_BaseTierREADMELost(t *testing.T) {
+	t.Parallel()
+	svc, _, root := newScaffoldService(t)
+
+	if err := svc.Init(testIdentity()); err != nil {
+		t.Fatal(err)
+	}
+
+	readmePath := filepath.Join(root, "system", "base", "prompts", "README.md")
+	if _, err := os.Stat(readmePath); err != nil {
+		t.Fatal("README should exist after Init:", err)
+	}
+
+	if err := svc.Reinit(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(readmePath); !os.IsNotExist(err) {
+		t.Error("system/base/prompts/README.md should not survive Reinit (base tier is wiped)")
+	}
+}

@@ -31,7 +31,7 @@
       "id": "task-0002",
       "title": "Migrate scaffold_service.go to use templates",
       "description": "Migrate scaffold_service.go to use templates",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/scaffold_service.go"
@@ -51,7 +51,7 @@
       "id": "task-0003",
       "title": "Snapshot tests for scaffold templates",
       "description": "Snapshot tests for scaffold templates",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/scaffold_service_test.go"
@@ -87,9 +87,22 @@
         "timestamp": "2026-03-22T22:13:29.040441Z",
         "task": "template-based-file-generation/call-site-migration/scaffold-templates",
         "text": "Migrated scaffold_service.go: removed scaffoldREADMEs map (100+ lines) and inline gitignore string, replaced with scaffoldFiles mapping that reads from embedded templates under templates/scaffold/. Net reduction of ~97 lines."
+      },
+      {
+        "timestamp": "2026-03-22T22:15:40.474244Z",
+        "task": "template-based-file-generation/call-site-migration/scaffold-templates",
+        "text": "Added snapshot tests for all 6 scaffold files (gitignore + 5 READMEs). Init path verifies byte-for-byte match with embedded templates. Reinit path verifies 5 files outside base tier survive unchanged, and separately confirms base-prompts README is lost during base-tier teardown. Recorded gap for the lost README."
       }
     ],
-    "gaps": [],
+    "gaps": [
+      {
+        "id": "gap-scaffold-templates-1",
+        "timestamp": "2026-03-22T22:15:24.349332Z",
+        "description": "Reinit does not rewrite system/base/prompts/README.md after tearing down the base tier. The scaffold file is written by Init's writeScaffoldFiles() but Reinit only rebuilds config and prompts, leaving the README absent after reinit.",
+        "source": "template-based-file-generation/call-site-migration/scaffold-templates",
+        "status": "open"
+      }
+    ],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T22:07:45.535488Z"
@@ -125,6 +138,22 @@
       ],
       "action_items": [
         "None: deliverable is complete and all acceptance criteria are met"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T22:15:36.482949Z",
+      "objective": "Write snapshot tests verifying byte-for-byte identity of scaffold-generated files across Init and Reinit paths",
+      "what_happened": "Added three tests to scaffold_service_test.go: Init_SnapshotScaffoldFiles (all 6 files), Reinit_SnapshotScaffoldFiles (5 files outside base tier), and Reinit_BaseTierREADMELost. The Reinit test revealed that system/base/prompts/README.md is destroyed during Reinit's base-tier teardown and never rewritten. Recorded this as gap-scaffold-templates-1.",
+      "went_well": [
+        "Subtests per file give granular failure output: each scaffold file runs as its own t.Run case",
+        "The Reinit snapshot test caught a real behavioral gap: the base-prompts README is silently lost"
+      ],
+      "improvements": [
+        "The snapshot comparison uses string equality which gives poor diff output on large files. A line-by-line diff helper would make failures easier to diagnose"
+      ],
+      "action_items": [
+        "Fix gap-scaffold-templates-1: Reinit should call writeScaffoldFiles() (or at minimum rewrite the base-prompts README) after rebuilding the base tier"
       ]
     }
   }
