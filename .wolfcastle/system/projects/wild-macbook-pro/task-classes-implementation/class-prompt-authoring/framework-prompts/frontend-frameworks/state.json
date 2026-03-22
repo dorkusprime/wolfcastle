@@ -98,6 +98,11 @@
         "timestamp": "2026-03-22T08:09:58.413369Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
         "text": "Authored Vue class prompt (typescript/vue.md, 53 lines) covering Composition API, props/emits, templates, Pinia, Vue Router, VTU testing, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T08:14:08.304193Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored Angular class prompt (typescript/angular.md, 55 lines) covering standalone components, signals, DI, forms, routing, TestBed testing, and common pitfalls [task-0003]"
       }
     ],
     "gaps": [],
@@ -136,6 +141,22 @@
       ],
       "action_items": [
         "When Vue 3.5+ stabilizes Suspense, consider adding async component patterns"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T08:14:06.821237Z",
+      "objective": "Author the Angular framework class prompt for TypeScript/Angular coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript/angular.md (55 lines). Researched Angular 17+ patterns including signals API, standalone components, new control flow syntax, functional guards/resolvers, and zoneless change detection. Matched format and tone from React and Vue prompts. Covered all required topics: standalone components with signal-based inputs/outputs/model, signals and reactivity (signal, computed, effect, toSignal/toObservable interop), dependency injection (inject function vs constructor), reactive vs template-driven forms, functional router guards and resolvers, TestBed testing (provideHttpClientTesting, component harnesses, whenStable), and four common pitfalls (subscription leaks, @for track identity, circular DI, OnPush with mixed signal/Observable state).",
+      "went_well": [
+        "Research surfaced important Angular 17+ shifts (standalone default, signal-based inputs/outputs, functional guards, provideHttpClientTesting) that training data alone would have missed or understated",
+        "Prompt avoids repeating TypeScript fundamentals already in typescript.md while giving Angular-specific guidance on signals vs RxJS bridging"
+      ],
+      "improvements": [
+        "Could add zoneless change detection guidance as a dedicated section once Angular 21 patterns settle more broadly"
+      ],
+      "action_items": [
+        "When Angular Signal Forms stabilize beyond experimental, consider adding form guidance that bridges reactive forms to signal-based state"
       ]
     }
   }
