@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Write TypeScript/React class prompt",
       "description": "Write TypeScript/React class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/typescript/react.md"
@@ -21,7 +21,7 @@
       "id": "task-0002",
       "title": "Write TypeScript/Vue class prompt",
       "description": "Write TypeScript/Vue class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/typescript/vue.md"
