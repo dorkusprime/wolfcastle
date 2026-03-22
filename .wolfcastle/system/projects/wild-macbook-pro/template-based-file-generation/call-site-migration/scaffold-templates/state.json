@@ -77,10 +77,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T22:10:17.238689Z",
+        "task": "template-based-file-generation/call-site-migration/scaffold-templates",
+        "text": "Created 6 scaffold template files (gitignore.tmpl + 5 readme templates) under internal/project/templates/scaffold/. Content verified byte-for-byte identical to Go string literals in scaffold_service.go."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T22:07:45.535488Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T22:10:16.257847Z",
+      "objective": "Extract scaffold string literals into embedded template files",
+      "what_happened": "Created six .tmpl files under internal/project/templates/scaffold/: gitignore.tmpl from the inline string at scaffold_service.go:190-201, and five readme templates (root, system, base-prompts, docs, archive) from the scaffoldREADMEs map at scaffold_service.go:25-128. Resolved Go string concatenation for backtick-quoted inline code in readme-system and readme-base-prompts. Verified byte-for-byte match with a standalone Go comparison program.",
+      "went_well": [
+        "The existing go:embed all:templates directive picked up the new scaffold/ subdirectory with zero changes to embedded.go",
+        "Byte-for-byte verification caught potential issues early, confirming the Go string concatenation was resolved correctly in the template files"
+      ],
+      "improvements": [
+        "The template files are currently unused; the next task needs to wire scaffold_service.go to load from them instead of the inline literals"
+      ],
+      "action_items": [
+        "Next task should modify scaffold_service.go to read these templates via the embed.FS instead of using the hardcoded strings"
+      ]
+    }
   }
 }
