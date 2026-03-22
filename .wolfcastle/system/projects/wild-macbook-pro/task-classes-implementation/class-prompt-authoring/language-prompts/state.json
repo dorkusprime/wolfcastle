@@ -3,7 +3,7 @@
   "id": "language-prompts",
   "name": "Language Prompts",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -24,7 +24,7 @@
     {
       "id": "specialized-languages",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -44,6 +44,8 @@
     "No prompt contains wolfcastle-specific content (terminal markers, breadcrumbs, specs, ADRs, deliverables)",
     "Prompts use 'prefer X' phrasing, not 'always use X'"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T06:59:35.819833Z",

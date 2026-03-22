@@ -247,15 +247,53 @@
     "task-classes-implementation/class-prompt-authoring/framework-prompts": {
       "name": "Framework Prompts",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring"
+      "parent": "task-classes-implementation/class-prompt-authoring",
+      "children": [
+        "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks"
+      ]
+    },
+    "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks": {
+      "name": "Backend Scripting Frameworks",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks": {
+      "name": "Enterprise Frameworks",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks": {
+      "name": "Frontend Frameworks",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks": {
+      "name": "Mobile and Systems Frameworks",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
     },
     "task-classes-implementation/class-prompt-authoring/language-prompts": {
       "name": "Language Prompts",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring",
@@ -277,7 +315,7 @@
     "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages": {
       "name": "Specialized Languages",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"

@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "id": "frontend-frameworks",
+  "name": "Frontend Frameworks",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write TypeScript/React class prompt",
+      "description": "Write TypeScript/React class prompt",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/react.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/react.md (30-60 lines). Cover: component patterns (function components, hooks rules, custom hooks extraction), state management approaches (useState/useReducer for local, context for shared, external stores for complex), JSX conventions, prop typing with discriminated unions, effect lifecycle and cleanup, React-specific testing with React Testing Library (render, screen queries, userEvent, act boundaries), and common pitfalls (stale closures in effects, missing dependency arrays, key prop misuse, over-rendering from object literals in props). Do NOT repeat TypeScript language fundamentals. Use 'prefer X' phrasing. Research current React 18+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0002",
+      "title": "Write TypeScript/Vue class prompt",
+      "description": "Write TypeScript/Vue class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/vue.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/vue.md (30-60 lines). Cover: Composition API patterns (ref vs reactive, composables, defineProps/defineEmits with type-based declarations), single-file component structure, template vs JSX rendering, Pinia for state management, Vue Router integration, testing with Vue Test Utils and Vitest (mount vs shallowMount, nextTick awaiting, emitted event assertions), and common pitfalls (reactivity loss from destructuring reactive objects, ref unwrapping in templates vs script, watchEffect vs watch, missing v-bind on dynamic attributes). Do NOT repeat TypeScript fundamentals. Use 'prefer X' phrasing. Research current Vue 3 patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0003",
+      "title": "Write TypeScript/Angular class prompt",
+      "description": "Write TypeScript/Angular class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/angular.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/angular.md (30-60 lines). Cover: component architecture (standalone components, signals, input/output decorators), dependency injection patterns, reactive forms vs template-driven forms, RxJS usage (pipe operators, subscription management, async pipe), Angular Router with guards and resolvers, Angular-specific testing with TestBed (component harnesses, service injection, HttpClientTestingModule), and common pitfalls (memory leaks from unsubscribed observables, change detection strategy mismatches, circular dependency injection, zone.js interaction with third-party libs). Do NOT repeat TypeScript fundamentals. Use 'prefer X' phrasing. Research current Angular 17+ patterns with signals. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0004",
+      "title": "Write TypeScript/Next.js class prompt",
+      "description": "Write TypeScript/Next.js class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/nextjs.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/nextjs.md (30-60 lines). Cover: App Router patterns (server components vs client components, 'use client' / 'use server' boundaries), data fetching (server actions, fetch with caching/revalidation), routing conventions (layout.tsx, page.tsx, loading.tsx, error.tsx), metadata API, middleware, server-side vs client-side rendering tradeoffs, testing patterns (testing server components, mocking next/navigation, API route testing), and common pitfalls (serialization across server/client boundary, hydration mismatches, accidental client-side bundle bloat from server imports, dynamic imports vs React.lazy). Do NOT repeat TypeScript fundamentals. Use 'prefer X' phrasing. Research current Next.js 14+ App Router patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0005",
+      "title": "Write TypeScript/Svelte class prompt",
+      "description": "Write TypeScript/Svelte class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/svelte.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/svelte.md (30-60 lines). Cover: Svelte 5 runes ($state, $derived, $effect, $props), component composition, snippet blocks, SvelteKit routing and load functions, form actions, server-side rendering patterns, stores (when runes aren't sufficient), testing with Svelte Testing Library and Vitest, and common pitfalls (reactivity gotchas with runes vs legacy reactive statements, $effect cleanup, binding vs event forwarding, SSR hydration issues with browser APIs). Do NOT repeat TypeScript fundamentals. Use 'prefer X' phrasing. Research current Svelte 5 / SvelteKit 2 patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0006",
+      "title": "Write JavaScript/React class prompt",
+      "description": "Write JavaScript/React class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/javascript/react.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/javascript/react.md (30-60 lines). Cover: the same React patterns as the TypeScript/React prompt but adapted for plain JavaScript projects. PropTypes for runtime type checking, JSDoc annotations for editor support, component patterns (function components, hooks), state management, React Testing Library patterns, and common pitfalls (prop type mismatches caught late, missing default props, stale closures). Reference the TypeScript/React prompt structure for consistency but tailor content to JavaScript-specific concerns (no type system to lean on, PropTypes vs TypeScript tradeoffs). Do NOT repeat JavaScript language fundamentals. Use 'prefer X' phrasing. Zero wolfcastle content."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Frontend Frameworks is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that typescript/react, typescript/vue, typescript/angular, typescript/nextjs, typescript/svelte, and javascript/react prompt files each exist, are 30-60 lines, use 'prefer X' phrasing, contain no TypeScript/JavaScript language fundamentals, and contain no wolfcastle references"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-22T08:03:54.702095Z"
+  }
+}

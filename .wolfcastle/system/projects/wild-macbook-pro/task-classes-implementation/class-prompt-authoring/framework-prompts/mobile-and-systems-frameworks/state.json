@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "id": "mobile-and-systems-frameworks",
+  "name": "Mobile and Systems Frameworks",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write Kotlin/Android class prompt",
+      "description": "Write Kotlin/Android class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/kotlin/android.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/kotlin/android.md (30-60 lines). Cover: Android patterns (Activity/Fragment lifecycle, Jetpack Compose UI, ViewModel with StateFlow/SharedFlow, Hilt dependency injection), Navigation component, Room database, Retrofit/Ktor for networking, coroutines and structured concurrency in Android (viewModelScope, lifecycleScope), Gradle build configuration, testing with JUnit (Robolectric for unit tests, Compose testing rules, Espresso for instrumented tests, Turbine for Flow testing), and common pitfalls (lifecycle-unaware coroutine launches leaking, configuration change state loss, Compose recomposition performance from unstable types, deep Activity back stack bugs, ProGuard/R8 stripping needed classes). Do NOT repeat Kotlin language fundamentals. Use 'prefer X' phrasing. Research current Jetpack Compose / Android 14+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0002",
+      "title": "Write Swift/iOS class prompt",
+      "description": "Write Swift/iOS class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/swift/ios.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/swift/ios.md (30-60 lines). Cover: iOS/SwiftUI patterns (declarative views, @State/@Binding/@ObservedObject/@EnvironmentObject, MVVM with ObservableObject), UIKit interop (UIViewRepresentable, UIViewControllerRepresentable), navigation (NavigationStack, NavigationPath), Core Data / SwiftData, async/await with structured concurrency in iOS (MainActor, Task groups), SPM dependency management, testing with XCTest (UI testing, ViewInspector for SwiftUI, mock protocols, async test expectations), and common pitfalls (retain cycles from strong self in closures, main thread violations in UI updates, SwiftUI view identity and performance from excessive body recomputation, Core Data context threading violations, missing @MainActor annotations). Do NOT repeat Swift language fundamentals. Use 'prefer X' phrasing. Research current SwiftUI / iOS 17+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0003",
+      "title": "Write Dart/Flutter class prompt",
+      "description": "Write Dart/Flutter class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/dart/flutter.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/dart/flutter.md (30-60 lines). Cover: Flutter patterns (widget tree composition, StatelessWidget vs StatefulWidget, state management with Riverpod or Bloc/Cubit), navigation (GoRouter, Navigator 2.0), platform channels for native interop, theming and Material/Cupertino design, build flavors and environments, testing with flutter_test (widget tests with WidgetTester, pumpWidget, golden tests, integration tests with patrol or integration_test, mockito for service mocks), and common pitfalls (setState after dispose, unbounded ListView children in Column, key misuse causing state loss, platform-specific rendering differences, deep widget nesting harming readability). Do NOT repeat Dart language fundamentals. Use 'prefer X' phrasing. Research current Flutter 3.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0004",
+      "title": "Write Rust/Actix class prompt",
+      "description": "Write Rust/Actix class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/rust/actix.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/rust/actix.md (30-60 lines). Cover: Actix Web patterns (App builder, resource routing, extractors for Path/Query/Json/Data, middleware with Transform/Service), application state with web::Data and Arc, error handling (ResponseError trait, custom error types), database integration (sqlx or Diesel with actix_web::web::block for sync), WebSocket actors, testing with actix_web::test (TestRequest, init_service, call_service, TestServer for integration), and common pitfalls (move semantics with closures in route handlers, Send + Sync requirements for shared state, blocking the async runtime with synchronous database drivers, confusing actix actor system with actix-web, payload size limits). Do NOT repeat Rust language fundamentals. Use 'prefer X' phrasing. Research current Actix Web 4.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0005",
+      "title": "Write Rust/Tokio class prompt",
+      "description": "Write Rust/Tokio class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/rust/tokio.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/rust/tokio.md (30-60 lines). Cover: Tokio patterns (runtime configuration, spawning tasks, JoinHandle management, select\\! macro, channels: mpsc/oneshot/broadcast/watch), structured concurrency with JoinSet and TaskTracker, async I/O (TcpListener/TcpStream, tokio::fs, BufReader/BufWriter), synchronization primitives (tokio::sync::Mutex vs std::sync::Mutex, RwLock, Semaphore, Notify), graceful shutdown patterns, testing async code (tokio::test macro, time::pause for deterministic timing, mock I/O), and common pitfalls (holding a std::sync::Mutex across an .await, spawning without storing JoinHandle losing panics, blocking the runtime with CPU-bound work instead of spawn_blocking, select\\! branch cancellation semantics, unbounded channel memory growth). Do NOT repeat Rust language fundamentals. Use 'prefer X' phrasing. Research current Tokio 1.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Mobile and Systems Frameworks is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that kotlin/android, swift/ios, dart/flutter, rust/actix, and rust/tokio prompt files each exist, are 30-60 lines, use 'prefer X' phrasing, contain no parent-language fundamentals, and contain no wolfcastle references"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

@@ -3,7 +3,7 @@
   "id": "specialized-languages",
   "name": "Specialized Languages",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -122,7 +122,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Specialized Languages is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -183,8 +183,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T07:40:04.990024Z",
+    "completed_at": "2026-03-22T07:59:20.559853Z",
     "result_summary": "Authored 8 language-specific coding prompts (Swift, Dart, Shell, SQL, R, Lua, Elixir, Haskell) totaling 506 lines across 8 files in internal/project/templates/prompts/classes/coding/. Each prompt follows the established format with a codebase-deference opener and sections covering idiomatic style, build and test tooling, testing conventions, and common pitfalls. SQL uses Dialect Awareness and Migrations sections in place of Build and Test to match its unique concerns. All files are automatically embedded via go:embed all:templates. Audit found no issues requiring remediation; build, tests, and lint pass clean."
   },
   "aars": {

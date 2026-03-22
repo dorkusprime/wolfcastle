@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "id": "backend-scripting-frameworks",
+  "name": "Backend Scripting Frameworks",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write JavaScript/Node class prompt",
+      "description": "Write JavaScript/Node class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/javascript/node.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/javascript/node.md (30-60 lines). Cover: Node.js runtime patterns (event loop, streams, buffer handling), Express/Fastify middleware patterns, module systems (ESM vs CommonJS interop), async patterns (async/await, error handling in async middleware), environment configuration, testing with Node test runner or Jest (supertest for HTTP, mocking fs/child_process), and common pitfalls (unhandled promise rejections crashing the process, blocking the event loop with sync operations, memory leaks from event listener accumulation, callback error conventions). Do NOT repeat JavaScript language fundamentals. Use 'prefer X' phrasing. Research current Node.js 20+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0002",
+      "title": "Write Python/Django class prompt",
+      "description": "Write Python/Django class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/python/django.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/python/django.md (30-60 lines). Cover: Django project structure (apps, models, views, URLs, settings), ORM patterns (querysets, select_related/prefetch_related, F/Q expressions, migrations), class-based views vs function-based views, Django REST Framework patterns if applicable, template patterns, middleware, signals usage, Django-specific testing (TestCase vs TransactionTestCase, Client, RequestFactory, fixture management, factory_boy), and common pitfalls (N+1 queries, migration conflicts, circular imports between apps, mutable default in model fields, timezone-naive datetimes). Do NOT repeat Python language fundamentals. Use 'prefer X' phrasing. Research current Django 5.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0003",
+      "title": "Write Python/FastAPI class prompt",
+      "description": "Write Python/FastAPI class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/python/fastapi.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/python/fastapi.md (30-60 lines). Cover: FastAPI patterns (path operations, dependency injection, Pydantic models for request/response, async vs sync endpoints), router organization, middleware and exception handlers, background tasks, WebSocket support, database integration patterns (SQLAlchemy async sessions, Alembic migrations), testing with TestClient (httpx-based), pytest fixtures for app/database lifecycle, and common pitfalls (sync functions blocking the async event loop, Pydantic v2 migration gotchas, dependency scope confusion, forgetting to await async dependencies). Do NOT repeat Python language fundamentals. Use 'prefer X' phrasing. Research current FastAPI 0.100+ / Pydantic v2 patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0004",
+      "title": "Write Python/Flask class prompt",
+      "description": "Write Python/Flask class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/python/flask.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/python/flask.md (30-60 lines). Cover: Flask application patterns (application factory, blueprints, extensions), request context and application context, configuration management, SQLAlchemy integration, Jinja2 template patterns, Flask-specific testing (test client, application context in tests, request context fixtures), and common pitfalls (working outside application context, circular imports with app factory, thread-safety of globals like g and request, forgetting to register blueprints). Do NOT repeat Python language fundamentals. Use 'prefer X' phrasing. Research current Flask 3.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0005",
+      "title": "Write Ruby/Rails class prompt",
+      "description": "Write Ruby/Rails class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/ruby/rails.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/ruby/rails.md (30-60 lines). Cover: Rails conventions (MVC structure, convention over configuration, RESTful resources), ActiveRecord patterns (scopes, callbacks, validations, associations, eager loading), controller patterns (strong parameters, before_action, respond_to), routing DSL, ActiveJob for background work, Turbo/Hotwire patterns, Rails-specific testing (Minitest or RSpec, fixtures vs factory_bot, system tests with Capybara, request specs, model specs), and common pitfalls (N+1 queries, fat controllers, callback hell in models, mass assignment vulnerabilities, migration gotchas with zero-downtime deploys). Do NOT repeat Ruby language fundamentals. Use 'prefer X' phrasing. Research current Rails 7.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0006",
+      "title": "Write Ruby/Sinatra class prompt",
+      "description": "Write Ruby/Sinatra class prompt",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/ruby/sinatra.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/ruby/sinatra.md (30-60 lines). Cover: Sinatra application patterns (classic vs modular style), route definitions and parameter handling, middleware (Rack middleware stack), template rendering (ERB, Haml), configuration and environments, extension patterns, testing with Rack::Test (get/post helpers, last_response assertions, session manipulation), and common pitfalls (classic style polluting Object namespace, route ordering sensitivity, missing Rack middleware for sessions/cookies, confusing Sinatra helpers with plain Ruby methods). Do NOT repeat Ruby language fundamentals. Use 'prefer X' phrasing. Research current Sinatra 4.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Backend Scripting Frameworks is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that javascript/node, python/django, python/fastapi, python/flask, ruby/rails, and ruby/sinatra prompt files each exist, are 30-60 lines, use 'prefer X' phrasing, contain no parent-language fundamentals, and contain no wolfcastle references"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
