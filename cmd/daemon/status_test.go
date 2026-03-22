@@ -289,17 +289,6 @@ func TestShowTreeStatus_DetailFlag_ShowsFailureType(t *testing.T) {
 	}
 }
 
-func TestShowTreeStatus_DetailFlag_ShowsDeliverables(t *testing.T) {
-	env, idx := setupDetailEnv(t)
-	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, true)
-	})
-
-	if !strings.Contains(out, "2/3 deliverables met") {
-		t.Errorf("detail mode should show deliverable summary, got:\n%s", out)
-	}
-}
-
 func TestShowTreeStatus_DetailFlag_ShowsBreadcrumb(t *testing.T) {
 	env, idx := setupDetailEnv(t)
 	out := captureStdout(t, func() {
@@ -323,9 +312,6 @@ func TestShowTreeStatus_NoDetail_HidesExtras(t *testing.T) {
 	if strings.Contains(out, "This is a long task body") {
 		t.Error("without --detail, task body should not appear")
 	}
-	if strings.Contains(out, "deliverables met") {
-		t.Error("without --detail, deliverable summary should not appear")
-	}
 	if strings.Contains(out, "breadcrumb:") {
 		t.Error("without --detail, breadcrumb should not appear")
 	}
@@ -345,9 +331,6 @@ func TestShowTreeStatus_DefaultView_Unchanged(t *testing.T) {
 		_ = showTreeStatus(env.App, idx, "")
 	})
 
-	if strings.Contains(out, "deliverables met") {
-		t.Error("default view should not show deliverable summary")
-	}
 	if strings.Contains(out, "breadcrumb:") {
 		t.Error("default view should not show breadcrumbs")
 	}

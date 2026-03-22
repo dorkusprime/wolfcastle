@@ -167,6 +167,7 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	output.PrintHuman("--- Planning %d: %s (%s) ---", d.iteration, nodeAddr, trigger)
 
 	_ = d.Logger.StartIterationWithPrefix("plan")
+	_ = d.Logger.LogIterationStart("plan", nodeAddr)
 
 	// Select the planning prompt variant
 	promptFile := selectPlanningPrompt(trigger)
@@ -212,6 +213,7 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 
 	_ = d.Logger.Log(map[string]any{
 		"type":      "planning_complete",
+		"node":      nodeAddr,
 		"exit_code": result.ExitCode,
 	})
 

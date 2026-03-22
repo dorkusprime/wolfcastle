@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "log-command-redesign",
+  "name": "Log Command Redesign",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "log-record-types",
+      "address": "log-command-redesign/log-record-types",
+      "state": "complete"
+    },
+    {
+      "id": "log-rendering-engine",
+      "address": "log-command-redesign/log-rendering-engine",
+      "state": "complete"
+    },
+    {
+      "id": "log-command-rewrite",
+      "address": "log-command-redesign/log-command-rewrite",
+      "state": "complete"
+    },
+    {
+      "id": "non-daemon-integration",
+      "address": "log-command-redesign/non-daemon-integration",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Log Command Redesign is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Implement the wolfcastle log command redesign per spec docs/specs/2026-03-21T18-00Z-log-command-design.md. The spec is the source of truth. Read it before planning. Key goals: (1) wolfcastle log displays daemon activity reconstructed from NDJSON log files in .wolfcastle/system/logs/. (2) Three output modes: summary (default), --thoughts (raw agent output only), --interleaved (stage headers + agent thoughts with timestamps). (3) Default behavior: follow live output if daemon running, replay last session if stopped. (4) Session indexing with --session flag (0=latest, 1=previous, etc.). (5) Flags: --follow/-f, --thoughts/-t, --interleaved/-i, --json, --session/-s. (6) New NDJSON record types (iteration_start, stage_start, stage_complete, audit_report_written, planning_start, planning_complete) should be added to logging package if missing. (7) Non-daemon mode (wolfcastle execute, wolfcastle intake) should stream interleaved format to stdout via a shared renderer. (8) Duration formatting: compact shorthand like 34s, 1m22s, 12m5s, 1h3m. (9) Formatting rules: no sequence numbers, no terminal markers, no log levels. Stage labels: [intake], [plan], [execute], [audit], [remediate], [spec-review]. (10) Exit codes: 0 = success, 1 = no log files found.",
+  "success_criteria": [
+    "wolfcastle log with no flags shows summary output for the most recent session",
+    "wolfcastle log --thoughts shows raw agent output with no headers or timestamps",
+    "wolfcastle log --interleaved shows stage headers with timestamps, glyphs, and indented agent thoughts",
+    "wolfcastle log --json outputs raw NDJSON with no formatting",
+    "wolfcastle log --session 1 replays the previous session",
+    "wolfcastle log follows live output when daemon is running",
+    "wolfcastle execute in non-daemon mode streams interleaved output to stdout",
+    "Duration formatting uses compact shorthand: 34s, 1m22s, 12m5s, 1h3m",
+    "No sequence numbers, terminal markers, or log levels appear in output",
+    "Exit code 1 when no log files found, 0 otherwise"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-21T21:09:56.227509Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T21:09:43.931163Z",
+        "task": "log-command-redesign",
+        "text": "Created 4 children: log-record-types (leaf), log-rendering-engine (orchestrator), log-command-rewrite (leaf), non-daemon-integration (leaf). Ordering: record types first (adds iteration_start needed for session detection), then rendering engine (builds the shared renderers), then command rewrite (consumes the renderers), then non-daemon integration (wires renderers into execute/intake). The rendering engine is an orchestrator because it contains multiple distinct concerns: session detection, duration formatting, and three separate renderers."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T21:50:21.717507Z",
+    "completed_at": "2026-03-22T01:33:06.157139Z"
+  }
+}

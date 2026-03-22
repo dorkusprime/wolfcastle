@@ -9,7 +9,6 @@ import (
 	"time"
 
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
-	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
 )
@@ -630,40 +629,6 @@ func TestWatchStatus_TreeStatusError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// followLogs — tailFileStreaming error path
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestFollowLogs_TailError(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-
-	// Create a log file, then make it unreadable after followLogs latches on.
-	logFile := filepath.Join(dir, "0001-20260316T00-00Z.jsonl")
-	_ = os.WriteFile(logFile, []byte(`{"level":"info","type":"daemon_start","scope":"x"}`+"\n"), 0644)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	done := make(chan error, 1)
-	go func() {
-		done <- followLogs(ctx, dir, 0, logging.LevelInfo)
-	}()
-
-	// Wait for followLogs to latch onto the file, then delete it so
-	// the next tailFileStreaming call returns an error.
-	time.Sleep(600 * time.Millisecond)
-	_ = os.Remove(logFile)
-
-	select {
-	case err := <-done:
-		// The error from tailFileStreaming should propagate.
-		_ = err
-	case <-time.After(3 * time.Second):
-		cancel()
-	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // stop command — Signal error path
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -682,30 +647,6 @@ func TestStopCmd_SignalError(t *testing.T) {
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when signaling PID 1")
-	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// tailFileStreaming — Seek error path
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestTailFileStreaming_SeekError(t *testing.T) {
-	// This tests the scenario where offset is set but the file was
-	// truncated to smaller than the offset, then we try to seek.
-	// On most systems this doesn't error but returns the position.
-	// We exercise the path anyway for coverage of the offset > 0 branch.
-	tmp := t.TempDir()
-	logFile := filepath.Join(tmp, "seek.jsonl")
-	content := `{"level":"info","type":"daemon_start","scope":"x"}` + "\n"
-	_ = os.WriteFile(logFile, []byte(content), 0644)
-
-	// Set a positive offset (triggers the seek branch).
-	setOffset(logFile, 10)
-	defer clearOffset(logFile)
-
-	err := tailFileStreaming(logFile, logging.LevelDebug)
-	if err != nil {
-		t.Fatalf("tailFileStreaming seek error: %v", err)
 	}
 }
 

@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "interleaved-renderer",
+  "name": "Interleaved Renderer",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement interleaved renderer",
+      "description": "Implement interleaved renderer",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/interleaved.go",
+        "internal/logrender/interleaved_test.go"
+      ],
+      "body": "Create internal/logrender/interleaved.go. Implement an InterleavedRenderer struct that accepts an io.Writer. The Render(ctx context.Context, records \u003c-chan Record) method processes records chronologically and produces interleaved output. Stage events (stage_start, stage_complete, planning_start, planning_complete) print as timestamped header lines: 'HH:MM:SS ▶ [stage-label] node-address' for starts, 'HH:MM:SS ✓ [stage-label] node-address (duration)' for completions. The timestamp is the record's wall-clock time formatted in local timezone. Assistant records print indented with a timestamp: 'HH:MM:SS     text'. The 4-space indent visually separates thoughts from stage headers per the spec. audit_report_written records print indented below the audit completion. Duration calculation requires tracking stage_start timestamps the same way the summary renderer does. The renderer must buffer start times keyed by (stage, node, task). Skip terminal_marker, daemon_start, daemon_stop, and other non-display record types. Works for both replay and follow since it processes records as they arrive.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Interleaved Renderer is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 1,
+      "last_failure_type": "no_terminal_marker"
+    }
+  ],
+  "audit_enrichment": [
+    "Verify the 4-space indent on assistant text lines and HH:MM:SS timestamp format in local timezone"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T21:49:12.772498Z",
+        "task": "log-command-redesign/log-rendering-engine/interleaved-renderer",
+        "text": "Implemented InterleavedRenderer in internal/logrender/interleaved.go with 15 tests at 100% coverage. Handles stage_start/complete, planning_start/complete, assistant, and audit_report_written records. Filters daemon stages and irrelevant types. Timestamps formatted as HH:MM:SS in local timezone."
+      },
+      {
+        "timestamp": "2026-03-21T21:57:51.40883Z",
+        "task": "log-command-redesign/log-rendering-engine/interleaved-renderer",
+        "text": "Audit reviewed 2 files (379 lines). PASS. One finding: doc comment and test error message said 'four-space indent' but format string uses five spaces; fixed inline (commit 8c53a0f). No correctness, safety, or concurrency issues. Build, tests (including race detector), go vet, and gofmt all clean. Implementation is tight at 101 lines, reuses shared helpers properly, and test coverage handles all edge cases including timezone portability."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T21:44:59.568014Z",
+    "completed_at": "2026-03-21T21:57:58.344394Z",
+    "result_summary": "InterleavedRenderer implemented in internal/logrender/interleaved.go (101 lines) with 15 tests at full coverage. Renders timestamped, chronological output combining stage headers (with start/complete glyphs and duration), assistant thoughts (indented), planning records, and audit report paths. Filters daemon lifecycle stages. Works identically for replay and follow modes by processing records as they arrive from a channel. Shares stageKey, keyFor, skipStage, glyphFor, nodeAddress, and FormatDuration helpers with SummaryRenderer. Audit found one cosmetic comment discrepancy (fixed), no correctness or safety issues."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T21:49:08.182544Z",
+      "objective": "Implement the InterleavedRenderer that combines stage headers and agent thoughts with wall-clock timestamps",
+      "what_happened": "Created internal/logrender/interleaved.go with InterleavedRenderer struct. Single Render method handles both replay and follow modes by processing records as they arrive. Uses the same stageKey/skipStage/glyphFor/nodeAddress helpers as SummaryRenderer. Added formatTimestamp helper for HH:MM:SS local-time formatting. Assistant text indented 4 spaces, audit reports indented the same way.",
+      "went_well": [
+        "Clean reuse of existing helpers (stageKey, keyFor, skipStage, glyphFor, nodeAddress, FormatDuration) kept the implementation tight at ~100 lines",
+        "Test suite uses a localTS helper to compute expected timestamps from UTC inputs, making tests pass in any timezone"
+      ],
+      "improvements": [
+        "The formatTimestamp function is private to this file but could be shared if other renderers need timestamps later"
+      ],
+      "action_items": [
+        "Wire InterleavedRenderer into the log command's --interleaved flag handler"
+      ]
+    }
+  }
+}

@@ -308,11 +308,11 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		glyph := nodeGlyph(nd.entry.State)
 		childCount := countDescendants(idx, addr)
 		if childCount > 0 {
-			output.PrintHuman("%s%s %s: %s  (%d nodes)", indent, glyph, tp, nd.entry.Name, childCount+1)
+			output.PrintHuman("%s%s %s: %s  (%s, %d nodes)", indent, glyph, tp, nd.entry.Name, addr, childCount+1)
 			return
 		}
 		if nd.ns != nil && len(nd.ns.Tasks) > 0 {
-			output.PrintHuman("%s%s %s: %s  (%d tasks)", indent, glyph, tp, nd.entry.Name, len(nd.ns.Tasks))
+			output.PrintHuman("%s%s %s: %s  (%s, %d tasks)", indent, glyph, tp, nd.entry.Name, addr, len(nd.ns.Tasks))
 			return
 		}
 	}
@@ -438,19 +438,10 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 
 		output.PrintHuman("%s%s %s  %s%s", taskIndent, tGlyph, t.ID, label, extra)
 
-		// Detail-only lines: task body, deliverable summary
+		// Detail-only lines: task body
 		if detail {
 			if t.Body != "" {
 				output.PrintHuman("%s       %s", taskIndent, truncate(t.Body, 80))
-			}
-			if len(t.Deliverables) > 0 {
-				met := 0
-				for _, d := range t.Deliverables {
-					if strings.HasPrefix(d, "[x] ") || strings.HasPrefix(d, "[X] ") {
-						met++
-					}
-				}
-				output.PrintHuman("%s       %d/%d deliverables met", taskIndent, met, len(t.Deliverables))
 			}
 		}
 	}

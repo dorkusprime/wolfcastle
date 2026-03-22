@@ -167,7 +167,13 @@ Base tier reads are cached behind sync.RWMutex. Safe for concurrent use."
 Both go through the CLI. Never write specs or ADRs as files directly.
 
 ### H. Commit
-Commit your changes with a clear message.
+Stage your code changes and `.wolfcastle/` state together, then commit with a clear message:
+```
+git add -u
+git add .wolfcastle/
+git commit -m "your message"
+```
+The `git add .wolfcastle/` ensures project state (task progress, specs, ADRs, audit records) travels with the code. The `.wolfcastle/.gitignore` controls what gets staged; runtime artifacts (logs, locks, base config) are excluded automatically.
 
 ### I. Signal completion
 When the task is fully done, set a summary if this is the last task in the node:

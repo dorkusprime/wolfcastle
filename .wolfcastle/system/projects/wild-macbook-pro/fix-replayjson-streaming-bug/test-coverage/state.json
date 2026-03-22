@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "test-coverage",
+  "name": "test-coverage",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add replayJSON tests for streaming and gzip decompression",
+      "description": "Add replayJSON tests for streaming and gzip decompression",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/follow_test.go"
+      ],
+      "body": "Write tests in cmd/daemon/follow_test.go (or the appropriate test file) covering: (1) plain .jsonl files are streamed line-by-line to stdout, (2) .jsonl.gz files are decompressed and their lines appear as plain NDJSON on stdout, (3) a mixed list of plain and gzip files produces the correct concatenated output, (4) missing or unreadable files are skipped without error. Use the same gzip helper pattern as internal/logrender/reader_test.go:writeGzLines."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in test-coverage is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify tests cover plain, gzip, mixed, and missing-file scenarios"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T01:39:29.501538Z",
+        "task": "fix-replayjson-streaming-bug/test-coverage",
+        "text": "Added 7 replayJSON unit tests in cmd/daemon/follow_test.go covering plain JSONL streaming, gzip decompression, mixed files, missing/unreadable file skipping, and edge cases"
+      },
+      {
+        "timestamp": "2026-03-22T01:40:42.546382Z",
+        "task": "fix-replayjson-streaming-bug/test-coverage",
+        "text": "Audit reviewed 1 file (198 new lines in cmd/daemon/follow_test.go). PASS. Seven replayJSON unit tests covering plain JSONL streaming, gzip decompression, mixed file concatenation, missing/unreadable file skipping, empty sessions, and all-missing sessions. All tests pass, go vet clean. Two minor notes: (1) writeGzLines discards gz.Write errors on lines 454-455, acceptable since gz.Close is checked and failures would surface as test assertions. (2) captureReplayJSON is not parallel-safe, correctly documented and tests omit t.Parallel(). No gaps, no escalations. Quality: clean, focused test coverage matching the production code's error-skip behavior."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T01:36:57.492249Z",
+    "completed_at": "2026-03-22T01:40:49.809076Z",
+    "result_summary": "Added 7 unit tests for the replayJSON streaming path in cmd/daemon/follow_test.go, covering plain JSONL output, gzip decompression, mixed plain/gz file concatenation, graceful skipping of missing and unreadable files, empty sessions, and all-missing sessions. Tests use a pipe-capture helper to verify actual stdout content without modifying production code. All tests pass, build and vet clean."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T01:39:26.589235Z",
+      "objective": "Add unit tests for replayJSON streaming and gzip decompression",
+      "what_happened": "Added 7 tests to cmd/daemon/follow_test.go covering plain .jsonl streaming, .jsonl.gz decompression, mixed file concatenation, missing file skipping, unreadable file skipping, empty sessions, and all-missing sessions. Used os.Pipe to capture stdout and verify actual output content. Added a writeGzLines helper matching the pattern from internal/logrender/reader_test.go, and a captureReplayJSON helper that swaps os.Stdout temporarily.",
+      "went_well": [
+        "The pipe-capture pattern cleanly verifies output without touching the production code",
+        "Tests are not parallel because they swap os.Stdout, which keeps them correct without mutex overhead"
+      ],
+      "improvements": [
+        "The captureReplayJSON helper is not safe for parallel use; if future tests need parallelism with stdout capture, the production code would need an io.Writer parameter instead of writing to os.Stdout directly"
+      ],
+      "action_items": [
+        "Consider refactoring replayJSONFile to accept an io.Writer if more thorough output-content tests are needed elsewhere"
+      ]
+    }
+  }
+}

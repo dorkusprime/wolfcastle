@@ -199,7 +199,7 @@ func TestScaffoldService_Init_WritesGitignore(t *testing.T) {
 		t.Fatal(".gitignore should exist:", err)
 	}
 	content := string(data)
-	for _, want := range []string{"!system/custom/", "!system/projects/", "!docs/"} {
+	for _, want := range []string{"system/base/", "system/local/", "system/logs/"} {
 		if !strings.Contains(content, want) {
 			t.Errorf(".gitignore should contain %q", want)
 		}
