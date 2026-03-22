@@ -82,6 +82,11 @@
         "timestamp": "2026-03-22T18:20:19.787229Z",
         "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
         "text": "Fixed thoughts and interleaved renderers: both now call invoke.FormatAssistantText to extract human-readable content from Claude API JSON envelopes stored in Record.Text. Added regression tests with real envelope formats."
+      },
+      {
+        "timestamp": "2026-03-22T18:23:27.944802Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "text": "Replaced invoke.FormatAssistantText with dedicated extractThoughtText in thoughts renderer. Now only text content blocks from assistant envelopes appear in --thoughts output. System init, result, and tool_use envelopes are dropped per spec."
       }
     ],
     "gaps": [],
@@ -91,6 +96,23 @@
     "result_summary": "Diagnosed and fixed the raw NDJSON output bug in both ThoughtsRenderer and InterleavedRenderer. The root cause was that the daemon's assistantLogWriter stores Claude Code's raw stdout (JSON API envelopes) as the text field of assistant log records. Both renderers printed r.Text verbatim. The fix adds invoke.FormatAssistantText calls in both renderers to extract human-readable content from the JSON envelopes. All existing tests pass (FormatAssistantText passes plain text through unchanged), and new tests verify correct handling of real Claude API envelope formats."
   },
   "aars": {
+    "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output/task-0002": {
+      "task_id": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output/task-0002",
+      "timestamp": "2026-03-22T18:23:23.835116Z",
+      "objective": "Make the thoughts renderer produce spec-compliant output: only plain text from assistant content blocks",
+      "what_happened": "Replaced invoke.FormatAssistantText call with a dedicated extractThoughtText function in thoughts.go. FormatAssistantText formats all envelope types (system init as [session started], results as [result], tool uses as summaries), but the spec says thoughts mode shows only what the model said. The new function parses the inner JSON envelope and returns only text-type content blocks from assistant-type messages. Updated TestThoughtsRenderer_ClaudeAPIEnvelope to assert that system, result, and tool_use envelopes produce no output. Added TestThoughtsRenderer_MultipleTextBlocks for multi-block assistant messages.",
+      "went_well": [
+        "The extraction logic is simple and self-contained, no new dependencies needed",
+        "All 9 thoughts tests pass, including the updated envelope test and new multi-block test",
+        "Full test suite green, no regressions"
+      ],
+      "improvements": [
+        "The interleaved renderer still uses FormatAssistantText, which is correct for that mode but means the two renderers diverge in how they handle envelopes. A shared type for the parsed envelope could reduce duplication."
+      ],
+      "action_items": [
+        "Verify interleaved renderer behavior separately in its own task (system/result/tool_use summaries are appropriate there per spec)"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T18:20:12.915478Z",
