@@ -96,6 +96,11 @@
         "timestamp": "2026-03-22T07:11:33.00848Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
         "text": "Authored C++ class prompt (67 lines) covering style, build/test, testing, memory/lifetime, and pitfalls. Committed as 3a80474."
+      },
+      {
+        "timestamp": "2026-03-22T07:13:45.328211Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Authored C class prompt (71 lines) covering style, build/test, testing, memory/resource management, and pitfalls. Committed as 6217171."
       }
     ],
     "gaps": [],
@@ -150,6 +155,22 @@
       ],
       "action_items": [
         "If template metaprogramming guidance is desired, it would need its own section or a separate prompt fragment"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T07:13:44.168501Z",
+      "objective": "Author the C class prompt that replaces coding/default.md for C-classified tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/c.md at 71 lines. Structured into six sections: Style, Build and Test, Testing, Memory and Resource Management, and Common Pitfalls. Followed the same pattern as go.md/rust.md/cpp.md. Covered all required topics: explicit memory management with ownership documentation, error return patterns, defensive initialization, Make/CMake/gcc/clang tooling, AddressSanitizer/Valgrind, clang-format, Unity/CMocka testing, buffer overflows, use-after-free, null dereference, integer overflow, include guards, POSIX portability, and implicit function declarations.",
+      "went_well": [
+        "The Memory and Resource Management section covers the goto-cleanup idiom which is genuinely idiomatic C and worth calling out",
+        "71 lines gave room for all required topics plus implicit function declarations as a bonus pitfall"
+      ],
+      "improvements": [
+        "Could have included guidance on C11 atomics and threading (_Thread_local, mtx_t) but that felt outside core scope for a general C prompt"
+      ],
+      "action_items": [
+        "If embedded/bare-metal C guidance is desired it would need a separate class or prompt fragment since the conventions differ significantly from hosted C"
       ]
     }
   }
