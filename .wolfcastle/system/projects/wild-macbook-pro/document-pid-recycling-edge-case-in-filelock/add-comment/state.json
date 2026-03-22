@@ -3,7 +3,7 @@
   "id": "add-comment",
   "name": "add-comment",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -26,7 +26,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in add-comment is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -50,8 +50,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T23:11:40.192149Z",
+    "completed_at": "2026-03-22T23:13:02.212073Z",
     "result_summary": "Added a concise comment to tryCleanStaleLock in internal/state/filelock.go documenting the PID recycling edge case: when a lock holder dies and another process inherits its PID within the polling window, signalProcess returns nil (alive), causing a timeout rather than corruption because flock still serializes access. The comment is accurate, well-placed, and audit-verified against the surrounding code."
   },
   "aars": {

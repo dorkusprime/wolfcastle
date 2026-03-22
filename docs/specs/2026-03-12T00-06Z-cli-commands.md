@@ -243,6 +243,146 @@ wolfcastle start --node attunement-tree
 
 ---
 
+## wolfcastle execute
+
+### Synopsis
+
+```
+wolfcastle execute [--node <path>]
+```
+
+### Description
+
+Runs the daemon execution loop in the foreground, streaming interleaved output to stdout. A background goroutine tails the NDJSON log files as they are written and renders them through the same interleaved renderer used by `wolfcastle log --interleaved --follow`.
+
+This is the non-daemon counterpart to `wolfcastle start`: same execution loop, but with formatted output directly on the terminal instead of requiring a separate `wolfcastle log` session. Where `wolfcastle start` can fork into the background, `execute` always runs in the foreground and always streams rendered output.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | No | (none, full tree) | Scope execution to a specific subtree. The path is a tree address (ADR-008) |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity from `local/config.json`. Fail if not configured.
+3. Load and merge configuration: `base/config.json` → `custom/config.json` → `local/config.json`.
+4. **Daemon check**: If a daemon process is already alive, exit with an error. `execute` and `start` are mutually exclusive; only one execution loop may run at a time.
+5. **Node scoping** (if `--node` is specified):
+   a. Validate that the node path exists in the tree.
+   b. Record the scope root. Navigation will only traverse within this subtree.
+6. **Renderer startup**: Launch a background goroutine that tails the NDJSON log directory (polling at 200ms intervals) and pipes records through the interleaved renderer to stdout. This produces the same output as `wolfcastle log -i -f`.
+7. **Execution loop**: Run the same loop as `wolfcastle start` (navigate → invoke pipeline → commit → repeat) until all work is complete or the process receives a shutdown signal (SIGINT, SIGTERM).
+8. **Shutdown**: When the execution loop returns (completion, signal, or error), cancel the renderer context and wait for it to drain remaining records before exiting.
+
+### Output
+
+```
+wolfcastle v0.x.x
+```
+
+Followed by interleaved, color-coded log output from all active nodes as execution proceeds. Output format matches `wolfcastle log --interleaved --follow`.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | All work complete, or graceful stop via signal |
+| 1 | `.wolfcastle/` not found, identity not configured, or daemon construction failed |
+| 1 | Another wolfcastle instance is already running |
+
+### Examples
+
+```bash
+# Run the full tree with live output
+wolfcastle execute
+
+# Run scoped to a subtree
+wolfcastle execute --node auth-module
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Already running | `daemon is already running. Use 'wolfcastle stop' first, or use 'wolfcastle log -i -f' to watch it` | 1 |
+| Invalid node | `fatal: node 'foo/bar' not found in tree` | 1 |
+
+---
+
+## wolfcastle intake
+
+### Synopsis
+
+```
+wolfcastle intake [--node <path>]
+```
+
+### Description
+
+Processes pending inbox items in the foreground, streaming interleaved output to stdout. The intake loop watches `inbox.json` for new items and runs the intake stage for each one, just as the daemon would in the background.
+
+Like `wolfcastle execute`, a background goroutine tails the NDJSON log files and renders them through the interleaved renderer. The difference is scope: `execute` runs the full execution loop (navigate, invoke pipeline, commit), while `intake` only processes inbox items.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | No | (none, full tree) | Scope intake to a specific subtree. The path is a tree address (ADR-008) |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity from `local/config.json`. Fail if not configured.
+3. Load and merge configuration: `base/config.json` → `custom/config.json` → `local/config.json`.
+4. **Daemon check**: If a daemon process is already alive, exit with an error. Only one instance may run at a time.
+5. **Node scoping** (if `--node` is specified):
+   a. Validate that the node path exists in the tree.
+   b. Record the scope root.
+6. **Renderer startup**: Launch a background goroutine that tails the NDJSON log directory (polling at 200ms intervals) and pipes records through the interleaved renderer to stdout.
+7. **Inbox loop**: Watch `inbox.json` for pending items. For each item, run the intake stage. The loop blocks until the context is cancelled by a shutdown signal.
+8. **Shutdown**: On signal (SIGINT, SIGTERM), cancel the renderer context and wait for it to drain before exiting.
+
+### Output
+
+```
+wolfcastle intake v0.x.x
+```
+
+Followed by interleaved, color-coded log output as inbox items are processed. Output format matches `wolfcastle log --interleaved --follow`.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Graceful stop via signal, or no inbox items remaining |
+| 1 | `.wolfcastle/` not found, identity not configured, or daemon construction failed |
+| 1 | Another wolfcastle instance is already running |
+
+### Examples
+
+```bash
+# Process all pending inbox items with live output
+wolfcastle intake
+
+# Process inbox items scoped to a subtree
+wolfcastle intake --node auth-module
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Already running | `daemon is already running. Use 'wolfcastle stop' first, or use 'wolfcastle log -i -f' to watch it` | 1 |
+| Invalid node | `fatal: node 'foo/bar' not found in tree` | 1 |
+
+---
+
 ## wolfcastle stop
 
 ### Synopsis

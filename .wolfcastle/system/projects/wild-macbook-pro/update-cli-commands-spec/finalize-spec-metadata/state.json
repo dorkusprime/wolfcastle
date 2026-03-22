@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "id": "finalize-spec-metadata",
+  "name": "Finalize Spec Metadata",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update intro paragraph and group counts",
+      "description": "Update intro paragraph and group counts",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/2026-03-12T00-06Z-cli-commands.md"
+      ],
+      "body": "The spec's opening paragraph currently says '43 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration)'. Update to reflect the actual count (60 leaf commands) and verify the group list. The CLI help output shows these groups: Lifecycle (9), Work Management (16), Auditing (17), Documentation (8), Diagnostics (7), Integration (1), Additional Commands (2). Update the group count if 'Additional Commands' warrants inclusion. Also update any subcommand group lists in the intro (the intro mentions 'audit, task, project, orchestrator, inbox, spec, adr, archive, install' as subcommand groups; 'config' and 'knowledge' must be added).",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Intro paragraph states '60' (or correct final count) instead of '43'",
+        "Intro lists 'config' and 'knowledge' among the subcommand groups"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Reconcile log command with redesign spec",
+      "description": "Reconcile log command with redesign spec",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/2026-03-12T00-06Z-cli-commands.md"
+      ],
+      "body": "The log command was redesigned per docs/specs/2026-03-21T18-00Z-log-command-design.md. Compare the existing log section in the CLI commands spec (line 552) against:\n1. The redesign spec\n2. The actual 'wolfcastle log --help' output\nIf the CLI commands spec already matches current behavior, leave it alone and note that in a breadcrumb. If there are discrepancies (new flags like --interleaved, changed defaults, updated output format), update the section to match reality.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "The log command section accurately reflects the current CLI behavior and flags shown by 'wolfcastle log --help'"
+      ],
+      "references": [
+        "docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Finalize Spec Metadata is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify the intro paragraph count by counting '## wolfcastle' headers in the spec and comparing against the actual CLI command count. Check that the log command section flags match 'wolfcastle log --help' output."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

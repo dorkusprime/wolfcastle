@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "id": "add-missing-command-sections",
+  "name": "Add Missing Command Sections",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add execute and intake command sections",
+      "description": "Add execute and intake command sections",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/2026-03-12T00-06Z-cli-commands.md"
+      ],
+      "body": "Add spec sections for the two new foreground lifecycle commands. Both run the daemon loop in the foreground with interleaved output streaming. Use 'wolfcastle execute --help' and 'wolfcastle intake --help' for behavior details. Place these sections in the Lifecycle group after 'wolfcastle start' (execute) and in the appropriate position (intake). Follow the existing spec format: Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, Error Cases.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Spec contains a '## wolfcastle execute' section with Synopsis",
+        " Description",
+        " flags (--node)",
+        " Behavior",
+        " and Exit Codes",
+        "Spec contains a '## wolfcastle intake' section with Synopsis",
+        " Description",
+        " flags (--node)",
+        " Behavior",
+        " and Exit Codes"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Add config subcommand sections",
+      "description": "Add config subcommand sections",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/2026-03-12T00-06Z-cli-commands.md"
+      ],
+      "body": "Add spec sections for all 5 config subcommands: show, set, append, remove, unset. Existing detailed specs exist and should be referenced for accuracy:\n- config show: docs/specs/2026-03-20T15-46Z-config-show-command.md\n- config write commands (set/append/remove/unset): docs/specs/2026-03-21T14-23Z-config-write-commands.md\nCondense the detailed specs into the CLI commands spec format, keeping the key behavior details, flags, and exit codes. Place these in the Diagnostics group.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Spec contains sections for '## wolfcastle config show'",
+        " '## wolfcastle config set'",
+        " '## wolfcastle config append'",
+        " '## wolfcastle config remove'",
+        " and '## wolfcastle config unset'",
+        "Each config section includes Synopsis",
+        " flags with types and defaults",
+        " and Behavior steps"
+      ],
+      "references": [
+        "docs/specs/2026-03-20T15-46Z-config-show-command.md",
+        "docs/specs/2026-03-21T14-23Z-config-write-commands.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Add knowledge subcommand sections",
+      "description": "Add knowledge subcommand sections",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/2026-03-12T00-06Z-cli-commands.md"
+      ],
+      "body": "Add spec sections for all 4 knowledge subcommands: add, edit, prune, show. An existing detailed spec exists at .wolfcastle/docs/specs/2026-03-22T08-00Z-codebase-knowledge.md and should be referenced for the CLI behavior details. Also use 'wolfcastle knowledge [cmd] --help' for flag details. Place these in the Documentation group alongside adr and spec commands.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Spec contains sections for '## wolfcastle knowledge add'",
+        " '## wolfcastle knowledge edit'",
+        " '## wolfcastle knowledge prune'",
+        " and '## wolfcastle knowledge show'",
+        "Each knowledge section includes Synopsis",
+        " Description",
+        " flags",
+        " and Behavior steps"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T08-00Z-codebase-knowledge.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Add archive delete, archive restore, completion, and help sections",
+      "description": "Add archive delete, archive restore, completion, and help sections",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/specs/2026-03-12T00-06Z-cli-commands.md"
+      ],
+      "body": "Add spec sections for the remaining 4 missing commands:\n1. archive delete: Permanently removes an archived node. Requires --node and --confirm flags. Irreversible.\n2. archive restore: Restores an archived node to active state. Requires --node flag.\n3. completion: Cobra-generated shell completion. Subcommands: bash, fish, powershell, zsh. Standard Cobra behavior.\n4. help: Cobra-generated help command. Standard Cobra behavior.\n\nUse 'wolfcastle [cmd] --help' for exact flag details. Place archive commands with existing archive section, completion and help in an 'Additional Commands' or similar section at the end.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Spec contains sections for '## wolfcastle archive delete' and '## wolfcastle archive restore'",
+        "Spec contains sections for '## wolfcastle completion' and '## wolfcastle help'"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Add Missing Command Sections is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Run 'wolfcastle help' and all subcommand help commands, then grep the spec for '## wolfcastle' headers. Verify every CLI leaf command has a corresponding spec section. Cross-reference config sections against docs/specs/2026-03-20T15-46Z-config-show-command.md and docs/specs/2026-03-21T14-23Z-config-write-commands.md for accuracy."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:18:41.804613Z",
+        "task": "update-cli-commands-spec/add-missing-command-sections",
+        "text": "Added wolfcastle execute and wolfcastle intake sections to the CLI commands spec. Both placed in the Lifecycle group after wolfcastle start, following the existing format: Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, Error Cases. Content derived from source code (cmd/execute.go, cmd/intake.go) and --help output."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-22T23:16:28.526636Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T23:18:50.978682Z",
+      "objective": "Add execute and intake command sections to the CLI commands spec",
+      "what_happened": "Read cmd/execute.go and cmd/intake.go source code, plus --help output for both commands. Added two new sections to docs/specs/2026-03-12T00-06Z-cli-commands.md in the Lifecycle group, positioned between wolfcastle start and wolfcastle stop. Both sections follow the established format with Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, and Error Cases.",
+      "went_well": [
+        "Source code provided clear behavioral details: signal handling, renderer goroutine lifecycle, daemon mutual exclusion, and the errDaemonRunning sentinel",
+        "Placement in the spec is natural since both commands are lifecycle group members alongside start and stop"
+      ],
+      "improvements": [
+        "The exit codes are all mapped to 1 since both commands use cobra's default error handling rather than custom exit codes. If custom codes are added later, the spec should be updated"
+      ],
+      "action_items": [
+        "Pre-existing test failures in TestInitCmd_AlreadyInitialized should be investigated separately"
+      ]
+    }
+  }
+}

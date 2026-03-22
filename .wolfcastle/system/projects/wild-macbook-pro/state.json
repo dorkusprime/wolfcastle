@@ -233,7 +233,7 @@
     "document-pid-recycling-edge-case-in-filelock": {
       "name": "Document PID recycling edge case in filelock",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "document-pid-recycling-edge-case-in-filelock",
       "decomposition_depth": 0,
       "children": [
@@ -243,7 +243,7 @@
     "document-pid-recycling-edge-case-in-filelock/add-comment": {
       "name": "add-comment",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "document-pid-recycling-edge-case-in-filelock/add-comment",
       "decomposition_depth": 0,
       "parent": "document-pid-recycling-edge-case-in-filelock"
@@ -756,9 +756,29 @@
     "update-cli-commands-spec": {
       "name": "Update CLI Commands Spec",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "update-cli-commands-spec",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "update-cli-commands-spec/add-missing-command-sections",
+        "update-cli-commands-spec/finalize-spec-metadata"
+      ]
+    },
+    "update-cli-commands-spec/add-missing-command-sections": {
+      "name": "Add Missing Command Sections",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "update-cli-commands-spec/add-missing-command-sections",
+      "decomposition_depth": 0,
+      "parent": "update-cli-commands-spec"
+    },
+    "update-cli-commands-spec/finalize-spec-metadata": {
+      "name": "Finalize Spec Metadata",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "update-cli-commands-spec/finalize-spec-metadata",
+      "decomposition_depth": 0,
+      "parent": "update-cli-commands-spec"
     }
   }
 }
