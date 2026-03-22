@@ -112,6 +112,11 @@
         "timestamp": "2026-03-22T22:42:52.326491Z",
         "task": "template-based-file-generation/call-site-migration/artifact-templates",
         "text": "Migrated audit-task and task MD generation to templates. WriteAuditTaskMD now takes a *pipeline.PromptRepository and resolves artifacts/audit-task.md through the tier FS. writeTaskMD now takes a *pipeline.PromptRepository and renders artifacts/task.md with pipeline.TaskData. Created artifacts/audit-task.md.tmpl (static, no template vars). Updated callers in cmd/project/create.go and cmd/task/add.go. Updated tests in audit_coverage_test.go and task_coverage_test.go to construct PromptRepository with seeded templates."
+      },
+      {
+        "timestamp": "2026-03-22T22:51:02.292767Z",
+        "task": "template-based-file-generation/call-site-migration/artifact-templates",
+        "text": "Added 10 golden-file snapshot tests in internal/pipeline/template_test.go covering all 4 artifact templates: ADR (with/without body), spec (with body, without body, stdin multiline), task (with body, minimal, all optional fields, whitespace-only body), and audit-task (nil ctx raw). Fixed import cycle in prompt_test.go by replacing project.Templates embed.FS walk with disk-based filepath.WalkDir. All pipeline tests pass, 97.3% coverage."
       }
     ],
     "gaps": [],
@@ -166,6 +171,22 @@
       ],
       "action_items": [
         "Consider removing templates/audits/audit-task.md and having writeBasePrompts populate it from the artifacts copy instead, to eliminate the duplication"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T22:50:56.87606Z",
+      "objective": "Write snapshot/golden-file tests for all artifact templates to verify behavior-preserving migration",
+      "what_happened": "Created internal/pipeline/template_test.go with 10 table-driven snapshot tests across 4 test functions (TestSnapshotADR, TestSnapshotSpec, TestSnapshotTask, TestSnapshotAuditTask). Each test seeds the real embedded templates into a test tier FS via disk reads, renders through PromptRepository.ResolveTemplate, and compares against golden files in testdata/snapshots/. Also fixed a pre-existing import cycle in prompt_test.go: task-0003 added project_create.go importing pipeline, but prompt_test.go (internal package test) already imported project. Replaced the embedded FS walk with a disk-based filepath.WalkDir to break the cycle.",
+      "went_well": [
+        "Golden file content was derived correctly on the first attempt from the equivalence test functions in artifacts_test.go",
+        "Fixing the import cycle in prompt_test.go restored all pipeline tests to passing, not just the new snapshot tests"
+      ],
+      "improvements": [
+        "The seedArtifactTemplatesFromDisk helper reads .tmpl files from a relative path (../project/templates/artifacts/), which is fragile if tests are ever run from a different working directory. The standard Go test runner always uses the package directory, so this works in practice."
+      ],
+      "action_items": [
+        "The pre-existing test failure TestScaffoldService_Init_GitignoreWriteFailure in internal/project is unrelated but should be investigated separately"
       ]
     }
   }
