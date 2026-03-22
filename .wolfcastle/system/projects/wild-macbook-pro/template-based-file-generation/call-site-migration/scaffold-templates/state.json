@@ -82,6 +82,11 @@
         "timestamp": "2026-03-22T22:10:17.238689Z",
         "task": "template-based-file-generation/call-site-migration/scaffold-templates",
         "text": "Created 6 scaffold template files (gitignore.tmpl + 5 readme templates) under internal/project/templates/scaffold/. Content verified byte-for-byte identical to Go string literals in scaffold_service.go."
+      },
+      {
+        "timestamp": "2026-03-22T22:13:29.040441Z",
+        "task": "template-based-file-generation/call-site-migration/scaffold-templates",
+        "text": "Migrated scaffold_service.go: removed scaffoldREADMEs map (100+ lines) and inline gitignore string, replaced with scaffoldFiles mapping that reads from embedded templates under templates/scaffold/. Net reduction of ~97 lines."
       }
     ],
     "gaps": [],
@@ -104,6 +109,22 @@
       ],
       "action_items": [
         "Next task should modify scaffold_service.go to read these templates via the embed.FS instead of using the hardcoded strings"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T22:13:27.271907Z",
+      "objective": "Replace inline string literals in scaffold_service.go with reads from embedded template files",
+      "what_happened": "Removed the 100-line scaffoldREADMEs map and inline gitignore string. Replaced them with a scaffoldFiles mapping (template path -\u003e output path) and a writeScaffoldFiles() method that reads from the embed.FS. The Init method now calls writeScaffoldFiles() instead of manually writing each file. Updated the test in scaffold_readme_test.go to verify against embedded template content rather than the deleted map.",
+      "went_well": [
+        "The change was clean: -137 lines, +40 lines. All existing tests pass without modification beyond the one test that directly referenced the scaffoldREADMEs variable",
+        "The error path tests (GitignoreWriteFailure) still work because writeScaffoldFiles produces the same error message format"
+      ],
+      "improvements": [
+        "The scaffold files are written in map iteration order, which is random. Not a correctness issue since each file is independent, but could matter for debugging if a write failure depends on prior files existing"
+      ],
+      "action_items": [
+        "None: deliverable is complete and all acceptance criteria are met"
       ]
     }
   }
