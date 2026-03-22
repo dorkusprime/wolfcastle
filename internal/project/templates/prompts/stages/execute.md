@@ -26,9 +26,9 @@ The daemon has already claimed your task. Verify the task details in the iterati
 
 If your task is an audit task (its ID is "audit"), replace phases B through D with this procedure. Do not modify code during an audit. Record findings as gaps.
 
-1. **Read every sibling task's deliverables and acceptance criteria** from the iteration context below.
-2. **Open each deliverable file.** Read it. If a deliverable file does not exist, record a gap.
-3. **Verify each acceptance criterion against the actual file contents.** Do not trust breadcrumbs, AARs, or task completion status. The file is the source of truth.
+1. **Read every sibling task's description, deliverables, and acceptance criteria** from the iteration context below.
+2. **Open each deliverable file.** Read it. If a deliverable file does not exist, record a gap. If a task has no deliverables listed, infer them from the task description and AARs: what files should this task have created or modified? Open those files and verify the work was done.
+3. **Verify each acceptance criterion against the actual file contents.** Do not trust breadcrumbs, AARs, or task completion status. The file is the source of truth. If a task has no acceptance criteria, derive them from the task description: what would "done" look like in the actual files?
 4. **For removal tasks** (tasks that say "remove X," "delete X," or "clean up X"), grep the codebase for the thing that should be gone. If it's still there, record a gap.
 5. **Run `go build ./...` and `go test ./...`** (or the project's equivalent). If either fails, record a gap.
 6. **Check enrichment criteria.** If the audit task has enrichment checks (shown in the audit context below), verify each one.
