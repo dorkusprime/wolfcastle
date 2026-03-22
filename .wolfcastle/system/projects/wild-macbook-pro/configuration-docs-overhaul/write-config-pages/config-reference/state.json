@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Write config-reference.md",
       "description": "Write config-reference.md",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/config-reference.md"
@@ -24,7 +24,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Config Reference is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }

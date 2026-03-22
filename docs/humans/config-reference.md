@@ -6,6 +6,22 @@ For context on how the three-tier system works, how merges resolve, and how to u
 
 ---
 
+## version
+
+Schema version for the configuration format. Used by Wolfcastle to detect incompatible config files.
+
+- **Type:** `int`
+- **Default:** `1`
+- **Description:** Configuration schema version. Currently only version `1` exists.
+
+```json
+{
+  "version": 1
+}
+```
+
+---
+
 ## identity
 
 Identifies the engineer and machine running Wolfcastle. Typically auto-populated in `local/config.json` by `wolfcastle init`.
