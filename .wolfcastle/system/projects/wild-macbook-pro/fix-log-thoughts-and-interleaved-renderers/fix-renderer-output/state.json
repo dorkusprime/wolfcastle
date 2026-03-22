@@ -37,7 +37,7 @@
       "id": "task-0003",
       "title": "Fix interleaved renderer to match spec",
       "description": "Fix interleaved renderer to match spec",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/interleaved.go",
@@ -52,7 +52,7 @@
       "id": "task-0004",
       "title": "Verify renderer fixes with tests",
       "description": "Verify renderer fixes with tests",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/thoughts_test.go",
@@ -92,13 +92,18 @@
         "timestamp": "2026-03-22T18:26:47.511195Z",
         "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
         "text": "Interleaved renderer now uses extractThoughtText instead of invoke.FormatAssistantText. Only text content blocks from assistant envelopes appear; system init, result, and tool_use are dropped per spec. Multiline text blocks each get their own timestamp and indent."
+      },
+      {
+        "timestamp": "2026-03-22T18:27:42.524197Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "text": "Verified all renderer tests pass: 91 logrender tests and 5 render parity tests green. Confirmed thoughts output produces only plain text (no JSON) and interleaved output produces timestamped glyphed lines (no raw JSON)."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T18:12:55.460906Z",
-    "result_summary": "Diagnosed and fixed the raw NDJSON output bug in both ThoughtsRenderer and InterleavedRenderer. The root cause was that the daemon's assistantLogWriter stores Claude Code's raw stdout (JSON API envelopes) as the text field of assistant log records. Both renderers printed r.Text verbatim. The fix adds invoke.FormatAssistantText calls in both renderers to extract human-readable content from the JSON envelopes. All existing tests pass (FormatAssistantText passes plain text through unchanged), and new tests verify correct handling of real Claude API envelope formats."
+    "result_summary": "Fixed thoughts and interleaved renderers to produce spec-compliant output. Both renderers now use extractThoughtText to extract only text content blocks from Claude API JSON envelopes, dropping system init, result, thinking, and tool_use records. The thoughts renderer outputs plain text lines; the interleaved renderer outputs timestamped, indented text lines with glyphed stage headers. All 91 logrender tests and 5 render parity tests pass with no regressions."
   },
   "aars": {
     "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output/task-0002": {
@@ -148,6 +153,22 @@
       ],
       "action_items": [
         "Consider moving extractThoughtText to a shared file if more renderers need it"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T18:27:41.030875Z",
+      "objective": "Verify renderer fixes pass all tests and produce spec-compliant output",
+      "what_happened": "Ran go test ./internal/logrender/... -v (91 tests, all pass) and go test ./cmd/... -v -run TestRenderParity (5 tests, all pass). Reviewed thoughts_test.go and interleaved_test.go to confirm they assert the right behavior: thoughts output contains only plain text from assistant text content blocks (no JSON envelopes), interleaved output contains timestamped stage headers with glyphed agent text (no raw JSON lines). Both deliverable files exist and contain comprehensive test coverage including envelope extraction, multi-block handling, and filtering of non-text content types.",
+      "went_well": [
+        "All 96 tests pass with no regressions",
+        "Prior tasks updated existing tests and added new ones that correctly assert spec-compliant behavior"
+      ],
+      "improvements": [
+        "None identified; the test coverage is thorough for the changes made"
+      ],
+      "action_items": [
+        "None; verification is complete"
       ]
     }
   }
