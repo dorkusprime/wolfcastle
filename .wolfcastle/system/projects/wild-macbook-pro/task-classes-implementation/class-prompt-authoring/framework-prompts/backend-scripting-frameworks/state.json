@@ -21,7 +21,7 @@
       "id": "task-0002",
       "title": "Write Python/Django class prompt",
       "description": "Write Python/Django class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/python/django.md"
@@ -32,7 +32,7 @@
       "id": "task-0003",
       "title": "Write Python/FastAPI class prompt",
       "description": "Write Python/FastAPI class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/python/fastapi.md"
@@ -98,6 +98,11 @@
         "timestamp": "2026-03-22T08:32:47.159059Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
         "text": "Authored Python/Django class prompt (45 lines) covering project structure, ORM patterns, views (CBV/FBV/DRF), templates, middleware, signals, testing, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T08:34:44.234008Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Python/FastAPI class prompt (45 lines) covering path operations, Pydantic v2, dependency injection, async/sync endpoints, database integration, testing, and common pitfalls [task-0003]"
       }
     ],
     "gaps": [],
@@ -133,6 +138,22 @@
       ],
       "improvements": [
         "Could add Django 5.x specific features like GeneratedField and async view support, but these are still maturing and the prompt covers the stable patterns well"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T08:34:42.858528Z",
+      "objective": "Author the Python/FastAPI framework class prompt covering path operations, dependency injection, Pydantic v2, async patterns, database integration, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/python/fastapi.md (45 lines). Structured to complement the base python.md and sibling django.md prompts. Focused on FastAPI 0.100+/Pydantic v2 patterns: model_validator over @validator, ConfigDict over Config inner class, httpx.AsyncClient over TestClient for async apps, and the critical async-def-with-sync-IO footgun.",
+      "went_well": [
+        "Clean separation from base Python prompt and from the Django sibling: FastAPI-specific DI patterns, ASGI middleware, and async/sync endpoint selection sit here while ORM fundamentals stay in django.md and language patterns stay in python.md",
+        "Dependency caching pitfall section captures a subtle behavior that trips up developers who assume each Depends() injection is independent"
+      ],
+      "improvements": [
+        "Could add guidance on OpenAPI schema customization and lifespan events (the modern replacement for on_startup/on_shutdown), but these are secondary to the core patterns covered"
       ],
       "action_items": [
         "None; prompt is self-contained"
