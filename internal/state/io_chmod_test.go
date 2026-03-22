@@ -87,7 +87,7 @@ func TestAtomicWriteFile_MkdirAll_ReadOnlyParent(t *testing.T) {
 	roDir := readOnlyDir(t)
 	path := filepath.Join(roDir, "sub", "file.txt")
 
-	err := atomicWriteFile(path, []byte("data"))
+	err := AtomicWriteFile(path, []byte("data"))
 	if err == nil {
 		t.Error("expected MkdirAll error when parent is read-only")
 	}
@@ -110,7 +110,7 @@ func TestAtomicWriteFile_CreateTemp_ReadOnlyDir(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chmod(sub, 0755) })
 
 	path := filepath.Join(sub, "file.txt")
-	err := atomicWriteFile(path, []byte("data"))
+	err := AtomicWriteFile(path, []byte("data"))
 	if err == nil {
 		t.Error("expected CreateTemp error when directory is read-only")
 	}
@@ -128,7 +128,7 @@ func TestAtomicWriteFile_Rename_TargetIsDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err := atomicWriteFile(target, []byte("data"))
+	err := AtomicWriteFile(target, []byte("data"))
 	if err == nil {
 		t.Error("expected rename error when target is a directory")
 	}

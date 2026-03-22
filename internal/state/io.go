@@ -68,7 +68,10 @@ func SaveNodeState(path string, ns *NodeState) error {
 }
 
 // atomicWriteFile writes raw bytes to a temp file then renames it into place.
-func atomicWriteFile(path string, data []byte) error {
+// AtomicWriteFile writes data to path atomically by writing to a temp
+// file in the same directory and renaming. The caller sees either the
+// old content or the new content, never a partial write.
+func AtomicWriteFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("creating directory: %w", err)

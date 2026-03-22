@@ -177,7 +177,7 @@ func TestAtomicWriteFile_BasicRoundtrip(t *testing.T) {
 	path := filepath.Join(dir, "out.txt")
 	content := []byte("hello, atomic world")
 
-	if err := atomicWriteFile(path, content); err != nil {
+	if err := AtomicWriteFile(path, content); err != nil {
 		t.Fatalf("atomicWriteFile: %v", err)
 	}
 
@@ -195,7 +195,7 @@ func TestAtomicWriteFile_CreatesDirectories(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "a", "b", "c", "file.txt")
 
-	if err := atomicWriteFile(path, []byte("deep")); err != nil {
+	if err := AtomicWriteFile(path, []byte("deep")); err != nil {
 		t.Fatalf("atomicWriteFile: %v", err)
 	}
 
@@ -213,10 +213,10 @@ func TestAtomicWriteFile_OverwritesExisting(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "overwrite.txt")
 
-	if err := atomicWriteFile(path, []byte("version-1")); err != nil {
+	if err := AtomicWriteFile(path, []byte("version-1")); err != nil {
 		t.Fatalf("first write: %v", err)
 	}
-	if err := atomicWriteFile(path, []byte("version-2")); err != nil {
+	if err := AtomicWriteFile(path, []byte("version-2")); err != nil {
 		t.Fatalf("second write: %v", err)
 	}
 
@@ -234,7 +234,7 @@ func TestAtomicWriteFile_NoTempFilesRemain(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "clean.txt")
 
-	if err := atomicWriteFile(path, []byte("data")); err != nil {
+	if err := AtomicWriteFile(path, []byte("data")); err != nil {
 		t.Fatalf("atomicWriteFile: %v", err)
 	}
 
