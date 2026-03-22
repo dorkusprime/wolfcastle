@@ -26,7 +26,7 @@ Root-level commands (not in subpackages) use `init()` to register with `rootCmd`
 When adding a new command:
 
 - [ ] Follow the registration pattern above
-- [ ] Add `--json` support (check `app.JSONOutput`)
+- [ ] Add `--json` support (check `app.JSON`)
 - [ ] Use `output.PrintHuman()` / `output.Print()` for all output
 - [ ] Call `app.RequireResolver()` early if the command needs the tree
 - [ ] Add shell completion via `cmdutil.CompleteNodeAddresses()` or `CompleteTaskAddresses()`
@@ -57,7 +57,7 @@ These commands skip config loading in `PersistentPreRunE`: `init`, `version`, `h
 | `navigate` | Navigate to a node directory |
 | `doctor` | Diagnose and repair broken state |
 | `unblock` | Unblock a blocked task interactively |
-| `install` | Install extra tools (tree, jq, etc.) |
+| `install skill` | Install the Claude Code skill for Wolfcastle interaction |
 
 ### Daemon Commands
 
