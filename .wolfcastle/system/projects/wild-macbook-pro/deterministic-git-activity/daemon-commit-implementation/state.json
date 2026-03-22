@@ -9,12 +9,12 @@
     {
       "id": "git-config-expansion",
       "address": "deterministic-git-activity/daemon-commit-implementation/git-config-expansion",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "daemon-commit-logic",
       "address": "deterministic-git-activity/daemon-commit-implementation/daemon-commit-logic",
-      "state": "not_started"
+      "state": "in_progress"
     },
     {
       "id": "execute-prompt-cleanup",

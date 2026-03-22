@@ -3,7 +3,7 @@
   "id": "git-config-expansion",
   "name": "Git Config Expansion",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -34,7 +34,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Git Config Expansion is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -66,8 +66,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T19:38:04.516473Z",
+    "completed_at": "2026-03-22T19:43:45.207254Z",
     "result_summary": "Added CommitOnSuccess, CommitOnFailure, and CommitState bool fields to GitConfig, each defaulting to true. Renamed SkipHooksOnAutoCommit to SkipHooks (default false). Updated Defaults(), ValidateStructure() (catches the no-op case where auto_commit is true but both commit flags are false), the single iteration.go callsite, and config-reference.md docs. Nine tests in types_test.go cover defaults, JSON round-trip, deserialization, Load integration, and validation. All tests pass with 95.7% coverage. The new fields are config-only at this stage; wiring them into the daemon commit path is scoped to the daemon-commit-logic sibling node."
   },
   "aars": {

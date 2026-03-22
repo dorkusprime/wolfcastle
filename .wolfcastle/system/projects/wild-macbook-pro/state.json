@@ -163,7 +163,7 @@
     "deterministic-git-activity/daemon-commit-implementation/daemon-commit-logic": {
       "name": "Daemon Commit Logic",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "deterministic-git-activity/daemon-commit-implementation/daemon-commit-logic",
       "decomposition_depth": 0,
       "parent": "deterministic-git-activity/daemon-commit-implementation"
@@ -179,7 +179,7 @@
     "deterministic-git-activity/daemon-commit-implementation/git-config-expansion": {
       "name": "Git Config Expansion",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "deterministic-git-activity/daemon-commit-implementation/git-config-expansion",
       "decomposition_depth": 0,
       "parent": "deterministic-git-activity/daemon-commit-implementation"
