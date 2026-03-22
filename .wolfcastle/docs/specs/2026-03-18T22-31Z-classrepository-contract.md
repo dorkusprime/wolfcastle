@@ -42,6 +42,8 @@ Returns the behavioral prompt content for a class key by resolving it through `P
 
 The fallback is one level deep. `"typescript/react"` falls back to `"typescript"`, but `"typescript"` does not fall back further. There is no catch-all default prompt file.
 
+6. **Subdirectory assembly.** After the main prompt file is resolved (whether by exact key or parent fallback), check for subdirectory assets at `prompts/classes/{resolvedKey}/`. Call `PromptRepository.ListFragments` to collect all `.md` files in that subdirectory across tiers. If any fragments are found, append them to the main file content, joined by newlines, with a single newline separating the main content from the first fragment. Fragments are returned in sorted order by `ListFragments`. A missing or empty subdirectory is not an error; the main file content is sufficient on its own. Note that `resolvedKey` is the key that actually matched a file (which may be the parent key, not the originally requested key).
+
 ### List() []string
 
 Returns all class keys from the loaded config, sorted lexicographically. Goroutine-safe: acquires a read lock on `mu`. Returns an empty slice (not nil) if no classes are loaded.
@@ -80,5 +82,6 @@ The daemon should call `Reload` once at startup (before spawning iteration gorou
 - The fallback chain is exactly one level deep: exact key, then parent key, then error. No recursive or multi-level fallback.
 - `List` returns keys sorted lexicographically. The order is deterministic regardless of map iteration order.
 - `Validate` uses the same fallback logic as `Resolve`. A class that `Resolve` would successfully serve will not appear in `Validate`'s missing list.
+- `Resolve` may return content assembled from multiple files: the main prompt file plus any `.md` files found in the corresponding subdirectory. Callers should not assume the returned string maps to a single file on disk.
 - The repository does not cache prompt content. Each `Resolve` call reads through `PromptRepository`, which in turn reads through `tierfs.Resolver`. Caching decisions belong to `PromptRepository`, not here.
 - An empty class map (before `Reload` or after `Reload({})`) causes `Resolve` to return an error for any key, `List` to return an empty slice, and `Validate` to return an empty slice.
