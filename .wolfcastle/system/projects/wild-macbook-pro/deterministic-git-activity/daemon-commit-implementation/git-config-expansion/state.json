@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Add new config fields to GitConfig struct",
       "description": "Add new config fields to GitConfig struct",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/config/types.go",
@@ -23,7 +23,7 @@
       "id": "task-0002",
       "title": "Add config field tests",
       "description": "Add config field tests",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/config/types_test.go"
@@ -51,6 +51,11 @@
         "timestamp": "2026-03-22T19:40:25.317683Z",
         "task": "deterministic-git-activity/daemon-commit-implementation/git-config-expansion",
         "text": "Added CommitOnSuccess, CommitOnFailure, CommitState to GitConfig; renamed SkipHooksOnAutoCommit to SkipHooks; updated defaults, validation, iteration.go callsite, and config-reference docs"
+      },
+      {
+        "timestamp": "2026-03-22T19:41:59.325531Z",
+        "task": "deterministic-git-activity/daemon-commit-implementation/git-config-expansion",
+        "text": "Added types_test.go with 9 tests for CommitOnSuccess, CommitOnFailure, CommitState, and SkipHooks: defaults, JSON round-trip, deserialization, Load parsing, and validation"
       }
     ],
     "gaps": [],
@@ -73,6 +78,22 @@
       ],
       "action_items": [
         "The new fields are not yet consumed in daemon commit logic; the daemon-commit-logic node handles wiring them in"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T19:41:57.773872Z",
+      "objective": "Write tests for the new GitConfig commit control fields added in task-0001",
+      "what_happened": "Created internal/config/types_test.go with 9 tests covering: Defaults() returning true for CommitOnSuccess/CommitOnFailure/CommitState, Defaults() returning false for SkipHooks, JSON round-trip marshaling of GitConfig, deserialization of skip_hooks from JSON, deserialization of all new fields from JSON, Load() parsing fine-grained fields when auto_commit is false, ValidateStructure catching the no-op config (auto_commit true with both commit flags false), ValidateStructure accepting auto_commit false with both flags false, and verification of JSON field name tags.",
+      "went_well": [
+        "All tests passed on first run",
+        "Coverage at 95.7%, well above the 90% threshold"
+      ],
+      "improvements": [
+        "Could add fuzz testing for the JSON deserialization path, but table-driven tests are sufficient for these simple bool fields"
+      ],
+      "action_items": [
+        "None; the config test surface is complete for these fields"
       ]
     }
   }
