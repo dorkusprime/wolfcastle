@@ -36,7 +36,7 @@
       "id": "task-0003",
       "title": "Add --class validation to task add CLI",
       "description": "Add --class validation to task add CLI",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/task/add.go"
@@ -47,7 +47,7 @@
       "id": "task-0004",
       "title": "Auto-assign audit class at claim time",
       "description": "Auto-assign audit class at claim time",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/state/mutations.go"
@@ -86,6 +86,11 @@
         "timestamp": "2026-03-22T09:42:24.360805Z",
         "task": "task-classes-implementation/config-and-validation-wiring",
         "text": "Added --class validation to task add: checks against ClassRepository.List() with config fallback. Three new tests, one existing test updated."
+      },
+      {
+        "timestamp": "2026-03-22T09:44:06.656517Z",
+        "task": "task-classes-implementation/config-and-validation-wiring",
+        "text": "Auto-assign Class=audit at claim time for audit tasks with empty Class. Three tests added."
       }
     ],
     "gaps": [],
@@ -140,6 +145,22 @@
       ],
       "action_items": [
         "Consider whether ClassRepository should always be loaded in test environments to avoid the config fallback path"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T09:44:06.061714Z",
+      "objective": "Auto-assign Class=audit to audit tasks at claim time when Class is empty",
+      "what_happened": "Added four lines to TaskClaim in internal/state/mutations.go: after the state transition to in_progress, if IsAudit is true and Class is empty, set Class to audit. Added three tests in mutations_test.go covering: audit task gets class assigned, audit task with existing class is preserved, non-audit task class stays empty.",
+      "went_well": [
+        "Minimal change, no new imports needed",
+        "All three test cases passed on first run, full suite green"
+      ],
+      "improvements": [
+        "None; this was a straightforward conditional assignment"
+      ],
+      "action_items": [
+        "Downstream prompt routing should key on Class field, not IsAudit, for behavioral selection"
       ]
     }
   }
