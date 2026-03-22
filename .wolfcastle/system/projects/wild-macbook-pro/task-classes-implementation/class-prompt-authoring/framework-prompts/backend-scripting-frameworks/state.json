@@ -113,6 +113,11 @@
         "timestamp": "2026-03-22T08:38:55.59895Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
         "text": "Authored Ruby/Rails class prompt (45 lines) covering MVC conventions, ActiveRecord patterns, strong parameters, routing DSL, ActiveJob, Hotwire/Turbo, testing (RSpec/Minitest, factory_bot, Capybara), and common pitfalls (N+1, fat controllers, callback hell, mass assignment, zero-downtime migrations) [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T08:41:01.361788Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Ruby/Sinatra class prompt (41 lines) covering modular vs classic style, route ordering, Rack middleware/sessions, template rendering, configure blocks, helpers/extensions, Rack::Test testing, and common pitfalls (route ordering, missing sessions, namespace pollution, halt/redirect throw/catch) [task-0006]"
       }
     ],
     "gaps": [],
@@ -196,6 +201,22 @@
       ],
       "improvements": [
         "Could add guidance on Rails credentials (credentials.yml.enc) and Action Cable patterns, but these are secondary to the core web framework patterns and the prompt is already at 45 lines"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0006": {
+      "task_id": "task-0006",
+      "timestamp": "2026-03-22T08:40:55.884801Z",
+      "objective": "Author the Ruby/Sinatra framework class prompt covering application patterns, routes, middleware, templates, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/ruby/sinatra.md (41 lines). Followed the established pattern from sibling prompts (rails.md, flask.md). Covered modular vs classic style, route ordering semantics, Rack middleware and session configuration, template rendering with locals, configure blocks, helpers vs extensions, Rack::Test patterns, and four pitfalls: route ordering, missing session middleware, classic namespace pollution, and halt/redirect throw/catch interaction with rescue blocks.",
+      "went_well": [
+        "Clean separation from the Rails sibling: Sinatra-specific concerns (Rack-level middleware, classic vs modular tradeoffs, halt/redirect control flow) sit here while ActiveRecord, strong parameters, and Rails conventions stay in rails.md",
+        "The halt/redirect throw/catch pitfall is particularly subtle and often missed in documentation; including it should prevent a common debugging frustration"
+      ],
+      "improvements": [
+        "Could add guidance on Sinatra::Streaming and EventSource for SSE patterns, but these are niche enough to exclude at 41 lines"
       ],
       "action_items": [
         "None; prompt is self-contained"
