@@ -49,6 +49,11 @@
         "timestamp": "2026-03-22T14:40:06.274989Z",
         "task": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
         "text": "Removed dangling voice.md reference from writing.md line 5; subdirectory assembly makes it redundant"
+      },
+      {
+        "timestamp": "2026-03-22T14:41:19.474196Z",
+        "task": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
+        "text": "Updated ClassRepository contract spec with subdirectory assembly step in Resolve algorithm and multi-file invariant"
       }
     ],
     "gaps": [],
@@ -70,6 +75,21 @@
       ],
       "action_items": [
         "Verify that other class prompts don't have similar dangling references to subdirectory assets"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T14:41:17.94204Z",
+      "objective": "Update the ClassRepository contract spec to document subdirectory assembly behavior in Resolve",
+      "what_happened": "Added step 6 to the Resolve algorithm describing subdirectory assembly: after resolving the main prompt file, ListFragments collects .md files from prompts/classes/{resolvedKey}/, appending them to the main content. Also added an invariant noting that Resolve may return multi-file assembled content.",
+      "went_well": [
+        "Cross-referenced the implementation directly to ensure the spec matches the actual code behavior"
+      ],
+      "improvements": [
+        "None; straightforward spec update"
+      ],
+      "action_items": [
+        "None"
       ]
     }
   }
