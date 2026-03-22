@@ -2,7 +2,6 @@ package inbox
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"

@@ -2,7 +2,6 @@ package inbox
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
