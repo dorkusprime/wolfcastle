@@ -1,6 +1,6 @@
 # CLI Command Specification
 
-This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 52 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `config`, `install`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
+This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 56 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `config`, `install`, `knowledge`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
 
 ## Conventions
 
@@ -2281,6 +2281,342 @@ wolfcastle spec list --json
 |-------|---------|------|
 | Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
 | Node not found | `fatal: node 'foo/bar' not found in tree` | 1 |
+
+---
+
+## wolfcastle knowledge add
+
+### Synopsis
+
+```
+wolfcastle knowledge add "<entry>"
+```
+
+### Description
+
+Appends a knowledge entry to the current namespace's knowledge file at `.wolfcastle/docs/knowledge/<namespace>.md`. Knowledge files accumulate codebase-specific insights across tasks: build quirks, undocumented conventions, architecture gotchas, test patterns. The entire file is injected into every task's execution context, so entries should be concrete, durable, and non-obvious.
+
+The entry is checked against the configured token budget (`knowledge.max_tokens`, default 2000) before writing. If the new entry would push the file over budget, the command fails without writing anything. No entry is silently lost to truncation.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `"<entry>"` | string (positional) | Yes | -- | The knowledge entry to append |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Validate that the entry argument is present. Fail if missing.
+2. Resolve engineer identity. Fail if not configured.
+3. Validate the entry is not blank after trimming whitespace.
+4. Load configuration to read `knowledge.max_tokens`.
+5. Check the token budget: estimate the token count of the existing file plus the new entry. If the total would exceed `max_tokens`, fail with an error directing the user to run `wolfcastle knowledge prune`.
+6. Append the entry to the namespace's knowledge file. The `knowledge.Append` function handles formatting (adds `- ` prefix if missing, appends a newline). Creates the file and parent directories if they do not exist.
+7. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Knowledge: the integration tests require docker compose up before running
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "knowledge_add",
+  "data": {
+    "entry": "the integration tests require docker compose up before running",
+    "namespace": "wild-macbook-pro",
+    "path": ".wolfcastle/docs/knowledge/wild-macbook-pro.md"
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Entry appended successfully |
+| 1 | `.wolfcastle/` not found, identity not configured, or config load failure |
+
+### Examples
+
+```bash
+# Add a build quirk
+wolfcastle knowledge add "the integration tests require docker compose up before running"
+
+# Add an architecture note
+wolfcastle knowledge add "state.Store serializes mutations through a file lock"
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Missing argument | `missing required argument: <entry>` | 1 |
+| Empty entry | `empty entry. Knowledge worth recording shouldn't be blank` | 1 |
+| Over budget | `Knowledge file exceeds budget (N/M tokens). Run 'wolfcastle knowledge prune' to review and consolidate.` | 1 |
+
+---
+
+## wolfcastle knowledge edit
+
+### Synopsis
+
+```
+wolfcastle knowledge edit
+```
+
+### Description
+
+Opens the current namespace's knowledge file in `$EDITOR` for free-form editing. If the file does not exist, creates it with an empty template (`# Codebase Knowledge\n\n`) before opening. Falls back to `vi` when `$EDITOR` is not set.
+
+In JSON mode, the command reports the file path and editor name without launching the editor. This allows programmatic callers to handle editing themselves.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Report path and editor as JSON instead of opening the editor |
+
+### Behavior
+
+1. Resolve engineer identity. Fail if not configured.
+2. Determine the knowledge file path for the current namespace.
+3. If the file does not exist, create it with an empty template. Create parent directories as needed.
+4. Read `$EDITOR` from the environment. Fall back to `vi` if unset.
+5. If `--json`: output the path and editor name, then return without launching the editor.
+6. Otherwise, launch the editor with the knowledge file. Connect stdin, stdout, and stderr to the terminal.
+7. If the editor exits with a non-zero status, propagate the error.
+
+### Output
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "knowledge_edit",
+  "data": {
+    "path": ".wolfcastle/docs/knowledge/wild-macbook-pro.md",
+    "editor": "vim"
+  }
+}
+```
+
+In interactive mode, the editor takes over the terminal. No command output is printed.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Editor exited successfully |
+| 1 | `.wolfcastle/` not found, identity not configured, directory creation failure, or editor error |
+
+### Examples
+
+```bash
+# Open in default editor
+wolfcastle knowledge edit
+
+# Open in a specific editor
+EDITOR=nano wolfcastle knowledge edit
+
+# Get file path without opening (for programmatic use)
+wolfcastle knowledge edit --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Identity not configured | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Directory creation failure | `creating knowledge directory: <os error>` | 1 |
+| Editor failure | `editor exited with error: <exit status>` | 1 |
+
+---
+
+## wolfcastle knowledge prune
+
+### Synopsis
+
+```
+wolfcastle knowledge prune
+```
+
+### Description
+
+Opens the knowledge file in `$EDITOR` for manual pruning: removing stale entries, consolidating related ones, and bringing the file under its token budget. After the editor closes, reports the new token count relative to the configured budget. Falls back to `vi` when `$EDITOR` is not set.
+
+In JSON mode (used by the daemon's maintenance task), the command skips the editor entirely and reports the current token count and budget status. This allows non-interactive callers to check whether pruning is needed.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Report token count and budget status without opening the editor |
+
+### Behavior
+
+1. Resolve engineer identity. Fail if not configured.
+2. Load configuration to read `knowledge.max_tokens`.
+3. Determine the knowledge file path for the current namespace.
+4. If `--json`:
+   a. Read the knowledge file content.
+   b. Count tokens and compare against the budget.
+   c. Output the status as JSON. Return without opening the editor.
+5. Otherwise (interactive mode):
+   a. If the file does not exist, create it with an empty template.
+   b. Read `$EDITOR` from the environment. Fall back to `vi` if unset.
+   c. Launch the editor. Connect stdin, stdout, and stderr to the terminal.
+   d. If the editor exits with an error, propagate it.
+   e. After the editor closes, re-read the file and count tokens.
+   f. Print the token count relative to the budget. If still over budget, indicate so.
+
+### Output
+
+Interactive (under budget after editing):
+
+```
+Token count: 1200/2000
+```
+
+Interactive (still over budget):
+
+```
+Token count: 2300/2000 (still over budget)
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "knowledge_prune",
+  "data": {
+    "namespace": "wild-macbook-pro",
+    "path": ".wolfcastle/docs/knowledge/wild-macbook-pro.md",
+    "token_count": 1847,
+    "max_tokens": 2000,
+    "over_budget": false
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Prune completed (or status reported in JSON mode) |
+| 1 | `.wolfcastle/` not found, identity not configured, config load failure, or editor error |
+
+### Examples
+
+```bash
+# Open for manual pruning
+wolfcastle knowledge prune
+
+# Check budget status without editing (daemon use)
+wolfcastle knowledge prune --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Identity not configured | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Config load failure | `loading config: <error>` | 1 |
+| Editor failure | `editor exited with error: <exit status>` | 1 |
+
+---
+
+## wolfcastle knowledge show
+
+### Synopsis
+
+```
+wolfcastle knowledge show
+```
+
+### Description
+
+Reads and prints the current namespace's knowledge file. If no knowledge has been recorded yet (the file does not exist or is empty), reports that clearly rather than printing nothing. In JSON mode, includes the token count alongside the content for budget awareness.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Output as structured JSON with token count |
+
+### Behavior
+
+1. Resolve engineer identity. Fail if not configured.
+2. Determine the knowledge file path for the current namespace.
+3. Read the knowledge file via `knowledge.Read`. If the file does not exist, returns empty content (not an error).
+4. If `--json`: output the content, namespace, path, and token count as structured JSON.
+5. If not `--json`:
+   - If content is empty, print a message indicating no knowledge has been recorded.
+   - Otherwise, print the raw file content.
+
+### Output
+
+Human-readable (knowledge exists):
+
+```
+## Build and Environment
+
+- The `make test` target runs with `-short` by default.
+- Go 1.26 changed the loop variable semantics.
+```
+
+Human-readable (no knowledge):
+
+```
+No codebase knowledge recorded yet for wild-macbook-pro.
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "knowledge_show",
+  "data": {
+    "namespace": "wild-macbook-pro",
+    "content": "## Build and Environment\n\n- The `make test` target ...",
+    "path": ".wolfcastle/docs/knowledge/wild-macbook-pro.md",
+    "token_count": 342
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success (including when no knowledge file exists) |
+| 1 | `.wolfcastle/` not found or identity not configured |
+
+### Examples
+
+```bash
+# Display knowledge
+wolfcastle knowledge show
+
+# Get as JSON with token count
+wolfcastle knowledge show --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Identity not configured | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
 
 ---
 
