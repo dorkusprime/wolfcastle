@@ -54,7 +54,7 @@
       "id": "task-0005",
       "title": "Write Ruby/Rails class prompt",
       "description": "Write Ruby/Rails class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/ruby/rails.md"
@@ -65,7 +65,7 @@
       "id": "task-0006",
       "title": "Write Ruby/Sinatra class prompt",
       "description": "Write Ruby/Sinatra class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/ruby/sinatra.md"
