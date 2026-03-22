@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Add PID recycling edge case comment to tryCleanStaleLock",
       "description": "Add PID recycling edge case comment to tryCleanStaleLock",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/state/filelock.go"
@@ -26,9 +26,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in add-comment is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit": {
@@ -40,13 +41,18 @@
         "timestamp": "2026-03-22T23:12:11.569708Z",
         "task": "document-pid-recycling-edge-case-in-filelock/add-comment",
         "text": "Added PID recycling edge case comment to tryCleanStaleLock in internal/state/filelock.go"
+      },
+      {
+        "timestamp": "2026-03-22T23:12:52.49416Z",
+        "task": "document-pid-recycling-edge-case-in-filelock/add-comment",
+        "text": "Audit reviewed 1 file (internal/state/filelock.go, 128 lines). PASS. The change is a four-line comment above signalProcess in tryCleanStaleLock (lines 106-109) documenting the PID recycling edge case. Comment is technically accurate: PID reuse within the polling window causes a false-alive signal, leading to timeout rather than corruption because flock serializes access. No code changes, no new risk surfaces. Build and tests pass. Pre-existing discarded errors in Acquire (Truncate, Seek, Fprintf, Sync) and tryCleanStaleLock (Seek) are outside this node's scope. Quality: clean, well-placed documentation that says exactly what the reader needs to know, right where they need it."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T23:11:40.192149Z",
-    "result_summary": "Documented the PID recycling edge case in tryCleanStaleLock. The comment explains that if a process dies and its PID is reused within the polling window, signalProcess returns nil (alive), causing stale detection to miss the dead lock holder. The consequence is a timeout waiting for lock acquisition, not data corruption, because flock serialization still protects the underlying file."
+    "result_summary": "Added a concise comment to tryCleanStaleLock in internal/state/filelock.go documenting the PID recycling edge case: when a lock holder dies and another process inherits its PID within the polling window, signalProcess returns nil (alive), causing a timeout rather than corruption because flock still serializes access. The comment is accurate, well-placed, and audit-verified against the surrounding code."
   },
   "aars": {
     "task-0001": {
