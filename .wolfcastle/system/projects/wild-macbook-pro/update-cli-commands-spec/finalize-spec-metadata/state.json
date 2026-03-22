@@ -3,14 +3,14 @@
   "id": "finalize-spec-metadata",
   "name": "Finalize Spec Metadata",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Update intro paragraph and group counts",
       "description": "Update intro paragraph and group counts",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/specs/2026-03-12T00-06Z-cli-commands.md"
@@ -56,9 +56,33 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:30:22.060681Z",
+        "task": "update-cli-commands-spec/finalize-spec-metadata",
+        "text": "Updated CLI spec intro: changed group count from 6 to 7 to include Additional Commands (completion, help). The 60-command count and config/knowledge subcommand entries were already correct."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T23:29:23.880896Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T23:30:18.358493Z",
+      "objective": "Update the CLI spec intro paragraph to reflect accurate command counts and group listings",
+      "what_happened": "The 60-command count and config/knowledge subcommand entries were already updated by prior tasks (commits ee65a2a, ca6d317, etc.). The one remaining inaccuracy was the group count: '6 groups' omitted Additional Commands (completion, help). Updated to '7 groups' and added 'Additional Commands' to the parenthetical list.",
+      "went_well": [
+        "Prior tasks had already handled most of the work; only a single-line edit was needed"
+      ],
+      "improvements": [
+        "None; this was a straightforward metadata fix"
+      ],
+      "action_items": [
+        "None"
+      ]
+    }
   }
 }

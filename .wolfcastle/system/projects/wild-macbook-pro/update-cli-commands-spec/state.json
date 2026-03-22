@@ -9,12 +9,12 @@
     {
       "id": "add-missing-command-sections",
       "address": "update-cli-commands-spec/add-missing-command-sections",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "finalize-spec-metadata",
       "address": "update-cli-commands-spec/finalize-spec-metadata",
-      "state": "not_started"
+      "state": "in_progress"
     }
   ],
   "tasks": [

@@ -3,7 +3,7 @@
   "id": "add-missing-command-sections",
   "name": "Add Missing Command Sections",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -101,7 +101,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Add Missing Command Sections is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -143,8 +143,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T23:16:28.526636Z",
+    "completed_at": "2026-03-22T23:29:23.792113Z",
     "result_summary": "Added 15 command sections to the CLI commands spec covering all previously undocumented commands: execute and intake (lifecycle), config show/set/append/remove/unset (diagnostics), knowledge add/edit/prune/show (documentation), archive delete and restore (work management), and completion and help (builtins). Each section follows the established format with Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, and Error Cases. All content was derived from source code reading and --help output, cross-referenced against existing detailed specs where available. The leaf command count was updated to 60 and the subcommand groups list expanded to include config and knowledge. Audit verified accuracy against the actual cobra command tree and found no content gaps."
   },
   "aars": {

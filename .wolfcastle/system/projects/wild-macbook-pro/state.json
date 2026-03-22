@@ -767,7 +767,7 @@
     "update-cli-commands-spec/add-missing-command-sections": {
       "name": "Add Missing Command Sections",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "update-cli-commands-spec/add-missing-command-sections",
       "decomposition_depth": 0,
       "parent": "update-cli-commands-spec"
@@ -775,7 +775,7 @@
     "update-cli-commands-spec/finalize-spec-metadata": {
       "name": "Finalize Spec Metadata",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "update-cli-commands-spec/finalize-spec-metadata",
       "decomposition_depth": 0,
       "parent": "update-cli-commands-spec"
