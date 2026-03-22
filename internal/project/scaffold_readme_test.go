@@ -90,16 +90,15 @@ func TestScaffoldService_Init_GitignoreTracksREADMEs(t *testing.T) {
 	}
 
 	content := string(data)
+	// The gitignore uses explicit excludes. Verify key exclusions are present.
 	requiredPatterns := []string{
-		"!README.md",
-		"!system/README.md",
-		"!system/base/",
-		"!system/base/prompts/",
-		"!system/base/prompts/README.md",
+		"system/base/",
+		"system/local/",
+		"system/logs/",
 	}
 	for _, pattern := range requiredPatterns {
 		if !strings.Contains(content, pattern) {
-			t.Errorf(".gitignore should contain %q to track README files", pattern)
+			t.Errorf(".gitignore should contain %q to exclude non-tracked directories", pattern)
 		}
 	}
 }

@@ -574,21 +574,9 @@ func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string
 		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
 		return
 	}
-	// Use --force to override .wolfcastle/.gitignore's leading '*' rule.
-	// Without --force, git add won't stage new (untracked) files in a
-	// directory whose .gitignore starts with '*', even for whitelisted
-	// paths. The root .gitignore no longer blocks .wolfcastle/, so
-	// --force only overrides the nested gitignore.
-	for _, stateDir := range []string{
-		".wolfcastle/system/projects/",
-		".wolfcastle/system/custom/",
-		".wolfcastle/docs/",
-		".wolfcastle/archive/",
-	} {
-		cmd := exec.Command("git", "add", "--force", stateDir)
-		cmd.Dir = repoDir
-		_ = cmd.Run() // best-effort; directory may not exist
-	}
+	addStateCmd := exec.Command("git", "add", ".wolfcastle/")
+	addStateCmd.Dir = repoDir
+	_ = addStateCmd.Run() // best-effort; .wolfcastle/ may not exist
 
 	msg := fmt.Sprintf("wolfcastle: auto-commit partial work [%s]", taskID)
 	commitArgs := []string{"commit", "-m", msg}
