@@ -36,11 +36,12 @@
       "title": "Wire default.md as fallback class guidance in ContextBuilder",
       "description": "Wire default.md as fallback class guidance in ContextBuilder",
       "state": "in_progress",
-      "failure_count": 0,
+      "failure_count": 1,
       "deliverables": [
         "internal/pipeline/context_builder.go",
         "internal/pipeline/context_builder_test.go"
       ],
+      "last_failure_type": "no_terminal_marker",
       "body": "Modify ContextBuilder.Build() in internal/pipeline/context_builder.go so that every task receives class guidance. Current behavior: class guidance is injected only when task.Class is non-empty and Resolve succeeds; otherwise no class section appears. New behavior: (1) When task.Class is non-empty, resolve it via ClassRepository. If resolution succeeds, inject the resolved prompt. If resolution fails, fall back to default.md. (2) When task.Class is empty or unset, inject default.md directly. The fallback resolution should call classes.prompts.ResolveRaw('prompts/classes', 'default.md') or equivalent. The net effect: no task ever runs without a ## Class Guidance section. Update existing tests in context_builder_test.go to reflect the new fallback behavior. Add test cases for: empty class resolves to default.md, unknown class falls back to default.md, known class with missing prompt falls back to default.md.",
       "task_type": "implementation",
       "acceptance_criteria": [

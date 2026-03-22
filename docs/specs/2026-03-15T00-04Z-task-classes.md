@@ -129,9 +129,12 @@ The `--class` flag is accepted by `task add` and stored directly on the task. No
 
 ## Prompt Assembly
 
-The `ContextBuilder` in `internal/pipeline/context_builder.go` injects class guidance into the iteration context. When a task has a non-empty `Class` field, the builder calls `ClassRepository.Resolve(task.Class)` and, if resolution succeeds, appends a `## Class Guidance` section containing the prompt file's contents.
+The `ContextBuilder` injects two layers of class guidance into every task's iteration context:
 
-The class guidance appears after the task context and before the audit context in the assembled output. Tasks with no class (or an empty class, or a class that fails to resolve) get the context assembled without a class section.
+1. **Universal** (`prompts/classes/universal.md`): principles that apply to all work regardless of type. Always injected.
+2. **Class-specific**: resolved from the task's `Class` field. Coding tasks get a prompt from `prompts/classes/coding/`. Non-coding tasks (writing, research, audit) get a prompt from `prompts/classes/` directly.
+
+When a task has no class (empty or unset), the ContextBuilder injects `universal.md` + `coding/default.md`. When a class is set but fails to resolve, it falls back to `coding/default.md`. No task runs without class guidance.
 
 ```
 # Node: my-project
@@ -140,6 +143,9 @@ The class guidance appears after the task context and before the audit context i
 # Task: task-0001
 [task context]
 
+## Universal Guidance
+[contents of universal.md]
+
 ## Class Guidance
 [contents of the resolved class prompt file]
 
@@ -147,17 +153,47 @@ The class guidance appears after the task context and before the audit context i
 [audit state, breadcrumbs, gaps]
 ```
 
-### Prompt file resolution
+### File structure
 
-Class prompt files live under `prompts/classes/` and follow the same three-tier resolution as all other prompts, delegated through `PromptRepository.ResolveRaw`:
+```
+prompts/classes/
+  universal.md                # always injected for every task
+  coding/
+    default.md                # generic coding guidance (unclassified coding tasks)
+    go.md
+    python.md
+    typescript.md
+    ...
+    typescript/
+      react.md
+      vue.md
+      ...
+  writing.md
+  writing/
+    voice.md                  # separate so users can override voice independently
+  research.md
+  architecture.md
+  audit.md
+  design.md
+  devops.md
+  data.md
+  security.md
+  testing.md
+```
 
-1. `local/prompts/classes/<key>.md` (highest priority)
-2. `custom/prompts/classes/<key>.md`
-3. `base/prompts/classes/<key>.md` (ships with Wolfcastle)
+Language class files live under `coding/` at the top level (`coding/go.md`, `coding/python.md`). Framework files live in subdirectories under `coding/` (`coding/typescript/react.md`). Non-language classes live directly under `classes/` (`writing.md`, `audit.md`).
 
-Users override a built-in class's behavior by placing a file with the same name in `custom/` or `local/`. Adding a new class means adding an entry in the config and dropping a `.md` file in the appropriate tier.
+### Resolution
 
-**Future work:** No class prompt `.md` files have been authored yet. The resolution infrastructure works, but there is nothing to resolve.
+Class prompt files follow the same three-tier resolution as all other prompts:
+
+1. `local/prompts/classes/<path>` (highest priority)
+2. `custom/prompts/classes/<path>`
+3. `base/prompts/classes/<path>` (ships with Wolfcastle)
+
+For coding classes, the resolver prepends `coding/` to the key: class `go` resolves to `coding/go.md`. Class `typescript/react` resolves to `coding/typescript/react.md`, falling back to `coding/typescript.md`.
+
+Users override a built-in class's behavior by placing a file with the same path in `custom/` or `local/`. Adding a new class means adding an entry in the config and dropping a `.md` file in the appropriate tier.
 
 ---
 
