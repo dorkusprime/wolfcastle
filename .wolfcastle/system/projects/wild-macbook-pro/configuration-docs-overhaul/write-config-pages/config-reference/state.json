@@ -3,7 +3,7 @@
   "id": "config-reference",
   "name": "Config Reference",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -24,7 +24,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Config Reference is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -51,8 +51,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T18:53:23.739495Z",
+    "completed_at": "2026-03-22T19:01:44.789065Z",
     "result_summary": "Produced docs/humans/config-reference.md, a complete field-level reference for every Wolfcastle configuration option. The document covers all 19 sections of the Config struct (version, identity, models, pipeline, daemon, logs, retries, failure, git, overlap_advisory, summary, docs, validation, prompts, doctor, unblock, audit, archive, task_classes) with types, defaults from Defaults(), descriptions, and JSON examples. Nested structs are documented inline. Audit found and fixed one omission (the version field). All content verified against internal/config/types.go and config.go."
   },
   "aars": {

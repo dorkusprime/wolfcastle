@@ -101,7 +101,7 @@
     "configuration-docs-overhaul/write-config-pages/config-reference": {
       "name": "Config Reference",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "configuration-docs-overhaul/write-config-pages/config-reference",
       "decomposition_depth": 0,
       "parent": "configuration-docs-overhaul/write-config-pages"
@@ -117,7 +117,7 @@
     "configuration-docs-overhaul/write-config-pages/task-classes": {
       "name": "Task Classes",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "configuration-docs-overhaul/write-config-pages/task-classes",
       "decomposition_depth": 0,
       "parent": "configuration-docs-overhaul/write-config-pages"

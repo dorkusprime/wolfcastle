@@ -3,14 +3,14 @@
   "id": "task-classes",
   "name": "Task Classes",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Write task-classes.md",
       "description": "Write task-classes.md",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/task-classes.md"
@@ -38,9 +38,35 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T19:04:24.709631Z",
+        "task": "configuration-docs-overhaul/write-config-pages/task-classes",
+        "text": "Wrote task-classes.md with all nine sections: concept overview, usage with fallback, language/framework/discipline tables from Defaults(), custom class creation, overrides, custom frameworks, and universal prompt. Cross-references configuration.md and config-reference.md."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T19:01:44.9009Z",
+    "result_summary": "Wrote docs/humans/task-classes.md, the dedicated documentation page for the task class system. Covers what classes are, how to use them with --class, full tables of all built-in language, framework, and discipline classes pulled from Defaults(), and guides for creating custom classes, overriding built-ins, adding custom frameworks, and working with the universal prompt. Cross-references the Configuration Guide and Config Reference."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T19:04:23.288721Z",
+      "objective": "Write docs/humans/task-classes.md covering the full class system",
+      "what_happened": "Created task-classes.md from the task classes spec, ClassDef type in types.go, ClassRepository in class_repository.go, and Defaults() in config.go. Organized into nine sections matching the task description: concept overview, usage, language tables, framework tables, discipline classes, custom creation, overrides, custom frameworks, and the universal prompt.",
+      "went_well": [
+        "Tables pulled directly from Defaults() are accurate and grouped by category as requested",
+        "Cross-references to configuration.md and config-reference.md are in place"
+      ],
+      "improvements": [
+        "The config-reference.md task_classes anchor may need verification once that section is finalized"
+      ],
+      "action_items": [
+        "Deep-linking pass should verify all cross-reference anchors resolve correctly"
+      ]
+    }
   }
 }
