@@ -154,6 +154,11 @@
         "timestamp": "2026-03-22T07:48:39.571702Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
         "text": "Authored SQL class prompt (59 lines) covering idiomatic style, dialect awareness, migration conventions, testing patterns, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T07:50:44.348282Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored R class prompt (66 lines) covering idiomatic style, devtools/testthat tooling, testing conventions, and common pitfalls [task-0005]"
       }
     ],
     "gaps": [],
@@ -224,6 +229,22 @@
       ],
       "action_items": [
         "If sql/postgres or sql/mysql sub-classifications are added later, those prompts can extend this base with engine-specific optimization and extension guidance"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T07:50:42.792759Z",
+      "objective": "Author the R language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/r.md at 66 lines. Matched the established format from go.md, shell.md, and other existing prompts. Organized into five sections: Style (tidyverse conventions, native pipe vs magrittr, tibbles, vectorized operations, tidy evaluation with curly-curly, namespace qualification, assignment operator), Build and Test (devtools workflow, roxygen2 documentation, lintr static analysis, styler formatting, renv dependency management), Testing (testthat edition 3, test_that blocks, typed expect_* assertions, withr for temporary state, snapshot testing), and Common Pitfalls (NSE surprises, 1-based indexing with seq_along/seq_len, factor vs character, copy-on-modify memory implications, NA propagation, silent namespace conflicts with conflicted package).",
+      "went_well": [
+        "Covered both tidyverse and base R contexts with guidance on when each is appropriate",
+        "Common pitfalls section addresses six distinct issues including the subtle seq_len vs 1:n trap and NA propagation semantics"
+      ],
+      "improvements": [
+        "Could add guidance on R6 vs S4 class systems and Rcpp integration if line budget allowed"
+      ],
+      "action_items": [
+        "If an r/shiny or r/package sub-classification is added later, those prompts can extend this base with framework-specific guidance"
       ]
     }
   }
