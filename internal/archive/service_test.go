@@ -524,3 +524,17 @@ func TestDelete_RejectsUnknownNode(t *testing.T) {
 		t.Errorf("error should mention 'not found', got: %v", err)
 	}
 }
+
+func TestService_ClkFallsBackToRealClock(t *testing.T) {
+	t.Parallel()
+	svc := &Service{Clock: nil}
+	c := svc.clk()
+	if c == nil {
+		t.Fatal("clk() returned nil when Clock is nil")
+	}
+	// The returned clock should produce a time near now.
+	now := c.Now()
+	if time.Since(now) > time.Second {
+		t.Errorf("fallback clock returned a time too far from now: %v", now)
+	}
+}

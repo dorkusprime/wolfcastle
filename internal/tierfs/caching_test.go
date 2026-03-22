@@ -38,6 +38,24 @@ func (s *spyResolver) TierDirs() []string {
 	return s.inner.TierDirs()
 }
 
+func TestDefaultTierTTLs_ReturnsPositiveDurations(t *testing.T) {
+	t.Parallel()
+	ttls := DefaultTierTTLs()
+	if ttls.Base <= 0 {
+		t.Errorf("Base TTL should be positive, got %v", ttls.Base)
+	}
+	if ttls.Custom <= 0 {
+		t.Errorf("Custom TTL should be positive, got %v", ttls.Custom)
+	}
+	if ttls.Local <= 0 {
+		t.Errorf("Local TTL should be positive, got %v", ttls.Local)
+	}
+	// Base should be much longer than custom/local
+	if ttls.Base <= ttls.Custom {
+		t.Errorf("Base TTL (%v) should be longer than Custom TTL (%v)", ttls.Base, ttls.Custom)
+	}
+}
+
 func TestCachingResolver_CachedReadSkipsDisk(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/base/f.md", "hello")
