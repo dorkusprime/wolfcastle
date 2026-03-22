@@ -70,6 +70,95 @@ func TestPromptRepository_Resolve_InvalidTemplateErrors(t *testing.T) {
 	}
 }
 
+func TestPromptRepository_ResolveTemplate_RawWhenNilCtx(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithTemplate("artifacts/adr.md.tmpl", "# ADR: static content")
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	got, err := repo.ResolveTemplate("artifacts/adr.md", nil)
+	if err != nil {
+		t.Fatalf("ResolveTemplate() error: %v", err)
+	}
+	if got != "# ADR: static content" {
+		t.Errorf("expected raw content, got %q", got)
+	}
+}
+
+func TestPromptRepository_ResolveTemplate_ExecutesTemplate(t *testing.T) {
+	t.Parallel()
+	type ADRData struct {
+		Title string
+		Date  string
+	}
+	env := testutil.NewEnvironment(t).
+		WithTemplate("artifacts/adr.md.tmpl", "# {{.Title}}\nDate: {{.Date}}")
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	got, err := repo.ResolveTemplate("artifacts/adr.md", ADRData{Title: "Use PostgreSQL", Date: "2026-03-22"})
+	if err != nil {
+		t.Fatalf("ResolveTemplate() error: %v", err)
+	}
+	want := "# Use PostgreSQL\nDate: 2026-03-22"
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+func TestPromptRepository_ResolveTemplate_MissingErrors(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	_, err := repo.ResolveTemplate("nonexistent", nil)
+	if err == nil {
+		t.Fatal("expected error for missing template")
+	}
+	if !strings.HasPrefix(err.Error(), "templates:") {
+		t.Errorf("expected error prefixed with 'templates:', got: %v", err)
+	}
+}
+
+func TestPromptRepository_ResolveTemplate_InvalidTemplateErrors(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithTemplate("broken.tmpl", "Hello, {{.Name")
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	_, err := repo.ResolveTemplate("broken", map[string]string{"Name": "Alice"})
+	if err == nil {
+		t.Fatal("expected error for invalid template")
+	}
+	if !strings.HasPrefix(err.Error(), "templates:") {
+		t.Errorf("expected error prefixed with 'templates:', got: %v", err)
+	}
+}
+
+func TestPromptRepository_ResolveTemplate_TierOverride(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithTemplate("artifacts/spec.md.tmpl", "base: {{.Title}}")
+
+	// Write custom tier override.
+	tierDirs := env.Tiers.TierDirs()
+	customDir := filepath.Join(tierDirs[1], "templates", "artifacts")
+	if err := os.MkdirAll(customDir, 0o755); err != nil {
+		t.Fatalf("creating custom dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(customDir, "spec.md.tmpl"), []byte("custom: {{.Title}}"), 0o644); err != nil {
+		t.Fatalf("writing custom template: %v", err)
+	}
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	got, err := repo.ResolveTemplate("artifacts/spec.md", struct{ Title string }{"My Spec"})
+	if err != nil {
+		t.Fatalf("ResolveTemplate() error: %v", err)
+	}
+	if got != "custom: My Spec" {
+		t.Errorf("expected custom to override base, got %q", got)
+	}
+}
+
 func TestPromptRepository_ResolveRaw_ReturnsContent(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t).
