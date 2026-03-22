@@ -1,11 +1,15 @@
 package daemon
 
 import (
+	"bufio"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -160,16 +164,41 @@ func runJSONMode(ctx context.Context, logDir string, session logrender.Session, 
 	return replayJSON(session)
 }
 
-// replayJSON writes raw lines from the session's files to stdout.
+// replayJSON streams raw lines from the session's files to stdout,
+// decompressing .gz files on the fly.
 func replayJSON(session logrender.Session) error {
 	for _, path := range session.Files {
-		data, err := os.ReadFile(path)
-		if err != nil {
+		if err := replayJSONFile(path); err != nil {
 			continue
 		}
-		os.Stdout.Write(data)
 	}
 	return nil
+}
+
+func replayJSONFile(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	var reader io.Reader = f
+	if strings.HasSuffix(path, ".gz") {
+		gz, err := gzip.NewReader(f)
+		if err != nil {
+			return err
+		}
+		defer gz.Close()
+		reader = gz
+	}
+
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 0, 256*1024), 1024*1024)
+	for scanner.Scan() {
+		os.Stdout.Write(scanner.Bytes())
+		os.Stdout.Write([]byte{'\n'})
+	}
+	return scanner.Err()
 }
 
 // followJSON tails the log directory and writes raw lines to stdout.
