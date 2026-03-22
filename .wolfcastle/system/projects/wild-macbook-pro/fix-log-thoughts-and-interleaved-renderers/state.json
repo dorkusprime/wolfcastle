@@ -9,12 +9,12 @@
     {
       "id": "fix-renderer-output",
       "address": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "consolidate-daemon-foreground-output",
       "address": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
-      "state": "not_started"
+      "state": "in_progress"
     }
   ],
   "tasks": [

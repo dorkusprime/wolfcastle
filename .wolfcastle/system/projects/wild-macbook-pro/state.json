@@ -105,7 +105,7 @@
     "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output": {
       "name": "Consolidate Daemon Foreground Output",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
       "decomposition_depth": 0,
       "parent": "fix-log-thoughts-and-interleaved-renderers"
@@ -113,7 +113,7 @@
     "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output": {
       "name": "Fix Renderer Output",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
       "decomposition_depth": 0,
       "parent": "fix-log-thoughts-and-interleaved-renderers"

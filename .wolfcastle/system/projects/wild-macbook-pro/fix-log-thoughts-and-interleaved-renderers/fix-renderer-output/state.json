@@ -3,7 +3,7 @@
   "id": "fix-renderer-output",
   "name": "Fix Renderer Output",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -64,7 +64,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Fix Renderer Output is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -106,8 +106,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T18:12:55.460906Z",
+    "completed_at": "2026-03-22T18:29:24.022529Z",
     "result_summary": "Fixed the thoughts and interleaved log renderers that were dumping raw Claude API NDJSON envelopes instead of human-readable text. Introduced extractThoughtText to parse JSON envelopes and extract only text content blocks from assistant messages, dropping system init markers, tool_use summaries, thinking blocks, and result records. Both renderers now produce spec-compliant output: thoughts mode emits bare text lines, interleaved mode emits timestamped and indented text with stage headers. All 96 tests pass including new regression tests for envelope extraction, multi-block handling, and non-text content filtering."
   },
   "aars": {

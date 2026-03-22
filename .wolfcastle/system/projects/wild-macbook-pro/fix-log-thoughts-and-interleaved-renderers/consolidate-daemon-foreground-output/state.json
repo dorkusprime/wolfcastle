@@ -3,14 +3,14 @@
   "id": "consolidate-daemon-foreground-output",
   "name": "Consolidate Daemon Foreground Output",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Wire wolfcastle start foreground to InterleavedRenderer",
       "description": "Wire wolfcastle start foreground to InterleavedRenderer",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "cmd/daemon/start.go"
@@ -60,6 +60,7 @@
     "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T18:29:24.117608Z"
   }
 }

@@ -3,13 +3,18 @@ package daemon
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/dorkusprime/wolfcastle/internal/validate"
 	"github.com/spf13/cobra"
 )
@@ -137,6 +142,12 @@ Examples:
 				return err
 			}
 
+			// Suppress the logger's console mirror: the interleaved
+			// renderer handles all display, so mirroring records to
+			// stderr would be redundant noise.
+			d.Logger.Console = io.Discard
+			d.InboxLogger.Console = io.Discard
+
 			// Write PID file for foreground mode too, so `wolfcastle status`
 			// can detect a running daemon regardless of how it was started.
 			if err := app.Daemon.WritePID(os.Getpid()); err != nil {
@@ -144,7 +155,27 @@ Examples:
 			}
 			defer func() { _ = app.Daemon.RemovePID() }()
 
-			return d.RunWithSupervisor(context.Background())
+			ctx, cancel := signal.NotifyContext(context.Background(), signals.Shutdown...)
+			defer cancel()
+
+			// Start the interleaved renderer goroutine. It tails the
+			// log directory for new NDJSON files and renders them to
+			// stdout, identical to "wolfcastle log -i -f".
+			logDir := filepath.Join(app.Config.Root(), "system", "logs")
+			reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
+			records := reader.Records(ctx)
+			renderDone := make(chan struct{})
+			go func() {
+				defer close(renderDone)
+				ir := logrender.NewInterleavedRenderer(os.Stdout)
+				ir.Render(ctx, records)
+			}()
+
+			runErr := d.RunWithSupervisor(ctx)
+			cancel()
+			<-renderDone
+
+			return runErr
 		},
 	}
 }
