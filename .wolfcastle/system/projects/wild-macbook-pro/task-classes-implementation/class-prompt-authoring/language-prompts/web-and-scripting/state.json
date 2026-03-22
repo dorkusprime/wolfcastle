@@ -66,7 +66,7 @@
       "id": "task-0005",
       "title": "Author PHP prompt",
       "description": "Author PHP prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/php.md"
@@ -80,7 +80,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Web and Scripting is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -117,14 +117,37 @@
         "timestamp": "2026-03-22T07:37:53.607294Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
         "text": "Authored PHP class prompt (php.md, 55 lines) covering style, tooling, testing, and pitfalls [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T07:39:45.97489Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Audit complete. Reviewed 5 files: python.md (55 lines), javascript.md (59 lines), typescript.md (59 lines), ruby.md (53 lines), php.md (55 lines). Total 281 lines of prompt content. PASS. All prompts follow the four-section structure (Style, Build and Test, Testing, Common Pitfalls) with the codebase-deference opener, matching go.md and kotlin.md reference patterns. Line counts within 40-80 target. No factual errors, no copy-paste duplication, no structural inconsistencies. Build and tests pass. Each prompt covers language-specific idioms, tooling, testing conventions, and pitfalls with appropriate depth. PHP correctly notes the 0=='foo' behavior change in 8.0. TypeScript properly differentiates from JavaScript with type-system-specific guidance (satisfies, branded types, type-level tests). Quality: uniformly high across all five prompts, well-crafted and accurate."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T07:27:12.020083Z"
+    "started_at": "2026-03-22T07:27:12.020083Z",
+    "result_summary": "Authored five language prompts for the coding task class covering the web and scripting language group: Python (55 lines), JavaScript (59 lines), TypeScript (59 lines), Ruby (53 lines), and PHP (55 lines). Each prompt follows the established four-section format (Style, Build and Test, Testing, Common Pitfalls) with a codebase-deference opening clause, matching the patterns set by the Go and Kotlin reference prompts. All prompts fall within the 40-80 line target, cover language-specific idioms, tooling, testing conventions, and common pitfalls with appropriate depth. Audit found no factual errors, no structural inconsistencies, and no issues requiring remediation."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T07:39:59.335212Z",
+      "objective": "Verify all work in the web-and-scripting node is complete and correct",
+      "what_happened": "Reviewed all five language prompts (python.md, javascript.md, typescript.md, ruby.md, php.md) against the go.md and kotlin.md reference prompts. Verified build and test suite pass. Checked structural consistency, factual accuracy, line counts, and coverage of required topics.",
+      "went_well": [
+        "All five prompts are structurally consistent with each other and with the reference prompts",
+        "No factual errors found; language-specific details are accurate (e.g., PHP 8.0 comparison changes, TypeScript satisfies semantics)",
+        "Clean separation between JavaScript and TypeScript prompts despite shared ecosystem"
+      ],
+      "improvements": [
+        "None identified; the work is clean and complete"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T07:29:13.614308Z",
