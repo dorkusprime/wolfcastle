@@ -24,7 +24,7 @@
       "id": "task-0002",
       "title": "Author Kotlin prompt",
       "description": "Author Kotlin prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/kotlin.md"
@@ -38,7 +38,7 @@
       "id": "task-0003",
       "title": "Author Scala prompt",
       "description": "Author Scala prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/scala.md"
@@ -88,6 +88,11 @@
         "timestamp": "2026-03-22T07:20:37.660688Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
         "text": "Authored Kotlin class prompt (51 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T07:22:34.405771Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Authored Scala class prompt (51 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0003]"
       }
     ],
     "gaps": [],
@@ -126,6 +131,22 @@
       ],
       "action_items": [
         "If Kotlin coroutines warrant deeper coverage, consider a dedicated concurrency-focused class prompt similar to Go's concurrency section"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T07:22:33.005015Z",
+      "objective": "Author the Scala coding class prompt to replace default.md for Scala-classified tasks",
+      "what_happened": "Wrote internal/project/templates/prompts/classes/coding/scala.md (51 lines). Followed the established format from java.md, kotlin.md, and go.md: codebase-deference preamble, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered case classes, sealed traits, pattern matching, immutable collections, for-comprehensions, type classes, val preference, Either for errors. Build section covers sbt, scala-cli, scalafmt, scalafix, Wartremover. Testing covers ScalaTest, MUnit, specs2, ScalaCheck property-based testing, trait-based fixtures. Five common pitfalls: implicit resolution complexity (with Scala 3 given/using note), variance annotations, blocking in Future context, inheritance over composition, and eager Future evaluation.",
+      "went_well": [
+        "Existing JVM prompts (java.md, kotlin.md) provided consistent structural template",
+        "Covered both Scala 2 and Scala 3 idioms where they diverge (implicit vs given/using)"
+      ],
+      "improvements": [
+        "Could have included a section on effect systems (Cats Effect IO, ZIO) as a dedicated topic, but the task description didn't call for it and the line budget was better spent on core language idioms; effect types are mentioned in the eager Future pitfall"
+      ],
+      "action_items": [
+        "If Scala effect systems (Cats Effect, ZIO) warrant deeper coverage, consider a dedicated functional-programming class prompt"
       ]
     }
   }
