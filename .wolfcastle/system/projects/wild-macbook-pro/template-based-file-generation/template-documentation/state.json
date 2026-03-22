@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Document template override mechanism in configuration.md",
       "description": "Document template override mechanism in configuration.md",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/configuration.md"
@@ -27,7 +27,7 @@
       "id": "task-0002",
       "title": "Update CLI docs and CONTRIBUTING.md",
       "description": "Update CLI docs and CONTRIBUTING.md",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "CONTRIBUTING.md"
@@ -65,7 +65,8 @@
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T22:57:41.825491Z"
+    "started_at": "2026-03-22T22:57:41.825491Z",
+    "result_summary": "Documented the template override mechanism in docs/humans/configuration.md. The section covers three-tier template resolution for artifact templates (ADR, spec, task, audit-task), lists all template variables against the Go source structs, explains why scaffold templates are not overridable through tiers, and provides a worked example customizing the ADR format."
   },
   "aars": {
     "task-0001": {

@@ -33,6 +33,10 @@ wolfcastle spec create --node backend/auth "Authentication Protocol"
 | 0 | Spec created. |
 | 1 | Not initialized. |
 
+## Template Customization
+
+The output format is rendered from a Go `text/template` at `artifacts/spec.md.tmpl`, resolved through the three-tier system (base < custom < local). To customize the spec format for your team, place an override at `.wolfcastle/system/custom/artifacts/spec.md.tmpl`. Personal overrides go in `local/`. See the [Template Overrides](../configuration.md#template-overrides) section of the configuration guide for details and available template variables.
+
 ## Consequences
 
 - Creates a new Markdown file in `.wolfcastle/docs/specs/`.
