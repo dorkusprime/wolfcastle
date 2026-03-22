@@ -31,7 +31,7 @@
       "id": "task-0002",
       "title": "Add RenderToFile convenience method",
       "description": "Add RenderToFile convenience method",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/repository.go"
@@ -53,7 +53,7 @@
       "id": "task-0003",
       "title": "Define typed context structs for all template variables",
       "description": "Define typed context structs for all template variables",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/template_data.go"
