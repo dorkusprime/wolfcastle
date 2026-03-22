@@ -10,12 +10,13 @@
       "id": "task-0001",
       "title": "Author Go prompt",
       "description": "Author Go prompt",
-      "state": "in_progress",
-      "failure_count": 0,
+      "state": "complete",
+      "failure_count": 1,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/go.md"
       ],
-      "body": "Write internal/project/templates/prompts/classes/coding/go.md (40-80 lines). This file REPLACES coding/default.md for Go-classified tasks. Cover: idiomatic Go style (accept interfaces/return structs, error wrapping with %w, table-driven tests, short variable names in tight scopes), build/test tooling (go build, go test ./..., go vet, gofmt/goimports, golangci-lint), testing conventions (testify or stdlib, subtests, testdata/), and common pitfalls (nil pointer on interface, goroutine leaks, deferred close in loops, shadowed err). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "last_failure_type": "no_terminal_marker",
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/go.md (40-80 lines). This file REPLACES coding/default.md for Go-classified tasks. Cover: idiomatic Go style (accept interfaces/return structs, error wrapping with %w, table-driven tests, short variable names in tight scopes), build/test tooling (go build, go test ./..., go vet, gofmt/goimports, golangci-lint), testing conventions (testify or stdlib, subtests, testdata/), and common pitfalls (nil pointer on interface, goroutine leaks, deferred close in loops, shadowed err). Use 'prefer X' phrasing. ZERO wolfcastle content.",
       "references": [
         ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
       ]
@@ -24,12 +25,12 @@
       "id": "task-0002",
       "title": "Author Rust prompt",
       "description": "Author Rust prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/rust.md"
       ],
-      "body": "Write internal/project/templates/prompts/classes/coding/rust.md (40-80 lines). REPLACES coding/default.md for Rust-classified tasks. Cover: ownership/borrowing idioms, Result/Option patterns (prefer ? operator, avoid unwrap in library code), build/test tooling (cargo build, cargo test, cargo clippy, cargo fmt, rustfmt.toml), testing conventions (unit tests in same file via #[cfg(test)] mod, integration tests in tests/), and common pitfalls (lifetime annotations, borrow checker fights from over-borrowing, String vs \u0026str at API boundaries, async runtime selection). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/rust.md (40-80 lines). REPLACES coding/default.md for Rust-classified tasks. Cover: ownership/borrowing idioms, Result/Option patterns (prefer ? operator, avoid unwrap in library code), build/test tooling (cargo build, cargo test, cargo clippy, cargo fmt, rustfmt.toml), testing conventions (unit tests in same file via #[cfg(test)] mod, integration tests in tests/), and common pitfalls (lifetime annotations, borrow checker fights from over-borrowing, String vs \u0026str at API boundaries, async runtime selection). Use 'prefer X' phrasing. ZERO wolfcastle content.",
       "references": [
         ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
       ]
@@ -43,7 +44,7 @@
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/cpp.md"
       ],
-      "body": "Write internal/project/templates/prompts/classes/coding/cpp.md (40-80 lines). REPLACES coding/default.md for C++-classified tasks. Cover: modern C++ idioms (RAII, smart pointers over raw, move semantics, constexpr where appropriate), build/test tooling (CMake, Make, clang-tidy, clang-format, cppcheck), testing conventions (Google Test, Catch2, CTest integration), and common pitfalls (undefined behavior, dangling references, implicit conversions, header-only vs compiled libraries, include-what-you-use). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/cpp.md (40-80 lines). REPLACES coding/default.md for C++-classified tasks. Cover: modern C++ idioms (RAII, smart pointers over raw, move semantics, constexpr where appropriate), build/test tooling (CMake, Make, clang-tidy, clang-format, cppcheck), testing conventions (Google Test, Catch2, CTest integration), and common pitfalls (undefined behavior, dangling references, implicit conversions, header-only vs compiled libraries, include-what-you-use). Use 'prefer X' phrasing. ZERO wolfcastle content.",
       "references": [
         ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
       ]
@@ -57,7 +58,7 @@
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/c.md"
       ],
-      "body": "Write internal/project/templates/prompts/classes/coding/c.md (40-80 lines). REPLACES coding/default.md for C-classified tasks. Cover: idiomatic C style (explicit memory management, consistent error return patterns, defensive initialization), build/test tooling (Make/CMake, gcc/clang, valgrind, AddressSanitizer, clang-format), testing conventions (Unity, CMocka, or project-established framework), and common pitfalls (buffer overflows, use-after-free, null dereference, integer overflow, missing include guards, POSIX portability). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/c.md (40-80 lines). REPLACES coding/default.md for C-classified tasks. Cover: idiomatic C style (explicit memory management, consistent error return patterns, defensive initialization), build/test tooling (Make/CMake, gcc/clang, valgrind, AddressSanitizer, clang-format), testing conventions (Unity, CMocka, or project-established framework), and common pitfalls (buffer overflows, use-after-free, null dereference, integer overflow, missing include guards, POSIX portability). Use 'prefer X' phrasing. ZERO wolfcastle content.",
       "references": [
         ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
       ]
@@ -78,10 +79,55 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T07:04:00.588578Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Authored Go class prompt (80 lines) covering style, build/test, testing, concurrency, and pitfalls. Committed as d172f44."
+      },
+      {
+        "timestamp": "2026-03-22T07:05:52.443492Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Authored Rust class prompt (61 lines) covering style, build/test, testing, ownership/lifetimes, async, and pitfalls. Committed as 1e65118."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T06:59:35.929487Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T07:03:59.390785Z",
+      "objective": "Author the Go class prompt that replaces coding/default.md for Go-classified tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/go.md at exactly 80 lines. Studied the existing default.md and universal.md to avoid duplicating generic coding guidance. Structured into five sections: Style, Build and Test, Testing, Concurrency, and Common Pitfalls. Used 'prefer X' phrasing throughout. Includes a table-driven test code example. Contains zero wolfcastle-specific content.",
+      "went_well": [
+        "The section structure mirrors the concerns called out in the task description (idiomatic style, build/test tooling, testing conventions, common pitfalls) with concurrency as a natural addition for Go",
+        "Hitting the 80-line target required iterative trimming without sacrificing substance"
+      ],
+      "improvements": [
+        "Could have included guidance on module versioning and go.sum management, but line budget didn't allow it"
+      ],
+      "action_items": [
+        "If a Go-specific testing section on benchmarks (b.Run, b.ResetTimer) is desired, it would need a line budget increase or a separate prompt fragment"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T07:05:51.474673Z",
+      "objective": "Author the Rust class prompt that replaces coding/default.md for Rust-classified tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/rust.md at 61 lines. Structured into six sections: Style, Build and Test, Testing, Ownership and Lifetimes, Async, and Common Pitfalls. Followed the same pattern as go.md, using 'prefer X' phrasing throughout. Covered all required topics: ownership/borrowing idioms, Result/Option patterns with ? operator, cargo tooling, testing conventions (#[cfg(test)] and tests/ directory), lifetime annotations, borrow checker guidance, String vs \u0026str at API boundaries, and async runtime selection.",
+      "went_well": [
+        "The section split of Ownership/Lifetimes and Async as separate sections (beyond the Go prompt's structure) better reflects the distinctive concerns of Rust",
+        "61 lines gave enough room for all required topics without padding"
+      ],
+      "improvements": [
+        "Could have included guidance on feature flags and conditional compilation, but that felt outside the core coding prompt scope"
+      ],
+      "action_items": [
+        "If unsafe code guidance is desired, it would need its own section or a line budget increase"
+      ]
+    }
   }
 }
