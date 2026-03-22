@@ -3,7 +3,7 @@
   "id": "daemon-commit-logic",
   "name": "Daemon Commit Logic",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -76,7 +76,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Daemon Commit Logic is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -115,8 +115,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T20:29:35.7269Z",
+    "completed_at": "2026-03-22T20:50:54.617328Z",
     "result_summary": "Refactored the daemon's post-iteration commit logic from a single autoCommitPartialWork function into a config-driven commitAfterIteration that respects auto_commit, commit_on_success, commit_on_failure, and commit_state flags, with spec-compliant commit messages. Implemented staging area preservation using a separate GIT_INDEX_FILE so daemon commits never touch the user's .git/index. Added commitDirect as a fallback when temp index creation fails. The implementation is backed by 14 new unit and integration tests covering all flag combinations, plus 4 tests verifying byte-level index preservation, working tree safety, temp file cleanup, and clean-tree skip behavior. An ADR documents the separate-index decision over the stash-based alternative. Audit found no correctness, security, or concurrency issues; all findings were cosmetic."
   },
   "aars": {

@@ -3,14 +3,14 @@
   "id": "prompt-cleanup",
   "name": "Prompt Cleanup",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Remove Phase H and git instructions from execute.md",
       "description": "Remove Phase H and git instructions from execute.md",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         ".wolfcastle/system/base/prompts/stages/execute.md"
@@ -64,9 +64,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T20:52:28.764462Z",
+        "task": "deterministic-git-activity/prompt-cleanup",
+        "text": "Removed Phase H (Commit), all git add/commit instructions, and rewrote Boundaries to prohibit agent git usage. Renumbered phases G-I. Updated rules and WOLFCASTLE_COMPLETE docs."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T20:50:54.703178Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T20:52:23.095645Z",
+      "objective": "Remove git instructions from execute.md so the daemon owns all git operations",
+      "what_happened": "Edited .wolfcastle/system/base/prompts/stages/execute.md: removed Phase H (Commit) entirely, renumbered phases F→G→H→I for contiguity, rewrote Boundaries section to prohibit git commands instead of directing where to commit, removed 'Git progress is the hard gate' line, updated WOLFCASTLE_COMPLETE description to reference daemon committing, replaced 'Commit before signaling completion' rule with 'Never run git commands' rule.",
+      "went_well": [
+        "The only remaining git add/commit mention is in the Do NOT list, which is correct",
+        "Phase lettering is now contiguous A through I with no gaps"
+      ],
+      "improvements": [
+        "The Boundaries section still mentions worktrees; once the daemon fully owns branch management, that guidance may need a second pass"
+      ],
+      "action_items": [
+        "Downstream docs (AGENTS.md, how-it-works.md) still reference agent commits and need updating per the spec"
+      ]
+    }
   }
 }
