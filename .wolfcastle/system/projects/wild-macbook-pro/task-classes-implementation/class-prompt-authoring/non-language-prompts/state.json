@@ -84,6 +84,11 @@
         "timestamp": "2026-03-22T09:25:27.473861Z",
         "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
         "text": "Authored audit.md (35 lines) and testing.md (43 lines). Researched Fagan/IEEE 1028/OWASP/NASA for audit; xUnit Patterns/Google flaky test research/Fowler test pyramid/Hypothesis PBT for testing. Both follow established class prompt conventions. Zero wolfcastle-specific content."
+      },
+      {
+        "timestamp": "2026-03-22T09:29:06.479808Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Authored design.md (33 lines), devops.md (39 lines), data.md (39 lines), and security.md (43 lines). Grounded in WCAG 2.2, Material Design 3, Apple HIG, OWASP Top 10, and current DevOps/data engineering practices. All follow established class prompt conventions. Zero wolfcastle-specific content."
       }
     ],
     "gaps": [],
@@ -138,6 +143,22 @@
       ],
       "action_items": [
         "Consider adding testing/go.md or testing/python.md companions for framework-specific test patterns"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T09:29:04.563074Z",
+      "objective": "Author design.md, devops.md, data.md, and security.md class prompts for non-language disciplines",
+      "what_happened": "Created four files: design.md (33 lines) covers user goal identification, interaction sequences, edge states, accessibility per WCAG 2.2 AA, responsive design, and design system consistency referencing Material Design 3 and Apple HIG. devops.md (39 lines) covers Dockerfile multi-stage builds and layer caching, CI/CD idempotency and caching, secrets management, infrastructure as code with Terraform patterns, progressive deployment (canary/blue-green), and alerting with runbooks. data.md (39 lines) covers schema naming and precision, pipeline idempotency, boundary validation, ELT vs ETL, data contracts, null handling, freshness monitoring, SQL style, and visualization. security.md (43 lines) covers threat modeling with attack paths, input validation with context-encoding, authn/authz separation, dependency auditing, secrets management, security headers, TLS enforcement, and vulnerability disclosure processes. All follow the established conventions from prior tasks.",
+      "went_well": [
+        "All four prompts landed within the 30-60 line budget without padding",
+        "Grounded in current standards: WCAG 2.2 AA, Material Design 3, Apple HIG, OWASP Top 10, and established DevOps tooling"
+      ],
+      "improvements": [
+        "The devops prompt is tool-aware (Docker, Terraform, GitHub Actions) which makes it less timeless than the language-agnostic prompts; a future revision might separate tool-specific guidance into companions"
+      ],
+      "action_items": [
+        "Consider adding devops/kubernetes.md or devops/aws.md companions for platform-specific infrastructure patterns"
       ]
     }
   }
