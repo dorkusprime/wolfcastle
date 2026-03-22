@@ -8,7 +8,13 @@
     "configuration-docs-overhaul",
     "deterministic-git-activity",
     "codebase-knowledge-files",
-    "template-based-file-generation"
+    "template-based-file-generation",
+    "consolidate-atomic-write-helpers",
+    "document-pid-recycling-edge-case-in-filelock",
+    "update-cli-commands-spec",
+    "decouple-validate-from-daemon-package",
+    "config-validate-command",
+    "structured-timing-metrics-in-log-events"
   ],
   "archived_root": [
     "domain-repository-architecture",
@@ -44,6 +50,13 @@
       "address": "codebase-knowledge-files",
       "decomposition_depth": 0
     },
+    "config-validate-command": {
+      "name": "Config Validate Command",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "config-validate-command",
+      "decomposition_depth": 0
+    },
     "configuration-docs-overhaul": {
       "name": "Configuration Docs Overhaul",
       "type": "orchestrator",
@@ -51,11 +64,32 @@
       "address": "configuration-docs-overhaul",
       "decomposition_depth": 0
     },
+    "consolidate-atomic-write-helpers": {
+      "name": "Consolidate Atomic Write Helpers",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "consolidate-atomic-write-helpers",
+      "decomposition_depth": 0
+    },
+    "decouple-validate-from-daemon-package": {
+      "name": "Decouple Validate from Daemon Package",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "decouple-validate-from-daemon-package",
+      "decomposition_depth": 0
+    },
     "deterministic-git-activity": {
       "name": "Deterministic Git Activity",
       "type": "orchestrator",
       "state": "not_started",
       "address": "deterministic-git-activity",
+      "decomposition_depth": 0
+    },
+    "document-pid-recycling-edge-case-in-filelock": {
+      "name": "Document PID recycling edge case in filelock",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "document-pid-recycling-edge-case-in-filelock",
       "decomposition_depth": 0
     },
     "fix-log-follow-hang-with-stopped-daemon": {
@@ -329,6 +363,13 @@
       "archived": true,
       "archived_at": "2026-03-22T06:01:48.565239Z"
     },
+    "structured-timing-metrics-in-log-events": {
+      "name": "Structured Timing Metrics in Log Events",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "structured-timing-metrics-in-log-events",
+      "decomposition_depth": 0
+    },
     "task-classes-implementation": {
       "name": "Task Classes Implementation",
       "type": "orchestrator",
@@ -505,6 +546,13 @@
       "type": "orchestrator",
       "state": "not_started",
       "address": "template-based-file-generation",
+      "decomposition_depth": 0
+    },
+    "update-cli-commands-spec": {
+      "name": "Update CLI Commands Spec",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "update-cli-commands-spec",
       "decomposition_depth": 0
     }
   }

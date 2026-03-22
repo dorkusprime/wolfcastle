@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "structured-timing-metrics-in-log-events",
+  "name": "Structured Timing Metrics in Log Events",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Structured Timing Metrics in Log Events is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Add a duration_ms field to stage_complete NDJSON log events so consumers get pre-computed durations without needing to diff stage_start timestamps. The log command renderers already compute this delta for display; the goal is to surface it in the structured data at emit time. See the existing renderer duration logic as a reference for the computation. Ensure the field appears in stage_complete records emitted by the daemon and that any relevant tests or schema docs are updated.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

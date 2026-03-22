@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Wire wolfcastle start foreground to InterleavedRenderer",
       "description": "Wire wolfcastle start foreground to InterleavedRenderer",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/daemon/start.go"
@@ -21,7 +21,7 @@
       "id": "task-0002",
       "title": "Remove duplicate console formatting from Logger",
       "description": "Remove duplicate console formatting from Logger",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/logging/logger.go",
@@ -62,9 +62,22 @@
         "timestamp": "2026-03-22T18:31:07.75956Z",
         "task": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
         "text": "Wired foreground start to InterleavedRenderer: silenced console loggers, added FollowReader+renderer goroutine, added signal.NotifyContext for clean shutdown"
+      },
+      {
+        "timestamp": "2026-03-22T18:37:25.756294Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "text": "Removed dead console formatting: writeConsole(), consoleMessages, consoleSuppress, and Log() mirroring block. Deleted logger_writeconsole_test.go, pruned 8 console-output tests across 2 files. PrintHuman calls in daemon.go/iteration.go kept as startup diagnostics."
       }
     ],
-    "gaps": [],
+    "gaps": [
+      {
+        "id": "gap-consolidate-daemon-foreground-output-1",
+        "timestamp": "2026-03-22T18:37:30.353508Z",
+        "description": "Logger.Console and Logger.ConsoleLevel fields are now dead: set by cmd/ code but never read within Logger. Should be removed along with io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go, and NewLogger defaults.",
+        "source": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "status": "open"
+      }
+    ],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T18:29:24.117608Z",
@@ -85,6 +98,22 @@
       ],
       "action_items": [
         "Consider extracting a startRendererGoroutine helper if a fourth command needs the same pattern"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T18:37:21.208951Z",
+      "objective": "Remove dead console formatting code from Logger now that all foreground modes use InterleavedRenderer",
+      "what_happened": "Removed writeConsole(), consoleMessages map, consoleSuppress map, and the console-mirroring block from Log() in logger.go. Deleted logger_writeconsole_test.go entirely. Removed console-output tests from logger_test.go (5 tests) and logger_deep_coverage_test.go (3 tests). Updated TestFullLifecycle to drop console buffer assertions. Evaluated PrintHuman calls in daemon.go and iteration.go: all are startup diagnostics or rare one-offs that happen before or independently of the renderer, so they remain.",
+      "went_well": [
+        "Clean removal with no collateral damage; all 29 packages pass, logging coverage stays at 93.4%",
+        "The Console and ConsoleLevel fields survive on Logger struct so external code that sets them (cmd/daemon/start.go, cmd/execute.go, cmd/intake.go, tests) doesn't break"
+      ],
+      "improvements": [
+        "The Console and ConsoleLevel fields are now dead on Logger: set externally but never read. A follow-up should remove them and the io.Discard assignments in cmd/"
+      ],
+      "action_items": [
+        "Remove Logger.Console and Logger.ConsoleLevel fields, plus the io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go"
       ]
     }
   }

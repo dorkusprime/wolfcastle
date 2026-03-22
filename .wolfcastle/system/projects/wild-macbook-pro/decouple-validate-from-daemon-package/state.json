@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "decouple-validate-from-daemon-package",
+  "name": "Decouple Validate from Daemon Package",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Decouple Validate from Daemon Package is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Extract the validate package's dependency on daemon.DaemonRepository behind an interface. Define a PIDChecker interface (IsAlive, PIDFileExists, RemovePID, etc.) in the validate package and have DaemonRepository implement it. This breaks the lateral coupling between two domain packages and enables validate to be used as a standalone tool.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

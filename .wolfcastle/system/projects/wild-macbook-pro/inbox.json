@@ -254,6 +254,41 @@
       "timestamp": "2026-03-22T18:05:01Z",
       "text": "Template-based file generation per spec .wolfcastle/docs/specs/2026-03-22T09-00Z-template-file-generation.md\n\nRead the spec first. Move all generated file content (scaffold, ADRs, specs, task markdown) from Go string literals into template files. Extend the existing PromptRepository/tierfs infrastructure, do NOT create a parallel system. Users can override any template via the three-tier system.",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T18:33:17Z",
+      "text": "Consolidate atomicWriteJSON and AtomicWriteFile in internal/state/io.go. atomicWriteJSON should marshal then call AtomicWriteFile instead of duplicating the temp-file-rename pattern.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T18:33:17Z",
+      "text": "Add inline comment to tryCleanStaleLock in internal/state/filelock.go documenting the PID recycling edge case: if the original process dies and a new process gets the same PID within the 50ms polling window, stale detection incorrectly concludes the lock is held. Consequence is timeout, not corruption. Already documented in SECURITY.md but not at the code site.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T18:33:17Z",
+      "text": "Update CLI Commands spec at docs/specs/2026-03-12T00-06Z-cli-commands.md to reflect the current command count (53+). The spec lists 43 commands from the original release.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T18:33:17Z",
+      "text": "Extract the validate package's dependency on daemon.DaemonRepository behind an interface. Define a PIDChecker interface (IsAlive, PIDFileExists, RemovePID, etc.) in the validate package and have DaemonRepository implement it. This breaks the lateral coupling between two domain packages and enables validate to be used as a standalone tool.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T18:33:17Z",
+      "text": "Add a Troubleshooting section to docs/humans/ covering common first-run issues: stale lock files (daemon.lock exists but no process running), identity not configured (wolfcastle init not run), NFS/network filesystem causing silent corruption (flock not honored), and stale PID files.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T18:33:17Z",
+      "text": "Add a wolfcastle config validate command for standalone config checking without starting the daemon. Loads the three-tier config, runs ValidateStructure, reports errors and warnings, exits with appropriate code. Useful for CI and pre-commit validation.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-22T18:33:17Z",
+      "text": "Add structured timing metrics to daemon NDJSON log events. Include a duration_ms field on stage_complete records so consumers don't have to compute deltas from stage_start timestamps. The log command renderers already compute duration for display; this puts it in the structured data too.",
+      "status": "filed"
     }
   ]
 }

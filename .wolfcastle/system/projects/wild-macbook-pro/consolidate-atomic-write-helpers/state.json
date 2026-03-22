@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "consolidate-atomic-write-helpers",
+  "name": "Consolidate Atomic Write Helpers",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Consolidate Atomic Write Helpers is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Consolidate atomicWriteJSON and AtomicWriteFile in internal/state/io.go. atomicWriteJSON currently duplicates the temp-file-rename pattern; it should marshal to bytes then delegate to AtomicWriteFile instead of reimplementing the pattern itself.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

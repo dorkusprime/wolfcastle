@@ -15,8 +15,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/dorkusprime/wolfcastle/internal/output"
 )
 
 // Level represents a log severity tier (ADR-046).
@@ -167,80 +165,7 @@ func (l *Logger) Log(record map[string]any, levels ...Level) error {
 		return fmt.Errorf("writing log record: %w", err)
 	}
 
-	// Mirror to console if the level meets the threshold (ADR-037).
-	if l.Console != nil && level >= l.ConsoleLevel {
-		l.writeConsole(record, level)
-	}
 	return nil
-}
-
-// consoleSuppress lists log record types that should never appear on the
-// console because they have no meaning to a human operator, or because
-// the daemon already prints a dedicated human-readable message nearby.
-var consoleSuppress = map[string]bool{
-	"terminal_marker":       true,
-	"no_terminal_marker":    true,
-	"deliverable_unchanged": true,
-	"iteration_start":       true,
-}
-
-// consoleMessages maps (type, stage) pairs to short, human-friendly
-// console lines. An empty string means "print nothing" (suppress).
-var consoleMessages = map[string]string{
-	"stage_start:execute":    "  Executing...",
-	"stage_complete:execute": "  Done.",
-	"stage_start:intake":     "  Processing inbox...",
-	"stage_complete:intake":  "  Intake complete.",
-}
-
-// writeConsole formats a record as a terse, human-readable line and
-// writes it to the console writer. Pauses any active spinner to
-// prevent visual collision on the terminal.
-func (l *Logger) writeConsole(record map[string]any, level Level) {
-	typ, _ := record["type"].(string)
-	stage, _ := record["stage"].(string)
-
-	// Suppress log types that are meaningless on the console.
-	if consoleSuppress[typ] {
-		return
-	}
-
-	// failure_increment gets a custom human-readable format.
-	if typ == "failure_increment" {
-		count, _ := record["count"].(int)
-		output.PauseSpinner()
-		_, _ = fmt.Fprintf(l.Console, "  Failed (%d attempts)\n", count)
-		output.ResumeSpinner()
-		return
-	}
-
-	// Check for a clean console message keyed on type:stage.
-	if stage != "" {
-		if msg, ok := consoleMessages[typ+":"+stage]; ok {
-			if msg == "" {
-				return
-			}
-			output.PauseSpinner()
-			_, _ = fmt.Fprintf(l.Console, "%s\n", msg)
-			output.ResumeSpinner()
-			return
-		}
-	}
-
-	// Default: fall back to the [LEVEL] format for anything unhandled.
-	prefix := strings.ToUpper(level.String())
-	msg, _ := record["message"].(string)
-	if msg == "" {
-		msg = typ
-	}
-
-	output.PauseSpinner()
-	if stage != "" {
-		_, _ = fmt.Fprintf(l.Console, "[%s] %s: %s\n", prefix, stage, msg)
-	} else {
-		_, _ = fmt.Fprintf(l.Console, "[%s] %s\n", prefix, msg)
-	}
-	output.ResumeSpinner()
 }
 
 // AssistantWriter returns an io.Writer that formats each line written

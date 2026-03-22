@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "document-pid-recycling-edge-case-in-filelock",
+  "name": "Document PID recycling edge case in filelock",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Document PID recycling edge case in filelock is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Add inline comment to tryCleanStaleLock in internal/state/filelock.go documenting the PID recycling edge case: if the original process dies and a new process gets the same PID within the 50ms polling window, stale detection incorrectly concludes the lock is held. Consequence is timeout, not corruption. Already documented in SECURITY.md but not at the code site.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

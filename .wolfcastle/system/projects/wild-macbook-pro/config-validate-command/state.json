@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "config-validate-command",
+  "name": "Config Validate Command",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Config Validate Command is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Add a wolfcastle config validate command for standalone config checking without starting the daemon. Loads the three-tier config, runs ValidateStructure, reports errors and warnings, exits with appropriate code (0 for clean, non-zero for errors). Useful for CI and pre-commit hooks. See the existing validate package and three-tier config loading in internal/config.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

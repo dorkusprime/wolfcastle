@@ -97,18 +97,6 @@ func TestNewLogger_CreatesLogDirectory(t *testing.T) {
 	}
 }
 
-func TestNewLogger_DefaultsToInfoConsoleLevel(t *testing.T) {
-	t.Parallel()
-	logger, err := NewLogger(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer logger.Close()
-	if logger.ConsoleLevel != LevelInfo {
-		t.Errorf("expected default ConsoleLevel=LevelInfo, got %v", logger.ConsoleLevel)
-	}
-}
-
 // ── StartIteration Tests ──────────────────────────────────────────
 
 func TestStartIteration_CreatesNumberedLogFile(t *testing.T) {
@@ -271,108 +259,6 @@ func TestLog_DefaultLevelIsInfo(t *testing.T) {
 	}
 }
 
-// ── Console Output Tests ──────────────────────────────────────────
-
-func TestLog_ConsoleOutputAboveThreshold(t *testing.T) {
-	t.Parallel()
-	var buf bytes.Buffer
-	dir := t.TempDir()
-
-	logger, err := NewLogger(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	logger.Console = &buf
-	logger.ConsoleLevel = LevelWarn
-	defer logger.Close()
-
-	_ = logger.StartIteration()
-
-	// Debug and info should be suppressed
-	_ = logger.Log(map[string]any{"message": "debug-msg"}, LevelDebug)
-	_ = logger.Log(map[string]any{"message": "info-msg"}, LevelInfo)
-
-	if buf.Len() > 0 {
-		t.Errorf("expected no console output for sub-threshold levels, got: %s", buf.String())
-	}
-
-	// Warn should appear
-	_ = logger.Log(map[string]any{"message": "warn-msg"}, LevelWarn)
-	if !strings.Contains(buf.String(), "warn-msg") {
-		t.Errorf("expected warn-msg on console, got: %s", buf.String())
-	}
-
-	buf.Reset()
-	// Error should also appear
-	_ = logger.Log(map[string]any{"message": "error-msg"}, LevelError)
-	if !strings.Contains(buf.String(), "error-msg") {
-		t.Errorf("expected error-msg on console, got: %s", buf.String())
-	}
-}
-
-func TestLog_ConsoleOutputIncludesStage(t *testing.T) {
-	t.Parallel()
-	var buf bytes.Buffer
-	dir := t.TempDir()
-
-	logger, err := NewLogger(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	logger.Console = &buf
-	logger.ConsoleLevel = LevelDebug
-	defer logger.Close()
-
-	_ = logger.StartIteration()
-	_ = logger.Log(map[string]any{"message": "starting", "stage": "expand"})
-
-	output := buf.String()
-	if !strings.Contains(output, "expand") {
-		t.Errorf("expected stage name in console output, got: %s", output)
-	}
-	if !strings.Contains(output, "starting") {
-		t.Errorf("expected message in console output, got: %s", output)
-	}
-}
-
-func TestLog_ConsoleNil_NoOutput(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	logger, err := NewLogger(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	logger.Console = nil
-	defer logger.Close()
-
-	_ = logger.StartIteration()
-	// Should not panic even with nil console
-	if err := logger.Log(map[string]any{"message": "test"}, LevelError); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestLog_ConsoleFallsBackToType(t *testing.T) {
-	t.Parallel()
-	var buf bytes.Buffer
-	dir := t.TempDir()
-
-	logger, err := NewLogger(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	logger.Console = &buf
-	logger.ConsoleLevel = LevelDebug
-	defer logger.Close()
-
-	_ = logger.StartIteration()
-	_ = logger.Log(map[string]any{"type": "daemon_start"})
-
-	if !strings.Contains(buf.String(), "daemon_start") {
-		t.Errorf("expected type field as fallback, got: %s", buf.String())
-	}
-}
-
 // ── AssistantWriter Tests ─────────────────────────────────────────
 
 func TestAssistantWriter_WritesAtDebugLevel(t *testing.T) {
@@ -429,28 +315,6 @@ func TestAssistantWriter_ReturnsNilWhenNoIteration(t *testing.T) {
 
 	if w := logger.AssistantWriter(); w != nil {
 		t.Error("expected nil writer when no iteration is active")
-	}
-}
-
-func TestAssistantWriter_ConsoleSuppressedAtInfoLevel(t *testing.T) {
-	t.Parallel()
-	var buf bytes.Buffer
-	dir := t.TempDir()
-
-	logger, err := NewLogger(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	logger.Console = &buf
-	logger.ConsoleLevel = LevelInfo
-	defer logger.Close()
-
-	_ = logger.StartIteration()
-	w := logger.AssistantWriter()
-	_, _ = w.Write([]byte("model output"))
-
-	if buf.Len() > 0 {
-		t.Errorf("expected assistant output suppressed at info level, got: %s", buf.String())
 	}
 }
 
@@ -959,14 +823,11 @@ func TestFullLifecycle(t *testing.T) {
 	withFrozenClock(t, frozen)
 
 	dir := t.TempDir()
-	var console bytes.Buffer
 
 	logger, err := NewLogger(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = &console
-	logger.ConsoleLevel = LevelInfo
 
 	// Iteration 1
 	_ = logger.StartIteration()
@@ -981,12 +842,6 @@ func TestFullLifecycle(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 	if len(lines) != 3 {
 		t.Fatalf("NDJSON: expected 3 lines, got %d", len(lines))
-	}
-
-	// Verify console only got 2 lines (debug suppressed)
-	consoleLines := strings.Split(strings.TrimSpace(console.String()), "\n")
-	if len(consoleLines) != 2 {
-		t.Errorf("console: expected 2 lines, got %d: %s", len(consoleLines), console.String())
 	}
 
 	// Verify iteration counter

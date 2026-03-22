@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,89 +73,6 @@ func TestLog_NoActiveIteration(t *testing.T) {
 	err = logger.Log(map[string]any{"msg": "test"})
 	if err == nil {
 		t.Error("expected error when logging without active iteration")
-	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Logger — Log with custom levels and console mirror
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestLog_WithConsoleOutput(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	logger, err := NewLogger(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer logger.Close()
-
-	var buf bytes.Buffer
-	logger.Console = &buf
-	logger.ConsoleLevel = LevelWarn
-
-	if err := logger.StartIteration(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Debug should not appear on console (below threshold)
-	_ = logger.Log(map[string]any{"message": "debug msg"}, LevelDebug)
-	if buf.Len() > 0 {
-		t.Error("debug message should not appear on console when threshold is warn")
-	}
-
-	// Warn should appear on console
-	_ = logger.Log(map[string]any{"message": "warn msg"}, LevelWarn)
-	if !strings.Contains(buf.String(), "WARN") {
-		t.Error("warn message should appear on console")
-	}
-}
-
-func TestLog_ConsoleWithStageField(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	logger, err := NewLogger(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer logger.Close()
-
-	var buf bytes.Buffer
-	logger.Console = &buf
-	logger.ConsoleLevel = LevelInfo
-
-	if err := logger.StartIteration(); err != nil {
-		t.Fatal(err)
-	}
-
-	_ = logger.Log(map[string]any{"message": "stage message", "stage": "execute"}, LevelInfo)
-	output := buf.String()
-	if !strings.Contains(output, "execute") {
-		t.Errorf("expected stage in console output, got %q", output)
-	}
-}
-
-func TestLog_ConsoleFallbackToType(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	logger, err := NewLogger(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer logger.Close()
-
-	var buf bytes.Buffer
-	logger.Console = &buf
-	logger.ConsoleLevel = LevelInfo
-
-	if err := logger.StartIteration(); err != nil {
-		t.Fatal(err)
-	}
-
-	// No "message" field — falls back to "type"
-	_ = logger.Log(map[string]any{"type": "stage_start"}, LevelInfo)
-	output := buf.String()
-	if !strings.Contains(output, "stage_start") {
-		t.Errorf("expected type fallback in console, got %q", output)
 	}
 }
 
