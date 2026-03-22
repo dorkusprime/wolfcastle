@@ -21,7 +21,7 @@
       "id": "task-0002",
       "title": "Write C#/.NET class prompt",
       "description": "Write C#/.NET class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/csharp/dotnet.md"
@@ -32,7 +32,7 @@
       "id": "task-0003",
       "title": "Write PHP/Laravel class prompt",
       "description": "Write PHP/Laravel class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/php/laravel.md"
@@ -87,6 +87,11 @@
         "timestamp": "2026-03-22T08:47:48.136662Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
         "text": "Authored C#/.NET class prompt covering ASP.NET Core patterns, EF Core, DI, middleware, auth, hosted services, testing with WebApplicationFactory, and five common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T08:50:22.184679Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored PHP/Laravel class prompt covering Laravel 11.x patterns, Eloquent ORM, routing, form requests, queues/jobs, events, Artisan, testing with RefreshDatabase/factories/fakes/Dusk, and five common pitfalls [task-0003]"
       }
     ],
     "gaps": [],
@@ -123,6 +128,21 @@
       ],
       "action_items": [
         "If Blazor or MAUI prompts are needed, they should be separate framework prompts since the programming model differs substantially from the server-side ASP.NET Core covered here"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T08:50:16.044683Z",
+      "objective": "Author the PHP/Laravel framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/php/laravel.md (47 lines). Studied existing framework prompts (Spring, Django, .NET) to match format and depth. Covered all required topics: application structure with Laravel 11.x streamlined skeleton, Eloquent ORM with fillable/casts/scopes/preventLazyLoading, routing and middleware, Blade-adjacent form requests for validation, queues and jobs with retry semantics, event/listener patterns, Artisan commands with Laravel 11.x schedule syntax, and testing with RefreshDatabase/factories/HTTP tests/facade faking/Dusk. All five required pitfalls are addressed: N+1 queries with preventLazyLoading, mass assignment without fillable, service container binding confusion, eager-loading vs lazy-loading tradeoffs, and migration rollback ordering.",
+      "went_well": [
+        "The prompt complements the PHP language prompt without overlap; language fundamentals like strict_types, enums, match expressions, and type declarations are covered there, so this prompt stays focused on the Laravel framework layer"
+      ],
+      "improvements": [
+        "Could have covered Livewire, Inertia, or Sanctum/Passport auth patterns, but those would push past the line target and are better suited to specialized prompts"
+      ],
+      "action_items": [
+        "If Livewire or Inertia prompts are needed, they should be separate framework prompts since they represent distinct frontend integration models"
       ]
     }
   }
