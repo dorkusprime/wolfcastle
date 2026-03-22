@@ -47,7 +47,7 @@
       "id": "task-0004",
       "title": "Auto-assign audit class at claim time",
       "description": "Auto-assign audit class at claim time",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/state/mutations.go"
@@ -58,7 +58,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Config and Validation Wiring is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -91,14 +91,37 @@
         "timestamp": "2026-03-22T09:44:06.656517Z",
         "task": "task-classes-implementation/config-and-validation-wiring",
         "text": "Auto-assign Class=audit at claim time for audit tasks with empty Class. Three tests added."
+      },
+      {
+        "timestamp": "2026-03-22T09:46:10.479814Z",
+        "task": "task-classes-implementation/config-and-validation-wiring",
+        "text": "Audit reviewed 8 files across 4 tasks (~150 lines of production code, ~200 lines of test code). PASS. No findings requiring remediation. All 52 TaskClasses entries in config.Defaults() verified against prompt files. Daemon startup validation is non-blocking with correct PrintHuman formatting. CLI --class validation covers repository and config-fallback paths with sorted output. Audit class auto-assign is correctly placed after state transition with proper guard conditions. Build passes, all tests pass, lint clean, zero issues. Quality: tight, well-scoped changes with good test coverage across all four tasks."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T09:33:35.621204Z"
+    "started_at": "2026-03-22T09:33:35.621204Z",
+    "result_summary": "Wired task classes into config defaults, daemon validation, CLI validation, and claim-time auto-assignment. Config.Defaults() now includes 52 TaskClasses entries (21 language, 22 framework, 9 non-language) verified against prompt files. Daemon startup calls ClassRepository.Validate() and prints warnings for missing prompts without blocking. The task add command validates --class against ClassRepository.List() with a config-key fallback. TaskClaim auto-assigns Class=audit for audit tasks with empty Class. All changes are minimal, well-tested, and lint-clean."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T09:46:18.839791Z",
+      "objective": "Verify all work in Config and Validation Wiring is complete and correct",
+      "what_happened": "Reviewed all 8 files touched by tasks 0001-0004. Read every diff, ran build/test/lint (all green), verified prompt file coverage, checked API signatures for Validate/List, confirmed PrintHuman formatting. No gaps found.",
+      "went_well": [
+        "All four tasks produced minimal, focused changes with matching tests",
+        "52 config entries map 1:1 to prompt files with no orphans",
+        "The fallback path in CLI validation handles the test-environment case where ClassRepository is not loaded"
+      ],
+      "improvements": [
+        "None identified; the work is clean"
+      ],
+      "action_items": [
+        "None; all AAR action items from prior tasks are either informational or out of scope for this node"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T09:35:22.449066Z",
