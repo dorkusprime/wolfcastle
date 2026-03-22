@@ -47,13 +47,22 @@ func RecomputeState(children []ChildRef, tasks ...[]Task) NodeStatus {
 		return StatusComplete
 	}
 
-	// All non-complete are blocked => blocked
+	// All non-complete items (children + tasks) are blocked => blocked.
+	// A single in_progress task (e.g., audit) prevents the blocked state.
 	if anyBlocked {
 		allNonCompleteBlocked := true
 		for _, c := range children {
 			if c.State != StatusComplete && c.State != StatusBlocked {
 				allNonCompleteBlocked = false
 				break
+			}
+		}
+		if allNonCompleteBlocked && len(tasks) > 0 {
+			for _, t := range tasks[0] {
+				if t.State != StatusComplete && t.State != StatusBlocked {
+					allNonCompleteBlocked = false
+					break
+				}
 			}
 		}
 		if allNonCompleteBlocked {
