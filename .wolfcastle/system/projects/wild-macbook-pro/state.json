@@ -2,9 +2,11 @@
   "version": 1,
   "root_id": "domain-repository-architecture",
   "root_name": "Domain Repository Architecture",
-  "root_state": "in_progress",
+  "root_state": "complete",
   "root": [
-    "task-classes-implementation"
+    "task-classes-implementation",
+    "fix-stale-class-flag-help-text",
+    "fix-writing-class-voice-md-unreachable"
   ],
   "archived_root": [
     "domain-repository-architecture",
@@ -95,6 +97,31 @@
       "parent": "fix-replayjson-streaming-bug",
       "archived": true,
       "archived_at": "2026-03-22T06:01:48.439615Z"
+    },
+    "fix-stale-class-flag-help-text": {
+      "name": "Fix stale --class flag help text",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "fix-stale-class-flag-help-text",
+      "decomposition_depth": 0,
+      "children": [
+        "fix-stale-class-flag-help-text/update-help-text"
+      ]
+    },
+    "fix-stale-class-flag-help-text/update-help-text": {
+      "name": "update-help-text",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "fix-stale-class-flag-help-text/update-help-text",
+      "decomposition_depth": 0,
+      "parent": "fix-stale-class-flag-help-text"
+    },
+    "fix-writing-class-voice-md-unreachable": {
+      "name": "Fix writing class voice.md unreachable",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "fix-writing-class-voice-md-unreachable",
+      "decomposition_depth": 0
     },
     "log-command-redesign": {
       "name": "Log Command Redesign",
@@ -222,7 +249,7 @@
     "task-classes-implementation": {
       "name": "Task Classes Implementation",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation",
       "decomposition_depth": 0,
       "children": [
@@ -347,7 +374,7 @@
     "task-classes-implementation/config-and-validation-wiring": {
       "name": "Config and Validation Wiring",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/config-and-validation-wiring",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation"

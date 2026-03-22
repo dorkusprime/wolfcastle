@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "id": "update-help-text",
+  "name": "update-help-text",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update --class flag example from lang-go to coding/go",
+      "description": "Update --class flag example from lang-go to coding/go",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/task/add.go"
+      ],
+      "body": "In cmd/task/add.go line 181, the --class flag help text reads 'Task class override (e.g., lang-go)'. The actual class keys in production config use the 'coding/go' format (see internal/config/config.go:133 and cmd/task/task_test.go). Change the example to 'e.g., coding/go'. Run 'go build ./...' to confirm compilation."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in update-help-text is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T14:25:32.699039Z",
+        "task": "fix-stale-class-flag-help-text/update-help-text",
+        "text": "Updated --class flag help text example from lang-go to coding/go in cmd/task/add.go"
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-22T14:25:05.527537Z",
+    "result_summary": "Updated the --class flag help text in cmd/task/add.go to use coding/go instead of the stale lang-go example, aligning the CLI help with the actual task class key format in production config."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T14:25:29.374953Z",
+      "objective": "Fix stale example in --class flag help text",
+      "what_happened": "Changed the example value in cmd/task/add.go line 181 from 'lang-go' to 'coding/go' to match the actual class key format used in production config.",
+      "went_well": [
+        "Single-line change, no complications"
+      ],
+      "improvements": [
+        "None"
+      ],
+      "action_items": [
+        "None"
+      ]
+    }
+  }
+}

@@ -3,7 +3,7 @@
   "id": "task-classes-implementation",
   "name": "Task Classes Implementation",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -19,7 +19,7 @@
     {
       "id": "config-and-validation-wiring",
       "address": "task-classes-implementation/config-and-validation-wiring",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -42,6 +42,8 @@
     "task add CLI rejects unknown --class values with a helpful error",
     "Audit tasks auto-receive Class audit at claim time when unclassified"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T06:44:46.91109Z",

@@ -178,7 +178,7 @@ Examples:
 	cmd.Flags().Bool("stdin", false, "Read task body from stdin")
 	cmd.Flags().StringSlice("deliverable", nil, "Expected output file (repeatable)")
 	cmd.Flags().String("type", "", "Task type: discovery, spec, adr, implementation, integration, cleanup")
-	cmd.Flags().String("class", "", "Task class override (e.g., lang-go)")
+	cmd.Flags().String("class", "", "Task class override (e.g., coding/go)")
 	cmd.Flags().StringSlice("constraint", nil, "Constraint: what not to do (repeatable)")
 	cmd.Flags().StringSlice("acceptance", nil, "Acceptance criterion (repeatable)")
 	cmd.Flags().StringSlice("reference", nil, "Reference material path (repeatable)")

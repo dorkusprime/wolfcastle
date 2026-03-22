@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "fix-writing-class-voice-md-unreachable",
+  "name": "Fix writing class voice.md unreachable",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Fix writing class voice.md unreachable is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "writing/voice.md is unreachable: ClassRepository.Resolve('writing') returns only writing.md, so agents loading the writing class never see writing/voice.md. Either writing.md should instruct the agent to read writing/voice.md from disk, or the reference should be removed. Investigate how ClassRepository.Resolve works for classes that have subdirectory assets, determine the correct fix, and implement it.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

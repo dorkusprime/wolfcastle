@@ -3,7 +3,7 @@
   "id": "config-and-validation-wiring",
   "name": "Config and Validation Wiring",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -58,7 +58,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Config and Validation Wiring is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -100,8 +100,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T09:33:35.621204Z",
+    "completed_at": "2026-03-22T09:46:33.400571Z",
     "result_summary": "Wired task classes into config defaults, daemon validation, CLI validation, and claim-time auto-assignment. Config.Defaults() now includes 52 TaskClasses entries (21 language, 22 framework, 9 non-language) verified against prompt files. Daemon startup calls ClassRepository.Validate() and prints warnings for missing prompts without blocking. The task add command validates --class against ClassRepository.List() with a config-key fallback. TaskClaim auto-assigns Class=audit for audit tasks with empty Class. All changes are minimal, well-tested, and lint-clean."
   },
   "aars": {
