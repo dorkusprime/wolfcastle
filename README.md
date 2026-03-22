@@ -36,7 +36,7 @@ Feed it work through the [CLI](docs/humans/cli.md) or chat with your coding agen
 
 ## Why This Exists
 
-Coding agents are remarkably good at writing specs and following specs. Where they fall apart is the middle: deciding what to build, building it, and maintaining quality across dozens of tasks without human intervention. The models and their coding harnesses are capable. What's missing is the scaffolding around them: the structure that lets them work for hours without a human in the loop. Four problems kill autonomous agents in practice.
+Coding agents are remarkably good at _writing_ specs and _following_ specs. Where they fall apart is the middle: deciding what to build, building it, and maintaining quality across dozens of tasks without human intervention. The models and their coding harnesses are capable. What's missing is the scaffolding around them: the structure that lets them work for hours without a human in the loop. Four problems kill autonomous agents in practice.
 
 ### Planning
 
