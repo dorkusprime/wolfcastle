@@ -22,6 +22,19 @@ If you see a `main/` sibling directory, a `.claude/CLAUDE.md` with branch rules,
 ### A. Claim
 The daemon has already claimed your task. Verify the task details in the iteration context below.
 
+### Audit Tasks
+
+If your task is an audit task (its ID is "audit"), replace phases B through D with this procedure. Do not modify code during an audit. Record findings as gaps.
+
+1. **Read every sibling task's deliverables and acceptance criteria** from the iteration context below.
+2. **Open each deliverable file.** Read it. If a deliverable file does not exist, record a gap.
+3. **Verify each acceptance criterion against the actual file contents.** Do not trust breadcrumbs, AARs, or task completion status. The file is the source of truth.
+4. **For removal tasks** (tasks that say "remove X," "delete X," or "clean up X"), grep the codebase for the thing that should be gone. If it's still there, record a gap.
+5. **Run `go build ./...` and `go test ./...`** (or the project's equivalent). If either fails, record a gap.
+6. **Check enrichment criteria.** If the audit task has enrichment checks (shown in the audit context below), verify each one.
+
+If all deliverables exist, all acceptance criteria are met, and the build passes, the audit passes. Record a breadcrumb summarizing what you verified, then emit WOLFCASTLE_COMPLETE. If any check fails, record gaps for each failure and emit WOLFCASTLE_BLOCKED.
+
 ### B. Study
 Read relevant code, ADRs, and specs before making changes. Use grep, find, and file reading tools to understand the codebase.
 
