@@ -80,7 +80,7 @@
       "id": "task-0006",
       "title": "Author Lua prompt",
       "description": "Author Lua prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/lua.md"
@@ -94,7 +94,7 @@
       "id": "task-0007",
       "title": "Author Elixir prompt",
       "description": "Author Elixir prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/elixir.md"
@@ -164,6 +164,11 @@
         "timestamp": "2026-03-22T07:52:39.567097Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
         "text": "Authored Lua class prompt (58 lines) covering idiomatic style, LuaRocks/busted/luacheck tooling, testing conventions, and common pitfalls [task-0006]"
+      },
+      {
+        "timestamp": "2026-03-22T07:54:44.942492Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Elixir class prompt (65 lines) covering idiomatic style, mix/credo/dialyzer tooling, ExUnit/Mox testing, and common pitfalls [task-0007]"
       }
     ],
     "gaps": [],
@@ -266,6 +271,22 @@
       ],
       "action_items": [
         "If a lua/love2d or lua/openresty sub-classification is added later, those prompts can extend this base with framework-specific guidance"
+      ]
+    },
+    "task-0007": {
+      "task_id": "task-0007",
+      "timestamp": "2026-03-22T07:54:43.362106Z",
+      "objective": "Author the Elixir language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/elixir.md at 65 lines. Matched the established format from go.md, ruby.md, and lua.md. Organized into five sections: Style (pattern matching in function heads, pipe operator, with for multi-match, GenServer/Agent/Task concurrency, protocols vs behaviours, defstruct with enforce_keys), Build and Test (mix compile/test/format, credo, dialyzer via dialyxir, ex_doc), Testing (ExUnit describe/test blocks, setup/setup_all, async: true, Mox for behaviour mocking, doctests), and Common Pitfalls (process mailbox overflow, GenServer serialization bottlenecks, atom table exhaustion from dynamic atoms, large binary reference leaks, supervision tree design mistakes, bare try/rescue as code smell).",
+      "went_well": [
+        "Covered OTP-specific concerns (supervision trees, process mailbox overflow, GenServer bottlenecks) alongside language-level patterns",
+        "Common pitfalls section addresses six distinct issues including the subtle binary heap reference leak that is unique to the BEAM VM"
+      ],
+      "improvements": [
+        "Could add guidance on LiveView, Phoenix-specific patterns, and Ecto changesets if line budget allowed"
+      ],
+      "action_items": [
+        "If an elixir/phoenix or elixir/nerves sub-classification is added later, those prompts can extend this base with framework-specific guidance"
       ]
     }
   }
