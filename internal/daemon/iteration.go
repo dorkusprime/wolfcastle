@@ -561,15 +561,22 @@ func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string
 		return // no changes or git unavailable
 	}
 
-	// Stage tracked files only (git add -u). This avoids staging
-	// untracked files like .env or credentials that happen to be
-	// sitting in the working tree.
+	// Stage tracked files (git add -u) plus .wolfcastle/ state.
+	// git add -u stages modified tracked files without picking up
+	// untracked files like .env. The separate git add .wolfcastle/
+	// stages project state alongside code changes; the .wolfcastle/
+	// .gitignore controls what's trackable (projects, docs, custom
+	// config, archive) vs. what stays out (base config, local config,
+	// logs, locks, PID files).
 	addCmd := exec.Command("git", "add", "-u")
 	addCmd.Dir = repoDir
 	if err := addCmd.Run(); err != nil {
 		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
 		return
 	}
+	addStateCmd := exec.Command("git", "add", ".wolfcastle/")
+	addStateCmd.Dir = repoDir
+	_ = addStateCmd.Run() // best-effort; .wolfcastle/ may not exist
 
 	msg := fmt.Sprintf("wolfcastle: auto-commit partial work [%s]", taskID)
 	commitArgs := []string{"commit", "-m", msg}
