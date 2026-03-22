@@ -3,7 +3,7 @@
   "id": "enterprise-frameworks",
   "name": "Enterprise Frameworks",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -65,7 +65,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Enterprise Frameworks is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -111,8 +111,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T08:43:01.263404Z",
+    "completed_at": "2026-03-22T08:57:58.686668Z",
     "result_summary": "Authored five enterprise framework class prompts for coding tasks: Java/Spring (43 lines), C#/.NET (43 lines), PHP/Laravel (47 lines), PHP/Symfony (43 lines), and Elixir/Phoenix (47 lines). Each prompt covers application structure, ORM/data access, routing, testing, and five framework-specific pitfalls, using consistent 'Prefer X' phrasing and matching the structure established by existing prompts (Django, Rails, Flask). All prompts complement their parent language prompts without duplicating language-level guidance. Audit found no issues requiring remediation; build and tests pass."
   },
   "aars": {

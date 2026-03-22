@@ -3,14 +3,14 @@
   "id": "mobile-and-systems-frameworks",
   "name": "Mobile and Systems Frameworks",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Write Kotlin/Android class prompt",
       "description": "Write Kotlin/Android class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/kotlin/android.md"
@@ -80,6 +80,7 @@
     "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T08:57:58.796445Z"
   }
 }
