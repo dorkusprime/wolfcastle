@@ -65,7 +65,7 @@
       "id": "task-0006",
       "title": "Write Ruby/Sinatra class prompt",
       "description": "Write Ruby/Sinatra class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/ruby/sinatra.md"
@@ -76,7 +76,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Backend Scripting Frameworks is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -118,14 +118,37 @@
         "timestamp": "2026-03-22T08:41:01.361788Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
         "text": "Authored Ruby/Sinatra class prompt (41 lines) covering modular vs classic style, route ordering, Rack middleware/sessions, template rendering, configure blocks, helpers/extensions, Rack::Test testing, and common pitfalls (route ordering, missing sessions, namespace pollution, halt/redirect throw/catch) [task-0006]"
+      },
+      {
+        "timestamp": "2026-03-22T08:42:40.818608Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Audit reviewed 6 prompt files (268 lines total): node.md, django.md, fastapi.md, flask.md, rails.md, sinatra.md. PASS. All files structurally consistent with each other and with parent language prompts. Technical content accurate for current framework versions. 'Prefer X' phrasing used throughout. No wolfcastle-specific content. No duplication with parent language prompts. Line counts within 30-60 spec (range: 41-52). Build, test, lint, vet all clean. No findings requiring remediation."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T08:27:50.684887Z"
+    "started_at": "2026-03-22T08:27:50.684887Z",
+    "result_summary": "Authored six framework-specific class prompts for backend scripting languages: JavaScript/Node.js (51 lines), Python/Django (45 lines), Python/FastAPI (45 lines), Python/Flask (41 lines), Ruby/Rails (45 lines), and Ruby/Sinatra (41 lines). Each prompt covers framework-specific patterns, project structure, testing strategies, and common pitfalls without duplicating language fundamentals from the parent prompts. All files follow consistent structure (H1 header, codebase-conventions preamble, themed sections, Common Pitfalls) and use 'prefer X' phrasing throughout. Technical content reflects current framework versions (Node 20+, Django 5.x, FastAPI 0.100+/Pydantic v2, Flask 2.2+/3.x, Rails 7.x, Sinatra with modular style). Audit found no issues requiring remediation."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T08:42:53.952034Z",
+      "objective": "Verify all work in Backend Scripting Frameworks node is complete, correct, and high-quality",
+      "what_happened": "Read all 6 prompt files (268 lines total), all 3 parent language prompts for structural comparison, ran build/test/lint/vet (all clean), reviewed AARs from all 6 prior tasks, and checked node status. No findings requiring remediation.",
+      "went_well": [
+        "All six prompts are structurally consistent with each other and with parent language prompts",
+        "Technical content is accurate for current framework versions across all prompts",
+        "Clean separation of concerns: no framework prompt duplicates content from its parent language prompt"
+      ],
+      "improvements": [
+        "None identified; the work is solid"
+      ],
+      "action_items": [
+        "None; node is complete"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T08:30:39.002355Z",
