@@ -77,8 +77,9 @@ func (r *ReplayReader) readFile(path string, ch chan<- Record) {
 // configurable interval. It detects new iteration files as they appear and
 // streams records from them in order. Cancelling the context stops the reader.
 type FollowReader struct {
-	dir      string
-	interval time.Duration
+	dir        string
+	interval   time.Duration
+	aliveCheck func() bool
 }
 
 // NewFollowReader creates a reader that tails logDir for new NDJSON content.
@@ -89,6 +90,14 @@ func NewFollowReader(logDir string, interval time.Duration) *FollowReader {
 		interval = 200 * time.Millisecond
 	}
 	return &FollowReader{dir: logDir, interval: interval}
+}
+
+// SetAliveCheck registers an optional callback that the poll loop calls
+// periodically to determine whether the data source (typically a daemon
+// process) is still running. When the callback returns false the reader
+// performs one final drain cycle and then closes the channel.
+func (r *FollowReader) SetAliveCheck(fn func() bool) {
+	r.aliveCheck = fn
 }
 
 // Records returns a channel of parsed records that stays open until ctx is
@@ -106,6 +115,12 @@ type fileState struct {
 	offset int64
 }
 
+// aliveCheckInterval is the number of poll cycles between alive-check
+// invocations. At the default 200ms tick this works out to roughly every
+// 5 seconds, frequent enough to notice a stopped daemon without hammering
+// the PID file on every tick.
+const aliveCheckInterval = 25
+
 // poll is the main loop: it scans the log directory for files, reads new
 // content from each, and sleeps between cycles until the context expires.
 func (r *FollowReader) poll(ctx context.Context, ch chan<- Record) {
@@ -120,11 +135,20 @@ func (r *FollowReader) poll(ctx context.Context, ch chan<- Record) {
 	// Run one cycle immediately before waiting on the ticker.
 	r.cycle(tracked, &orderedPaths, ch)
 
+	cycles := 0
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			cycles++
+			if r.aliveCheck != nil && cycles%aliveCheckInterval == 0 {
+				if !r.aliveCheck() {
+					// Drain any remaining buffered lines before closing.
+					r.cycle(tracked, &orderedPaths, ch)
+					return
+				}
+			}
 			r.cycle(tracked, &orderedPaths, ch)
 		}
 	}

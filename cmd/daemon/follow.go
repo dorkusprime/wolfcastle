@@ -102,7 +102,7 @@ Examples:
 			ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer stop()
 
-			return runLog(ctx, logDir, session, mode, follow)
+			return runLog(ctx, logDir, session, mode, follow, app.Daemon.IsAlive)
 		},
 	}
 
@@ -121,15 +121,16 @@ const (
 )
 
 // runLog dispatches to the appropriate renderer based on mode and follow flag.
-func runLog(ctx context.Context, logDir string, session logrender.Session, mode outputMode, follow bool) error {
+func runLog(ctx context.Context, logDir string, session logrender.Session, mode outputMode, follow bool, aliveCheck func() bool) error {
 	w := os.Stdout
 
 	if mode == modeJSON {
-		return runJSONMode(ctx, logDir, session, follow)
+		return runJSONMode(ctx, logDir, session, follow, aliveCheck)
 	}
 
 	if follow {
 		reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
+		reader.SetAliveCheck(aliveCheck)
 		records := reader.Records(ctx)
 
 		switch mode {
@@ -165,9 +166,9 @@ func runLog(ctx context.Context, logDir string, session logrender.Session, mode 
 }
 
 // runJSONMode dumps raw NDJSON lines with no parsing or formatting.
-func runJSONMode(ctx context.Context, logDir string, session logrender.Session, follow bool) error {
+func runJSONMode(ctx context.Context, logDir string, session logrender.Session, follow bool, aliveCheck func() bool) error {
 	if follow {
-		return followJSON(ctx, logDir)
+		return followJSON(ctx, logDir, aliveCheck)
 	}
 	return replayJSON(session)
 }
@@ -210,8 +211,9 @@ func replayJSONFile(path string) error {
 }
 
 // followJSON tails the log directory and writes raw lines to stdout.
-func followJSON(ctx context.Context, logDir string) error {
+func followJSON(ctx context.Context, logDir string, aliveCheck func() bool) error {
 	reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
+	reader.SetAliveCheck(aliveCheck)
 	records := reader.Records(ctx)
 	for rec := range records {
 		raw, err := json.Marshal(rec.Raw)

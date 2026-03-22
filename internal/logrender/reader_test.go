@@ -464,6 +464,103 @@ func TestFollowReader_PartialLineCompletedLater(t *testing.T) {
 	cancel()
 }
 
+func TestFollowReader_AliveCheckStopsReader(t *testing.T) {
+	dir := t.TempDir()
+	writeLines(t, filepath.Join(dir, "0001-20260321T18-04Z.jsonl"),
+		`{"type":"iteration_start","timestamp":"2026-03-21T18:04:00Z","level":"info"}`,
+	)
+
+	fr := NewFollowReader(dir, 10*time.Millisecond)
+
+	// The alive check returns false on the first call, simulating a daemon
+	// that stopped while we were tailing.
+	fr.SetAliveCheck(func() bool { return false })
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ch := fr.Records(ctx)
+	var recs []Record
+	for r := range ch {
+		recs = append(recs, r)
+	}
+
+	// The channel should close well before the 5s timeout.
+	if ctx.Err() != nil {
+		t.Fatal("reader should have stopped from alive check, not from context timeout")
+	}
+	// The initial record should still be delivered (it's read before the alive check fires).
+	if len(recs) < 1 {
+		t.Fatal("expected at least the initial record before shutdown")
+	}
+}
+
+func TestFollowReader_AliveCheckDrainsFinalCycle(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "0001-20260321T18-04Z.jsonl")
+	writeLines(t, path,
+		`{"type":"iteration_start","timestamp":"2026-03-21T18:04:00Z","level":"info"}`,
+	)
+
+	// Use a very short interval so we hit the alive-check quickly.
+	// Set the check interval to trigger on cycle 2 (we'll count manually
+	// by using a callback that tracks calls).
+	fr := NewFollowReader(dir, 10*time.Millisecond)
+
+	checkCount := 0
+	fr.SetAliveCheck(func() bool {
+		checkCount++
+		// Return alive for a while, then report dead.
+		return checkCount < 2
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ch := fr.Records(ctx)
+
+	// After the initial record, append a new line. If the alive check fires
+	// after this append, the final drain cycle should pick it up.
+	<-ch // drain initial record
+
+	// Append a line that should be caught by the final drain cycle.
+	time.Sleep(50 * time.Millisecond)
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.WriteString(`{"type":"stage_complete","timestamp":"2026-03-21T18:05:00Z","level":"info"}` + "\n")
+	f.Close()
+
+	// Collect remaining records. Channel should close from the alive check.
+	var remaining []Record
+	for r := range ch {
+		remaining = append(remaining, r)
+	}
+
+	if ctx.Err() != nil {
+		t.Fatal("reader should have stopped from alive check, not context timeout")
+	}
+}
+
+func TestFollowReader_NilAliveCheckNoEffect(t *testing.T) {
+	dir := t.TempDir()
+	writeLines(t, filepath.Join(dir, "0001-20260321T18-04Z.jsonl"),
+		`{"type":"iteration_start","timestamp":"2026-03-21T18:04:00Z","level":"info"}`,
+	)
+
+	fr := NewFollowReader(dir, 50*time.Millisecond)
+	// No SetAliveCheck call; should behave exactly as before (context-only stop).
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	recs := collectRecords(fr.Records(ctx))
+	if len(recs) != 1 {
+		t.Fatalf("expected 1 record with nil alive check, got %d", len(recs))
+	}
+}
+
 func TestFollowReader_FileOrderMatchesIteration(t *testing.T) {
 	dir := t.TempDir()
 	// Write files in reverse order to verify the reader sorts by timestamp/iteration.
