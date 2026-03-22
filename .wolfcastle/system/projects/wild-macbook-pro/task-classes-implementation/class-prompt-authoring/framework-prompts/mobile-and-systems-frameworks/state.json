@@ -97,6 +97,11 @@
         "timestamp": "2026-03-22T09:09:09.341119Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
         "text": "Add Rust/Actix class prompt covering App builder, extractors, web::Data state, ResponseError, from_fn middleware, sqlx/Diesel database patterns, WebSocket actors, testing with TestRequest/TestServer, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T09:11:15.905659Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Rust/Tokio class prompt covering runtime config, JoinSet/TaskTracker structured concurrency, mpsc/oneshot/broadcast/watch channels, select! cancellation, async I/O with BufReader/BufWriter, tokio::sync vs std::sync primitives, graceful shutdown, testing with start_paused/duplex, and common pitfalls [task-0005]"
       }
     ],
     "gaps": [],
@@ -167,6 +172,23 @@
       ],
       "improvements": [
         "Could expand the middleware section with examples of response body inspection once from_fn patterns stabilize further in 4.x"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T09:11:13.930496Z",
+      "objective": "Author the Rust/Tokio framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/rust/tokio.md (45 lines). Studied the existing rust.md language prompt and rust/actix.md framework prompt for format and depth calibration. Wrote sections covering runtime configuration and task spawning with JoinHandle management, structured concurrency with JoinSet and TaskTracker, channel types (mpsc/oneshot/broadcast/watch) with bounded-first guidance, select\\! macro with cancellation semantics, async I/O with BufReader/BufWriter, synchronization primitives (tokio::sync::Mutex vs std::sync::Mutex, RwLock, Semaphore, Notify), graceful shutdown patterns, testing with start_paused and duplex streams, and four pitfall entries. Carefully avoided repeating Rust fundamentals already in rust.md (ownership, lifetimes, async basics, error handling with ?, clippy).",
+      "went_well": [
+        "Clean separation from rust.md; no overlap on async/await fundamentals, only Tokio-specific patterns",
+        "Covers the std::sync::Mutex vs tokio::sync::Mutex distinction with clear guidance on when each is correct",
+        "Pitfalls section addresses the four most common Tokio production failure modes: blocking the runtime, select branch rebuilding, unbounded channel growth, and Send+'static spawn requirements"
+      ],
+      "improvements": [
+        "Could expand the graceful shutdown section with a worked example once the TaskTracker API stabilizes further in tokio-util"
       ],
       "action_items": [
         "None; prompt is self-contained"
