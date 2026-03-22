@@ -3,7 +3,7 @@
   "id": "scaffold-templates",
   "name": "Scaffold Templates",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -68,7 +68,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Scaffold Templates is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -128,8 +128,9 @@
       }
     ],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T22:07:45.535488Z",
+    "completed_at": "2026-03-22T22:20:44.385512Z",
     "result_summary": "Migrated scaffold file generation from inline Go string literals to embedded template files. Six templates (gitignore + 5 READMEs) now live under internal/project/templates/scaffold/ and are read via embed.FS ReadFile. The migration reduced scaffold_service.go by ~97 lines while maintaining byte-for-byte output identity. Snapshot tests verify all 6 scaffold files across both Init and Reinit paths. A bug discovered during testing (base-prompts README lost on Reinit due to base-tier teardown) was fixed by adding a writeScaffoldFiles() call after directory recreation. Build clean, all tests pass with race detector, go vet clean."
   },
   "aars": {

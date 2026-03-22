@@ -3,14 +3,14 @@
   "id": "artifact-templates",
   "name": "Artifact Templates",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Create artifact template files",
       "description": "Create artifact template files",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/artifacts/adr.md.tmpl",
@@ -97,9 +97,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T22:24:23.113078Z",
+        "task": "template-based-file-generation/call-site-migration/artifact-templates",
+        "text": "Created adr.md.tmpl, spec.md.tmpl, and task.md.tmpl under internal/project/templates/artifacts/. Each template uses typed struct fields (not map keys) and produces byte-identical output to the original inline string construction. Equivalence verified by 10 table-driven test cases covering body/no-body/multiline/whitespace-only inputs."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T22:20:44.482618Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T22:24:18.06661Z",
+      "objective": "Create artifact template files that reproduce the inline string construction from cmd/adr_create.go, cmd/spec.go, and cmd/task/add.go",
+      "what_happened": "Created three .tmpl files under internal/project/templates/artifacts/: adr.md.tmpl (Title/Date/Body with conditional default sections), spec.md.tmpl (Title/Body with placeholder fallback), task.md.tmpl (Title with optional Body). Used {{end -}} whitespace trimming to prevent stray trailing newlines from template structure. Wrote table-driven equivalence tests reproducing the original Builder/Sprintf logic and comparing byte-for-byte.",
+      "went_well": [
+        "Template whitespace trimming with {{end -}} cleanly solved the trailing-newline problem without contorting the template layout",
+        "Equivalence tests caught the trailing-newline issue during development before it shipped"
+      ],
+      "improvements": [
+        "The task template relies on the caller to TrimSpace the body before passing it, matching the original code's behavior. This is documented in the test but could surprise a future consumer."
+      ],
+      "action_items": [
+        "When call sites migrate to use these templates, the TrimSpace pre-check for task body needs to happen in the render call, not in the template itself"
+      ]
+    }
   }
 }
