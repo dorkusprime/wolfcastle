@@ -114,6 +114,11 @@
         "timestamp": "2026-03-22T22:01:56.172671Z",
         "task": "template-based-file-generation/template-repository-infrastructure",
         "text": "Added RenderToFile to PromptRepository (repository.go): resolves template via ResolveTemplate, creates parent dirs, writes 0644. Four tests in repository_test.go."
+      },
+      {
+        "timestamp": "2026-03-22T22:03:16.290568Z",
+        "task": "template-based-file-generation/template-repository-infrastructure",
+        "text": "Added template_data.go with ADRData, SpecData, TaskData, AuditTaskData structs. Fields match spec inventory and existing call-site data."
       }
     ],
     "gaps": [],
@@ -152,6 +157,21 @@
       ],
       "action_items": [
         "Call-site migration tasks should replace strings.Builder/fmt.Sprintf/os.WriteFile chains with a single RenderToFile call, passing typed context structs"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T22:03:15.577493Z",
+      "objective": "Define typed context structs for all template variables so call-site migrations use discoverable, type-safe data instead of map[string]any",
+      "what_happened": "Created internal/pipeline/template_data.go with four exported structs: ADRData (Title, Date, Body), SpecData (Title, Body), TaskData (ID, Title, Description, Body, Type, Class, Deliverables, Constraints, References, AcceptanceCriteria), AuditTaskData (NodeName). Field names and types were cross-referenced against cmd/adr_create.go, cmd/spec.go, cmd/task/add.go, internal/project/project_create.go, and state.Task to ensure they match both the spec inventory and the actual call-site data.",
+      "went_well": [
+        "Straightforward struct definitions; no behavioral changes, no test churn, coverage holds at 96.9%"
+      ],
+      "improvements": [
+        "TaskData.Description mirrors state.Task.Description which is currently synonymous with Title at the add site; the template will need to decide which field carries the H1 header vs body preamble"
+      ],
+      "action_items": [
+        "Call-site migration tasks should import these structs and pass them to RenderToFile/ResolveTemplate rather than constructing inline data"
       ]
     }
   }
