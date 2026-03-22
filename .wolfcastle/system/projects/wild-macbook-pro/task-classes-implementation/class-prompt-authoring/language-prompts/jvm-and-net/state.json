@@ -78,10 +78,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T07:18:27.55162Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Authored Java class prompt (55 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0001]"
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T07:16:28.405358Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T07:18:26.095627Z",
+      "objective": "Author the Java coding class prompt to replace default.md for Java-classified tasks",
+      "what_happened": "Wrote internal/project/templates/prompts/classes/coding/java.md (55 lines). Followed the established format from go.md and c.md: codebase-deference preamble, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered records, sealed interfaces, Optional, Streams API, var inference, Maven/Gradle, google-java-format/Spotless, SpotBugs/Error Prone, JUnit 5, AssertJ, Mockito, and six common pitfalls including checked/unchecked exceptions, mutable collection returns, equals/hashCode, try-with-resources, NPE, and string concatenation in loops.",
+      "went_well": [
+        "The existing prompts (go.md, c.md) provided a clear template for section structure and 'prefer X' phrasing, making the Java prompt stylistically consistent",
+        "All build and tests pass cleanly with the new file"
+      ],
+      "improvements": [
+        "Could have included a section on concurrency (synchronized, java.util.concurrent, virtual threads) to match Go's concurrency section, but the task description didn't call for it and the 40-80 line budget was better spent on the specified topics"
+      ],
+      "action_items": [
+        "If a Java/concurrency class prompt is needed later, consider adding java.util.concurrent, CompletableFuture, and virtual threads (Project Loom) guidance as a follow-up"
+      ]
+    }
   }
 }
