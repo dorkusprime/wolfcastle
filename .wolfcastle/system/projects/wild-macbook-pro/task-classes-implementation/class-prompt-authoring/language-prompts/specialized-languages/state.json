@@ -52,7 +52,7 @@
       "id": "task-0004",
       "title": "Author SQL prompt",
       "description": "Author SQL prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/sql.md"
@@ -66,7 +66,7 @@
       "id": "task-0005",
       "title": "Author R prompt",
       "description": "Author R prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/r.md"
