@@ -94,7 +94,7 @@
       "id": "task-0007",
       "title": "Author Elixir prompt",
       "description": "Author Elixir prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/elixir.md"
@@ -108,7 +108,7 @@
       "id": "task-0008",
       "title": "Author Haskell prompt",
       "description": "Author Haskell prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/haskell.md"
@@ -169,6 +169,11 @@
         "timestamp": "2026-03-22T07:54:44.942492Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
         "text": "Authored Elixir class prompt (65 lines) covering idiomatic style, mix/credo/dialyzer tooling, ExUnit/Mox testing, and common pitfalls [task-0007]"
+      },
+      {
+        "timestamp": "2026-03-22T07:56:53.173978Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Haskell class prompt (68 lines) covering idiomatic style, Cabal/HLint/Ormolu tooling, Hspec/QuickCheck testing, and common pitfalls [task-0008]"
       }
     ],
     "gaps": [],
@@ -287,6 +292,22 @@
       ],
       "action_items": [
         "If an elixir/phoenix or elixir/nerves sub-classification is added later, those prompts can extend this base with framework-specific guidance"
+      ]
+    },
+    "task-0008": {
+      "task_id": "task-0008",
+      "timestamp": "2026-03-22T07:56:51.371148Z",
+      "objective": "Author the Haskell language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/haskell.md at 68 lines. Matched the established format from go.md, elixir.md, and other existing prompts. Organized into five sections: Style (type signatures, ADTs, pattern matching, pure functions, monadic composition, type classes, qualified imports, Text/ByteString over String, naming conventions), Build and Test (Cabal/Stack, GHC -Wall -Werror, Ormolu/Fourmolu, HLint, Weeder), Testing (Hspec/Tasty, QuickCheck/Hedgehog property-based testing, doctest, pure vs integration test separation), and Common Pitfalls (space leaks from lazy evaluation, String vs Text vs ByteString, partial functions, orphan instances, over-abstracted monad transformer stacks, lazy vs strict container variants).",
+      "went_well": [
+        "Covered the full spectrum of Haskell-specific concerns from evaluation strategy (strictness annotations, space leaks) through algebraic type design to practical tooling",
+        "Common pitfalls section addresses six distinct issues including the classic thunk accumulation problem and the concrete AppM newtype pattern as alternative to transformer towers"
+      ],
+      "improvements": [
+        "Could add guidance on GHC extensions policy (which extensions to prefer, which to avoid) and lens/optics library conventions if line budget allowed"
+      ],
+      "action_items": [
+        "If a haskell/servant or haskell/yesod sub-classification is added later, those prompts can extend this base with web framework-specific guidance"
       ]
     }
   }
