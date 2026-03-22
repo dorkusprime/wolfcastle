@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "id": "call-site-migration",
+  "name": "Call-Site Migration",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "scaffold-templates",
+      "address": "template-based-file-generation/call-site-migration/scaffold-templates",
+      "state": "not_started"
+    },
+    {
+      "id": "artifact-templates",
+      "address": "template-based-file-generation/call-site-migration/artifact-templates",
+      "state": "not_started"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Call-Site Migration is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Migrate all file-generation call sites from inline string construction to the template system. Create .tmpl files under internal/project/templates/ for each generated file, then replace strings.Builder/fmt.Sprintf/os.WriteFile chains at each call site with RenderToFile calls. Verify with snapshot tests that output is byte-for-byte identical before and after. Two sub-concerns: scaffold files (gitignore, READMEs) and artifact files (ADR, spec, audit-task, task markdown).",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

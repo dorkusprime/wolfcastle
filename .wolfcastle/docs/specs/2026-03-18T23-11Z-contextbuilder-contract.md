@@ -10,22 +10,23 @@ The struct holds two repository dependencies and no mutable state of its own; it
 
 ```go
 type ContextBuilder struct {
-    prompts *PromptRepository
-    classes *ClassRepository
+    prompts       *PromptRepository
+    classes       *ClassRepository
+    wolfcastleDir string
 }
 ```
 
-`prompts` resolves three-tier prompt templates (`summary-required.md`, `context-headers.md`, `decomposition.md`). `classes` resolves behavioral guidance prompts keyed by task class. Neither field is optional; both must be provided at construction.
+`prompts` resolves three-tier prompt templates (`summary-required.md`, `context-headers.md`, `decomposition.md`). `classes` resolves behavioral guidance prompts keyed by task class. Neither field is optional; both must be provided at construction. `wolfcastleDir` is the root `.wolfcastle/` directory, used to locate knowledge files via `knowledge.Read`.
 
 ## Constructor
 
-### NewContextBuilder(prompts *PromptRepository, classes *ClassRepository) *ContextBuilder
+### NewContextBuilder(prompts *PromptRepository, classes *ClassRepository, wolfcastleDir string) *ContextBuilder
 
-Returns a ready-to-use `ContextBuilder`. Panics if either argument is nil: both repositories are required for correct context assembly.
+Returns a ready-to-use `ContextBuilder`. Panics if either repository argument is nil. `wolfcastleDir` is the root `.wolfcastle/` directory used to locate knowledge files; pass `""` to disable knowledge injection.
 
 ## Methods
 
-### Build(nodeAddr string, nodeDir string, ns *state.NodeState, taskID string, cfg *config.Config) string
+### Build(nodeAddr string, nodeDir string, ns *state.NodeState, taskID string, namespace string, cfg *config.Config) (string, error)
 
 Assembles the complete iteration context for a single task within a node. The returned string is Markdown-formatted text ready for inclusion in the execute-stage prompt.
 
@@ -35,6 +36,7 @@ Assembles the complete iteration context for a single task within a node. The re
 - `nodeDir`: filesystem path to the node directory; when non-empty, per-task `.md` files (`{taskID}.md`) are read from this directory and their content is injected into the task context after the description line. May be empty to skip per-task file loading.
 - `ns`: the node's persistent state, supplying node metadata, task list, audit trail, and linked specs
 - `taskID`: identifies the active task within `ns.Tasks`
+- `namespace`: engineer namespace for knowledge file lookup (e.g. `"wild-macbook-pro"`); pass `""` to skip knowledge injection
 - `cfg`: daemon configuration, used for failure policy thresholds and decomposition settings; may be nil for backward compatibility (failure context is skipped when nil)
 
 **Assembly order:**
@@ -47,13 +49,19 @@ The output is built by appending sections in this fixed order. Each section is e
 
 3. **Task context.** Locates the task matching `taskID` in `ns.Tasks`. Calls `task.RenderContext()`, which emits the task ID, description, task type (if set), body (if set), integration notes (if set), deliverables, acceptance criteria, constraints, references with inline spec content for small `.md` files (<8000 bytes), task state, failure count, and last failure type with human-readable explanation. When `nodeDir` is non-empty and a file `{taskID}.md` exists in that directory, its trimmed content is injected after the description line but before the remaining task metadata. If the task is not found, this section is empty and downstream sections that depend on the task (class guidance, failure context, summary check) are skipped.
 
-4. **Class guidance.** If the task has a `Class` field set, calls `classes.Resolve(task.Class)`. On success, the returned prompt content is appended under a `## Class Guidance` header. Resolution errors are silently ignored (the class prompt is advisory, not required).
+4a. **Universal guidance.** Loads `classes/universal.md` via `prompts.ResolveRaw`. When present, emitted under a `## Universal Guidance` header. Omitted when the file does not exist.
 
-5. **Audit context.** Calls `ns.Audit.RenderContext()`, which emits the last 10 breadcrumbs and audit scope when present. Returns empty string when both are absent.
+4b. **Class guidance.** If the task has a `Class` field set, calls `classes.Resolve(task.Class)`. On success, the returned prompt content is appended under a `## Class Guidance` header. When resolution fails, falls back to `classes/coding/default.md`. Omitted when neither resolves.
 
-6. **Summary requirement.** Calls `shouldIncludeSummary(ns, taskID, cfg)`. When true, calls `renderSummaryRequired()` and appends the result under a `## Summary Required` header. This section tells the model to run `wolfcastle audit summary` before emitting `WOLFCASTLE_COMPLETE`.
+4c. **Codebase knowledge.** When `wolfcastleDir` and `namespace` are both non-empty, calls `knowledge.Read(wolfcastleDir, namespace)`. If the file exists and has non-whitespace content, emitted under a `## Codebase Knowledge` header. The file is read fresh every Build call (never cached), so updates from one task are immediately visible to the next. Omitted when no knowledge file exists or it is empty.
 
-7. **Failure context.** Emitted only when `task.FailureCount > 0` and `cfg` is non-nil. Calls `renderFailureContext(task, cfg)`, which loads the `context-headers.md` template with failure policy variables and, when `task.NeedsDecomposition` is true, appends the `decomposition.md` template with the node address.
+5. **Prior task AARs.** Calls `state.RenderAARs(ns.AARs)`, which emits completed task after-action reviews under a `## Prior Task Reviews (AARs)` header. Omitted when no AARs exist.
+
+6. **Audit context.** Calls `ns.Audit.RenderContext()`, which emits the last 10 breadcrumbs and audit scope when present. Returns empty string when both are absent.
+
+7. **Summary requirement.** Calls `shouldIncludeSummary(ns, taskID, cfg)`. When true, calls `renderSummaryRequired()` and appends the result under a `## Summary Required` header. This section tells the model to run `wolfcastle audit summary` before emitting `WOLFCASTLE_COMPLETE`.
+
+8. **Failure context.** Emitted only when `task.FailureCount > 0` and `cfg` is non-nil. Calls `renderFailureContext(task, cfg)`, which loads the `context-headers.md` template with failure policy variables and, when `task.NeedsDecomposition` is true, appends the `decomposition.md` template with the node address.
 
 **Return value:** the concatenated Markdown string. Sections are separated by newlines to produce readable output. If `taskID` is not found in `ns.Tasks`, the output contains only the node address header and node context (type, state, specs).
 

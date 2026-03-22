@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "id": "template-documentation",
+  "name": "Template Documentation",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Document template override mechanism in configuration.md",
+      "description": "Document template override mechanism in configuration.md",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/configuration.md"
+      ],
+      "body": "Add a section to docs/humans/configuration.md explaining how users can override generated file templates. Cover: where default templates live (internal/project/templates/), how to override by placing .tmpl files in system/custom/templates/ or system/local/templates/, the three-tier resolution order (base \u003c custom \u003c local), available templates and their variables (ADR, spec, scaffold READMEs, gitignore, task markdown). Include an example showing how to customize the ADR format by adding a Supersedes section.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Template override mechanism is documented with examples",
+        "All overridable templates are listed with their variables",
+        "Three-tier resolution order is explained"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update CLI docs and CONTRIBUTING.md",
+      "description": "Update CLI docs and CONTRIBUTING.md",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "CONTRIBUTING.md"
+      ],
+      "body": "Update docs/humans/cli/adr-create.md (if it exists, or the relevant CLI doc) to mention that the ADR output format is customizable via templates. Update spec-create docs similarly. Update CONTRIBUTING.md to add guidance in the 'Adding a CLI Command' section (or equivalent) about using templates for commands that generate files: use RenderToFile, create a .tmpl file under templates/, define a typed context struct, and add a snapshot test.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "CONTRIBUTING.md mentions templates for file-generating commands",
+        "CLI docs mention template customization where applicable"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Template Documentation is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify docs include concrete examples of template override, not just abstract descriptions"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

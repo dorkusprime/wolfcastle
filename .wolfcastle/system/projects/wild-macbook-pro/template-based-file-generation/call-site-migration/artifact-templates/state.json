@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "id": "artifact-templates",
+  "name": "Artifact Templates",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Create artifact template files",
+      "description": "Create artifact template files",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/artifacts/adr.md.tmpl",
+        "internal/project/templates/artifacts/spec.md.tmpl",
+        "internal/project/templates/artifacts/task.md.tmpl"
+      ],
+      "body": "Create the following template files under internal/project/templates/artifacts/: adr.md.tmpl (with {{.Title}}, {{.Date}}, {{.Body}} variables, reproducing the strings.Builder output from cmd/adr_create.go:64-75), spec.md.tmpl (with {{.Title}}, {{.Body}} variables, reproducing the fmt.Sprintf patterns from cmd/spec.go:81-86), audit-task.md.tmpl (move existing templates/audits/audit-task.md content, add {{.NodeName}} if needed), task.md.tmpl (with all TaskData fields, reproducing the strings.Builder output from cmd/task/add.go:192-200). Each template must produce byte-for-byte identical output when rendered with the same inputs as the current code.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Each template produces identical output to the current inline string construction",
+        "Templates use typed struct field references",
+        " not map keys"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T09-00Z-template-file-generation.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Migrate ADR and spec generation to templates",
+      "description": "Migrate ADR and spec generation to templates",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/adr_create.go",
+        "cmd/spec.go"
+      ],
+      "body": "In cmd/adr_create.go: replace the strings.Builder block (lines 64-75) and os.WriteFile (line 88) with a single RenderToFile call using adr.md.tmpl and ADRData struct. Handle the three branches (stdin body, --body flag, empty template). In cmd/spec.go: replace the fmt.Sprintf branches (lines 81-86) and os.WriteFile (line 87) with RenderToFile using spec.md.tmpl and SpecData struct. The cmd files will need access to a PromptRepository; wire it through the cobra command context or construct one in the Run function.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "strings.Builder and fmt.Sprintf file generation code is removed",
+        "RenderToFile is used with typed context structs",
+        "Output is byte-for-byte identical to previous behavior"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Migrate audit-task and task markdown generation to templates",
+      "description": "Migrate audit-task and task markdown generation to templates",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/project_create.go",
+        "cmd/task/add.go"
+      ],
+      "body": "In internal/project/project_create.go: replace the embedded FS ReadFile + os.WriteFile in WriteAuditTaskMD (lines 40-46) with RenderToFile using audit-task.md.tmpl. The function currently bypasses tierfs entirely; after migration it should resolve through the three-tier system so users can override it. In cmd/task/add.go: replace the strings.Builder in writeTaskMD (lines 192-200) with RenderToFile using task.md.tmpl and TaskData struct. Both call sites currently discard errors (best-effort); preserve that behavior by ignoring the RenderToFile error.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Embedded FS ReadFile is no longer used for audit-task.md",
+        "strings.Builder in writeTaskMD is replaced with RenderToFile",
+        "Best-effort error handling is preserved",
+        "Output is byte-for-byte identical"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Snapshot tests for artifact templates",
+      "description": "Snapshot tests for artifact templates",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/template_test.go"
+      ],
+      "body": "Write snapshot tests for each artifact template: ADR (with and without body), spec (with body, without body, with stdin), audit-task, and task (with all optional fields, with minimal fields). Each test renders the template with known inputs and asserts the output matches a golden file that captures the current (pre-migration) output. These tests are the primary verification that the migration is behavior-preserving.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Golden file tests cover all artifact templates",
+        "Tests exercise edge cases (empty body",
+        " all optional fields present",
+        " minimal fields)",
+        "All tests pass"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Artifact Templates is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

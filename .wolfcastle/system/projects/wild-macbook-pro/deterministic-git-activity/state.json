@@ -3,7 +3,7 @@
   "id": "deterministic-git-activity",
   "name": "Deterministic Git Activity",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -19,12 +19,12 @@
     {
       "id": "prompt-cleanup",
       "address": "deterministic-git-activity/prompt-cleanup",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "documentation-update",
       "address": "deterministic-git-activity/documentation-update",
-      "state": "not_started"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -44,6 +44,8 @@
     "User staging area is preserved across daemon commits (verified by test)",
     "All human-facing docs accurately describe the new git behavior"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T20:24:40.981954Z",
@@ -63,7 +65,30 @@
       }
     ],
     "gaps": [],
-    "escalations": [],
-    "status": "pending"
+    "escalations": [
+      {
+        "id": "escalation-prompt-cleanup-1",
+        "timestamp": "2026-03-22T20:55:49.528065Z",
+        "description": "gofmt violations in internal/daemon/coverage_test.go and internal/daemon/iteration_test.go (pre-existing, not introduced by this node)",
+        "source_node": "deterministic-git-activity/prompt-cleanup",
+        "status": "open"
+      },
+      {
+        "id": "escalation-documentation-update-2",
+        "timestamp": "2026-03-22T20:59:29.458534Z",
+        "description": "config-reference.md git.auto_commit description says 'the agent must commit manually' when auto_commit is false. This is stale under the new deterministic commit model. The git-config-fields leaf should update this.",
+        "source_node": "deterministic-git-activity/documentation-update",
+        "status": "open"
+      },
+      {
+        "id": "escalation-documentation-update-3",
+        "timestamp": "2026-03-22T21:00:36.395668Z",
+        "description": "config-reference.md line 399: git.auto_commit description says 'the agent must commit manually' when auto_commit is false. This language is stale under the daemon-side commit model. Belongs to the git-config-fields leaf, not documentation-update.",
+        "source_node": "deterministic-git-activity/documentation-update",
+        "status": "open"
+      }
+    ],
+    "status": "passed",
+    "completed_at": "2026-03-22T21:53:35.729006Z"
   }
 }

@@ -3,26 +3,88 @@
   "id": "codebase-knowledge-files",
   "name": "Codebase Knowledge Files",
   "type": "orchestrator",
-  "state": "not_started",
+  "state": "complete",
   "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "knowledge-config-and-storage",
+      "address": "codebase-knowledge-files/knowledge-config-and-storage",
+      "state": "complete"
+    },
+    {
+      "id": "knowledge-cli-commands",
+      "address": "codebase-knowledge-files/knowledge-cli-commands",
+      "state": "complete"
+    },
+    {
+      "id": "pipeline-integration",
+      "address": "codebase-knowledge-files/pipeline-integration",
+      "state": "complete"
+    },
+    {
+      "id": "documentation",
+      "address": "codebase-knowledge-files/documentation",
+      "state": "complete"
+    }
+  ],
   "tasks": [
     {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Codebase Knowledge Files is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
   ],
   "scope": "Codebase knowledge files per spec .wolfcastle/docs/specs/2026-03-22T08-00Z-codebase-knowledge.md\n\nNew artifact type: living knowledge files that accumulate codebase-specific learnings across tasks. Agents read them every iteration and update them when they discover something non-obvious. Token-budgeted with explicit pruning.\n\nKey deliverables:\n- .wolfcastle/docs/knowledge/\u003cnamespace\u003e.md file location and format\n- ContextBuilder injection: read knowledge file each iteration and inject under '## Codebase Knowledge' section (after universal/class guidance, before audit context)\n- CLI commands: wolfcastle knowledge add, wolfcastle knowledge show, wolfcastle knowledge edit, wolfcastle knowledge prune\n- Token budget enforcement (knowledge.max_tokens, default 2000): fail on overflow with error, no silent truncation\n- Daemon maintenance task creation when file exceeds budget\n- Execute prompt update (execute.md): instruct agents to update knowledge file when discovering non-obvious codebase facts\n- Documentation pass: docs/humans/how-it-works.md, docs/humans/configuration.md, docs/humans/cli/ pages, AGENTS.md, docs/agents/, README",
+  "success_criteria": [
+    "Knowledge config section exists with max_tokens default of 2000",
+    "All four CLI commands (add, show, edit, prune) are functional and registered",
+    "ContextBuilder injects knowledge content between class guidance and AARs",
+    "Daemon creates maintenance task when knowledge file exceeds token budget",
+    "execute.md instructs agents to record non-obvious codebase learnings",
+    "All human and agent documentation updated to cover knowledge files",
+    "wolfcastle knowledge add fails with error on budget overflow, never silently truncates"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T21:06:26.341405Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
   "audit": {
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T21:06:14.997199Z",
+        "task": "codebase-knowledge-files",
+        "text": "Created 4 children: knowledge-config-and-storage, knowledge-cli-commands, pipeline-integration, documentation. Ordering: config and storage utilities first (foundation), CLI commands second (builds on storage layer), pipeline integration third (ContextBuilder + daemon + execute prompt, builds on knowledge reading), documentation last (requires all implementation to be complete before documenting). All children are leaves; the scope is well-defined enough that no sub-orchestrators are needed. Spec reference: 2026-03-22T08-00Z-codebase-knowledge.md."
+      }
+    ],
     "gaps": [],
-    "escalations": [],
-    "status": "pending"
+    "escalations": [
+      {
+        "id": "escalation-pipeline-integration-1",
+        "timestamp": "2026-03-22T21:42:11.853211Z",
+        "description": "ContextBuilder contract spec (2026-03-18T23-11Z-contextbuilder-contract.md) line 119 states 'Build does not return an error' but Build actually returns an error when taskID is not found in ns.Tasks. This predates the pipeline-integration node's work (the error-returning behavior was part of the original ContextBuilder implementation). The spec's Error Behavior section should be corrected to document that Build returns a wrapped error containing both the node address and the missing task ID.",
+        "source_node": "codebase-knowledge-files/pipeline-integration",
+        "status": "open"
+      },
+      {
+        "id": "escalation-documentation-2",
+        "timestamp": "2026-03-22T21:48:29.97521Z",
+        "description": "gofmt violations in 3 test files (internal/daemon/coverage_test.go, internal/daemon/iteration_test.go, internal/knowledge/knowledge_test.go) cause make lint to fail. Pre-existing, not introduced by any task in this node.",
+        "source_node": "codebase-knowledge-files/documentation",
+        "status": "open"
+      }
+    ],
+    "status": "passed",
+    "completed_at": "2026-03-22T21:53:35.72893Z"
   }
 }

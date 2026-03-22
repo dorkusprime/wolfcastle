@@ -46,9 +46,47 @@
     "codebase-knowledge-files": {
       "name": "Codebase Knowledge Files",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "complete",
       "address": "codebase-knowledge-files",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "codebase-knowledge-files/knowledge-config-and-storage",
+        "codebase-knowledge-files/knowledge-cli-commands",
+        "codebase-knowledge-files/pipeline-integration",
+        "codebase-knowledge-files/documentation"
+      ]
+    },
+    "codebase-knowledge-files/documentation": {
+      "name": "Documentation",
+      "type": "leaf",
+      "state": "complete",
+      "address": "codebase-knowledge-files/documentation",
+      "decomposition_depth": 0,
+      "parent": "codebase-knowledge-files"
+    },
+    "codebase-knowledge-files/knowledge-cli-commands": {
+      "name": "Knowledge CLI Commands",
+      "type": "leaf",
+      "state": "complete",
+      "address": "codebase-knowledge-files/knowledge-cli-commands",
+      "decomposition_depth": 0,
+      "parent": "codebase-knowledge-files"
+    },
+    "codebase-knowledge-files/knowledge-config-and-storage": {
+      "name": "Knowledge Config and Storage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "codebase-knowledge-files/knowledge-config-and-storage",
+      "decomposition_depth": 0,
+      "parent": "codebase-knowledge-files"
+    },
+    "codebase-knowledge-files/pipeline-integration": {
+      "name": "Pipeline Integration",
+      "type": "leaf",
+      "state": "complete",
+      "address": "codebase-knowledge-files/pipeline-integration",
+      "decomposition_depth": 0,
+      "parent": "codebase-knowledge-files"
     },
     "config-validate-command": {
       "name": "Config Validate Command",
@@ -139,7 +177,7 @@
     "deterministic-git-activity": {
       "name": "Deterministic Git Activity",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "deterministic-git-activity",
       "decomposition_depth": 0,
       "children": [
@@ -160,7 +198,7 @@
     "deterministic-git-activity/documentation-update": {
       "name": "Documentation Update",
       "type": "leaf",
-      "state": "not_started",
+      "state": "complete",
       "address": "deterministic-git-activity/documentation-update",
       "decomposition_depth": 0,
       "parent": "deterministic-git-activity"
@@ -176,7 +214,7 @@
     "deterministic-git-activity/prompt-cleanup": {
       "name": "Prompt Cleanup",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "deterministic-git-activity/prompt-cleanup",
       "decomposition_depth": 0,
       "parent": "deterministic-git-activity"
@@ -640,9 +678,58 @@
     "template-based-file-generation": {
       "name": "Template-Based File Generation",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "template-based-file-generation",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "template-based-file-generation/template-repository-infrastructure",
+        "template-based-file-generation/call-site-migration",
+        "template-based-file-generation/template-documentation"
+      ]
+    },
+    "template-based-file-generation/call-site-migration": {
+      "name": "Call-Site Migration",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "template-based-file-generation/call-site-migration",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation",
+      "children": [
+        "template-based-file-generation/call-site-migration/scaffold-templates",
+        "template-based-file-generation/call-site-migration/artifact-templates"
+      ]
+    },
+    "template-based-file-generation/call-site-migration/artifact-templates": {
+      "name": "Artifact Templates",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "template-based-file-generation/call-site-migration/artifact-templates",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation/call-site-migration"
+    },
+    "template-based-file-generation/call-site-migration/scaffold-templates": {
+      "name": "Scaffold Templates",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "template-based-file-generation/call-site-migration/scaffold-templates",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation/call-site-migration"
+    },
+    "template-based-file-generation/template-documentation": {
+      "name": "Template Documentation",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "template-based-file-generation/template-documentation",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation"
+    },
+    "template-based-file-generation/template-repository-infrastructure": {
+      "name": "Template Repository Infrastructure",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "template-based-file-generation/template-repository-infrastructure",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation"
     },
     "update-cli-commands-spec": {
       "name": "Update CLI Commands Spec",

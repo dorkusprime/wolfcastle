@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "id": "scaffold-templates",
+  "name": "Scaffold Templates",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Create scaffold template files",
+      "description": "Create scaffold template files",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/scaffold/gitignore.tmpl",
+        "internal/project/templates/scaffold/readme-root.md.tmpl"
+      ],
+      "body": "Create the following template files under internal/project/templates/scaffold/: gitignore.tmpl (content from the inline string at scaffold_service.go:190-201), readme-root.md.tmpl, readme-system.md.tmpl, readme-base-prompts.md.tmpl, readme-docs.md.tmpl, readme-archive.md.tmpl (content from the scaffoldREADMEs map at scaffold_service.go:25-128). These are static templates with no Go template variables. Content must be byte-for-byte identical to the current inline strings.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Each template file contains the exact content currently in the Go string literals",
+        "Templates are embedded via the existing go:embed all:templates directive"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T09-00Z-template-file-generation.md",
+        ".wolfcastle/docs/specs/2026-03-18T22-48Z-scaffoldservice-contract.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Migrate scaffold_service.go to use templates",
+      "description": "Migrate scaffold_service.go to use templates",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/scaffold_service.go"
+      ],
+      "body": "Replace the scaffoldREADMEs map and inline gitignore string in scaffold_service.go with calls to RenderToFile (or ResolveTemplate + WriteBase for scaffold paths that go through the tier system). The ScaffoldService already has access to PromptRepository via its prompts field. Remove the scaffoldREADMEs map variable and the gitignore string literal. Ensure the scaffold Init and Reinit flows produce identical directory structures and file contents.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "scaffoldREADMEs map is removed from scaffold_service.go",
+        "Inline gitignore string literal is removed",
+        "Generated files are byte-for-byte identical to previous output"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-18T22-48Z-scaffoldservice-contract.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Snapshot tests for scaffold templates",
+      "description": "Snapshot tests for scaffold templates",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/scaffold_service_test.go"
+      ],
+      "body": "Write snapshot tests that capture the output of each scaffold-generated file (gitignore and all five READMEs) and assert byte-for-byte identity with the expected content. Use Go test fixtures or golden files. These tests verify the migration introduced no regressions. Test both the Init and Reinit paths to confirm templates are correctly resolved from the tier system.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Snapshot tests cover gitignore and all five READMEs",
+        "Tests verify byte-for-byte identical output",
+        "All tests pass"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Scaffold Templates is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
