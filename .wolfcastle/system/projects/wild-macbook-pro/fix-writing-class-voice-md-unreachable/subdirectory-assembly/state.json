@@ -22,7 +22,7 @@
       "id": "task-0002",
       "title": "Add tests for subdirectory assembly behavior",
       "description": "Add tests for subdirectory assembly behavior",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/class_repository_test.go"
@@ -33,7 +33,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Subdirectory Assembly is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -56,12 +56,18 @@
         "timestamp": "2026-03-22T14:37:17.414598Z",
         "task": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
         "text": "Added two subdirectory assembly tests (MultipleFiles, ScanErrorIgnored). Fixed Resolve to silently discard ListFragments errors rather than propagating them. class_repository.go now at 100% coverage."
+      },
+      {
+        "timestamp": "2026-03-22T14:38:52.786187Z",
+        "task": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+        "text": "Audit reviewed 2 files (class_repository.go: 155 lines, class_repository_test.go: 370 lines). PASS. One accepted finding: line 86 of class_repository.go silently discards ListFragments error. This is intentional and documented — the main .md file is always self-sufficient, and propagating subdirectory I/O errors would break resolution for no benefit. The task-0002 AAR correctly flagged this as a future observability improvement (add debug logging). No security issues, no race conditions, no dead code. The resolvedKey tracking is correct: fallback resolution assembles fragments from the parent key's subdirectory, not the original key's. Test coverage is strong at 97.6% with 5 subdirectory-specific tests covering sort order, fallback interaction, no-subdir passthrough, multi-file assembly, and I/O error degradation."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T14:30:38.177578Z"
+    "started_at": "2026-03-22T14:30:38.177578Z",
+    "result_summary": "Subdirectory assembly enables class prompts to be composed from a main .md file plus lexicographically sorted fragment files in a same-named subdirectory. ClassRepository.Resolve was refactored to track which key (exact or parent fallback) successfully resolved, then collects fragments from prompts/classes/{resolvedKey}/ via ListFragments and appends them with newline separators. ListFragments errors are silently discarded since the main file content is always self-sufficient. Five new tests cover the assembly matrix: basic two-fragment assembly, no-subdirectory passthrough, fallback-key assembly, four-fragment sort-order verification, and I/O error graceful degradation via chmod. Coverage sits at 97.6%. The one deliberate tradeoff (silent error discard) is documented in code and flagged for future debug-logging enhancement."
   },
   "aars": {
     "task-0001": {
