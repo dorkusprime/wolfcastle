@@ -61,7 +61,15 @@
       }
     ],
     "gaps": [],
-    "escalations": [],
+    "escalations": [
+      {
+        "id": "escalation-context-wiring-1",
+        "timestamp": "2026-03-22T06:55:42.630765Z",
+        "description": "Spec cross-reference step was removed from execute.md Validate section by commit e0d08d7 (prior node). The step is a wolfcastle-specific workflow mechanic (verifying spec claims are implemented), not coding guidance. It should be restored to execute.md's Validate section or made a separate post-validate step. Currently recorded as gap-context-wiring-1 on this node, but the removal predates this node's work.",
+        "source_node": "task-classes-implementation/context-wiring",
+        "status": "open"
+      }
+    ],
     "status": "pending"
   }
 }
