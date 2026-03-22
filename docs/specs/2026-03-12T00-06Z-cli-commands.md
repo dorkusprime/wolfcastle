@@ -1,6 +1,6 @@
 # CLI Command Specification
 
-This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 56 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `config`, `install`, `knowledge`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
+This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 60 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `config`, `install`, `knowledge`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
 
 ## Conventions
 
@@ -4243,6 +4243,173 @@ wolfcastle archive add --node attunement-tree
 
 ---
 
+## wolfcastle archive delete
+
+### Synopsis
+
+```
+wolfcastle archive delete --node <path> --confirm
+```
+
+### Description
+
+Permanently removes an archived node and its entire subtree from the index and the archive store. This operation is irreversible: once deleted, the node's state directories and index entries cannot be recovered. The `--confirm` flag is mandatory as a safeguard against accidental deletion.
+
+Only root-level archived nodes (those present in `archived_root`) can be deleted. To delete a child of an archived subtree, you would need to restore the parent first, then manage it through normal project commands.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the archived node to delete |
+| `--confirm` | bool | Yes | `false` | Confirm permanent deletion. Command refuses to run without this flag |
+
+### Behavior
+
+1. Require identity. Fail if not configured.
+2. Validate `--confirm` is set. If not, exit with an error explaining the flag is required.
+3. Validate `--node` is provided.
+4. Load the root index.
+5. Verify the node exists in the index and has `archived: true`.
+6. Verify the node is in `archived_root` (root-level archived entry).
+7. Collect the full subtree: the target node and all its descendants via `Children` links.
+8. Remove the archived state directory tree at `{store}/.archive/{node-path}/` using recursive deletion.
+9. Atomically update the root index:
+   - Remove the node from `archived_root`.
+   - Delete all subtree entries from the `Nodes` map.
+10. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Permanently deleted archived node my-project
+```
+
+With `--json`:
+
+```json
+{
+  "ok": true,
+  "action": "archive_delete",
+  "node": "my-project"
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Node permanently deleted |
+| 1 | `.wolfcastle/` not found, identity not configured, or `--confirm` not set |
+| 2 | Node not found in index |
+| 3 | Node is not archived or not a root-level archived node |
+
+### Examples
+
+```bash
+# Permanently delete an archived project
+wolfcastle archive delete --node my-project --confirm
+
+# Attempting without --confirm fails with an explanatory error
+wolfcastle archive delete --node my-project
+# Error: --confirm is required: this permanently deletes the archived node and cannot be undone
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| No --confirm | `--confirm is required: this permanently deletes the archived node and cannot be undone` | 1 |
+| Node not found | `node "foo" not found in index` | 2 |
+| Not archived | `node "foo" is not archived` | 3 |
+| Not root-level | `node "foo" is not a root-level archived node` | 3 |
+
+---
+
+## wolfcastle archive restore
+
+### Synopsis
+
+```
+wolfcastle archive restore --node <path>
+```
+
+### Description
+
+Restores a previously archived node and its entire subtree back to active state. The node must be a root-level archived entry (present in `archived_root`). After restoration, the node appears in the active `root` list and all subtree entries have their `archived` flag cleared.
+
+State directories are moved from `.archive/` back to their active locations. The node resumes its pre-archive state; tasks, audit records, and breadcrumbs are preserved.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the archived node to restore |
+
+### Behavior
+
+1. Require identity. Fail if not configured.
+2. Validate `--node` is provided.
+3. Load the root index.
+4. Verify the node exists in the index and has `archived: true`.
+5. Verify the node is in `archived_root` (root-level archived entry).
+6. Collect the full subtree: the target node and all its descendants via `Children` links.
+7. For each node in the subtree, move its state directory from `{store}/.archive/{node-path}/` to `{store}/{node-path}/`. Skip entries whose archive directory does not exist. Create parent directories as needed.
+8. Atomically update the root index:
+   - Remove the node from `archived_root`.
+   - Add the node to `root`.
+   - For all subtree entries, set `archived: false` and clear `archived_at`.
+9. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Restored my-project from archive
+```
+
+With `--json`:
+
+```json
+{
+  "ok": true,
+  "action": "archive_restore",
+  "node": "my-project"
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Node restored to active state |
+| 1 | `.wolfcastle/` not found or identity not configured |
+| 2 | Node not found in index |
+| 3 | Node is not archived or not a root-level archived node |
+
+### Examples
+
+```bash
+# Restore an archived project
+wolfcastle archive restore --node my-project
+
+# Verify it's back in the active tree
+wolfcastle status --node my-project
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Node not found | `node "foo" not found in index` | 2 |
+| Not archived | `node "foo" is not archived` | 3 |
+| Not root-level | `node "foo" is not a root-level archived node` | 3 |
+
+---
+
 ## wolfcastle inbox add
 
 ### Synopsis
@@ -5374,6 +5541,112 @@ ls -la .claude/wolfcastle/
 ### Extensibility
 
 The `install` subcommand is designed to accept additional targets in the future (e.g., git hooks, editor plugins). Each target follows the same pattern: source files live in `.wolfcastle/system/base/`, and `install` places them outside `.wolfcastle/` with the user's explicit consent.
+
+---
+
+## wolfcastle completion
+
+### Synopsis
+
+```
+wolfcastle completion <shell>
+```
+
+### Description
+
+Generates shell completion scripts for wolfcastle. This is Cobra's built-in completion generator, providing tab-completion for commands, subcommands, and flags. Each shell has its own subcommand that outputs the appropriate script format.
+
+### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `bash` | Generate the autocompletion script for bash |
+| `fish` | Generate the autocompletion script for fish |
+| `powershell` | Generate the autocompletion script for powershell |
+| `zsh` | Generate the autocompletion script for zsh |
+
+### Behavior
+
+1. The specified shell subcommand writes a completion script to stdout.
+2. The user sources or installs this script according to their shell's completion mechanism.
+3. No `.wolfcastle/` directory or identity is required. This command works anywhere.
+
+### Output
+
+A shell-specific completion script written to stdout. The exact format varies by shell. Each subcommand's `--help` output includes installation instructions for that shell.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Completion script generated |
+| 1 | Invalid shell or generation error |
+
+### Examples
+
+```bash
+# Generate and source bash completions
+source <(wolfcastle completion bash)
+
+# Generate zsh completions and install them
+wolfcastle completion zsh > "${fpath[1]}/_wolfcastle"
+
+# Generate fish completions
+wolfcastle completion fish | source
+
+# Generate powershell completions
+wolfcastle completion powershell | Out-String | Invoke-Expression
+```
+
+---
+
+## wolfcastle help
+
+### Synopsis
+
+```
+wolfcastle help [command]
+```
+
+### Description
+
+Displays help information for any wolfcastle command. This is Cobra's built-in help command. When called without arguments, it shows the top-level help (equivalent to `wolfcastle --help`). When given a command path, it shows help for that specific command.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `[command]` | string (positional) | No | -- | Command path to get help for (e.g., `task add`, `audit breadcrumb`) |
+
+### Behavior
+
+1. If no command argument is given, display the root help text listing all available commands and groups.
+2. If a command path is given, resolve it through the command tree and display that command's help text (long description, usage, flags, and examples).
+3. No `.wolfcastle/` directory or identity is required. This command works anywhere.
+
+### Output
+
+Human-readable help text written to stdout, including the command's description, usage pattern, available flags, and subcommands (if any).
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Help displayed |
+| 1 | Unknown command |
+
+### Examples
+
+```bash
+# Show top-level help
+wolfcastle help
+
+# Show help for a specific command
+wolfcastle help task add
+
+# Show help for a command group
+wolfcastle help audit
+```
 
 ---
 

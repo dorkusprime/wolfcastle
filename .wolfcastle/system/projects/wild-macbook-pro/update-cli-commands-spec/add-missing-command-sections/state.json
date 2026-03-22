@@ -60,7 +60,7 @@
       "id": "task-0003",
       "title": "Add knowledge subcommand sections",
       "description": "Add knowledge subcommand sections",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/specs/2026-03-12T00-06Z-cli-commands.md"
@@ -85,7 +85,7 @@
       "id": "task-0004",
       "title": "Add archive delete, archive restore, completion, and help sections",
       "description": "Add archive delete, archive restore, completion, and help sections",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/specs/2026-03-12T00-06Z-cli-commands.md"
@@ -128,6 +128,11 @@
         "timestamp": "2026-03-22T23:24:02.912402Z",
         "task": "update-cli-commands-spec/add-missing-command-sections",
         "text": "Added wolfcastle knowledge add, edit, prune, and show sections to the CLI commands spec. Placed in Documentation group after spec list, before audit breadcrumb. Each section includes Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, and Error Cases. Updated leaf command count to 56 and added knowledge to subcommand groups list."
+      },
+      {
+        "timestamp": "2026-03-22T23:25:51.127219Z",
+        "task": "update-cli-commands-spec/add-missing-command-sections",
+        "text": "Added wolfcastle archive delete, archive restore, completion, and help sections to the CLI commands spec. Archive commands placed after archive add. Completion and help placed before appendices. Updated leaf command count to 60."
       }
     ],
     "gaps": [],
@@ -182,6 +187,22 @@
       ],
       "action_items": [
         "Verify the total leaf command count of 56 against the actual cobra command tree, since prior tasks noted the original 43 was already stale"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T23:25:49.61032Z",
+      "objective": "Add archive delete, archive restore, completion, and help sections to the CLI commands spec",
+      "what_happened": "Read source code for archive_delete.go and archive_restore.go plus --help output for all four commands. Added archive delete and archive restore sections after archive add in the spec, following the established format. Added completion and help sections before the appendices. Updated the leaf command count from 56 to 60.",
+      "went_well": [
+        "Source code for archive delete and restore provided clear behavioral details: subtree collection, atomic index mutation, .archive directory management, and the confirm safeguard",
+        "The completion and help commands are standard Cobra builtins, so the sections are appropriately concise"
+      ],
+      "improvements": [
+        "The total leaf command count of 60 should still be verified against the actual cobra command tree, as noted in prior AARs"
+      ],
+      "action_items": [
+        "Verify the total leaf command count of 60 against the actual cobra command tree"
       ]
     }
   }
