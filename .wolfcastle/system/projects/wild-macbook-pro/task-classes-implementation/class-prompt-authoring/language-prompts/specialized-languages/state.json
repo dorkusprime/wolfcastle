@@ -38,7 +38,7 @@
       "id": "task-0003",
       "title": "Author Shell prompt",
       "description": "Author Shell prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/shell.md"
@@ -52,7 +52,7 @@
       "id": "task-0004",
       "title": "Author SQL prompt",
       "description": "Author SQL prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/sql.md"
@@ -149,6 +149,11 @@
         "timestamp": "2026-03-22T07:46:42.424251Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
         "text": "Authored Shell class prompt (71 lines) covering idiomatic style, ShellCheck/shfmt tooling, Bats-core testing, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T07:48:39.571702Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored SQL class prompt (59 lines) covering idiomatic style, dialect awareness, migration conventions, testing patterns, and common pitfalls [task-0004]"
       }
     ],
     "gaps": [],
@@ -203,6 +208,22 @@
       ],
       "action_items": [
         "If a shell/posix or shell/bash sub-classification is added later, those prompts can split the Bash-specific and POSIX-portable guidance into separate files"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T07:48:38.182163Z",
+      "objective": "Author the SQL language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/sql.md at 59 lines. Matched the established format from go.md, shell.md, and swift.md. Organized into six sections: Style (uppercase keywords, explicit JOINs, table aliases, CTEs over nested subqueries, COALESCE, EXISTS over IN), Dialect Awareness (RETURNING/OUTPUT, pagination differences, JSON operators, generated columns), Migrations (versioned files, reversible migrations, DDL/DML separation, data-dependent DDL cautions with engine-specific alternatives), Testing (transaction-wrapped tests, explicit test data setup, real dialect-matched databases via containers), and Common Pitfalls (SQL injection via parameterization, NULL semantics, implicit type casting disabling indexes, N+1 queries, missing FK indexes, large transaction locking).",
+      "went_well": [
+        "Covered four major dialects (PostgreSQL, MySQL, SQLite, SQL Server) with specific behavioral differences rather than vague portability warnings",
+        "Migration section addresses both schema and operational concerns (concurrent index creation, online schema change tools)"
+      ],
+      "improvements": [
+        "Could add guidance on window functions, recursive CTEs, and materialized views if line budget allowed"
+      ],
+      "action_items": [
+        "If sql/postgres or sql/mysql sub-classifications are added later, those prompts can extend this base with engine-specific optimization and extension guidance"
       ]
     }
   }
