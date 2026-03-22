@@ -187,7 +187,7 @@ func (d *Daemon) consoleLog(level, format string, args ...any) {
 
 ## 3. Force Stop
 
-ADR-020 specifies `wolfcastle stop --force` but it is not yet implemented. The implementation:
+ADR-020 specifies `wolfcastle stop --force`, which is fully implemented. The implementation:
 
 ### Graceful Stop (existing)
 
