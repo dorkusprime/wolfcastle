@@ -51,6 +51,11 @@
         "timestamp": "2026-03-22T14:33:43.74481Z",
         "task": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
         "text": "Implemented subdirectory assembly in ClassRepository.Resolve. After resolving the main .md file (exact or fallback), Resolve now collects fragments from prompts/classes/{resolvedKey}/ via ListFragments and appends them. Three new tests cover: multi-fragment assembly, no-subdir passthrough, and fallback+assembly."
+      },
+      {
+        "timestamp": "2026-03-22T14:37:17.414598Z",
+        "task": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+        "text": "Added two subdirectory assembly tests (MultipleFiles, ScanErrorIgnored). Fixed Resolve to silently discard ListFragments errors rather than propagating them. class_repository.go now at 100% coverage."
       }
     ],
     "gaps": [],
@@ -73,6 +78,22 @@
       ],
       "action_items": [
         "Wire subdirectory assembly into canResolve/Validate if subdirectory-only classes become a thing"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T14:37:13.606478Z",
+      "objective": "Add tests covering subdirectory assembly behavior in ClassRepository.Resolve",
+      "what_happened": "Task-0001 already shipped three of the five requested tests (basic assembly, no-subdir passthrough, fallback+assembly). Added two new tests: MultipleFiles (four fragments, verifying full sort order) and ScanErrorIgnored (chmod 000 on subdirectory, verifying graceful degradation). The ScanErrorIgnored test revealed that Resolve was propagating ListFragments errors instead of silently degrading; fixed by discarding the error since the main file content is always self-sufficient.",
+      "went_well": [
+        "The chmod-based error simulation is clean and portable across test environments",
+        "Coverage on class_repository.go is now 100%"
+      ],
+      "improvements": [
+        "The error-silencing change means genuinely broken tier filesystems won't surface through class resolution. If observability matters, a debug log line would be better than a silent discard."
+      ],
+      "action_items": [
+        "Consider adding a logger to ClassRepository so silenced errors can be observed in debug mode"
       ]
     }
   }
