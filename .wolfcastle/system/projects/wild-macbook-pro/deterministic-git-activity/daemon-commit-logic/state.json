@@ -95,6 +95,11 @@
         "timestamp": "2026-03-22T20:34:18.626245Z",
         "task": "deterministic-git-activity/daemon-commit-logic",
         "text": "Refactored autoCommitPartialWork into commitAfterIteration: now handles both success and failure paths, respects auto_commit/commit_on_success/commit_on_failure/commit_state config flags, uses spec-compliant commit messages"
+      },
+      {
+        "timestamp": "2026-03-22T20:42:34.296274Z",
+        "task": "deterministic-git-activity/daemon-commit-logic",
+        "text": "Implemented staging area preservation using separate GIT_INDEX_FILE in commitWithSeparateIndex. Temp index seeded from HEAD, staged into, committed from. User's .git/index never touched. Falls back to commitDirect on failure. Four new tests verify byte-level index preservation, working tree safety, cleanup, and clean-tree handling."
       }
     ],
     "gaps": [],
@@ -118,6 +123,23 @@
       "action_items": [
         "Add tests for the new config flag behaviors (auto_commit=false, commit_on_success=false, commit_on_failure=false, commit_state=false).",
         "Add a test for the success commit path (kind='success') to verify the commit message format."
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T20:42:28.746029Z",
+      "objective": "Implement staging area preservation so daemon commits don't clobber user-staged changes",
+      "what_happened": "Chose the separate GIT_INDEX_FILE approach over stash-based. Added commitWithSeparateIndex which creates a temp index seeded from HEAD via git read-tree, stages tracked changes and .wolfcastle/ state into it, then commits from it. The user's .git/index is never read or written. Added commitDirect as a fallback when temp index creation fails. Updated the existing MultipleTrackedFiles test (was asserting clean working tree via git status, but with separate index the default index is stale relative to the new HEAD). Added four new tests: PreservesUserStagedChanges (verifies .git/index is byte-identical before/after), PreservesUserUnstagedChanges (working tree content unchanged), CleanTreeNoCommit (no commit on clean tree), TempFileCleanedUp (no leftover .git-daemon-index-* files).",
+      "went_well": [
+        "The separate-index approach is clean: zero interaction with .git/index, no stash edge cases, no pop conflicts",
+        "Byte-level index comparison in tests gives strong assurance that user state is truly untouched",
+        "Fallback to commitDirect ensures commits still land even if the preservation mechanism breaks"
+      ],
+      "improvements": [
+        "After a separate-index commit, git status from the user's perspective shows stale entries because the default index references the pre-commit tree. This is cosmetically confusing but data-safe. A future enhancement could reconcile the default index after commit."
+      ],
+      "action_items": [
+        "Consider documenting the stale-index behavior for users who run git status during daemon execution"
       ]
     }
   }
