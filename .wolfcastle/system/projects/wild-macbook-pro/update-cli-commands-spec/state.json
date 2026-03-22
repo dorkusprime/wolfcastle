@@ -52,7 +52,15 @@
       }
     ],
     "gaps": [],
-    "escalations": [],
+    "escalations": [
+      {
+        "id": "escalation-add-missing-command-sections-1",
+        "timestamp": "2026-03-22T23:29:11.185018Z",
+        "description": "Pre-existing test failures: TestInitCmd_AlreadyInitialized and TestInitCmd_AlreadyInitialized_JSON in cmd/ package. These predate the branch (no diff on cmd/init_test.go). Should be investigated separately.",
+        "source_node": "update-cli-commands-spec/add-missing-command-sections",
+        "status": "open"
+      }
+    ],
     "status": "pending"
   }
 }
