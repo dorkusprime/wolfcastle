@@ -3,7 +3,7 @@
   "id": "call-site-migration",
   "name": "Call-Site Migration",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -22,7 +22,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Call-Site Migration is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -42,8 +42,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T22:55:55.593956Z",
+    "completed_at": "2026-03-22T22:57:41.740727Z",
     "result_summary": "Call-site migration completed across two child nodes. Scaffold-templates extracted 6 static template files (gitignore + 5 READMEs) from inline Go string literals in scaffold_service.go, reducing it by ~97 lines, and fixed a Reinit bug where base-tier README was lost after teardown. Artifact-templates created 4 Go templates (adr.md, spec.md, task.md, audit-task.md) and migrated all 4 generation call sites (adr_create.go, spec.go, project_create.go, task/add.go) from strings.Builder/fmt.Sprintf to PromptRepository.RenderToFile. Both nodes include snapshot tests verifying byte-for-byte output identity with the original inline construction. Build clean, go vet clean, all migration-relevant tests pass."
   }
 }

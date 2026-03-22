@@ -310,6 +310,93 @@ Any base prompt can be overridden by placing a file with the same relative path 
 
 This works for stage prompts, class prompts, the summary prompt, the doctor prompt, audit prompts, and any other file under `prompts/`.
 
+### Template Overrides
+
+When Wolfcastle generates artifacts (ADRs, specs, task descriptions, audit checklists), it renders Go `text/template` files resolved through the same three-tier system as prompts and config. Default templates ship embedded in the binary and are written to the base tier during `wolfcastle init`. You can override any template by placing a `.tmpl` file at the same relative path in `custom/` or `local/`.
+
+#### Resolution
+
+`PromptRepository.ResolveTemplate` appends `.tmpl` to the template name and walks the tiers from highest to lowest priority. The first match wins and replaces the base version entirely.
+
+```
+.wolfcastle/system/
+├── base/artifacts/adr.md.tmpl          ← shipped default (regenerated on init)
+├── custom/artifacts/adr.md.tmpl        ← team override (committed)
+└── local/artifacts/adr.md.tmpl         ← personal override (gitignored)
+```
+
+If a template context is provided, the resolved content is parsed and executed as a Go template. If no context is provided (as with audit-task and scaffold templates), the raw content is returned.
+
+#### Available Templates
+
+The source templates live in `internal/project/templates/` in the Wolfcastle repository, organized into two groups.
+
+**Artifact templates** generate project documents at runtime. These are the templates you are most likely to override.
+
+| Template | Tier path | Variables | Used by |
+|----------|-----------|-----------|---------|
+| ADR | `artifacts/adr.md.tmpl` | `{{.Title}}`, `{{.Date}}`, `{{.Body}}` | `wolfcastle adr create` |
+| Spec | `artifacts/spec.md.tmpl` | `{{.Title}}`, `{{.Body}}` | `wolfcastle spec create` |
+| Task | `artifacts/task.md.tmpl` | `{{.ID}}`, `{{.Title}}`, `{{.Description}}`, `{{.Body}}`, `{{.Type}}`, `{{.Class}}`, `{{.Deliverables}}`, `{{.Constraints}}`, `{{.References}}`, `{{.AcceptanceCriteria}}` | `wolfcastle task add` |
+| Audit task | `artifacts/audit-task.md.tmpl` | None (static content) | Project creation (audit nodes) |
+
+The ADR template includes conditional logic: if `{{.Body}}` is provided (via `--stdin` or `--file`), it renders the body directly. If body is empty, placeholder sections (Context, Decision, Consequences) are emitted instead. The task template conditionally renders each optional field only when it has a value.
+
+`Deliverables`, `Constraints`, `References`, and `AcceptanceCriteria` on the task template are string slices. Use `{{range .Deliverables}}` to iterate them.
+
+**Scaffold templates** generate one-time files during `wolfcastle init` (the `.gitignore`, various `README.md` files). These are rendered without template variables and written directly to their target paths, so overriding them in the tier system has no effect on the scaffold process.
+
+| Template | Output path |
+|----------|-------------|
+| `scaffold/gitignore.tmpl` | `.wolfcastle/.gitignore` |
+| `scaffold/readme-root.md.tmpl` | `.wolfcastle/README.md` |
+| `scaffold/readme-system.md.tmpl` | `.wolfcastle/system/README.md` |
+| `scaffold/readme-base-prompts.md.tmpl` | `.wolfcastle/system/base/prompts/README.md` |
+| `scaffold/readme-docs.md.tmpl` | `.wolfcastle/docs/README.md` |
+| `scaffold/readme-archive.md.tmpl` | `.wolfcastle/archive/README.md` |
+
+#### Example: Customizing the ADR Format
+
+To add a "Supersedes" section to every ADR your team creates, copy the base template and modify it:
+
+```
+cp .wolfcastle/system/base/artifacts/adr.md.tmpl \
+   .wolfcastle/system/custom/artifacts/adr.md.tmpl
+```
+
+Then edit the custom copy to include the new section:
+
+```
+# {{.Title}}
+
+## Status
+Accepted
+
+## Date
+{{.Date}}
+
+{{if .Body}}{{.Body}}{{else}}## Context
+
+[Why was this decision needed?]
+
+## Decision
+
+[What was decided?]
+
+## Supersedes
+
+[List any prior ADRs this decision replaces, or "None."]
+
+## Consequences
+
+[What follows from this decision?]
+{{end -}}
+```
+
+Commit the custom template. Every subsequent `wolfcastle adr create` on the team will use this format. Individual engineers can further override it in `local/` without affecting the team default.
+
+Templates use standard Go `text/template` syntax. Conditionals (`{{if}}`), range loops (`{{range}}`), and pipelines all work as documented in the [Go template package](https://pkg.go.dev/text/template).
+
 ### Rule Fragments
 
 Rule fragments are composable text files assembled into the prompt context. Wolfcastle ships base fragments covering git conventions, ADR usage, and commit formatting. Teams add custom fragments in `custom/rules/`, and engineers add personal fragments in `local/rules/`.

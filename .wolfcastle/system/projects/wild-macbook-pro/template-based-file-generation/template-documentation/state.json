@@ -3,14 +3,14 @@
   "id": "template-documentation",
   "name": "Template Documentation",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Document template override mechanism in configuration.md",
       "description": "Document template override mechanism in configuration.md",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/configuration.md"
@@ -55,9 +55,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:01:17.29199Z",
+        "task": "template-based-file-generation/template-documentation",
+        "text": "Added Template Overrides section to docs/humans/configuration.md. Covers artifact templates (ADR, spec, task, audit-task) with their tier paths and template variables, scaffold templates and why they aren't overridable, three-tier resolution order, and a worked example showing ADR customization with a Supersedes section."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T22:57:41.825491Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T23:01:27.65545Z",
+      "objective": "Document the template override mechanism in configuration.md so users know how to customize generated artifacts.",
+      "what_happened": "Added a Template Overrides subsection under Common Customizations in docs/humans/configuration.md. Covers artifact templates (ADR, spec, task, audit-task) with exact tier paths and Go template variables, explains scaffold templates and why they are not overridable through tiers, and includes a worked example adding a Supersedes section to the ADR template. Verified all variable names against internal/pipeline/template_data.go and the actual .tmpl files.",
+      "went_well": [
+        "Template variable inventory is accurate against source code, not guessed from task description",
+        "Distinguished artifact templates (overridable at runtime) from scaffold templates (one-time init, not tier-resolved) to prevent user confusion"
+      ],
+      "improvements": [
+        "The task description mentioned system/custom/templates/ as the override path, but actual tier paths have no templates/ subdirectory. Documented the real paths."
+      ],
+      "action_items": [
+        "If a template list command is added later (wolfcastle template list), link to it from this section"
+      ]
+    }
   }
 }

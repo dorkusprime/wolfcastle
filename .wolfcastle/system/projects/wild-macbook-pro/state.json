@@ -690,7 +690,7 @@
     "template-based-file-generation/call-site-migration": {
       "name": "Call-Site Migration",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "template-based-file-generation/call-site-migration",
       "decomposition_depth": 0,
       "parent": "template-based-file-generation",
@@ -718,7 +718,7 @@
     "template-based-file-generation/template-documentation": {
       "name": "Template Documentation",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "template-based-file-generation/template-documentation",
       "decomposition_depth": 0,
       "parent": "template-based-file-generation"
