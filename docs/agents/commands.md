@@ -28,7 +28,7 @@ When adding a new command:
 - [ ] Follow the registration pattern above
 - [ ] Add `--json` support (check `app.JSON`)
 - [ ] Use `output.PrintHuman()` / `output.Print()` for all output
-- [ ] Call `app.RequireResolver()` early if the command needs the tree
+- [ ] Call `app.RequireIdentity()` early if the command needs an identity
 - [ ] Add shell completion via `cmdutil.CompleteNodeAddresses()` or `CompleteTaskAddresses()`
 - [ ] Include `Long` help text with examples
 - [ ] Add the command to `cmd/completions.go` if it has completable flags
