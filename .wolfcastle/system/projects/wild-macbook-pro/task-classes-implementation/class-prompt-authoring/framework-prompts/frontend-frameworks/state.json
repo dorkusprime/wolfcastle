@@ -113,6 +113,11 @@
         "timestamp": "2026-03-22T08:23:07.519651Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
         "text": "Authored Svelte class prompt (typescript/svelte.md, 51 lines) covering Svelte 5 runes, snippets, SvelteKit routing/load/form actions, SSR patterns, stores-vs-runes, testing with Svelte Testing Library, and common pitfalls [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T08:25:41.672744Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored JavaScript/React class prompt (javascript/react.md, 59 lines) covering PropTypes, JSDoc annotations, function components, hooks, effects, state management, React Testing Library, and JS-specific pitfalls (PropTypes dev-only, missing defaultProps, stale closures without type safety) [task-0006]"
       }
     ],
     "gaps": [],
@@ -199,6 +204,22 @@
       ],
       "action_items": [
         "When SvelteKit 3 or Svelte 6 patterns emerge, review runes API surface for additions like $host"
+      ]
+    },
+    "task-0006": {
+      "task_id": "task-0006",
+      "timestamp": "2026-03-22T08:25:39.650062Z",
+      "objective": "Author the JavaScript/React framework class prompt, adapting the TypeScript/React prompt for plain JavaScript projects",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/javascript/react.md (59 lines). Studied the existing TypeScript/React prompt and JavaScript language prompt for format consistency. Adapted all React sections (components, hooks, effects, state management, testing) while replacing TypeScript-specific guidance with JavaScript equivalents: PropTypes for runtime type checking, JSDoc annotations for editor support, PropTypes.shape/oneOfType as discriminated union equivalents, defaultProps emphasis, and the react-hooks/exhaustive-deps ESLint plugin as the primary guard against stale closures in the absence of compile-time checks.",
+      "went_well": [
+        "The Props and Runtime Type Checking section clearly differentiates this prompt from the TypeScript version, covering PropTypes.shape, PropTypes.exact, PropTypes.oneOfType, and PropTypes.isRequired as the JavaScript safety net",
+        "Compressed shared React patterns (effects, state management) to stay within the 30-60 line target while keeping JS-specific pitfalls detailed"
+      ],
+      "improvements": [
+        "Could add guidance on the prop-types package deprecation trajectory if React moves further toward TypeScript-only type checking"
+      ],
+      "action_items": [
+        "If React officially deprecates the prop-types package, revisit this prompt to shift emphasis toward JSDoc and runtime validation libraries"
       ]
     }
   }
