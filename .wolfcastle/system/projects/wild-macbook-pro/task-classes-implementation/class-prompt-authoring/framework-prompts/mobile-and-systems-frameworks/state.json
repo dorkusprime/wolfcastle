@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Write Kotlin/Android class prompt",
       "description": "Write Kotlin/Android class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/kotlin/android.md"
@@ -21,7 +21,7 @@
       "id": "task-0002",
       "title": "Write Swift/iOS class prompt",
       "description": "Write Swift/iOS class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/swift/ios.md"
