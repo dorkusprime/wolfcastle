@@ -103,6 +103,11 @@
         "timestamp": "2026-03-22T08:34:44.234008Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
         "text": "Authored Python/FastAPI class prompt (45 lines) covering path operations, Pydantic v2, dependency injection, async/sync endpoints, database integration, testing, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T08:36:42.861114Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Python/Flask class prompt (41 lines) covering app factory pattern, contexts, configuration, SQLAlchemy integration, templates, testing, and common pitfalls [task-0004]"
       }
     ],
     "gaps": [],
@@ -154,6 +159,22 @@
       ],
       "improvements": [
         "Could add guidance on OpenAPI schema customization and lifespan events (the modern replacement for on_startup/on_shutdown), but these are secondary to the core patterns covered"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T08:36:41.760851Z",
+      "objective": "Author the Python/Flask framework class prompt covering app factory, contexts, config, SQLAlchemy, templates, testing, and pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/python/flask.md (41 lines). Followed the established pattern from sibling prompts (django.md, fastapi.md). Covered Flask 2.2+/3.x patterns including from_prefixed_env(), the factory-with-blueprints architecture, Flask-SQLAlchemy init_app pattern, and the thread-local proxy behavior of g/request/session.",
+      "went_well": [
+        "Clean separation from base Python prompt and siblings: Flask-specific context machinery, blueprint registration, and WSGI-oriented patterns sit here while async concerns stay in fastapi.md, ORM depth stays in django.md, and language fundamentals stay in python.md",
+        "Covered the silent-failure blueprint registration pitfall, which is one of the most confusing Flask debugging experiences for newcomers"
+      ],
+      "improvements": [
+        "Could add guidance on async support in Flask 2.0+ (async views, async before_request) but the async story in Flask remains secondary to FastAPI and the prompt is better served staying focused on Flask's synchronous strengths"
       ],
       "action_items": [
         "None; prompt is self-contained"
