@@ -107,6 +107,11 @@
         "timestamp": "2026-03-22T22:34:11.214711Z",
         "task": "template-based-file-generation/call-site-migration/artifact-templates",
         "text": "Migrated ADR and spec generation to templates. Replaced strings.Builder in adr_create.go and fmt.Sprintf in spec.go with RenderToFile('artifacts/adr.md', ADRData, path) and RenderToFile('artifacts/spec.md', SpecData, path). Fixed ResolveTemplate to resolve tier-FS paths directly (removed 'templates/' prefix) so artifact templates at artifacts/*.tmpl are reachable. Updated WithTemplate helper and repository_test.go tier-override test. Seeded artifact templates in cmd test helper via seedArtifactTemplates."
+      },
+      {
+        "timestamp": "2026-03-22T22:42:52.326491Z",
+        "task": "template-based-file-generation/call-site-migration/artifact-templates",
+        "text": "Migrated audit-task and task MD generation to templates. WriteAuditTaskMD now takes a *pipeline.PromptRepository and resolves artifacts/audit-task.md through the tier FS. writeTaskMD now takes a *pipeline.PromptRepository and renders artifacts/task.md with pipeline.TaskData. Created artifacts/audit-task.md.tmpl (static, no template vars). Updated callers in cmd/project/create.go and cmd/task/add.go. Updated tests in audit_coverage_test.go and task_coverage_test.go to construct PromptRepository with seeded templates."
       }
     ],
     "gaps": [],
@@ -145,6 +150,22 @@
       ],
       "action_items": [
         "task-0003 (task.md.tmpl migration) should follow the same pattern: use RenderToFile with artifacts/task.md and TaskData struct, apply TrimSpace to body before passing it as noted in task-0001 AAR"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T22:42:46.818832Z",
+      "objective": "Migrate audit-task and task markdown generation from inline construction to template-based rendering via RenderToFile",
+      "what_happened": "Replaced Templates.ReadFile+os.WriteFile in WriteAuditTaskMD (project_create.go) with prompts.RenderToFile('artifacts/audit-task.md', nil, destPath). Created artifacts/audit-task.md.tmpl as a copy of audits/audit-task.md so the tier FS can resolve it. Replaced strings.Builder in writeTaskMD (cmd/task/add.go) with prompts.RenderToFile('artifacts/task.md', pipeline.TaskData{Title, Body}, destPath). Both functions now accept a *pipeline.PromptRepository parameter. Updated audit_coverage_test.go and task_coverage_test.go to construct PromptRepository instances with seeded templates. Updated stale comment in reinit_coverage_test.go.",
+      "went_well": [
+        "The nil-ctx path in ResolveTemplate made the audit-task migration trivial: no template variables needed, raw content returned as-is",
+        "All existing tests pass without assertion changes, confirming byte-for-byte output compatibility"
+      ],
+      "improvements": [
+        "The audit-task.md now exists in two locations: audits/audit-task.md (for scaffolding) and artifacts/audit-task.md.tmpl (for tier resolution). The scaffolding path could be cleaned up to use the artifacts copy, but that's outside this task's scope."
+      ],
+      "action_items": [
+        "Consider removing templates/audits/audit-task.md and having writeBasePrompts populate it from the artifacts copy instead, to eliminate the duplication"
       ]
     }
   }
