@@ -44,7 +44,7 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 // runs the intake stage when new items appear.
 func (d *Daemon) runInboxWithFsnotify(ctx context.Context, watcher *fsnotify.Watcher) {
 	inboxCounter := 0
-	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
+	inboxPath := d.Store.InboxPath()
 
 	// Check once at startup in case items were added while the daemon was down.
 	if d.checkInboxForNew(inboxPath) {
@@ -91,7 +91,7 @@ func (d *Daemon) runInboxWithPolling(ctx context.Context) {
 	}
 
 	inboxCounter := 0
-	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
+	inboxPath := d.Store.InboxPath()
 
 	for {
 		select {
@@ -147,7 +147,7 @@ func (d *Daemon) checkInboxForNew(inboxPath string) bool {
 // model completes without error) are marked as "filed". Items that fail
 // remain "new" for retry.
 func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage) error {
-	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
+	inboxPath := d.Store.InboxPath()
 	inboxData, err := state.LoadInbox(inboxPath)
 	if err != nil {
 		return nil // No inbox file = nothing to process

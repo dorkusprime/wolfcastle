@@ -23,7 +23,7 @@ Examples:
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
-			inboxPath := filepath.Join(app.State.Dir(), "inbox.json")
+			inboxPath := app.State.InboxPath()
 
 			inboxData, err := state.LoadInbox(inboxPath)
 			if err != nil {
