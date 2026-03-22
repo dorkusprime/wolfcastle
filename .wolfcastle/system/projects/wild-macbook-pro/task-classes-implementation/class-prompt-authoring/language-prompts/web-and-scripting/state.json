@@ -3,14 +3,14 @@
   "id": "web-and-scripting",
   "name": "Web and Scripting",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Author Python prompt",
       "description": "Author Python prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/python.md"
@@ -95,6 +95,7 @@
     "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T07:27:12.020083Z"
   }
 }

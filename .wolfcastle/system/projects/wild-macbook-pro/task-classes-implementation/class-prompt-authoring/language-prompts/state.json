@@ -14,12 +14,12 @@
     {
       "id": "jvm-and-net",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "web-and-scripting",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
-      "state": "not_started"
+      "state": "in_progress"
     },
     {
       "id": "specialized-languages",

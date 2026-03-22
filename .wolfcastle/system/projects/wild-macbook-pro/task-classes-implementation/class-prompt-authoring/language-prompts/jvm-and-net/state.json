@@ -3,7 +3,7 @@
   "id": "jvm-and-net",
   "name": "JVM and .NET",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -66,7 +66,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in JVM and .NET is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -107,8 +107,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T07:16:28.405358Z",
+    "completed_at": "2026-03-22T07:27:11.873803Z",
     "result_summary": "Authored four language-specific coding class prompts (Java, Kotlin, Scala, C#) totaling ~208 lines, each following the established section structure from go.md and c.md: codebase-deference preamble, Style, Build and Test, Testing, and Common Pitfalls. All prompts are factually accurate, stylistically consistent, and within the 40-80 line budget. The ClassRepository resolves them by filename convention with no Go code changes required. Build, tests (with race detector), and lint pass clean. Audit found no issues warranting remediation."
   },
   "aars": {
