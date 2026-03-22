@@ -3,6 +3,7 @@ package pipeline
 import (
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -88,6 +89,23 @@ func (r *PromptRepository) ResolveTemplate(name string, ctx any) (string, error)
 		return "", fmt.Errorf("templates: execute template %s: %w", name, err)
 	}
 	return buf.String(), nil
+}
+
+// RenderToFile resolves a template by name, executes it with data, and writes
+// the result to destPath. Parent directories are created as needed. The file
+// is written with 0644 permissions.
+func (r *PromptRepository) RenderToFile(tmplName string, data any, destPath string) error {
+	content, err := r.ResolveTemplate(tmplName, data)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
+		return fmt.Errorf("templates: mkdir for %s: %w", destPath, err)
+	}
+	if err := os.WriteFile(destPath, []byte(content), 0o644); err != nil {
+		return fmt.Errorf("templates: write %s: %w", destPath, err)
+	}
+	return nil
 }
 
 // ResolveRaw resolves raw file content by category and filename with no

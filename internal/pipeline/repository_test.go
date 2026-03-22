@@ -159,6 +159,97 @@ func TestPromptRepository_ResolveTemplate_TierOverride(t *testing.T) {
 	}
 }
 
+func TestPromptRepository_RenderToFile_WritesExecutedTemplate(t *testing.T) {
+	t.Parallel()
+	type SpecData struct {
+		Title string
+		Body  string
+	}
+	env := testutil.NewEnvironment(t).
+		WithTemplate("artifacts/spec.md.tmpl", "# {{.Title}}\n\n{{.Body}}")
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	dest := filepath.Join(t.TempDir(), "output", "spec.md")
+	err := repo.RenderToFile("artifacts/spec.md", SpecData{Title: "Auth Flow", Body: "Details here."}, dest)
+	if err != nil {
+		t.Fatalf("RenderToFile() error: %v", err)
+	}
+
+	got, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	want := "# Auth Flow\n\nDetails here."
+	if string(got) != want {
+		t.Errorf("expected %q, got %q", want, string(got))
+	}
+
+	info, err := os.Stat(dest)
+	if err != nil {
+		t.Fatalf("stat output: %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o644 {
+		t.Errorf("expected permissions 0644, got %04o", perm)
+	}
+}
+
+func TestPromptRepository_RenderToFile_CreatesParentDirs(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithTemplate("simple.tmpl", "hello")
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	dest := filepath.Join(t.TempDir(), "a", "b", "c", "out.txt")
+	err := repo.RenderToFile("simple", nil, dest)
+	if err != nil {
+		t.Fatalf("RenderToFile() error: %v", err)
+	}
+
+	got, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	if string(got) != "hello" {
+		t.Errorf("expected %q, got %q", "hello", string(got))
+	}
+}
+
+func TestPromptRepository_RenderToFile_MissingTemplateErrors(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	dest := filepath.Join(t.TempDir(), "out.txt")
+	err := repo.RenderToFile("nonexistent", nil, dest)
+	if err == nil {
+		t.Fatal("expected error for missing template")
+	}
+	if !strings.HasPrefix(err.Error(), "templates:") {
+		t.Errorf("expected error prefixed with 'templates:', got: %v", err)
+	}
+}
+
+func TestPromptRepository_RenderToFile_NilCtxWritesRaw(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithTemplate("static.tmpl", "raw content with {{ braces }}")
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	dest := filepath.Join(t.TempDir(), "out.txt")
+	err := repo.RenderToFile("static", nil, dest)
+	if err != nil {
+		t.Fatalf("RenderToFile() error: %v", err)
+	}
+
+	got, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	if string(got) != "raw content with {{ braces }}" {
+		t.Errorf("expected raw content, got %q", string(got))
+	}
+}
+
 func TestPromptRepository_ResolveRaw_ReturnsContent(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t).
