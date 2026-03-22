@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Update cross-references in existing human docs",
       "description": "Update cross-references in existing human docs",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/how-it-works.md",
@@ -35,7 +35,7 @@
       "id": "task-0002",
       "title": "Update CLI command pages with config page links",
       "description": "Update CLI command pages with config page links",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/cli/config-show.md",
@@ -68,12 +68,18 @@
         "timestamp": "2026-03-22T19:27:05.800471Z",
         "task": "configuration-docs-overhaul/deep-linking-pass",
         "text": "Updated cross-references across 15 docs files: fixed 8 broken anchors from configuration.md heading changes, added 10 new deep links to config-reference.md and task-classes.md, added 3 new pages to docs/humans/README.md navigation, linked config-quickstart.md from root README.md"
+      },
+      {
+        "timestamp": "2026-03-22T19:29:29.969629Z",
+        "task": "configuration-docs-overhaul/deep-linking-pass",
+        "text": "Updated 6 CLI command pages with specific configuration anchor links: config-show, config-set, config-unset, config-append, config-remove, task-add"
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T19:17:37.338823Z"
+    "started_at": "2026-03-22T19:17:37.338823Z",
+    "result_summary": "Updated cross-references across 15 documentation files to deep-link to the four new configuration pages. Fixed 8 broken anchors caused by the configuration.md rewrite, added 10 new deep links to config-reference.md sections, linked task-classes.md from task-add.md, added config-quickstart.md as the entry point in the root README, and expanded docs/humans/README.md navigation to include all three new pages."
   },
   "aars": {
     "task-0001": {
@@ -90,6 +96,22 @@
       ],
       "action_items": [
         "Verify that cli.md line 91 reference to configuration.md#identity still resolves correctly after any future heading changes"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T19:29:28.745917Z",
+      "objective": "Update CLI command pages with specific config page deep links",
+      "what_happened": "Replaced 6 generic configuration.md links with targeted anchor links across all CLI config pages and task-add.md. config-show now points to three-tier-directory-structure and merge-semantics. config-set points to merge-semantics with context about deep-merge vs replacement. config-unset points to rule-3-null-deletes. config-append and config-remove both point to rule-2-arrays-replace-entirely. task-add --class flag now links to using-a-class and framework-fallback anchors, and See Also links to creating-a-custom-class.",
+      "went_well": [
+        "Prior task had already added config-reference.md to See Also sections, so this task only needed to sharpen the configuration.md links to specific anchors",
+        "All six edits were clean single-section replacements with no conflicts"
+      ],
+      "improvements": [
+        "The anchor names depend on heading text in configuration.md; if headings change these links will break silently"
+      ],
+      "action_items": [
+        "Consider a link-checker CI step that validates internal markdown anchors across docs/humans/"
       ]
     }
   }
