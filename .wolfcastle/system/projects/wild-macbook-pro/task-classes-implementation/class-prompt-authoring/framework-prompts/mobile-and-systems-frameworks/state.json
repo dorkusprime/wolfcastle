@@ -77,10 +77,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T09:01:25.781664Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Kotlin/Android class prompt covering Compose, Hilt, lifecycle coroutines, Room, Retrofit, Gradle config, testing, and common pitfalls [task-0001]"
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T08:57:58.796445Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T09:01:25.146544Z",
+      "objective": "Author the Kotlin/Android framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/kotlin/android.md (45 lines). Studied the existing kotlin.md language prompt, go.md, python/fastapi.md, and java/spring.md for format and depth calibration. Wrote sections covering Compose UI with unidirectional data flow, Hilt DI, lifecycle-aware coroutines, Room/Retrofit data layer, Gradle configuration with version catalogs, testing (Robolectric, Compose testing, Espresso, Turbine), and four pitfall entries. Avoided repeating Kotlin fundamentals already in kotlin.md.",
+      "went_well": [
+        "Clean separation from the language-level kotlin.md; no overlap on coroutine basics, scope functions, or null safety",
+        "Pitfalls section covers the specific Android failure modes requested: lifecycle-unaware launches, config change state loss, Compose recomposition from unstable types, and ProGuard stripping"
+      ],
+      "improvements": [
+        "Could add a section on WorkManager patterns and predictive back gesture API once those stabilize further"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    }
   }
 }
