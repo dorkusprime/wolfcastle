@@ -104,6 +104,11 @@
         "timestamp": "2026-03-22T22:17:02.02678Z",
         "task": "template-based-file-generation/call-site-migration/scaffold-templates",
         "text": "Audit reviewed 8 files: 6 template files under templates/scaffold/, scaffold_service.go (250 lines), scaffold_service_test.go (485 lines), scaffold_readme_test.go (109 lines). PASS. Build clean, all tests pass (including race detector), go vet clean. Findings: (1) TestScaffoldService_Init_CreatesScaffoldFiles in scaffold_readme_test.go duplicates the snapshot test Init_SnapshotScaffoldFiles in scaffold_service_test.go; both iterate scaffoldFiles and compare embedded template content to output files. Accepted: minor duplication, harmless. (2) gap-scaffold-templates-1 (base-prompts README lost on Reinit) is already tracked and represents pre-existing Reinit behavior that the migration preserved correctly. Quality: clean migration. The refactor reduced scaffold_service.go by ~97 lines while maintaining byte-for-byte output identity. Template files are static content read via embed.FS ReadFile (not Go template execution), which is the right choice for content with no variables. Snapshot tests provide strong regression coverage with per-file subtests."
+      },
+      {
+        "timestamp": "2026-03-22T22:18:38.855125Z",
+        "task": "template-based-file-generation/call-site-migration/scaffold-templates",
+        "text": "Fixed gap-scaffold-templates-1: added writeScaffoldFiles() call to Reinit after base-tier directory recreation. Updated snapshot test to cover all 6 scaffold files; removed the BaseTierREADMELost test that asserted the broken behavior."
       }
     ],
     "gaps": [
@@ -112,7 +117,9 @@
         "timestamp": "2026-03-22T22:15:24.349332Z",
         "description": "Reinit does not rewrite system/base/prompts/README.md after tearing down the base tier. The scaffold file is written by Init's writeScaffoldFiles() but Reinit only rebuilds config and prompts, leaving the README absent after reinit.",
         "source": "template-based-file-generation/call-site-migration/scaffold-templates",
-        "status": "open"
+        "status": "fixed",
+        "fixed_by": "template-based-file-generation/call-site-migration/scaffold-templates",
+        "fixed_at": "2026-03-22T22:18:31.075164Z"
       }
     ],
     "escalations": [],
@@ -121,6 +128,22 @@
     "result_summary": "Extracted six scaffold file literals (gitignore + five READMEs) from scaffold_service.go into embedded template files under internal/project/templates/scaffold/, then migrated the service to read from embed.FS via a new writeScaffoldFiles() method. Net reduction of ~97 lines. Snapshot tests verify byte-for-byte identity on both Init and Reinit paths, with per-file subtests for granular failure output. One known gap (base-prompts README lost during Reinit's base-tier teardown) is tracked as gap-scaffold-templates-1 for follow-up. Audit passed: build clean, all tests pass with race detector, no dead code, no correctness issues."
   },
   "aars": {
+    "audit.0001": {
+      "task_id": "audit.0001",
+      "timestamp": "2026-03-22T22:18:37.630573Z",
+      "objective": "Fix Reinit not rewriting system/base/prompts/README.md after base-tier teardown",
+      "what_happened": "Added writeScaffoldFiles() call to Reinit after directory recreation (line 184 of scaffold_service.go). This restores all scaffold files including the base-prompts README that gets destroyed by RemoveAll. Updated Reinit_SnapshotScaffoldFiles test to cover all 6 scaffold files (removed the baseTierTemplate skip). Deleted the Reinit_BaseTierREADMELost test which asserted the broken behavior.",
+      "went_well": [
+        "Minimal fix: one line of production code, and the existing snapshot test structure just needed the skip removed",
+        "writeScaffoldFiles is idempotent for non-base-tier files, so calling it during Reinit is safe"
+      ],
+      "improvements": [
+        "None: the fix is straightforward and complete"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T22:10:16.257847Z",
