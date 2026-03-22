@@ -84,7 +84,7 @@ User input → cmd/ → internal/ → filesystem (.wolfcastle/)
 
 Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
-- `daemon` → `archive`, `clock`, `config`, `errors`, `invoke`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
+- `daemon` → `archive`, `clock`, `config`, `errors`, `git`, `invoke`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
 - `validate` → `config`, `daemon`, `invoke`, `pipeline`, `state`, `tree`
 - `pipeline` → `config`, `invoke`, `state`, `tierfs`
 - `archive` → `clock`, `config`, `state`
