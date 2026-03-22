@@ -22,7 +22,7 @@
       "id": "task-0002",
       "title": "Fix thoughts renderer to match spec",
       "description": "Fix thoughts renderer to match spec",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/thoughts.go",
@@ -37,7 +37,7 @@
       "id": "task-0003",
       "title": "Fix interleaved renderer to match spec",
       "description": "Fix interleaved renderer to match spec",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/interleaved.go",
@@ -87,6 +87,11 @@
         "timestamp": "2026-03-22T18:23:27.944802Z",
         "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
         "text": "Replaced invoke.FormatAssistantText with dedicated extractThoughtText in thoughts renderer. Now only text content blocks from assistant envelopes appear in --thoughts output. System init, result, and tool_use envelopes are dropped per spec."
+      },
+      {
+        "timestamp": "2026-03-22T18:26:47.511195Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "text": "Interleaved renderer now uses extractThoughtText instead of invoke.FormatAssistantText. Only text content blocks from assistant envelopes appear; system init, result, and tool_use are dropped per spec. Multiline text blocks each get their own timestamp and indent."
       }
     ],
     "gaps": [],
@@ -127,6 +132,22 @@
       ],
       "action_items": [
         "Consider whether the log format should store pre-extracted text vs raw envelopes as a deliberate design decision (ADR-worthy)"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T18:26:43.006722Z",
+      "objective": "Make the interleaved renderer extract only text content blocks from assistant envelopes, matching the spec's definition of agent thoughts",
+      "what_happened": "Replaced invoke.FormatAssistantText with extractThoughtText (shared with thoughts renderer, same package). FormatAssistantText was producing tool_use summaries, system init markers, and result markers that the spec does not include in interleaved output. Also added multiline handling: when extractThoughtText returns multiple text blocks joined by newlines, each line now gets its own timestamp and 5-space indent.",
+      "went_well": [
+        "Reusing extractThoughtText from the thoughts renderer kept the change minimal and ensured both renderers agree on what counts as an agent thought",
+        "The multiline test catches the edge case where a single assistant record contains multiple text content blocks"
+      ],
+      "improvements": [
+        "extractThoughtText lives in thoughts.go which is a bit awkward for the interleaved renderer to depend on. A shared extraction file might be cleaner."
+      ],
+      "action_items": [
+        "Consider moving extractThoughtText to a shared file if more renderers need it"
       ]
     }
   }
