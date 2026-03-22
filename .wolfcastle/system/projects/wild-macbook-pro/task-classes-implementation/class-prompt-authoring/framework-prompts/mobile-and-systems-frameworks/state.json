@@ -82,6 +82,11 @@
         "timestamp": "2026-03-22T09:01:25.781664Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
         "text": "Add Kotlin/Android class prompt covering Compose, Hilt, lifecycle coroutines, Room, Retrofit, Gradle config, testing, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T09:04:21.369557Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Swift/iOS class prompt covering SwiftUI, MVVM, NavigationStack, UIKit interop, SwiftData/Core Data, structured concurrency, SPM, testing, and common pitfalls [task-0002]"
       }
     ],
     "gaps": [],
@@ -101,6 +106,23 @@
       ],
       "improvements": [
         "Could add a section on WorkManager patterns and predictive back gesture API once those stabilize further"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T09:04:20.173079Z",
+      "objective": "Author the Swift/iOS framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/swift/ios.md (39 lines). Studied the existing swift.md language prompt plus kotlin/android.md, python/fastapi.md, and java/spring.md for format and depth calibration. Wrote sections covering SwiftUI with MVVM and @Observable, NavigationStack routing, UIKit interop via Representable protocols, SwiftData and Core Data persistence, structured concurrency with @MainActor and TaskGroup, SPM dependency management, testing with XCTest/ViewInspector/XCUIApplication, and four pitfall entries. Carefully avoided repeating Swift fundamentals already in swift.md (value types, guard, protocol-oriented design, async/await basics, retain cycles in general, force unwrapping, IUOs, ABI stability).",
+      "went_well": [
+        "Clean separation from swift.md; no overlap on language fundamentals, only iOS-specific patterns",
+        "Covers the iOS 17+ @Observable migration path alongside ObservableObject for older targets",
+        "Pitfalls section addresses the specific failure modes requested: retain cycles in iOS context, main thread violations, SwiftUI view identity and recomposition, and Core Data context threading"
+      ],
+      "improvements": [
+        "Could expand UIKit interop section with more detail on Coordinator patterns for complex delegates once more adoption data is available"
       ],
       "action_items": [
         "None; prompt is self-contained"
