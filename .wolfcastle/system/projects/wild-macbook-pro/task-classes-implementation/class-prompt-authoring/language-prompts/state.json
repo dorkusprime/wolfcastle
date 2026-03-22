@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "language-prompts",
+  "name": "Language Prompts",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Language Prompts is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Author behavioral prompts for all 20 language classes. Each file goes under internal/project/templates/prompts/classes/coding/ (e.g., coding/go.md, coding/python.md).\n\nLanguages: python, javascript, typescript, java, csharp, go, rust, cpp, c, ruby, php, swift, kotlin, scala, shell, sql, r, lua, elixir, haskell, dart.\n\nEach prompt is 40-80 lines covering: idiomatic style, specific build/test tool invocations, testing conventions, and common pitfalls. These REPLACE coding/default.md for classified tasks (not additive). Must be researched: current ecosystem tools, recent language changes, modern paradigms. Use 'prefer X' not 'always use X'. ZERO wolfcastle content.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
