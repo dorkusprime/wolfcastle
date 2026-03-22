@@ -163,7 +163,7 @@
     "consolidate-atomic-write-helpers": {
       "name": "Consolidate Atomic Write Helpers",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "consolidate-atomic-write-helpers",
       "decomposition_depth": 0,
       "children": [
@@ -173,7 +173,7 @@
     "consolidate-atomic-write-helpers/refactor-and-update-tests": {
       "name": "Refactor and Update Tests",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "consolidate-atomic-write-helpers/refactor-and-update-tests",
       "decomposition_depth": 0,
       "parent": "consolidate-atomic-write-helpers"
@@ -233,9 +233,20 @@
     "document-pid-recycling-edge-case-in-filelock": {
       "name": "Document PID recycling edge case in filelock",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "document-pid-recycling-edge-case-in-filelock",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "document-pid-recycling-edge-case-in-filelock/add-comment"
+      ]
+    },
+    "document-pid-recycling-edge-case-in-filelock/add-comment": {
+      "name": "add-comment",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "document-pid-recycling-edge-case-in-filelock/add-comment",
+      "decomposition_depth": 0,
+      "parent": "document-pid-recycling-edge-case-in-filelock"
     },
     "fix-log-follow-hang-with-stopped-daemon": {
       "name": "Fix log --follow hang with stopped daemon",

@@ -3,24 +3,47 @@
   "id": "document-pid-recycling-edge-case-in-filelock",
   "name": "Document PID recycling edge case in filelock",
   "type": "orchestrator",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "add-comment",
+      "address": "document-pid-recycling-edge-case-in-filelock/add-comment",
+      "state": "in_progress"
+    }
+  ],
   "tasks": [
     {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Document PID recycling edge case in filelock is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
   ],
   "scope": "Add inline comment to tryCleanStaleLock in internal/state/filelock.go documenting the PID recycling edge case: if the original process dies and a new process gets the same PID within the 50ms polling window, stale detection incorrectly concludes the lock is held. Consequence is timeout, not corruption. Already documented in SECURITY.md but not at the code site.",
+  "success_criteria": [
+    "tryCleanStaleLock in internal/state/filelock.go contains an inline comment documenting the PID recycling edge case and its consequence (timeout, not corruption)"
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T23:11:40.076913Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
   "audit": {
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:11:35.461545Z",
+        "task": "document-pid-recycling-edge-case-in-filelock",
+        "text": "Created 1 child: add-comment (leaf). Single-concern scope, no ordering constraints. One task to add the inline comment at the signalProcess call site in tryCleanStaleLock."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "pending"

@@ -3,13 +3,13 @@
   "id": "consolidate-atomic-write-helpers",
   "name": "Consolidate Atomic Write Helpers",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
       "id": "refactor-and-update-tests",
       "address": "consolidate-atomic-write-helpers/refactor-and-update-tests",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -27,6 +27,8 @@
     "atomicWriteJSON contains no temp-file logic; it marshals JSON then delegates to AtomicWriteFile",
     "go test ./internal/state/... passes cleanly"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T23:07:55.304024Z",

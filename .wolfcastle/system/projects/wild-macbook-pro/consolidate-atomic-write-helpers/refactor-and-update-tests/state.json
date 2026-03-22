@@ -3,7 +3,7 @@
   "id": "refactor-and-update-tests",
   "name": "Refactor and Update Tests",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -51,7 +51,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Refactor and Update Tests is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -85,8 +85,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T23:07:55.389948Z",
+    "completed_at": "2026-03-22T23:10:49.562471Z",
     "result_summary": "Refactored atomicWriteJSON from a 40-line function with its own temp-file-rename implementation to a 3-line delegate that marshals JSON and calls AtomicWriteFile. Removed a stale comment that duplicated the AtomicWriteFile godoc. All existing tests pass without modification because they use behavioral assertions (err nil/non-nil) rather than error-string matching. Net result: 30 lines of duplicated logic eliminated with zero behavioral change at any call site."
   },
   "aars": {
