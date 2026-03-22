@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Author Java prompt",
       "description": "Author Java prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/java.md"
@@ -24,7 +24,7 @@
       "id": "task-0002",
       "title": "Author Kotlin prompt",
       "description": "Author Kotlin prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/kotlin.md"
@@ -83,6 +83,11 @@
         "timestamp": "2026-03-22T07:18:27.55162Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
         "text": "Authored Java class prompt (55 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T07:20:37.660688Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Authored Kotlin class prompt (51 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0002]"
       }
     ],
     "gaps": [],
@@ -105,6 +110,22 @@
       ],
       "action_items": [
         "If a Java/concurrency class prompt is needed later, consider adding java.util.concurrent, CompletableFuture, and virtual threads (Project Loom) guidance as a follow-up"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T07:20:36.455428Z",
+      "objective": "Author the Kotlin coding class prompt to replace default.md for Kotlin-classified tasks",
+      "what_happened": "Wrote internal/project/templates/prompts/classes/coding/kotlin.md (51 lines). Followed the established format from java.md and go.md: codebase-deference preamble, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered data classes, sealed classes/interfaces, extension functions, null safety operators, scope functions with usage guidelines, val preference, object declarations. Build/test section covers Gradle with Kotlin DSL, ktlint, detekt. Testing covers JUnit 5, kotest, MockK, kotlinx-coroutines-test. Five common pitfalls: platform types from Java interop, coroutine cancellation and structured concurrency, lateinit misuse, scope function overuse, and final-by-default classes with framework proxies.",
+      "went_well": [
+        "Java prompt AAR gave useful context; the Kotlin prompt naturally extends the JVM coverage while addressing Kotlin-specific idioms",
+        "Scope functions section balances recommending their use with warning against overuse, matching the 'prefer X' phrasing style"
+      ],
+      "improvements": [
+        "Could have included a section on Kotlin Multiplatform or Compose considerations, but these are specialized and the 40-80 line budget was better spent on core Kotlin idioms"
+      ],
+      "action_items": [
+        "If Kotlin coroutines warrant deeper coverage, consider a dedicated concurrency-focused class prompt similar to Go's concurrency section"
       ]
     }
   }
