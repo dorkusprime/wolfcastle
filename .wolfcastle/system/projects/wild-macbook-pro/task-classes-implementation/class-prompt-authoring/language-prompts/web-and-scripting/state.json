@@ -92,10 +92,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T07:29:14.832806Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored Python class prompt (python.md, 55 lines) covering style, tooling, testing, and pitfalls [task-0001]"
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T07:27:12.020083Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T07:29:13.614308Z",
+      "objective": "Author the Python language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/python.md at 55 lines. Followed the established format from go.md and kotlin.md: opening codebase-deference clause, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered type hints, dataclasses, context managers, comprehensions, pathlib, f-strings, enums, ruff, mypy/pyright, pytest fixtures/parametrize/conftest/tmp_path, and six common pitfalls (mutable defaults, late binding, bare except, circular imports, missing __init__.py, is vs ==).",
+      "went_well": [
+        "Prompt fits the 40-80 line target at 55 lines without feeling thin or padded",
+        "Consistent structure and tone with existing Go and Kotlin prompts"
+      ],
+      "improvements": [
+        "Could add a section on async/await patterns (asyncio) similar to Go's concurrency section, but the task description didn't request it and 55 lines is already well within range"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    }
   }
 }
