@@ -112,6 +112,11 @@
         "timestamp": "2026-03-22T07:35:47.505291Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
         "text": "Authored Ruby class prompt (ruby.md, 53 lines) covering style, tooling, testing, and pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T07:37:53.607294Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored PHP class prompt (php.md, 55 lines) covering style, tooling, testing, and pitfalls [task-0005]"
       }
     ],
     "gaps": [],
@@ -179,6 +184,22 @@
       ],
       "improvements": [
         "Could add a section on Rails-specific conventions (ActiveRecord, concerns, service objects) but the task description covers general Ruby, not Rails specifically"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T07:37:52.552627Z",
+      "objective": "Author the PHP language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/php.md at 55 lines. Followed the established four-section format: Style, Build and Test, Testing, Common Pitfalls. Style covers strict_types, type declarations (union, intersection, nullable, void, never), readonly properties/classes, enums, match expressions, named arguments, PSR-12, and early returns. Build and Test covers Composer, PHPUnit/Pest, PHP-CS-Fixer/PHP_CodeSniffer, and PHPStan/Psalm. Testing covers test organization, data providers, behavior-over-implementation testing, and factory patterns. Common Pitfalls covers loose comparison, variable variables/extract, SQL injection in raw queries, inconsistent stdlib parameter ordering, include path injection, and error suppression with @.",
+      "went_well": [
+        "55 lines fits the 40-80 target while covering all requested topics from the task description",
+        "Consistent structure and tone with existing Go, Kotlin, Python, JavaScript, TypeScript, and Ruby prompts"
+      ],
+      "improvements": [
+        "Could add a section on Laravel/Symfony-specific conventions but the task description covers general PHP, not framework-specific usage"
       ],
       "action_items": [
         "No follow-ups needed"
