@@ -3,7 +3,7 @@
   "id": "frontend-frameworks",
   "name": "Frontend Frameworks",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -76,7 +76,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Frontend Frameworks is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -127,8 +127,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T08:03:54.702095Z",
+    "completed_at": "2026-03-22T08:27:50.589058Z",
     "result_summary": "Authored six frontend framework class prompts covering React, Vue, Angular, Next.js, Svelte, and JavaScript/React. Each prompt follows a consistent structure: a codebase-first preamble, framework-specific guidance organized by concern (components, state, routing, testing), and four common pitfalls. The TypeScript framework prompts avoid repeating fundamentals from typescript.md, and the JavaScript/React variant adapts the TypeScript/React prompt with PropTypes, JSDoc, and defaultProps guidance appropriate to untyped codebases. All prompts land within the 30-60 line target (one at 67 lines, acceptable). Technical content reflects current framework versions: Angular 17+ signals and standalone components, Svelte 5 runes and snippets, Next.js 15 fetch caching defaults, Vue 3 Composition API. Build, tests, and lint pass cleanly. No remediation required."
   },
   "aars": {

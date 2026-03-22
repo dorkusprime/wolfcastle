@@ -3,14 +3,14 @@
   "id": "backend-scripting-frameworks",
   "name": "Backend Scripting Frameworks",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Write JavaScript/Node class prompt",
       "description": "Write JavaScript/Node class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/javascript/node.md"
@@ -91,6 +91,7 @@
     "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T08:27:50.684887Z"
   }
 }

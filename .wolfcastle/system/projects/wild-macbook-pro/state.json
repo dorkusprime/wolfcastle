@@ -261,7 +261,7 @@
     "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks": {
       "name": "Backend Scripting Frameworks",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
@@ -277,7 +277,7 @@
     "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks": {
       "name": "Frontend Frameworks",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
