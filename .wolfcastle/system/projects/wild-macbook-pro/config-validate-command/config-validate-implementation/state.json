@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Implement config validate command",
       "description": "Implement config validate command",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/config/validate.go"
@@ -32,7 +32,7 @@
       "id": "task-0002",
       "title": "Write tests for config validate command",
       "description": "Write tests for config validate command",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "cmd/config/validate_test.go"
@@ -87,10 +87,56 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:53:13.630594Z",
+        "task": "config-validate-command/config-validate-implementation",
+        "text": "Implemented config validate command in cmd/config/validate.go. Registered in register.go. Supports --full flag and --json output. Parses ValidateStructure/Validate errors into structured issues. Build and tests pass."
+      },
+      {
+        "timestamp": "2026-03-22T23:57:30.786328Z",
+        "task": "config-validate-command/config-validate-implementation",
+        "text": "Added cmd/config/validate_test.go with 23 tests. 100% coverage on validate.go. All tests pass."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T23:50:53.109576Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T23:53:09.040759Z",
+      "objective": "Implement the config validate CLI command",
+      "what_happened": "Created cmd/config/validate.go with newValidateCmd following the show.go/set.go pattern. Registered it in register.go. The command loads config via app.Config.Load(), collects cfg.Warnings as warning-severity issues, runs ValidateStructure or (with --full) Validate, and parses the concatenated error string into individual issues. Output supports both human (severity/category/description per line plus summary) and JSON (structured envelope with issues array and counts) modes.",
+      "went_well": [
+        "Kept the implementation simple by leveraging the existing validation functions rather than duplicating logic",
+        "The splitValidationError parser handles the known output format cleanly"
+      ],
+      "improvements": [
+        "The error string parsing in splitValidationError is coupled to the format in validate.go's Join. If that format changes, this breaks silently. A future refactor could have ValidateStructure return structured errors directly"
+      ],
+      "action_items": [
+        "Write tests for the validate command (task-0002)",
+        "Write the CLI documentation at docs/humans/cli/config-validate.md (task-0003)"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T23:57:27.022208Z",
+      "objective": "Write comprehensive tests for the config validate command",
+      "what_happened": "Created cmd/config/validate_test.go with 23 tests covering: unit tests for splitValidationError and parseValidationErrors, valid config in both human and JSON modes, structural errors caught by Load (empty pipeline, invalid stage refs), warnings from unknown fields (exit 0, human and JSON), --full flag with valid config and missing identity (human and JSON), malformed JSON, unreadable config (directory-in-place-of-file trick), missing all tiers, subcommand registration, --full flag registration, mixed warnings+errors in JSON, structural recheck finding nothing, and JSON envelope action field.",
+      "went_well": [
+        "100% coverage on validate.go across all three exported/unexported functions",
+        "Tests properly handle the stdout/stderr pipe capture pattern established in show_test.go"
+      ],
+      "improvements": [
+        "The JSON envelope always reports ok=true even with errors (error state is in error_count and cobra return). A future improvement could use output.Err for error cases."
+      ],
+      "action_items": [
+        "Write CLI documentation at docs/humans/cli/config-validate.md (task-0003)"
+      ]
+    }
   }
 }
