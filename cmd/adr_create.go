@@ -12,6 +12,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// ADRData holds the template context for rendering adr.md.tmpl.
+type ADRData struct {
+	Title string
+	Date  string
+	Body  string
+}
+
 // adrCreateCmd creates a new timestamped ADR Markdown file.
 var adrCreateCmd = &cobra.Command{
 	Use:   "create [title]",
@@ -60,32 +67,20 @@ Examples:
 			body = string(data)
 		}
 
-		// Build ADR content
-		var content strings.Builder
-		fmt.Fprintf(&content, "# %s\n\n", title)
-		content.WriteString("## Status\nAccepted\n\n")
-		fmt.Fprintf(&content, "## Date\n%s\n\n", now.Format("2006-01-02"))
-
-		if body != "" {
-			content.WriteString(body)
-		} else {
-			content.WriteString("## Context\n\n[Why was this decision needed?]\n\n")
-			content.WriteString("## Decision\n\n[What was decided?]\n\n")
-			content.WriteString("## Consequences\n\n[What follows from this decision?]\n")
-		}
-
 		// Resolve docs directory
 		cfg, err := app.Config.Load()
 		if err != nil {
 			return fmt.Errorf("loading config: %w", err)
 		}
 		docsDir := filepath.Join(app.Config.Root(), cfg.Docs.Directory, "decisions")
-		if err := os.MkdirAll(docsDir, 0755); err != nil {
-			return fmt.Errorf("creating decisions directory: %w", err)
-		}
 		adrPath := filepath.Join(docsDir, filename)
 
-		if err := os.WriteFile(adrPath, []byte(content.String()), 0644); err != nil {
+		data := ADRData{
+			Title: title,
+			Date:  now.Format("2006-01-02"),
+			Body:  body,
+		}
+		if err := app.Prompts.RenderToFile("artifacts/adr.md", data, adrPath); err != nil {
 			return fmt.Errorf("writing ADR file: %w", err)
 		}
 

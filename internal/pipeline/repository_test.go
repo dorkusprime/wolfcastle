@@ -166,7 +166,7 @@ func TestPromptRepository_ResolveTemplate_TierOverride(t *testing.T) {
 
 	// Write custom tier override.
 	tierDirs := env.Tiers.TierDirs()
-	customDir := filepath.Join(tierDirs[1], "templates", "artifacts")
+	customDir := filepath.Join(tierDirs[1], "artifacts")
 	if err := os.MkdirAll(customDir, 0o755); err != nil {
 		t.Fatalf("creating custom dir: %v", err)
 	}

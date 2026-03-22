@@ -71,7 +71,7 @@ func (r *PromptRepository) Resolve(name string, ctx any) (string, error) {
 // and uses the .tmpl extension. If ctx is non-nil, the content is parsed
 // and executed as a template; otherwise the raw content is returned.
 func (r *PromptRepository) ResolveTemplate(name string, ctx any) (string, error) {
-	path := "templates/" + name + ".tmpl"
+	path := name + ".tmpl"
 	data, err := r.tiers.Resolve(path)
 	if err != nil {
 		return "", fmt.Errorf("templates: resolve %s: %w", name, err)
