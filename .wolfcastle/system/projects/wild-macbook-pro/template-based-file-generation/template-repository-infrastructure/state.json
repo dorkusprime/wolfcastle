@@ -72,7 +72,7 @@
       "id": "task-0004",
       "title": "Unit tests for ResolveTemplate and RenderToFile",
       "description": "Unit tests for ResolveTemplate and RenderToFile",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/repository_test.go"
@@ -92,9 +92,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Template Repository Infrastructure is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -124,12 +125,18 @@
         "timestamp": "2026-03-22T22:05:40.048488Z",
         "task": "template-based-file-generation/template-repository-infrastructure",
         "text": "Refactored ResolveTemplate and RenderToFile tests to table-driven format. Added errors.Is(os.ErrNotExist) check, template execution error propagation, and write permission error test. ResolveTemplate 100%, RenderToFile 87.5%, package 97.3%."
+      },
+      {
+        "timestamp": "2026-03-22T22:07:34.69342Z",
+        "task": "template-based-file-generation/template-repository-infrastructure",
+        "text": "Audit reviewed 3 files: repository.go (new methods at lines 73-109), template_data.go (38 lines, 4 structs), environment.go (WithTemplate helper at lines 377-383). Also reviewed repository_test.go (14 new test cases across 2 table-driven suites plus 3 standalone tests). Build clean, all tests pass with race detector, vet clean, package coverage 97.3%. ResolveTemplate 100%, RenderToFile 87.5% (uncovered MkdirAll error branch is acceptable; error is properly wrapped, testing requires contrived broken path). No nil safety issues, no concurrency issues, no dead code, no security concerns. Duplication between Resolve and ResolveTemplate is a conscious namespace separation, acceptable at two copies. PASS with no findings requiring remediation."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T21:58:22.193355Z"
+    "started_at": "2026-03-22T21:58:22.193355Z",
+    "result_summary": "Template Repository Infrastructure added three capabilities to PromptRepository: ResolveTemplate for three-tier template file resolution with text/template execution, RenderToFile for consolidated resolve-execute-write in a single call, and four typed context structs (ADRData, SpecData, TaskData, AuditTaskData) for type-safe template variable passing. The WithTemplate testutil helper enables clean test fixture setup. All methods follow established PromptRepository patterns, compose cleanly (RenderToFile delegates to ResolveTemplate), and wrap errors with contextual prefixes. Test coverage is thorough: 14 table-driven cases plus 3 standalone tests covering happy paths, error propagation, tier overrides, file permissions, and write errors. Package coverage holds at 97.3%."
   },
   "aars": {
     "task-0001": {
