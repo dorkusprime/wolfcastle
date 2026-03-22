@@ -42,15 +42,36 @@
         "timestamp": "2026-03-22T18:59:31.964791Z",
         "task": "configuration-docs-overhaul/write-config-pages/config-reference",
         "text": "Wrote complete config-reference.md with all fields from Config struct and Defaults(), organized by section with types, defaults, descriptions, and JSON examples"
+      },
+      {
+        "timestamp": "2026-03-22T19:01:28.307017Z",
+        "task": "configuration-docs-overhaul/write-config-pages/config-reference",
+        "text": "Audit reviewed config-reference.md (756 lines) against internal/config/types.go and config.go Defaults(). PASS with one remediation: the version field (Config.Version, default 1) was missing from the doc; added it as the first section. All other fields verified present and accurate: 18 top-level sections, all nested structs documented inline, defaults match Defaults() exactly, cross-references to models section present where needed. The research class referencing a light model not in default models is a pre-existing source-code concern, accurately reflected in the doc. Section order matches the task spec. No dead content, no invented fields."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T18:53:23.739495Z",
-    "result_summary": "Created docs/humans/config-reference.md, a complete field-level reference for every Wolfcastle configuration option. All 18 config sections are documented with types, default values, descriptions, and JSON examples. Nested structs are documented inline within parent sections. The full default task_classes catalog is presented in categorized tables. Cross-references link to the Configuration Guide for merge semantics and to the Task Classes page for class usage details."
+    "result_summary": "Produced docs/humans/config-reference.md, a complete field-level reference for every Wolfcastle configuration option. The document covers all 19 sections of the Config struct (version, identity, models, pipeline, daemon, logs, retries, failure, git, overlap_advisory, summary, docs, validation, prompts, doctor, unblock, audit, archive, task_classes) with types, defaults from Defaults(), descriptions, and JSON examples. Nested structs are documented inline. Audit found and fixed one omission (the version field). All content verified against internal/config/types.go and config.go."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T19:01:33.919782Z",
+      "objective": "Verify config-reference.md is complete and correct against the Config struct source of truth",
+      "what_happened": "Cross-referenced every field in types.go and every default in config.go Defaults() against the documentation. Found one omission: the version field was undocumented. Added it as the first section. All other fields, types, defaults, and descriptions are accurate.",
+      "went_well": [
+        "The original task-0001 produced thorough, well-structured documentation that needed only one fix",
+        "All nested struct fields documented inline with correct types and defaults"
+      ],
+      "improvements": [
+        "None significant; the doc is solid"
+      ],
+      "action_items": [
+        "The research task class references a light model not defined in default models map; this is a source-code issue, not a doc issue, but worth tracking"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T18:59:27.365517Z",
