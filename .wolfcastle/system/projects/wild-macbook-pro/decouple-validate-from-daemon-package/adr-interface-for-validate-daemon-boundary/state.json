@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Write ADR superseding concrete-struct-only decision",
       "description": "Write ADR superseding concrete-struct-only decision",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         ".wolfcastle/docs/decisions/"
@@ -29,9 +29,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in ADR: Interface for Validate-Daemon Boundary is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -46,12 +47,18 @@
         "timestamp": "2026-03-22T23:47:16.545804Z",
         "task": "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary",
         "text": "Created ADR 2026-03-22T23-47Z superseding the concrete-struct-only decision for the validate-daemon boundary"
+      },
+      {
+        "timestamp": "2026-03-22T23:48:31.424312Z",
+        "task": "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary",
+        "text": "Audit reviewed 1 file: the ADR at .wolfcastle/docs/decisions/2026-03-22T23-47Z-pidchecker-interface-decouples-validate-from-daemon.md (38 lines). PASS. One finding: duplicate Status/Date headers in the ADR (lines 3-10 repeated lines 9-13), fixed directly during audit. Verified: (1) ADR references and supersedes 2026-03-18T21-34Z correctly, (2) five-method PIDChecker interface in pid_checker.go matches ADR description exactly, (3) compile-time assertion in repository_test.go confirms contract, (4) build and tests pass, (5) ADR correctly scopes supersession to validate-daemon boundary only. Quality: clean, well-structured ADR that captures the reasoning faithfully."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T23:46:39.560815Z"
+    "started_at": "2026-03-22T23:46:39.560815Z",
+    "result_summary": "This node produced one ADR (2026-03-22T23-47Z) documenting the decision to define a consumer-side PIDChecker interface in the validate package, decoupling it from daemon at compile time. The ADR correctly supersedes the earlier concrete-struct-only decision (2026-03-18T21-34Z) with a narrow scope limited to the validate-daemon boundary. Audit verified the ADR's claims against the actual interface definition and compile-time assertion; all checks passed after fixing duplicate headers in the ADR file."
   },
   "aars": {
     "task-0001": {

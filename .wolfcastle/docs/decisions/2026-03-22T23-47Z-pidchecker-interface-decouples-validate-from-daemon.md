@@ -1,12 +1,6 @@
 # PIDChecker interface decouples validate from daemon
 
 ## Status
-Accepted
-
-## Date
-2026-03-22
-
-## Status
 Accepted (supersedes 2026-03-18T21-34Z)
 
 ## Date
