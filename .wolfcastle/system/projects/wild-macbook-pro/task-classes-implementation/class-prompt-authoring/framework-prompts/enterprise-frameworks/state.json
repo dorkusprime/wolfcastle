@@ -43,7 +43,7 @@
       "id": "task-0004",
       "title": "Write PHP/Symfony class prompt",
       "description": "Write PHP/Symfony class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/php/symfony.md"
@@ -54,7 +54,7 @@
       "id": "task-0005",
       "title": "Write Elixir/Phoenix class prompt",
       "description": "Write Elixir/Phoenix class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/elixir/phoenix.md"
@@ -97,6 +97,11 @@
         "timestamp": "2026-03-22T08:52:37.91973Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
         "text": "Authored PHP/Symfony class prompt covering Symfony 7.x patterns, autowiring, Doctrine ORM, routing attributes, forms, EventDispatcher, Messenger async, Twig templating, testing with KernelTestCase/WebTestCase, and five common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T08:55:11.838813Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored Elixir/Phoenix class prompt covering Phoenix 1.7+ patterns, contexts, schemas/changesets, verified routes, LiveView (streams, assign_async, components), Ecto (Multi, preload vs join), PubSub, Channels, Oban background jobs, testing with ConnTest/DataCase/Mox/LiveViewTest, and five common pitfalls [task-0005]"
       }
     ],
     "gaps": [],
@@ -163,6 +168,21 @@
       ],
       "action_items": [
         "If API Platform or Symfony UX prompts are needed, they should be separate framework prompts since they represent distinct integration models atop Symfony"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T08:55:07.334846Z",
+      "objective": "Author the Elixir/Phoenix framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/elixir/phoenix.md (47 lines). Studied the existing Elixir language prompt and prior framework prompts (Spring, Rails, .NET) to match format and depth. Covered all required topics: Phoenix contexts for domain boundaries, schemas and changesets with cast-before-validate ordering, router pipelines with verified routes, LiveView (mount/handle_params/handle_event, assigns, streams, function vs live components, assign_async), Ecto (Repo, Multi, query composition, preload vs join-preload distinction), PubSub with topic namespacing and idempotent handlers, Channels/Presence, Oban for background jobs with unique constraints, and testing with ConnTest/DataCase/async:true/Mox/Ecto sandbox/LiveViewTest. All five required pitfalls addressed: context god modules, LiveView memory from large assigns, preload vs join confusion, PubSub ordering assumptions, changeset cast vs validate ordering.",
+      "went_well": [
+        "The prompt complements the Elixir language prompt without overlapping; language fundamentals like pattern matching, pipe operator, GenServer, protocols, and supervision trees are covered there, so this prompt stays focused on the Phoenix framework layer"
+      ],
+      "improvements": [
+        "Could have covered Absinthe (GraphQL), Ash Framework, or Nx/LiveBook integrations, but those would push past the line target and are better suited to specialized prompts"
+      ],
+      "action_items": [
+        "If Absinthe or Ash Framework prompts are needed, they should be separate framework prompts since they represent distinct programming models atop the BEAM"
       ]
     }
   }
