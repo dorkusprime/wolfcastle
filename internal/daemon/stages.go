@@ -217,13 +217,15 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		}
 
 		invokeCtx := ctx
+		var invokeCancel context.CancelFunc
 		if d.Config.Daemon.InvocationTimeoutSeconds > 0 {
-			var cancel context.CancelFunc
-			invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
-			defer cancel()
+			invokeCtx, invokeCancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
 		}
 
 		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.InboxLogger.AssistantWriter(), "intake")
+		if invokeCancel != nil {
+			invokeCancel()
+		}
 		if err != nil {
 			return err
 		}
