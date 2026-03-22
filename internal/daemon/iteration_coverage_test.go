@@ -602,11 +602,20 @@ func TestCommitAfterIteration_MultipleTrackedFiles(t *testing.T) {
 
 	commitAfterIteration(repoDir, logger, "task-0002", "failure", 1, testGitCfg())
 
-	statusCmd := exec.Command("git", "status", "--porcelain")
-	statusCmd.Dir = repoDir
-	statusOut, _ := statusCmd.Output()
-	if len(strings.TrimSpace(string(statusOut))) > 0 {
-		t.Errorf("expected clean working tree, got: %s", statusOut)
+	// Verify the commit was created and contains all three files.
+	// The separate-index approach leaves the default index untouched,
+	// so git status may show entries, but the commit itself is correct.
+	showCmd := exec.Command("git", "show", "--name-only", "--format=")
+	showCmd.Dir = repoDir
+	showOut, err := showCmd.Output()
+	if err != nil {
+		t.Fatalf("git show failed: %v", err)
+	}
+	committed := string(showOut)
+	for _, name := range []string{"a.go", "b.go", "c.go"} {
+		if !strings.Contains(committed, name) {
+			t.Errorf("expected %s in commit, got: %s", name, committed)
+		}
 	}
 }
 
@@ -742,6 +751,201 @@ func TestCommitAfterIteration_SkipHooksFalse(t *testing.T) {
 	out := iterCovGitLog(t, repoDir)
 	if !strings.Contains(out, "partial (attempt") {
 		t.Error("expected partial attempt commit message even with skipHooks=false")
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// staging area preservation
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestCommitAfterIteration_PreservesUserStagedChanges(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repoDir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	// Create two tracked files
+	userFile := filepath.Join(repoDir, "user.go")
+	daemonFile := filepath.Join(repoDir, "daemon.go")
+	_ = os.WriteFile(userFile, []byte("package main\n"), 0644)
+	_ = os.WriteFile(daemonFile, []byte("package main\n"), 0644)
+	run("add", "user.go", "daemon.go")
+	run("commit", "-m", "initial")
+
+	// User stages a change to user.go
+	_ = os.WriteFile(userFile, []byte("package main\n// user edit\n"), 0644)
+	run("add", "user.go")
+
+	// Daemon modifies daemon.go (unstaged working tree change)
+	_ = os.WriteFile(daemonFile, []byte("package main\n// daemon edit\n"), 0644)
+
+	// Snapshot the index file content before daemon commit.
+	// The separate-index approach must leave .git/index byte-identical.
+	indexPath := filepath.Join(repoDir, ".git", "index")
+	indexBefore, err := os.ReadFile(indexPath)
+	if err != nil {
+		t.Fatalf("failed to read index: %v", err)
+	}
+
+	// Also capture the staged blob SHA for user.go via ls-files
+	lsCmd := exec.Command("git", "ls-files", "--stage", "user.go")
+	lsCmd.Dir = repoDir
+	lsBefore, _ := lsCmd.Output()
+	if len(lsBefore) == 0 {
+		t.Fatal("precondition: user.go should be staged")
+	}
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg())
+
+	// Verify daemon.go was committed
+	showCmd := exec.Command("git", "show", "--name-only", "--format=")
+	showCmd.Dir = repoDir
+	showOut, showErr := showCmd.Output()
+	if showErr != nil {
+		t.Fatalf("git show failed: %v", showErr)
+	}
+	if !strings.Contains(string(showOut), "daemon.go") {
+		t.Error("daemon.go should have been committed by the daemon")
+	}
+
+	// Verify the index file is byte-identical to the pre-commit snapshot.
+	indexAfter, err := os.ReadFile(indexPath)
+	if err != nil {
+		t.Fatalf("failed to read index after commit: %v", err)
+	}
+	if string(indexBefore) != string(indexAfter) {
+		t.Error("the user's .git/index should not be modified by the daemon commit")
+	}
+
+	// Verify the staged blob SHA for user.go is unchanged in the index.
+	lsAfter := exec.Command("git", "ls-files", "--stage", "user.go")
+	lsAfter.Dir = repoDir
+	lsAfterOut, _ := lsAfter.Output()
+	if string(lsBefore) != string(lsAfterOut) {
+		t.Errorf("user.go staged blob changed: before=%q after=%q", lsBefore, lsAfterOut)
+	}
+}
+
+func TestCommitAfterIteration_PreservesUserUnstagedChanges(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repoDir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	// Create two tracked files
+	userFile := filepath.Join(repoDir, "user.go")
+	daemonFile := filepath.Join(repoDir, "daemon.go")
+	_ = os.WriteFile(userFile, []byte("package main\n"), 0644)
+	_ = os.WriteFile(daemonFile, []byte("package main\n"), 0644)
+	run("add", "user.go", "daemon.go")
+	run("commit", "-m", "initial")
+
+	// User modifies user.go but does NOT stage it
+	_ = os.WriteFile(userFile, []byte("package main\n// user unstaged edit\n"), 0644)
+
+	// Daemon modifies daemon.go
+	_ = os.WriteFile(daemonFile, []byte("package main\n// daemon edit\n"), 0644)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
+
+	// Both files were modified tracked files, so git add -u in the temp
+	// index will stage both. The daemon commit should include both.
+	// The key assertion: user.go's working tree content is unchanged.
+	content, err := os.ReadFile(userFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(content), "user unstaged edit") {
+		t.Error("user's working tree modification to user.go should be preserved")
+	}
+}
+
+func TestCommitAfterIteration_CleanTreeNoCommit(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	// Get initial commit count
+	beforeLog := iterCovGitLog(t, repoDir)
+	beforeCount := strings.Count(beforeLog, "\n")
+
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg())
+
+	afterLog := iterCovGitLog(t, repoDir)
+	afterCount := strings.Count(afterLog, "\n")
+	if afterCount != beforeCount {
+		t.Error("should not create a commit when the working tree is clean")
+	}
+}
+
+func TestCommitWithSeparateIndex_TempFileCleanedUp(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repoDir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	trackedFile := filepath.Join(repoDir, "code.go")
+	_ = os.WriteFile(trackedFile, []byte("package main\n"), 0644)
+	run("add", "code.go")
+	run("commit", "-m", "initial")
+	_ = os.WriteFile(trackedFile, []byte("package main\n// changed\n"), 0644)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg())
+
+	// Verify no temp index files remain
+	entries, _ := filepath.Glob(filepath.Join(repoDir, ".git-daemon-index-*"))
+	if len(entries) > 0 {
+		t.Errorf("temp index files should be cleaned up, found: %v", entries)
 	}
 }
 

@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Refactor autoCommitPartialWork into a general daemon commit function",
       "description": "Refactor autoCommitPartialWork into a general daemon commit function",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration.go"
@@ -33,7 +33,7 @@
       "id": "task-0002",
       "title": "Implement staging area preservation",
       "description": "Implement staging area preservation",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration.go"

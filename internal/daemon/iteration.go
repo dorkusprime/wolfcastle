@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -595,25 +596,6 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 		return // no changes or git unavailable
 	}
 
-	// Stage tracked files. git add -u stages modified tracked files
-	// without picking up untracked files like .env.
-	addCmd := exec.Command("git", "add", "-u")
-	addCmd.Dir = repoDir
-	if err := addCmd.Run(); err != nil {
-		_ = logger.Log(map[string]any{"type": "commit_error", "task": taskID, "error": err.Error()})
-		return
-	}
-
-	// Stage .wolfcastle/ state alongside code changes when commit_state
-	// is enabled. The .wolfcastle/.gitignore controls what's trackable
-	// (projects, docs, custom config, archive) vs. what stays out (base
-	// config, local config, logs, locks, PID files).
-	if gitCfg.CommitState {
-		addStateCmd := exec.Command("git", "add", ".wolfcastle/")
-		addStateCmd.Dir = repoDir
-		_ = addStateCmd.Run() // best-effort; .wolfcastle/ may not exist
-	}
-
 	// Build commit message per spec.
 	var msg string
 	switch kind {
@@ -627,9 +609,11 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 	if gitCfg.SkipHooksOnAutoCommit {
 		commitArgs = append(commitArgs, "--no-verify")
 	}
-	commitCmd := exec.Command("git", commitArgs...)
-	commitCmd.Dir = repoDir
-	if err := commitCmd.Run(); err != nil {
+
+	// Use a separate index file so the user's staging area is preserved.
+	// The temp index is populated from HEAD, staged into, and committed
+	// from, leaving .git/index untouched.
+	if err := commitWithSeparateIndex(repoDir, gitCfg, commitArgs, logger, taskID); err != nil {
 		_ = logger.Log(map[string]any{"type": "commit_error", "task": taskID, "error": err.Error()})
 		return
 	}
@@ -640,6 +624,84 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 // autoCompleteDecomposedParents checks if any blocked task in the node was
 // decomposed into subtasks and all those subtasks are now complete. If so,
 // the parent is auto-completed.
+// commitWithSeparateIndex performs the daemon's git add/commit cycle using a
+// temporary index file, so the user's staging area (.git/index) is never
+// touched. The temp index is seeded from HEAD with git read-tree, then
+// tracked-file changes and (optionally) .wolfcastle/ state are staged into it.
+//
+// If the separate-index mechanism fails to initialize, the function falls back
+// to committing directly (which may disturb the user's index) because landing
+// the commit is more important than preserving staged state.
+func commitWithSeparateIndex(repoDir string, gitCfg config.GitConfig, commitArgs []string, logger *logging.Logger, taskID string) error {
+	// Create a temp file for the daemon's private index.
+	tmpIndex, err := os.CreateTemp(repoDir, ".git-daemon-index-*")
+	if err != nil {
+		// Fall back to direct commit if we can't create a temp file.
+		_ = logger.Log(map[string]any{"type": "index_preserve_warn", "task": taskID, "error": err.Error()})
+		return commitDirect(repoDir, gitCfg, commitArgs)
+	}
+	tmpIndexPath := tmpIndex.Name()
+	_ = tmpIndex.Close()
+	defer os.Remove(tmpIndexPath)
+
+	indexEnv := append(os.Environ(), "GIT_INDEX_FILE="+tmpIndexPath)
+
+	// Seed the temp index from HEAD so it starts with the committed tree.
+	readTree := exec.Command("git", "read-tree", "HEAD")
+	readTree.Dir = repoDir
+	readTree.Env = indexEnv
+	if err := readTree.Run(); err != nil {
+		_ = logger.Log(map[string]any{"type": "index_preserve_warn", "task": taskID, "error": err.Error()})
+		return commitDirect(repoDir, gitCfg, commitArgs)
+	}
+
+	// Stage tracked-file changes into the temp index.
+	addCmd := exec.Command("git", "add", "-u")
+	addCmd.Dir = repoDir
+	addCmd.Env = indexEnv
+	if err := addCmd.Run(); err != nil {
+		return fmt.Errorf("git add -u: %w", err)
+	}
+
+	// Stage .wolfcastle/ state when commit_state is enabled.
+	if gitCfg.CommitState {
+		addState := exec.Command("git", "add", ".wolfcastle/")
+		addState.Dir = repoDir
+		addState.Env = indexEnv
+		_ = addState.Run() // best-effort; .wolfcastle/ may not exist
+	}
+
+	// Commit from the temp index.
+	commitCmd := exec.Command("git", commitArgs...)
+	commitCmd.Dir = repoDir
+	commitCmd.Env = indexEnv
+	if err := commitCmd.Run(); err != nil {
+		return fmt.Errorf("git commit: %w", err)
+	}
+	return nil
+}
+
+// commitDirect performs git add/commit using the default index. This is the
+// fallback path when the separate-index mechanism cannot be initialized.
+func commitDirect(repoDir string, gitCfg config.GitConfig, commitArgs []string) error {
+	addCmd := exec.Command("git", "add", "-u")
+	addCmd.Dir = repoDir
+	if err := addCmd.Run(); err != nil {
+		return fmt.Errorf("git add -u: %w", err)
+	}
+	if gitCfg.CommitState {
+		addState := exec.Command("git", "add", ".wolfcastle/")
+		addState.Dir = repoDir
+		_ = addState.Run()
+	}
+	commitCmd := exec.Command("git", commitArgs...)
+	commitCmd.Dir = repoDir
+	if err := commitCmd.Run(); err != nil {
+		return fmt.Errorf("git commit: %w", err)
+	}
+	return nil
+}
+
 func (d *Daemon) autoCompleteDecomposedParents(nodeAddr string) {
 	ns, err := d.Store.ReadNode(nodeAddr)
 	if err != nil {
