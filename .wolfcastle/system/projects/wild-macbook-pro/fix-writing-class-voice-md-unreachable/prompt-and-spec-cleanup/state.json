@@ -44,10 +44,33 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T14:40:06.274989Z",
+        "task": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
+        "text": "Removed dangling voice.md reference from writing.md line 5; subdirectory assembly makes it redundant"
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T14:39:07.467316Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T14:40:05.051341Z",
+      "objective": "Remove the misleading voice.md cross-reference from writing.md",
+      "what_happened": "Deleted line 5 from writing.md which told agents to 'refer to that prompt' for voice guidance. With subdirectory assembly now auto-appending writing/voice.md content, agents see voice guidance directly and the instruction was misleading.",
+      "went_well": [
+        "Minimal change, no behavioral impact since voice content is already delivered automatically"
+      ],
+      "improvements": [
+        "None; this was a straightforward text deletion"
+      ],
+      "action_items": [
+        "Verify that other class prompts don't have similar dangling references to subdirectory assets"
+      ]
+    }
   }
 }
