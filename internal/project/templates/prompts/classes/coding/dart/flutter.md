@@ -40,7 +40,7 @@ Mock services and repositories at the provider level (override Riverpod provider
 
 Calling `setState` after `dispose` throws a `FlutterError`. Any async callback (timer, stream subscription, future completion) that outlives the widget must check `mounted` before calling `setState`, or be cancelled in `dispose()`. Prefer cancelling subscriptions over checking `mounted`.
 
-Placing unbounded-height children (`ListView`, `GridView`, `Column` with `Expanded`) inside a parent that also has unbounded height (another `ListView`, a `SingleChildScrollView`) causes layout failures. Constrain the inner list with `ShrinkWrapping: true` (with caution for performance) or a fixed `SizedBox` height, or prefer `CustomScrollView` with slivers to compose multiple scrollable regions into a single viewport.
+Placing unbounded-height children (`ListView`, `GridView`, `Column` with `Expanded`) inside a parent that also has unbounded height (another `ListView`, a `SingleChildScrollView`) causes layout failures. Constrain the inner list with `shrinkWrap: true` (with caution for performance) or a fixed `SizedBox` height, or prefer `CustomScrollView` with slivers to compose multiple scrollable regions into a single viewport.
 
 Omitting `Key` on widgets in dynamic lists, or using index-based keys, causes Flutter to reuse state from the wrong element when items are reordered, inserted, or removed. Prefer `ValueKey` based on a stable identifier from the data model. Conversely, assigning new `UniqueKey()` on every rebuild forces unnecessary state destruction; only do this when you intentionally want to reset a widget.
 

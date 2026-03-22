@@ -54,7 +54,7 @@
       "id": "task-0005",
       "title": "Write Rust/Tokio class prompt",
       "description": "Write Rust/Tokio class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/rust/tokio.md"
@@ -65,7 +65,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Mobile and Systems Frameworks is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -102,14 +102,47 @@
         "timestamp": "2026-03-22T09:11:15.905659Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
         "text": "Add Rust/Tokio class prompt covering runtime config, JoinSet/TaskTracker structured concurrency, mpsc/oneshot/broadcast/watch channels, select! cancellation, async I/O with BufReader/BufWriter, tokio::sync vs std::sync primitives, graceful shutdown, testing with start_paused/duplex, and common pitfalls [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T09:13:56.321741Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Audit reviewed 5 framework prompts (217 lines total): android.md, ios.md, flutter.md, actix.md, tokio.md. PASS. One finding: flutter.md line 43 used incorrect Flutter API name 'ShrinkWrapping: true' instead of 'shrinkWrap: true' — fixed and committed. All five prompts maintain clean separation from their parent language prompts with no content overlap. Format, structure, depth, and technical accuracy are consistent across the set. Build, test, and lint all pass."
       }
     ],
-    "gaps": [],
+    "gaps": [
+      {
+        "id": "gap-mobile-and-systems-frameworks-1",
+        "timestamp": "2026-03-22T09:13:38.819764Z",
+        "description": "flutter.md line 43 had incorrect API name 'ShrinkWrapping: true' instead of 'shrinkWrap: true' — fixed during audit",
+        "source": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "status": "fixed",
+        "fixed_by": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "fixed_at": "2026-03-22T09:13:40.966483Z"
+      }
+    ],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T08:57:58.796445Z"
+    "started_at": "2026-03-22T08:57:58.796445Z",
+    "result_summary": "Authored five framework-level class prompts for mobile and systems frameworks: Kotlin/Android (Compose, Hilt, lifecycle coroutines, Room, Retrofit), Swift/iOS (SwiftUI, MVVM, NavigationStack, SwiftData, structured concurrency), Dart/Flutter (widget architecture, Riverpod/Bloc, go_router, platform channels, Material 3), Rust/Actix Web (App builder, extractors, web::Data, ResponseError, middleware, sqlx/Diesel), and Rust/Tokio (runtime config, JoinSet, channels, select!, async I/O, sync primitives, graceful shutdown). All prompts maintain clean separation from their parent language prompts, follow a consistent prose-only format with four pitfalls each, and pass audit with one minor fix (incorrect Flutter API name corrected)."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T09:13:50.850769Z",
+      "objective": "Verify all five mobile and systems framework prompts are complete, correct, and high-quality",
+      "what_happened": "Read all five framework prompts (android.md, ios.md, flutter.md, actix.md, tokio.md) and their parent language prompts (kotlin.md, swift.md, dart.md, rust.md). Verified no overlap between framework and language layers. Checked factual accuracy of API names, patterns, and version-specific guidance. Ran build, test, and lint — all clean. Found one error in flutter.md.",
+      "went_well": [
+        "Clean separation between language and framework layers across all five prompts",
+        "Consistent format, structure, and depth across all five files (39-47 lines, 4 pitfalls each, prose-only)",
+        "Technical accuracy is strong — version-specific details (iOS 17+ @Observable, Riverpod 2.x NotifierProvider, Actix 4.x from_fn) are correct"
+      ],
+      "improvements": [
+        "flutter.md had incorrect property name ShrinkWrapping instead of shrinkWrap — fixed during audit"
+      ],
+      "action_items": [
+        "None; all issues resolved"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T09:01:25.146544Z",
