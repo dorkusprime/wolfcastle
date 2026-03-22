@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "extract-pid-checker-interface",
+  "name": "Extract PID Checker Interface",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Define PIDChecker interface and remove daemon import from validate",
+      "description": "Define PIDChecker interface and remove daemon import from validate",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/validate/engine.go",
+        "internal/validate/fix.go"
+      ],
+      "body": "Create a PIDChecker interface in validate (likely in a new file pid_checker.go or at the top of engine.go) with the five methods that validate actually uses from daemon.DaemonRepository: IsAlive() bool, PIDFileExists() bool, StopFileExists() bool, RemovePID() error, RemoveStopFile() error. Replace the *daemon.DaemonRepository field in Engine struct and all function parameters in fix.go with PIDChecker. Remove the daemon import from both engine.go and fix.go. Update the constructors NewEngine, NewEngineWithRepo, FixWithVerificationRepo, and ApplyDeterministicFixesRepo to accept PIDChecker instead of the concrete type. Update all callers in cmd/ that pass a *daemon.DaemonRepository to these functions (the concrete type satisfies the interface implicitly, so callers just need their type annotations adjusted if any). Verify go build ./... and go vet ./... pass cleanly. Run existing tests to confirm nothing regresses.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "validate package has zero imports of github.com/dorkusprime/wolfcastle/internal/daemon",
+        "go build ./... succeeds",
+        "go test ./internal/validate/... passes",
+        "PIDChecker interface is defined in the validate package with exactly the five methods: IsAlive",
+        " PIDFileExists",
+        " StopFileExists",
+        " RemovePID",
+        " RemoveStopFile"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Add compile-time interface satisfaction check",
+      "description": "Add compile-time interface satisfaction check",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/repository.go"
+      ],
+      "body": "Add a compile-time assertion in the daemon package (in repository.go or a dedicated file) that confirms *DaemonRepository satisfies validate.PIDChecker. Use the standard Go pattern: var _ validate.PIDChecker = (*DaemonRepository)(nil). This ensures future changes to either the interface or the struct produce a compile error rather than a silent runtime failure. Note: this import direction (daemon importing validate) is acceptable because validate is the interface owner and daemon is the implementor. If this creates an import cycle, place the assertion in an internal test file (repository_test.go) or a dedicated integration test instead.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "A compile-time assertion exists that *daemon.DaemonRepository satisfies validate.PIDChecker",
+        "go build ./... succeeds with the assertion in place"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Extract PID Checker Interface is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "grep internal/validate/*.go for any remaining import of daemon package",
+    "verify PIDChecker interface has exactly five methods matching the scope description",
+    "check that cmd/ callers still compile when passing *daemon.DaemonRepository where PIDChecker is expected"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-22T23:37:01.658781Z"
+  }
+}

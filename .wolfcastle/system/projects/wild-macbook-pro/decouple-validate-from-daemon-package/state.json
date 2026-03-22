@@ -3,24 +3,56 @@
   "id": "decouple-validate-from-daemon-package",
   "name": "Decouple Validate from Daemon Package",
   "type": "orchestrator",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "extract-pid-checker-interface",
+      "address": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
+      "state": "in_progress"
+    },
+    {
+      "id": "adr-interface-for-validate-daemon-boundary",
+      "address": "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary",
+      "state": "not_started"
+    }
+  ],
   "tasks": [
     {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Decouple Validate from Daemon Package is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
   ],
   "scope": "Extract the validate package's dependency on daemon.DaemonRepository behind an interface. Define a PIDChecker interface (IsAlive, PIDFileExists, RemovePID, etc.) in the validate package and have DaemonRepository implement it. This breaks the lateral coupling between two domain packages and enables validate to be used as a standalone tool.",
+  "success_criteria": [
+    "validate package imports zero symbols from daemon package",
+    "go build ./... succeeds",
+    "go test ./internal/validate/... passes",
+    "PIDChecker interface defined in validate with IsAlive, PIDFileExists, StopFileExists, RemovePID, RemoveStopFile",
+    "ADR filed superseding 2026-03-18T21-34Z"
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T23:37:01.567897Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
   "audit": {
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:36:58.972504Z",
+        "task": "decouple-validate-from-daemon-package",
+        "text": "Created 2 children: extract-pid-checker-interface (leaf, 2 tasks), adr-interface-for-validate-daemon-boundary (leaf, 1 task). Ordering: implementation first so the ADR can reference the final interface shape. The refactor is small: validate uses 5 methods from DaemonRepository across 2 files. No spec leaf needed since the interface shape is directly derivable from current usage."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "pending"

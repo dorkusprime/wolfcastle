@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -71,7 +72,7 @@ func TestValidateStartup_WithWolfcastleDir(t *testing.T) {
 		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "leaf",
 	}
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), wolfDir)
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfDir))
 	report := engine.ValidateStartup(idx)
 	if report == nil {
 		t.Fatal("expected non-nil report from ValidateStartup")

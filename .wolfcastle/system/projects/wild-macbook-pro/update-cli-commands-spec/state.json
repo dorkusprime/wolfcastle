@@ -3,7 +3,7 @@
   "id": "update-cli-commands-spec",
   "name": "Update CLI Commands Spec",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -14,7 +14,7 @@
     {
       "id": "finalize-spec-metadata",
       "address": "update-cli-commands-spec/finalize-spec-metadata",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -33,6 +33,8 @@
     "The spec's intro paragraph command count matches the actual number of leaf commands in the CLI",
     "All new sections follow the existing spec format (Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes)"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T23:16:28.431768Z",

@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -24,27 +23,27 @@ const maxFixPasses = 5
 // FixWithVerification runs a multi-pass fix loop per ADR-051. Each pass
 // validates the tree, applies deterministic fixes, and re-validates. The
 // loop exits when no fixable issues remain or the pass cap is reached.
-// Returns a final report with all residual issues.
+// An optional PIDChecker enables daemon artifact cleanup; omit it to skip.
 func FixWithVerification(
 	projectsDir string,
 	indexPath string,
 	loadNode NodeLoader,
-	wolfcastleDirs ...string,
+	checkers ...PIDChecker,
 ) ([]FixResult, *Report, error) {
-	var repo *daemon.DaemonRepository
-	if len(wolfcastleDirs) > 0 && wolfcastleDirs[0] != "" {
-		repo = daemon.NewDaemonRepository(wolfcastleDirs[0])
+	var checker PIDChecker
+	if len(checkers) > 0 {
+		checker = checkers[0]
 	}
-	return FixWithVerificationRepo(projectsDir, indexPath, loadNode, repo)
+	return FixWithVerificationRepo(projectsDir, indexPath, loadNode, checker)
 }
 
 // FixWithVerificationRepo is like FixWithVerification but accepts a
-// DaemonRepository directly. Pass nil to skip daemon artifact cleanup.
+// PIDChecker directly. Pass nil to skip daemon artifact cleanup.
 func FixWithVerificationRepo(
 	projectsDir string,
 	indexPath string,
 	loadNode NodeLoader,
-	repo *daemon.DaemonRepository,
+	checker PIDChecker,
 ) ([]FixResult, *Report, error) {
 	var allFixes []FixResult
 
@@ -56,14 +55,14 @@ func FixWithVerificationRepo(
 			return allFixes, nil, fmt.Errorf("loading root index on pass %d: %w", pass, err)
 		}
 
-		engine := NewEngineWithRepo(projectsDir, loadNode, repo)
+		engine := NewEngineWithRepo(projectsDir, loadNode, checker)
 		report := engine.ValidateAll(idx)
 
 		if !report.HasAutoFixable() {
 			return allFixes, report, nil
 		}
 
-		fixes, _, err := ApplyDeterministicFixesRepo(idx, report.Issues, projectsDir, indexPath, repo)
+		fixes, _, err := ApplyDeterministicFixesRepo(idx, report.Issues, projectsDir, indexPath, checker)
 		if err != nil {
 			return allFixes, report, fmt.Errorf("applying fixes on pass %d: %w", pass, err)
 		}
@@ -83,7 +82,7 @@ func FixWithVerificationRepo(
 	if err != nil {
 		return allFixes, nil, fmt.Errorf("loading root index for final validation: %w", err)
 	}
-	engine := NewEngineWithRepo(projectsDir, loadNode, repo)
+	engine := NewEngineWithRepo(projectsDir, loadNode, checker)
 	finalReport := engine.ValidateAll(idx)
 
 	return allFixes, finalReport, nil
@@ -91,30 +90,30 @@ func FixWithVerificationRepo(
 
 // ApplyDeterministicFixes attempts to repair all deterministic-fixable issues.
 // It stages changes in memory, writes leaf->parent->root, and re-validates.
-// wolfcastleDir is optional; pass "" to skip daemon artifact cleanup.
+// An optional PIDChecker enables daemon artifact cleanup; omit it to skip.
 // Returns the list of fixes applied, any post-fix re-validation warnings, and an error.
 func ApplyDeterministicFixes(
 	idx *state.RootIndex,
 	issues []Issue,
 	projectsDir string,
 	indexPath string,
-	wolfcastleDirs ...string,
+	checkers ...PIDChecker,
 ) ([]FixResult, []Issue, error) {
-	var repo *daemon.DaemonRepository
-	if len(wolfcastleDirs) > 0 && wolfcastleDirs[0] != "" {
-		repo = daemon.NewDaemonRepository(wolfcastleDirs[0])
+	var checker PIDChecker
+	if len(checkers) > 0 {
+		checker = checkers[0]
 	}
-	return ApplyDeterministicFixesRepo(idx, issues, projectsDir, indexPath, repo)
+	return ApplyDeterministicFixesRepo(idx, issues, projectsDir, indexPath, checker)
 }
 
 // ApplyDeterministicFixesRepo is like ApplyDeterministicFixes but accepts
-// a DaemonRepository directly. Pass nil to skip daemon artifact cleanup.
+// a PIDChecker directly. Pass nil to skip daemon artifact cleanup.
 func ApplyDeterministicFixesRepo(
 	idx *state.RootIndex,
 	issues []Issue,
 	projectsDir string,
 	indexPath string,
-	repo *daemon.DaemonRepository,
+	checker PIDChecker,
 ) ([]FixResult, []Issue, error) {
 	var fixes []FixResult
 	modifiedStates := map[string]*state.NodeState{}
@@ -465,15 +464,15 @@ func ApplyDeterministicFixesRepo(
 		// could break references in breadcrumbs, AARs, and audit gaps.
 
 		case CatStalePIDFile:
-			if repo != nil {
-				if err := repo.RemovePID(); err == nil {
+			if checker != nil {
+				if err := checker.RemovePID(); err == nil {
 					fixes = append(fixes, FixResult{Category: issue.Category, Description: "removed stale PID file"})
 				}
 			}
 
 		case CatStaleStopFile:
-			if repo != nil {
-				if err := repo.RemoveStopFile(); err == nil {
+			if checker != nil {
+				if err := checker.RemoveStopFile(); err == nil {
 					fixes = append(fixes, FixResult{Category: issue.Category, Description: "removed stale stop file"})
 				}
 			}
@@ -499,7 +498,7 @@ func ApplyDeterministicFixesRepo(
 	// without treating them as failures.
 	var postFixWarnings []Issue
 	if len(fixes) > 0 {
-		engine := NewEngineWithRepo(projectsDir, DefaultNodeLoader(projectsDir), repo)
+		engine := NewEngineWithRepo(projectsDir, DefaultNodeLoader(projectsDir), checker)
 		postReport := engine.ValidateAll(idx)
 		for _, issue := range postReport.Issues {
 			issue.Severity = SeverityWarning

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
@@ -225,7 +226,7 @@ func TestFixWithVerification_WithWolfcastleDirArg(t *testing.T) {
 	idxPath := filepath.Join(projDir, "state.json")
 	_ = state.SaveRootIndex(idxPath, idx)
 
-	_, _, err := FixWithVerification(projDir, idxPath, DefaultNodeLoader(projDir), wolfDir)
+	_, _, err := FixWithVerification(projDir, idxPath, DefaultNodeLoader(projDir), daemon.NewDaemonRepository(wolfDir))
 	if err != nil {
 		t.Fatal(err)
 	}

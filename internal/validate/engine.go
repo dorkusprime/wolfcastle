@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
@@ -28,32 +27,30 @@ type NodeLoader func(addr string) (*state.NodeState, error)
 // Engine runs structural validation checks against a project tree.
 type Engine struct {
 	projectsDir string
-	daemonRepo  *daemon.DaemonRepository
+	daemonRepo  PIDChecker
 	loadNode    NodeLoader
 }
 
-// NewEngine creates a validation engine.
-// wolfcastleDir is optional; pass "" to skip PID-aware stale detection.
-// When provided, a DaemonRepository is created internally. Prefer
-// NewEngineWithRepo when a DaemonRepository is already available.
-func NewEngine(projectsDir string, loadNode NodeLoader, wolfcastleDirs ...string) *Engine {
-	var repo *daemon.DaemonRepository
-	if len(wolfcastleDirs) > 0 && wolfcastleDirs[0] != "" {
-		repo = daemon.NewDaemonRepository(wolfcastleDirs[0])
+// NewEngine creates a validation engine. An optional PIDChecker enables
+// daemon-aware stale detection; pass none (or nil) to skip it.
+func NewEngine(projectsDir string, loadNode NodeLoader, checkers ...PIDChecker) *Engine {
+	var checker PIDChecker
+	if len(checkers) > 0 {
+		checker = checkers[0]
 	}
 	return &Engine{
 		projectsDir: projectsDir,
-		daemonRepo:  repo,
+		daemonRepo:  checker,
 		loadNode:    loadNode,
 	}
 }
 
 // NewEngineWithRepo creates a validation engine using an existing
-// DaemonRepository. Pass nil to skip PID-aware stale detection.
-func NewEngineWithRepo(projectsDir string, loadNode NodeLoader, repo *daemon.DaemonRepository) *Engine {
+// PIDChecker. Pass nil to skip PID-aware stale detection.
+func NewEngineWithRepo(projectsDir string, loadNode NodeLoader, checker PIDChecker) *Engine {
 	return &Engine{
 		projectsDir: projectsDir,
-		daemonRepo:  repo,
+		daemonRepo:  checker,
 		loadNode:    loadNode,
 	}
 }

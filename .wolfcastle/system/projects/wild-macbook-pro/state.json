@@ -181,9 +181,29 @@
     "decouple-validate-from-daemon-package": {
       "name": "Decouple Validate from Daemon Package",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "decouple-validate-from-daemon-package",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "decouple-validate-from-daemon-package/extract-pid-checker-interface",
+        "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary"
+      ]
+    },
+    "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary": {
+      "name": "ADR: Interface for Validate-Daemon Boundary",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary",
+      "decomposition_depth": 0,
+      "parent": "decouple-validate-from-daemon-package"
+    },
+    "decouple-validate-from-daemon-package/extract-pid-checker-interface": {
+      "name": "Extract PID Checker Interface",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
+      "decomposition_depth": 0,
+      "parent": "decouple-validate-from-daemon-package"
     },
     "deterministic-git-activity": {
       "name": "Deterministic Git Activity",
@@ -756,7 +776,7 @@
     "update-cli-commands-spec": {
       "name": "Update CLI Commands Spec",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "update-cli-commands-spec",
       "decomposition_depth": 0,
       "children": [
@@ -775,7 +795,7 @@
     "update-cli-commands-spec/finalize-spec-metadata": {
       "name": "Finalize Spec Metadata",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "update-cli-commands-spec/finalize-spec-metadata",
       "decomposition_depth": 0,
       "parent": "update-cli-commands-spec"

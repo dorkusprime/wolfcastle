@@ -3,7 +3,7 @@
   "id": "finalize-spec-metadata",
   "name": "Finalize Spec Metadata",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -44,7 +44,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Finalize Spec Metadata is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -76,8 +76,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T23:29:23.880896Z",
+    "completed_at": "2026-03-22T23:34:35.888109Z",
     "result_summary": "Finalized CLI spec metadata in two tasks. Task-0001 updated the intro paragraph from 6 to 7 command groups, adding Additional Commands (completion, help) to the parenthetical list; the 60-command count and config/knowledge subcommand entries were already correct from prior nodes. Task-0002 rewrote the log command section from scratch, replacing the old --lines/--level tail model with the redesigned three-mode interface (summary, thoughts, interleaved), session support, glyph formatting, and NDJSON reconstruction semantics per the log command design spec. Audit verified all claims against wolfcastle --help output and the redesign spec; no discrepancies found."
   },
   "aars": {

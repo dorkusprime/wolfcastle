@@ -116,7 +116,7 @@ Examples:
 
 			// Startup validation gate — block on error-severity issues
 			if idxErr == nil {
-				engine := validate.NewEngine(app.State.Dir(), validate.DefaultNodeLoader(app.State.Dir()), app.Config.Root())
+				engine := validate.NewEngine(app.State.Dir(), validate.DefaultNodeLoader(app.State.Dir()), dmn.NewDaemonRepository(app.Config.Root()))
 				report := engine.ValidateStartup(idx)
 				if report.HasErrors() {
 					output.PrintHuman("Startup blocked. %d error(s):", report.Errors)
