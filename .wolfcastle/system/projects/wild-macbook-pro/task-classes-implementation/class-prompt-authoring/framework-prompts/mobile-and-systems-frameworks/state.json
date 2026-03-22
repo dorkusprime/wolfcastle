@@ -92,6 +92,11 @@
         "timestamp": "2026-03-22T09:06:42.20992Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
         "text": "Add Dart/Flutter class prompt covering widget architecture, Riverpod/Bloc state management, go_router navigation, platform channels, Material 3 theming, build flavors, testing with flutter_test/integration_test/patrol, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T09:09:09.341119Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Rust/Actix class prompt covering App builder, extractors, web::Data state, ResponseError, from_fn middleware, sqlx/Diesel database patterns, WebSocket actors, testing with TestRequest/TestServer, and common pitfalls [task-0004]"
       }
     ],
     "gaps": [],
@@ -145,6 +150,23 @@
       ],
       "improvements": [
         "Could expand the platform channels section with more detail on EventChannel error handling once patterns stabilize"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T09:09:07.586609Z",
+      "objective": "Author the Rust/Actix Web framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/rust/actix.md (41 lines). Studied the existing rust.md language prompt, python/fastapi.md, kotlin/android.md, and dart/flutter.md for format and depth calibration. Wrote sections covering App structure and routing with extractors, application state with web::Data and Arc, error handling via ResponseError trait, middleware (from_fn and Transform/Service), database integration (sqlx async and Diesel with web::block), WebSocket actors, testing with TestRequest/init_service/call_service/TestServer, and four pitfall entries on Send+Sync closures, actix vs actix-web runtime confusion, payload size limits, and blocking the async runtime.",
+      "went_well": [
+        "Clean separation from rust.md; no overlap on ownership, lifetimes, async basics, or general Rust patterns",
+        "Covers both async (sqlx) and sync (Diesel with web::block) database patterns with clear guidance on when each applies",
+        "Pitfalls section addresses the four most common Actix production failure modes"
+      ],
+      "improvements": [
+        "Could expand the middleware section with examples of response body inspection once from_fn patterns stabilize further in 4.x"
       ],
       "action_items": [
         "None; prompt is self-contained"
