@@ -3,7 +3,7 @@
   "id": "artifact-templates",
   "name": "Artifact Templates",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -88,7 +88,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Artifact Templates is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -127,8 +127,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T22:20:44.482618Z",
+    "completed_at": "2026-03-22T22:55:55.48624Z",
     "result_summary": "Migrated all four artifact file generators (ADR, spec, task, audit-task) from inline string construction to three-tier template rendering via PromptRepository.RenderToFile. Created adr.md.tmpl, spec.md.tmpl, task.md.tmpl, and audit-task.md.tmpl under internal/project/templates/artifacts/. Fixed ResolveTemplate path resolution to match tier-FS layout. Added 10 golden-file snapshot tests and equivalence tests verifying byte-identical output. Fixed an import cycle in prompt_test.go. Audit found no correctness issues; all findings (duplicate struct definitions, unused struct fields, missing error-discard comment) are code hygiene items documented for future cleanup."
   },
   "aars": {

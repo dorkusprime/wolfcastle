@@ -702,7 +702,7 @@
     "template-based-file-generation/call-site-migration/artifact-templates": {
       "name": "Artifact Templates",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "template-based-file-generation/call-site-migration/artifact-templates",
       "decomposition_depth": 0,
       "parent": "template-based-file-generation/call-site-migration"
