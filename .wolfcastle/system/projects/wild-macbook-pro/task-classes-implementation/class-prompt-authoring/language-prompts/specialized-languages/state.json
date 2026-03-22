@@ -144,6 +144,11 @@
         "timestamp": "2026-03-22T07:44:41.08201Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
         "text": "Authored Dart class prompt (68 lines) covering idiomatic style, build/test tooling, testing conventions, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T07:46:42.424251Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Shell class prompt (71 lines) covering idiomatic style, ShellCheck/shfmt tooling, Bats-core testing, and common pitfalls [task-0003]"
       }
     ],
     "gaps": [],
@@ -182,6 +187,22 @@
       ],
       "action_items": [
         "If a dart/flutter sub-classification is added later, that prompt can extend this base with widget lifecycle and state management specifics"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T07:46:40.846806Z",
+      "objective": "Author the Shell language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/shell.md at 71 lines. Studied existing prompts (go.md, swift.md) to match the established format. Covered set -euo pipefail, variable quoting, command substitution with $(), builtins over externals, local/readonly, [[ ]] vs [ ], function structure with main pattern, ShellCheck, shfmt, Bats-core testing with setup/teardown and assertions, and seven common pitfalls: unquoted variable splitting, temp file races, heredoc indentation, trailing newline stripping, subshell variable scoping in pipelines, trap handler replacement, and cd failure handling.",
+      "went_well": [
+        "Covered both Bash and POSIX sh distinctions throughout, noting which features are Bash extensions",
+        "Common pitfalls section addresses seven distinct issues with concrete examples and workarounds"
+      ],
+      "improvements": [
+        "Could add guidance on arrays vs IFS-split strings and associative arrays if line budget allowed"
+      ],
+      "action_items": [
+        "If a shell/posix or shell/bash sub-classification is added later, those prompts can split the Bash-specific and POSIX-portable guidance into separate files"
       ]
     }
   }
