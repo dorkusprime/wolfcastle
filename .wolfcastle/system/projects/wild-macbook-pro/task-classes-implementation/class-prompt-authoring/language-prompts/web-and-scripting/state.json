@@ -97,6 +97,11 @@
         "timestamp": "2026-03-22T07:29:14.832806Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
         "text": "Authored Python class prompt (python.md, 55 lines) covering style, tooling, testing, and pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T07:31:10.966503Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored JavaScript class prompt (javascript.md, 59 lines) covering style, tooling, testing, and pitfalls [task-0002]"
       }
     ],
     "gaps": [],
@@ -116,6 +121,22 @@
       ],
       "improvements": [
         "Could add a section on async/await patterns (asyncio) similar to Go's concurrency section, but the task description didn't request it and 55 lines is already well within range"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T07:31:09.943549Z",
+      "objective": "Author the JavaScript language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/javascript.md at 59 lines. Followed the established four-section format: Style, Build and Test, Testing, and Common Pitfalls. Style covers const-by-default, destructuring, template literals, async/await, ESM, arrow functions, early returns, and strict equality. Build and Test covers package managers, ESLint (flat config and legacy), Prettier, and test runners (Vitest, Jest, node --test). Testing covers describe/it organization, behavior-over-implementation testing, boundary mocking, fake timers, and snapshot discipline. Common Pitfalls covers this binding, floating promises, typeof null, for-in vs for-of, parseInt radix, callback/promise mixing, and mutating array methods.",
+      "went_well": [
+        "59 lines fits the 40-80 target with room for all requested topics",
+        "Covered all pitfalls from the task description: == vs ===, this binding, prototype chain, callback error handling, floating promises, implicit type coercion"
+      ],
+      "improvements": [
+        "Could add a section on TypeScript interop patterns, but that belongs in a separate typescript.md prompt"
       ],
       "action_items": [
         "No follow-ups needed"
