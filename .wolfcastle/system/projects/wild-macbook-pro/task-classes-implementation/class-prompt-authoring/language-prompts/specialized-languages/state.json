@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Author Swift prompt",
       "description": "Author Swift prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/swift.md"
@@ -24,7 +24,7 @@
       "id": "task-0002",
       "title": "Author Dart prompt",
       "description": "Author Dart prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/dart.md"
@@ -139,6 +139,11 @@
         "timestamp": "2026-03-22T07:42:22.271032Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
         "text": "Authored Swift class prompt (51 lines) covering idiomatic style, build/test tooling, XCTest/Swift Testing, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T07:44:41.08201Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Dart class prompt (68 lines) covering idiomatic style, build/test tooling, testing conventions, and common pitfalls [task-0002]"
       }
     ],
     "gaps": [],
@@ -161,6 +166,22 @@
       ],
       "action_items": [
         "If a swift/swiftui or swift/vapor sub-classification is added later, those prompts can extend this base with framework-specific guidance"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T07:44:39.668435Z",
+      "objective": "Author the Dart language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/dart.md at 68 lines. Studied existing prompts (go.md, swift.md) to match the established format. Covered sound null safety, final/const, cascade notation, extension methods, named parameters with required keyword, dart analyze/format/test, pub, flutter test, dart_code_metrics, package:test with group/test structure, testWidgets, golden tests, mockito/mocktail, and pitfalls around late keyword misuse, BuildContext across async gaps, mutable state in widgets, pubspec version constraints, unawaited futures, and collection equality.",
+      "went_well": [
+        "Prompt covers both pure Dart and Flutter contexts with appropriate tooling distinctions",
+        "Common pitfalls section addresses six distinct issues including the subtle unawaited futures and collection equality traps"
+      ],
+      "improvements": [
+        "Could add guidance on isolates and compute() for CPU-bound work if line budget allowed"
+      ],
+      "action_items": [
+        "If a dart/flutter sub-classification is added later, that prompt can extend this base with widget lifecycle and state management specifics"
       ]
     }
   }
