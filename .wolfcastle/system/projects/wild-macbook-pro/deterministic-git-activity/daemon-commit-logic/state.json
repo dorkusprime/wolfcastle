@@ -33,7 +33,7 @@
       "id": "task-0002",
       "title": "Implement staging area preservation",
       "description": "Implement staging area preservation",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration.go"
@@ -55,7 +55,7 @@
       "id": "task-0003",
       "title": "Update iteration tests for new commit behavior",
       "description": "Update iteration tests for new commit behavior",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration_test.go"
@@ -100,6 +100,11 @@
         "timestamp": "2026-03-22T20:42:34.296274Z",
         "task": "deterministic-git-activity/daemon-commit-logic",
         "text": "Implemented staging area preservation using separate GIT_INDEX_FILE in commitWithSeparateIndex. Temp index seeded from HEAD, staged into, committed from. User's .git/index never touched. Falls back to commitDirect on failure. Four new tests verify byte-level index preservation, working tree safety, cleanup, and clean-tree handling."
+      },
+      {
+        "timestamp": "2026-03-22T20:47:22.662431Z",
+        "task": "deterministic-git-activity/daemon-commit-logic",
+        "text": "Created iteration_test.go with 14 tests covering commitAfterIteration flag combinations (auto_commit, commit_on_success, commit_on_failure, commit_state disabled/enabled, invalid task ID) and runIteration integration tests verifying success-path commits, failure-path commits, disabled-flag skips, and clean-tree no-empty-commit behavior."
       }
     ],
     "gaps": [],
@@ -140,6 +145,22 @@
       ],
       "action_items": [
         "Consider documenting the stale-index behavior for users who run git status during daemon execution"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T20:47:16.715899Z",
+      "objective": "Add tests covering all commit config flag combinations and integration with runIteration",
+      "what_happened": "Created internal/daemon/iteration_test.go with 14 new tests. Seven unit tests exercise commitAfterIteration directly with disabled flags (auto_commit, commit_on_success, commit_on_failure), enabled success path, failure message format, commit_state true/false, and invalid task ID rejection. Seven integration tests run runIteration through a real git repo to verify success-path commits, failure-path commits, disabled-flag skips, auto_commit master switch, and clean-tree no-empty-commit behavior.",
+      "went_well": [
+        "Table-driven approach not needed here since each flag combination has distinct setup; individual named tests read clearly in go test -v output",
+        "Reused initGitRepo and testGitCfg helpers from iteration_coverage_test.go; added modifyTrackedFile, gitRunEnv, gitLog, iterTestLogger helpers to reduce boilerplate"
+      ],
+      "improvements": [
+        "The commit_state disabled test relies on .wolfcastle/ being untracked to prove exclusion; a tracked .wolfcastle/ file modified then excluded would be a stronger assertion but the current git add -u plus separate index makes that scenario complex"
+      ],
+      "action_items": [
+        "No further test gaps identified for the commit logic; coverage of edge cases like concurrent commits or SIGTERM during commit is out of scope for unit tests"
       ]
     }
   }
