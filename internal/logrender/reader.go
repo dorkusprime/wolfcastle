@@ -2,6 +2,7 @@ package logrender
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"io"
@@ -216,7 +217,7 @@ func (r *FollowReader) readNewLines(fs *fileState, ch chan<- Record) {
 	// newline, it's a partial write; leave it for the next cycle.
 	consumed := 0
 	for len(data[consumed:]) > 0 {
-		nl := indexOf(data[consumed:], '\n')
+		nl := bytes.IndexByte(data[consumed:], '\n')
 		if nl < 0 {
 			break // partial line, stop here
 		}
@@ -238,14 +239,4 @@ func (r *FollowReader) readNewLines(fs *fileState, ch chan<- Record) {
 		ch <- rec
 	}
 	fs.offset += int64(consumed)
-}
-
-// indexOf returns the index of the first occurrence of b in data, or -1.
-func indexOf(data []byte, b byte) int {
-	for i, v := range data {
-		if v == b {
-			return i
-		}
-	}
-	return -1
 }
