@@ -93,6 +93,11 @@
         "timestamp": "2026-03-22T08:08:00.665928Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
         "text": "Authored React class prompt (typescript/react.md, 67 lines) covering components, hooks, effects, state management, RTL testing, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T08:09:58.413369Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored Vue class prompt (typescript/vue.md, 53 lines) covering Composition API, props/emits, templates, Pinia, Vue Router, VTU testing, and common pitfalls [task-0002]"
       }
     ],
     "gaps": [],
@@ -115,6 +120,22 @@
       ],
       "action_items": [
         "When React 19 patterns stabilize, consider a follow-up pass adding server component and use() hook guidance"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T08:09:57.000999Z",
+      "objective": "Author the Vue framework class prompt for TypeScript/Vue coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript/vue.md (53 lines). Studied the React prompt to match format and tone. Covered all required topics: Composition API (ref vs reactive, composables, script setup), type-based defineProps/defineEmits with withDefaults, template vs JSX rendering with compile-time optimization rationale, Pinia setup stores, Vue Router typed definitions and guards, Vue Test Utils with Vitest (mount vs shallowMount, nextTick, emitted assertions, find vs get), and four common pitfalls (reactivity loss from destructuring reactive, ref unwrapping differences, watchEffect vs watch semantics, v-bind spread exposure).",
+      "went_well": [
+        "Prompt avoids repeating TypeScript fundamentals already in typescript.md",
+        "watchEffect vs watch section gives clear guidance on when to pick each, which is one of the most common Vue 3 confusion points"
+      ],
+      "improvements": [
+        "Could add guidance on Suspense and async setup() patterns, but those are still experimental in Vue 3"
+      ],
+      "action_items": [
+        "When Vue 3.5+ stabilizes Suspense, consider adding async component patterns"
       ]
     }
   }
