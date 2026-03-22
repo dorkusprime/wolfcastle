@@ -672,6 +672,9 @@ func (e *Engine) checkOrphanedDefinitions(idx *state.RootIndex, report *Report) 
 		if err != nil {
 			return nil
 		}
+		if info.IsDir() && info.Name() == ".archive" {
+			return filepath.SkipDir
+		}
 		if !strings.HasSuffix(info.Name(), ".md") || info.IsDir() {
 			return nil
 		}
