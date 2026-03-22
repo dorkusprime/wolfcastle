@@ -3,6 +3,7 @@ package state
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -12,6 +13,9 @@ import (
 
 func TestAtomicWriteJSON_TmpFileCreationFailure(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	// Point the path at a directory that exists but is read-only,
 	// so MkdirAll succeeds but CreateTemp fails.
 	dir := t.TempDir()

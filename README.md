@@ -125,7 +125,7 @@ Wolfcastle turns tokens into code. It uses a lot of them. Every planning pass, e
 
 ## More
 
-- [53 CLI commands](docs/humans/cli.md)
+- [52 CLI commands](docs/humans/cli.md)
 - [Architecture Decision Records](docs/decisions/INDEX.md) (89 and counting)
 - [Specifications](docs/specs/)
 - [Developer guides](docs/agents/)

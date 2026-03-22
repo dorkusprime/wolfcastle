@@ -1,0 +1,338 @@
+{
+  "version": 1,
+  "id": "specialized-languages",
+  "name": "Specialized Languages",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Author Swift prompt",
+      "description": "Author Swift prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/swift.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/swift.md (40-80 lines). REPLACES coding/default.md for Swift-classified tasks. Cover: idiomatic Swift style (value types over reference types where appropriate, optionals with guard/if-let, protocol-oriented design, Result type, Codable), build/test tooling (swift build/test, Swift Package Manager, SwiftLint, SwiftFormat, Xcode), testing conventions (XCTest, async test methods, XCTAssert family, UI testing with XCUITest), and common pitfalls (retain cycles in closures, force unwrapping, implicitly unwrapped optionals leaking into APIs, ABI stability considerations). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Author Dart prompt",
+      "description": "Author Dart prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/dart.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/dart.md (40-80 lines). REPLACES coding/default.md for Dart-classified tasks. Cover: idiomatic Dart style (sound null safety, final/const, cascade notation, extension methods, named parameters with required keyword), build/test tooling (dart analyze, dart format, dart test, pub, flutter test for Flutter projects, dart_code_metrics), testing conventions (package:test, group/test structure, widget testing with testWidgets, golden tests), and common pitfalls (late keyword misuse, BuildContext across async gaps in Flutter, mutable state in widgets, pubspec version constraints). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Author Shell prompt",
+      "description": "Author Shell prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/shell.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/shell.md (40-80 lines). REPLACES coding/default.md for Shell-classified tasks. Cover: idiomatic shell style (set -euo pipefail, quote all variables, use $() over backticks, prefer builtins over external commands, POSIX sh compatibility when portability matters), build/test tooling (shellcheck, shfmt, bats-core for testing), testing conventions (bats assertions, setup/teardown, temp directories), and common pitfalls (word splitting, glob expansion in variables, unquoted command substitution, race conditions in temp files, signal handling, heredoc indentation with tabs). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Author SQL prompt",
+      "description": "Author SQL prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/sql.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/sql.md (40-80 lines). REPLACES coding/default.md for SQL-classified tasks. Cover: idiomatic SQL style (uppercase keywords, explicit JOIN syntax over implicit, always alias tables in multi-table queries, prefer CTEs over deeply nested subqueries), dialect awareness (note PostgreSQL/MySQL/SQLite/SQL Server differences where they matter), migration conventions (versioned migration files, reversible migrations, avoid data-dependent DDL), testing conventions (test data setup/teardown, transaction-wrapped tests), and common pitfalls (SQL injection in dynamic queries, NULL comparison semantics, implicit type casting, N+1 queries, missing indexes on foreign keys, large transactions holding locks). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0005",
+      "title": "Author R prompt",
+      "description": "Author R prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/r.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/r.md (40-80 lines). REPLACES coding/default.md for R-classified tasks. Cover: idiomatic R style (tidyverse conventions, pipe operator |\u003e or %\u003e%, vectorized operations over loops, tibbles over data.frames, functional programming with purrr), build/test tooling (devtools, testthat, roxygen2 for documentation, lintr, styler), testing conventions (test_that blocks, expect_* assertions, snapshot testing, test fixtures), and common pitfalls (non-standard evaluation surprises, 1-based indexing, factor vs character, copy-on-modify semantics, missing values propagation with NA, package namespace conflicts). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0006",
+      "title": "Author Lua prompt",
+      "description": "Author Lua prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/lua.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/lua.md (40-80 lines). REPLACES coding/default.md for Lua-classified tasks. Cover: idiomatic Lua style (tables as the universal data structure, metatables for OOP patterns, local by default, coroutines for cooperative multitasking, 1-based indexing), build/test tooling (LuaRocks, busted for testing, luacheck for linting), testing conventions (busted describe/it blocks, assertions, mocking with luassert), and common pitfalls (global variable leaks from missing local, nil in tables breaking # operator, string immutability, Lua 5.1 vs 5.4 differences, LuaJIT compatibility, off-by-one from 1-based indexing). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0007",
+      "title": "Author Elixir prompt",
+      "description": "Author Elixir prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/elixir.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/elixir.md (40-80 lines). REPLACES coding/default.md for Elixir-classified tasks. Cover: idiomatic Elixir style (pattern matching everywhere, pipe operator |\u003e, with for complex matches, GenServer/Agent/Task for concurrency, protocols for polymorphism), build/test tooling (mix compile/test/format, mix credo for linting, dialyzer for type checking, ExDoc), testing conventions (ExUnit, async tests, doctest, setup/setup_all, Mox for behavior mocking), and common pitfalls (process mailbox overflow, GenServer bottlenecks from serialized calls, atom table exhaustion from dynamic atoms, large binaries in process heap, OTP supervision tree design). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0008",
+      "title": "Author Haskell prompt",
+      "description": "Author Haskell prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/haskell.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/haskell.md (40-80 lines). REPLACES coding/default.md for Haskell-classified tasks. Cover: idiomatic Haskell style (type signatures on all top-level definitions, algebraic data types, pattern matching, prefer pure functions, monadic composition with do notation, type classes for ad-hoc polymorphism), build/test tooling (cabal or stack, ghc, hlint, ormolu/fourmolu for formatting, weeder for dead code), testing conventions (HSpec or tasty, QuickCheck for property-based testing, doctest), and common pitfalls (space leaks from lazy evaluation, String vs Text vs ByteString, partial functions like head/tail, orphan instances, over-abstracted monad transformer stacks). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Specialized Languages is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify all 8 files (swift.md, dart.md, shell.md, sql.md, r.md, lua.md, elixir.md, haskell.md) are within 40-80 line range and contain no crossover content that belongs in a framework-specific prompt rather than the language prompt"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T07:42:22.271032Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Swift class prompt (51 lines) covering idiomatic style, build/test tooling, XCTest/Swift Testing, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T07:44:41.08201Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Dart class prompt (68 lines) covering idiomatic style, build/test tooling, testing conventions, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T07:46:42.424251Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Shell class prompt (71 lines) covering idiomatic style, ShellCheck/shfmt tooling, Bats-core testing, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T07:48:39.571702Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored SQL class prompt (59 lines) covering idiomatic style, dialect awareness, migration conventions, testing patterns, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T07:50:44.348282Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored R class prompt (66 lines) covering idiomatic style, devtools/testthat tooling, testing conventions, and common pitfalls [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T07:52:39.567097Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Lua class prompt (58 lines) covering idiomatic style, LuaRocks/busted/luacheck tooling, testing conventions, and common pitfalls [task-0006]"
+      },
+      {
+        "timestamp": "2026-03-22T07:54:44.942492Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Elixir class prompt (65 lines) covering idiomatic style, mix/credo/dialyzer tooling, ExUnit/Mox testing, and common pitfalls [task-0007]"
+      },
+      {
+        "timestamp": "2026-03-22T07:56:53.173978Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Haskell class prompt (68 lines) covering idiomatic style, Cabal/HLint/Ormolu tooling, Hspec/QuickCheck testing, and common pitfalls [task-0008]"
+      },
+      {
+        "timestamp": "2026-03-22T07:58:59.858109Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Audit reviewed all 8 language prompt files (swift.md 51 lines, dart.md 68, shell.md 71, sql.md 59, r.md 66, lua.md 58, elixir.md 65, haskell.md 68; 506 lines total). PASS. All files follow the established format: title, codebase-deference opener, language-appropriate sections (Style, Build and Test, Testing, Common Pitfalls with SQL substituting Dialect Awareness and Migrations for Build and Test). Each Common Pitfalls section covers 5-7 distinct issues with concrete guidance. Technical content is accurate and version-aware. Code examples present where helpful (Dart, Shell, R, Lua, Elixir, Haskell). Files are properly embedded via go:embed all:templates. Build, tests, and lint all pass clean. No findings requiring remediation."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T07:40:04.990024Z",
+    "completed_at": "2026-03-22T07:59:20.559853Z",
+    "result_summary": "Authored 8 language-specific coding prompts (Swift, Dart, Shell, SQL, R, Lua, Elixir, Haskell) totaling 506 lines across 8 files in internal/project/templates/prompts/classes/coding/. Each prompt follows the established format with a codebase-deference opener and sections covering idiomatic style, build and test tooling, testing conventions, and common pitfalls. SQL uses Dialect Awareness and Migrations sections in place of Build and Test to match its unique concerns. All files are automatically embedded via go:embed all:templates. Audit found no issues requiring remediation; build, tests, and lint pass clean."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T07:59:08.15216Z",
+      "objective": "Verify all work in the specialized-languages node is complete and correct",
+      "what_happened": "Read all 8 language prompt files (swift, dart, shell, sql, r, lua, elixir, haskell) totaling 506 lines. Compared format against the reference go.md prompt. Verified build, tests, and lint pass clean. Checked embedding via go:embed all:templates in embedded.go. Confirmed codebase-deference opener consistency across all 22 coding prompts.",
+      "went_well": [
+        "Consistent format across all files with appropriate per-language section variations",
+        "Technical content is accurate and covers modern language features with version awareness",
+        "Each file hits a good density of practical guidance in 51-71 lines"
+      ],
+      "improvements": [
+        "None identified; the work is clean"
+      ],
+      "action_items": [
+        "Future sub-classifications (swift/swiftui, dart/flutter, elixir/phoenix, etc.) can extend these base prompts as noted in individual AARs"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T07:42:19.312994Z",
+      "objective": "Author the Swift language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/swift.md at 51 lines. Studied existing prompts (go.md, ruby.md) to match the established format: boilerplate codebase-deference opener, then sections for Style, Build and Test, Testing, and Common Pitfalls. Covered value types vs reference types, guard/if-let optionals, protocol-oriented design, Result and Codable, async/await and structured concurrency, SwiftLint/SwiftFormat, XCTest and Swift Testing, and pitfalls around retain cycles, force unwrapping, IUOs, @MainActor contagion, and ABI stability.",
+      "went_well": [
+        "The prompt covers Swift 5 through Swift 6 with version-aware guidance (typed throws for 6.0+, Swift Testing for Xcode 16+)",
+        "Concurrency section addresses both legacy (completion handlers) and modern (async/await, actors) patterns"
+      ],
+      "improvements": [
+        "Could add guidance on property wrappers and result builders if line budget allowed"
+      ],
+      "action_items": [
+        "If a swift/swiftui or swift/vapor sub-classification is added later, those prompts can extend this base with framework-specific guidance"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T07:44:39.668435Z",
+      "objective": "Author the Dart language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/dart.md at 68 lines. Studied existing prompts (go.md, swift.md) to match the established format. Covered sound null safety, final/const, cascade notation, extension methods, named parameters with required keyword, dart analyze/format/test, pub, flutter test, dart_code_metrics, package:test with group/test structure, testWidgets, golden tests, mockito/mocktail, and pitfalls around late keyword misuse, BuildContext across async gaps, mutable state in widgets, pubspec version constraints, unawaited futures, and collection equality.",
+      "went_well": [
+        "Prompt covers both pure Dart and Flutter contexts with appropriate tooling distinctions",
+        "Common pitfalls section addresses six distinct issues including the subtle unawaited futures and collection equality traps"
+      ],
+      "improvements": [
+        "Could add guidance on isolates and compute() for CPU-bound work if line budget allowed"
+      ],
+      "action_items": [
+        "If a dart/flutter sub-classification is added later, that prompt can extend this base with widget lifecycle and state management specifics"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T07:46:40.846806Z",
+      "objective": "Author the Shell language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/shell.md at 71 lines. Studied existing prompts (go.md, swift.md) to match the established format. Covered set -euo pipefail, variable quoting, command substitution with $(), builtins over externals, local/readonly, [[ ]] vs [ ], function structure with main pattern, ShellCheck, shfmt, Bats-core testing with setup/teardown and assertions, and seven common pitfalls: unquoted variable splitting, temp file races, heredoc indentation, trailing newline stripping, subshell variable scoping in pipelines, trap handler replacement, and cd failure handling.",
+      "went_well": [
+        "Covered both Bash and POSIX sh distinctions throughout, noting which features are Bash extensions",
+        "Common pitfalls section addresses seven distinct issues with concrete examples and workarounds"
+      ],
+      "improvements": [
+        "Could add guidance on arrays vs IFS-split strings and associative arrays if line budget allowed"
+      ],
+      "action_items": [
+        "If a shell/posix or shell/bash sub-classification is added later, those prompts can split the Bash-specific and POSIX-portable guidance into separate files"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T07:48:38.182163Z",
+      "objective": "Author the SQL language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/sql.md at 59 lines. Matched the established format from go.md, shell.md, and swift.md. Organized into six sections: Style (uppercase keywords, explicit JOINs, table aliases, CTEs over nested subqueries, COALESCE, EXISTS over IN), Dialect Awareness (RETURNING/OUTPUT, pagination differences, JSON operators, generated columns), Migrations (versioned files, reversible migrations, DDL/DML separation, data-dependent DDL cautions with engine-specific alternatives), Testing (transaction-wrapped tests, explicit test data setup, real dialect-matched databases via containers), and Common Pitfalls (SQL injection via parameterization, NULL semantics, implicit type casting disabling indexes, N+1 queries, missing FK indexes, large transaction locking).",
+      "went_well": [
+        "Covered four major dialects (PostgreSQL, MySQL, SQLite, SQL Server) with specific behavioral differences rather than vague portability warnings",
+        "Migration section addresses both schema and operational concerns (concurrent index creation, online schema change tools)"
+      ],
+      "improvements": [
+        "Could add guidance on window functions, recursive CTEs, and materialized views if line budget allowed"
+      ],
+      "action_items": [
+        "If sql/postgres or sql/mysql sub-classifications are added later, those prompts can extend this base with engine-specific optimization and extension guidance"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T07:50:42.792759Z",
+      "objective": "Author the R language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/r.md at 66 lines. Matched the established format from go.md, shell.md, and other existing prompts. Organized into five sections: Style (tidyverse conventions, native pipe vs magrittr, tibbles, vectorized operations, tidy evaluation with curly-curly, namespace qualification, assignment operator), Build and Test (devtools workflow, roxygen2 documentation, lintr static analysis, styler formatting, renv dependency management), Testing (testthat edition 3, test_that blocks, typed expect_* assertions, withr for temporary state, snapshot testing), and Common Pitfalls (NSE surprises, 1-based indexing with seq_along/seq_len, factor vs character, copy-on-modify memory implications, NA propagation, silent namespace conflicts with conflicted package).",
+      "went_well": [
+        "Covered both tidyverse and base R contexts with guidance on when each is appropriate",
+        "Common pitfalls section addresses six distinct issues including the subtle seq_len vs 1:n trap and NA propagation semantics"
+      ],
+      "improvements": [
+        "Could add guidance on R6 vs S4 class systems and Rcpp integration if line budget allowed"
+      ],
+      "action_items": [
+        "If an r/shiny or r/package sub-classification is added later, those prompts can extend this base with framework-specific guidance"
+      ]
+    },
+    "task-0006": {
+      "task_id": "task-0006",
+      "timestamp": "2026-03-22T07:52:37.771207Z",
+      "objective": "Author the Lua language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/lua.md at 58 lines. Matched the established format from go.md, r.md, and other existing prompts. Organized into five sections: Style (local by default, tables as universal data structure, metatables for OOP, coroutines, string.format over concatenation, naming conventions), Build and Test (LuaRocks, busted, luacheck, LuaFormatter/StyLua), Testing (describe/it blocks, luassert typed assertions, setup/teardown, mock/stub), and Common Pitfalls (global variable leaks, nil holes breaking # operator, 1-based indexing, Lua version differences including LuaJIT, string immutability and O(n²) concatenation, pcall/xpcall error handling).",
+      "went_well": [
+        "Covered the full spread of Lua runtimes (5.1 through 5.4, LuaJIT) with specific feature availability differences",
+        "Common pitfalls section addresses six distinct issues including the subtle nil-in-sequence trap and version compatibility matrix"
+      ],
+      "improvements": [
+        "Could add guidance on FFI usage in LuaJIT and embedding patterns (C API) if line budget allowed"
+      ],
+      "action_items": [
+        "If a lua/love2d or lua/openresty sub-classification is added later, those prompts can extend this base with framework-specific guidance"
+      ]
+    },
+    "task-0007": {
+      "task_id": "task-0007",
+      "timestamp": "2026-03-22T07:54:43.362106Z",
+      "objective": "Author the Elixir language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/elixir.md at 65 lines. Matched the established format from go.md, ruby.md, and lua.md. Organized into five sections: Style (pattern matching in function heads, pipe operator, with for multi-match, GenServer/Agent/Task concurrency, protocols vs behaviours, defstruct with enforce_keys), Build and Test (mix compile/test/format, credo, dialyzer via dialyxir, ex_doc), Testing (ExUnit describe/test blocks, setup/setup_all, async: true, Mox for behaviour mocking, doctests), and Common Pitfalls (process mailbox overflow, GenServer serialization bottlenecks, atom table exhaustion from dynamic atoms, large binary reference leaks, supervision tree design mistakes, bare try/rescue as code smell).",
+      "went_well": [
+        "Covered OTP-specific concerns (supervision trees, process mailbox overflow, GenServer bottlenecks) alongside language-level patterns",
+        "Common pitfalls section addresses six distinct issues including the subtle binary heap reference leak that is unique to the BEAM VM"
+      ],
+      "improvements": [
+        "Could add guidance on LiveView, Phoenix-specific patterns, and Ecto changesets if line budget allowed"
+      ],
+      "action_items": [
+        "If an elixir/phoenix or elixir/nerves sub-classification is added later, those prompts can extend this base with framework-specific guidance"
+      ]
+    },
+    "task-0008": {
+      "task_id": "task-0008",
+      "timestamp": "2026-03-22T07:56:51.371148Z",
+      "objective": "Author the Haskell language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/haskell.md at 68 lines. Matched the established format from go.md, elixir.md, and other existing prompts. Organized into five sections: Style (type signatures, ADTs, pattern matching, pure functions, monadic composition, type classes, qualified imports, Text/ByteString over String, naming conventions), Build and Test (Cabal/Stack, GHC -Wall -Werror, Ormolu/Fourmolu, HLint, Weeder), Testing (Hspec/Tasty, QuickCheck/Hedgehog property-based testing, doctest, pure vs integration test separation), and Common Pitfalls (space leaks from lazy evaluation, String vs Text vs ByteString, partial functions, orphan instances, over-abstracted monad transformer stacks, lazy vs strict container variants).",
+      "went_well": [
+        "Covered the full spectrum of Haskell-specific concerns from evaluation strategy (strictness annotations, space leaks) through algebraic type design to practical tooling",
+        "Common pitfalls section addresses six distinct issues including the classic thunk accumulation problem and the concrete AppM newtype pattern as alternative to transformer towers"
+      ],
+      "improvements": [
+        "Could add guidance on GHC extensions policy (which extensions to prefer, which to avoid) and lens/optics library conventions if line budget allowed"
+      ],
+      "action_items": [
+        "If a haskell/servant or haskell/yesod sub-classification is added later, those prompts can extend this base with web framework-specific guidance"
+      ]
+    }
+  }
+}

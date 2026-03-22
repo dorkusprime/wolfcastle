@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
@@ -256,6 +257,9 @@ func TestCompleteTaskAddresses_InvalidAddressInIndex(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCompareNamespace_UnreadableMdFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	tmp := t.TempDir()
 
 	// Create a .md file that can't be read

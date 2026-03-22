@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "fix-stale-class-flag-help-text",
+  "name": "Fix stale --class flag help text",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "update-help-text",
+      "address": "fix-stale-class-flag-help-text/update-help-text",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Fix stale --class flag help text is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Fix stale --class flag help text in cmd/task/add.go: the help text currently says 'e.g., lang-go' but actual class keys use the 'coding/go' format. Update the example to reflect the real key format used in practice.",
+  "success_criteria": [
+    "The --class flag help text in cmd/task/add.go uses coding/go as its example, matching the actual config key format"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T14:25:05.445762Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T14:25:03.343805Z",
+        "task": "fix-stale-class-flag-help-text",
+        "text": "Created 1 child: update-help-text (leaf). Single-file fix, no ordering constraints. The stale example 'lang-go' on cmd/task/add.go:181 needs to become 'coding/go' per the format in internal/config/config.go."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-22T15:09:49.219618Z"
+  }
+}

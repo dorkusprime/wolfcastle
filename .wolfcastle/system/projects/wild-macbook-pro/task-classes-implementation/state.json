@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "task-classes-implementation",
+  "name": "Task Classes Implementation",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "context-wiring",
+      "address": "task-classes-implementation/context-wiring",
+      "state": "complete"
+    },
+    {
+      "id": "class-prompt-authoring",
+      "address": "task-classes-implementation/class-prompt-authoring",
+      "state": "complete"
+    },
+    {
+      "id": "config-and-validation-wiring",
+      "address": "task-classes-implementation/config-and-validation-wiring",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Task Classes Implementation is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Implement Task Classes: behavioral prompts for every class in the spec.\n\nReference: docs/specs/2026-03-15T00-04Z-task-classes.md\n\nThis is a three-phase project. PHASES MUST EXECUTE IN ORDER.\n\nPHASE 1: Refactor the execute prompt and wire two-layer class guidance.\nuniversal.md and coding/default.md already exist in internal/project/templates/prompts/classes/. Wire the ContextBuilder to inject BOTH layers: universal.md (always) + the resolved class prompt. For unclassified tasks, inject universal.md + coding/default.md. For classified tasks, inject universal.md + the class prompt. Update execute.md to remove any remaining behavioral guidance that belongs in class prompts.\n\nPHASE 2: Author language, framework, and non-language class prompts.\nFor every class in the spec tables, create a .md file under internal/project/templates/prompts/classes/. Language files go in coding/ (coding/go.md, coding/python.md). Framework files go in coding/ subdirectories (coding/typescript/react.md). Non-language classes go directly in classes/ (writing.md, audit.md).\n\nCRITICAL RULES FOR CLASS PROMPTS:\n- ZERO wolfcastle-specific content. No terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs, AARs, yielding, or system mechanics.\n- Each prompt must be RESEARCHED. Search for official style guides, current tooling, modern paradigms. Do not write from training data alone.\n- Coding class prompts REPLACE coding/default.md. Not additive. Complete replacements.\n- Codebase conventions take precedence. Use 'prefer X' not 'always use X.'\n- 40-80 lines for languages, 30-60 for frameworks.\n- The writing class (writing.md) references writing/voice.md for voice guidance.\n\nPHASE 3: Wire defaults into config and validate.\nAdd a task_classes entry to config.Defaults() for EVERY class that has a prompt file. Wire ClassRepository.Validate() into daemon startup. Add --class validation to task add CLI. Auto-assign Class 'audit' to audit tasks at claim time.\n\nORDERING: Create children in this order: Phase 1 leaf, Phase 2 orchestrator, Phase 3 leaf. Phase 2 MUST complete before Phase 3 starts.",
+  "success_criteria": [
+    "ContextBuilder.Build always injects universal.md and resolves class-specific or default guidance for every task",
+    "Every class in the spec tables has a corresponding .md prompt file under prompts/classes/",
+    "Class prompts contain zero wolfcastle-specific content (no markers, breadcrumbs, audit gaps, deliverables, specs, ADRs)",
+    "config.Defaults() includes a task_classes entry for every class with a prompt file",
+    "ClassRepository.Validate() runs at daemon startup and logs warnings for missing prompts",
+    "task add CLI rejects unknown --class values with a helpful error",
+    "Audit tasks auto-receive Class audit at claim time when unclassified"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T06:44:46.91109Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T06:44:27.885294Z",
+        "task": "task-classes-implementation",
+        "text": "Created 3 children in execution order: context-wiring (leaf, Phase 1), class-prompt-authoring (orchestrator, Phase 2), config-and-validation-wiring (leaf, Phase 3). Phase 2 has 3 children: language-prompts (orchestrator, 20 languages), framework-prompts (orchestrator, 22 frameworks), non-language-prompts (leaf, 9 disciplines + voice.md). Ordering ensures ContextBuilder wiring completes before prompts are authored, and all prompts exist before config defaults and validation are wired."
+      }
+    ],
+    "gaps": [],
+    "escalations": [
+      {
+        "id": "escalation-context-wiring-1",
+        "timestamp": "2026-03-22T06:55:42.630765Z",
+        "description": "Spec cross-reference step was removed from execute.md Validate section by commit e0d08d7 (prior node). The step is a wolfcastle-specific workflow mechanic (verifying spec claims are implemented), not coding guidance. It should be restored to execute.md's Validate section or made a separate post-validate step. Currently recorded as gap-context-wiring-1 on this node, but the removal predates this node's work.",
+        "source_node": "task-classes-implementation/context-wiring",
+        "status": "open"
+      }
+    ],
+    "status": "passed",
+    "started_at": "2026-03-22T07:00:34.71995Z",
+    "completed_at": "2026-03-22T15:09:49.219776Z"
+  }
+}

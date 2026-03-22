@@ -4,10 +4,9 @@
   "root_name": "Domain Repository Architecture",
   "root_state": "complete",
   "root": [
-    "log-command-redesign",
-    "fix-replayjson-streaming-bug",
-    "fix-log-follow-hang-with-stopped-daemon",
-    "logrender-post-merge-cleanups"
+    "task-classes-implementation",
+    "fix-stale-class-flag-help-text",
+    "fix-writing-class-voice-md-unreachable"
   ],
   "archived_root": [
     "domain-repository-architecture",
@@ -26,7 +25,11 @@
     "auto-archive-lifecycle",
     "config-show-section-filter",
     "config-write-commands",
-    "documentation-review"
+    "documentation-review",
+    "log-command-redesign",
+    "fix-replayjson-streaming-bug",
+    "fix-log-follow-hang-with-stopped-daemon",
+    "logrender-post-merge-cleanups"
   ],
   "nodes": {
     "fix-log-follow-hang-with-stopped-daemon": {
@@ -38,7 +41,9 @@
       "children": [
         "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
         "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.503822Z"
     },
     "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped": {
       "name": "follow-no-op-when-stopped",
@@ -46,7 +51,9 @@
       "state": "complete",
       "address": "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
       "decomposition_depth": 0,
-      "parent": "fix-log-follow-hang-with-stopped-daemon"
+      "parent": "fix-log-follow-hang-with-stopped-daemon",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.503822Z"
     },
     "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection": {
       "name": "follow-reader-daemon-exit-detection",
@@ -54,7 +61,9 @@
       "state": "complete",
       "address": "fix-log-follow-hang-with-stopped-daemon/follow-reader-daemon-exit-detection",
       "decomposition_depth": 0,
-      "parent": "fix-log-follow-hang-with-stopped-daemon"
+      "parent": "fix-log-follow-hang-with-stopped-daemon",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.503822Z"
     },
     "fix-replayjson-streaming-bug": {
       "name": "Fix replayJSON streaming bug",
@@ -65,7 +74,9 @@
       "children": [
         "fix-replayjson-streaming-bug/streaming-fix",
         "fix-replayjson-streaming-bug/test-coverage"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.439615Z"
     },
     "fix-replayjson-streaming-bug/streaming-fix": {
       "name": "streaming-fix",
@@ -73,7 +84,9 @@
       "state": "complete",
       "address": "fix-replayjson-streaming-bug/streaming-fix",
       "decomposition_depth": 0,
-      "parent": "fix-replayjson-streaming-bug"
+      "parent": "fix-replayjson-streaming-bug",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.439615Z"
     },
     "fix-replayjson-streaming-bug/test-coverage": {
       "name": "test-coverage",
@@ -81,7 +94,54 @@
       "state": "complete",
       "address": "fix-replayjson-streaming-bug/test-coverage",
       "decomposition_depth": 0,
-      "parent": "fix-replayjson-streaming-bug"
+      "parent": "fix-replayjson-streaming-bug",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.439615Z"
+    },
+    "fix-stale-class-flag-help-text": {
+      "name": "Fix stale --class flag help text",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "fix-stale-class-flag-help-text",
+      "decomposition_depth": 0,
+      "children": [
+        "fix-stale-class-flag-help-text/update-help-text"
+      ]
+    },
+    "fix-stale-class-flag-help-text/update-help-text": {
+      "name": "update-help-text",
+      "type": "leaf",
+      "state": "complete",
+      "address": "fix-stale-class-flag-help-text/update-help-text",
+      "decomposition_depth": 0,
+      "parent": "fix-stale-class-flag-help-text"
+    },
+    "fix-writing-class-voice-md-unreachable": {
+      "name": "Fix writing class voice.md unreachable",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "fix-writing-class-voice-md-unreachable",
+      "decomposition_depth": 0,
+      "children": [
+        "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+        "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup"
+      ]
+    },
+    "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup": {
+      "name": "Prompt and Spec Cleanup",
+      "type": "leaf",
+      "state": "complete",
+      "address": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
+      "decomposition_depth": 0,
+      "parent": "fix-writing-class-voice-md-unreachable"
+    },
+    "fix-writing-class-voice-md-unreachable/subdirectory-assembly": {
+      "name": "Subdirectory Assembly",
+      "type": "leaf",
+      "state": "complete",
+      "address": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+      "decomposition_depth": 0,
+      "parent": "fix-writing-class-voice-md-unreachable"
     },
     "log-command-redesign": {
       "name": "Log Command Redesign",
@@ -94,7 +154,9 @@
         "log-command-redesign/log-rendering-engine",
         "log-command-redesign/log-command-rewrite",
         "log-command-redesign/non-daemon-integration"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-command-rewrite": {
       "name": "Log Command Rewrite",
@@ -102,7 +164,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-command-rewrite",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign"
+      "parent": "log-command-redesign",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-record-types": {
       "name": "Log Record Types",
@@ -110,7 +174,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-record-types",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign"
+      "parent": "log-command-redesign",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine": {
       "name": "Log Rendering Engine",
@@ -124,7 +190,9 @@
         "log-command-redesign/log-rendering-engine/summary-renderer",
         "log-command-redesign/log-rendering-engine/thoughts-renderer",
         "log-command-redesign/log-rendering-engine/interleaved-renderer"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine/foundation": {
       "name": "Foundation",
@@ -132,7 +200,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/foundation",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign/log-rendering-engine"
+      "parent": "log-command-redesign/log-rendering-engine",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine/interleaved-renderer": {
       "name": "Interleaved Renderer",
@@ -140,7 +210,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/interleaved-renderer",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign/log-rendering-engine"
+      "parent": "log-command-redesign/log-rendering-engine",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine/summary-renderer": {
       "name": "Summary Renderer",
@@ -148,7 +220,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/summary-renderer",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign/log-rendering-engine"
+      "parent": "log-command-redesign/log-rendering-engine",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/log-rendering-engine/thoughts-renderer": {
       "name": "Thoughts Renderer",
@@ -156,7 +230,9 @@
       "state": "complete",
       "address": "log-command-redesign/log-rendering-engine/thoughts-renderer",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign/log-rendering-engine"
+      "parent": "log-command-redesign/log-rendering-engine",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "log-command-redesign/non-daemon-integration": {
       "name": "Non-Daemon Integration",
@@ -164,7 +240,9 @@
       "state": "complete",
       "address": "log-command-redesign/non-daemon-integration",
       "decomposition_depth": 0,
-      "parent": "log-command-redesign"
+      "parent": "log-command-redesign",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.376124Z"
     },
     "logrender-post-merge-cleanups": {
       "name": "Logrender post-merge cleanups",
@@ -174,7 +252,9 @@
       "decomposition_depth": 0,
       "children": [
         "logrender-post-merge-cleanups/code-cleanups"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.565239Z"
     },
     "logrender-post-merge-cleanups/code-cleanups": {
       "name": "Code Cleanups",
@@ -182,7 +262,150 @@
       "state": "complete",
       "address": "logrender-post-merge-cleanups/code-cleanups",
       "decomposition_depth": 0,
-      "parent": "logrender-post-merge-cleanups"
+      "parent": "logrender-post-merge-cleanups",
+      "archived": true,
+      "archived_at": "2026-03-22T06:01:48.565239Z"
+    },
+    "task-classes-implementation": {
+      "name": "Task Classes Implementation",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "task-classes-implementation",
+      "decomposition_depth": 0,
+      "children": [
+        "task-classes-implementation/context-wiring",
+        "task-classes-implementation/class-prompt-authoring",
+        "task-classes-implementation/config-and-validation-wiring"
+      ]
+    },
+    "task-classes-implementation/class-prompt-authoring": {
+      "name": "Class Prompt Authoring",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation",
+      "children": [
+        "task-classes-implementation/class-prompt-authoring/language-prompts",
+        "task-classes-implementation/class-prompt-authoring/framework-prompts",
+        "task-classes-implementation/class-prompt-authoring/non-language-prompts"
+      ]
+    },
+    "task-classes-implementation/class-prompt-authoring/framework-prompts": {
+      "name": "Framework Prompts",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring",
+      "children": [
+        "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks"
+      ]
+    },
+    "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks": {
+      "name": "Backend Scripting Frameworks",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks": {
+      "name": "Enterprise Frameworks",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks": {
+      "name": "Frontend Frameworks",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks": {
+      "name": "Mobile and Systems Frameworks",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/language-prompts": {
+      "name": "Language Prompts",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring",
+      "children": [
+        "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages"
+      ]
+    },
+    "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net": {
+      "name": "JVM and .NET",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages": {
+      "name": "Specialized Languages",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages": {
+      "name": "Systems Languages",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting": {
+      "name": "Web and Scripting",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+    },
+    "task-classes-implementation/class-prompt-authoring/non-language-prompts": {
+      "name": "Non-Language Prompts",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation/class-prompt-authoring"
+    },
+    "task-classes-implementation/config-and-validation-wiring": {
+      "name": "Config and Validation Wiring",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/config-and-validation-wiring",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation"
+    },
+    "task-classes-implementation/context-wiring": {
+      "name": "Context Wiring",
+      "type": "leaf",
+      "state": "complete",
+      "address": "task-classes-implementation/context-wiring",
+      "decomposition_depth": 0,
+      "parent": "task-classes-implementation"
     }
   }
 }

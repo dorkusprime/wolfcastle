@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "id": "non-language-prompts",
+  "name": "Non-Language Prompts",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Author writing.md and writing/voice.md",
+      "description": "Author writing.md and writing/voice.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/writing.md",
+        "internal/project/templates/prompts/classes/writing/voice.md"
+      ],
+      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate two files:\n\n1. internal/project/templates/prompts/classes/writing.md — The writing discipline class prompt. 30-60 lines. Covers: reader-first structure, concrete examples over abstract description, scannable formatting, progressive disclosure (lead with the answer, details follow), tone calibration. Must include a reference to writing/voice.md for voice-specific guidance (e.g., 'For voice and tone guidance, see the voice prompt loaded alongside this one' or similar). Research current technical writing best practices (Google developer docs style guide, Microsoft writing style guide, etc.).\n\n2. internal/project/templates/prompts/classes/writing/voice.md — Voice guidance separated so users can override it independently. 20-40 lines. Covers: default voice characteristics (clear, direct, human), when to adjust formality, how to handle jargon, audience awareness. This file exists so organizations can drop in their own voice guide without touching the writing discipline prompt.\n\nZERO wolfcastle-specific content in either file."
+    },
+    {
+      "id": "task-0002",
+      "title": "Author research.md and architecture.md",
+      "description": "Author research.md and architecture.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/research.md",
+        "internal/project/templates/prompts/classes/architecture.md"
+      ],
+      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate two non-language class prompts:\n\n1. internal/project/templates/prompts/classes/research.md — Research/information gathering discipline. 30-60 lines. Covers: source citation and verification, accuracy over speed, structured output format, distinguishing primary from secondary sources, handling conflicting information, when to stop researching and start synthesizing. Research best practices from library science, competitive analysis frameworks, and systematic review methodology.\n\n2. internal/project/templates/prompts/classes/architecture.md — System design discipline. 30-60 lines. Covers: dependency analysis, failure mode thinking, decomposition principles, tradeoff documentation, constraint identification, how to evaluate alternatives (not just list them), when to write ADRs. Research current architecture decision frameworks (C4 model, arc42, etc.).\n\nZERO wolfcastle-specific content. No references to wolfcastle commands, markers, or system mechanics."
+    },
+    {
+      "id": "task-0003",
+      "title": "Author audit.md and testing.md",
+      "description": "Author audit.md and testing.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/audit.md",
+        "internal/project/templates/prompts/classes/testing.md"
+      ],
+      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate two non-language class prompts:\n\n1. internal/project/templates/prompts/classes/audit.md — Verification and review discipline. 30-60 lines. Covers: read-only review stance (do not fix, only record), gap identification and recording, verification checklist methodology, evidence-based findings, distinguishing severity levels, coverage analysis, how to handle ambiguous findings. The audit class is special: it emphasizes observation and recording over action.\n\n2. internal/project/templates/prompts/classes/testing.md — Test suite creation discipline. 30-60 lines. Covers: coverage strategy (behavior over implementation), fixture design, test naming conventions, flaky test prevention, test isolation, boundary testing, property-based testing awareness, performance test considerations. Research current testing frameworks and methodologies (TDD, BDD, property testing).\n\nZERO wolfcastle-specific content."
+    },
+    {
+      "id": "task-0004",
+      "title": "Author design.md, devops.md, data.md, and security.md",
+      "description": "Author design.md, devops.md, data.md, and security.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/design.md",
+        "internal/project/templates/prompts/classes/devops.md",
+        "internal/project/templates/prompts/classes/data.md",
+        "internal/project/templates/prompts/classes/security.md"
+      ],
+      "body": "BEFORE WRITING: Research current best practices for this discipline. Search for official guidelines, established frameworks, community conventions, and recent methodological changes. Do not write from training data alone.\n\nCreate four non-language class prompts:\n\n1. internal/project/templates/prompts/classes/design.md — UI/UX design discipline. 30-60 lines. Covers: user goal identification, interaction sequence thinking, edge state handling (empty, error, loading, overflow), accessibility considerations, responsive design awareness, design system consistency. Research current design system practices (Material Design 3, Apple HIG).\n\n2. internal/project/templates/prompts/classes/devops.md — Infrastructure and CI/CD discipline. 30-60 lines. Covers: Dockerfile best practices (multi-stage builds, layer caching), GitHub Actions patterns, Terraform conventions, deployment safety (canary, blue-green awareness), secrets management, monitoring and alerting, infrastructure as code principles. Research current DevOps tooling and practices.\n\n3. internal/project/templates/prompts/classes/data.md — Data engineering and analysis discipline. 30-60 lines. Covers: schema design principles, pipeline idempotency, data validation at boundaries, visualization clarity, SQL style, ETL vs ELT awareness, data quality checks, handling missing/null data. Research current data engineering practices.\n\n4. internal/project/templates/prompts/classes/security.md — Security review and hardening discipline. 30-60 lines. Covers: OWASP Top 10 awareness, threat modeling approach, dependency auditing, secrets detection, input validation patterns, authentication/authorization review, security header configuration, vulnerability disclosure. Research current OWASP guidelines and security best practices.\n\nZERO wolfcastle-specific content in any file."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Non-Language Prompts is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T09:18:16.372371Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Authored writing.md (53 lines) and writing/voice.md (35 lines). Researched Google, Microsoft, GitLab, Mailchimp, and Write the Docs style guides. Both files follow established class prompt conventions. Voice file separated for independent override."
+      },
+      {
+        "timestamp": "2026-03-22T09:20:50.861216Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Authored research.md (35 lines) and architecture.md (35 lines). Researched PRISMA/GRADE, CRAAP/SIFT, ATAM, C4/arc42 before drafting. Both follow established class prompt conventions. Zero wolfcastle-specific content."
+      },
+      {
+        "timestamp": "2026-03-22T09:25:27.473861Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Authored audit.md (35 lines) and testing.md (43 lines). Researched Fagan/IEEE 1028/OWASP/NASA for audit; xUnit Patterns/Google flaky test research/Fowler test pyramid/Hypothesis PBT for testing. Both follow established class prompt conventions. Zero wolfcastle-specific content."
+      },
+      {
+        "timestamp": "2026-03-22T09:29:06.479808Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Authored design.md (33 lines), devops.md (39 lines), data.md (39 lines), and security.md (43 lines). Grounded in WCAG 2.2, Material Design 3, Apple HIG, OWASP Top 10, and current DevOps/data engineering practices. All follow established class prompt conventions. Zero wolfcastle-specific content."
+      },
+      {
+        "timestamp": "2026-03-22T09:30:58.243182Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Audit reviewed 10 files (390 lines total). PASS. All files follow established conventions: H1 title, project-deference opening, H2 sections, bold-lead list items, imperative tone. Line counts within budgets (33-53 main prompts, 35 voice.md). writing.md correctly references companion voice.md. Zero wolfcastle-specific content. No duplication across disciplines. Prose quality is high throughout with concrete examples and specific recommendations. Build, test, lint all clean. No findings warrant remediation."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T09:14:11.437394Z",
+    "completed_at": "2026-03-22T09:31:10.219875Z",
+    "result_summary": "Authored 10 class prompt files across 8 non-language disciplines: writing (with companion voice.md), research, architecture, audit, testing, design, devops, data, and security. Each prompt was researched against authoritative sources (Google/Microsoft style guides, PRISMA/GRADE, CRAAP/SIFT, ATAM/C4/arc42, Fagan/IEEE 1028, xUnit Patterns, WCAG 2.2, Material Design 3, Apple HIG, OWASP Top 10) before drafting. All files follow established class prompt conventions and contain zero wolfcastle-specific content. The voice.md separation enables organizations to override voice guidance independently of writing discipline rules. Total output: 390 lines of production-ready prompt content."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T09:18:15.289502Z",
+      "objective": "Author writing.md and writing/voice.md class prompts for the writing discipline",
+      "what_happened": "Created two files: writing.md (53 lines) covers structure, clarity, formatting, audience, and completeness. writing/voice.md (35 lines) covers default voice characteristics, formality calibration, jargon handling, and audience awareness. Researched Google Developer Docs Style Guide, Microsoft Writing Style Guide, GitLab docs guide, Mailchimp Content Style Guide, and Write the Docs community resources before drafting. Followed the established class prompt conventions: heading structure, codebase-deference opening, imperative tone, bold-lead list items.",
+      "went_well": [
+        "Research across six style guides produced strong cross-source consensus that mapped naturally into prompt sections",
+        "Voice separation works cleanly: organizations can drop in their own voice.md without touching writing discipline guidance"
+      ],
+      "improvements": [
+        "The writing.md prompt is general technical writing. A future companion for narrative/marketing writing would cover different ground (persuasion, storytelling, emotional resonance)"
+      ],
+      "action_items": [
+        "Consider adding a writing/api-reference.md companion for API documentation conventions (parameter tables, response schemas, error catalogs)"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T09:20:49.881521Z",
+      "objective": "Author research.md and architecture.md class prompts for research and system design disciplines",
+      "what_happened": "Created two files: research.md (35 lines) covers source evaluation, evidence weighting, conflict handling, citation, and synthesis timing. architecture.md (35 lines) covers constraint-first thinking, failure modes, dependency tracing, decomposition, alternative evaluation with quantified criteria, and ADR practices. Researched PRISMA/GRADE systematic review methodology, CRAAP/SIFT source evaluation frameworks, ATAM tradeoff analysis, and C4/arc42 architecture documentation before drafting. Both files follow the established conventions: heading structure, codebase-deference opening, imperative tone, bold-lead list items.",
+      "went_well": [
+        "Research across systematic review methodology (PRISMA, GRADE), information literacy (CRAAP, SIFT), and architecture evaluation (ATAM, C4, arc42) produced well-grounded prompt sections",
+        "Both prompts landed at 35 lines, comfortably within the 30-60 range, covering all required topics without padding"
+      ],
+      "improvements": [
+        "The research prompt is discipline-agnostic. A future companion for competitive analysis or market research could add domain-specific heuristics (Porter's Five Forces, SWOT analysis)"
+      ],
+      "action_items": [
+        "Consider adding an architecture/cloud.md companion for cloud-native architecture patterns (twelve-factor, cell-based architecture, multi-region considerations)"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T09:25:25.59285Z",
+      "objective": "Author audit.md and testing.md class prompts for verification and test discipline",
+      "what_happened": "Created two files: audit.md (35 lines) covers read-only review stance, anomaly-before-defect recording, two-axis severity classification, checklist-driven verification with coverage tracing, and honest handling of ambiguous findings. testing.md (43 lines) covers behavior-over-implementation coverage, boundary value analysis, test isolation and hermetic environments, scenario-based naming, flaky test prevention, property-based testing, and performance benchmarking. Researched Fagan inspections, IEEE 1028, OWASP severity classification, NASA formal inspection process, ODC, Google/Microsoft code review studies, xUnit Test Patterns, Google flaky test research, Fowler's test pyramid, Dodds' testing trophy, and Hypothesis/QuickCheck property testing.",
+      "went_well": [
+        "Audit prompt's emphasis on observation-not-correction came through cleanly by grounding it in Fagan's separation of detection from rework and IEEE 1028's anomaly terminology",
+        "Testing prompt covers the full spectrum from unit-level discipline through property-based and performance testing without exceeding the line budget"
+      ],
+      "improvements": [
+        "The testing prompt is framework-agnostic by design, but a future companion for specific test frameworks (Go testing, pytest, Jest) could add language-specific fixture patterns and assertion idioms"
+      ],
+      "action_items": [
+        "Consider adding testing/go.md or testing/python.md companions for framework-specific test patterns"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T09:29:04.563074Z",
+      "objective": "Author design.md, devops.md, data.md, and security.md class prompts for non-language disciplines",
+      "what_happened": "Created four files: design.md (33 lines) covers user goal identification, interaction sequences, edge states, accessibility per WCAG 2.2 AA, responsive design, and design system consistency referencing Material Design 3 and Apple HIG. devops.md (39 lines) covers Dockerfile multi-stage builds and layer caching, CI/CD idempotency and caching, secrets management, infrastructure as code with Terraform patterns, progressive deployment (canary/blue-green), and alerting with runbooks. data.md (39 lines) covers schema naming and precision, pipeline idempotency, boundary validation, ELT vs ETL, data contracts, null handling, freshness monitoring, SQL style, and visualization. security.md (43 lines) covers threat modeling with attack paths, input validation with context-encoding, authn/authz separation, dependency auditing, secrets management, security headers, TLS enforcement, and vulnerability disclosure processes. All follow the established conventions from prior tasks.",
+      "went_well": [
+        "All four prompts landed within the 30-60 line budget without padding",
+        "Grounded in current standards: WCAG 2.2 AA, Material Design 3, Apple HIG, OWASP Top 10, and established DevOps tooling"
+      ],
+      "improvements": [
+        "The devops prompt is tool-aware (Docker, Terraform, GitHub Actions) which makes it less timeless than the language-agnostic prompts; a future revision might separate tool-specific guidance into companions"
+      ],
+      "action_items": [
+        "Consider adding devops/kubernetes.md or devops/aws.md companions for platform-specific infrastructure patterns"
+      ]
+    }
+  }
+}

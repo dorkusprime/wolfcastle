@@ -232,7 +232,7 @@ Register as a subcommand of `config`:
 wolfcastle config show
 ```
 
-The `config` command group does not exist yet. Create it as a bare group (no action of its own) under the root command, with `show` as its first subcommand. Future config commands (`config set`, `config diff`) will be siblings.
+The `config` command group is a bare group (no action of its own) under the root command. Its subcommands are `show`, `set`, `unset`, `append`, and `remove`.
 
 ## Implementation Notes
 

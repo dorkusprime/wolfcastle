@@ -3,6 +3,7 @@ package testutil
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 )
@@ -66,6 +67,9 @@ func TestWriteJSON_MkdirAllError_Fatals(t *testing.T) {
 
 func TestWriteJSON_WriteFileError_Fatals(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	dir := t.TempDir()
 
 	roDir := filepath.Join(dir, "readonly")

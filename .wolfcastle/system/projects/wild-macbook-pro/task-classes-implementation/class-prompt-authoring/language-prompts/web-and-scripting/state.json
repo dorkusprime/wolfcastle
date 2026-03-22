@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "id": "web-and-scripting",
+  "name": "Web and Scripting",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Author Python prompt",
+      "description": "Author Python prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/python.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/python.md (40-80 lines). REPLACES coding/default.md for Python-classified tasks. Cover: idiomatic Python style (type hints on public APIs, dataclasses/attrs for structured data, context managers, comprehensions over map/filter, pathlib over os.path), build/test tooling (pip/uv/poetry, pytest, ruff for linting and formatting, mypy/pyright for type checking), testing conventions (pytest fixtures, parametrize, conftest.py, tmp_path), and common pitfalls (mutable default arguments, late binding closures, import cycles, bare except, forgetting __init__.py in packages). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Author JavaScript prompt",
+      "description": "Author JavaScript prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/javascript.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/javascript.md (40-80 lines). REPLACES coding/default.md for JavaScript-classified tasks. Cover: idiomatic JS style (const by default, destructuring, template literals, async/await over raw promises, ESM over CJS where possible), build/test tooling (npm/pnpm/yarn, eslint, prettier, node --test or jest/vitest), testing conventions (describe/it blocks, mocking fetch/timers at boundaries, coverage), and common pitfalls (== vs ===, this binding, prototype chain surprises, callback error handling, floating promises, implicit type coercion). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Author TypeScript prompt",
+      "description": "Author TypeScript prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/typescript.md (40-80 lines). REPLACES coding/default.md for TypeScript-classified tasks. Cover: idiomatic TS style (strict mode always, discriminated unions over type assertions, type-only imports, utility types, branded types for domain IDs), build/test tooling (tsc, tsx/ts-node for scripts, eslint with typescript-eslint, prettier, vitest/jest with ts support), testing conventions (type-level tests where appropriate, describe/it, no any in test types), and common pitfalls (as casts hiding bugs, enum pitfalls prefer unions, declaration merging surprises, index signature gotchas, overusing generics). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Author Ruby prompt",
+      "description": "Author Ruby prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/ruby.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/ruby.md (40-80 lines). REPLACES coding/default.md for Ruby-classified tasks. Cover: idiomatic Ruby style (duck typing, blocks/procs/lambdas, Enumerable methods, convention over configuration, freeze string literals), build/test tooling (bundler, rake, RuboCop, RSpec or Minitest), testing conventions (describe/context/it structure, let/subject, factories over fixtures with FactoryBot), and common pitfalls (monkey patching risks, method_missing abuse, gem version conflicts, require order sensitivity, mutable string default). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0005",
+      "title": "Author PHP prompt",
+      "description": "Author PHP prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/php.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/php.md (40-80 lines). REPLACES coding/default.md for PHP-classified tasks. Cover: idiomatic PHP style (strict_types declaration, type declarations on parameters and returns, readonly properties, enums, match expressions, named arguments), build/test tooling (Composer, PHPUnit, PHP-CS-Fixer or PHP_CodeSniffer with PSR-12, PHPStan/Psalm for static analysis), testing conventions (PHPUnit assertions, data providers, mocking with Prophecy or Mockery at boundaries), and common pitfalls (loose comparison table, variable variables, register_globals legacy, SQL injection in raw queries, inconsistent function parameter ordering). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Web and Scripting is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify python.md, javascript.md, typescript.md, ruby.md, and php.md reflect current ecosystem tools (ruff not flake8 for Python, vitest alongside jest for JS/TS) and cover language-specific pitfalls distinct from universal.md"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T07:29:14.832806Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored Python class prompt (python.md, 55 lines) covering style, tooling, testing, and pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T07:31:10.966503Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored JavaScript class prompt (javascript.md, 59 lines) covering style, tooling, testing, and pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T07:33:49.158399Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored TypeScript class prompt (typescript.md, 59 lines) covering style, tooling, testing, and pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T07:35:47.505291Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored Ruby class prompt (ruby.md, 53 lines) covering style, tooling, testing, and pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T07:37:53.607294Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Authored PHP class prompt (php.md, 55 lines) covering style, tooling, testing, and pitfalls [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T07:39:45.97489Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+        "text": "Audit complete. Reviewed 5 files: python.md (55 lines), javascript.md (59 lines), typescript.md (59 lines), ruby.md (53 lines), php.md (55 lines). Total 281 lines of prompt content. PASS. All prompts follow the four-section structure (Style, Build and Test, Testing, Common Pitfalls) with the codebase-deference opener, matching go.md and kotlin.md reference patterns. Line counts within 40-80 target. No factual errors, no copy-paste duplication, no structural inconsistencies. Build and tests pass. Each prompt covers language-specific idioms, tooling, testing conventions, and pitfalls with appropriate depth. PHP correctly notes the 0=='foo' behavior change in 8.0. TypeScript properly differentiates from JavaScript with type-system-specific guidance (satisfies, branded types, type-level tests). Quality: uniformly high across all five prompts, well-crafted and accurate."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T07:27:12.020083Z",
+    "completed_at": "2026-03-22T07:40:04.859278Z",
+    "result_summary": "Authored five language prompts for the coding task class covering the web and scripting language group: Python (55 lines), JavaScript (59 lines), TypeScript (59 lines), Ruby (53 lines), and PHP (55 lines). Each prompt follows the established four-section format (Style, Build and Test, Testing, Common Pitfalls) with a codebase-deference opening clause, matching the patterns set by the Go and Kotlin reference prompts. All prompts fall within the 40-80 line target, cover language-specific idioms, tooling, testing conventions, and common pitfalls with appropriate depth. Audit found no factual errors, no structural inconsistencies, and no issues requiring remediation."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T07:39:59.335212Z",
+      "objective": "Verify all work in the web-and-scripting node is complete and correct",
+      "what_happened": "Reviewed all five language prompts (python.md, javascript.md, typescript.md, ruby.md, php.md) against the go.md and kotlin.md reference prompts. Verified build and test suite pass. Checked structural consistency, factual accuracy, line counts, and coverage of required topics.",
+      "went_well": [
+        "All five prompts are structurally consistent with each other and with the reference prompts",
+        "No factual errors found; language-specific details are accurate (e.g., PHP 8.0 comparison changes, TypeScript satisfies semantics)",
+        "Clean separation between JavaScript and TypeScript prompts despite shared ecosystem"
+      ],
+      "improvements": [
+        "None identified; the work is clean and complete"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T07:29:13.614308Z",
+      "objective": "Author the Python language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/python.md at 55 lines. Followed the established format from go.md and kotlin.md: opening codebase-deference clause, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered type hints, dataclasses, context managers, comprehensions, pathlib, f-strings, enums, ruff, mypy/pyright, pytest fixtures/parametrize/conftest/tmp_path, and six common pitfalls (mutable defaults, late binding, bare except, circular imports, missing __init__.py, is vs ==).",
+      "went_well": [
+        "Prompt fits the 40-80 line target at 55 lines without feeling thin or padded",
+        "Consistent structure and tone with existing Go and Kotlin prompts"
+      ],
+      "improvements": [
+        "Could add a section on async/await patterns (asyncio) similar to Go's concurrency section, but the task description didn't request it and 55 lines is already well within range"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T07:31:09.943549Z",
+      "objective": "Author the JavaScript language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/javascript.md at 59 lines. Followed the established four-section format: Style, Build and Test, Testing, and Common Pitfalls. Style covers const-by-default, destructuring, template literals, async/await, ESM, arrow functions, early returns, and strict equality. Build and Test covers package managers, ESLint (flat config and legacy), Prettier, and test runners (Vitest, Jest, node --test). Testing covers describe/it organization, behavior-over-implementation testing, boundary mocking, fake timers, and snapshot discipline. Common Pitfalls covers this binding, floating promises, typeof null, for-in vs for-of, parseInt radix, callback/promise mixing, and mutating array methods.",
+      "went_well": [
+        "59 lines fits the 40-80 target with room for all requested topics",
+        "Covered all pitfalls from the task description: == vs ===, this binding, prototype chain, callback error handling, floating promises, implicit type coercion"
+      ],
+      "improvements": [
+        "Could add a section on TypeScript interop patterns, but that belongs in a separate typescript.md prompt"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T07:33:47.890007Z",
+      "objective": "Author the TypeScript language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript.md at 59 lines. Followed the established four-section format: Style, Build and Test, Testing, Common Pitfalls. Style covers strict mode, discriminated unions, type vs interface, type-only imports, utility types, branded types, unknown over any, and satisfies. Build and Test covers tsc --noEmit, tsx/ts-node, typescript-eslint, Prettier, and Vitest/Jest. Testing covers describe/it organization, behavior testing, no any in tests, type-level tests with expectTypeOf/tsd, and boundary mocking. Common Pitfalls covers as casts, enum pitfalls (prefer unions), declaration merging, index signatures with noUncheckedIndexedAccess, overusing generics, and non-null assertion operator.",
+      "went_well": [
+        "59 lines fits the 40-80 target while covering all requested topics from the task description",
+        "Consistent structure and tone with existing Go, Kotlin, Python, and JavaScript prompts"
+      ],
+      "improvements": [
+        "Could add a section on module resolution (Node16 vs bundler) but the task description did not request it and 59 lines is already well within range"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T07:35:46.616166Z",
+      "objective": "Author the Ruby language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/ruby.md at 53 lines. Followed the established four-section format: Style, Build and Test, Testing, Common Pitfalls. Style covers frozen_string_literal, duck typing, blocks/procs/lambdas, Enumerable methods, naming conventions, Struct/Data vs OpenStruct, keyword arguments, and specific exceptions. Build and Test covers Bundler, Rake, RuboCop/Standard Ruby, and RSpec vs Minitest. Testing covers describe/context/it structure, let/subject, FactoryBot factories over fixtures, and behavior-over-implementation testing. Common Pitfalls covers monkey patching risks, method_missing without respond_to_missing?, gem version conflicts, require order sensitivity, and mutable string defaults.",
+      "went_well": [
+        "53 lines fits the 40-80 target while covering all requested topics from the task description",
+        "Consistent structure and tone with existing Go, Kotlin, Python, JavaScript, and TypeScript prompts"
+      ],
+      "improvements": [
+        "Could add a section on Rails-specific conventions (ActiveRecord, concerns, service objects) but the task description covers general Ruby, not Rails specifically"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T07:37:52.552627Z",
+      "objective": "Author the PHP language prompt for coding task class",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/php.md at 55 lines. Followed the established four-section format: Style, Build and Test, Testing, Common Pitfalls. Style covers strict_types, type declarations (union, intersection, nullable, void, never), readonly properties/classes, enums, match expressions, named arguments, PSR-12, and early returns. Build and Test covers Composer, PHPUnit/Pest, PHP-CS-Fixer/PHP_CodeSniffer, and PHPStan/Psalm. Testing covers test organization, data providers, behavior-over-implementation testing, and factory patterns. Common Pitfalls covers loose comparison, variable variables/extract, SQL injection in raw queries, inconsistent stdlib parameter ordering, include path injection, and error suppression with @.",
+      "went_well": [
+        "55 lines fits the 40-80 target while covering all requested topics from the task description",
+        "Consistent structure and tone with existing Go, Kotlin, Python, JavaScript, TypeScript, and Ruby prompts"
+      ],
+      "improvements": [
+        "Could add a section on Laravel/Symfony-specific conventions but the task description covers general PHP, not framework-specific usage"
+      ],
+      "action_items": [
+        "No follow-ups needed"
+      ]
+    }
+  }
+}

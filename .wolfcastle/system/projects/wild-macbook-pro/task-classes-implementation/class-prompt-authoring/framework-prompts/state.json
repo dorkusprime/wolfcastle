@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "framework-prompts",
+  "name": "Framework Prompts",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "frontend-frameworks",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+      "state": "complete"
+    },
+    {
+      "id": "backend-scripting-frameworks",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+      "state": "complete"
+    },
+    {
+      "id": "enterprise-frameworks",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+      "state": "complete"
+    },
+    {
+      "id": "mobile-and-systems-frameworks",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Framework Prompts is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Author behavioral prompts for all framework classes. Each file goes under a language subdirectory in internal/project/templates/prompts/classes/coding/ (e.g., coding/typescript/react.md, coding/python/django.md).\n\nFrameworks: typescript/react, typescript/vue, typescript/angular, typescript/nextjs, typescript/svelte, javascript/react, javascript/node, python/django, python/fastapi, python/flask, ruby/rails, ruby/sinatra, java/spring, csharp/dotnet, php/laravel, php/symfony, kotlin/android, swift/ios, dart/flutter, elixir/phoenix, rust/actix, rust/tokio.\n\nEach prompt is 30-60 lines. Framework prompts must NOT repeat language fundamentals (the fallback mechanism handles that). Cover framework-specific patterns, testing approaches, and common pitfalls. Researched and current. ZERO wolfcastle content.",
+  "success_criteria": [
+    "All 22 framework prompt files exist under internal/project/templates/prompts/classes/coding/\u003clanguage\u003e/\u003cframework\u003e.md",
+    "Every prompt is 30-60 lines and does not repeat language fundamentals covered by the parent language prompt",
+    "Zero wolfcastle-specific content in any prompt file",
+    "Each prompt covers framework-specific patterns, testing approaches, and common pitfalls"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T08:03:54.593209Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T08:03:52.783107Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts",
+        "text": "Created 4 leaf children: frontend-frameworks (6 tasks: ts/react, ts/vue, ts/angular, ts/nextjs, ts/svelte, js/react), backend-scripting-frameworks (6 tasks: js/node, py/django, py/fastapi, py/flask, rb/rails, rb/sinatra), enterprise-frameworks (5 tasks: java/spring, csharp/dotnet, php/laravel, php/symfony, elixir/phoenix), mobile-and-systems-frameworks (5 tasks: kotlin/android, swift/ios, dart/flutter, rust/actix, rust/tokio). Ordering: frontend first (most common framework usage), then backend scripting (natural progression), then enterprise (heavier frameworks), then mobile/systems (most specialized). All 22 frameworks covered. Relevant spec: 2026-03-15T00-04Z-task-classes.md. Relevant ADR: one-level-hierarchical-fallback."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-22T15:09:49.219719Z"
+  }
+}

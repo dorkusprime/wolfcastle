@@ -53,28 +53,42 @@ func (r *ClassRepository) Resolve(key string) (string, error) {
 		return "", fmt.Errorf("classes: key %q is not a configured class", key)
 	}
 
-	content, err := r.prompts.ResolveRaw("prompts/classes", key+".md")
+	// Try exact key, then parent fallback. Track which key resolved for
+	// subdirectory assembly.
+	var content string
+	var resolvedKey string
+
+	c, err := r.prompts.ResolveRaw("prompts/classes", key+".md")
 	if err == nil {
-		return content, nil
-	}
-	if !errors.Is(err, os.ErrNotExist) {
+		content = c
+		resolvedKey = key
+	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", fmt.Errorf("classes: resolve %q: %w", key, err)
+	} else {
+		parent := parentKey(key)
+		if parent == "" {
+			return "", fmt.Errorf("classes: no prompt file for %q and no parent key to fall back to", key)
+		}
+		c, err = r.prompts.ResolveRaw("prompts/classes", parent+".md")
+		if err == nil {
+			content = c
+			resolvedKey = parent
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("classes: resolve fallback %q: %w", parent, err)
+		} else {
+			return "", fmt.Errorf("classes: no prompt file for %q or fallback %q", key, parent)
+		}
 	}
 
-	parent := parentKey(key)
-	if parent == "" {
-		return "", fmt.Errorf("classes: no prompt file for %q and no parent key to fall back to", key)
+	// Assemble subdirectory assets from prompts/classes/{resolvedKey}/.
+	// Missing or unreadable subdirectory is not an error; the main file
+	// content is always sufficient on its own.
+	fragments, _ := r.prompts.ListFragments("prompts/classes/"+resolvedKey, nil, nil)
+	if len(fragments) > 0 {
+		content = content + "\n" + strings.Join(fragments, "\n")
 	}
 
-	content, err = r.prompts.ResolveRaw("prompts/classes", parent+".md")
-	if err == nil {
-		return content, nil
-	}
-	if !errors.Is(err, os.ErrNotExist) {
-		return "", fmt.Errorf("classes: resolve fallback %q: %w", parent, err)
-	}
-
-	return "", fmt.Errorf("classes: no prompt file for %q or fallback %q", key, parent)
+	return content, nil
 }
 
 // List returns all configured class keys, sorted lexicographically.

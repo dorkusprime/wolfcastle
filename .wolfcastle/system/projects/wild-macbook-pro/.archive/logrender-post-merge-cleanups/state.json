@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "logrender-post-merge-cleanups",
+  "name": "Logrender post-merge cleanups",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "code-cleanups",
+      "address": "logrender-post-merge-cleanups/code-cleanups",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Logrender post-merge cleanups is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "CLEANUP: Replace indexOf with bytes.IndexByte, remove stageLabels identity map, remove reimplemented strings.Contains in logrender tests. These are small code quality fixes in the internal/logrender package and its tests, identified after the Log Command Redesign merged.",
+  "success_criteria": [
+    "All three cleanups applied, no hand-rolled indexOf remains, stageLabels map deleted, expectContains helper deleted, all logrender tests pass"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T01:54:33.885701Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T01:54:31.801042Z",
+        "task": "logrender-post-merge-cleanups",
+        "text": "Created 1 child: code-cleanups (leaf). Three independent cleanup tasks, no ordering constraints between them. All scoped to internal/logrender."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-22T06:00:32.498919Z"
+  }
+}

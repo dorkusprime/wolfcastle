@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "id": "prompt-and-spec-cleanup",
+  "name": "Prompt and Spec Cleanup",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update writing.md to remove dangling voice reference",
+      "description": "Update writing.md to remove dangling voice reference",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/writing.md"
+      ],
+      "body": "Line 5 of writing.md currently reads: 'Voice and tone guidance is loaded separately so it can be overridden independently. Refer to that prompt for voice-specific direction.'\n\nNow that ClassRepository.Resolve auto-appends subdirectory assets, voice.md content IS delivered to agents alongside writing.md. The 'refer to that prompt' instruction is misleading because the agent doesn't need to do anything extra to access it.\n\nReplace line 5 with something like: 'Voice and tone guidance lives in a separate file (writing/voice.md) so it can be overridden independently. Its content is included automatically below.'\n\nOr, if the concatenation makes this sentence redundant (since the agent will see the voice content directly), consider removing the sentence entirely and letting the content speak for itself.\n\nFile: internal/project/templates/prompts/classes/writing.md"
+    },
+    {
+      "id": "task-0002",
+      "title": "Update ClassRepository contract spec",
+      "description": "Update ClassRepository contract spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/2026-03-18T22-31Z-classrepository-contract.md"
+      ],
+      "body": "Update .wolfcastle/docs/specs/2026-03-18T22-31Z-classrepository-contract.md to document the subdirectory assembly behavior added to Resolve.\n\nSpecifically, add a step after step 2 (or 4) in the Resolve algorithm describing:\n- After resolving the main prompt file (either exact key or parent fallback), check for subdirectory assets at prompts/classes/{resolvedKey}/.\n- Collect all .md files via PromptRepository.ListFragments.\n- Append their sorted contents to the main file content, separated by newlines.\n- Missing or empty subdirectory is not an error.\n\nAlso update the Invariants section to note that Resolve may return content assembled from multiple files (the main prompt plus any subdirectory assets)."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Prompt and Spec Cleanup is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify writing.md reads naturally without referencing content the agent cannot access"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T14:40:06.274989Z",
+        "task": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
+        "text": "Removed dangling voice.md reference from writing.md line 5; subdirectory assembly makes it redundant"
+      },
+      {
+        "timestamp": "2026-03-22T14:41:19.474196Z",
+        "task": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
+        "text": "Updated ClassRepository contract spec with subdirectory assembly step in Resolve algorithm and multi-file invariant"
+      },
+      {
+        "timestamp": "2026-03-22T14:43:13.398592Z",
+        "task": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
+        "text": "Audit review of 2 files (140 lines changed). PASS. Findings: (1) writing.md: dangling voice.md reference correctly removed, no other class prompts have similar references (grep confirmed). (2) ClassRepository spec: subdirectory assembly step accurately reflects implementation in class_repository.go:83-89, verified ListFragments call, fragment joining, resolvedKey usage, and error discarding. Build passes, all tests pass with race detector. No gaps, no escalations. Quality: both changes are minimal, correct, and well-targeted."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T14:39:07.467316Z",
+    "completed_at": "2026-03-22T14:43:23.591716Z",
+    "result_summary": "Cleaned up prompt and spec artifacts related to subdirectory assembly. Removed the dangling voice.md cross-reference from writing.md (line 5) since subdirectory assembly now delivers voice content automatically. Updated the ClassRepository contract spec to document the subdirectory assembly step in Resolve's algorithm and added an invariant noting that Resolve may return multi-file assembled content. Both changes verified against the implementation; build and tests pass cleanly."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T14:40:05.051341Z",
+      "objective": "Remove the misleading voice.md cross-reference from writing.md",
+      "what_happened": "Deleted line 5 from writing.md which told agents to 'refer to that prompt' for voice guidance. With subdirectory assembly now auto-appending writing/voice.md content, agents see voice guidance directly and the instruction was misleading.",
+      "went_well": [
+        "Minimal change, no behavioral impact since voice content is already delivered automatically"
+      ],
+      "improvements": [
+        "None; this was a straightforward text deletion"
+      ],
+      "action_items": [
+        "Verify that other class prompts don't have similar dangling references to subdirectory assets"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T14:41:17.94204Z",
+      "objective": "Update the ClassRepository contract spec to document subdirectory assembly behavior in Resolve",
+      "what_happened": "Added step 6 to the Resolve algorithm describing subdirectory assembly: after resolving the main prompt file, ListFragments collects .md files from prompts/classes/{resolvedKey}/, appending them to the main content. Also added an invariant noting that Resolve may return multi-file assembled content.",
+      "went_well": [
+        "Cross-referenced the implementation directly to ensure the spec matches the actual code behavior"
+      ],
+      "improvements": [
+        "None; straightforward spec update"
+      ],
+      "action_items": [
+        "None"
+      ]
+    }
+  }
+}

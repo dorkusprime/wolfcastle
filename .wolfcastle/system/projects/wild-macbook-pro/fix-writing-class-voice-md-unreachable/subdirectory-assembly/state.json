@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "id": "subdirectory-assembly",
+  "name": "Subdirectory Assembly",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement subdirectory asset assembly in ClassRepository.Resolve",
+      "description": "Implement subdirectory asset assembly in ClassRepository.Resolve",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/class_repository.go",
+        "internal/pipeline/class_repository_test.go"
+      ],
+      "body": "After ClassRepository.Resolve successfully resolves the main key.md file, it should also check for subdirectory assets at prompts/classes/{key}/. Use PromptRepository.ListFragments(\"prompts/classes/\"+key, nil, nil) to collect any .md files in the subdirectory across all tiers. If fragments are found, concatenate them (separated by newlines) and append to the main file content before returning.\n\nKey design points:\n- The subdirectory scan happens AFTER the main file resolves successfully. If the main file doesn't exist, fallback behavior is unchanged.\n- Missing subdirectory is not an error; it just means no extra content is appended.\n- Subdirectory files are sorted lexicographically (ListFragments already handles this) for deterministic output.\n- The assembly applies to both exact-key resolution and parent-key fallback. If key 'typescript/react' falls back to 'typescript.md', subdirectory assets from 'typescript/' should still be appended.\n- Thread safety: no new state; ListFragments reads through the existing PromptRepository which is goroutine-safe.\n\nImplementation location: internal/pipeline/class_repository.go, Resolve method (lines 48-78).\nTest location: internal/pipeline/class_repository_test.go."
+    },
+    {
+      "id": "task-0002",
+      "title": "Add tests for subdirectory assembly behavior",
+      "description": "Add tests for subdirectory assembly behavior",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/class_repository_test.go"
+      ],
+      "body": "Add test cases to class_repository_test.go covering the new subdirectory assembly behavior:\n\n1. TestClassRepository_Resolve_AppendsSubdirectoryAssets: Set up a class with key.md and key/extra.md. Verify Resolve returns both contents concatenated.\n2. TestClassRepository_Resolve_NoSubdirectory: Existing behavior unchanged when no subdirectory exists. Use an existing simple-key test as baseline.\n3. TestClassRepository_Resolve_SubdirectoryWithFallback: When a hierarchical key falls back to parent.md, verify that parent/*.md subdirectory assets are also appended.\n4. TestClassRepository_Resolve_MultipleSubdirectoryFiles: Multiple .md files in the subdirectory should all be appended, in sorted order.\n5. TestClassRepository_Resolve_SubdirectoryScanErrorIgnored: If the subdirectory scan returns an error (not just empty), it should be treated as no-op rather than failing the overall resolve.\n\nUse the existing testutil.NewEnvironment pattern. The WithPrompt helper will need to support subdirectory paths like 'classes/writing/voice.md'."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Subdirectory Assembly is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that ListFragments on a nonexistent subdirectory does not cause Resolve to return an error",
+    "Verify that the resolved key used for subdirectory scanning matches the key that actually resolved (parent key when fallback was used, not the original key)"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T14:33:43.74481Z",
+        "task": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+        "text": "Implemented subdirectory assembly in ClassRepository.Resolve. After resolving the main .md file (exact or fallback), Resolve now collects fragments from prompts/classes/{resolvedKey}/ via ListFragments and appends them. Three new tests cover: multi-fragment assembly, no-subdir passthrough, and fallback+assembly."
+      },
+      {
+        "timestamp": "2026-03-22T14:37:17.414598Z",
+        "task": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+        "text": "Added two subdirectory assembly tests (MultipleFiles, ScanErrorIgnored). Fixed Resolve to silently discard ListFragments errors rather than propagating them. class_repository.go now at 100% coverage."
+      },
+      {
+        "timestamp": "2026-03-22T14:38:52.786187Z",
+        "task": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+        "text": "Audit reviewed 2 files (class_repository.go: 155 lines, class_repository_test.go: 370 lines). PASS. One accepted finding: line 86 of class_repository.go silently discards ListFragments error. This is intentional and documented — the main .md file is always self-sufficient, and propagating subdirectory I/O errors would break resolution for no benefit. The task-0002 AAR correctly flagged this as a future observability improvement (add debug logging). No security issues, no race conditions, no dead code. The resolvedKey tracking is correct: fallback resolution assembles fragments from the parent key's subdirectory, not the original key's. Test coverage is strong at 97.6% with 5 subdirectory-specific tests covering sort order, fallback interaction, no-subdir passthrough, multi-file assembly, and I/O error degradation."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T14:30:38.177578Z",
+    "completed_at": "2026-03-22T14:39:07.394397Z",
+    "result_summary": "Subdirectory assembly enables class prompts to be composed from a main .md file plus lexicographically sorted fragment files in a same-named subdirectory. ClassRepository.Resolve was refactored to track which key (exact or parent fallback) successfully resolved, then collects fragments from prompts/classes/{resolvedKey}/ via ListFragments and appends them with newline separators. ListFragments errors are silently discarded since the main file content is always self-sufficient. Five new tests cover the assembly matrix: basic two-fragment assembly, no-subdirectory passthrough, fallback-key assembly, four-fragment sort-order verification, and I/O error graceful degradation via chmod. Coverage sits at 97.6%. The one deliberate tradeoff (silent error discard) is documented in code and flagged for future debug-logging enhancement."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T14:33:38.651301Z",
+      "objective": "Add subdirectory asset assembly to ClassRepository.Resolve so class prompts can be composed from a main file plus fragment files in a subdirectory.",
+      "what_happened": "Refactored Resolve to track which key (exact or parent fallback) successfully resolved, then calls ListFragments on prompts/classes/{resolvedKey}/ to collect subdirectory .md files. Fragments are joined with newlines and appended to the main content. Added three tests: assembly with multiple fragments, no-subdirectory passthrough, and assembly with parent-key fallback.",
+      "went_well": [
+        "Clean integration with existing ListFragments; no new state or locking needed",
+        "Existing tests all pass unchanged since missing subdirectories produce no output"
+      ],
+      "improvements": [
+        "The ListFragments error path in Resolve is not covered by tests (requires simulating tier I/O failure)"
+      ],
+      "action_items": [
+        "Wire subdirectory assembly into canResolve/Validate if subdirectory-only classes become a thing"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T14:37:13.606478Z",
+      "objective": "Add tests covering subdirectory assembly behavior in ClassRepository.Resolve",
+      "what_happened": "Task-0001 already shipped three of the five requested tests (basic assembly, no-subdir passthrough, fallback+assembly). Added two new tests: MultipleFiles (four fragments, verifying full sort order) and ScanErrorIgnored (chmod 000 on subdirectory, verifying graceful degradation). The ScanErrorIgnored test revealed that Resolve was propagating ListFragments errors instead of silently degrading; fixed by discarding the error since the main file content is always self-sufficient.",
+      "went_well": [
+        "The chmod-based error simulation is clean and portable across test environments",
+        "Coverage on class_repository.go is now 100%"
+      ],
+      "improvements": [
+        "The error-silencing change means genuinely broken tier filesystems won't surface through class resolution. If observability matters, a debug log line would be better than a silent discard."
+      ],
+      "action_items": [
+        "Consider adding a logger to ClassRepository so silenced errors can be observed in debug mode"
+      ]
+    }
+  }
+}

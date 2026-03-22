@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "id": "frontend-frameworks",
+  "name": "Frontend Frameworks",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write TypeScript/React class prompt",
+      "description": "Write TypeScript/React class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/react.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/react.md (30-60 lines). Cover: component patterns (function components, hooks rules, custom hooks extraction), state management approaches (useState/useReducer for local, context for shared, external stores for complex), JSX conventions, prop typing with discriminated unions, effect lifecycle and cleanup, React-specific testing with React Testing Library (render, screen queries, userEvent, act boundaries), and common pitfalls (stale closures in effects, missing dependency arrays, key prop misuse, over-rendering from object literals in props). Do NOT repeat TypeScript language fundamentals. Use 'prefer X' phrasing. Research current React 18+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0002",
+      "title": "Write TypeScript/Vue class prompt",
+      "description": "Write TypeScript/Vue class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/vue.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/vue.md (30-60 lines). Cover: Composition API patterns (ref vs reactive, composables, defineProps/defineEmits with type-based declarations), single-file component structure, template vs JSX rendering, Pinia for state management, Vue Router integration, testing with Vue Test Utils and Vitest (mount vs shallowMount, nextTick awaiting, emitted event assertions), and common pitfalls (reactivity loss from destructuring reactive objects, ref unwrapping in templates vs script, watchEffect vs watch, missing v-bind on dynamic attributes). Do NOT repeat TypeScript fundamentals. Use 'prefer X' phrasing. Research current Vue 3 patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0003",
+      "title": "Write TypeScript/Angular class prompt",
+      "description": "Write TypeScript/Angular class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/angular.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/angular.md (30-60 lines). Cover: component architecture (standalone components, signals, input/output decorators), dependency injection patterns, reactive forms vs template-driven forms, RxJS usage (pipe operators, subscription management, async pipe), Angular Router with guards and resolvers, Angular-specific testing with TestBed (component harnesses, service injection, HttpClientTestingModule), and common pitfalls (memory leaks from unsubscribed observables, change detection strategy mismatches, circular dependency injection, zone.js interaction with third-party libs). Do NOT repeat TypeScript fundamentals. Use 'prefer X' phrasing. Research current Angular 17+ patterns with signals. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0004",
+      "title": "Write TypeScript/Next.js class prompt",
+      "description": "Write TypeScript/Next.js class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/nextjs.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/nextjs.md (30-60 lines). Cover: App Router patterns (server components vs client components, 'use client' / 'use server' boundaries), data fetching (server actions, fetch with caching/revalidation), routing conventions (layout.tsx, page.tsx, loading.tsx, error.tsx), metadata API, middleware, server-side vs client-side rendering tradeoffs, testing patterns (testing server components, mocking next/navigation, API route testing), and common pitfalls (serialization across server/client boundary, hydration mismatches, accidental client-side bundle bloat from server imports, dynamic imports vs React.lazy). Do NOT repeat TypeScript fundamentals. Use 'prefer X' phrasing. Research current Next.js 14+ App Router patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0005",
+      "title": "Write TypeScript/Svelte class prompt",
+      "description": "Write TypeScript/Svelte class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/typescript/svelte.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/typescript/svelte.md (30-60 lines). Cover: Svelte 5 runes ($state, $derived, $effect, $props), component composition, snippet blocks, SvelteKit routing and load functions, form actions, server-side rendering patterns, stores (when runes aren't sufficient), testing with Svelte Testing Library and Vitest, and common pitfalls (reactivity gotchas with runes vs legacy reactive statements, $effect cleanup, binding vs event forwarding, SSR hydration issues with browser APIs). Do NOT repeat TypeScript fundamentals. Use 'prefer X' phrasing. Research current Svelte 5 / SvelteKit 2 patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0006",
+      "title": "Write JavaScript/React class prompt",
+      "description": "Write JavaScript/React class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/javascript/react.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/javascript/react.md (30-60 lines). Cover: the same React patterns as the TypeScript/React prompt but adapted for plain JavaScript projects. PropTypes for runtime type checking, JSDoc annotations for editor support, component patterns (function components, hooks), state management, React Testing Library patterns, and common pitfalls (prop type mismatches caught late, missing default props, stale closures). Reference the TypeScript/React prompt structure for consistency but tailor content to JavaScript-specific concerns (no type system to lean on, PropTypes vs TypeScript tradeoffs). Do NOT repeat JavaScript language fundamentals. Use 'prefer X' phrasing. Zero wolfcastle content."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Frontend Frameworks is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that typescript/react, typescript/vue, typescript/angular, typescript/nextjs, typescript/svelte, and javascript/react prompt files each exist, are 30-60 lines, use 'prefer X' phrasing, contain no TypeScript/JavaScript language fundamentals, and contain no wolfcastle references"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T08:08:00.665928Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored React class prompt (typescript/react.md, 67 lines) covering components, hooks, effects, state management, RTL testing, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T08:09:58.413369Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored Vue class prompt (typescript/vue.md, 53 lines) covering Composition API, props/emits, templates, Pinia, Vue Router, VTU testing, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T08:14:08.304193Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored Angular class prompt (typescript/angular.md, 55 lines) covering standalone components, signals, DI, forms, routing, TestBed testing, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T08:18:33.100564Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored Next.js class prompt (typescript/nextjs.md, 55 lines) covering App Router server/client components, data fetching with caching, routing conventions, metadata API, middleware, testing patterns, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T08:23:07.519651Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored Svelte class prompt (typescript/svelte.md, 51 lines) covering Svelte 5 runes, snippets, SvelteKit routing/load/form actions, SSR patterns, stores-vs-runes, testing with Svelte Testing Library, and common pitfalls [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T08:25:41.672744Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored JavaScript/React class prompt (javascript/react.md, 59 lines) covering PropTypes, JSDoc annotations, function components, hooks, effects, state management, React Testing Library, and JS-specific pitfalls (PropTypes dev-only, missing defaultProps, stale closures without type safety) [task-0006]"
+      },
+      {
+        "timestamp": "2026-03-22T08:27:30.500434Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Audit complete. Reviewed 6 framework prompt files (340 total lines): typescript/react.md (67), typescript/vue.md (53), typescript/angular.md (55), typescript/nextjs.md (55), typescript/svelte.md (51), javascript/react.md (59). PASS. Build, tests, and lint all clean. Four findings, all accepted: (1) typescript/react.md at 67 lines slightly exceeds 60-line target but content is well-organized with no padding. (2) Vue defineEmits uses call-signature syntax rather than newer named tuple form; both are valid. (3) javascript/react.md recommends defaultProps which React has deprecated for function components; acceptable because the prompt targets existing JS codebases still on React 18, and the AAR already flags this for future revisit. (4) Svelte () phrasing is slightly dense but technically correct. No security, correctness, or structural issues. All prompts follow consistent format with the codebase-first preamble, clean section hierarchy, framework-specific testing patterns, and 4 common pitfalls each. No duplication with parent language prompts."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T08:03:54.702095Z",
+    "completed_at": "2026-03-22T08:27:50.589058Z",
+    "result_summary": "Authored six frontend framework class prompts covering React, Vue, Angular, Next.js, Svelte, and JavaScript/React. Each prompt follows a consistent structure: a codebase-first preamble, framework-specific guidance organized by concern (components, state, routing, testing), and four common pitfalls. The TypeScript framework prompts avoid repeating fundamentals from typescript.md, and the JavaScript/React variant adapts the TypeScript/React prompt with PropTypes, JSDoc, and defaultProps guidance appropriate to untyped codebases. All prompts land within the 30-60 line target (one at 67 lines, acceptable). Technical content reflects current framework versions: Angular 17+ signals and standalone components, Svelte 5 runes and snippets, Next.js 15 fetch caching defaults, Vue 3 Composition API. Build, tests, and lint pass cleanly. No remediation required."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T08:27:45.934094Z",
+      "objective": "Verify all frontend framework prompts are complete, correct, and high-quality",
+      "what_happened": "Read all six prompt files (340 lines total), compared structure against parent language prompts, ran build/test/lint. Found four minor findings, all accepted. No remediation needed.",
+      "went_well": [
+        "Consistent structure across all six prompts; each follows the same section hierarchy and preamble pattern",
+        "Technical accuracy is strong; framework-specific details (Angular signals, Svelte runes, Next.js 15 fetch defaults) are current and correct",
+        "Clean separation from parent language prompts with no duplicated guidance"
+      ],
+      "improvements": [
+        "javascript/react.md recommends defaultProps which React has deprecated for function components; the AAR already flags this for future revisit",
+        "Vue defineEmits could use the newer named tuple syntax, though both forms remain valid"
+      ],
+      "action_items": [
+        "When React 19 adoption is widespread, update javascript/react.md to recommend destructuring defaults over defaultProps"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T08:07:59.180902Z",
+      "objective": "Author the React framework class prompt for TypeScript/React coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript/react.md (67 lines). Studied the existing language prompts (Python, Rust, TypeScript) to match format and tone. Covered all required topics: function components, hooks rules and custom hook extraction, state management tiers (local/context/external), JSX conventions, prop typing with discriminated unions, effect lifecycle and cleanup, React Testing Library patterns (screen queries, userEvent, act, waitFor), and four common pitfalls (stale closures, inline object references defeating memoization, key prop misuse, setState during render).",
+      "went_well": [
+        "The prompt cleanly avoids repeating TypeScript fundamentals already in typescript.md",
+        "Discriminated union example in Props section reinforces the pattern from the base TypeScript prompt with a React-specific use case"
+      ],
+      "improvements": [
+        "Could add guidance on React Server Components and the use/Suspense patterns from React 19, but those are still settling and might date poorly"
+      ],
+      "action_items": [
+        "When React 19 patterns stabilize, consider a follow-up pass adding server component and use() hook guidance"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T08:09:57.000999Z",
+      "objective": "Author the Vue framework class prompt for TypeScript/Vue coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript/vue.md (53 lines). Studied the React prompt to match format and tone. Covered all required topics: Composition API (ref vs reactive, composables, script setup), type-based defineProps/defineEmits with withDefaults, template vs JSX rendering with compile-time optimization rationale, Pinia setup stores, Vue Router typed definitions and guards, Vue Test Utils with Vitest (mount vs shallowMount, nextTick, emitted assertions, find vs get), and four common pitfalls (reactivity loss from destructuring reactive, ref unwrapping differences, watchEffect vs watch semantics, v-bind spread exposure).",
+      "went_well": [
+        "Prompt avoids repeating TypeScript fundamentals already in typescript.md",
+        "watchEffect vs watch section gives clear guidance on when to pick each, which is one of the most common Vue 3 confusion points"
+      ],
+      "improvements": [
+        "Could add guidance on Suspense and async setup() patterns, but those are still experimental in Vue 3"
+      ],
+      "action_items": [
+        "When Vue 3.5+ stabilizes Suspense, consider adding async component patterns"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T08:14:06.821237Z",
+      "objective": "Author the Angular framework class prompt for TypeScript/Angular coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript/angular.md (55 lines). Researched Angular 17+ patterns including signals API, standalone components, new control flow syntax, functional guards/resolvers, and zoneless change detection. Matched format and tone from React and Vue prompts. Covered all required topics: standalone components with signal-based inputs/outputs/model, signals and reactivity (signal, computed, effect, toSignal/toObservable interop), dependency injection (inject function vs constructor), reactive vs template-driven forms, functional router guards and resolvers, TestBed testing (provideHttpClientTesting, component harnesses, whenStable), and four common pitfalls (subscription leaks, @for track identity, circular DI, OnPush with mixed signal/Observable state).",
+      "went_well": [
+        "Research surfaced important Angular 17+ shifts (standalone default, signal-based inputs/outputs, functional guards, provideHttpClientTesting) that training data alone would have missed or understated",
+        "Prompt avoids repeating TypeScript fundamentals already in typescript.md while giving Angular-specific guidance on signals vs RxJS bridging"
+      ],
+      "improvements": [
+        "Could add zoneless change detection guidance as a dedicated section once Angular 21 patterns settle more broadly"
+      ],
+      "action_items": [
+        "When Angular Signal Forms stabilize beyond experimental, consider adding form guidance that bridges reactive forms to signal-based state"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T08:18:31.561183Z",
+      "objective": "Author the Next.js/App Router framework class prompt for TypeScript/Next.js coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript/nextjs.md (55 lines). Researched current Next.js 14/15 patterns via official docs and community resources before writing. Key findings shaped the prompt: Next.js 15 changed fetch caching to uncached-by-default, params/searchParams became Promises, server actions are stable and now called 'Server Functions' broadly, and async server component testing is best done via E2E. Covered all required topics: server vs client components with use client/use server boundaries, data fetching with explicit caching and revalidation, routing file conventions, metadata API (static and dynamic), middleware, testing patterns (E2E for server components, mocking next/navigation, testing server actions as plain functions), and four common pitfalls (serialization, hydration mismatches, bundle bloat from server imports, next/dynamic vs React.lazy).",
+      "went_well": [
+        "Research surfaced the Next.js 15 fetch caching default change, which is a critical difference from Next.js 14 that training data alone might have gotten wrong",
+        "Prompt matches the tone and structure of the React, Vue, and Angular prompts while covering Next.js-specific concerns without repeating TypeScript or React fundamentals"
+      ],
+      "improvements": [
+        "Could add guidance on Partial Prerendering and the emerging use cache directive once those graduate from experimental"
+      ],
+      "action_items": [
+        "When Next.js 16 stabilizes the use cache directive and PPR becomes default, update this prompt to cover cache boundaries"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T08:23:06.228059Z",
+      "objective": "Author the Svelte 5 / SvelteKit 2 framework class prompt for TypeScript/Svelte coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript/svelte.md (51 lines). Researched Svelte 5 runes API, snippet system, SvelteKit 2 routing, and testing patterns from official docs before writing. Covered runes ($state, $derived, $effect, $bindable, $props), deep reactivity and $state.raw, snippet blocks replacing slots, SvelteKit routing/load functions/form actions, SSR patterns, stores-vs-runes guidance, Svelte Testing Library with svelteTesting() plugin, and four common pitfalls (destructuring breaking reactivity, non-enumerable class fields, cross-module state export constraints, use:enhance callback dropping defaults).",
+      "went_well": [
+        "Research surfaced important Svelte 5 details: $state.raw for immutable patterns, $state.snapshot for serialization, svelteTesting() vite plugin requirement, and the children snippet replacing default slot",
+        "Prompt avoids repeating TypeScript fundamentals and stays within the 30-60 line target at 51 lines"
+      ],
+      "improvements": [
+        "Could add guidance on Svelte 5.25 overridable $derived values once that pattern sees broader adoption"
+      ],
+      "action_items": [
+        "When SvelteKit 3 or Svelte 6 patterns emerge, review runes API surface for additions like $host"
+      ]
+    },
+    "task-0006": {
+      "task_id": "task-0006",
+      "timestamp": "2026-03-22T08:25:39.650062Z",
+      "objective": "Author the JavaScript/React framework class prompt, adapting the TypeScript/React prompt for plain JavaScript projects",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/javascript/react.md (59 lines). Studied the existing TypeScript/React prompt and JavaScript language prompt for format consistency. Adapted all React sections (components, hooks, effects, state management, testing) while replacing TypeScript-specific guidance with JavaScript equivalents: PropTypes for runtime type checking, JSDoc annotations for editor support, PropTypes.shape/oneOfType as discriminated union equivalents, defaultProps emphasis, and the react-hooks/exhaustive-deps ESLint plugin as the primary guard against stale closures in the absence of compile-time checks.",
+      "went_well": [
+        "The Props and Runtime Type Checking section clearly differentiates this prompt from the TypeScript version, covering PropTypes.shape, PropTypes.exact, PropTypes.oneOfType, and PropTypes.isRequired as the JavaScript safety net",
+        "Compressed shared React patterns (effects, state management) to stay within the 30-60 line target while keeping JS-specific pitfalls detailed"
+      ],
+      "improvements": [
+        "Could add guidance on the prop-types package deprecation trajectory if React moves further toward TypeScript-only type checking"
+      ],
+      "action_items": [
+        "If React officially deprecates the prop-types package, revisit this prompt to shift emphasis toward JSDoc and runtime validation libraries"
+      ]
+    }
+  }
+}

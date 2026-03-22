@@ -3,6 +3,7 @@ package project
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -22,6 +23,9 @@ func TestWriteAuditTaskMD_WritesFile(t *testing.T) {
 }
 
 func TestWriteAuditTaskMD_ReadOnlyDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getenv("CI") != "" {
 		t.Skip("skip in CI")
 	}

@@ -55,14 +55,12 @@ Examples:
 				return fmt.Errorf("unknown node type %q: pick 'leaf' or 'orchestrator'", nodeType)
 			}
 
-			projDir := app.State.Dir()
-
 			// All state mutations happen under a single lock hold to
 			// prevent races with the daemon or other CLI commands.
 			var addr string
 			if err := app.State.WithLock(func() error {
 				// Load root index (raw, we hold the lock)
-				idx, err := state.LoadRootIndex(filepath.Join(projDir, "state.json"))
+				idx, err := state.LoadRootIndex(app.State.IndexPath())
 				if err != nil {
 					if !os.IsNotExist(err) {
 						return fmt.Errorf("loading root index: %w", err)
@@ -77,12 +75,11 @@ Examples:
 						return fmt.Errorf("parent node %q not found. Check your address", parentNode)
 					}
 					if parentEntry.Type == state.NodeLeaf {
-						parentParsed, err := tree.ParseAddress(parentNode)
+						parentStatePath, err := app.State.NodePath(parentNode)
 						if err != nil {
 							return fmt.Errorf("invalid parent address: %w", err)
 						}
-						parentDir := filepath.Join(projDir, filepath.Join(parentParsed.Parts...))
-						parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
+						parentState, err := state.LoadNodeState(parentStatePath)
 						if err != nil {
 							return fmt.Errorf("loading parent state for promotion: %w", err)
 						}
@@ -97,7 +94,7 @@ Examples:
 						}
 						parentState.Type = state.NodeOrchestrator
 						parentState.Tasks = nil
-						if err := state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentState); err != nil {
+						if err := state.SaveNodeState(parentStatePath, parentState); err != nil {
 							return fmt.Errorf("saving promoted parent state: %w", err)
 						}
 						parentEntry.Type = state.NodeOrchestrator
@@ -127,15 +124,15 @@ Examples:
 				}
 
 				// Write node state (raw save, no nested lock)
-				addrParsed, err := tree.ParseAddress(addr)
+				nodeStatePath, err := app.State.NodePath(addr)
 				if err != nil {
 					return fmt.Errorf("invalid node address: %w", err)
 				}
-				nodeDir := filepath.Join(projDir, filepath.Join(addrParsed.Parts...))
+				nodeDir := filepath.Dir(nodeStatePath)
 				if err := os.MkdirAll(nodeDir, 0755); err != nil {
 					return fmt.Errorf("creating node directory: %w", err)
 				}
-				if err := state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns); err != nil {
+				if err := state.SaveNodeState(nodeStatePath, ns); err != nil {
 					return fmt.Errorf("saving node state: %w", err)
 				}
 
@@ -156,16 +153,15 @@ Examples:
 
 				// Update parent node state to include child ref
 				if parentNode != "" {
-					parentParsed2, _ := tree.ParseAddress(parentNode)
-					parentDir := filepath.Join(projDir, filepath.Join(parentParsed2.Parts...))
-					parentState, err := state.LoadNodeState(filepath.Join(parentDir, "state.json"))
+					parentPath, _ := app.State.NodePath(parentNode)
+					parentState, err := state.LoadNodeState(parentPath)
 					if err == nil {
 						parentState.Children = append(parentState.Children, state.ChildRef{
 							ID:      slug,
 							Address: addr,
 							State:   state.StatusNotStarted,
 						})
-						if err := state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentState); err != nil {
+						if err := state.SaveNodeState(parentPath, parentState); err != nil {
 							return fmt.Errorf("saving parent state: %w", err)
 						}
 					}
@@ -178,7 +174,7 @@ Examples:
 					idx.RootState = state.StatusNotStarted
 				}
 
-				return state.SaveRootIndex(filepath.Join(projDir, "state.json"), idx)
+				return state.SaveRootIndex(app.State.IndexPath(), idx)
 			}); err != nil {
 				return err
 			}

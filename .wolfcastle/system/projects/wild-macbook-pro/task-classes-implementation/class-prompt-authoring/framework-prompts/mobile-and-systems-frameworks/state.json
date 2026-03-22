@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "id": "mobile-and-systems-frameworks",
+  "name": "Mobile and Systems Frameworks",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write Kotlin/Android class prompt",
+      "description": "Write Kotlin/Android class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/kotlin/android.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/kotlin/android.md (30-60 lines). Cover: Android patterns (Activity/Fragment lifecycle, Jetpack Compose UI, ViewModel with StateFlow/SharedFlow, Hilt dependency injection), Navigation component, Room database, Retrofit/Ktor for networking, coroutines and structured concurrency in Android (viewModelScope, lifecycleScope), Gradle build configuration, testing with JUnit (Robolectric for unit tests, Compose testing rules, Espresso for instrumented tests, Turbine for Flow testing), and common pitfalls (lifecycle-unaware coroutine launches leaking, configuration change state loss, Compose recomposition performance from unstable types, deep Activity back stack bugs, ProGuard/R8 stripping needed classes). Do NOT repeat Kotlin language fundamentals. Use 'prefer X' phrasing. Research current Jetpack Compose / Android 14+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0002",
+      "title": "Write Swift/iOS class prompt",
+      "description": "Write Swift/iOS class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/swift/ios.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/swift/ios.md (30-60 lines). Cover: iOS/SwiftUI patterns (declarative views, @State/@Binding/@ObservedObject/@EnvironmentObject, MVVM with ObservableObject), UIKit interop (UIViewRepresentable, UIViewControllerRepresentable), navigation (NavigationStack, NavigationPath), Core Data / SwiftData, async/await with structured concurrency in iOS (MainActor, Task groups), SPM dependency management, testing with XCTest (UI testing, ViewInspector for SwiftUI, mock protocols, async test expectations), and common pitfalls (retain cycles from strong self in closures, main thread violations in UI updates, SwiftUI view identity and performance from excessive body recomputation, Core Data context threading violations, missing @MainActor annotations). Do NOT repeat Swift language fundamentals. Use 'prefer X' phrasing. Research current SwiftUI / iOS 17+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0003",
+      "title": "Write Dart/Flutter class prompt",
+      "description": "Write Dart/Flutter class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/dart/flutter.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/dart/flutter.md (30-60 lines). Cover: Flutter patterns (widget tree composition, StatelessWidget vs StatefulWidget, state management with Riverpod or Bloc/Cubit), navigation (GoRouter, Navigator 2.0), platform channels for native interop, theming and Material/Cupertino design, build flavors and environments, testing with flutter_test (widget tests with WidgetTester, pumpWidget, golden tests, integration tests with patrol or integration_test, mockito for service mocks), and common pitfalls (setState after dispose, unbounded ListView children in Column, key misuse causing state loss, platform-specific rendering differences, deep widget nesting harming readability). Do NOT repeat Dart language fundamentals. Use 'prefer X' phrasing. Research current Flutter 3.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0004",
+      "title": "Write Rust/Actix class prompt",
+      "description": "Write Rust/Actix class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/rust/actix.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/rust/actix.md (30-60 lines). Cover: Actix Web patterns (App builder, resource routing, extractors for Path/Query/Json/Data, middleware with Transform/Service), application state with web::Data and Arc, error handling (ResponseError trait, custom error types), database integration (sqlx or Diesel with actix_web::web::block for sync), WebSocket actors, testing with actix_web::test (TestRequest, init_service, call_service, TestServer for integration), and common pitfalls (move semantics with closures in route handlers, Send + Sync requirements for shared state, blocking the async runtime with synchronous database drivers, confusing actix actor system with actix-web, payload size limits). Do NOT repeat Rust language fundamentals. Use 'prefer X' phrasing. Research current Actix Web 4.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0005",
+      "title": "Write Rust/Tokio class prompt",
+      "description": "Write Rust/Tokio class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/rust/tokio.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/rust/tokio.md (30-60 lines). Cover: Tokio patterns (runtime configuration, spawning tasks, JoinHandle management, select\\! macro, channels: mpsc/oneshot/broadcast/watch), structured concurrency with JoinSet and TaskTracker, async I/O (TcpListener/TcpStream, tokio::fs, BufReader/BufWriter), synchronization primitives (tokio::sync::Mutex vs std::sync::Mutex, RwLock, Semaphore, Notify), graceful shutdown patterns, testing async code (tokio::test macro, time::pause for deterministic timing, mock I/O), and common pitfalls (holding a std::sync::Mutex across an .await, spawning without storing JoinHandle losing panics, blocking the runtime with CPU-bound work instead of spawn_blocking, select\\! branch cancellation semantics, unbounded channel memory growth). Do NOT repeat Rust language fundamentals. Use 'prefer X' phrasing. Research current Tokio 1.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Mobile and Systems Frameworks is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that kotlin/android, swift/ios, dart/flutter, rust/actix, and rust/tokio prompt files each exist, are 30-60 lines, use 'prefer X' phrasing, contain no parent-language fundamentals, and contain no wolfcastle references"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T09:01:25.781664Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Kotlin/Android class prompt covering Compose, Hilt, lifecycle coroutines, Room, Retrofit, Gradle config, testing, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T09:04:21.369557Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Swift/iOS class prompt covering SwiftUI, MVVM, NavigationStack, UIKit interop, SwiftData/Core Data, structured concurrency, SPM, testing, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T09:06:42.20992Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Dart/Flutter class prompt covering widget architecture, Riverpod/Bloc state management, go_router navigation, platform channels, Material 3 theming, build flavors, testing with flutter_test/integration_test/patrol, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T09:09:09.341119Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Rust/Actix class prompt covering App builder, extractors, web::Data state, ResponseError, from_fn middleware, sqlx/Diesel database patterns, WebSocket actors, testing with TestRequest/TestServer, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T09:11:15.905659Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Add Rust/Tokio class prompt covering runtime config, JoinSet/TaskTracker structured concurrency, mpsc/oneshot/broadcast/watch channels, select! cancellation, async I/O with BufReader/BufWriter, tokio::sync vs std::sync primitives, graceful shutdown, testing with start_paused/duplex, and common pitfalls [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T09:13:56.321741Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "text": "Audit reviewed 5 framework prompts (217 lines total): android.md, ios.md, flutter.md, actix.md, tokio.md. PASS. One finding: flutter.md line 43 used incorrect Flutter API name 'ShrinkWrapping: true' instead of 'shrinkWrap: true' — fixed and committed. All five prompts maintain clean separation from their parent language prompts with no content overlap. Format, structure, depth, and technical accuracy are consistent across the set. Build, test, and lint all pass."
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-mobile-and-systems-frameworks-1",
+        "timestamp": "2026-03-22T09:13:38.819764Z",
+        "description": "flutter.md line 43 had incorrect API name 'ShrinkWrapping: true' instead of 'shrinkWrap: true' — fixed during audit",
+        "source": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "status": "fixed",
+        "fixed_by": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
+        "fixed_at": "2026-03-22T09:13:40.966483Z"
+      }
+    ],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T08:57:58.796445Z",
+    "completed_at": "2026-03-22T09:14:11.31147Z",
+    "result_summary": "Authored five framework-level class prompts for mobile and systems frameworks: Kotlin/Android (Compose, Hilt, lifecycle coroutines, Room, Retrofit), Swift/iOS (SwiftUI, MVVM, NavigationStack, SwiftData, structured concurrency), Dart/Flutter (widget architecture, Riverpod/Bloc, go_router, platform channels, Material 3), Rust/Actix Web (App builder, extractors, web::Data, ResponseError, middleware, sqlx/Diesel), and Rust/Tokio (runtime config, JoinSet, channels, select!, async I/O, sync primitives, graceful shutdown). All prompts maintain clean separation from their parent language prompts, follow a consistent prose-only format with four pitfalls each, and pass audit with one minor fix (incorrect Flutter API name corrected)."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T09:13:50.850769Z",
+      "objective": "Verify all five mobile and systems framework prompts are complete, correct, and high-quality",
+      "what_happened": "Read all five framework prompts (android.md, ios.md, flutter.md, actix.md, tokio.md) and their parent language prompts (kotlin.md, swift.md, dart.md, rust.md). Verified no overlap between framework and language layers. Checked factual accuracy of API names, patterns, and version-specific guidance. Ran build, test, and lint — all clean. Found one error in flutter.md.",
+      "went_well": [
+        "Clean separation between language and framework layers across all five prompts",
+        "Consistent format, structure, and depth across all five files (39-47 lines, 4 pitfalls each, prose-only)",
+        "Technical accuracy is strong — version-specific details (iOS 17+ @Observable, Riverpod 2.x NotifierProvider, Actix 4.x from_fn) are correct"
+      ],
+      "improvements": [
+        "flutter.md had incorrect property name ShrinkWrapping instead of shrinkWrap — fixed during audit"
+      ],
+      "action_items": [
+        "None; all issues resolved"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T09:01:25.146544Z",
+      "objective": "Author the Kotlin/Android framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/kotlin/android.md (45 lines). Studied the existing kotlin.md language prompt, go.md, python/fastapi.md, and java/spring.md for format and depth calibration. Wrote sections covering Compose UI with unidirectional data flow, Hilt DI, lifecycle-aware coroutines, Room/Retrofit data layer, Gradle configuration with version catalogs, testing (Robolectric, Compose testing, Espresso, Turbine), and four pitfall entries. Avoided repeating Kotlin fundamentals already in kotlin.md.",
+      "went_well": [
+        "Clean separation from the language-level kotlin.md; no overlap on coroutine basics, scope functions, or null safety",
+        "Pitfalls section covers the specific Android failure modes requested: lifecycle-unaware launches, config change state loss, Compose recomposition from unstable types, and ProGuard stripping"
+      ],
+      "improvements": [
+        "Could add a section on WorkManager patterns and predictive back gesture API once those stabilize further"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T09:04:20.173079Z",
+      "objective": "Author the Swift/iOS framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/swift/ios.md (39 lines). Studied the existing swift.md language prompt plus kotlin/android.md, python/fastapi.md, and java/spring.md for format and depth calibration. Wrote sections covering SwiftUI with MVVM and @Observable, NavigationStack routing, UIKit interop via Representable protocols, SwiftData and Core Data persistence, structured concurrency with @MainActor and TaskGroup, SPM dependency management, testing with XCTest/ViewInspector/XCUIApplication, and four pitfall entries. Carefully avoided repeating Swift fundamentals already in swift.md (value types, guard, protocol-oriented design, async/await basics, retain cycles in general, force unwrapping, IUOs, ABI stability).",
+      "went_well": [
+        "Clean separation from swift.md; no overlap on language fundamentals, only iOS-specific patterns",
+        "Covers the iOS 17+ @Observable migration path alongside ObservableObject for older targets",
+        "Pitfalls section addresses the specific failure modes requested: retain cycles in iOS context, main thread violations, SwiftUI view identity and recomposition, and Core Data context threading"
+      ],
+      "improvements": [
+        "Could expand UIKit interop section with more detail on Coordinator patterns for complex delegates once more adoption data is available"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T09:06:40.807381Z",
+      "objective": "Author the Dart/Flutter framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/dart/flutter.md (47 lines). Studied the existing dart.md language prompt, kotlin/android.md, and swift/ios.md for format and depth calibration. Wrote sections covering widget architecture and composition, state management (Riverpod and Bloc/Cubit), go_router navigation, platform channels and Pigeon, Material 3 theming with ColorScheme.fromSeed, build flavors with dart-define, testing (flutter_test, integration_test, patrol, mocktail), and four pitfall entries. Carefully avoided repeating Dart fundamentals already in dart.md (null safety, late, BuildContext async gap, Future error swallowing, collection equality, pubspec constraints).",
+      "went_well": [
+        "Clean separation from dart.md; no overlap on language fundamentals, only Flutter-specific patterns",
+        "Covers both Riverpod 2.x and Bloc/Cubit patterns with guidance on when to use each",
+        "Pitfalls section addresses the specific failure modes requested: setState after dispose, unbounded ListView in Column, key misuse, platform rendering differences"
+      ],
+      "improvements": [
+        "Could expand the platform channels section with more detail on EventChannel error handling once patterns stabilize"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T09:09:07.586609Z",
+      "objective": "Author the Rust/Actix Web framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/rust/actix.md (41 lines). Studied the existing rust.md language prompt, python/fastapi.md, kotlin/android.md, and dart/flutter.md for format and depth calibration. Wrote sections covering App structure and routing with extractors, application state with web::Data and Arc, error handling via ResponseError trait, middleware (from_fn and Transform/Service), database integration (sqlx async and Diesel with web::block), WebSocket actors, testing with TestRequest/init_service/call_service/TestServer, and four pitfall entries on Send+Sync closures, actix vs actix-web runtime confusion, payload size limits, and blocking the async runtime.",
+      "went_well": [
+        "Clean separation from rust.md; no overlap on ownership, lifetimes, async basics, or general Rust patterns",
+        "Covers both async (sqlx) and sync (Diesel with web::block) database patterns with clear guidance on when each applies",
+        "Pitfalls section addresses the four most common Actix production failure modes"
+      ],
+      "improvements": [
+        "Could expand the middleware section with examples of response body inspection once from_fn patterns stabilize further in 4.x"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T09:11:13.930496Z",
+      "objective": "Author the Rust/Tokio framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/rust/tokio.md (45 lines). Studied the existing rust.md language prompt and rust/actix.md framework prompt for format and depth calibration. Wrote sections covering runtime configuration and task spawning with JoinHandle management, structured concurrency with JoinSet and TaskTracker, channel types (mpsc/oneshot/broadcast/watch) with bounded-first guidance, select\\! macro with cancellation semantics, async I/O with BufReader/BufWriter, synchronization primitives (tokio::sync::Mutex vs std::sync::Mutex, RwLock, Semaphore, Notify), graceful shutdown patterns, testing with start_paused and duplex streams, and four pitfall entries. Carefully avoided repeating Rust fundamentals already in rust.md (ownership, lifetimes, async basics, error handling with ?, clippy).",
+      "went_well": [
+        "Clean separation from rust.md; no overlap on async/await fundamentals, only Tokio-specific patterns",
+        "Covers the std::sync::Mutex vs tokio::sync::Mutex distinction with clear guidance on when each is correct",
+        "Pitfalls section addresses the four most common Tokio production failure modes: blocking the runtime, select branch rebuilding, unbounded channel growth, and Send+'static spawn requirements"
+      ],
+      "improvements": [
+        "Could expand the graceful shutdown section with a worked example once the TaskTracker API stabilizes further in tokio-util"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    }
+  }
+}

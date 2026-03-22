@@ -78,6 +78,30 @@ func TestJSON_MarshalingOk(t *testing.T) {
 	}
 }
 
+func TestPlural_SingularWhenOne(t *testing.T) {
+	t.Parallel()
+	got := Plural(1, "issue", "issues")
+	if got != "1 issue" {
+		t.Errorf("expected %q, got %q", "1 issue", got)
+	}
+}
+
+func TestPlural_PluralWhenZero(t *testing.T) {
+	t.Parallel()
+	got := Plural(0, "item", "items")
+	if got != "0 items" {
+		t.Errorf("expected %q, got %q", "0 items", got)
+	}
+}
+
+func TestPlural_PluralWhenMany(t *testing.T) {
+	t.Parallel()
+	got := Plural(5, "task", "tasks")
+	if got != "5 tasks" {
+		t.Errorf("expected %q, got %q", "5 tasks", got)
+	}
+}
+
 func TestJSON_MarshalingErr(t *testing.T) {
 	t.Parallel()
 	r := Err("delete", 1, "not found")

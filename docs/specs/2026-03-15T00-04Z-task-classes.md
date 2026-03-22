@@ -54,14 +54,14 @@ type ClassDef struct {
 }
 ```
 
-No default `task_classes` entries ship in any config tier yet. The example config shown below is the planned default set; see "Future work" at the end of each section for what remains.
+Default `task_classes` entries ship in the hardcoded `Defaults()` function in `internal/config/config.go`. The set covers programming languages (e.g., `coding/go`, `coding/python`), frameworks (e.g., `coding/typescript/react`, `coding/python/django`), and non-language disciplines (e.g., `architecture`, `research`, `writing`, `audit`). Users can add or override classes in `custom/config.json` or `local/config.json`. Example:
 
 ```json
 {
   "task_classes": {
-    "go": { "description": "Writing or modifying Go source code" },
-    "research": { "description": "Information gathering, comparison, analysis", "model": "light" },
-    "audit": { "description": "Verification and review of completed work" }
+    "coding/go": { "description": "gofmt, go vet, table-driven tests, error wrapping" },
+    "research": { "description": "Source citation, accuracy over speed, structured output", "model": "light" },
+    "audit": { "description": "Read-only review, gap recording, no fixes" }
   }
 }
 ```
@@ -129,9 +129,12 @@ The `--class` flag is accepted by `task add` and stored directly on the task. No
 
 ## Prompt Assembly
 
-The `ContextBuilder` in `internal/pipeline/context_builder.go` injects class guidance into the iteration context. When a task has a non-empty `Class` field, the builder calls `ClassRepository.Resolve(task.Class)` and, if resolution succeeds, appends a `## Class Guidance` section containing the prompt file's contents.
+The `ContextBuilder` injects two layers of class guidance into every task's iteration context:
 
-The class guidance appears after the task context and before the audit context in the assembled output. Tasks with no class (or an empty class, or a class that fails to resolve) get the context assembled without a class section.
+1. **Universal** (`prompts/classes/universal.md`): principles that apply to all work regardless of type. Always injected.
+2. **Class-specific**: resolved from the task's `Class` field. Coding tasks get a prompt from `prompts/classes/coding/`. Non-coding tasks (writing, research, audit) get a prompt from `prompts/classes/` directly.
+
+When a task has no class (empty or unset), the ContextBuilder injects `universal.md` + `coding/default.md`. When a class is set but fails to resolve, it falls back to `coding/default.md`. No task runs without class guidance.
 
 ```
 # Node: my-project
@@ -140,6 +143,9 @@ The class guidance appears after the task context and before the audit context i
 # Task: task-0001
 [task context]
 
+## Universal Guidance
+[contents of universal.md]
+
 ## Class Guidance
 [contents of the resolved class prompt file]
 
@@ -147,17 +153,47 @@ The class guidance appears after the task context and before the audit context i
 [audit state, breadcrumbs, gaps]
 ```
 
-### Prompt file resolution
+### File structure
 
-Class prompt files live under `prompts/classes/` and follow the same three-tier resolution as all other prompts, delegated through `PromptRepository.ResolveRaw`:
+```
+prompts/classes/
+  universal.md                # always injected for every task
+  coding/
+    default.md                # generic coding guidance (unclassified coding tasks)
+    go.md
+    python.md
+    typescript.md
+    ...
+    typescript/
+      react.md
+      vue.md
+      ...
+  writing.md
+  writing/
+    voice.md                  # separate so users can override voice independently
+  research.md
+  architecture.md
+  audit.md
+  design.md
+  devops.md
+  data.md
+  security.md
+  testing.md
+```
 
-1. `local/prompts/classes/<key>.md` (highest priority)
-2. `custom/prompts/classes/<key>.md`
-3. `base/prompts/classes/<key>.md` (ships with Wolfcastle)
+Language class files live under `coding/` at the top level (`coding/go.md`, `coding/python.md`). Framework files live in subdirectories under `coding/` (`coding/typescript/react.md`). Non-language classes live directly under `classes/` (`writing.md`, `audit.md`).
 
-Users override a built-in class's behavior by placing a file with the same name in `custom/` or `local/`. Adding a new class means adding an entry in the config and dropping a `.md` file in the appropriate tier.
+### Resolution
 
-**Future work:** No class prompt `.md` files have been authored yet. The resolution infrastructure works, but there is nothing to resolve.
+Class prompt files follow the same three-tier resolution as all other prompts:
+
+1. `local/prompts/classes/<path>` (highest priority)
+2. `custom/prompts/classes/<path>`
+3. `base/prompts/classes/<path>` (ships with Wolfcastle)
+
+For coding classes, the resolver prepends `coding/` to the key: class `go` resolves to `coding/go.md`. Class `typescript/react` resolves to `coding/typescript/react.md`, falling back to `coding/typescript.md`.
+
+Users override a built-in class's behavior by placing a file with the same path in `custom/` or `local/`. Adding a new class means adding an entry in the config and dropping a `.md` file in the appropriate tier.
 
 ---
 
@@ -195,60 +231,60 @@ The `ClassDef.Model` field exists in the config struct but the daemon does not r
 
 ## Default Classes
 
-**Future work.** The planned default class set is extensive, covering programming languages, frameworks, and non-language disciplines. The tables below preserve the intended scope for when prompt authoring begins.
+The default class set ships in `Defaults()` (`internal/config/config.go`), covering programming languages, frameworks, and non-language disciplines. All class keys use the `coding/` prefix for language and framework classes. The tables below reflect the current defaults.
 
 ### Language classes
 
 | Class key | Language | Notes |
 |-----------|----------|-------|
-| `python` | Python | Type hints, virtual environments, pytest, ruff/black, PEP 8 |
-| `javascript` | JavaScript | ESM vs CJS, Node vs browser, eslint, testing frameworks |
-| `typescript` | TypeScript | tsconfig strictness, type-only imports, declaration files |
-| `java` | Java | Maven/Gradle, JUnit, checked exceptions |
-| `csharp` | C# | .NET SDK, NuGet, xUnit/NUnit, nullable reference types |
-| `go` | Go | gofmt, go vet, table-driven tests, error wrapping |
-| `rust` | Rust | cargo clippy, ownership/borrowing guidance, Result/Option patterns |
-| `cpp` | C++ | CMake, clang-tidy, RAII, smart pointers, UB avoidance |
-| `c` | C | Makefile conventions, valgrind, buffer safety, POSIX portability |
-| `ruby` | Ruby | Bundler, RSpec/minitest, Rubocop |
-| `php` | PHP | Composer, PHPUnit, PSR standards |
-| `swift` | Swift | Xcode/SPM, XCTest, optionals, protocol-oriented patterns |
-| `kotlin` | Kotlin | Gradle, JUnit/kotest, null safety, coroutine conventions |
-| `scala` | Scala | sbt, ScalaTest, functional patterns, implicits guidance |
-| `shell` | Shell/Bash | shellcheck, POSIX compatibility, quoting rules, set -euo pipefail |
-| `sql` | SQL | Dialect awareness (Postgres, MySQL, SQLite), migration patterns, injection prevention |
-| `r` | R | tidyverse conventions, testthat, roxygen2, CRAN packaging |
-| `lua` | Lua | LuaRocks, busted, metatables, embedding considerations |
-| `elixir` | Elixir | mix, ExUnit, OTP patterns, pattern matching, pipe operator |
-| `haskell` | Haskell | cabal/stack, HSpec, monadic patterns, type-driven development |
-| `dart` | Dart | pub, flutter test, null safety, widget patterns |
+| `coding/python` | Python | Type hints, virtual environments, pytest, ruff/black, PEP 8 |
+| `coding/javascript` | JavaScript | ESM vs CJS, Node vs browser, eslint, testing frameworks |
+| `coding/typescript` | TypeScript | tsconfig strictness, type-only imports, declaration files |
+| `coding/java` | Java | Maven/Gradle, JUnit, checked exceptions |
+| `coding/csharp` | C# | .NET SDK, NuGet, xUnit/NUnit, nullable reference types |
+| `coding/go` | Go | gofmt, go vet, table-driven tests, error wrapping |
+| `coding/rust` | Rust | cargo clippy, ownership/borrowing guidance, Result/Option patterns |
+| `coding/cpp` | C++ | CMake, clang-tidy, RAII, smart pointers, UB avoidance |
+| `coding/c` | C | Makefile conventions, valgrind, buffer safety, POSIX portability |
+| `coding/ruby` | Ruby | Bundler, RSpec/minitest, Rubocop |
+| `coding/php` | PHP | Composer, PHPUnit, PSR standards |
+| `coding/swift` | Swift | Xcode/SPM, XCTest, optionals, protocol-oriented patterns |
+| `coding/kotlin` | Kotlin | Gradle, JUnit/kotest, null safety, coroutine conventions |
+| `coding/scala` | Scala | sbt, ScalaTest, functional patterns, implicits guidance |
+| `coding/shell` | Shell/Bash | shellcheck, POSIX compatibility, quoting rules, set -euo pipefail |
+| `coding/sql` | SQL | Dialect awareness (Postgres, MySQL, SQLite), migration patterns, injection prevention |
+| `coding/r` | R | tidyverse conventions, testthat, roxygen2, CRAN packaging |
+| `coding/lua` | Lua | LuaRocks, busted, metatables, embedding considerations |
+| `coding/elixir` | Elixir | mix, ExUnit, OTP patterns, pattern matching, pipe operator |
+| `coding/haskell` | Haskell | cabal/stack, HSpec, monadic patterns, type-driven development |
+| `coding/dart` | Dart | pub, flutter test, null safety, widget patterns |
 
 ### Framework classes
 
 | Class key | Framework | Notes |
 |-----------|-----------|-------|
-| `typescript/react` | React (TS) | Hooks, JSX, React Testing Library, component patterns, state management |
-| `typescript/vue` | Vue 3 (TS) | Composition API, SFCs, Pinia, Vue Test Utils, Vue Router |
-| `typescript/angular` | Angular | Modules/standalone components, RxJS, dependency injection, Jasmine/Karma |
-| `typescript/nextjs` | Next.js | App Router, Server Components, ISR/SSG/SSR, middleware, API routes |
-| `typescript/svelte` | SvelteKit | Runes, load functions, form actions, server routes |
-| `javascript/react` | React (JS) | Same as TS/React but with PropTypes, no type annotations |
-| `javascript/node` | Node.js | Express/Fastify patterns, middleware, async error handling, clustering |
-| `python/django` | Django | MTV pattern, ORM, migrations, DRF, management commands, template conventions |
-| `python/fastapi` | FastAPI | Pydantic models, dependency injection, async endpoints, OpenAPI |
-| `python/flask` | Flask | Blueprints, extensions, application factory, Jinja2 |
-| `ruby/rails` | Rails | Convention over configuration, ActiveRecord, concerns, RSpec Rails, generators |
-| `ruby/sinatra` | Sinatra | Lightweight routing, modular style, Rack middleware |
-| `java/spring` | Spring Boot | Auto-configuration, annotations, JPA, Spring Security, integration testing |
-| `csharp/dotnet` | .NET | Minimal APIs, Entity Framework, middleware pipeline, Razor conventions |
-| `php/laravel` | Laravel | Eloquent, Blade, artisan, service providers, feature tests |
-| `php/symfony` | Symfony | Bundles, Doctrine, Twig, event system, PHPUnit bridge |
-| `kotlin/android` | Android | Jetpack Compose, ViewModel, Room, coroutines, instrumented tests |
-| `swift/ios` | iOS/SwiftUI | SwiftUI views, Combine, Core Data, XCUITest, App lifecycle |
-| `dart/flutter` | Flutter | Widget tree, state management (Riverpod/Bloc), platform channels, widget tests |
-| `elixir/phoenix` | Phoenix | LiveView, Ecto, PubSub, Channels, ExUnit with Sandbox |
-| `rust/actix` | Actix Web | Extractors, middleware, app state, integration tests |
-| `rust/tokio` | Tokio async | Spawning, channels, select!, graceful shutdown, tracing |
+| `coding/typescript/react` | React (TS) | Hooks, JSX, React Testing Library, component patterns, state management |
+| `coding/typescript/vue` | Vue 3 (TS) | Composition API, SFCs, Pinia, Vue Test Utils, Vue Router |
+| `coding/typescript/angular` | Angular | Modules/standalone components, RxJS, dependency injection, Jasmine/Karma |
+| `coding/typescript/nextjs` | Next.js | App Router, Server Components, ISR/SSG/SSR, middleware, API routes |
+| `coding/typescript/svelte` | SvelteKit | Runes, load functions, form actions, server routes |
+| `coding/javascript/react` | React (JS) | Same as TS/React but with PropTypes, no type annotations |
+| `coding/javascript/node` | Node.js | Express/Fastify patterns, middleware, async error handling, clustering |
+| `coding/python/django` | Django | MTV pattern, ORM, migrations, DRF, management commands, template conventions |
+| `coding/python/fastapi` | FastAPI | Pydantic models, dependency injection, async endpoints, OpenAPI |
+| `coding/python/flask` | Flask | Blueprints, extensions, application factory, Jinja2 |
+| `coding/ruby/rails` | Rails | Convention over configuration, ActiveRecord, concerns, RSpec Rails, generators |
+| `coding/ruby/sinatra` | Sinatra | Lightweight routing, modular style, Rack middleware |
+| `coding/java/spring` | Spring Boot | Auto-configuration, annotations, JPA, Spring Security, integration testing |
+| `coding/csharp/dotnet` | .NET | Minimal APIs, Entity Framework, middleware pipeline, Razor conventions |
+| `coding/php/laravel` | Laravel | Eloquent, Blade, artisan, service providers, feature tests |
+| `coding/php/symfony` | Symfony | Bundles, Doctrine, Twig, event system, PHPUnit bridge |
+| `coding/kotlin/android` | Android | Jetpack Compose, ViewModel, Room, coroutines, instrumented tests |
+| `coding/swift/ios` | iOS/SwiftUI | SwiftUI views, Combine, Core Data, XCUITest, App lifecycle |
+| `coding/dart/flutter` | Flutter | Widget tree, state management (Riverpod/Bloc), platform channels, widget tests |
+| `coding/elixir/phoenix` | Phoenix | LiveView, Ecto, PubSub, Channels, ExUnit with Sandbox |
+| `coding/rust/actix` | Actix Web | Extractors, middleware, app state, integration tests |
+| `coding/rust/tokio` | Tokio async | Spawning, channels, select!, graceful shutdown, tracing |
 
 ### Non-language classes
 

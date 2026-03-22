@@ -256,6 +256,52 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestNew_ClassValidationSucceedsWithMissingPrompts(t *testing.T) {
+	tmp := t.TempDir()
+	wolfDir := filepath.Join(tmp, ".wolfcastle")
+	_ = os.MkdirAll(wolfDir, 0755)
+
+	cfg := testConfig()
+	cfg.TaskClasses = map[string]config.ClassDef{
+		"go":     {Description: "Go"},
+		"python": {Description: "Python"},
+	}
+
+	store := state.NewStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
+	d, err := New(cfg, wolfDir, store, "", tmp)
+	if err != nil {
+		t.Fatalf("New() should not fail with missing class prompts: %v", err)
+	}
+	if d == nil {
+		t.Fatal("daemon should be non-nil")
+	}
+}
+
+func TestNew_ClassValidationNoWarningWhenAllPresent(t *testing.T) {
+	tmp := t.TempDir()
+	wolfDir := filepath.Join(tmp, ".wolfcastle")
+	_ = os.MkdirAll(wolfDir, 0755)
+
+	// Create prompt files for every configured class.
+	writePromptFile(t, wolfDir, "classes/go.md")
+	writePromptFile(t, wolfDir, "classes/python.md")
+
+	cfg := testConfig()
+	cfg.TaskClasses = map[string]config.ClassDef{
+		"go":     {Description: "Go"},
+		"python": {Description: "Python"},
+	}
+
+	store := state.NewStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
+	d, err := New(cfg, wolfDir, store, "", tmp)
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+	if d == nil {
+		t.Fatal("daemon should be non-nil")
+	}
+}
+
 func TestScopeLabel(t *testing.T) {
 	d := testDaemon(t)
 	if d.scopeLabel() != "full tree" {

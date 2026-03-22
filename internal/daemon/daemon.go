@@ -114,6 +114,9 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 	prompts := pipeline.NewPromptRepository(wolfcastleDir)
 	classes := pipeline.NewClassRepository(prompts)
 	classes.Reload(cfg.TaskClasses)
+	if missing := classes.Validate(); len(missing) > 0 {
+		output.PrintHuman("Warning: task classes with missing prompt files: %v", missing)
+	}
 	ctxBuilder := pipeline.NewContextBuilder(prompts, classes)
 
 	return &Daemon{
@@ -563,11 +566,11 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	d.reconcileOrchestratorStates(idx)
 
 	nodeLoader := func(addr string) (*state.NodeState, error) {
-		a, parseErr := tree.ParseAddress(addr)
-		if parseErr != nil {
-			return nil, fmt.Errorf("parsing address %q: %w", addr, parseErr)
+		p, pathErr := d.Store.NodePath(addr)
+		if pathErr != nil {
+			return nil, fmt.Errorf("resolving address %q: %w", addr, pathErr)
 		}
-		return state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(a.Parts...), "state.json"))
+		return state.LoadNodeState(p)
 	}
 
 	// Step 1: Try to find an actionable task. Execute if found.

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
 // DaemonRepository consolidates all filesystem operations the daemon
@@ -45,8 +47,10 @@ func (r *DaemonRepository) ReadPID() (int, error) {
 }
 
 // WritePID writes the given PID as a decimal string with a trailing newline.
+// Uses atomic write (temp file + rename) so a crash mid-write never leaves
+// a truncated PID file.
 func (r *DaemonRepository) WritePID(pid int) error {
-	return os.WriteFile(r.pidPath(), []byte(fmt.Sprintf("%d\n", pid)), 0644)
+	return state.AtomicWriteFile(r.pidPath(), []byte(fmt.Sprintf("%d\n", pid)))
 }
 
 // RemovePID removes the PID file. Returns nil if the file does not exist.

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -39,6 +40,9 @@ func TestScaffoldService_Init_MkdirAllFailure(t *testing.T) {
 
 func TestScaffoldService_Init_GitignoreWriteFailure(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	svc, _, root := newScaffoldService(t)
 
 	// Pre-create all directories so MkdirAll succeeds, then make root

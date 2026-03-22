@@ -3,6 +3,7 @@ package project
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -14,6 +15,9 @@ import (
 
 func TestReinit_RemoveAllBaseFailure(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	svc, _, root := newScaffoldService(t)
 
 	if err := svc.Init(testIdentity()); err != nil {
@@ -39,6 +43,9 @@ func TestReinit_RemoveAllBaseFailure(t *testing.T) {
 
 func TestReinit_MkdirAllRecreationFailure(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	svc, _, root := newScaffoldService(t)
 
 	if err := svc.Init(testIdentity()); err != nil {
@@ -130,6 +137,9 @@ func TestReinit_WriteBasePromptsFailure(t *testing.T) {
 
 func TestReinit_WriteCustomConfigFailure(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	svc, _, root := newScaffoldService(t)
 
 	if err := svc.Init(testIdentity()); err != nil {
@@ -181,6 +191,9 @@ func TestReinit_InvalidLocalConfigJSON(t *testing.T) {
 
 func TestReinit_WriteLocalConfigFailure(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	svc, _, root := newScaffoldService(t)
 
 	if err := svc.Init(testIdentity()); err != nil {

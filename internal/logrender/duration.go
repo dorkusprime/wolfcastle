@@ -1,3 +1,6 @@
+// Package logrender provides formatters for rendering NDJSON daemon logs
+// into human-readable output. It supports session summaries, interleaved
+// stage views, agent thought extraction, and duration formatting.
 package logrender
 
 import (

@@ -2,7 +2,6 @@ package inbox
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -32,7 +31,7 @@ Examples:
 				return fmt.Errorf("empty text. Give Wolfcastle something to work with")
 			}
 
-			inboxPath := filepath.Join(app.State.Dir(), "inbox.json")
+			inboxPath := app.State.InboxPath()
 
 			item := state.InboxItem{
 				Timestamp: app.Clock.Now().Format("2006-01-02T15:04:05Z07:00"),

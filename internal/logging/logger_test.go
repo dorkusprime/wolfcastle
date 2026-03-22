@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -1079,6 +1080,9 @@ func TestAssistantWriter_WriteError(t *testing.T) {
 
 func TestCompressFile_ReadOnlyDst(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	dir := t.TempDir()
 	src := filepath.Join(dir, "test.jsonl")
 	_ = os.WriteFile(src, []byte("data"), 0644)

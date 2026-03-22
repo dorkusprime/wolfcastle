@@ -136,6 +136,7 @@ func applyNavigationMutation(rng *rand.Rand, tree *testTree) {
 
 // verifyINV1 checks that a returned task is actionable (not complete, not blocked).
 func verifyINV1(t *testing.T, tree *testTree, result *NavigationResult) bool {
+	t.Helper()
 	if !result.Found {
 		return true
 	}
@@ -159,6 +160,7 @@ func verifyINV1(t *testing.T, tree *testTree, result *NavigationResult) bool {
 // not tree-wide, because the DFS returns the first actionable task it finds.
 // This mirrors the exact allNonAuditDone computation in findActionableTask.
 func verifyINV2(t *testing.T, tree *testTree, result *NavigationResult) bool {
+	t.Helper()
 	if !result.Found {
 		return true
 	}
@@ -268,6 +270,7 @@ func computeAllNonAuditBlocked(ns *NodeState) bool {
 // verifyINV3 checks that parent tasks with children are never returned
 // (unless audit with all children complete).
 func verifyINV3(t *testing.T, tree *testTree, result *NavigationResult) bool {
+	t.Helper()
 	if !result.Found {
 		return true
 	}
@@ -297,6 +300,7 @@ func verifyINV3(t *testing.T, tree *testTree, result *NavigationResult) bool {
 // tasks; in_progress tasks bypass it (self-healing resumes crashed work
 // regardless of ancestor state).
 func verifyINV4(t *testing.T, tree *testTree, result *NavigationResult) bool {
+	t.Helper()
 	if !result.Found {
 		return true
 	}
@@ -322,6 +326,7 @@ func verifyINV4(t *testing.T, tree *testTree, result *NavigationResult) bool {
 
 // verifyINV5 checks that all-complete yields Found==false with reason "all_complete".
 func verifyINV5(t *testing.T, tree *testTree, result *NavigationResult) bool {
+	t.Helper()
 	allComplete := len(tree.idx.Nodes) > 0
 	for _, entry := range tree.idx.Nodes {
 		if entry.State != StatusComplete {
@@ -346,6 +351,7 @@ func verifyINV5(t *testing.T, tree *testTree, result *NavigationResult) bool {
 
 // verifyINV6 checks the all_blocked / all_complete reason logic.
 func verifyINV6(t *testing.T, tree *testTree, result *NavigationResult) bool {
+	t.Helper()
 	if result.Found || len(tree.idx.Nodes) == 0 {
 		return true
 	}
@@ -372,6 +378,7 @@ func verifyINV6(t *testing.T, tree *testTree, result *NavigationResult) bool {
 
 // verifyINV7 checks that empty trees yield Found==false with reason "empty_tree".
 func verifyINV7(t *testing.T, tree *testTree, result *NavigationResult) bool {
+	t.Helper()
 	if len(tree.idx.Nodes) != 0 {
 		return true
 	}
@@ -389,6 +396,7 @@ func verifyINV7(t *testing.T, tree *testTree, result *NavigationResult) bool {
 // verifyInProgressPriority checks that not_started tasks are only returned
 // when no in_progress non-parent task exists in the same node.
 func verifyInProgressPriority(t *testing.T, tree *testTree, result *NavigationResult) bool {
+	t.Helper()
 	if !result.Found {
 		return true
 	}
