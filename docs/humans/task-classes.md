@@ -159,7 +159,7 @@ Discipline classes cover work that isn't primarily about writing code in a speci
 | Class Key | Description |
 |-----------|-------------|
 | `architecture` | ADRs, dependency analysis, failure modes, decomposition |
-| `research` | Source citation, accuracy over speed, structured output |
+| `research` | Source citation, accuracy over speed, structured output (model: `light`) |
 | `writing` | Reader-first, concrete examples, scannable structure |
 | `design` | User goals, interaction sequences, edge states |
 | `devops` | Dockerfile, GitHub Actions, Terraform, deployment safety |
