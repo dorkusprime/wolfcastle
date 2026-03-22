@@ -1278,4 +1278,3 @@ func TestIsInSubtree_NestedHierarchy(t *testing.T) {
 		t.Error("nonexistent should not be in subtree of a")
 	}
 }
-
