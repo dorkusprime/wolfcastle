@@ -19,12 +19,12 @@
     {
       "id": "configuration-guide",
       "address": "configuration-docs-overhaul/write-config-pages/configuration-guide",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "config-quickstart",
       "address": "configuration-docs-overhaul/write-config-pages/config-quickstart",
-      "state": "not_started"
+      "state": "in_progress"
     }
   ],
   "tasks": [

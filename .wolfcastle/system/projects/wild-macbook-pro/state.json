@@ -93,7 +93,7 @@
     "configuration-docs-overhaul/write-config-pages/config-quickstart": {
       "name": "Config Quickstart",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "configuration-docs-overhaul/write-config-pages/config-quickstart",
       "decomposition_depth": 0,
       "parent": "configuration-docs-overhaul/write-config-pages"
@@ -109,7 +109,7 @@
     "configuration-docs-overhaul/write-config-pages/configuration-guide": {
       "name": "Configuration Guide",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "configuration-docs-overhaul/write-config-pages/configuration-guide",
       "decomposition_depth": 0,
       "parent": "configuration-docs-overhaul/write-config-pages"

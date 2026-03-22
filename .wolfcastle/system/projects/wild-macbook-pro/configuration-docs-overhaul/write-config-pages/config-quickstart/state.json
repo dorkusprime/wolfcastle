@@ -3,14 +3,14 @@
   "id": "config-quickstart",
   "name": "Config Quickstart",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Write config-quickstart.md",
       "description": "Write config-quickstart.md",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/config-quickstart.md"
@@ -37,9 +37,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T19:14:59.302131Z",
+        "task": "configuration-docs-overhaul/write-config-pages/config-quickstart",
+        "text": "Wrote config-quickstart.md with four recipes: change model, add stage, override prompt, set task class"
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T19:12:38.676877Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T19:14:58.425194Z",
+      "objective": "Write config-quickstart.md as a five-minute getting-started page with four practical recipes",
+      "what_happened": "Created docs/humans/config-quickstart.md with four sections: Change Your Model (JSON + CLI), Add a Custom Stage (stages dict + stage_order + prompt file), Override a Prompt (tier mechanics with execute.md example), Set a Task Class (--class flag with fallback behavior). Studied the actual config structs, base config JSON, and prompt resolution code to ensure all field names and paths are accurate.",
+      "went_well": [
+        "Kept each recipe tight: prose plus one code block, no theory wandering",
+        "JSON examples match real config structure from types.go and base/config.json"
+      ],
+      "improvements": [
+        "The models JSON example is verbose because args is a flat array of CLI flags; a future config redesign could make model switching a single field change"
+      ],
+      "action_items": [
+        "Deep-linking pass should add links to this page from README and how-it-works.md"
+      ]
+    }
   }
 }

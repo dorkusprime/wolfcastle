@@ -3,7 +3,7 @@
   "id": "configuration-guide",
   "name": "Configuration Guide",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -24,7 +24,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Configuration Guide is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -79,8 +79,9 @@
       }
     ],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T19:06:42.215979Z",
+    "completed_at": "2026-03-22T19:12:38.559338Z",
     "result_summary": "Rewrote docs/humans/configuration.md from a 123-line overview into a 476-line guide covering three-tier directory structure, merge semantics with concrete before/after examples, common customizations (models, pipeline stages, class overrides, prompt overrides, rule fragments, audit scopes), config inspection commands, CLI write commands, and the security model. Audit verified all technical claims against Go source, found and fixed three inaccuracies (config show section syntax, default CLI tier, broken quickstart link), and confirmed cross-references to config-reference.md, task-classes.md, how-it-works.md, and CLI pages."
   },
   "aars": {
