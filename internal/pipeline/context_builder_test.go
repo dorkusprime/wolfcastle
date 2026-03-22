@@ -549,6 +549,70 @@ func TestContextBuilder_PanicsOnNilClasses(t *testing.T) {
 	pipeline.NewContextBuilder(env.Prompts, nil)
 }
 
+func TestContextBuilder_UniversalGuidance_AppearsWithClassifiedTask(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithClasses(map[string]config.ClassDef{"lang-go": {}}).
+		WithPrompt("classes/lang-go.md", "Go idioms apply.").
+		WithPrompt("classes/universal.md", "Universal principles for all tasks.")
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Classified work", State: state.StatusInProgress, Class: "lang-go"},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
+	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "## Universal Guidance") {
+		t.Error("universal guidance should appear even when task has a class")
+	}
+	if !strings.Contains(got, "Universal principles for all tasks.") {
+		t.Error("universal guidance content missing for classified task")
+	}
+	if !strings.Contains(got, "## Class Guidance") {
+		t.Error("class guidance should also appear alongside universal")
+	}
+	if !strings.Contains(got, "Go idioms apply.") {
+		t.Error("class-specific content missing")
+	}
+}
+
+func TestContextBuilder_ClassResolved_DoesNotUseCodingDefault(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithClasses(map[string]config.ClassDef{"lang-go": {}}).
+		WithPrompt("classes/lang-go.md", "Go-specific guidance.").
+		WithPrompt("classes/coding/default.md", "Default coding fallback.")
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Typed task", State: state.StatusInProgress, Class: "lang-go"},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
+	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "Go-specific guidance.") {
+		t.Error("resolved class guidance should appear")
+	}
+	if strings.Contains(got, "Default coding fallback.") {
+		t.Error("coding/default.md should NOT appear when class resolves successfully")
+	}
+}
+
 func TestContextBuilder_ClassResolveError_FallsToCodingDefault(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t).
