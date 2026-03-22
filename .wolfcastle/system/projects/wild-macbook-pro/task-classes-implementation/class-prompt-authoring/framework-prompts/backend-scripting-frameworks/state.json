@@ -43,7 +43,7 @@
       "id": "task-0004",
       "title": "Write Python/Flask class prompt",
       "description": "Write Python/Flask class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/python/flask.md"
@@ -54,7 +54,7 @@
       "id": "task-0005",
       "title": "Write Ruby/Rails class prompt",
       "description": "Write Ruby/Rails class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/ruby/rails.md"
@@ -108,6 +108,11 @@
         "timestamp": "2026-03-22T08:36:42.861114Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
         "text": "Authored Python/Flask class prompt (41 lines) covering app factory pattern, contexts, configuration, SQLAlchemy integration, templates, testing, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T08:38:55.59895Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Ruby/Rails class prompt (45 lines) covering MVC conventions, ActiveRecord patterns, strong parameters, routing DSL, ActiveJob, Hotwire/Turbo, testing (RSpec/Minitest, factory_bot, Capybara), and common pitfalls (N+1, fat controllers, callback hell, mass assignment, zero-downtime migrations) [task-0005]"
       }
     ],
     "gaps": [],
@@ -175,6 +180,22 @@
       ],
       "improvements": [
         "Could add guidance on async support in Flask 2.0+ (async views, async before_request) but the async story in Flask remains secondary to FastAPI and the prompt is better served staying focused on Flask's synchronous strengths"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T08:38:50.712045Z",
+      "objective": "Author the Ruby/Rails framework class prompt covering Rails conventions, ActiveRecord, controllers, routing, jobs, Hotwire, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/ruby/rails.md (45 lines). Followed the established pattern from sibling prompts. Covered Rails 7.x patterns including strict_loading, Solid Queue as a job backend option, Turbo Frames/Streams with Stimulus, strong_migrations gem for zero-downtime deploys, and the deprecation of controller specs in favor of request specs.",
+      "went_well": [
+        "Clean separation from a hypothetical base Ruby prompt: framework-specific patterns (ActiveRecord eager loading, strong parameters, Turbo/Hotwire) sit here while language fundamentals would stay in a parent ruby.md",
+        "Zero-downtime migration section captures the PostgreSQL \u003c 11 column-default rewrite gotcha and the rename-via-add-backfill-drop pattern, both of which are common production incidents"
+      ],
+      "improvements": [
+        "Could add guidance on Rails credentials (credentials.yml.enc) and Action Cable patterns, but these are secondary to the core web framework patterns and the prompt is already at 45 lines"
       ],
       "action_items": [
         "None; prompt is self-contained"
