@@ -93,6 +93,11 @@
         "timestamp": "2026-03-22T07:22:34.405771Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
         "text": "Authored Scala class prompt (51 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T07:24:36.297685Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Authored C# class prompt (51 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0004]"
       }
     ],
     "gaps": [],
@@ -147,6 +152,22 @@
       ],
       "action_items": [
         "If Scala effect systems (Cats Effect, ZIO) warrant deeper coverage, consider a dedicated functional-programming class prompt"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T07:24:35.133062Z",
+      "objective": "Author the C# coding class prompt to replace default.md for C#-classified tasks",
+      "what_happened": "Wrote internal/project/templates/prompts/classes/coding/csharp.md (51 lines). Followed the established format from java.md and kotlin.md: codebase-deference preamble, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered nullable reference types, records, pattern matching, LINQ with method vs query syntax guidance, async/await with ConfigureAwait context, file-scoped namespaces, sealed classes. Build section covers dotnet CLI, NuGet, dotnet-format/CSharpier, Roslyn analyzers. Testing covers xUnit, FluentAssertions, NSubstitute/Moq, IClassFixture for shared setup. Five common pitfalls: async void, IDisposable leaks with HttpClient factory note, .Result/.Wait() deadlocks, mutable struct gotchas, string concatenation in loops.",
+      "went_well": [
+        "Existing JVM prompts provided consistent structural template for section layout and prefer-X phrasing",
+        "ConfigureAwait guidance distinguishes library vs application code rather than giving blanket advice"
+      ],
+      "improvements": [
+        "Could have included guidance on source generators or Span\u003cT\u003e/Memory\u003cT\u003e for performance-sensitive code, but the 40-80 line budget was better spent on the core idioms specified in the task"
+      ],
+      "action_items": [
+        "If ASP.NET or Blazor-specific guidance is needed, consider a dedicated web-framework class prompt"
       ]
     }
   }
