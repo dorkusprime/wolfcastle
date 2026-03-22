@@ -3,14 +3,14 @@
   "id": "configuration-guide",
   "name": "Configuration Guide",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Rewrite configuration.md",
       "description": "Rewrite configuration.md",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/configuration.md"
@@ -37,9 +37,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T19:08:44.313785Z",
+        "task": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "text": "Rewrote configuration.md as full how-it-works guide with six sections: three-tier structure, merge semantics with before/after examples, common customizations (models, stages, classes, prompts, fragments, audit), config inspection, CLI write commands, and security model. Cross-references config-reference.md, task-classes.md, and how-it-works.md throughout."
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T19:06:42.215979Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T19:08:55.163303Z",
+      "objective": "Rewrite configuration.md as the comprehensive how-it-works guide for Wolfcastle configuration",
+      "what_happened": "Rewrote docs/humans/configuration.md from a 123-line overview into a ~300-line guide with six sections: three-tier directory structure (visual tree, tier table, prompt/rule resolution explanation), merge semantics (three rules with concrete before/after JSON examples), common customizations (models, pipeline stages, class overrides, prompt overrides, rule fragments, audit scopes), inspecting config (config show with flags), CLI config commands (set/unset/append/remove with examples), and security (team enforcement vs personal loosening). Preserved all content from the original page while substantially expanding every section.",
+      "went_well": [
+        "The merge semantics section with three concrete before/after examples should make the rules immediately obvious",
+        "Cross-references to config-reference.md, task-classes.md, how-it-works.md, and CLI pages create a connected documentation set"
+      ],
+      "improvements": [
+        "CLI command page links (cli/config-show.md etc) are aspirational; those pages may not exist yet"
+      ],
+      "action_items": [
+        "Verify CLI page links exist during the deep-linking pass task"
+      ]
+    }
   }
 }

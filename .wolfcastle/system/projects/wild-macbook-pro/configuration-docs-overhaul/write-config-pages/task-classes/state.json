@@ -3,7 +3,7 @@
   "id": "task-classes",
   "name": "Task Classes",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -25,7 +25,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Task Classes is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -52,8 +52,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T19:01:44.9009Z",
+    "completed_at": "2026-03-22T19:06:42.087011Z",
     "result_summary": "Wrote and audited docs/humans/task-classes.md, a complete reference for the task class system. The document covers all nine planned sections: concept overview, usage with framework fallback, language tables (20 entries), framework tables (21 entries grouped by parent language), discipline classes (9 entries), custom class creation, built-in overrides, custom framework creation, and the universal prompt. All entries verified against Defaults() in internal/config/config.go. Cross-references to configuration.md and config-reference.md resolve correctly. One minor fix applied during audit: added the research class's model override to the discipline table."
   },
   "aars": {
