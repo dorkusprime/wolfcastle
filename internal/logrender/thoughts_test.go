@@ -123,20 +123,34 @@ func TestThoughtsRenderer_ClaudeAPIEnvelope(t *testing.T) {
 	NewThoughtsRenderer(&buf).Render(context.Background(), feedRecords(recs))
 
 	got := buf.String()
-	if !bytes.Contains([]byte(got), []byte("[session started]")) {
-		t.Errorf("expected [session started] for system init, got:\n%s", got)
-	}
+	// Only text content blocks from assistant envelopes should appear.
 	if !bytes.Contains([]byte(got), []byte("Hello from the model")) {
 		t.Errorf("expected extracted text content, got:\n%s", got)
 	}
-	if bytes.Contains([]byte(got), []byte("internal reasoning")) {
-		t.Errorf("thinking blocks should be filtered out, got:\n%s", got)
+	// System init, thinking, tool use, and result envelopes are not thoughts.
+	for _, unwanted := range []string{"[session started]", "internal reasoning", "Bash", "[result]"} {
+		if bytes.Contains([]byte(got), []byte(unwanted)) {
+			t.Errorf("thoughts output should not contain %q, got:\n%s", unwanted, got)
+		}
 	}
-	if !bytes.Contains([]byte(got), []byte("Bash")) {
-		t.Errorf("expected tool use summary, got:\n%s", got)
+	// Exact output: one line of text.
+	expected := "Hello from the model\n"
+	if got != expected {
+		t.Errorf("got:\n%q\nwant:\n%q", got, expected)
 	}
-	if !bytes.Contains([]byte(got), []byte("[result]")) {
-		t.Errorf("expected result prefix, got:\n%s", got)
+}
+
+func TestThoughtsRenderer_MultipleTextBlocks(t *testing.T) {
+	recs := []Record{
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"text","text":"First block"},{"type":"tool_use","name":"Read","input":{}},{"type":"text","text":"Second block"}]}}`},
+	}
+
+	var buf bytes.Buffer
+	NewThoughtsRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	expected := "First block\nSecond block\n"
+	if buf.String() != expected {
+		t.Errorf("got:\n%q\nwant:\n%q", buf.String(), expected)
 	}
 }
 

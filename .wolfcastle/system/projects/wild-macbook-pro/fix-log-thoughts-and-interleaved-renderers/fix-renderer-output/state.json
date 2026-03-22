@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Reproduce and diagnose raw NDJSON output",
       "description": "Reproduce and diagnose raw NDJSON output",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/thoughts.go",
@@ -22,7 +22,7 @@
       "id": "task-0002",
       "title": "Fix thoughts renderer to match spec",
       "description": "Fix thoughts renderer to match spec",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/thoughts.go",
@@ -87,7 +87,8 @@
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T18:12:55.460906Z"
+    "started_at": "2026-03-22T18:12:55.460906Z",
+    "result_summary": "Diagnosed and fixed the raw NDJSON output bug in both ThoughtsRenderer and InterleavedRenderer. The root cause was that the daemon's assistantLogWriter stores Claude Code's raw stdout (JSON API envelopes) as the text field of assistant log records. Both renderers printed r.Text verbatim. The fix adds invoke.FormatAssistantText calls in both renderers to extract human-readable content from the JSON envelopes. All existing tests pass (FormatAssistantText passes plain text through unchanged), and new tests verify correct handling of real Claude API envelope formats."
   },
   "aars": {
     "task-0001": {
