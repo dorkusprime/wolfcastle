@@ -3,7 +3,7 @@
   "id": "subdirectory-assembly",
   "name": "Subdirectory Assembly",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -33,7 +33,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Subdirectory Assembly is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -65,8 +65,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T14:30:38.177578Z",
+    "completed_at": "2026-03-22T14:39:07.394397Z",
     "result_summary": "Subdirectory assembly enables class prompts to be composed from a main .md file plus lexicographically sorted fragment files in a same-named subdirectory. ClassRepository.Resolve was refactored to track which key (exact or parent fallback) successfully resolved, then collects fragments from prompts/classes/{resolvedKey}/ via ListFragments and appends them with newline separators. ListFragments errors are silently discarded since the main file content is always self-sufficient. Five new tests cover the assembly matrix: basic two-fragment assembly, no-subdirectory passthrough, fallback-key assembly, four-fragment sort-order verification, and I/O error graceful degradation via chmod. Coverage sits at 97.6%. The one deliberate tradeoff (silent error discard) is documented in code and flagged for future debug-logging enhancement."
   },
   "aars": {

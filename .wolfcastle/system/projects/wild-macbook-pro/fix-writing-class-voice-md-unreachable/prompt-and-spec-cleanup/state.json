@@ -3,14 +3,14 @@
   "id": "prompt-and-spec-cleanup",
   "name": "Prompt and Spec Cleanup",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Update writing.md to remove dangling voice reference",
       "description": "Update writing.md to remove dangling voice reference",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/writing.md"
@@ -47,6 +47,7 @@
     "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T14:39:07.467316Z"
   }
 }

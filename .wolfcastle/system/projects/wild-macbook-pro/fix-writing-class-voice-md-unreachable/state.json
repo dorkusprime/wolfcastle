@@ -9,12 +9,12 @@
     {
       "id": "subdirectory-assembly",
       "address": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "prompt-and-spec-cleanup",
       "address": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
-      "state": "not_started"
+      "state": "in_progress"
     }
   ],
   "tasks": [

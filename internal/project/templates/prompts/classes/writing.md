@@ -2,8 +2,6 @@
 
 When the project you're working in has established style conventions that differ from what's described here, follow the project.
 
-Voice and tone guidance is loaded separately so it can be overridden independently. Refer to that prompt for voice-specific direction.
-
 ## Structure
 
 **Lead with the answer.** Put the conclusion, recommendation, or most important information first. Supporting details, context, and caveats follow. A reader who stops after the first paragraph should still walk away with the essential point.
