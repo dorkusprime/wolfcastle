@@ -19,13 +19,23 @@ wolfcastle task add --node <path> "<description>"
 | Flag | Description |
 |------|-------------|
 | `--node <path>` | **(Required)** Tree address of the target leaf node. |
+| `--body <text>` | Detailed task description/body. |
+| `--stdin` | Read task body from stdin. |
+| `--deliverable <path>` | Expected output file. Repeatable. |
+| `--type <type>` | Task type: `discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup`. |
+| `--class <class>` | Task class override (e.g., `coding/go`). Must match a configured class. |
+| `--constraint <text>` | Constraint: what not to do. Repeatable. |
+| `--acceptance <text>` | Acceptance criterion. Repeatable. |
+| `--reference <path>` | Reference material path. Repeatable. |
+| `--integration <text>` | How this task connects to other work. |
+| `--parent <task-id>` | Parent task ID for hierarchical decomposition (e.g., `task-0001`). |
 | `--json` | Output as structured JSON. |
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `description` | **(Required)** What the task should accomplish. |
+| `title` | **(Required)** What the task should accomplish. |
 
 ## Exit Codes
 

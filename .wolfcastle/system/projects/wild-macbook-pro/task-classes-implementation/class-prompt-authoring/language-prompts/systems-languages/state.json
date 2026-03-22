@@ -1,0 +1,201 @@
+{
+  "version": 1,
+  "id": "systems-languages",
+  "name": "Systems Languages",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Author Go prompt",
+      "description": "Author Go prompt",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/go.md"
+      ],
+      "last_failure_type": "no_terminal_marker",
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/go.md (40-80 lines). This file REPLACES coding/default.md for Go-classified tasks. Cover: idiomatic Go style (accept interfaces/return structs, error wrapping with %w, table-driven tests, short variable names in tight scopes), build/test tooling (go build, go test ./..., go vet, gofmt/goimports, golangci-lint), testing conventions (testify or stdlib, subtests, testdata/), and common pitfalls (nil pointer on interface, goroutine leaks, deferred close in loops, shadowed err). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Author Rust prompt",
+      "description": "Author Rust prompt",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/rust.md"
+      ],
+      "last_failure_type": "no_terminal_marker",
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/rust.md (40-80 lines). REPLACES coding/default.md for Rust-classified tasks. Cover: ownership/borrowing idioms, Result/Option patterns (prefer ? operator, avoid unwrap in library code), build/test tooling (cargo build, cargo test, cargo clippy, cargo fmt, rustfmt.toml), testing conventions (unit tests in same file via #[cfg(test)] mod, integration tests in tests/), and common pitfalls (lifetime annotations, borrow checker fights from over-borrowing, String vs \u0026str at API boundaries, async runtime selection). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Author C++ prompt",
+      "description": "Author C++ prompt",
+      "state": "complete",
+      "failure_count": 1,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/cpp.md"
+      ],
+      "last_failure_type": "no_terminal_marker",
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/cpp.md (40-80 lines). REPLACES coding/default.md for C++-classified tasks. Cover: modern C++ idioms (RAII, smart pointers over raw, move semantics, constexpr where appropriate), build/test tooling (CMake, Make, clang-tidy, clang-format, cppcheck), testing conventions (Google Test, Catch2, CTest integration), and common pitfalls (undefined behavior, dangling references, implicit conversions, header-only vs compiled libraries, include-what-you-use). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Author C prompt",
+      "description": "Author C prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/c.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/c.md (40-80 lines). REPLACES coding/default.md for C-classified tasks. Cover: idiomatic C style (explicit memory management, consistent error return patterns, defensive initialization), build/test tooling (Make/CMake, gcc/clang, valgrind, AddressSanitizer, clang-format), testing conventions (Unity, CMocka, or project-established framework), and common pitfalls (buffer overflows, use-after-free, null dereference, integer overflow, missing include guards, POSIX portability). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Systems Languages is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify go.md, rust.md, cpp.md, and c.md each follow the section structure from coding/default.md (Design or Style, Build and Test, Testing, pitfalls) and contain language-specific tool invocations, not generic advice"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T07:04:00.588578Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Authored Go class prompt (80 lines) covering style, build/test, testing, concurrency, and pitfalls. Committed as d172f44."
+      },
+      {
+        "timestamp": "2026-03-22T07:05:52.443492Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Authored Rust class prompt (61 lines) covering style, build/test, testing, ownership/lifetimes, async, and pitfalls. Committed as 1e65118."
+      },
+      {
+        "timestamp": "2026-03-22T07:11:33.00848Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Authored C++ class prompt (67 lines) covering style, build/test, testing, memory/lifetime, and pitfalls. Committed as 3a80474."
+      },
+      {
+        "timestamp": "2026-03-22T07:13:45.328211Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Authored C class prompt (71 lines) covering style, build/test, testing, memory/resource management, and pitfalls. Committed as 6217171."
+      },
+      {
+        "timestamp": "2026-03-22T07:16:06.216621Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Audit reviewed 4 prompt files (279 lines total): go.md (80), rust.md (61), cpp.md (67), c.md (71). PASS. All four follow consistent section structure (Style, Build and Test, Testing, [language-specific], Common Pitfalls). No content duplication with default.md or across files. Each prompt covers its language's distinctive concerns: Go gets concurrency/goroutines, Rust gets ownership/lifetimes/async, C++ gets RAII/smart-pointers/move-semantics, C gets explicit memory management/goto-cleanup. Code example in go.md is syntactically correct. Fallback resolution verified: files at prompts/classes/coding/\u003clang\u003e.md match ClassRepository.Resolve expectations, with context_builder.go falling back to coding/default.md when no class-specific prompt resolves. Build, tests (with -race), and lint all pass clean. No findings requiring remediation."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T06:59:35.929487Z",
+    "completed_at": "2026-03-22T07:16:28.31349Z",
+    "result_summary": "Authored four language-specific class prompts for systems languages (Go, Rust, C++, C) totaling 279 lines. Each prompt replaces coding/default.md when a task is classified as the corresponding language, providing idiomatic guidance on style, build tooling, testing conventions, and common pitfalls. Go (80 lines) covers concurrency patterns and goroutine lifecycle. Rust (61 lines) covers ownership, lifetimes, and async runtime selection. C++ (67 lines) covers RAII, smart pointers, move semantics, and the static initialization order fiasco. C (71 lines) covers explicit memory management, goto-cleanup, and implicit function declarations. All files follow a consistent section structure, avoid duplicating the universal coding guidance in default.md, and resolve correctly through ClassRepository's one-level fallback chain. Audit found no gaps requiring remediation."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T07:16:21.306901Z",
+      "objective": "Verify all systems language class prompts are complete, correct, and high-quality",
+      "what_happened": "Reviewed all four prompt files (go.md, rust.md, cpp.md, c.md) plus default.md and the ClassRepository resolution code. Verified build, tests, and lint pass clean. Confirmed file placement matches ClassRepository.Resolve expectations. Found no issues requiring remediation.",
+      "went_well": [
+        "Consistent section structure across all four prompts makes them easy to compare and maintain",
+        "No duplication with default.md; each prompt stays in its language-specific lane",
+        "The code example in go.md is syntactically valid and demonstrates the table-driven pattern well"
+      ],
+      "improvements": [
+        "None identified; the prompts are well-scoped and correctly integrated"
+      ],
+      "action_items": [
+        "If additional systems languages are needed (Zig, Assembly), they follow the same pattern: create prompts/classes/coding/\u003clang\u003e.md with the established section structure"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T07:03:59.390785Z",
+      "objective": "Author the Go class prompt that replaces coding/default.md for Go-classified tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/go.md at exactly 80 lines. Studied the existing default.md and universal.md to avoid duplicating generic coding guidance. Structured into five sections: Style, Build and Test, Testing, Concurrency, and Common Pitfalls. Used 'prefer X' phrasing throughout. Includes a table-driven test code example. Contains zero wolfcastle-specific content.",
+      "went_well": [
+        "The section structure mirrors the concerns called out in the task description (idiomatic style, build/test tooling, testing conventions, common pitfalls) with concurrency as a natural addition for Go",
+        "Hitting the 80-line target required iterative trimming without sacrificing substance"
+      ],
+      "improvements": [
+        "Could have included guidance on module versioning and go.sum management, but line budget didn't allow it"
+      ],
+      "action_items": [
+        "If a Go-specific testing section on benchmarks (b.Run, b.ResetTimer) is desired, it would need a line budget increase or a separate prompt fragment"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T07:05:51.474673Z",
+      "objective": "Author the Rust class prompt that replaces coding/default.md for Rust-classified tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/rust.md at 61 lines. Structured into six sections: Style, Build and Test, Testing, Ownership and Lifetimes, Async, and Common Pitfalls. Followed the same pattern as go.md, using 'prefer X' phrasing throughout. Covered all required topics: ownership/borrowing idioms, Result/Option patterns with ? operator, cargo tooling, testing conventions (#[cfg(test)] and tests/ directory), lifetime annotations, borrow checker guidance, String vs \u0026str at API boundaries, and async runtime selection.",
+      "went_well": [
+        "The section split of Ownership/Lifetimes and Async as separate sections (beyond the Go prompt's structure) better reflects the distinctive concerns of Rust",
+        "61 lines gave enough room for all required topics without padding"
+      ],
+      "improvements": [
+        "Could have included guidance on feature flags and conditional compilation, but that felt outside the core coding prompt scope"
+      ],
+      "action_items": [
+        "If unsafe code guidance is desired, it would need its own section or a line budget increase"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T07:11:31.461521Z",
+      "objective": "Author the C++ class prompt that replaces coding/default.md for C++-classified tasks",
+      "what_happened": "The previous iteration wrote internal/project/templates/prompts/classes/coding/cpp.md at 67 lines but failed to emit a terminal marker. Reviewed the content, confirmed it covers all required topics (RAII, smart pointers, move semantics, constexpr, CMake/Make/clang-tidy/clang-format/cppcheck, Google Test/Catch2/CTest, UB, dangling references, implicit conversions, include-what-you-use, header-only vs compiled). Added a Memory and Lifetime section as a natural fit for C++. Validated build and tests, then committed.",
+      "went_well": [
+        "The six-section structure (Style, Build and Test, Testing, Memory and Lifetime, Common Pitfalls) maps well to the distinctive concerns of C++",
+        "67 lines gave room for all required topics including the static initialization order fiasco, which is a classic C++ trap worth calling out"
+      ],
+      "improvements": [
+        "Could have included guidance on C++20 modules as a forward-looking alternative to the header/source split, but modules adoption is still uneven"
+      ],
+      "action_items": [
+        "If template metaprogramming guidance is desired, it would need its own section or a separate prompt fragment"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T07:13:44.168501Z",
+      "objective": "Author the C class prompt that replaces coding/default.md for C-classified tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/c.md at 71 lines. Structured into six sections: Style, Build and Test, Testing, Memory and Resource Management, and Common Pitfalls. Followed the same pattern as go.md/rust.md/cpp.md. Covered all required topics: explicit memory management with ownership documentation, error return patterns, defensive initialization, Make/CMake/gcc/clang tooling, AddressSanitizer/Valgrind, clang-format, Unity/CMocka testing, buffer overflows, use-after-free, null dereference, integer overflow, include guards, POSIX portability, and implicit function declarations.",
+      "went_well": [
+        "The Memory and Resource Management section covers the goto-cleanup idiom which is genuinely idiomatic C and worth calling out",
+        "71 lines gave room for all required topics plus implicit function declarations as a bonus pitfall"
+      ],
+      "improvements": [
+        "Could have included guidance on C11 atomics and threading (_Thread_local, mtx_t) but that felt outside core scope for a general C prompt"
+      ],
+      "action_items": [
+        "If embedded/bare-metal C guidance is desired it would need a separate class or prompt fragment since the conventions differ significantly from hosted C"
+      ]
+    }
+  }
+}

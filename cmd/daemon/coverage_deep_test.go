@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -453,6 +454,9 @@ func TestStartBackground_PIDWriteFailure(t *testing.T) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoverStaleDaemonState_ReadError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getenv("CI") != "" {
 		t.Skip("skip in CI")
 	}
@@ -712,5 +716,29 @@ func TestShowTreeStatus_AllStateCountParts(t *testing.T) {
 
 	if err := showTreeStatus(env.App, idx, ""); err != nil {
 		t.Fatalf("showTreeStatus all states: %v", err)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// timelinePriority — all status branches
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestTimelinePriority_AllStatuses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		status state.NodeStatus
+		want   int
+	}{
+		{state.StatusComplete, 0},
+		{state.StatusInProgress, 1},
+		{state.StatusBlocked, 2},
+		{state.StatusNotStarted, 3},
+		{state.NodeStatus("unknown"), 4},
+	}
+	for _, tc := range cases {
+		got := timelinePriority(tc.status)
+		if got != tc.want {
+			t.Errorf("timelinePriority(%q) = %d, want %d", tc.status, got, tc.want)
+		}
 	}
 }

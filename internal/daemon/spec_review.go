@@ -40,13 +40,9 @@ func (d *Daemon) checkSpecReviewNeeded(nodeAddr, taskID string) bool {
 		return false
 	}
 
-	// Only spec tasks trigger review.
+	// Only spec tasks trigger review. Review tasks (spec-review) and
+	// all other types are excluded.
 	if specTask.TaskType != "spec" {
-		return false
-	}
-
-	// Don't create a review for a task that is itself a review.
-	if specTask.TaskType == specReviewTaskType {
 		return false
 	}
 

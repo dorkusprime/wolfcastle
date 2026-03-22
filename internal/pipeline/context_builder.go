@@ -108,14 +108,30 @@ func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeS
 		}
 		b.WriteString(taskCtx)
 
-		// 4. Class guidance
+		// 4a. Universal guidance (always injected)
+		if universal, err := cb.prompts.ResolveRaw("prompts/classes", "universal.md"); err == nil {
+			b.WriteString("\n## Universal Guidance\n\n")
+			b.WriteString(universal)
+			if !strings.HasSuffix(universal, "\n") {
+				b.WriteString("\n")
+			}
+		}
+
+		// 4b. Class guidance (always injected; falls back to coding/default.md)
+		var classGuidance string
 		if task.Class != "" {
-			if guidance, err := cb.classes.Resolve(task.Class); err == nil {
-				b.WriteString("\n## Class Guidance\n\n")
-				b.WriteString(guidance)
-				if !strings.HasSuffix(guidance, "\n") {
-					b.WriteString("\n")
-				}
+			if resolved, err := cb.classes.Resolve(task.Class); err == nil {
+				classGuidance = resolved
+			}
+		}
+		if classGuidance == "" {
+			classGuidance, _ = cb.prompts.ResolveRaw("prompts/classes", "coding/default.md")
+		}
+		if classGuidance != "" {
+			b.WriteString("\n## Class Guidance\n\n")
+			b.WriteString(classGuidance)
+			if !strings.HasSuffix(classGuidance, "\n") {
+				b.WriteString("\n")
 			}
 		}
 	}

@@ -1,0 +1,250 @@
+{
+  "version": 1,
+  "id": "backend-scripting-frameworks",
+  "name": "Backend Scripting Frameworks",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write JavaScript/Node class prompt",
+      "description": "Write JavaScript/Node class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/javascript/node.md"
+      ],
+      "body": "BEFORE WRITING: Research this framework's current ecosystem. Search for the official documentation, community-accepted patterns, modern testing approaches, and recent API changes. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt. Framework prompts should NOT repeat language fundamentals (the fallback mechanism handles that).\n\nAuthor internal/project/templates/prompts/classes/coding/javascript/node.md (30-60 lines). Cover: Node.js runtime patterns (event loop, streams, buffer handling), Express/Fastify middleware patterns, module systems (ESM vs CommonJS interop), async patterns (async/await, error handling in async middleware), environment configuration, testing with Node test runner or Jest (supertest for HTTP, mocking fs/child_process), and common pitfalls (unhandled promise rejections crashing the process, blocking the event loop with sync operations, memory leaks from event listener accumulation, callback error conventions). Do NOT repeat JavaScript language fundamentals. Use 'prefer X' phrasing. Research current Node.js 20+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0002",
+      "title": "Write Python/Django class prompt",
+      "description": "Write Python/Django class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/python/django.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/python/django.md (30-60 lines). Cover: Django project structure (apps, models, views, URLs, settings), ORM patterns (querysets, select_related/prefetch_related, F/Q expressions, migrations), class-based views vs function-based views, Django REST Framework patterns if applicable, template patterns, middleware, signals usage, Django-specific testing (TestCase vs TransactionTestCase, Client, RequestFactory, fixture management, factory_boy), and common pitfalls (N+1 queries, migration conflicts, circular imports between apps, mutable default in model fields, timezone-naive datetimes). Do NOT repeat Python language fundamentals. Use 'prefer X' phrasing. Research current Django 5.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0003",
+      "title": "Write Python/FastAPI class prompt",
+      "description": "Write Python/FastAPI class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/python/fastapi.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/python/fastapi.md (30-60 lines). Cover: FastAPI patterns (path operations, dependency injection, Pydantic models for request/response, async vs sync endpoints), router organization, middleware and exception handlers, background tasks, WebSocket support, database integration patterns (SQLAlchemy async sessions, Alembic migrations), testing with TestClient (httpx-based), pytest fixtures for app/database lifecycle, and common pitfalls (sync functions blocking the async event loop, Pydantic v2 migration gotchas, dependency scope confusion, forgetting to await async dependencies). Do NOT repeat Python language fundamentals. Use 'prefer X' phrasing. Research current FastAPI 0.100+ / Pydantic v2 patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0004",
+      "title": "Write Python/Flask class prompt",
+      "description": "Write Python/Flask class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/python/flask.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/python/flask.md (30-60 lines). Cover: Flask application patterns (application factory, blueprints, extensions), request context and application context, configuration management, SQLAlchemy integration, Jinja2 template patterns, Flask-specific testing (test client, application context in tests, request context fixtures), and common pitfalls (working outside application context, circular imports with app factory, thread-safety of globals like g and request, forgetting to register blueprints). Do NOT repeat Python language fundamentals. Use 'prefer X' phrasing. Research current Flask 3.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0005",
+      "title": "Write Ruby/Rails class prompt",
+      "description": "Write Ruby/Rails class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/ruby/rails.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/ruby/rails.md (30-60 lines). Cover: Rails conventions (MVC structure, convention over configuration, RESTful resources), ActiveRecord patterns (scopes, callbacks, validations, associations, eager loading), controller patterns (strong parameters, before_action, respond_to), routing DSL, ActiveJob for background work, Turbo/Hotwire patterns, Rails-specific testing (Minitest or RSpec, fixtures vs factory_bot, system tests with Capybara, request specs, model specs), and common pitfalls (N+1 queries, fat controllers, callback hell in models, mass assignment vulnerabilities, migration gotchas with zero-downtime deploys). Do NOT repeat Ruby language fundamentals. Use 'prefer X' phrasing. Research current Rails 7.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0006",
+      "title": "Write Ruby/Sinatra class prompt",
+      "description": "Write Ruby/Sinatra class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/ruby/sinatra.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/ruby/sinatra.md (30-60 lines). Cover: Sinatra application patterns (classic vs modular style), route definitions and parameter handling, middleware (Rack middleware stack), template rendering (ERB, Haml), configuration and environments, extension patterns, testing with Rack::Test (get/post helpers, last_response assertions, session manipulation), and common pitfalls (classic style polluting Object namespace, route ordering sensitivity, missing Rack middleware for sessions/cookies, confusing Sinatra helpers with plain Ruby methods). Do NOT repeat Ruby language fundamentals. Use 'prefer X' phrasing. Research current Sinatra 4.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Backend Scripting Frameworks is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that javascript/node, python/django, python/fastapi, python/flask, ruby/rails, and ruby/sinatra prompt files each exist, are 30-60 lines, use 'prefer X' phrasing, contain no parent-language fundamentals, and contain no wolfcastle references"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T08:30:39.933209Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored JavaScript/Node class prompt (51 lines) covering module systems, runtime patterns, HTTP frameworks, environment config, testing, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T08:32:47.159059Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Python/Django class prompt (45 lines) covering project structure, ORM patterns, views (CBV/FBV/DRF), templates, middleware, signals, testing, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T08:34:44.234008Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Python/FastAPI class prompt (45 lines) covering path operations, Pydantic v2, dependency injection, async/sync endpoints, database integration, testing, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T08:36:42.861114Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Python/Flask class prompt (41 lines) covering app factory pattern, contexts, configuration, SQLAlchemy integration, templates, testing, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T08:38:55.59895Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Ruby/Rails class prompt (45 lines) covering MVC conventions, ActiveRecord patterns, strong parameters, routing DSL, ActiveJob, Hotwire/Turbo, testing (RSpec/Minitest, factory_bot, Capybara), and common pitfalls (N+1, fat controllers, callback hell, mass assignment, zero-downtime migrations) [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T08:41:01.361788Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Ruby/Sinatra class prompt (41 lines) covering modular vs classic style, route ordering, Rack middleware/sessions, template rendering, configure blocks, helpers/extensions, Rack::Test testing, and common pitfalls (route ordering, missing sessions, namespace pollution, halt/redirect throw/catch) [task-0006]"
+      },
+      {
+        "timestamp": "2026-03-22T08:42:40.818608Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Audit reviewed 6 prompt files (268 lines total): node.md, django.md, fastapi.md, flask.md, rails.md, sinatra.md. PASS. All files structurally consistent with each other and with parent language prompts. Technical content accurate for current framework versions. 'Prefer X' phrasing used throughout. No wolfcastle-specific content. No duplication with parent language prompts. Line counts within 30-60 spec (range: 41-52). Build, test, lint, vet all clean. No findings requiring remediation."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T08:27:50.684887Z",
+    "completed_at": "2026-03-22T08:43:01.155523Z",
+    "result_summary": "Authored six framework-specific class prompts for backend scripting languages: JavaScript/Node.js (51 lines), Python/Django (45 lines), Python/FastAPI (45 lines), Python/Flask (41 lines), Ruby/Rails (45 lines), and Ruby/Sinatra (41 lines). Each prompt covers framework-specific patterns, project structure, testing strategies, and common pitfalls without duplicating language fundamentals from the parent prompts. All files follow consistent structure (H1 header, codebase-conventions preamble, themed sections, Common Pitfalls) and use 'prefer X' phrasing throughout. Technical content reflects current framework versions (Node 20+, Django 5.x, FastAPI 0.100+/Pydantic v2, Flask 2.2+/3.x, Rails 7.x, Sinatra with modular style). Audit found no issues requiring remediation."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T08:42:53.952034Z",
+      "objective": "Verify all work in Backend Scripting Frameworks node is complete, correct, and high-quality",
+      "what_happened": "Read all 6 prompt files (268 lines total), all 3 parent language prompts for structural comparison, ran build/test/lint/vet (all clean), reviewed AARs from all 6 prior tasks, and checked node status. No findings requiring remediation.",
+      "went_well": [
+        "All six prompts are structurally consistent with each other and with parent language prompts",
+        "Technical content is accurate for current framework versions across all prompts",
+        "Clean separation of concerns: no framework prompt duplicates content from its parent language prompt"
+      ],
+      "improvements": [
+        "None identified; the work is solid"
+      ],
+      "action_items": [
+        "None; node is complete"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T08:30:39.002355Z",
+      "objective": "Author the JavaScript/Node.js framework class prompt covering runtime patterns, HTTP frameworks, module systems, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/javascript/node.md (51 lines). Researched Node 20+ patterns including the built-in test runner, --env-file flag, ESM/CJS interop improvements, and Fastify's automatic async error handling. Structured sections to complement without repeating the base javascript.md prompt.",
+      "went_well": [
+        "Clean separation from base JS prompt: runtime concerns (event loop, streams, buffers) and server-specific patterns (Express error middleware, Fastify plugins) sit here while language fundamentals stay in the parent",
+        "Covered the process.env string coercion pitfall, which is a constant source of production bugs in Node apps"
+      ],
+      "improvements": [
+        "Could add guidance on graceful shutdown patterns (SIGTERM handling, connection draining) but that veers into operational territory beyond the prompt's scope"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T08:32:42.676574Z",
+      "objective": "Author the Python/Django framework class prompt covering project structure, ORM, views, templates, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/python/django.md (45 lines). Structured to complement the base python.md prompt without repeating language fundamentals. Covered Django 5.x patterns including function-based middleware factories, factory_boy over fixtures, and callable defaults for JSONField.",
+      "went_well": [
+        "Clean separation from base Python prompt: ORM patterns, Django-specific testing (TestCase vs TransactionTestCase, Client vs RequestFactory), and framework pitfalls sit here while language fundamentals stay in the parent",
+        "Signals section captures the common infinite-recursion trap that catches many Django developers"
+      ],
+      "improvements": [
+        "Could add Django 5.x specific features like GeneratedField and async view support, but these are still maturing and the prompt covers the stable patterns well"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T08:34:42.858528Z",
+      "objective": "Author the Python/FastAPI framework class prompt covering path operations, dependency injection, Pydantic v2, async patterns, database integration, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/python/fastapi.md (45 lines). Structured to complement the base python.md and sibling django.md prompts. Focused on FastAPI 0.100+/Pydantic v2 patterns: model_validator over @validator, ConfigDict over Config inner class, httpx.AsyncClient over TestClient for async apps, and the critical async-def-with-sync-IO footgun.",
+      "went_well": [
+        "Clean separation from base Python prompt and from the Django sibling: FastAPI-specific DI patterns, ASGI middleware, and async/sync endpoint selection sit here while ORM fundamentals stay in django.md and language patterns stay in python.md",
+        "Dependency caching pitfall section captures a subtle behavior that trips up developers who assume each Depends() injection is independent"
+      ],
+      "improvements": [
+        "Could add guidance on OpenAPI schema customization and lifespan events (the modern replacement for on_startup/on_shutdown), but these are secondary to the core patterns covered"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T08:36:41.760851Z",
+      "objective": "Author the Python/Flask framework class prompt covering app factory, contexts, config, SQLAlchemy, templates, testing, and pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/python/flask.md (41 lines). Followed the established pattern from sibling prompts (django.md, fastapi.md). Covered Flask 2.2+/3.x patterns including from_prefixed_env(), the factory-with-blueprints architecture, Flask-SQLAlchemy init_app pattern, and the thread-local proxy behavior of g/request/session.",
+      "went_well": [
+        "Clean separation from base Python prompt and siblings: Flask-specific context machinery, blueprint registration, and WSGI-oriented patterns sit here while async concerns stay in fastapi.md, ORM depth stays in django.md, and language fundamentals stay in python.md",
+        "Covered the silent-failure blueprint registration pitfall, which is one of the most confusing Flask debugging experiences for newcomers"
+      ],
+      "improvements": [
+        "Could add guidance on async support in Flask 2.0+ (async views, async before_request) but the async story in Flask remains secondary to FastAPI and the prompt is better served staying focused on Flask's synchronous strengths"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T08:38:50.712045Z",
+      "objective": "Author the Ruby/Rails framework class prompt covering Rails conventions, ActiveRecord, controllers, routing, jobs, Hotwire, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/ruby/rails.md (45 lines). Followed the established pattern from sibling prompts. Covered Rails 7.x patterns including strict_loading, Solid Queue as a job backend option, Turbo Frames/Streams with Stimulus, strong_migrations gem for zero-downtime deploys, and the deprecation of controller specs in favor of request specs.",
+      "went_well": [
+        "Clean separation from a hypothetical base Ruby prompt: framework-specific patterns (ActiveRecord eager loading, strong parameters, Turbo/Hotwire) sit here while language fundamentals would stay in a parent ruby.md",
+        "Zero-downtime migration section captures the PostgreSQL \u003c 11 column-default rewrite gotcha and the rename-via-add-backfill-drop pattern, both of which are common production incidents"
+      ],
+      "improvements": [
+        "Could add guidance on Rails credentials (credentials.yml.enc) and Action Cable patterns, but these are secondary to the core web framework patterns and the prompt is already at 45 lines"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0006": {
+      "task_id": "task-0006",
+      "timestamp": "2026-03-22T08:40:55.884801Z",
+      "objective": "Author the Ruby/Sinatra framework class prompt covering application patterns, routes, middleware, templates, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/ruby/sinatra.md (41 lines). Followed the established pattern from sibling prompts (rails.md, flask.md). Covered modular vs classic style, route ordering semantics, Rack middleware and session configuration, template rendering with locals, configure blocks, helpers vs extensions, Rack::Test patterns, and four pitfalls: route ordering, missing session middleware, classic namespace pollution, and halt/redirect throw/catch interaction with rescue blocks.",
+      "went_well": [
+        "Clean separation from the Rails sibling: Sinatra-specific concerns (Rack-level middleware, classic vs modular tradeoffs, halt/redirect control flow) sit here while ActiveRecord, strong parameters, and Rails conventions stay in rails.md",
+        "The halt/redirect throw/catch pitfall is particularly subtle and often missed in documentation; including it should prevent a common debugging frustration"
+      ],
+      "improvements": [
+        "Could add guidance on Sinatra::Streaming and EventSource for SSE patterns, but these are niche enough to exclude at 41 lines"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    }
+  }
+}

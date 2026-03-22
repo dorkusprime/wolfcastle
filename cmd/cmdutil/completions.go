@@ -1,10 +1,7 @@
 package cmdutil
 
 import (
-	"path/filepath"
-
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -49,11 +46,10 @@ func CompleteTaskAddresses(app *App) func(cmd *cobra.Command, args []string, toC
 
 			// For leaf nodes, also include task addresses
 			if entry.Type == state.NodeLeaf {
-				parsed, err := tree.ParseAddress(addr)
+				statePath, err := store.NodePath(addr)
 				if err != nil {
 					continue
 				}
-				statePath := filepath.Join(store.Dir(), filepath.Join(parsed.Parts...), "state.json")
 				ns, err := state.LoadNodeState(statePath)
 				if err != nil {
 					continue

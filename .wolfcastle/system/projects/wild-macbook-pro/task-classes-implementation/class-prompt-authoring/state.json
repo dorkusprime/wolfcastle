@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "class-prompt-authoring",
+  "name": "Class Prompt Authoring",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "language-prompts",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts",
+      "state": "complete"
+    },
+    {
+      "id": "framework-prompts",
+      "address": "task-classes-implementation/class-prompt-authoring/framework-prompts",
+      "state": "complete"
+    },
+    {
+      "id": "non-language-prompts",
+      "address": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Class Prompt Authoring is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Author behavioral prompt files for every class defined in the task-classes spec. Each prompt must be researched (not just training data), contain ZERO wolfcastle-specific content, and read like it was written by a senior practitioner.\n\nThree categories of prompts:\n1. Language classes (20 languages) under coding/ — 40-80 lines each, complete replacements for coding/default.md\n2. Framework classes (20+ frameworks) under coding subdirectories — 30-60 lines each, do not repeat language fundamentals\n3. Non-language classes (9 disciplines) directly under classes/ — 30-60 lines each, including writing.md which references writing/voice.md\n\nAll prompts must follow the authoring guidelines in the task-classes spec: prefer X over always use X, cover style/build/test/pitfalls, no wolfcastle internals.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T09:33:19.587376Z",
+        "task": "task-classes-implementation/class-prompt-authoring",
+        "text": "Final audit of Class Prompt Authoring: verified 55 prompt files across 12 nodes match spec exactly, no wolfcastle content leaks, build/test/lint clean, all child audits passed"
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T07:00:34.719831Z",
+    "completed_at": "2026-03-22T09:33:35.537157Z",
+    "result_summary": "Authored all 55 class behavioral prompt files specified in the task-classes spec. The complete set covers 20 programming languages (systems, JVM/.NET, web/scripting, and specialized), 22 framework prompts (frontend, backend-scripting, enterprise, and mobile/systems), and 9 non-language discipline prompts (architecture, research, writing, design, devops, data, security, testing, audit), plus universal guidance, a coding default fallback, and an independent voice sub-prompt for writing. Every file was individually audited at the leaf level for structural consistency, technical accuracy against current framework versions, absence of wolfcastle system references, use of 'prefer X' phrasing, and adherence to line-count targets. The hierarchical file layout under prompts/classes/ matches the ClassRepository's one-level fallback resolution, so framework prompts like typescript/react.md fall through to typescript.md when overridden or missing. No audit gaps were recorded across any child node."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T09:33:18.173075Z",
+      "objective": "Verify all work in the Class Prompt Authoring node is complete and correct",
+      "what_happened": "Reviewed all 12 nodes (11 children + this orchestrator). Verified 55 prompt files exist matching the spec's file structure exactly: 20 language prompts, 22 framework prompts, 9 non-language discipline prompts, plus universal.md, coding/default.md, and writing/voice.md. Grep-checked all 55 files for wolfcastle-specific content leaks; the only match was 'deliverable' used in its plain English sense in audit.md. Build, test, and lint all pass clean. Every child node's audit task passed with no findings requiring remediation.",
+      "went_well": [
+        "Complete file inventory matches the spec one-to-one with no gaps or extras",
+        "No wolfcastle system references leaked into any behavioral prompt",
+        "All child audits passed independently, making this top-level audit a fast confirmation pass"
+      ],
+      "improvements": [
+        "None identified; all work was completed thoroughly by the child nodes"
+      ],
+      "action_items": [
+        "Wire default task_classes entries into base config so ClassRepository.Validate passes at startup"
+      ]
+    }
+  }
+}

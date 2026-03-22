@@ -320,6 +320,7 @@ func addTask(rng *rand.Rand, tree *testTree) {
 // ---------- invariant checks ----------
 
 func verifyParentChildConsistency(t *testing.T, tree *testTree) bool {
+	t.Helper()
 	for addr, ns := range tree.nodes {
 		if ns.Type != NodeOrchestrator || len(ns.Children) == 0 {
 			continue
@@ -335,6 +336,7 @@ func verifyParentChildConsistency(t *testing.T, tree *testTree) bool {
 }
 
 func verifyRootIndexConsistency(t *testing.T, tree *testTree) bool {
+	t.Helper()
 	for addr, entry := range tree.idx.Nodes {
 		ns, ok := tree.nodes[addr]
 		if !ok {
@@ -357,6 +359,7 @@ func verifyRootIndexConsistency(t *testing.T, tree *testTree) bool {
 }
 
 func verifyIdempotency(t *testing.T, tree *testTree) bool {
+	t.Helper()
 	// Save current states
 	statesBefore := make(map[string]NodeStatus)
 	for addr, ns := range tree.nodes {
@@ -390,6 +393,7 @@ func verifyIdempotency(t *testing.T, tree *testTree) bool {
 }
 
 func verifyDepthConsistency(t *testing.T, tree *testTree) bool {
+	t.Helper()
 	for addr, entry := range tree.idx.Nodes {
 		if entry.Parent == "" {
 			continue

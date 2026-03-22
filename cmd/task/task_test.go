@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -167,6 +168,85 @@ func TestTaskAdd_NoIdentity(t *testing.T) {
 	if err == nil {
 		t.Error("expected error when identity is nil")
 	}
+}
+
+// ---------------------------------------------------------------------------
+// task add --class validation
+// ---------------------------------------------------------------------------
+
+func TestTaskAdd_ValidClass(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithClasses(map[string]config.ClassDef{
+		"coding/go":     {Description: "Go tasks"},
+		"coding/python": {Description: "Python tasks"},
+		"audit":         {Description: "Audit tasks"},
+	})
+	env.createLeafNode(t, "my-project", "My Project")
+
+	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "--class", "coding/go", "implement parser"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("task add with valid class failed: %v", err)
+	}
+
+	ns := env.loadNodeState(t, "my-project")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.Class != "coding/go" {
+				t.Errorf("expected class coding/go, got %s", task.Class)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
+}
+
+func TestTaskAdd_InvalidClass(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithClasses(map[string]config.ClassDef{
+		"coding/go": {Description: "Go tasks"},
+		"audit":     {Description: "Audit tasks"},
+	})
+	env.createLeafNode(t, "my-project", "My Project")
+
+	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "--class", "nonexistent", "bad class task"})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for invalid class")
+	}
+	if !strings.Contains(err.Error(), "unknown task class") {
+		t.Errorf("expected 'unknown task class' in error, got: %s", err.Error())
+	}
+	if !strings.Contains(err.Error(), "nonexistent") {
+		t.Errorf("expected class name in error, got: %s", err.Error())
+	}
+	if !strings.Contains(err.Error(), "audit") || !strings.Contains(err.Error(), "coding/go") {
+		t.Errorf("expected valid classes listed in error, got: %s", err.Error())
+	}
+}
+
+func TestTaskAdd_EmptyClassAccepted(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithClasses(map[string]config.ClassDef{
+		"coding/go": {Description: "Go tasks"},
+	})
+	env.createLeafNode(t, "my-project", "My Project")
+
+	// No --class flag at all
+	env.RootCmd.SetArgs([]string{"task", "add", "--node", "my-project", "no class task"})
+	if err := env.RootCmd.Execute(); err != nil {
+		t.Fatalf("task add without class failed: %v", err)
+	}
+
+	ns := env.loadNodeState(t, "my-project")
+	for _, task := range ns.Tasks {
+		if task.ID == "task-0001" {
+			if task.Class != "" {
+				t.Errorf("expected empty class, got %s", task.Class)
+			}
+			return
+		}
+	}
+	t.Error("task-0001 not found")
 }
 
 // ---------------------------------------------------------------------------

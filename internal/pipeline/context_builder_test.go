@@ -110,7 +110,34 @@ func TestContextBuilder_IncludesClassGuidance(t *testing.T) {
 	}
 }
 
-func TestContextBuilder_OmitsClassWhenEmpty(t *testing.T) {
+func TestContextBuilder_FallsBackToCodingDefault_WhenClassEmpty(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/coding/default.md", "Default coding guidance.")
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "No class", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
+	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "## Class Guidance") {
+		t.Error("class guidance should be present with coding/default.md fallback")
+	}
+	if !strings.Contains(got, "Default coding guidance.") {
+		t.Error("should contain coding/default.md content")
+	}
+}
+
+func TestContextBuilder_OmitsClassGuidance_WhenNoCodingDefault(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
 
@@ -129,7 +156,57 @@ func TestContextBuilder_OmitsClassWhenEmpty(t *testing.T) {
 	}
 
 	if strings.Contains(got, "## Class Guidance") {
-		t.Error("class guidance should be absent when task has no class")
+		t.Error("class guidance should be absent when no class and no coding/default.md")
+	}
+}
+
+func TestContextBuilder_IncludesUniversalGuidance(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/universal.md", "Always apply these principles.")
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
+	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "## Universal Guidance") {
+		t.Error("missing universal guidance header")
+	}
+	if !strings.Contains(got, "Always apply these principles.") {
+		t.Error("missing universal guidance content")
+	}
+}
+
+func TestContextBuilder_UniversalGuidance_OmittedWhenMissing(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
+	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "## Universal Guidance") {
+		t.Error("universal guidance should be absent when universal.md does not exist")
 	}
 }
 
@@ -472,9 +549,74 @@ func TestContextBuilder_PanicsOnNilClasses(t *testing.T) {
 	pipeline.NewContextBuilder(env.Prompts, nil)
 }
 
-func TestContextBuilder_ClassResolveError_SkipsGuidance(t *testing.T) {
+func TestContextBuilder_UniversalGuidance_AppearsWithClassifiedTask(t *testing.T) {
 	t.Parallel()
-	env := testutil.NewEnvironment(t)
+	env := testutil.NewEnvironment(t).
+		WithClasses(map[string]config.ClassDef{"lang-go": {}}).
+		WithPrompt("classes/lang-go.md", "Go idioms apply.").
+		WithPrompt("classes/universal.md", "Universal principles for all tasks.")
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Classified work", State: state.StatusInProgress, Class: "lang-go"},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
+	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "## Universal Guidance") {
+		t.Error("universal guidance should appear even when task has a class")
+	}
+	if !strings.Contains(got, "Universal principles for all tasks.") {
+		t.Error("universal guidance content missing for classified task")
+	}
+	if !strings.Contains(got, "## Class Guidance") {
+		t.Error("class guidance should also appear alongside universal")
+	}
+	if !strings.Contains(got, "Go idioms apply.") {
+		t.Error("class-specific content missing")
+	}
+}
+
+func TestContextBuilder_ClassResolved_DoesNotUseCodingDefault(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithClasses(map[string]config.ClassDef{"lang-go": {}}).
+		WithPrompt("classes/lang-go.md", "Go-specific guidance.").
+		WithPrompt("classes/coding/default.md", "Default coding fallback.")
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Typed task", State: state.StatusInProgress, Class: "lang-go"},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
+	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "Go-specific guidance.") {
+		t.Error("resolved class guidance should appear")
+	}
+	if strings.Contains(got, "Default coding fallback.") {
+		t.Error("coding/default.md should NOT appear when class resolves successfully")
+	}
+}
+
+func TestContextBuilder_ClassResolveError_FallsToCodingDefault(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/coding/default.md", "Fallback coding guidance.")
 	// Class configured but no prompt file exists
 	env.WithClasses(map[string]config.ClassDef{"missing-class": {}})
 
@@ -492,8 +634,35 @@ func TestContextBuilder_ClassResolveError_SkipsGuidance(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if !strings.Contains(got, "## Class Guidance") {
+		t.Error("class guidance should fall back to coding/default.md when class resolve fails")
+	}
+	if !strings.Contains(got, "Fallback coding guidance.") {
+		t.Error("should contain coding/default.md content as fallback")
+	}
+}
+
+func TestContextBuilder_ClassResolveError_NoCodingDefault_SkipsGuidance(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+	env.WithClasses(map[string]config.ClassDef{"missing-class": {}})
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress, Class: "missing-class"},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
+	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if strings.Contains(got, "## Class Guidance") {
-		t.Error("class guidance should be silently skipped when Resolve fails")
+		t.Error("class guidance should be absent when resolve fails and no coding/default.md")
 	}
 }
 
@@ -501,7 +670,8 @@ func TestContextBuilder_SectionOrdering(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t).
 		WithClasses(map[string]config.ClassDef{"lang-go": {}}).
-		WithPrompt("classes/lang-go.md", "Go guidance here.")
+		WithPrompt("classes/lang-go.md", "Go guidance here.").
+		WithPrompt("classes/universal.md", "Universal principles.")
 
 	now := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
 	cfg := config.Defaults()
@@ -532,10 +702,11 @@ func TestContextBuilder_SectionOrdering(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify ordering: node addr < node context < task < class < audit < failure
+	// Verify ordering: node addr < node context < task < universal < class < audit < failure
 	nodeIdx := strings.Index(got, "**Node:** proj")
 	typeIdx := strings.Index(got, "**Node Type:**")
 	taskIdx := strings.Index(got, "**Task:** proj/task-0001")
+	universalIdx := strings.Index(got, "## Universal Guidance")
 	classIdx := strings.Index(got, "## Class Guidance")
 	auditIdx := strings.Index(got, "## Recent Breadcrumbs")
 	failIdx := strings.Index(got, "Failure History")
@@ -546,8 +717,11 @@ func TestContextBuilder_SectionOrdering(t *testing.T) {
 	if typeIdx >= taskIdx {
 		t.Error("node context should precede task context")
 	}
-	if taskIdx >= classIdx {
-		t.Error("task context should precede class guidance")
+	if taskIdx >= universalIdx {
+		t.Error("task context should precede universal guidance")
+	}
+	if universalIdx >= classIdx {
+		t.Error("universal guidance should precede class guidance")
 	}
 	if classIdx >= auditIdx {
 		t.Error("class guidance should precede audit context")

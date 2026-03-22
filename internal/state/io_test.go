@@ -171,6 +171,84 @@ func TestSaveRootIndex_CreatesDirectories(t *testing.T) {
 	}
 }
 
+func TestAtomicWriteFile_BasicRoundtrip(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "out.txt")
+	content := []byte("hello, atomic world")
+
+	if err := AtomicWriteFile(path, content); err != nil {
+		t.Fatalf("atomicWriteFile: %v", err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading back: %v", err)
+	}
+	if string(got) != string(content) {
+		t.Errorf("got %q, want %q", got, content)
+	}
+}
+
+func TestAtomicWriteFile_CreatesDirectories(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "a", "b", "c", "file.txt")
+
+	if err := AtomicWriteFile(path, []byte("deep")); err != nil {
+		t.Fatalf("atomicWriteFile: %v", err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading back: %v", err)
+	}
+	if string(got) != "deep" {
+		t.Errorf("got %q, want %q", got, "deep")
+	}
+}
+
+func TestAtomicWriteFile_OverwritesExisting(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overwrite.txt")
+
+	if err := AtomicWriteFile(path, []byte("version-1")); err != nil {
+		t.Fatalf("first write: %v", err)
+	}
+	if err := AtomicWriteFile(path, []byte("version-2")); err != nil {
+		t.Fatalf("second write: %v", err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading back: %v", err)
+	}
+	if string(got) != "version-2" {
+		t.Errorf("got %q, want %q", got, "version-2")
+	}
+}
+
+func TestAtomicWriteFile_NoTempFilesRemain(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "clean.txt")
+
+	if err := AtomicWriteFile(path, []byte("data")); err != nil {
+		t.Fatalf("atomicWriteFile: %v", err)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		if e.Name() != "clean.txt" {
+			t.Errorf("unexpected file left behind: %s", e.Name())
+		}
+	}
+}
+
 func TestLoadRootIndex_InitializesNilNodesMap(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()

@@ -190,6 +190,12 @@ func TaskClaim(ns *NodeState, taskID string) error {
 	}
 	t.State = StatusInProgress
 
+	// Auto-assign "audit" class to audit tasks that don't already have one.
+	// IsAudit remains the authoritative marker; Class is for prompt routing.
+	if t.IsAudit && t.Class == "" {
+		t.Class = "audit"
+	}
+
 	// Update leaf state
 	ns.State = StatusInProgress
 	SyncAuditLifecycle(ns)

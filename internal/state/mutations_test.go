@@ -114,6 +114,48 @@ func TestTaskClaim_FailsOnMissingTask(t *testing.T) {
 	}
 }
 
+func TestTaskClaim_AutoAssignsAuditClass(t *testing.T) {
+	t.Parallel()
+	ns := newLeafWithTasks(
+		Task{ID: "audit", Description: "audit task", State: StatusNotStarted, IsAudit: true},
+	)
+
+	if err := TaskClaim(ns, "audit"); err != nil {
+		t.Fatal(err)
+	}
+	if ns.Tasks[0].Class != "audit" {
+		t.Errorf("expected class 'audit', got %q", ns.Tasks[0].Class)
+	}
+}
+
+func TestTaskClaim_DoesNotOverwriteExistingAuditClass(t *testing.T) {
+	t.Parallel()
+	ns := newLeafWithTasks(
+		Task{ID: "audit", Description: "audit task", State: StatusNotStarted, IsAudit: true, Class: "custom-audit"},
+	)
+
+	if err := TaskClaim(ns, "audit"); err != nil {
+		t.Fatal(err)
+	}
+	if ns.Tasks[0].Class != "custom-audit" {
+		t.Errorf("expected class 'custom-audit' to be preserved, got %q", ns.Tasks[0].Class)
+	}
+}
+
+func TestTaskClaim_DoesNotModifyNonAuditClass(t *testing.T) {
+	t.Parallel()
+	ns := newLeafWithTasks(
+		Task{ID: "task-0001", Description: "regular task", State: StatusNotStarted},
+	)
+
+	if err := TaskClaim(ns, "task-0001"); err != nil {
+		t.Fatal(err)
+	}
+	if ns.Tasks[0].Class != "" {
+		t.Errorf("expected empty class for non-audit task, got %q", ns.Tasks[0].Class)
+	}
+}
+
 func TestTaskComplete_TransitionsInProgressToComplete(t *testing.T) {
 	t.Parallel()
 	ns := newLeafWithTasks(

@@ -9,7 +9,7 @@ wolfcastle/
 │   ├── root.go              # Root command, PersistentPreRunE for config loading
 │   ├── cmdutil/             # Shared App context, completions, overlap detection
 │   ├── audit/               # Audit subcommands (approve, reject, gap, aar, etc.)
-│   ├── config/              # Config subcommands (get, set, remove, show)
+│   ├── config/              # Config subcommands (show, set, unset, append, remove)
 │   ├── daemon/              # start, stop, status, log
 │   ├── inbox/               # add, list, clear
 │   ├── project/             # create
@@ -24,6 +24,7 @@ wolfcastle/
 │   ├── git/                 # Git operations behind Provider interface
 │   ├── invoke/              # Model CLI invocation (buffered + streaming)
 │   ├── logging/             # Per-iteration NDJSON logging
+│   ├── logrender/           # Log record rendering (summaries, thoughts, session views)
 │   ├── output/              # Structured JSON envelopes + human-readable printing
 │   ├── pipeline/            # Prompt assembly, iteration context, fragment resolution
 │   ├── project/             # Project scaffolding and embedded templates
@@ -35,7 +36,7 @@ wolfcastle/
 │   ├── tree/                # Tree addressing, slug generation, resolver
 │   └── validate/            # Structural validation engine and auto-fix
 ├── docs/
-│   ├── decisions/           # ADRs (001-079)
+│   ├── decisions/           # ADRs (001-089)
 │   ├── specs/               # Implementation specs (timestamped)
 │   └── agents/              # This directory (agent guidance)
 └── Makefile
@@ -83,7 +84,7 @@ User input → cmd/ → internal/ → filesystem (.wolfcastle/)
 
 Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
-- `daemon` → `archive`, `clock`, `config`, `errors`, `invoke`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
+- `daemon` → `archive`, `clock`, `config`, `errors`, `git`, `invoke`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
 - `validate` → `config`, `daemon`, `invoke`, `pipeline`, `state`, `tree`
 - `pipeline` → `config`, `invoke`, `state`, `tierfs`
 - `archive` → `clock`, `config`, `state`

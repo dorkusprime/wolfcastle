@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "language-prompts",
+  "name": "Language Prompts",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "systems-languages",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+      "state": "complete"
+    },
+    {
+      "id": "jvm-and-net",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+      "state": "complete"
+    },
+    {
+      "id": "web-and-scripting",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
+      "state": "complete"
+    },
+    {
+      "id": "specialized-languages",
+      "address": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Language Prompts is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Author behavioral prompts for all 20 language classes. Each file goes under internal/project/templates/prompts/classes/coding/ (e.g., coding/go.md, coding/python.md).\n\nLanguages: python, javascript, typescript, java, csharp, go, rust, cpp, c, ruby, php, swift, kotlin, scala, shell, sql, r, lua, elixir, haskell, dart.\n\nEach prompt is 40-80 lines covering: idiomatic style, specific build/test tool invocations, testing conventions, and common pitfalls. These REPLACE coding/default.md for classified tasks (not additive). Must be researched: current ecosystem tools, recent language changes, modern paradigms. Use 'prefer X' not 'always use X'. ZERO wolfcastle content.",
+  "success_criteria": [
+    "All 21 language prompt files exist under internal/project/templates/prompts/classes/coding/ (go.md, rust.md, cpp.md, c.md, java.md, kotlin.md, scala.md, csharp.md, python.md, javascript.md, typescript.md, ruby.md, php.md, swift.md, dart.md, shell.md, sql.md, r.md, lua.md, elixir.md, haskell.md)",
+    "Each prompt is 40-80 lines, covers idiomatic style, build/test tooling, testing conventions, and common pitfalls",
+    "No prompt contains wolfcastle-specific content (terminal markers, breadcrumbs, specs, ADRs, deliverables)",
+    "Prompts use 'prefer X' phrasing, not 'always use X'"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T06:59:35.819833Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T06:59:33.530585Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts",
+        "text": "Created 4 leaf children: systems-languages (go/rust/cpp/c, 4 tasks), jvm-and-net (java/kotlin/scala/csharp, 4 tasks), web-and-scripting (python/javascript/typescript/ruby/php, 5 tasks), specialized-languages (swift/dart/shell/sql/r/lua/elixir/haskell, 8 tasks). 21 total tasks for 21 language prompts. Ordering is arbitrary as leaves are independent; grouped by language family for coherent audit passes."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T07:00:34.719883Z",
+    "completed_at": "2026-03-22T15:09:49.219572Z"
+  }
+}

@@ -1,6 +1,8 @@
 package pipeline_test
 
 import (
+	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -129,6 +131,123 @@ func TestClassRepository_Resolve_KeyWithParentButBothMissing(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "fallback") {
 		t.Errorf("expected error to mention fallback, got: %v", err)
+	}
+}
+
+// ── Subdirectory assembly tests ──────────────────────────────────────────
+
+func TestClassRepository_Resolve_SubdirectoryAssembly(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/bugfix.md", "You are a bug-fixing agent.").
+		WithPrompt("classes/bugfix/voice.md", "Be concise.").
+		WithPrompt("classes/bugfix/tools.md", "Use grep.")
+
+	env.Classes.Reload(map[string]config.ClassDef{
+		"bugfix": {Description: "Fix bugs"},
+	})
+
+	got, err := env.Classes.Resolve("bugfix")
+	if err != nil {
+		t.Fatalf("Resolve() error: %v", err)
+	}
+	// Fragments are sorted lexicographically: tools.md before voice.md.
+	want := "You are a bug-fixing agent.\nUse grep.\nBe concise."
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+func TestClassRepository_Resolve_SubdirectoryAssembly_NoSubdir(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/bugfix.md", "You are a bug-fixing agent.")
+
+	env.Classes.Reload(map[string]config.ClassDef{
+		"bugfix": {Description: "Fix bugs"},
+	})
+
+	got, err := env.Classes.Resolve("bugfix")
+	if err != nil {
+		t.Fatalf("Resolve() error: %v", err)
+	}
+	if got != "You are a bug-fixing agent." {
+		t.Errorf("expected unmodified content, got %q", got)
+	}
+}
+
+func TestClassRepository_Resolve_SubdirectoryAssembly_WithFallback(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/typescript.md", "You handle TypeScript.").
+		WithPrompt("classes/typescript/style.md", "Follow Airbnb style guide.")
+
+	env.Classes.Reload(map[string]config.ClassDef{
+		"typescript/react": {Description: "React TypeScript tasks"},
+	})
+
+	got, err := env.Classes.Resolve("typescript/react")
+	if err != nil {
+		t.Fatalf("Resolve() error: %v", err)
+	}
+	// Falls back to typescript.md, assembles subdirectory from typescript/.
+	want := "You handle TypeScript.\nFollow Airbnb style guide."
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+func TestClassRepository_Resolve_SubdirectoryAssembly_MultipleFiles(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/writing.md", "You are a writing assistant.").
+		WithPrompt("classes/writing/audience.md", "Write for developers.").
+		WithPrompt("classes/writing/format.md", "Use markdown.").
+		WithPrompt("classes/writing/tone.md", "Be direct.").
+		WithPrompt("classes/writing/voice.md", "Active voice only.")
+
+	env.Classes.Reload(map[string]config.ClassDef{
+		"writing": {Description: "Writing tasks"},
+	})
+
+	got, err := env.Classes.Resolve("writing")
+	if err != nil {
+		t.Fatalf("Resolve() error: %v", err)
+	}
+	// Four fragments appended in lexicographic order: audience, format, tone, voice.
+	want := "You are a writing assistant.\nWrite for developers.\nUse markdown.\nBe direct.\nActive voice only."
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+func TestClassRepository_Resolve_SubdirectoryAssembly_ScanErrorIgnored(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
+	env := testutil.NewEnvironment(t).
+		WithPrompt("classes/fragile.md", "Main content.").
+		WithPrompt("classes/fragile/placeholder.md", "This will be unreadable.")
+
+	// Make the subdirectory unreadable so ListFragments returns an I/O error
+	// rather than an empty result.
+	subdirPath := env.Tiers.BasePath("prompts/classes/fragile")
+	if err := os.Chmod(subdirPath, 0o000); err != nil {
+		t.Fatalf("chmod failed: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(subdirPath, 0o755) })
+
+	env.Classes.Reload(map[string]config.ClassDef{
+		"fragile": {Description: "Class with broken subdirectory"},
+	})
+
+	got, err := env.Classes.Resolve("fragile")
+	if err != nil {
+		t.Fatalf("Resolve() should succeed despite unreadable subdirectory, got error: %v", err)
+	}
+	if got != "Main content." {
+		t.Errorf("expected main content only, got %q", got)
 	}
 }
 

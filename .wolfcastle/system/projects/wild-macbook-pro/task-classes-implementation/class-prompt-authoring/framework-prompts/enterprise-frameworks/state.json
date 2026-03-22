@@ -1,0 +1,213 @@
+{
+  "version": 1,
+  "id": "enterprise-frameworks",
+  "name": "Enterprise Frameworks",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write Java/Spring class prompt",
+      "description": "Write Java/Spring class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/java/spring.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/java/spring.md (30-60 lines). Cover: Spring Boot application patterns (auto-configuration, starter dependencies, application.yml), dependency injection (@Component, @Service, @Repository, constructor injection), Spring MVC controllers (@RestController, @RequestMapping, ResponseEntity), Spring Data JPA (repository interfaces, query methods, @Query, Specifications), transaction management (@Transactional semantics), Spring Security basics, testing with Spring Boot Test (@SpringBootTest, @WebMvcTest, MockMvc, @DataJpaTest, TestRestTemplate), and common pitfalls (proxied @Transactional on private/self-invoked methods, circular dependencies from field injection, N+1 with lazy-loaded entities, bean scope confusion, profile-dependent configuration drift). Do NOT repeat Java language fundamentals. Use 'prefer X' phrasing. Research current Spring Boot 3.x / Spring 6 patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0002",
+      "title": "Write C#/.NET class prompt",
+      "description": "Write C#/.NET class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/csharp/dotnet.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/csharp/dotnet.md (30-60 lines). Cover: ASP.NET Core patterns (minimal APIs vs controller-based, dependency injection via IServiceCollection, middleware pipeline), Entity Framework Core (DbContext, migrations, LINQ queries, change tracking), configuration (appsettings.json, IOptions pattern), authentication/authorization patterns, hosted services and background workers, testing with xUnit (WebApplicationFactory, TestServer, in-memory database provider, Moq/NSubstitute), and common pitfalls (DbContext lifetime scoping in DI, async void in controllers, middleware ordering sensitivity, EF Core lazy-loading N+1, forgetting to register services). Do NOT repeat C# language fundamentals. Use 'prefer X' phrasing. Research current .NET 8+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0003",
+      "title": "Write PHP/Laravel class prompt",
+      "description": "Write PHP/Laravel class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/php/laravel.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/php/laravel.md (30-60 lines). Cover: Laravel patterns (Eloquent ORM, migrations, service container, facades vs dependency injection), routing and middleware, Blade templating, form requests for validation, queues and jobs, event/listener patterns, Artisan commands, testing with PHPUnit (RefreshDatabase, factories, HTTP tests, mocking facades, Dusk for browser testing), and common pitfalls (N+1 queries in Eloquent relationships, mass assignment without $fillable/$guarded, service container binding confusion, eager-loading vs lazy-loading, migration rollback ordering). Do NOT repeat PHP language fundamentals. Use 'prefer X' phrasing. Research current Laravel 11.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0004",
+      "title": "Write PHP/Symfony class prompt",
+      "description": "Write PHP/Symfony class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/php/symfony.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/php/symfony.md (30-60 lines). Cover: Symfony patterns (bundles, services, autowiring, compiler passes), routing (attributes/annotations vs YAML), Doctrine ORM (entities, repositories, DQL, migrations), form component, event dispatcher, Messenger component for async, Twig templating, testing with PHPUnit and Symfony's WebTestCase (KernelTestCase, client crawler, container access in tests, functional vs unit test distinction), and common pitfalls (service autowiring ambiguity, Doctrine identity map caching stale data, form type inheritance complexity, event subscriber ordering, YAML indentation in config). Do NOT repeat PHP language fundamentals. Use 'prefer X' phrasing. Research current Symfony 7.x patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "task-0005",
+      "title": "Write Elixir/Phoenix class prompt",
+      "description": "Write Elixir/Phoenix class prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/elixir/phoenix.md"
+      ],
+      "body": "Author internal/project/templates/prompts/classes/coding/elixir/phoenix.md (30-60 lines). Cover: Phoenix patterns (contexts for domain boundaries, schemas, changesets, router pipelines), LiveView (assigns, handle_event, live components, streams for collections), Ecto (Repo, multi, query composition, preloading), PubSub for real-time, channel/socket patterns, Oban for background jobs, testing with ExUnit (ConnTest, DataCase, async: true, Mox for behaviours, Ecto sandbox), and common pitfalls (context boundaries becoming god modules, LiveView memory from large assigns, Ecto preload vs join confusion, PubSub message ordering assumptions, changeset cast vs validate ordering). Do NOT repeat Elixir language fundamentals. Use 'prefer X' phrasing. Research current Phoenix 1.7+ / LiveView 0.20+ patterns. Zero wolfcastle content."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Enterprise Frameworks is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that java/spring, csharp/dotnet, php/laravel, php/symfony, and elixir/phoenix prompt files each exist, are 30-60 lines, use 'prefer X' phrasing, contain no parent-language fundamentals, and contain no wolfcastle references"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T08:45:42.605644Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored Java/Spring class prompt covering Boot 3.x patterns, DI, MVC, Data JPA, transactions, security, testing, and five common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T08:47:48.136662Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored C#/.NET class prompt covering ASP.NET Core patterns, EF Core, DI, middleware, auth, hosted services, testing with WebApplicationFactory, and five common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T08:50:22.184679Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored PHP/Laravel class prompt covering Laravel 11.x patterns, Eloquent ORM, routing, form requests, queues/jobs, events, Artisan, testing with RefreshDatabase/factories/fakes/Dusk, and five common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T08:52:37.91973Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored PHP/Symfony class prompt covering Symfony 7.x patterns, autowiring, Doctrine ORM, routing attributes, forms, EventDispatcher, Messenger async, Twig templating, testing with KernelTestCase/WebTestCase, and five common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T08:55:11.838813Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored Elixir/Phoenix class prompt covering Phoenix 1.7+ patterns, contexts, schemas/changesets, verified routes, LiveView (streams, assign_async, components), Ecto (Multi, preload vs join), PubSub, Channels, Oban background jobs, testing with ConnTest/DataCase/Mox/LiveViewTest, and five common pitfalls [task-0005]"
+      },
+      {
+        "timestamp": "2026-03-22T08:57:38.187939Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Audit reviewed 5 files (223 lines total): java/spring.md (43), csharp/dotnet.md (43), php/laravel.md (47), php/symfony.md (43), elixir/phoenix.md (47). PASS. All prompts follow identical structure matching existing framework prompts (Django, Rails, Flask). No overlap with parent language prompts detected; the one borderline case (async void in both C# and .NET prompts) is framework-contextualized in the .NET version, making it additive. Technical accuracy verified for all framework version claims (Spring Boot 3.x, .NET 8+, Laravel 11.x, Symfony 7.x, Phoenix 1.7+). All five prompts hit exactly 5 pitfalls per the task specs, use consistent 'Prefer X' phrasing, and stay within the 30-60 line target. Build and tests pass. No wolfcastle content present. No remediation needed."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T08:43:01.263404Z",
+    "completed_at": "2026-03-22T08:57:58.686668Z",
+    "result_summary": "Authored five enterprise framework class prompts for coding tasks: Java/Spring (43 lines), C#/.NET (43 lines), PHP/Laravel (47 lines), PHP/Symfony (43 lines), and Elixir/Phoenix (47 lines). Each prompt covers application structure, ORM/data access, routing, testing, and five framework-specific pitfalls, using consistent 'Prefer X' phrasing and matching the structure established by existing prompts (Django, Rails, Flask). All prompts complement their parent language prompts without duplicating language-level guidance. Audit found no issues requiring remediation; build and tests pass."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T08:57:47.657409Z",
+      "objective": "Verify all enterprise framework class prompts are complete, correct, and high-quality",
+      "what_happened": "Read all 5 framework prompts (Spring, .NET, Laravel, Symfony, Phoenix) and their 4 parent language prompts (Java, C#, PHP, Elixir). Cross-referenced with existing framework prompts (Django, Rails) for structural consistency. Verified technical accuracy of version-specific claims. Confirmed build and tests pass. Found no issues requiring remediation.",
+      "went_well": [
+        "All prompts maintain remarkably consistent structure and depth across five different technology stacks",
+        "Clean separation between language and framework layers with no meaningful overlap",
+        "Technical claims are current and accurate for each framework's latest major version"
+      ],
+      "improvements": [
+        "The async void pitfall appears in both C# language and .NET framework prompts, though with different framing. Could be deduplicated in a future pass but the overlap is minor"
+      ],
+      "action_items": [
+        "If additional framework prompts are added (WebFlux, Blazor, Livewire, API Platform, Absinthe), they should be separate files per the AAR recommendations from tasks 1-5"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T08:45:40.843154Z",
+      "objective": "Author the Java/Spring framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/java/spring.md (43 lines). Studied existing framework prompts (Flask, Django, Rails) to match format and depth. Covered all required topics: Spring Boot 3.x application structure, dependency injection with constructor preference, @RestController web layer, Spring Data JPA with Specifications and projections, @Transactional semantics, Spring Security with SecurityFilterChain, and sliced testing annotations. All five required pitfalls are addressed (proxy-bypassed @Transactional, circular DI, N+1 lazy loading, bean scope confusion, profile drift).",
+      "went_well": [
+        "The prompt maintains consistent structure with other framework prompts while covering Spring-specific concerns without duplicating the Java language prompt"
+      ],
+      "improvements": [
+        "Could have included a section on Spring Boot Actuator and observability, but that would push past the 60-line target"
+      ],
+      "action_items": [
+        "If a Spring WebFlux reactive prompt is needed later, it should be a separate framework prompt since the programming model differs substantially from the servlet-based Spring MVC covered here"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T08:47:46.554664Z",
+      "objective": "Author the C#/.NET framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/csharp/dotnet.md (43 lines). Studied the existing C# language prompt and the Java/Spring framework prompt to match format and depth. Covered all required topics: ASP.NET Core patterns (minimal APIs vs controllers, DI via IServiceCollection, middleware pipeline ordering), Entity Framework Core (DbContext, migrations, Include/ThenInclude, AsNoTracking, bulk operations), IOptions configuration pattern, JWT authentication with policy-based authorization, BackgroundService with PeriodicTimer and IServiceScopeFactory, and testing with WebApplicationFactory/TestServer/Moq/NSubstitute. All five required pitfalls are addressed: DbContext lifetime scoping in DI, async void in controllers, middleware ordering sensitivity, EF Core lazy-loading N+1, and forgetting to register services with ValidateOnBuild as a mitigation.",
+      "went_well": [
+        "The prompt complements the C# language prompt without overlapping; language fundamentals like async/await, LINQ, records, and pattern matching are covered there, so this prompt stays focused on the .NET framework layer"
+      ],
+      "improvements": [
+        "Could have covered SignalR, gRPC, or health checks, but those would push past the 60-line target and are better suited to specialized prompts"
+      ],
+      "action_items": [
+        "If Blazor or MAUI prompts are needed, they should be separate framework prompts since the programming model differs substantially from the server-side ASP.NET Core covered here"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T08:50:16.044683Z",
+      "objective": "Author the PHP/Laravel framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/php/laravel.md (47 lines). Studied existing framework prompts (Spring, Django, .NET) to match format and depth. Covered all required topics: application structure with Laravel 11.x streamlined skeleton, Eloquent ORM with fillable/casts/scopes/preventLazyLoading, routing and middleware, Blade-adjacent form requests for validation, queues and jobs with retry semantics, event/listener patterns, Artisan commands with Laravel 11.x schedule syntax, and testing with RefreshDatabase/factories/HTTP tests/facade faking/Dusk. All five required pitfalls are addressed: N+1 queries with preventLazyLoading, mass assignment without fillable, service container binding confusion, eager-loading vs lazy-loading tradeoffs, and migration rollback ordering.",
+      "went_well": [
+        "The prompt complements the PHP language prompt without overlap; language fundamentals like strict_types, enums, match expressions, and type declarations are covered there, so this prompt stays focused on the Laravel framework layer"
+      ],
+      "improvements": [
+        "Could have covered Livewire, Inertia, or Sanctum/Passport auth patterns, but those would push past the line target and are better suited to specialized prompts"
+      ],
+      "action_items": [
+        "If Livewire or Inertia prompts are needed, they should be separate framework prompts since they represent distinct frontend integration models"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T08:52:34.024724Z",
+      "objective": "Author the PHP/Symfony framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/php/symfony.md (43 lines). Studied the existing PHP language prompt and the Laravel framework prompt to ensure no overlap. Covered all required topics: Symfony 7.x structure with autowiring and compiler passes, PHP attribute routing with MapQueryString/MapRequestPayload, Doctrine ORM with attribute mapping and migrations, form component with AbstractType and Validator constraints, EventDispatcher and Messenger for async, Twig templating with inheritance and components, testing with KernelTestCase/WebTestCase/crawler/container access, and all five required pitfalls (autowiring ambiguity, Doctrine identity map staleness, form type inheritance complexity, event subscriber ordering, YAML indentation).",
+      "went_well": [
+        "The prompt complements the PHP language prompt without overlap; language fundamentals like strict_types, enums, match, and readonly properties are covered there, so this prompt stays focused on the Symfony framework layer"
+      ],
+      "improvements": [
+        "Could have covered Symfony UX Turbo/Live Components or API Platform, but those would push past the line target and are better suited to specialized prompts"
+      ],
+      "action_items": [
+        "If API Platform or Symfony UX prompts are needed, they should be separate framework prompts since they represent distinct integration models atop Symfony"
+      ]
+    },
+    "task-0005": {
+      "task_id": "task-0005",
+      "timestamp": "2026-03-22T08:55:07.334846Z",
+      "objective": "Author the Elixir/Phoenix framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/elixir/phoenix.md (47 lines). Studied the existing Elixir language prompt and prior framework prompts (Spring, Rails, .NET) to match format and depth. Covered all required topics: Phoenix contexts for domain boundaries, schemas and changesets with cast-before-validate ordering, router pipelines with verified routes, LiveView (mount/handle_params/handle_event, assigns, streams, function vs live components, assign_async), Ecto (Repo, Multi, query composition, preload vs join-preload distinction), PubSub with topic namespacing and idempotent handlers, Channels/Presence, Oban for background jobs with unique constraints, and testing with ConnTest/DataCase/async:true/Mox/Ecto sandbox/LiveViewTest. All five required pitfalls addressed: context god modules, LiveView memory from large assigns, preload vs join confusion, PubSub ordering assumptions, changeset cast vs validate ordering.",
+      "went_well": [
+        "The prompt complements the Elixir language prompt without overlapping; language fundamentals like pattern matching, pipe operator, GenServer, protocols, and supervision trees are covered there, so this prompt stays focused on the Phoenix framework layer"
+      ],
+      "improvements": [
+        "Could have covered Absinthe (GraphQL), Ash Framework, or Nx/LiveBook integrations, but those would push past the line target and are better suited to specialized prompts"
+      ],
+      "action_items": [
+        "If Absinthe or Ash Framework prompts are needed, they should be separate framework prompts since they represent distinct programming models atop the BEAM"
+      ]
+    }
+  }
+}

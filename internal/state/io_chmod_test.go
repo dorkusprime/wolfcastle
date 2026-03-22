@@ -78,6 +78,62 @@ func TestAtomicWriteJSON_Rename_TargetIsDir(t *testing.T) {
 	}
 }
 
+func TestAtomicWriteFile_MkdirAll_ReadOnlyParent(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission test not reliable on Windows")
+	}
+	t.Parallel()
+
+	roDir := readOnlyDir(t)
+	path := filepath.Join(roDir, "sub", "file.txt")
+
+	err := AtomicWriteFile(path, []byte("data"))
+	if err == nil {
+		t.Error("expected MkdirAll error when parent is read-only")
+	}
+}
+
+func TestAtomicWriteFile_CreateTemp_ReadOnlyDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission test not reliable on Windows")
+	}
+	t.Parallel()
+
+	dir := t.TempDir()
+	sub := filepath.Join(dir, "locked")
+	if err := os.MkdirAll(sub, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(sub, 0555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(sub, 0755) })
+
+	path := filepath.Join(sub, "file.txt")
+	err := AtomicWriteFile(path, []byte("data"))
+	if err == nil {
+		t.Error("expected CreateTemp error when directory is read-only")
+	}
+}
+
+func TestAtomicWriteFile_Rename_TargetIsDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission test not reliable on Windows")
+	}
+	t.Parallel()
+
+	dir := t.TempDir()
+	target := filepath.Join(dir, "file.txt")
+	if err := os.MkdirAll(target, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	err := AtomicWriteFile(target, []byte("data"))
+	if err == nil {
+		t.Error("expected rename error when target is a directory")
+	}
+}
+
 func TestSaveRootIndex_ReadOnlyDir(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("permission test not reliable on Windows")

@@ -19,6 +19,9 @@ wolfcastle project create --node <parent> "<name>"
 | Flag | Description |
 |------|-------------|
 | `--node <parent>` | Parent node path. Omit for a root-level project. Must be an [orchestrator](../how-it-works.md#the-project-tree), not a leaf. |
+| `--type <type>` | Node type: `leaf` or `orchestrator`. Defaults to `leaf`. |
+| `--description <text>` | Project description (written to the project `.md` file). |
+| `--scope <text>` | Planning scope (orchestrators only: sets scope and triggers planning). |
 | `--json` | Output as structured JSON. |
 
 ## Arguments

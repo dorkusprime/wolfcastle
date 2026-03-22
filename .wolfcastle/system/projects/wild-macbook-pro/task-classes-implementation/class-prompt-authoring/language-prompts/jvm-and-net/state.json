@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "id": "jvm-and-net",
+  "name": "JVM and .NET",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Author Java prompt",
+      "description": "Author Java prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/java.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/java.md (40-80 lines). REPLACES coding/default.md for Java-classified tasks. Cover: idiomatic Java style (records for value types, sealed interfaces, Optional for nullable returns, streams API), build/test tooling (Maven mvn/Gradle gradle, javac, spotless/google-java-format, SpotBugs/ErrorProne), testing conventions (JUnit 5, AssertJ, Mockito for external boundaries only), and common pitfalls (checked vs unchecked exceptions, mutable collections returned from APIs, equals/hashCode contract, resource leaks without try-with-resources). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Author Kotlin prompt",
+      "description": "Author Kotlin prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/kotlin.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/kotlin.md (40-80 lines). REPLACES coding/default.md for Kotlin-classified tasks. Cover: idiomatic Kotlin style (data classes, sealed classes/interfaces, extension functions, null safety with ?. and ?:, scope functions let/apply/run/also), build/test tooling (Gradle with Kotlin DSL, kotlinc, ktlint/detekt), testing conventions (JUnit 5 or kotest, MockK for external boundaries), and common pitfalls (platform types from Java interop, coroutine cancellation and structured concurrency, lateinit misuse, overusing scope functions). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Author Scala prompt",
+      "description": "Author Scala prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/scala.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/scala.md (40-80 lines). REPLACES coding/default.md for Scala-classified tasks. Cover: idiomatic Scala style (case classes, pattern matching, immutable collections by default, for-comprehensions, type classes), build/test tooling (sbt, scala-cli, scalafmt, scalafix, Wartremover), testing conventions (ScalaTest, MUnit, or specs2, property-based testing with ScalaCheck), and common pitfalls (implicit resolution complexity, variance annotations, blocking in Future context, overusing inheritance over composition). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Author C# prompt",
+      "description": "Author C# prompt",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/classes/coding/csharp.md"
+      ],
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/csharp.md (40-80 lines). REPLACES coding/default.md for C#-classified tasks. Cover: idiomatic C# style (nullable reference types enabled, records for immutable data, pattern matching, async/await with ConfigureAwait, LINQ), build/test tooling (dotnet build/test/format, NuGet, dotnet-format or CSharpier, Roslyn analyzers), testing conventions (xUnit or NUnit, FluentAssertions, NSubstitute/Moq for external boundaries), and common pitfalls (async void except event handlers, IDisposable leaks, deadlocks from .Result/.Wait(), mutable struct gotchas). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in JVM and .NET is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify java.md, kotlin.md, scala.md, and csharp.md each reference their specific build tools (Maven/Gradle/sbt/dotnet) and do not duplicate generic advice already in universal.md"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T07:18:27.55162Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Authored Java class prompt (55 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T07:20:37.660688Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Authored Kotlin class prompt (51 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0002]"
+      },
+      {
+        "timestamp": "2026-03-22T07:22:34.405771Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Authored Scala class prompt (51 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T07:24:36.297685Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Authored C# class prompt (51 lines) covering style, build/test tooling, testing conventions, and common pitfalls [task-0004]"
+      },
+      {
+        "timestamp": "2026-03-22T07:26:51.642342Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
+        "text": "Audit: reviewed all 4 files (java.md 55 lines, kotlin.md 51 lines, scala.md 51 lines, csharp.md 51 lines, ~208 lines total). PASS. Build, tests (with -race), and lint all clean. All four prompts follow the established section structure (preamble, Style, Build and Test, Testing, Common Pitfalls) matching go.md and c.md conventions. Content is factually accurate across all four languages. No duplication beyond intentional structural consistency. No code quality issues. AAR-flagged improvements (missing concurrency, effect systems, source generators) are reasonable scope choices within the 40-80 line budget. No findings warranting remediation or escalation."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T07:16:28.405358Z",
+    "completed_at": "2026-03-22T07:27:11.873803Z",
+    "result_summary": "Authored four language-specific coding class prompts (Java, Kotlin, Scala, C#) totaling ~208 lines, each following the established section structure from go.md and c.md: codebase-deference preamble, Style, Build and Test, Testing, and Common Pitfalls. All prompts are factually accurate, stylistically consistent, and within the 40-80 line budget. The ClassRepository resolves them by filename convention with no Go code changes required. Build, tests (with race detector), and lint pass clean. Audit found no issues warranting remediation."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T07:27:00.170994Z",
+      "objective": "Verify all work in the JVM and .NET language prompts node is complete and correct",
+      "what_happened": "Read all 4 authored prompts (java.md, kotlin.md, scala.md, csharp.md) plus reference prompts (go.md, c.md, default.md). Ran build, test with race detector, and lint — all clean. Verified ClassRepository resolves prompts by filename convention, so no Go code changes were needed. Checked structural consistency, factual accuracy, and adherence to established patterns.",
+      "went_well": [
+        "All four prompts are structurally consistent with each other and with the existing go.md/c.md templates",
+        "Language-specific advice is accurate and well-calibrated (e.g. C# ConfigureAwait library/app distinction, Kotlin platform type warnings, Scala 2/3 implicit migration)",
+        "No findings warranting remediation — clean pass"
+      ],
+      "improvements": [
+        "None identified during audit"
+      ],
+      "action_items": [
+        "None — node work is complete"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T07:18:26.095627Z",
+      "objective": "Author the Java coding class prompt to replace default.md for Java-classified tasks",
+      "what_happened": "Wrote internal/project/templates/prompts/classes/coding/java.md (55 lines). Followed the established format from go.md and c.md: codebase-deference preamble, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered records, sealed interfaces, Optional, Streams API, var inference, Maven/Gradle, google-java-format/Spotless, SpotBugs/Error Prone, JUnit 5, AssertJ, Mockito, and six common pitfalls including checked/unchecked exceptions, mutable collection returns, equals/hashCode, try-with-resources, NPE, and string concatenation in loops.",
+      "went_well": [
+        "The existing prompts (go.md, c.md) provided a clear template for section structure and 'prefer X' phrasing, making the Java prompt stylistically consistent",
+        "All build and tests pass cleanly with the new file"
+      ],
+      "improvements": [
+        "Could have included a section on concurrency (synchronized, java.util.concurrent, virtual threads) to match Go's concurrency section, but the task description didn't call for it and the 40-80 line budget was better spent on the specified topics"
+      ],
+      "action_items": [
+        "If a Java/concurrency class prompt is needed later, consider adding java.util.concurrent, CompletableFuture, and virtual threads (Project Loom) guidance as a follow-up"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T07:20:36.455428Z",
+      "objective": "Author the Kotlin coding class prompt to replace default.md for Kotlin-classified tasks",
+      "what_happened": "Wrote internal/project/templates/prompts/classes/coding/kotlin.md (51 lines). Followed the established format from java.md and go.md: codebase-deference preamble, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered data classes, sealed classes/interfaces, extension functions, null safety operators, scope functions with usage guidelines, val preference, object declarations. Build/test section covers Gradle with Kotlin DSL, ktlint, detekt. Testing covers JUnit 5, kotest, MockK, kotlinx-coroutines-test. Five common pitfalls: platform types from Java interop, coroutine cancellation and structured concurrency, lateinit misuse, scope function overuse, and final-by-default classes with framework proxies.",
+      "went_well": [
+        "Java prompt AAR gave useful context; the Kotlin prompt naturally extends the JVM coverage while addressing Kotlin-specific idioms",
+        "Scope functions section balances recommending their use with warning against overuse, matching the 'prefer X' phrasing style"
+      ],
+      "improvements": [
+        "Could have included a section on Kotlin Multiplatform or Compose considerations, but these are specialized and the 40-80 line budget was better spent on core Kotlin idioms"
+      ],
+      "action_items": [
+        "If Kotlin coroutines warrant deeper coverage, consider a dedicated concurrency-focused class prompt similar to Go's concurrency section"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T07:22:33.005015Z",
+      "objective": "Author the Scala coding class prompt to replace default.md for Scala-classified tasks",
+      "what_happened": "Wrote internal/project/templates/prompts/classes/coding/scala.md (51 lines). Followed the established format from java.md, kotlin.md, and go.md: codebase-deference preamble, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered case classes, sealed traits, pattern matching, immutable collections, for-comprehensions, type classes, val preference, Either for errors. Build section covers sbt, scala-cli, scalafmt, scalafix, Wartremover. Testing covers ScalaTest, MUnit, specs2, ScalaCheck property-based testing, trait-based fixtures. Five common pitfalls: implicit resolution complexity (with Scala 3 given/using note), variance annotations, blocking in Future context, inheritance over composition, and eager Future evaluation.",
+      "went_well": [
+        "Existing JVM prompts (java.md, kotlin.md) provided consistent structural template",
+        "Covered both Scala 2 and Scala 3 idioms where they diverge (implicit vs given/using)"
+      ],
+      "improvements": [
+        "Could have included a section on effect systems (Cats Effect IO, ZIO) as a dedicated topic, but the task description didn't call for it and the line budget was better spent on core language idioms; effect types are mentioned in the eager Future pitfall"
+      ],
+      "action_items": [
+        "If Scala effect systems (Cats Effect, ZIO) warrant deeper coverage, consider a dedicated functional-programming class prompt"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T07:24:35.133062Z",
+      "objective": "Author the C# coding class prompt to replace default.md for C#-classified tasks",
+      "what_happened": "Wrote internal/project/templates/prompts/classes/coding/csharp.md (51 lines). Followed the established format from java.md and kotlin.md: codebase-deference preamble, then Style, Build and Test, Testing, and Common Pitfalls sections. Covered nullable reference types, records, pattern matching, LINQ with method vs query syntax guidance, async/await with ConfigureAwait context, file-scoped namespaces, sealed classes. Build section covers dotnet CLI, NuGet, dotnet-format/CSharpier, Roslyn analyzers. Testing covers xUnit, FluentAssertions, NSubstitute/Moq, IClassFixture for shared setup. Five common pitfalls: async void, IDisposable leaks with HttpClient factory note, .Result/.Wait() deadlocks, mutable struct gotchas, string concatenation in loops.",
+      "went_well": [
+        "Existing JVM prompts provided consistent structural template for section layout and prefer-X phrasing",
+        "ConfigureAwait guidance distinguishes library vs application code rather than giving blanket advice"
+      ],
+      "improvements": [
+        "Could have included guidance on source generators or Span\u003cT\u003e/Memory\u003cT\u003e for performance-sensitive code, but the 40-80 line budget was better spent on the core idioms specified in the task"
+      ],
+      "action_items": [
+        "If ASP.NET or Blazor-specific guidance is needed, consider a dedicated web-framework class prompt"
+      ]
+    }
+  }
+}

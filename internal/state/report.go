@@ -124,7 +124,7 @@ func WriteAuditReport(storeDir string, nodeAddr string, audit AuditState, nodeNa
 
 	content := GenerateAuditReport(audit, nodeAddr, nodeName)
 
-	if err := os.WriteFile(reportPath, []byte(content), 0644); err != nil {
+	if err := AtomicWriteFile(reportPath, []byte(content)); err != nil {
 		return "", fmt.Errorf("writing audit report: %w", err)
 	}
 

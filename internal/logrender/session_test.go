@@ -274,6 +274,25 @@ func TestParseIteration(t *testing.T) {
 	}
 }
 
+func TestTimestampKey_ExtractsAfterHyphen(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"0001-20260321T18-04Z.jsonl", "20260321T18-04Z.jsonl"},
+		{"0010-20260320T10-00Z.jsonl.gz", "20260320T10-00Z.jsonl.gz"},
+		{"nohyphen", "nohyphen"},
+		{"a-b", "b"},
+	}
+	for _, tt := range tests {
+		got := timestampKey(tt.input)
+		if got != tt.want {
+			t.Errorf("timestampKey(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
 // contains checks whether s contains substr.
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)

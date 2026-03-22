@@ -3,6 +3,7 @@ package task
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -73,6 +74,9 @@ func TestFindFilesByName_NoMatches(t *testing.T) {
 }
 
 func TestFindFilesByName_WalkErrorPermission(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	root := t.TempDir()
 	noAccess := filepath.Join(root, "noperm")
 	_ = os.MkdirAll(noAccess, 0755)
@@ -342,7 +346,7 @@ func TestTaskAdd_WithAllFlags(t *testing.T) {
 		"task", "add", "--node", "my-project",
 		"--body", "Full description",
 		"--type", "implementation",
-		"--class", "lang-go",
+		"--class", "coding/go",
 		"--deliverable", "cmd/api/handler.go",
 		"--constraint", "no external deps",
 		"--acceptance", "tests pass",
@@ -365,7 +369,7 @@ func TestTaskAdd_WithAllFlags(t *testing.T) {
 		if task.TaskType != "implementation" {
 			t.Errorf("type: got %q", task.TaskType)
 		}
-		if task.Class != "lang-go" {
+		if task.Class != "coding/go" {
 			t.Errorf("class: got %q", task.Class)
 		}
 		if len(task.Deliverables) != 1 || task.Deliverables[0] != "cmd/api/handler.go" {
