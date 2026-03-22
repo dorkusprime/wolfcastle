@@ -1,8 +1,8 @@
 // Package logging provides per-iteration NDJSON log files for the
 // Wolfcastle daemon. Each daemon iteration writes to its own .jsonl
 // file, and log retention is enforced by file count and age.
-// Console output is filtered by a configurable log level while NDJSON
-// files always capture everything (ADR-012, ADR-037, ADR-046).
+// NDJSON files capture everything at all levels (ADR-012, ADR-046).
+// Human-readable output is handled by the logrender package.
 package logging
 
 import (
