@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -453,6 +454,9 @@ func TestStartBackground_PIDWriteFailure(t *testing.T) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoverStaleDaemonState_ReadError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getenv("CI") != "" {
 		t.Skip("skip in CI")
 	}

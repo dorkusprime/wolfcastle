@@ -3,6 +3,7 @@ package task
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -73,6 +74,9 @@ func TestFindFilesByName_NoMatches(t *testing.T) {
 }
 
 func TestFindFilesByName_WalkErrorPermission(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	root := t.TempDir()
 	noAccess := filepath.Join(root, "noperm")
 	_ = os.MkdirAll(noAccess, 0755)

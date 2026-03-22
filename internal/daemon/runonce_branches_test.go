@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -163,6 +164,9 @@ func TestRunOnce_DefaultNoWorkReason(t *testing.T) {
 
 func TestRunOnce_StateErrorIsFatal(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	d := testDaemon(t)
 	projDir := d.Store.Dir()
 

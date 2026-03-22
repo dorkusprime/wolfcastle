@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -176,6 +177,9 @@ func TestConfigRepository_Load_MalformedJSON_ReturnsError(t *testing.T) {
 
 func TestConfigRepository_Load_PermissionError_Propagates(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 
 	if os.Getuid() == 0 {
 		t.Skip("skipping permission test when running as root")
@@ -355,6 +359,9 @@ func TestConfigRepository_ReadTier_MalformedJSON(t *testing.T) {
 
 func TestConfigRepository_ReadTier_PermissionError(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getuid() == 0 {
 		t.Skip("skipping permission test when running as root")
 	}

@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -65,6 +66,9 @@ func TestEnsureSkillSource_DirectoryCreationFailure(t *testing.T) {
 }
 
 func TestEnsureSkillSource_WriteFailure(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	// Create a read-only directory so the write fails
 	dir := filepath.Join(t.TempDir(), "skills")
 	_ = os.MkdirAll(dir, 0755)

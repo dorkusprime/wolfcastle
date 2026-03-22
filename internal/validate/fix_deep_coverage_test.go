@@ -3,6 +3,7 @@ package validate
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -14,6 +15,9 @@ import (
 
 func TestFixWithVerification_ApplyFixesError_ReadOnlyDir(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	dir := t.TempDir()
 	idx := state.NewRootIndex()
 

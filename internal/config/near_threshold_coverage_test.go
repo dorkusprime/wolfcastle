@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -31,6 +32,9 @@ func TestConfigRepository_Root_ReturnsConfiguredPath(t *testing.T) {
 
 func TestConfigRepository_WriteBase_WriteError(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getuid() == 0 {
 		t.Skip("skipping permission test when running as root")
 	}
@@ -63,6 +67,9 @@ func TestConfigRepository_WriteBase_WriteError(t *testing.T) {
 
 func TestConfigRepository_WriteCustom_MkdirAllFailure(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getuid() == 0 {
 		t.Skip("skipping permission test when running as root")
 	}
@@ -94,6 +101,9 @@ func TestConfigRepository_WriteCustom_MkdirAllFailure(t *testing.T) {
 
 func TestConfigRepository_WriteLocal_WriteFileFailure(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getuid() == 0 {
 		t.Skip("skipping permission test when running as root")
 	}
@@ -199,6 +209,9 @@ func TestLoad_InvalidCustomJSON(t *testing.T) {
 
 func TestLoad_PermissionError(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getuid() == 0 {
 		t.Skip("skipping permission test when running as root")
 	}

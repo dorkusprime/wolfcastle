@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -319,6 +320,9 @@ func TestCheckGitProgress_RenamedFile(t *testing.T) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAcquireGlobalLock_WriteFileFailure(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	dir := t.TempDir()
 	lockDir := filepath.Join(dir, "lockdir")
 	_ = os.MkdirAll(lockDir, 0755)

@@ -3,6 +3,7 @@ package daemon
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -459,6 +460,9 @@ func TestTryAutoArchive_ThrottledByPollInterval(t *testing.T) {
 
 func TestTryAutoArchive_ArchiveErrorDoesNotCrash(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	now := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
 	clk := clock.NewMock(now)
 	d := archiveTestDaemon(t, clk)

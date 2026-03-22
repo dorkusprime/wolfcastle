@@ -3,6 +3,7 @@ package testutil
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 
@@ -543,6 +544,9 @@ func TestWriteJSON_MkdirAllError(t *testing.T) {
 
 func TestWriteJSON_WriteFileError(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	dir := t.TempDir()
 
 	// Create a read-only directory so os.WriteFile fails.
@@ -605,6 +609,9 @@ func TestWithConfig_UnmarshalError_Fatals(t *testing.T) {
 
 func TestWithConfig_WriteJSONError_Fatals(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	env := NewEnvironment(t)
 
 	// Make the custom config file read-only, then make the directory
@@ -652,6 +659,9 @@ func TestWithProject_ReadIndexError_Fatals(t *testing.T) {
 
 func TestWithProject_WriteIndexError_Fatals(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	env := NewEnvironment(t)
 
 	// Make the projects directory read-only so writing the root index fails.
@@ -697,6 +707,9 @@ func TestBuildNode_MkdirAllError_Fatals(t *testing.T) {
 
 func TestBuildNode_WriteNodeStateError_Fatals(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	env := NewEnvironment(t)
 
 	projDir := env.ProjectsDir()
@@ -722,6 +735,9 @@ func TestBuildNode_WriteNodeStateError_Fatals(t *testing.T) {
 
 func TestWithPrompt_WriteBaseError_Fatals(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	env := NewEnvironment(t)
 
 	// Make the base prompts directory read-only so WriteBase fails.
@@ -744,6 +760,9 @@ func TestWithPrompt_WriteBaseError_Fatals(t *testing.T) {
 
 func TestWithRule_WriteBaseError_Fatals(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	env := NewEnvironment(t)
 
 	// Make the base rules directory read-only so WriteBase fails.

@@ -2,6 +2,7 @@ package pipeline_test
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -222,6 +223,9 @@ func TestClassRepository_Resolve_SubdirectoryAssembly_MultipleFiles(t *testing.T
 
 func TestClassRepository_Resolve_SubdirectoryAssembly_ScanErrorIgnored(t *testing.T) {
 	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	env := testutil.NewEnvironment(t).
 		WithPrompt("classes/fragile.md", "Main content.").
 		WithPrompt("classes/fragile/placeholder.md", "This will be unreadable.")
