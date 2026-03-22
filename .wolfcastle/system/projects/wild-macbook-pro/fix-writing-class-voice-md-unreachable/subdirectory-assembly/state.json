@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Implement subdirectory asset assembly in ClassRepository.Resolve",
       "description": "Implement subdirectory asset assembly in ClassRepository.Resolve",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/class_repository.go",
@@ -22,7 +22,7 @@
       "id": "task-0002",
       "title": "Add tests for subdirectory assembly behavior",
       "description": "Add tests for subdirectory assembly behavior",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/class_repository_test.go"
@@ -46,10 +46,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T14:33:43.74481Z",
+        "task": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
+        "text": "Implemented subdirectory assembly in ClassRepository.Resolve. After resolving the main .md file (exact or fallback), Resolve now collects fragments from prompts/classes/{resolvedKey}/ via ListFragments and appends them. Three new tests cover: multi-fragment assembly, no-subdir passthrough, and fallback+assembly."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T14:30:38.177578Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T14:33:38.651301Z",
+      "objective": "Add subdirectory asset assembly to ClassRepository.Resolve so class prompts can be composed from a main file plus fragment files in a subdirectory.",
+      "what_happened": "Refactored Resolve to track which key (exact or parent fallback) successfully resolved, then calls ListFragments on prompts/classes/{resolvedKey}/ to collect subdirectory .md files. Fragments are joined with newlines and appended to the main content. Added three tests: assembly with multiple fragments, no-subdirectory passthrough, and assembly with parent-key fallback.",
+      "went_well": [
+        "Clean integration with existing ListFragments; no new state or locking needed",
+        "Existing tests all pass unchanged since missing subdirectories produce no output"
+      ],
+      "improvements": [
+        "The ListFragments error path in Resolve is not covered by tests (requires simulating tier I/O failure)"
+      ],
+      "action_items": [
+        "Wire subdirectory assembly into canResolve/Validate if subdirectory-only classes become a thing"
+      ]
+    }
   }
 }

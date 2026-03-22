@@ -81,11 +81,9 @@ func (r *ClassRepository) Resolve(key string) (string, error) {
 	}
 
 	// Assemble subdirectory assets from prompts/classes/{resolvedKey}/.
-	// Missing subdirectory is not an error; it just means no extras.
-	fragments, err := r.prompts.ListFragments("prompts/classes/"+resolvedKey, nil, nil)
-	if err != nil {
-		return "", fmt.Errorf("classes: subdirectory assembly for %q: %w", resolvedKey, err)
-	}
+	// Missing or unreadable subdirectory is not an error; the main file
+	// content is always sufficient on its own.
+	fragments, _ := r.prompts.ListFragments("prompts/classes/"+resolvedKey, nil, nil)
 	if len(fragments) > 0 {
 		content = content + "\n" + strings.Join(fragments, "\n")
 	}
