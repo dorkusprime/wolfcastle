@@ -269,7 +269,7 @@
     "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net": {
       "name": "JVM and .NET",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
@@ -285,7 +285,7 @@
     "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages": {
       "name": "Systems Languages",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
       "decomposition_depth": 0,
       "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"

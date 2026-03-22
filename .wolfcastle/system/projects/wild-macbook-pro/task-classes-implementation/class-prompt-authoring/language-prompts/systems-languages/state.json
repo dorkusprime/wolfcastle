@@ -3,7 +3,7 @@
   "id": "systems-languages",
   "name": "Systems Languages",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -69,7 +69,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Systems Languages is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -110,8 +110,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T06:59:35.929487Z",
+    "completed_at": "2026-03-22T07:16:28.31349Z",
     "result_summary": "Authored four language-specific class prompts for systems languages (Go, Rust, C++, C) totaling 279 lines. Each prompt replaces coding/default.md when a task is classified as the corresponding language, providing idiomatic guidance on style, build tooling, testing conventions, and common pitfalls. Go (80 lines) covers concurrency patterns and goroutine lifecycle. Rust (61 lines) covers ownership, lifetimes, and async runtime selection. C++ (67 lines) covers RAII, smart pointers, move semantics, and the static initialization order fiasco. C (71 lines) covers explicit memory management, goto-cleanup, and implicit function declarations. All files follow a consistent section structure, avoid duplicating the universal coding guidance in default.md, and resolve correctly through ClassRepository's one-level fallback chain. Audit found no gaps requiring remediation."
   },
   "aars": {

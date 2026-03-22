@@ -3,14 +3,14 @@
   "id": "jvm-and-net",
   "name": "JVM and .NET",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Author Java prompt",
       "description": "Author Java prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/java.md"
@@ -81,6 +81,7 @@
     "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T07:16:28.405358Z"
   }
 }
