@@ -91,6 +91,11 @@
         "timestamp": "2026-03-22T07:05:52.443492Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
         "text": "Authored Rust class prompt (61 lines) covering style, build/test, testing, ownership/lifetimes, async, and pitfalls. Committed as 1e65118."
+      },
+      {
+        "timestamp": "2026-03-22T07:11:33.00848Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
+        "text": "Authored C++ class prompt (67 lines) covering style, build/test, testing, memory/lifetime, and pitfalls. Committed as 3a80474."
       }
     ],
     "gaps": [],
@@ -129,6 +134,22 @@
       ],
       "action_items": [
         "If unsafe code guidance is desired, it would need its own section or a line budget increase"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T07:11:31.461521Z",
+      "objective": "Author the C++ class prompt that replaces coding/default.md for C++-classified tasks",
+      "what_happened": "The previous iteration wrote internal/project/templates/prompts/classes/coding/cpp.md at 67 lines but failed to emit a terminal marker. Reviewed the content, confirmed it covers all required topics (RAII, smart pointers, move semantics, constexpr, CMake/Make/clang-tidy/clang-format/cppcheck, Google Test/Catch2/CTest, UB, dangling references, implicit conversions, include-what-you-use, header-only vs compiled). Added a Memory and Lifetime section as a natural fit for C++. Validated build and tests, then committed.",
+      "went_well": [
+        "The six-section structure (Style, Build and Test, Testing, Memory and Lifetime, Common Pitfalls) maps well to the distinctive concerns of C++",
+        "67 lines gave room for all required topics including the static initialization order fiasco, which is a classic C++ trap worth calling out"
+      ],
+      "improvements": [
+        "Could have included guidance on C++20 modules as a forward-looking alternative to the header/source split, but modules adoption is still uneven"
+      ],
+      "action_items": [
+        "If template metaprogramming guidance is desired, it would need its own section or a separate prompt fragment"
       ]
     }
   }
