@@ -60,7 +60,7 @@
     "configuration-docs-overhaul": {
       "name": "Configuration Docs Overhaul",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "configuration-docs-overhaul",
       "decomposition_depth": 0,
       "children": [
@@ -71,7 +71,7 @@
     "configuration-docs-overhaul/deep-linking-pass": {
       "name": "Deep-Linking Pass",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "configuration-docs-overhaul/deep-linking-pass",
       "decomposition_depth": 0,
       "parent": "configuration-docs-overhaul"
@@ -139,9 +139,58 @@
     "deterministic-git-activity": {
       "name": "Deterministic Git Activity",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "deterministic-git-activity",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "deterministic-git-activity/daemon-commit-implementation",
+        "deterministic-git-activity/documentation-pass"
+      ]
+    },
+    "deterministic-git-activity/daemon-commit-implementation": {
+      "name": "Daemon Commit Implementation",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "deterministic-git-activity/daemon-commit-implementation",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity",
+      "children": [
+        "deterministic-git-activity/daemon-commit-implementation/git-config-expansion",
+        "deterministic-git-activity/daemon-commit-implementation/daemon-commit-logic",
+        "deterministic-git-activity/daemon-commit-implementation/execute-prompt-cleanup"
+      ]
+    },
+    "deterministic-git-activity/daemon-commit-implementation/daemon-commit-logic": {
+      "name": "Daemon Commit Logic",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "deterministic-git-activity/daemon-commit-implementation/daemon-commit-logic",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity/daemon-commit-implementation"
+    },
+    "deterministic-git-activity/daemon-commit-implementation/execute-prompt-cleanup": {
+      "name": "Execute Prompt Cleanup",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "deterministic-git-activity/daemon-commit-implementation/execute-prompt-cleanup",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity/daemon-commit-implementation"
+    },
+    "deterministic-git-activity/daemon-commit-implementation/git-config-expansion": {
+      "name": "Git Config Expansion",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "deterministic-git-activity/daemon-commit-implementation/git-config-expansion",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity/daemon-commit-implementation"
+    },
+    "deterministic-git-activity/documentation-pass": {
+      "name": "Documentation Pass",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "deterministic-git-activity/documentation-pass",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity"
     },
     "document-pid-recycling-edge-case-in-filelock": {
       "name": "Document PID recycling edge case in filelock",

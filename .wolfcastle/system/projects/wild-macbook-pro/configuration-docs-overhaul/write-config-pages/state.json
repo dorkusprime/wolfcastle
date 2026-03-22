@@ -75,6 +75,7 @@
         "status": "open"
       }
     ],
-    "status": "pending"
+    "status": "passed",
+    "completed_at": "2026-03-22T19:34:20.05374Z"
   }
 }

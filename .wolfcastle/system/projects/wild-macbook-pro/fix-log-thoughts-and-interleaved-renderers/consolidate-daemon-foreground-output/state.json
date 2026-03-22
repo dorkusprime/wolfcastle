@@ -41,17 +41,17 @@
       "body": "Run the full test suite to confirm nothing is broken by the consolidation:\n\ngo test ./internal/logging/... -v\ngo test ./internal/daemon/... -v  \ngo test ./cmd/... -v\n\nIf Logger tests assert writeConsole behavior that was removed, update or delete those tests. Confirm that wolfcastle start (foreground), wolfcastle execute, and wolfcastle intake all produce consistent interleaved output through the shared renderer path."
     },
     {
+      "id": "audit.0001",
+      "description": "Fix: Logger.Console and Logger.ConsoleLevel fields are now dead: set by cmd/ code but never read within Logger. Should be removed along with io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go, and NewLogger defaults.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output gap-consolidate-daemon-foreground-output-1",
+      "state": "complete",
+      "failure_count": 0
+    },
+    {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Consolidate Daemon Foreground Output is complete and correct",
       "state": "complete",
       "is_audit": true,
-      "failure_count": 0
-    },
-    {
-      "id": "audit.0001",
-      "description": "Fix: Logger.Console and Logger.ConsoleLevel fields are now dead: set by cmd/ code but never read within Logger. Should be removed along with io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go, and NewLogger defaults.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output gap-consolidate-daemon-foreground-output-1",
-      "state": "complete",
       "failure_count": 0
     }
   ],

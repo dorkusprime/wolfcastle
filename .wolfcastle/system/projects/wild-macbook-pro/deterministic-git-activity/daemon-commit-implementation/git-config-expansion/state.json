@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "git-config-expansion",
+  "name": "Git Config Expansion",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add new config fields to GitConfig struct",
+      "description": "Add new config fields to GitConfig struct",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/types.go",
+        "internal/config/config.go",
+        "internal/config/validate.go"
+      ],
+      "body": "Add three new fields to the GitConfig struct in internal/config/types.go:\n- CommitOnSuccess (bool, json: commit_on_success): controls whether the daemon commits after successful task completion. Default: true.\n- CommitOnFailure (bool, json: commit_on_failure): controls whether the daemon commits partial work after task failure. Default: true.\n- CommitState (bool, json: commit_state): controls whether .wolfcastle/ state is included in daemon commits. Default: true.\n\nAll three are subordinate to the existing AutoCommit master switch (ignored when auto_commit is false).\n\nAlso rename SkipHooksOnAutoCommit to SkipHooks (json: skip_hooks) per the spec, or confirm whether the existing field name should remain. Check whether a rename would break existing user configs and decide accordingly.\n\nUpdate Defaults() in internal/config/config.go to set the new defaults.\nUpdate Validate() in internal/config/validate.go if any validation is needed (the bool fields likely need no validation, but confirm CommitOnSuccess/CommitOnFailure aren't both false when auto_commit is true, which would be a no-op config worth warning about).\n\nReference the spec at .wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md for the full config schema."
+    },
+    {
+      "id": "task-0002",
+      "title": "Add config field tests",
+      "description": "Add config field tests",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/types_test.go"
+      ],
+      "body": "Write tests for the new config fields:\n- Test that Defaults() returns the expected values for commit_on_success, commit_on_failure, and commit_state (all true).\n- Test that a config with auto_commit: false ignores the fine-grained controls (this may be a behavioral test that belongs in the daemon commit logic tests, but the config layer should at least parse correctly).\n- Test round-trip JSON marshaling of the new fields.\n- Test that the renamed/new skip_hooks field (json: skip_hooks) deserializes correctly from user configs.\n\nLook at existing config tests to follow the established patterns."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Git Config Expansion is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify new config fields deserialize correctly from JSON and that Defaults() returns expected values"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-22T19:38:04.516473Z"
+  }
+}

@@ -3,24 +3,61 @@
   "id": "deterministic-git-activity",
   "name": "Deterministic Git Activity",
   "type": "orchestrator",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "daemon-commit-implementation",
+      "address": "deterministic-git-activity/daemon-commit-implementation",
+      "state": "in_progress"
+    },
+    {
+      "id": "documentation-pass",
+      "address": "deterministic-git-activity/documentation-pass",
+      "state": "not_started"
+    }
+  ],
   "tasks": [
     {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Deterministic Git Activity is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
   ],
   "scope": "Deterministic git activity per spec .wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md\n\nMove all git operations into the daemon. The agent never runs git add, git commit, or any other git command. The daemon commits deterministically after every task iteration (success and failure).\n\nKey work:\n- Remove Phase H (Commit) from execute.md; remove all git instruction from execute prompt\n- Add commit logic to success path in iteration.go (alongside existing failure path in autoCommitPartialWork)\n- New config fields: git.auto_commit, git.commit_on_success, git.commit_on_failure, git.commit_state (git.skip_hooks already exists)\n- Staging area preservation: save/restore user index state around daemon commits\n- Documentation pass: how-it-works.md, configuration.md, collaboration.md, failure-and-recovery.md, AGENTS.md, docs/agents/, execute.md, README",
+  "success_criteria": [
+    "The agent execute prompt contains zero references to git add, git commit, or Phase H",
+    "The daemon commits on both success and failure paths, controlled by git config fields",
+    "User staging area is preserved across daemon commits (verified by test)",
+    "All human-facing docs accurately describe the new git behavior"
+  ],
+  "total_replans": 1,
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T19:34:18.919551Z",
+      "trigger": "initial",
+      "summary": "marker="
+    },
+    {
+      "timestamp": "2026-03-22T19:38:04.419627Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
   "audit": {
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T19:38:01.7077Z",
+        "task": "deterministic-git-activity",
+        "text": "Created 3 direct children: daemon-commit-implementation (orchestrator), documentation-pass (leaf), plus existing audit task. daemon-commit-implementation decomposes into 3 leaves: git-config-expansion (2 tasks), daemon-commit-logic (3 tasks), execute-prompt-cleanup (2 tasks). documentation-pass has 3 tasks. Ordering: config fields first (other code depends on them), then commit logic, then prompt cleanup, then docs pass (docs describe shipped behavior). Staging area preservation includes an ADR decision point (stash vs. separate index)."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "pending"

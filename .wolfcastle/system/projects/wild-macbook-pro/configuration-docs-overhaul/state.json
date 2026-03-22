@@ -3,7 +3,7 @@
   "id": "configuration-docs-overhaul",
   "name": "Configuration Docs Overhaul",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -14,7 +14,7 @@
     {
       "id": "deep-linking-pass",
       "address": "configuration-docs-overhaul/deep-linking-pass",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -33,6 +33,8 @@
     "Cross-references are wired between all four new pages (quickstart \u003c-\u003e guide \u003c-\u003e reference \u003c-\u003e task-classes)",
     "Deep-linking pass complete: all existing docs in docs/humans/, CLI pages, and README updated with links to specific sections in the new config pages"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T18:49:24.307424Z",
@@ -61,6 +63,7 @@
         "status": "open"
       }
     ],
-    "status": "pending"
+    "status": "passed",
+    "completed_at": "2026-03-22T19:34:20.054006Z"
   }
 }

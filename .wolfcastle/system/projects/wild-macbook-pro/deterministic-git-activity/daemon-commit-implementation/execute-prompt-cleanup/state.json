@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "execute-prompt-cleanup",
+  "name": "Execute Prompt Cleanup",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Remove Phase H and git instructions from execute.md",
+      "description": "Remove Phase H and git instructions from execute.md",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/stages/execute.md",
+        "internal/project/templates/rules/git-conventions.md"
+      ],
+      "body": "Remove Phase H (Commit) entirely from internal/project/templates/prompts/stages/execute.md (lines ~151-157). Also remove the 'git add .wolfcastle/' instruction added in PR #137 if it appears elsewhere in the file.\n\nAdd a brief note in the execute prompt (perhaps near the terminal markers section) stating that the agent must NOT run git add, git commit, or any git commands. The daemon handles all git operations automatically.\n\nSearch for any other prompt templates in internal/project/templates/ that reference git add or git commit, and remove those instructions too.\n\nAlso update the git-conventions rule in internal/project/templates/rules/git-conventions.md: the 'one logical commit per task' and 'never commit broken code' rules should be reframed as daemon behavior rather than agent instructions. The agent doesn't commit, the daemon does."
+    },
+    {
+      "id": "task-0002",
+      "title": "Update agent docs to prohibit git commands",
+      "description": "Update agent docs to prohibit git commands",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "AGENTS.md",
+        "docs/agents/daemon.md"
+      ],
+      "body": "Update AGENTS.md and the docs/agents/ directory to reflect that agents must not run git commands:\n\n- AGENTS.md: Remove any guidance about committing (gofmt before committing, etc). Add a clear statement that agents must NOT run git add, git commit, or any git commands. The daemon commits automatically.\n- docs/agents/code-standards.md: if it references committing or git, update accordingly.\n- docs/agents/daemon.md: update to describe the new daemon commit behavior (commits on success and failure, configurable via git config fields).\n- Any other file in docs/agents/ that references git operations.\n\nThe 'never rebase main' rule in AGENTS.md should remain (it's about branch management, not committing)."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Execute Prompt Cleanup is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Grep all prompt templates for git add and git commit; confirm zero matches"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

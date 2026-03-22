@@ -3,7 +3,7 @@
   "id": "deep-linking-pass",
   "name": "Deep-Linking Pass",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -51,7 +51,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Deep-Linking Pass is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -82,8 +82,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T19:17:37.338823Z",
+    "completed_at": "2026-03-22T19:33:09.633078Z",
     "result_summary": "Deep-linking pass updated cross-references across 17 documentation files. Task-0001 fixed 8 broken anchors caused by heading renames in configuration.md, added 10 new deep links from concept pages (how-it-works, audits, failure-and-recovery, collaboration) to config-reference.md field sections, updated navigation in both READMEs, and linked config-quickstart.md as the configuration entry point. Task-0002 sharpened 6 CLI config command pages with specific anchor links to merge semantics, array behavior, and null-deletion rules. All 28 anchor cross-references verified valid against target headings. One pre-existing broken link in cli.md escalated to the parent node."
   },
   "aars": {
