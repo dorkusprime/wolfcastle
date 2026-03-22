@@ -25,11 +25,12 @@
       "id": "task-0002",
       "title": "Author Rust prompt",
       "description": "Author Rust prompt",
-      "state": "in_progress",
-      "failure_count": 0,
+      "state": "complete",
+      "failure_count": 1,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/rust.md"
       ],
+      "last_failure_type": "no_terminal_marker",
       "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/rust.md (40-80 lines). REPLACES coding/default.md for Rust-classified tasks. Cover: ownership/borrowing idioms, Result/Option patterns (prefer ? operator, avoid unwrap in library code), build/test tooling (cargo build, cargo test, cargo clippy, cargo fmt, rustfmt.toml), testing conventions (unit tests in same file via #[cfg(test)] mod, integration tests in tests/), and common pitfalls (lifetime annotations, borrow checker fights from over-borrowing, String vs \u0026str at API boundaries, async runtime selection). Use 'prefer X' phrasing. ZERO wolfcastle content.",
       "references": [
         ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
@@ -39,7 +40,7 @@
       "id": "task-0003",
       "title": "Author C++ prompt",
       "description": "Author C++ prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/cpp.md"
