@@ -74,7 +74,7 @@ Emit WOLFCASTLE_BLOCKED if the scope cannot be planned (missing information not 
 - **Specs before implementation.** If the work defines new types, interfaces, or contracts, create a spec-writing leaf BEFORE the implementation leaves. The spec leaf should have a task that writes the spec via `wolfcastle spec create`. Implementation leaves should reference the spec with `--reference`.
 - Every `project create` must have a `--description` explaining what the node covers. "Project description goes here" is never acceptable.
 - Every task must have a `--body` with concrete details. One-line descriptions are not acceptable.
-- Every implementation task must have at least one `--deliverable`.
+- Every task must have at least one `--deliverable` (the file it creates or modifies) and at least one `--acceptance` criterion (a verifiable statement the auditor can check against the actual file). The audit agent will open every deliverable and check every acceptance criterion. Tasks without these are unverifiable.
 - **Assign a task class to every task.** Use `--class` with the most specific key that matches what the task will touch. A task modifying Go files gets `coding/go`; a task building a Rails controller gets `coding/ruby/rails`; a task writing docs gets `writing`; a task updating CI pipelines gets `devops`. Different tasks on the same leaf can have different classes. If no class fits, omit the flag.
 - If you found relevant specs in `.wolfcastle/docs/specs/` during the Study phase, add `--reference "path/to/spec.md"` to tasks that depend on them.
 - Maximum 8 tasks per leaf. If a leaf needs more, split into multiple leaves.
