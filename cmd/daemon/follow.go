@@ -91,6 +91,14 @@ Examples:
 				follow = true
 			}
 
+			// Downgrade explicit --follow when daemon is stopped.
+			// The spec says --follow is a no-op when the daemon is not running;
+			// without this guard the command hangs waiting for log lines that
+			// will never arrive.
+			if follow && !app.Daemon.IsAlive() {
+				follow = false
+			}
+
 			ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer stop()
 
