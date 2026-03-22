@@ -1,0 +1,3 @@
+# Add caching layer
+
+Implement Redis-based caching.

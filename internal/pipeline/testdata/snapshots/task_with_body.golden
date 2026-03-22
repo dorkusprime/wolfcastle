@@ -1,0 +1,3 @@
+# Implement auth
+
+Add JWT middleware to all routes.

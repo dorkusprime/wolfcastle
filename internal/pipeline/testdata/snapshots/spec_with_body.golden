@@ -1,0 +1,3 @@
+# API Auth Flow
+
+Authentication uses JWT tokens.

@@ -1,14 +1,12 @@
 package pipeline
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
-	"github.com/dorkusprime/wolfcastle/internal/project"
 )
 
 func setupPromptDir(t *testing.T, dir string) {
@@ -30,23 +28,25 @@ func setupPromptDir(t *testing.T, dir string) {
 	_ = os.WriteFile(filepath.Join(dir, "system", "base", "prompts", "expand.md"), []byte("Expand prompt"), 0644)
 }
 
-// setupEmbeddedPrompts writes the real embedded templates to a temp dir
-// so tests can verify that production prompts contain expected content.
+// setupEmbeddedPrompts copies the real template files from the source tree
+// into a temp dir so tests can verify that production prompts contain expected
+// content. This reads from disk rather than the embedded FS to avoid an import
+// cycle (project imports pipeline).
 func setupEmbeddedPrompts(t *testing.T, dir string) {
 	t.Helper()
 	setupTiers(t, dir)
 
-	// Extract real embedded templates into the base tier
-	err := fs.WalkDir(project.Templates, "templates", func(path string, d fs.DirEntry, err error) error {
+	srcRoot := filepath.Join("..", "project", "templates")
+	err := filepath.WalkDir(srcRoot, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
 		}
-		relPath := strings.TrimPrefix(path, "templates/")
+		relPath, _ := filepath.Rel(srcRoot, path)
 		destPath := filepath.Join(dir, "system", "base", relPath)
 		if mkErr := os.MkdirAll(filepath.Dir(destPath), 0755); mkErr != nil {
 			return mkErr
 		}
-		data, readErr := project.Templates.ReadFile(path)
+		data, readErr := os.ReadFile(path)
 		if readErr != nil {
 			return readErr
 		}

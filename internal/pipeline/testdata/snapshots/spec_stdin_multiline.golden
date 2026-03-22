@@ -1,0 +1,4 @@
+# Auth Protocol
+
+Users authenticate via OAuth2.
+Tokens expire after 1 hour.
