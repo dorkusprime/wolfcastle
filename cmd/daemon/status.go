@@ -308,11 +308,11 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		glyph := nodeGlyph(nd.entry.State)
 		childCount := countDescendants(idx, addr)
 		if childCount > 0 {
-			output.PrintHuman("%s%s %s: %s  (%d nodes)", indent, glyph, tp, nd.entry.Name, childCount+1)
+			output.PrintHuman("%s%s %s: %s  (%s, %d nodes)", indent, glyph, tp, nd.entry.Name, addr, childCount+1)
 			return
 		}
 		if nd.ns != nil && len(nd.ns.Tasks) > 0 {
-			output.PrintHuman("%s%s %s: %s  (%d tasks)", indent, glyph, tp, nd.entry.Name, len(nd.ns.Tasks))
+			output.PrintHuman("%s%s %s: %s  (%s, %d tasks)", indent, glyph, tp, nd.entry.Name, addr, len(nd.ns.Tasks))
 			return
 		}
 	}
