@@ -23,7 +23,7 @@ wolfcastle task add --node <path> "<description>"
 | `--stdin` | Read task body from stdin. |
 | `--deliverable <path>` | Expected output file. Repeatable. |
 | `--type <type>` | Task type: `discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup`. |
-| `--class <class>` | [Task class](../task-classes.md) override (e.g., `coding/go`). Must match a configured class. |
+| `--class <class>` | [Task class](../task-classes.md#using-a-class) override (e.g., `coding/go`). Uses [framework fallback](../task-classes.md#framework-fallback) to resolve nested classes. Must match a configured class. |
 | `--constraint <text>` | Constraint: what not to do. Repeatable. |
 | `--acceptance <text>` | Acceptance criterion. Repeatable. |
 | `--reference <path>` | Reference material path. Repeatable. |
@@ -57,4 +57,4 @@ wolfcastle task add --node <path> "<description>"
 - [`wolfcastle project create`](project-create.md) to create the node first.
 - [`wolfcastle inbox add`](inbox-add.md) if you'd rather let the daemon figure out where the task belongs.
 - [Getting Work In](../how-it-works.md#getting-work-in) for how work enters the system.
-- [Task Classes](../task-classes.md) for available classes and how to create your own.
+- [Task Classes](../task-classes.md) for available classes, [fallback behavior](../task-classes.md#framework-fallback), and [how to create your own](../task-classes.md#creating-a-custom-class).

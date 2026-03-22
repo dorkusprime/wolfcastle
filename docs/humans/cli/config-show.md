@@ -45,5 +45,6 @@ None. This command is strictly read-only.
 ## See Also
 
 - [`wolfcastle config set`](config-set.md) to write a value into a tier overlay.
-- [Configuration](../configuration.md) for how tiers merge and what keys are available.
+- [Three-Tier Directory Structure](../configuration.md#three-tier-directory-structure) for how base, custom, and local layers compose.
+- [Merge Semantics](../configuration.md#merge-semantics) for deep-merge, array replacement, and null-deletion rules.
 - [Config Reference](../config-reference.md) for every field, its type, and default value.
