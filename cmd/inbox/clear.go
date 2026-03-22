@@ -26,7 +26,7 @@ Examples:
 			}
 			clearAll, _ := cmd.Flags().GetBool("all")
 
-			inboxPath := filepath.Join(app.State.Dir(), "inbox.json")
+			inboxPath := app.State.InboxPath()
 			inboxData, err := state.LoadInbox(inboxPath)
 			if err != nil {
 				return fmt.Errorf("reading inbox: %w", err)
