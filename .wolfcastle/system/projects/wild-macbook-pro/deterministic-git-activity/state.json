@@ -3,26 +3,15 @@
   "id": "deterministic-git-activity",
   "name": "Deterministic Git Activity",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "not_started",
   "decomposition_depth": 0,
-  "children": [
-    {
-      "id": "daemon-commit-implementation",
-      "address": "deterministic-git-activity/daemon-commit-implementation",
-      "state": "in_progress"
-    },
-    {
-      "id": "documentation-pass",
-      "address": "deterministic-git-activity/documentation-pass",
-      "state": "not_started"
-    }
-  ],
+  "children": [],
   "tasks": [
     {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Deterministic Git Activity is complete and correct",
-      "state": "complete",
+      "state": "not_started",
       "is_audit": true,
       "failure_count": 0
     }
@@ -34,30 +23,13 @@
     "User staging area is preserved across daemon commits (verified by test)",
     "All human-facing docs accurately describe the new git behavior"
   ],
-  "total_replans": 1,
-  "planning_history": [
-    {
-      "timestamp": "2026-03-22T19:34:18.919551Z",
-      "trigger": "initial",
-      "summary": "marker="
-    },
-    {
-      "timestamp": "2026-03-22T19:38:04.419627Z",
-      "trigger": "initial",
-      "summary": "marker=WOLFCASTLE_COMPLETE"
-    }
-  ],
+  "total_replans": 0,
+  "planning_history": [],
   "audit": {
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [
-      {
-        "timestamp": "2026-03-22T19:38:01.7077Z",
-        "task": "deterministic-git-activity",
-        "text": "Created 3 direct children: daemon-commit-implementation (orchestrator), documentation-pass (leaf), plus existing audit task. daemon-commit-implementation decomposes into 3 leaves: git-config-expansion (2 tasks), daemon-commit-logic (3 tasks), execute-prompt-cleanup (2 tasks). documentation-pass has 3 tasks. Ordering: config fields first (other code depends on them), then commit logic, then prompt cleanup, then docs pass (docs describe shipped behavior). Staging area preservation includes an ADR decision point (stash vs. separate index)."
-      }
-    ],
+    "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
     "status": "pending"

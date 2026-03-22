@@ -131,11 +131,6 @@ func ValidateStructure(cfg *Config) error {
 		errs = append(errs, "git.commit_message_format must not be empty")
 	}
 
-	// Warn about no-op git config: auto_commit enabled but neither success nor failure commits
-	if cfg.Git.AutoCommit && !cfg.Git.CommitOnSuccess && !cfg.Git.CommitOnFailure {
-		errs = append(errs, "git.auto_commit is true but both commit_on_success and commit_on_failure are false (no commits will be created)")
-	}
-
 	// Overlap advisory threshold must be in [0, 1]
 	if cfg.OverlapAdvisory.Threshold < 0 || cfg.OverlapAdvisory.Threshold > 1 {
 		errs = append(errs, fmt.Sprintf("overlap_advisory.threshold (%.2f) must be between 0 and 1", cfg.OverlapAdvisory.Threshold))

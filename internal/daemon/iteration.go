@@ -381,7 +381,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 
 		// Auto-commit partial work, then increment failure count
-		autoCommitPartialWork(d.RepoDir, d.Logger, nav.TaskID, d.Config.Git.SkipHooks)
+		autoCommitPartialWork(d.RepoDir, d.Logger, nav.TaskID, d.Config.Git.SkipHooksOnAutoCommit)
 
 		_ = d.Logger.Log(map[string]any{
 			"type":  failureType,

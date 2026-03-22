@@ -396,25 +396,7 @@ Controls automatic commit behavior and branch verification.
 
 - **Type:** `bool`
 - **Default:** `true`
-- **Description:** Master switch for daemon git operations. When `false`, no git commands are run and all fine-grained commit controls are ignored.
-
-### git.commit_on_success
-
-- **Type:** `bool`
-- **Default:** `true`
-- **Description:** Whether the daemon commits after successful task completion. Only applies when `auto_commit` is `true`.
-
-### git.commit_on_failure
-
-- **Type:** `bool`
-- **Default:** `true`
-- **Description:** Whether the daemon commits partial work after task failure. Only applies when `auto_commit` is `true`.
-
-### git.commit_state
-
-- **Type:** `bool`
-- **Default:** `true`
-- **Description:** Whether `.wolfcastle/` state is included in daemon commits. When `false`, only code changes are committed. Only applies when `auto_commit` is `true`.
+- **Description:** Whether the daemon automatically commits changes after task completion. When `false`, the agent must commit manually.
 
 ### git.commit_message_format
 
@@ -436,11 +418,11 @@ Controls automatic commit behavior and branch verification.
 - **Default:** `true`
 - **Description:** Whether the daemon verifies it is on the expected git branch before committing. Prevents accidental commits to the wrong branch.
 
-### git.skip_hooks
+### git.skip_hooks_on_auto_commit
 
 - **Type:** `bool`
-- **Default:** `false`
-- **Description:** Whether auto-commits pass `--no-verify` to skip git hooks (pre-commit, commit-msg, etc.).
+- **Default:** `true`
+- **Description:** Whether auto-commits skip git hooks (pre-commit, commit-msg, etc.). Enabled by default because hooks that prompt for input will stall the daemon.
 
 ---
 

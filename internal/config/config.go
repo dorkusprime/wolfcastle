@@ -96,13 +96,10 @@ func Defaults() *Config {
 			LogLevel:                   "info",
 		},
 		Git: GitConfig{
-			AutoCommit:          true,
-			CommitOnSuccess:     true,
-			CommitOnFailure:     true,
-			CommitState:         true,
-			CommitMessageFormat: "wolfcastle: {action} [{node}]",
-			VerifyBranch:        true,
-			SkipHooks:           false,
+			AutoCommit:            true,
+			CommitMessageFormat:   "wolfcastle: {action} [{node}]",
+			VerifyBranch:          true,
+			SkipHooksOnAutoCommit: true,
 		},
 		Doctor: DoctorConfig{
 			Model:      "mid",
