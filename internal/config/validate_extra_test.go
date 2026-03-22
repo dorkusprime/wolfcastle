@@ -227,3 +227,57 @@ func TestValidate_CatchesMissingAuditPromptFile(t *testing.T) {
 		t.Error("expected error for empty audit prompt file")
 	}
 }
+
+func TestValidateStructure_GitConfigFieldCombinations(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name            string
+		autoCommit      bool
+		commitOnSuccess bool
+		commitOnFailure bool
+		commitState     bool
+	}{
+		{name: "all enabled", autoCommit: true, commitOnSuccess: true, commitOnFailure: true, commitState: true},
+		{name: "auto_commit false ignores sub-fields", autoCommit: false, commitOnSuccess: true, commitOnFailure: true, commitState: true},
+		{name: "auto_commit false all sub-fields false", autoCommit: false, commitOnSuccess: false, commitOnFailure: false, commitState: false},
+		{name: "auto_commit true success only", autoCommit: true, commitOnSuccess: true, commitOnFailure: false, commitState: false},
+		{name: "auto_commit true failure only", autoCommit: true, commitOnSuccess: false, commitOnFailure: true, commitState: false},
+		{name: "auto_commit true state only", autoCommit: true, commitOnSuccess: false, commitOnFailure: false, commitState: true},
+		{name: "auto_commit true all sub-fields false", autoCommit: true, commitOnSuccess: false, commitOnFailure: false, commitState: false},
+		{name: "all false", autoCommit: false, commitOnSuccess: false, commitOnFailure: false, commitState: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := Defaults()
+			cfg.Git.AutoCommit = tt.autoCommit
+			cfg.Git.CommitOnSuccess = tt.commitOnSuccess
+			cfg.Git.CommitOnFailure = tt.commitOnFailure
+			cfg.Git.CommitState = tt.commitState
+
+			if err := ValidateStructure(cfg); err != nil {
+				t.Errorf("expected valid config, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateStructure_GitCommitFormatUnchangedByNewFields(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Git.AutoCommit = true
+	cfg.Git.CommitOnSuccess = true
+	cfg.Git.CommitOnFailure = true
+	cfg.Git.CommitState = true
+	cfg.Git.CommitMessageFormat = ""
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for empty commit message format even with new fields set")
+	}
+	if !strings.Contains(err.Error(), "commit_message_format") {
+		t.Errorf("expected mention of commit_message_format, got: %v", err)
+	}
+}

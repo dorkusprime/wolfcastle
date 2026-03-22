@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Add new git config fields to GitConfig struct",
       "description": "Add new git config fields to GitConfig struct",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/config/types.go",
@@ -30,7 +30,7 @@
       "id": "task-0002",
       "title": "Add validation for new git config fields",
       "description": "Add validation for new git config fields",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/config/validate.go"
