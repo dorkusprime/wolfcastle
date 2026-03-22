@@ -30,7 +30,7 @@
       "id": "task-0002",
       "title": "Add validation for new git config fields",
       "description": "Add validation for new git config fields",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/config/validate.go"
@@ -49,7 +49,7 @@
       "id": "task-0003",
       "title": "Update config-reference.md with new git fields",
       "description": "Update config-reference.md with new git fields",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "docs/humans/config-reference.md"
@@ -90,12 +90,18 @@
         "timestamp": "2026-03-22T20:26:38.35221Z",
         "task": "deterministic-git-activity/git-config-fields",
         "text": "Added table-driven validation tests for CommitOnSuccess, CommitOnFailure, CommitState field combinations. No validation logic changes needed; booleans are self-validating via JSON unmarshal."
+      },
+      {
+        "timestamp": "2026-03-22T20:27:06.47968Z",
+        "task": "deterministic-git-activity/git-config-fields",
+        "text": "Documented commit_on_success, commit_on_failure, commit_state in docs/humans/config-reference.md following existing git section format."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T20:24:41.087125Z"
+    "started_at": "2026-03-22T20:24:41.087125Z",
+    "result_summary": "Added three new git config fields (CommitOnSuccess, CommitOnFailure, CommitState) to GitConfig with true defaults, validated via table-driven tests covering all field combinations, and documented in config-reference.md. The fields give operators granular control over daemon commit behavior under the existing auto_commit master switch."
   },
   "aars": {
     "task-0001": {
@@ -127,6 +133,21 @@
       ],
       "action_items": [
         "Downstream daemon commit logic should honor the auto_commit master switch to suppress sub-fields at runtime, not at validation time"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T20:27:05.547739Z",
+      "objective": "Document the three new git config fields in config-reference.md",
+      "what_happened": "Added documentation for commit_on_success, commit_on_failure, and commit_state to the git section of docs/humans/config-reference.md. Placed them after skip_hooks_on_auto_commit, following the established format (Type, Default, Description bullet points). Each entry notes the auto_commit dependency.",
+      "went_well": [
+        "Existing format was consistent and easy to match"
+      ],
+      "improvements": [
+        "None; straightforward documentation addition"
+      ],
+      "action_items": [
+        "None; all three git config fields are now fully implemented, tested, and documented"
       ]
     }
   }
