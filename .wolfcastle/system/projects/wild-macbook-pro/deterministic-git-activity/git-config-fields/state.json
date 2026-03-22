@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "git-config-fields",
+  "name": "Git Config Fields",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add new GitConfig fields to types.go",
+      "description": "Add new GitConfig fields to types.go",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/types.go"
+      ],
+      "body": "Add three new fields to the GitConfig struct in internal/config/types.go: CommitOnSuccess (bool, json:commit_on_success), CommitOnFailure (bool, json:commit_on_failure), and CommitState (bool, json:commit_state). CommitOnSuccess and CommitOnFailure control whether the daemon commits after successful or failed task iterations respectively, and only apply when AutoCommit is true. CommitState controls whether .wolfcastle/ state is included in commits. All default to true. See spec section 'Config' for the full schema. Consider whether SkipHooksOnAutoCommit should be renamed to match the spec's skip_hooks naming, but if renaming would break existing configs, keep both and handle via migration.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Wire defaults and validation for new git config fields",
+      "description": "Wire defaults and validation for new git config fields",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/config.go"
+      ],
+      "body": "In internal/config/config.go, update the Defaults() function to set CommitOnSuccess: true, CommitOnFailure: true, CommitState: true. In Validate() (or wherever config validation lives), ensure the fine-grained fields are ignored when AutoCommit is false. Add a migration in the migration service so that existing config files missing the new fields get sensible defaults applied (all true) rather than Go zero values (all false, which would silently disable commits).",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Add tests for new git config fields",
+      "description": "Add tests for new git config fields",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/config/config_test.go"
+      ],
+      "body": "Write tests verifying: (1) Defaults() returns true for all three new fields. (2) A config loaded from JSON without the new fields gets defaults applied via migration (not Go zero values). (3) When AutoCommit is false, the fine-grained fields are logically ignored (test the config validation or document this as a contract for consumers). (4) Existing tests still pass; check testutil/environment_test.go and integration_test.go for any assertions that touch cfg.Git.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Git Config Fields is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that loading a config JSON without commit_on_success/commit_on_failure/commit_state fields does not silently default them to false (Go zero value)"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-22T20:15:16.800731Z"
+  }
+}

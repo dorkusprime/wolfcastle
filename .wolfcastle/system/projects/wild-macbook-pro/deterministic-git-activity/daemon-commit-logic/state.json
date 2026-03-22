@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "id": "daemon-commit-logic",
+  "name": "Daemon Commit Logic",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Refactor autoCommitPartialWork into a configurable daemon commit function",
+      "description": "Refactor autoCommitPartialWork into a configurable daemon commit function",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration.go"
+      ],
+      "body": "The current autoCommitPartialWork (iteration.go:549) is hardcoded for the failure path. Refactor it into a function that accepts a commit reason (success or failure), an attempt number (for failure messages), and the full GitConfig. The function should: (1) Check auto_commit is enabled. (2) Check the path-specific flag (commit_on_success or commit_on_failure). (3) Stage changes: git add -u for code changes; git add .wolfcastle/ only if commit_state is true. (4) Use the spec's commit message format: success = 'wolfcastle: \u003ctask-id\u003e complete', failure = 'wolfcastle: \u003ctask-id\u003e partial (attempt \u003cN\u003e)'. (5) Respect skip_hooks. The existing autoCommitPartialWork call site (iteration.go:384) should use the refactored function.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Add success-path commit to iteration loop",
+      "description": "Add success-path commit to iteration loop",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration.go"
+      ],
+      "body": "In the success path of RunOnce (around iteration.go:358-373, after state propagation), call the refactored commit function with reason=success. This is the counterpart to the failure-path call at line 384. The commit should happen after all state mutations (task completion, parent propagation) are done, so the commit captures the final state. If commit_on_success is false, skip it. Wire the Daemon's Config.Git through to the call.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Implement staging area preservation",
+      "description": "Implement staging area preservation",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration.go"
+      ],
+      "body": "The current autoCommitPartialWork runs 'git add -u' and 'git add .wolfcastle/' which can clobber the user's manually staged changes. Implement staging area preservation per the spec. The preferred approach: use a temporary GIT_INDEX_FILE for daemon commits, leaving the user's index untouched. The alternative (stash-based) approach is: (1) git stash --keep-index --quiet, (2) git add ..., (3) git commit, (4) git stash pop --quiet. The spec notes the stash approach may be fragile; prefer the separate index approach if feasible. Whichever approach is chosen, document the decision in an ADR via 'wolfcastle adr create'.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Add tests for daemon commit logic",
+      "description": "Add tests for daemon commit logic",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration_test.go"
+      ],
+      "body": "Write tests covering: (1) Success-path commit produces correct message format ('wolfcastle: \u003ctask-id\u003e complete'). (2) Failure-path commit produces correct message format with attempt number. (3) No commit when auto_commit is false. (4) No commit on success when commit_on_success is false. (5) No commit on failure when commit_on_failure is false. (6) .wolfcastle/ excluded from staging when commit_state is false. (7) Staging area preservation: user's manually staged changes survive a daemon commit. (8) Clean working tree produces no commit (no empty commits). (9) --no-verify passed when skip_hooks is true. Use the testutil environment builder pattern from existing tests.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Daemon Commit Logic is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify staging area preservation: create a file, git add it manually, run daemon commit, confirm the file remains staged in the user's index",
+    "Verify no empty commits are produced when the working tree is clean"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "documentation-update",
+  "name": "Documentation Update",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update how-it-works.md",
+      "description": "Update how-it-works.md",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/how-it-works.md"
+      ],
+      "body": "Update docs/humans/how-it-works.md to reflect that the daemon commits after each task iteration, not the agent. Remove any references to the agent running git commands. Describe the new flow: agent works on task, emits terminal marker, daemon processes marker, updates state, commits all changes (code + state) deterministically. Mention that commit behavior is configurable via git config fields.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update configuration.md with new git config fields",
+      "description": "Update configuration.md with new git config fields",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/configuration.md"
+      ],
+      "body": "Update docs/humans/configuration.md to document the full git config section: auto_commit (master switch), commit_on_success, commit_on_failure, commit_state, skip_hooks. For each field, document: the default value, what it controls, and how it interacts with other fields (e.g., fine-grained fields are ignored when auto_commit is false). Include an example JSON snippet showing the full git config block.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Update collaboration.md and failure-and-recovery.md",
+      "description": "Update collaboration.md and failure-and-recovery.md",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/collaboration.md",
+        "docs/humans/failure-and-recovery.md"
+      ],
+      "body": "In docs/humans/collaboration.md: update the git integration section to describe daemon-driven auto-commits, branch safety, and how staging area preservation works. In docs/humans/failure-and-recovery.md: update the partial work preservation section to describe commit-on-failure behavior, the new commit message format for failures ('wolfcastle: \u003ctask-id\u003e partial (attempt \u003cN\u003e)'), and how the commit_on_failure config flag controls this. Also check README.md for any references to how commits work and update if needed.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Documentation Update is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Grep all docs/humans/*.md and AGENTS.md for stale references to agent-driven git operations"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

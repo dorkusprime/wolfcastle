@@ -3,15 +3,36 @@
   "id": "deterministic-git-activity",
   "name": "Deterministic Git Activity",
   "type": "orchestrator",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
-  "children": [],
+  "children": [
+    {
+      "id": "git-config-fields",
+      "address": "deterministic-git-activity/git-config-fields",
+      "state": "in_progress"
+    },
+    {
+      "id": "daemon-commit-logic",
+      "address": "deterministic-git-activity/daemon-commit-logic",
+      "state": "not_started"
+    },
+    {
+      "id": "prompt-cleanup",
+      "address": "deterministic-git-activity/prompt-cleanup",
+      "state": "not_started"
+    },
+    {
+      "id": "documentation-update",
+      "address": "deterministic-git-activity/documentation-update",
+      "state": "not_started"
+    }
+  ],
   "tasks": [
     {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Deterministic Git Activity is complete and correct",
-      "state": "not_started",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -23,13 +44,30 @@
     "User staging area is preserved across daemon commits (verified by test)",
     "All human-facing docs accurately describe the new git behavior"
   ],
-  "total_replans": 0,
-  "planning_history": [],
+  "total_replans": 1,
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T20:09:59.02511Z",
+      "trigger": "initial",
+      "summary": "marker="
+    },
+    {
+      "timestamp": "2026-03-22T20:15:16.720728Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
   "audit": {
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T20:15:13.902435Z",
+        "task": "deterministic-git-activity",
+        "text": "Created 4 children: git-config-fields, daemon-commit-logic, prompt-cleanup, documentation-update. Ordering: config fields first (other work depends on them), then daemon commit logic (core implementation consuming those fields), then prompt cleanup (removing agent-side git), then documentation (must reflect final behavior). Relevant specs: 2026-03-22T07-00Z-deterministic-git.md (primary), 2026-03-18T21-44Z-git-provider-contract.md (git abstractions). ADR 'shell out to git binary' confirms we use exec.Command for git ops, not a Go library."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "pending"

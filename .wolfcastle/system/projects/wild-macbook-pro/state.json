@@ -139,9 +139,47 @@
     "deterministic-git-activity": {
       "name": "Deterministic Git Activity",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "deterministic-git-activity",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "deterministic-git-activity/git-config-fields",
+        "deterministic-git-activity/daemon-commit-logic",
+        "deterministic-git-activity/prompt-cleanup",
+        "deterministic-git-activity/documentation-update"
+      ]
+    },
+    "deterministic-git-activity/daemon-commit-logic": {
+      "name": "Daemon Commit Logic",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "deterministic-git-activity/daemon-commit-logic",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity"
+    },
+    "deterministic-git-activity/documentation-update": {
+      "name": "Documentation Update",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "deterministic-git-activity/documentation-update",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity"
+    },
+    "deterministic-git-activity/git-config-fields": {
+      "name": "Git Config Fields",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "deterministic-git-activity/git-config-fields",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity"
+    },
+    "deterministic-git-activity/prompt-cleanup": {
+      "name": "Prompt Cleanup",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "deterministic-git-activity/prompt-cleanup",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity"
     },
     "document-pid-recycling-edge-case-in-filelock": {
       "name": "Document PID recycling edge case in filelock",

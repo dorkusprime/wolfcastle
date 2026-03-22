@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "id": "prompt-cleanup",
+  "name": "Prompt Cleanup",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Remove Phase H and all git instructions from execute.md",
+      "description": "Remove Phase H and all git instructions from execute.md",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/project/templates/prompts/stages/execute.md"
+      ],
+      "body": "In internal/project/templates/prompts/stages/execute.md: (1) Remove the entire Phase H (Commit) section (lines 151-158 currently). (2) Remove the rule 'Commit before signaling completion' (line 199). (3) Remove the line 'You must have committed changes before emitting this' from the WOLFCASTLE_COMPLETE description (line 168). (4) Remove the 'git add .wolfcastle/' instruction added in PR #137 if any remnants exist outside Phase H. (5) Re-letter subsequent phases (I-\u003eH, J-\u003eI, K-\u003eJ). (6) Search for any other git references in the file and remove them. The terminal markers and signal behavior remain unchanged; only git operations are removed.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update AGENTS.md and docs/agents/ to forbid git operations",
+      "description": "Update AGENTS.md and docs/agents/ to forbid git operations",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "AGENTS.md"
+      ],
+      "body": "Review AGENTS.md and all files in docs/agents/ for any guidance telling agents to commit, stage, or run git commands. Remove such guidance and replace with a clear statement: 'Agents must not run git add, git commit, or any git command. The daemon handles all git operations deterministically after each task iteration.' Also check the .wolfcastle/system/base/ copy of execute.md and ensure it matches the updated version.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Prompt Cleanup is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Grep execute.md for 'git add', 'git commit', 'Phase H', and 'Commit before signaling' to confirm zero matches"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
