@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
@@ -370,6 +371,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 				}
 			}
+
+			// Commit after successful completion.
+			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git)
+
 			return nil
 		}
 
@@ -380,8 +385,16 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			failureType = "no_progress"
 		}
 
-		// Auto-commit partial work, then increment failure count
-		autoCommitPartialWork(d.RepoDir, d.Logger, nav.TaskID, d.Config.Git.SkipHooksOnAutoCommit)
+		// Auto-commit partial work, then increment failure count.
+		// Attempt number is the current failure count + 1 (pre-increment).
+		attemptNum := 1
+		for _, t := range ns.Tasks {
+			if t.ID == nav.TaskID {
+				attemptNum = t.FailureCount + 1
+				break
+			}
+		}
+		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", attemptNum, d.Config.Git)
 
 		_ = d.Logger.Log(map[string]any{
 			"type":  failureType,
@@ -543,13 +556,34 @@ func extractAssistantText(line string) string {
 	return ""
 }
 
-// autoCommitPartialWork commits any uncommitted changes in the repo when a
-// task fails without a terminal marker. This preserves partial work that the
-// model did before failing, preventing it from being lost on the next iteration.
-func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string, skipHooks bool) {
+// commitAfterIteration commits changes after a task iteration completes or
+// fails. It respects the git config flags: auto_commit (master switch),
+// commit_on_success, commit_on_failure, and commit_state.
+//
+// kind is "success" or "failure". attemptNum is used in failure commit
+// messages to indicate which attempt just finished.
+func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string, kind string, attemptNum int, gitCfg config.GitConfig) {
+	if !gitCfg.AutoCommit {
+		_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "auto_commit disabled"})
+		return
+	}
+
+	switch kind {
+	case "success":
+		if !gitCfg.CommitOnSuccess {
+			_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "commit_on_success disabled"})
+			return
+		}
+	case "failure":
+		if !gitCfg.CommitOnFailure {
+			_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "commit_on_failure disabled"})
+			return
+		}
+	}
+
 	// Validate task ID format before embedding in a commit message.
 	if !validTaskIDPattern.MatchString(taskID) {
-		_ = logger.Log(map[string]any{"type": "auto_commit_skip", "task": taskID, "reason": "invalid task ID format"})
+		_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "invalid task ID format"})
 		return
 	}
 
@@ -561,36 +595,46 @@ func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string
 		return // no changes or git unavailable
 	}
 
-	// Stage tracked files (git add -u) plus .wolfcastle/ state.
-	// git add -u stages modified tracked files without picking up
-	// untracked files like .env. The separate git add .wolfcastle/
-	// stages project state alongside code changes; the .wolfcastle/
-	// .gitignore controls what's trackable (projects, docs, custom
-	// config, archive) vs. what stays out (base config, local config,
-	// logs, locks, PID files).
+	// Stage tracked files. git add -u stages modified tracked files
+	// without picking up untracked files like .env.
 	addCmd := exec.Command("git", "add", "-u")
 	addCmd.Dir = repoDir
 	if err := addCmd.Run(); err != nil {
-		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
+		_ = logger.Log(map[string]any{"type": "commit_error", "task": taskID, "error": err.Error()})
 		return
 	}
-	addStateCmd := exec.Command("git", "add", ".wolfcastle/")
-	addStateCmd.Dir = repoDir
-	_ = addStateCmd.Run() // best-effort; .wolfcastle/ may not exist
 
-	msg := fmt.Sprintf("wolfcastle: auto-commit partial work [%s]", taskID)
+	// Stage .wolfcastle/ state alongside code changes when commit_state
+	// is enabled. The .wolfcastle/.gitignore controls what's trackable
+	// (projects, docs, custom config, archive) vs. what stays out (base
+	// config, local config, logs, locks, PID files).
+	if gitCfg.CommitState {
+		addStateCmd := exec.Command("git", "add", ".wolfcastle/")
+		addStateCmd.Dir = repoDir
+		_ = addStateCmd.Run() // best-effort; .wolfcastle/ may not exist
+	}
+
+	// Build commit message per spec.
+	var msg string
+	switch kind {
+	case "success":
+		msg = fmt.Sprintf("wolfcastle: %s complete", taskID)
+	case "failure":
+		msg = fmt.Sprintf("wolfcastle: %s partial (attempt %d)", taskID, attemptNum)
+	}
+
 	commitArgs := []string{"commit", "-m", msg}
-	if skipHooks {
+	if gitCfg.SkipHooksOnAutoCommit {
 		commitArgs = append(commitArgs, "--no-verify")
 	}
 	commitCmd := exec.Command("git", commitArgs...)
 	commitCmd.Dir = repoDir
 	if err := commitCmd.Run(); err != nil {
-		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
+		_ = logger.Log(map[string]any{"type": "commit_error", "task": taskID, "error": err.Error()})
 		return
 	}
 
-	_ = logger.Log(map[string]any{"type": "auto_commit", "task": taskID})
+	_ = logger.Log(map[string]any{"type": "auto_commit", "task": taskID, "kind": kind})
 }
 
 // autoCompleteDecomposedParents checks if any blocked task in the node was

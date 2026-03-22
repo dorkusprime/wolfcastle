@@ -3,14 +3,14 @@
   "id": "daemon-commit-logic",
   "name": "Daemon Commit Logic",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Refactor autoCommitPartialWork into a general daemon commit function",
       "description": "Refactor autoCommitPartialWork into a general daemon commit function",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration.go"
@@ -90,9 +90,35 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T20:34:18.626245Z",
+        "task": "deterministic-git-activity/daemon-commit-logic",
+        "text": "Refactored autoCommitPartialWork into commitAfterIteration: now handles both success and failure paths, respects auto_commit/commit_on_success/commit_on_failure/commit_state config flags, uses spec-compliant commit messages"
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T20:29:35.7269Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T20:34:14.585836Z",
+      "objective": "Refactor autoCommitPartialWork into a general commitAfterIteration function that handles both success and failure commit paths with config-driven behavior.",
+      "what_happened": "Replaced autoCommitPartialWork with commitAfterIteration in internal/daemon/iteration.go. The new function accepts a commit kind (success/failure), attempt number, and the full GitConfig struct. It checks auto_commit, commit_on_success, commit_on_failure, and commit_state before proceeding. Commit messages now follow the spec: 'wolfcastle: \u003ctask-id\u003e complete' for success, 'wolfcastle: \u003ctask-id\u003e partial (attempt \u003cN\u003e)' for failure. Updated the failure call site to compute attemptNum from FailureCount+1, and added a success call site after the COMPLETE marker's state propagation. Updated all tests in iteration_coverage_test.go.",
+      "went_well": [
+        "Config flag gating is clean: a switch on kind selects the right boolean, the master switch short-circuits everything.",
+        "Kept commitAfterIteration as a free function (not a Daemon method) so existing tests remain lightweight without needing a full Daemon instance."
+      ],
+      "improvements": [
+        "The function still shells out to git commands directly; a future pass could route through the git.Provider interface for better testability."
+      ],
+      "action_items": [
+        "Add tests for the new config flag behaviors (auto_commit=false, commit_on_success=false, commit_on_failure=false, commit_state=false).",
+        "Add a test for the success commit path (kind='success') to verify the commit message format."
+      ]
+    }
   }
 }

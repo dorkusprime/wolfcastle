@@ -509,17 +509,17 @@ func TestRunIteration_Skip_AutoCompleteDecomposedParent(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// autoCommitPartialWork
+// commitAfterIteration
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestAutoCommitPartialWork_NoChanges(t *testing.T) {
+func TestCommitAfterIteration_NoChanges(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0001", true)
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
 
 	out := iterCovGitLog(t, repoDir)
 	if strings.Count(out, "\n") > 1 {
@@ -527,7 +527,7 @@ func TestAutoCommitPartialWork_NoChanges(t *testing.T) {
 	}
 }
 
-func TestAutoCommitPartialWork_CommitsTrackedChanges(t *testing.T) {
+func TestCommitAfterIteration_CommitsTrackedChanges(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -555,18 +555,18 @@ func TestAutoCommitPartialWork_CommitsTrackedChanges(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0001", true)
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
 
 	out := iterCovGitLog(t, repoDir)
-	if !strings.Contains(out, "auto-commit partial work") {
-		t.Error("expected auto-commit message in git log")
+	if !strings.Contains(out, "partial (attempt") {
+		t.Error("expected partial attempt commit message in git log")
 	}
 	if !strings.Contains(out, "task-0001") {
 		t.Error("expected task ID in commit message")
 	}
 }
 
-func TestAutoCommitPartialWork_MultipleTrackedFiles(t *testing.T) {
+func TestCommitAfterIteration_MultipleTrackedFiles(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -600,7 +600,7 @@ func TestAutoCommitPartialWork_MultipleTrackedFiles(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0002", true)
+	commitAfterIteration(repoDir, logger, "task-0002", "failure", 1, testGitCfg())
 
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = repoDir
@@ -610,7 +610,7 @@ func TestAutoCommitPartialWork_MultipleTrackedFiles(t *testing.T) {
 	}
 }
 
-func TestAutoCommitPartialWork_NotAGitRepo(t *testing.T) {
+func TestCommitAfterIteration_NotAGitRepo(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	_ = os.WriteFile(filepath.Join(dir, "file.txt"), []byte("content"), 0644)
@@ -619,10 +619,10 @@ func TestAutoCommitPartialWork_NotAGitRepo(t *testing.T) {
 	defer logger.Close()
 
 	// Should not panic
-	autoCommitPartialWork(dir, logger, "task-0001", true)
+	commitAfterIteration(dir, logger, "task-0001", "failure", 1, testGitCfg())
 }
 
-func TestAutoCommitPartialWork_GitAddFails(t *testing.T) {
+func TestCommitAfterIteration_GitAddFails(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -636,10 +636,10 @@ func TestAutoCommitPartialWork_GitAddFails(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0001", true)
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
 }
 
-func TestAutoCommitPartialWork_UntrackedFilesNotStaged(t *testing.T) {
+func TestCommitAfterIteration_UntrackedFilesNotStaged(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -673,7 +673,7 @@ func TestAutoCommitPartialWork_UntrackedFilesNotStaged(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0001", true)
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
 
 	// Verify .env and credentials.json are NOT in the commit
 	showCmd := exec.Command("git", "show", "--name-only", "--format=")
@@ -706,7 +706,7 @@ func TestAutoCommitPartialWork_UntrackedFilesNotStaged(t *testing.T) {
 	}
 }
 
-func TestAutoCommitPartialWork_SkipHooksFalse(t *testing.T) {
+func TestCommitAfterIteration_SkipHooksFalse(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -734,12 +734,14 @@ func TestAutoCommitPartialWork_SkipHooksFalse(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	// With skipHooks=false, the commit should still succeed (no hooks installed)
-	autoCommitPartialWork(repoDir, logger, "task-0001", false)
+	// With SkipHooksOnAutoCommit=false, the commit should still succeed (no hooks installed)
+	cfg := testGitCfg()
+	cfg.SkipHooksOnAutoCommit = false
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, cfg)
 
 	out := iterCovGitLog(t, repoDir)
-	if !strings.Contains(out, "auto-commit partial work") {
-		t.Error("expected auto-commit even with skipHooks=false")
+	if !strings.Contains(out, "partial (attempt") {
+		t.Error("expected partial attempt commit message even with skipHooks=false")
 	}
 }
 
@@ -963,6 +965,18 @@ func iterCovGitLog(t *testing.T, dir string) string {
 		t.Fatalf("git log failed: %v", err)
 	}
 	return string(out)
+}
+
+// testGitCfg returns a GitConfig with auto-commit enabled and all flags on,
+// matching the default behavior of the old autoCommitPartialWork.
+func testGitCfg() config.GitConfig {
+	return config.GitConfig{
+		AutoCommit:            true,
+		CommitOnSuccess:       true,
+		CommitOnFailure:       true,
+		CommitState:           true,
+		SkipHooksOnAutoCommit: true,
+	}
 }
 
 func iterCovTestLogger(t *testing.T) *logging.Logger {

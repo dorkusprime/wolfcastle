@@ -3,7 +3,7 @@
   "id": "git-config-fields",
   "name": "Git Config Fields",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -67,7 +67,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Git Config Fields is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -105,8 +105,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T20:24:41.087125Z",
+    "completed_at": "2026-03-22T20:29:35.636843Z",
     "result_summary": "Added three granular commit-control boolean fields (CommitOnSuccess, CommitOnFailure, CommitState) to GitConfig, all defaulting to true and gated by the existing AutoCommit master switch. The struct, defaults, validation tests (8-combination table-driven suite), and config-reference documentation are complete and consistent. No validation logic was needed beyond JSON unmarshal for boolean types. All tests pass, including race detector. The node is ready for downstream consumption by the daemon-commit-logic node."
   },
   "aars": {
