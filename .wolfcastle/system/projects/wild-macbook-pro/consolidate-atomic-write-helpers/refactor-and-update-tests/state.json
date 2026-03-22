@@ -32,7 +32,7 @@
       "id": "task-0002",
       "title": "Update tests for changed error messages",
       "description": "Update tests for changed error messages",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/state/io_chmod_test.go",
@@ -51,9 +51,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Refactor and Update Tests is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -75,12 +76,18 @@
         "timestamp": "2026-03-22T23:09:33.270891Z",
         "task": "consolidate-atomic-write-helpers/refactor-and-update-tests",
         "text": "Reviewed all test files for error-string assertions after atomicWriteJSON refactor. No tests matched on specific error message text; all use behavioral err == nil / err != nil checks. No changes needed. go test ./internal/state/... passes."
+      },
+      {
+        "timestamp": "2026-03-22T23:10:40.414773Z",
+        "task": "consolidate-atomic-write-helpers/refactor-and-update-tests",
+        "text": "Audit reviewed io.go diff (30 lines removed, 3-line delegate body added), all 4 test files, and 2 production callers (inbox_io.go, review_io.go). Verified: build passes, tests pass with -race, go vet clean, gofmt clean. No error-string assertions exist anywhere in the test suite. Old 'creating state directory' string gone from all .go files. No dead code, no unused imports, no regressions. PASS with zero findings."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T23:07:55.389948Z"
+    "started_at": "2026-03-22T23:07:55.389948Z",
+    "result_summary": "Refactored atomicWriteJSON from a 40-line function with its own temp-file-rename implementation to a 3-line delegate that marshals JSON and calls AtomicWriteFile. Removed a stale comment that duplicated the AtomicWriteFile godoc. All existing tests pass without modification because they use behavioral assertions (err nil/non-nil) rather than error-string matching. Net result: 30 lines of duplicated logic eliminated with zero behavioral change at any call site."
   },
   "aars": {
     "task-0001": {
