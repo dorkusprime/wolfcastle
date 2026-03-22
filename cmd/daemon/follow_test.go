@@ -3,6 +3,7 @@ package daemon
 import (
 	"bytes"
 	"compress/gzip"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
+	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/spf13/cobra"
 )
 
@@ -432,5 +434,201 @@ func TestLogCmd_CompressedGzFiles(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"log", "--session", "1"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("compressed .jsonl.gz files should be read, got: %v", err)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// replayJSON — direct unit tests for streaming and decompression
+// ═══════════════════════════════════════════════════════════════════════════
+
+// writeGzLines creates a gzip-compressed file containing newline-terminated lines.
+func writeGzLines(t *testing.T, path string, lines ...string) {
+	t.Helper()
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("creating %s: %v", path, err)
+	}
+	defer f.Close()
+	gz := gzip.NewWriter(f)
+	for _, l := range lines {
+		gz.Write([]byte(l))
+		gz.Write([]byte("\n"))
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatalf("closing gzip writer: %v", err)
+	}
+}
+
+// captureReplayJSON runs replayJSON while capturing os.Stdout, returning
+// whatever was written. Not safe for parallel use (swaps a global).
+func captureReplayJSON(t *testing.T, session logrender.Session) string {
+	t.Helper()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("creating pipe: %v", err)
+	}
+
+	origStdout := os.Stdout
+	os.Stdout = w
+
+	replayErr := replayJSON(session)
+
+	// Close the write end so the reader sees EOF.
+	w.Close()
+	os.Stdout = origStdout
+
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	r.Close()
+
+	if replayErr != nil {
+		t.Fatalf("replayJSON returned error: %v", replayErr)
+	}
+	return buf.String()
+}
+
+func TestReplayJSON_PlainJSONL(t *testing.T) {
+	dir := t.TempDir()
+	plain := filepath.Join(dir, "0001.jsonl")
+	lines := []string{
+		`{"type":"daemon_start","timestamp":"2026-03-21T10:00:00Z"}`,
+		`{"type":"stage_start","stage":"plan","node":"n","timestamp":"2026-03-21T10:00:01Z"}`,
+		`{"type":"stage_complete","stage":"plan","node":"n","exit_code":0,"timestamp":"2026-03-21T10:01:00Z"}`,
+	}
+	os.WriteFile(plain, []byte(strings.Join(lines, "\n")+"\n"), 0644)
+
+	got := captureReplayJSON(t, logrender.Session{Files: []string{plain}})
+
+	for _, want := range lines {
+		if !strings.Contains(got, want) {
+			t.Errorf("output missing line: %s", want)
+		}
+	}
+	// Each line should appear on its own line in the output.
+	gotLines := strings.Split(strings.TrimSpace(got), "\n")
+	if len(gotLines) != len(lines) {
+		t.Errorf("expected %d lines, got %d", len(lines), len(gotLines))
+	}
+}
+
+func TestReplayJSON_GzipDecompression(t *testing.T) {
+	dir := t.TempDir()
+	gzPath := filepath.Join(dir, "0001.jsonl.gz")
+	lines := []string{
+		`{"type":"daemon_start","timestamp":"2026-03-20T10:00:00Z"}`,
+		`{"type":"stage_start","stage":"execute","node":"old","task":"t1","timestamp":"2026-03-20T10:00:01Z"}`,
+	}
+	writeGzLines(t, gzPath, lines...)
+
+	got := captureReplayJSON(t, logrender.Session{Files: []string{gzPath}})
+
+	for _, want := range lines {
+		if !strings.Contains(got, want) {
+			t.Errorf("decompressed output missing line: %s", want)
+		}
+	}
+	gotLines := strings.Split(strings.TrimSpace(got), "\n")
+	if len(gotLines) != len(lines) {
+		t.Errorf("expected %d decompressed lines, got %d", len(lines), len(gotLines))
+	}
+}
+
+func TestReplayJSON_MixedPlainAndGzip(t *testing.T) {
+	dir := t.TempDir()
+
+	plainLines := []string{
+		`{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`,
+		`{"type":"stage_start","stage":"plan","node":"a","timestamp":"2026-03-21T18:00:01Z"}`,
+	}
+	plainPath := filepath.Join(dir, "0001.jsonl")
+	os.WriteFile(plainPath, []byte(strings.Join(plainLines, "\n")+"\n"), 0644)
+
+	gzLines := []string{
+		`{"type":"daemon_start","timestamp":"2026-03-20T10:00:00Z"}`,
+		`{"type":"stage_complete","stage":"execute","node":"b","exit_code":0,"timestamp":"2026-03-20T10:01:00Z"}`,
+	}
+	gzPath := filepath.Join(dir, "0002.jsonl.gz")
+	writeGzLines(t, gzPath, gzLines...)
+
+	got := captureReplayJSON(t, logrender.Session{Files: []string{plainPath, gzPath}})
+
+	allLines := append(plainLines, gzLines...)
+	for _, want := range allLines {
+		if !strings.Contains(got, want) {
+			t.Errorf("mixed output missing line: %s", want)
+		}
+	}
+	gotLines := strings.Split(strings.TrimSpace(got), "\n")
+	if len(gotLines) != len(allLines) {
+		t.Errorf("expected %d total lines, got %d", len(allLines), len(gotLines))
+	}
+
+	// Verify ordering: plain file lines come before gzip file lines.
+	plainIdx := strings.Index(got, plainLines[0])
+	gzIdx := strings.Index(got, gzLines[0])
+	if plainIdx > gzIdx {
+		t.Error("plain file lines should appear before gzip file lines in output")
+	}
+}
+
+func TestReplayJSON_MissingFileSkipped(t *testing.T) {
+	dir := t.TempDir()
+
+	// One real file, one missing.
+	realPath := filepath.Join(dir, "0001.jsonl")
+	line := `{"type":"daemon_start","timestamp":"2026-03-21T18:00:00Z"}`
+	os.WriteFile(realPath, []byte(line+"\n"), 0644)
+
+	missingPath := filepath.Join(dir, "nonexistent.jsonl")
+
+	got := captureReplayJSON(t, logrender.Session{Files: []string{missingPath, realPath}})
+
+	if !strings.Contains(got, line) {
+		t.Error("output should contain the line from the readable file")
+	}
+	gotLines := strings.Split(strings.TrimSpace(got), "\n")
+	if len(gotLines) != 1 {
+		t.Errorf("expected 1 line (missing file skipped), got %d", len(gotLines))
+	}
+}
+
+func TestReplayJSON_UnreadableFileSkipped(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("skip in CI where permissions may differ")
+	}
+	dir := t.TempDir()
+
+	// Create a file with no read permission.
+	unreadable := filepath.Join(dir, "0001.jsonl")
+	os.WriteFile(unreadable, []byte(`{"type":"daemon_start"}`+"\n"), 0000)
+	defer os.Chmod(unreadable, 0644)
+
+	// A second readable file to prove streaming continues.
+	readable := filepath.Join(dir, "0002.jsonl")
+	line := `{"type":"stage_start","stage":"plan","node":"n","timestamp":"2026-03-21T18:00:01Z"}`
+	os.WriteFile(readable, []byte(line+"\n"), 0644)
+
+	got := captureReplayJSON(t, logrender.Session{Files: []string{unreadable, readable}})
+
+	if !strings.Contains(got, line) {
+		t.Error("output should contain line from the readable file after skipping unreadable one")
+	}
+}
+
+func TestReplayJSON_EmptySession(t *testing.T) {
+	got := captureReplayJSON(t, logrender.Session{Files: nil})
+	if got != "" {
+		t.Errorf("empty session should produce no output, got %q", got)
+	}
+}
+
+func TestReplayJSON_AllFilesMissing(t *testing.T) {
+	got := captureReplayJSON(t, logrender.Session{Files: []string{
+		"/tmp/does-not-exist-a.jsonl",
+		"/tmp/does-not-exist-b.jsonl.gz",
+	}})
+	if got != "" {
+		t.Errorf("all-missing session should produce no output, got %q", got)
 	}
 }
