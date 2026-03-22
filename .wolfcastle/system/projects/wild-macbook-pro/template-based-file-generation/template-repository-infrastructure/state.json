@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Extend PromptRepository with template resolution method",
       "description": "Extend PromptRepository with template resolution method",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/repository.go"
@@ -31,7 +31,7 @@
       "id": "task-0002",
       "title": "Add RenderToFile convenience method",
       "description": "Add RenderToFile convenience method",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/repository.go"
@@ -109,6 +109,11 @@
         "timestamp": "2026-03-22T22:00:36.94288Z",
         "task": "template-based-file-generation/template-repository-infrastructure",
         "text": "Added ResolveTemplate method to PromptRepository (repository.go) with five tests and WithTemplate testutil helper"
+      },
+      {
+        "timestamp": "2026-03-22T22:01:56.172671Z",
+        "task": "template-based-file-generation/template-repository-infrastructure",
+        "text": "Added RenderToFile to PromptRepository (repository.go): resolves template via ResolveTemplate, creates parent dirs, writes 0644. Four tests in repository_test.go."
       }
     ],
     "gaps": [],
@@ -131,6 +136,22 @@
       ],
       "action_items": [
         "Call-site migration tasks should use ResolveTemplate with typed context structs, not map[string]any"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T22:01:52.493179Z",
+      "objective": "Add RenderToFile convenience method that consolidates resolve-execute-write into a single call",
+      "what_happened": "Added RenderToFile(tmplName string, data any, destPath string) error to PromptRepository in repository.go. The method calls ResolveTemplate, creates parent directories with os.MkdirAll, and writes the result with os.WriteFile at 0644. Four tests cover: template execution with typed struct and permission verification, nested parent directory creation, missing template error propagation, and nil-ctx raw passthrough.",
+      "went_well": [
+        "Clean composition: RenderToFile delegates to ResolveTemplate, so all tier-resolution and template-execution behavior is inherited without duplication",
+        "All four new tests pass; package coverage holds at 96.9%"
+      ],
+      "improvements": [
+        "The MkdirAll and WriteFile error branches in RenderToFile are untested (75% method coverage). Triggering those would require filesystem permission manipulation in tests, which felt like over-engineering for error wrapping."
+      ],
+      "action_items": [
+        "Call-site migration tasks should replace strings.Builder/fmt.Sprintf/os.WriteFile chains with a single RenderToFile call, passing typed context structs"
       ]
     }
   }
