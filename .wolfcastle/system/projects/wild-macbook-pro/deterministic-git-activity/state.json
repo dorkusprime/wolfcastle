@@ -44,15 +44,9 @@
     "User staging area is preserved across daemon commits (verified by test)",
     "All human-facing docs accurately describe the new git behavior"
   ],
-  "total_replans": 1,
   "planning_history": [
     {
-      "timestamp": "2026-03-22T20:09:59.02511Z",
-      "trigger": "initial",
-      "summary": "marker="
-    },
-    {
-      "timestamp": "2026-03-22T20:15:16.720728Z",
+      "timestamp": "2026-03-22T20:24:40.981954Z",
       "trigger": "initial",
       "summary": "marker=WOLFCASTLE_COMPLETE"
     }
@@ -63,9 +57,9 @@
     },
     "breadcrumbs": [
       {
-        "timestamp": "2026-03-22T20:15:13.902435Z",
+        "timestamp": "2026-03-22T20:24:27.284923Z",
         "task": "deterministic-git-activity",
-        "text": "Created 4 children: git-config-fields, daemon-commit-logic, prompt-cleanup, documentation-update. Ordering: config fields first (other work depends on them), then daemon commit logic (core implementation consuming those fields), then prompt cleanup (removing agent-side git), then documentation (must reflect final behavior). Relevant specs: 2026-03-22T07-00Z-deterministic-git.md (primary), 2026-03-18T21-44Z-git-provider-contract.md (git abstractions). ADR 'shell out to git binary' confirms we use exec.Command for git ops, not a Go library."
+        "text": "Created 4 children: git-config-fields, daemon-commit-logic, prompt-cleanup, documentation-update. Ordering: config fields first (daemon logic depends on them), daemon commit logic second (core implementation), prompt cleanup third (removes agent-side git), documentation last (must reflect final state). All are leaves with concrete tasks. Relevant spec: .wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md. Relevant ADR: shell-out-to-git-binary (2026-03-18). Decision point noted: staging preservation approach (stash vs GIT_INDEX_FILE) left to daemon-commit-logic implementer."
       }
     ],
     "gaps": [],

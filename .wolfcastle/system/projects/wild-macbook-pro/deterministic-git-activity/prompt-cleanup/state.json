@@ -8,28 +8,41 @@
   "tasks": [
     {
       "id": "task-0001",
-      "title": "Remove Phase H and all git instructions from execute.md",
-      "description": "Remove Phase H and all git instructions from execute.md",
+      "title": "Remove Phase H and git instructions from execute.md",
+      "description": "Remove Phase H and git instructions from execute.md",
       "state": "not_started",
       "failure_count": 0,
       "deliverables": [
-        "internal/project/templates/prompts/stages/execute.md"
+        ".wolfcastle/system/base/prompts/stages/execute.md"
       ],
-      "body": "In internal/project/templates/prompts/stages/execute.md: (1) Remove the entire Phase H (Commit) section (lines 151-158 currently). (2) Remove the rule 'Commit before signaling completion' (line 199). (3) Remove the line 'You must have committed changes before emitting this' from the WOLFCASTLE_COMPLETE description (line 168). (4) Remove the 'git add .wolfcastle/' instruction added in PR #137 if any remnants exist outside Phase H. (5) Re-letter subsequent phases (I-\u003eH, J-\u003eI, K-\u003eJ). (6) Search for any other git references in the file and remove them. The terminal markers and signal behavior remain unchanged; only git operations are removed.",
+      "body": "Edit .wolfcastle/system/base/prompts/stages/execute.md to:\n\n1. Remove Phase H (Commit) entirely (lines 151-158). This section instructs the agent to run git add -u, git add .wolfcastle/, and git commit.\n2. Search for and remove any other git-related instructions in the file (e.g., the git add .wolfcastle/ instruction added in PR #137).\n3. Renumber remaining phases if Phase H was between other lettered phases.\n4. Verify the terminal markers (WOLFCASTLE_COMPLETE, etc.) remain intact. The agent still signals completion; it just doesn't commit.\n\nAfter editing, grep the file for 'git add', 'git commit', 'Phase H' to verify nothing remains.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Zero occurrences of git add",
+        " git commit",
+        " or Phase H in the file",
+        "Terminal markers still present and documented"
+      ],
       "references": [
         ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
       ]
     },
     {
       "id": "task-0002",
-      "title": "Update AGENTS.md and docs/agents/ to forbid git operations",
-      "description": "Update AGENTS.md and docs/agents/ to forbid git operations",
+      "title": "Remove git instructions from agent-facing docs",
+      "description": "Remove git instructions from agent-facing docs",
       "state": "not_started",
       "failure_count": 0,
       "deliverables": [
-        "AGENTS.md"
+        "AGENTS.md",
+        "docs/agents/daemon.md"
       ],
-      "body": "Review AGENTS.md and all files in docs/agents/ for any guidance telling agents to commit, stage, or run git commands. Remove such guidance and replace with a clear statement: 'Agents must not run git add, git commit, or any git command. The daemon handles all git operations deterministically after each task iteration.' Also check the .wolfcastle/system/base/ copy of execute.md and ensure it matches the updated version.",
+      "body": "Review and update all agent-facing documentation to remove any guidance telling agents to run git commands:\n\nFiles to review:\n- AGENTS.md (repository root)\n- docs/agents/README.md\n- docs/agents/daemon.md\n- docs/agents/commands.md\n- docs/agents/code-standards.md\n- docs/agents/architecture.md\n- docs/agents/state-and-types.md\n- All other files in docs/agents/\n\nFor each file:\n1. Remove any instructions telling agents to run git add, git commit, or other git commands\n2. Add a brief note where appropriate that agents should NOT run git commands (the daemon handles all git operations)\n3. Do not over-add warnings; one clear statement per file that mentions git is sufficient\n\nGrep all files in docs/agents/ and AGENTS.md for 'git add', 'git commit', 'git push', 'git checkout' to find all references.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "No agent-facing doc instructs agents to run git commands",
+        "At least one clear statement exists that agents should not run git commands"
+      ],
       "references": [
         ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
       ]
@@ -44,7 +57,8 @@
     }
   ],
   "audit_enrichment": [
-    "Grep execute.md for 'git add', 'git commit', 'Phase H', and 'Commit before signaling' to confirm zero matches"
+    "Grep execute.md for git add, git commit, Phase H and confirm zero matches",
+    "Grep docs/agents/ and AGENTS.md for instructions to run git commands"
   ],
   "audit": {
     "scope": {

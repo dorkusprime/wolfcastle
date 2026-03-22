@@ -1,3 +1,3 @@
 # Git Config Fields
 
-Add commit_on_success, commit_on_failure, and commit_state fields to GitConfig. Wire defaults in config.Defaults(), add validation in config.Validate(), and handle migration for existing configs that lack the new fields. The spec field skip_hooks maps to the existing SkipHooksOnAutoCommit but may need renaming for consistency.
+Add new git config fields (commit_on_success, commit_on_failure, commit_state) to the config struct, defaults, and validation. These fields gate the daemon's commit behavior and must exist before the daemon logic can reference them.
