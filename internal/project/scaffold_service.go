@@ -181,6 +181,11 @@ func (s *ScaffoldService) Reinit() error {
 		}
 	}
 
+	// Restore scaffold files destroyed by the base-tier teardown.
+	if err := s.writeScaffoldFiles(); err != nil {
+		return err
+	}
+
 	// Regenerate base config
 	defaults := config.Defaults()
 	defaults.Identity = nil

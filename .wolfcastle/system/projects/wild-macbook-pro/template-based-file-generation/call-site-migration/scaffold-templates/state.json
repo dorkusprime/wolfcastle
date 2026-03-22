@@ -68,10 +68,16 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Scaffold Templates is complete and correct",
-      "state": "in_progress",
+      "state": "not_started",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
+    },
+    {
+      "id": "audit.0001",
+      "description": "Fix: Reinit does not rewrite system/base/prompts/README.md after tearing down the base tier. The scaffold file is written by Init's writeScaffoldFiles() but Reinit only rebuilds config and prompts, leaving the README absent after reinit.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node template-based-file-generation/call-site-migration/scaffold-templates gap-scaffold-templates-1",
+      "state": "in_progress",
+      "failure_count": 0
     }
   ],
   "audit": {

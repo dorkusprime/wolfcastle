@@ -419,10 +419,8 @@ func TestScaffoldService_Init_SnapshotScaffoldFiles(t *testing.T) {
 }
 
 // TestScaffoldService_Reinit_SnapshotScaffoldFiles verifies that Reinit
-// preserves scaffold files (.gitignore and READMEs) byte-for-byte. Files
-// outside the base tier survive the teardown-rebuild cycle. The base-prompts
-// README lives inside system/base/ and is destroyed by RemoveAll during
-// Reinit; that case is tested separately below.
+// preserves all scaffold files (.gitignore and READMEs) byte-for-byte,
+// including the base-prompts README that lives inside the wiped base tier.
 func TestScaffoldService_Reinit_SnapshotScaffoldFiles(t *testing.T) {
 	t.Parallel()
 	svc, _, root := newScaffoldService(t)
@@ -434,13 +432,7 @@ func TestScaffoldService_Reinit_SnapshotScaffoldFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The base-prompts README sits inside system/base/ which Reinit wipes.
-	const baseTierTemplate = "templates/scaffold/readme-base-prompts.md.tmpl"
-
 	for tmpl, dest := range scaffoldFiles {
-		if tmpl == baseTierTemplate {
-			continue
-		}
 		t.Run(dest, func(t *testing.T) {
 			want, err := Templates.ReadFile(tmpl)
 			if err != nil {
@@ -455,30 +447,5 @@ func TestScaffoldService_Reinit_SnapshotScaffoldFiles(t *testing.T) {
 					dest, len(got), len(want), string(got), string(want))
 			}
 		})
-	}
-}
-
-// TestScaffoldService_Reinit_BaseTierREADMELost verifies that the
-// system/base/prompts/README.md scaffold file does not survive Reinit,
-// because Reinit tears down and rebuilds the entire base tier directory.
-func TestScaffoldService_Reinit_BaseTierREADMELost(t *testing.T) {
-	t.Parallel()
-	svc, _, root := newScaffoldService(t)
-
-	if err := svc.Init(testIdentity()); err != nil {
-		t.Fatal(err)
-	}
-
-	readmePath := filepath.Join(root, "system", "base", "prompts", "README.md")
-	if _, err := os.Stat(readmePath); err != nil {
-		t.Fatal("README should exist after Init:", err)
-	}
-
-	if err := svc.Reinit(); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := os.Stat(readmePath); !os.IsNotExist(err) {
-		t.Error("system/base/prompts/README.md should not survive Reinit (base tier is wiped)")
 	}
 }
