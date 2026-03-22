@@ -32,7 +32,7 @@
       "id": "task-0003",
       "title": "Write TypeScript/Angular class prompt",
       "description": "Write TypeScript/Angular class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/typescript/angular.md"
@@ -43,7 +43,7 @@
       "id": "task-0004",
       "title": "Write TypeScript/Next.js class prompt",
       "description": "Write TypeScript/Next.js class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/typescript/nextjs.md"
@@ -103,6 +103,11 @@
         "timestamp": "2026-03-22T08:14:08.304193Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
         "text": "Authored Angular class prompt (typescript/angular.md, 55 lines) covering standalone components, signals, DI, forms, routing, TestBed testing, and common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T08:18:33.100564Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
+        "text": "Authored Next.js class prompt (typescript/nextjs.md, 55 lines) covering App Router server/client components, data fetching with caching, routing conventions, metadata API, middleware, testing patterns, and common pitfalls [task-0004]"
       }
     ],
     "gaps": [],
@@ -157,6 +162,22 @@
       ],
       "action_items": [
         "When Angular Signal Forms stabilize beyond experimental, consider adding form guidance that bridges reactive forms to signal-based state"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T08:18:31.561183Z",
+      "objective": "Author the Next.js/App Router framework class prompt for TypeScript/Next.js coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/typescript/nextjs.md (55 lines). Researched current Next.js 14/15 patterns via official docs and community resources before writing. Key findings shaped the prompt: Next.js 15 changed fetch caching to uncached-by-default, params/searchParams became Promises, server actions are stable and now called 'Server Functions' broadly, and async server component testing is best done via E2E. Covered all required topics: server vs client components with use client/use server boundaries, data fetching with explicit caching and revalidation, routing file conventions, metadata API (static and dynamic), middleware, testing patterns (E2E for server components, mocking next/navigation, testing server actions as plain functions), and four common pitfalls (serialization, hydration mismatches, bundle bloat from server imports, next/dynamic vs React.lazy).",
+      "went_well": [
+        "Research surfaced the Next.js 15 fetch caching default change, which is a critical difference from Next.js 14 that training data alone might have gotten wrong",
+        "Prompt matches the tone and structure of the React, Vue, and Angular prompts while covering Next.js-specific concerns without repeating TypeScript or React fundamentals"
+      ],
+      "improvements": [
+        "Could add guidance on Partial Prerendering and the emerging use cache directive once those graduate from experimental"
+      ],
+      "action_items": [
+        "When Next.js 16 stabilizes the use cache directive and PPR becomes default, update this prompt to cover cache boundaries"
       ]
     }
   }
