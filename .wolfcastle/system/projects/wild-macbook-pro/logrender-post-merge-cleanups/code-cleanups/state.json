@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "id": "code-cleanups",
+  "name": "Code Cleanups",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Replace indexOf with bytes.IndexByte",
+      "description": "Replace indexOf with bytes.IndexByte",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/reader.go"
+      ],
+      "body": "In internal/logrender/reader.go, the hand-rolled indexOf function (lines ~243-251) reimplements bytes.IndexByte. Replace the single call site (line ~219) with bytes.IndexByte(data[consumed:], '\\n'), add 'bytes' to the import block, and delete the indexOf function. Update or remove any tests that exercise indexOf directly."
+    },
+    {
+      "id": "task-0002",
+      "title": "Remove stageLabels identity map",
+      "description": "Remove stageLabels identity map",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/record.go",
+        "internal/logrender/record_test.go"
+      ],
+      "body": "In internal/logrender/record.go, the stageLabels map (lines ~31-39) maps every key to itself. The StageLabel() method (lines ~41-47) does a lookup and falls back to r.Stage on miss, which means the map is a no-op: it returns the same value for known stages as the fallback does for unknown stages. Delete the stageLabels map variable and simplify StageLabel() to just 'return r.Stage'. Update record_test.go TestStageLabel accordingly: the test table can shrink since there is no longer a distinction between known/unknown stages, but keep at least one case verifying that StageLabel returns the raw Stage value."
+    },
+    {
+      "id": "task-0003",
+      "title": "Remove expectContains test helper",
+      "description": "Remove expectContains test helper",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/interleaved_test.go"
+      ],
+      "body": "In internal/logrender/interleaved_test.go, the expectContains helper (lines ~256-263) is a thin wrapper around strings.Contains + t.Errorf. It has 21 call sites. Inline it: replace each expectContains(t, got, expected) call with a direct if-check using strings.Contains, or adopt a concise pattern like:\n\n  if !strings.Contains(got, substr) { t.Errorf(...) }\n\nDelete the expectContains function definition after all call sites are updated."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Code Cleanups is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify bytes.IndexByte is imported and used instead of a local indexOf function. Verify no stageLabels variable exists in record.go. Verify no expectContains function exists in interleaved_test.go. Run go test ./internal/logrender/... and confirm all tests pass."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T01:55:12.145237Z",
+        "task": "logrender-post-merge-cleanups/code-cleanups",
+        "text": "Replaced hand-rolled indexOf with bytes.IndexByte in reader.go, deleted the indexOf function, added bytes import. Build and tests pass."
+      },
+      {
+        "timestamp": "2026-03-22T01:56:07.331263Z",
+        "task": "logrender-post-merge-cleanups/code-cleanups",
+        "text": "Removed stageLabels identity map from record.go, simplified StageLabel() to return r.Stage directly, trimmed TestStageLabel to 3 cases. Build and tests pass."
+      },
+      {
+        "timestamp": "2026-03-22T01:57:34.239375Z",
+        "task": "logrender-post-merge-cleanups/code-cleanups",
+        "text": "Inlined all 21 expectContains call sites in interleaved_test.go with direct strings.Contains checks, deleted the helper. Build and tests pass."
+      },
+      {
+        "timestamp": "2026-03-22T01:58:34.286935Z",
+        "task": "logrender-post-merge-cleanups/code-cleanups",
+        "text": "Audit reviewed 4 files (reader.go, record.go, record_test.go, interleaved_test.go). PASS. One finding: reader.go was missing a trailing newline after the indexOf deletion, caught by gofmt. Fixed and committed. All three prior tasks were clean mechanical transformations: bytes.IndexByte replaced a hand-rolled indexOf, the stageLabels identity map was removed in favor of a direct return, and 21 expectContains call sites were inlined. No dead code, no unused imports, no discarded errors, no regressions. go vet and full test suite clean."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T01:54:33.960552Z",
+    "completed_at": "2026-03-22T01:58:47.823549Z",
+    "result_summary": "Three mechanical cleanups completed: replaced a hand-rolled indexOf byte search with bytes.IndexByte, removed an identity stageLabels map in favor of a direct return, and inlined 21 expectContains test-helper call sites. All changes are zero-behavioral-impact simplifications. Audit found and fixed one formatting issue (missing trailing newline in reader.go). Build, tests, go vet, and gofmt all pass clean."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T01:58:40.055044Z",
+      "objective": "Verify all code-cleanups work is complete, correct, and high-quality",
+      "what_happened": "Reviewed the 4 files touched by the 3 prior tasks. Build, tests, and go vet all pass. Found one formatting issue: reader.go lacked a trailing newline after the indexOf function was deleted. Fixed and committed. Confirmed no remnants of deleted code (indexOf, stageLabels, expectContains) remain anywhere in the package.",
+      "went_well": [
+        "All three cleanups were genuinely mechanical with zero behavioral change",
+        "Test suite covers the affected code paths well; no gaps exposed"
+      ],
+      "improvements": [
+        "The missing-newline issue could have been caught by running gofmt before committing task-0001"
+      ],
+      "action_items": [
+        "None; node is clean"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T01:55:10.92119Z",
+      "objective": "Replace the hand-rolled indexOf helper with the standard library's bytes.IndexByte",
+      "what_happened": "Replaced the single call site in readNewLines (line ~219) with bytes.IndexByte, added the bytes import, and deleted the 9-line indexOf function. No tests referenced indexOf directly, so no test changes were needed.",
+      "went_well": [
+        "Drop-in replacement; zero behavioral change, confirmed by passing test suite"
+      ],
+      "improvements": [
+        "None; this was a straightforward stdlib substitution"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T01:56:05.884845Z",
+      "objective": "Remove the identity stageLabels map and simplify StageLabel() to a direct return",
+      "what_happened": "Deleted the stageLabels map variable (8 lines) and replaced the StageLabel() method body with a single return r.Stage. Trimmed the TestStageLabel table from 8 cases to 3 representative ones (known stage, arbitrary stage, empty string).",
+      "went_well": [
+        "Straightforward deletion with zero behavioral change; all existing tests pass without modification beyond the test table trim"
+      ],
+      "improvements": [
+        "None; this was a dead-code removal"
+      ],
+      "action_items": [
+        "None"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T01:57:33.364989Z",
+      "objective": "Inline and remove the expectContains test helper from interleaved_test.go",
+      "what_happened": "Replaced all 21 call sites of expectContains(t, got, want) with inline if-checks using strings.Contains, preserving the same error message format. Deleted the 8-line helper function definition.",
+      "went_well": [
+        "Mechanical replacement with zero behavioral change; all 85 logrender tests pass"
+      ],
+      "improvements": [
+        "None; straightforward inlining"
+      ],
+      "action_items": [
+        "None"
+      ]
+    }
+  }
+}

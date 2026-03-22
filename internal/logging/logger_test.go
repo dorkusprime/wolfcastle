@@ -1134,6 +1134,75 @@ func TestStartIteration_SetsDefaultTracePrefix(t *testing.T) {
 	}
 }
 
+// ── LogIterationStart Tests ───────────────────────────────────────
+
+func TestLogIterationStart_EmitsRecord(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+
+	_ = logger.StartIterationWithPrefix("exec")
+	if err := logger.LogIterationStart("execute", "my-project/auth"); err != nil {
+		t.Fatalf("LogIterationStart returned error: %v", err)
+	}
+
+	// Read back the log file and parse the record.
+	logPath := logger.CurrentLogPath()
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("reading log file: %v", err)
+	}
+	var rec map[string]any
+	if err := json.Unmarshal(data, &rec); err != nil {
+		t.Fatalf("parsing log record: %v", err)
+	}
+
+	if rec["type"] != "iteration_start" {
+		t.Errorf("type = %v, want iteration_start", rec["type"])
+	}
+	if rec["stage"] != "execute" {
+		t.Errorf("stage = %v, want execute", rec["stage"])
+	}
+	if rec["node"] != "my-project/auth" {
+		t.Errorf("node = %v, want my-project/auth", rec["node"])
+	}
+	// iteration is stored as float64 by JSON unmarshal
+	if iter, ok := rec["iteration"].(float64); !ok || int(iter) != 1 {
+		t.Errorf("iteration = %v, want 1", rec["iteration"])
+	}
+}
+
+func TestLogIterationStart_OmitsNodeWhenEmpty(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+
+	_ = logger.StartIterationWithPrefix("intake")
+	_ = logger.LogIterationStart("intake", "")
+
+	data, err := os.ReadFile(logger.CurrentLogPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rec map[string]any
+	if err := json.Unmarshal(data, &rec); err != nil {
+		t.Fatal(err)
+	}
+	if _, hasNode := rec["node"]; hasNode {
+		t.Error("expected no 'node' field when nodeAddr is empty")
+	}
+}
+
 func TestLog_IncludesTraceID(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
@@ -1181,6 +1250,186 @@ func TestLog_OmitsTraceWhenEmpty(t *testing.T) {
 	lastLine := lines[len(lines)-1]
 	if strings.Contains(lastLine, `"trace"`) {
 		t.Error("expected no trace field when TraceID is empty")
+	}
+}
+
+// ── Record Shape Tests ────────────────────────────────────────────
+//
+// These tests verify that each NDJSON record type consumed by the log
+// command contains the fields the spec requires. The Logger.Log method
+// adds timestamp, level, and trace automatically; these tests confirm
+// that the caller-supplied fields survive serialization and that
+// Logger.Log injects the envelope fields.
+
+func TestRecordShape_StageStart(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+	_ = logger.StartIterationWithPrefix("exec")
+
+	// Emit the record with the fields the execute loop provides.
+	_ = logger.Log(map[string]any{
+		"type":  "stage_start",
+		"stage": "execute",
+		"node":  "my-project/auth",
+		"task":  "task-0001",
+		"model": "sonnet",
+	})
+
+	rec := readSingleRecord(t, logger.CurrentLogPath())
+
+	// Spec-required fields.
+	requireField(t, rec, "type", "stage_start")
+	requireField(t, rec, "stage", "execute")
+	requireField(t, rec, "node", "my-project/auth")
+
+	// Envelope fields injected by Logger.Log.
+	requireFieldPresent(t, rec, "timestamp")
+	requireFieldPresent(t, rec, "level")
+	requireFieldPresent(t, rec, "trace")
+}
+
+func TestRecordShape_StageComplete(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+	_ = logger.StartIterationWithPrefix("exec")
+
+	_ = logger.Log(map[string]any{
+		"type":       "stage_complete",
+		"stage":      "execute",
+		"exit_code":  0,
+		"output_len": 512,
+	})
+
+	rec := readSingleRecord(t, logger.CurrentLogPath())
+
+	requireField(t, rec, "type", "stage_complete")
+	requireField(t, rec, "stage", "execute")
+	requireFieldPresent(t, rec, "exit_code")
+	requireFieldPresent(t, rec, "timestamp") // needed for duration calculation
+}
+
+func TestRecordShape_PlanningStart(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+	_ = logger.StartIterationWithPrefix("exec")
+
+	_ = logger.Log(map[string]any{
+		"type":    "planning_start",
+		"node":    "my-project",
+		"trigger": "new_orchestrator",
+		"model":   "sonnet",
+	})
+
+	rec := readSingleRecord(t, logger.CurrentLogPath())
+
+	requireField(t, rec, "type", "planning_start")
+	requireField(t, rec, "node", "my-project")
+	requireFieldPresent(t, rec, "timestamp")
+}
+
+func TestRecordShape_PlanningComplete(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+	_ = logger.StartIterationWithPrefix("exec")
+
+	_ = logger.Log(map[string]any{
+		"type":      "planning_complete",
+		"node":      "my-project",
+		"exit_code": 0,
+	})
+
+	rec := readSingleRecord(t, logger.CurrentLogPath())
+
+	requireField(t, rec, "type", "planning_complete")
+	requireField(t, rec, "node", "my-project")
+	requireFieldPresent(t, rec, "exit_code")
+	requireFieldPresent(t, rec, "timestamp")
+}
+
+func TestRecordShape_AuditReportWritten(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Console = nil
+	defer logger.Close()
+	_ = logger.StartIterationWithPrefix("exec")
+
+	_ = logger.Log(map[string]any{
+		"type": "audit_report_written",
+		"node": "my-project/auth",
+		"path": ".wolfcastle/system/projects/eng/my-project/auth/audit-2026-03-21.md",
+	})
+
+	rec := readSingleRecord(t, logger.CurrentLogPath())
+
+	requireField(t, rec, "type", "audit_report_written")
+	requireFieldPresent(t, rec, "path")
+	requireFieldPresent(t, rec, "timestamp")
+}
+
+// readSingleRecord reads a log file and parses the first NDJSON line.
+func readSingleRecord(t *testing.T, path string) map[string]any {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading log file: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) == 0 {
+		t.Fatal("log file is empty")
+	}
+	var rec map[string]any
+	if err := json.Unmarshal([]byte(lines[0]), &rec); err != nil {
+		t.Fatalf("parsing log record: %v", err)
+	}
+	return rec
+}
+
+// requireField asserts that rec[key] equals the expected string value.
+func requireField(t *testing.T, rec map[string]any, key, want string) {
+	t.Helper()
+	got, ok := rec[key]
+	if !ok {
+		t.Errorf("record missing required field %q", key)
+		return
+	}
+	if fmt.Sprint(got) != want {
+		t.Errorf("field %q = %v, want %q", key, got, want)
+	}
+}
+
+// requireFieldPresent asserts that rec[key] exists (any value).
+func requireFieldPresent(t *testing.T, rec map[string]any, key string) {
+	t.Helper()
+	if _, ok := rec[key]; !ok {
+		t.Errorf("record missing required field %q", key)
 	}
 }
 

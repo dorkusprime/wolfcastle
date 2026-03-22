@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "fix-replayjson-streaming-bug",
+  "name": "Fix replayJSON streaming bug",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "streaming-fix",
+      "address": "fix-replayjson-streaming-bug/streaming-fix",
+      "state": "complete"
+    },
+    {
+      "id": "test-coverage",
+      "address": "fix-replayjson-streaming-bug/test-coverage",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Fix replayJSON streaming bug is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "BUG: replayJSON in internal/logrender/follow.go loads entire files into memory and emits raw gzip bytes for .gz files. Must stream and decompress. The Log Command Redesign project (log-command-redesign) is complete; this is a targeted bug fix to its output. Fix replayJSON to stream file contents rather than loading into memory, and correctly decompress .gz files via streaming gzip reader rather than emitting raw bytes.",
+  "success_criteria": [
+    "replayJSON streams file contents line-by-line instead of loading entire files into memory",
+    "replayJSON decompresses .gz files through gzip.Reader, emitting plain NDJSON lines",
+    "Tests verify correct output for plain, gzip, and mixed file lists"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T01:34:35.374989Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T01:34:27.291523Z",
+        "task": "fix-replayjson-streaming-bug",
+        "text": "Created 2 children: streaming-fix (implementation), test-coverage (tests). Ordering: implementation first so the fix exists before tests are written against it. Both are leaves since the scope is narrow and self-contained."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
