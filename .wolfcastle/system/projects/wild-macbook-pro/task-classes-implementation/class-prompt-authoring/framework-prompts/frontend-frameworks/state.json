@@ -43,7 +43,7 @@
       "id": "task-0004",
       "title": "Write TypeScript/Next.js class prompt",
       "description": "Write TypeScript/Next.js class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/typescript/nextjs.md"
@@ -54,7 +54,7 @@
       "id": "task-0005",
       "title": "Write TypeScript/Svelte class prompt",
       "description": "Write TypeScript/Svelte class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/typescript/svelte.md"
