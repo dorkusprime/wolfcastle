@@ -82,6 +82,11 @@
         "timestamp": "2026-03-22T08:45:42.605644Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
         "text": "Authored Java/Spring class prompt covering Boot 3.x patterns, DI, MVC, Data JPA, transactions, security, testing, and five common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T08:47:48.136662Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored C#/.NET class prompt covering ASP.NET Core patterns, EF Core, DI, middleware, auth, hosted services, testing with WebApplicationFactory, and five common pitfalls [task-0002]"
       }
     ],
     "gaps": [],
@@ -103,6 +108,21 @@
       ],
       "action_items": [
         "If a Spring WebFlux reactive prompt is needed later, it should be a separate framework prompt since the programming model differs substantially from the servlet-based Spring MVC covered here"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T08:47:46.554664Z",
+      "objective": "Author the C#/.NET framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/csharp/dotnet.md (43 lines). Studied the existing C# language prompt and the Java/Spring framework prompt to match format and depth. Covered all required topics: ASP.NET Core patterns (minimal APIs vs controllers, DI via IServiceCollection, middleware pipeline ordering), Entity Framework Core (DbContext, migrations, Include/ThenInclude, AsNoTracking, bulk operations), IOptions configuration pattern, JWT authentication with policy-based authorization, BackgroundService with PeriodicTimer and IServiceScopeFactory, and testing with WebApplicationFactory/TestServer/Moq/NSubstitute. All five required pitfalls are addressed: DbContext lifetime scoping in DI, async void in controllers, middleware ordering sensitivity, EF Core lazy-loading N+1, and forgetting to register services with ValidateOnBuild as a mitigation.",
+      "went_well": [
+        "The prompt complements the C# language prompt without overlapping; language fundamentals like async/await, LINQ, records, and pattern matching are covered there, so this prompt stays focused on the .NET framework layer"
+      ],
+      "improvements": [
+        "Could have covered SignalR, gRPC, or health checks, but those would push past the 60-line target and are better suited to specialized prompts"
+      ],
+      "action_items": [
+        "If Blazor or MAUI prompts are needed, they should be separate framework prompts since the programming model differs substantially from the server-side ASP.NET Core covered here"
       ]
     }
   }
