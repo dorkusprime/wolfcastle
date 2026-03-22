@@ -36,17 +36,17 @@
       "body": "Check all 40+ docs/humans/cli/ per-command pages. For each: verify the command still exists, flags are current, examples work, and output format matches. Priority areas: (1) new command pages needed for config set, config unset, config append, config remove if not already present, (2) config-show.md must reflect --tier and --raw flags, (3) status.md must document --detail flag, (4) audit-aar.md and audit-report.md must exist and be accurate, (5) archive-add.md must reflect current behavior. Cross-reference against cmd/ directory to ensure no command lacks documentation."
     },
     {
+      "id": "audit.0001",
+      "description": "Fix: CLI subpages missing for new commands: config-show.md, config-set.md, config-unset.md, config-append.md, config-remove.md, archive-restore.md, archive-delete.md. The cli.md index links to these pages but they do not yet exist.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node documentation-review/human-docs-audit gap-human-docs-audit-1",
+      "state": "complete",
+      "failure_count": 0
+    },
+    {
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Human Docs Audit is complete and correct",
       "state": "complete",
       "is_audit": true,
-      "failure_count": 0
-    },
-    {
-      "id": "audit.0001",
-      "description": "Fix: CLI subpages missing for new commands: config-show.md, config-set.md, config-unset.md, config-append.md, config-remove.md, archive-restore.md, archive-delete.md. The cli.md index links to these pages but they do not yet exist.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node documentation-review/human-docs-audit gap-human-docs-audit-1",
-      "state": "complete",
       "failure_count": 0
     }
   ],

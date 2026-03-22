@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "id": "follow-no-op-when-stopped",
+  "name": "follow-no-op-when-stopped",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Guard follow mode behind daemon-alive check",
+      "description": "Guard follow mode behind daemon-alive check",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/follow.go"
+      ],
+      "body": "In cmd/daemon/follow.go, after the implicit-follow block (lines 89-92), add a second guard that downgrades follow to false when the daemon is not alive. This covers the case where the user explicitly passes --follow but the daemon is stopped. The logic should be: if follow is true but app.Daemon.IsAlive() returns false, set follow back to false. This ensures the command falls through to the replay path (line 142) which reads from session files and exits cleanly. The spec (docs/specs/2026-03-21T18-00Z-log-command-design.md, flags table) says --follow is 'No-op when daemon is stopped.' This is the minimal, correct fix for the invocation-time hang."
+    },
+    {
+      "id": "task-0002",
+      "title": "Add tests for explicit --follow with stopped daemon",
+      "description": "Add tests for explicit --follow with stopped daemon",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/follow_test.go"
+      ],
+      "body": "Add test cases to cmd/daemon/follow_test.go (or follow_coverage_test.go, whichever is the appropriate home) that verify: (1) explicit --follow with a stopped daemon falls through to replay mode and exits, (2) explicit --follow with a running daemon still enters follow mode, (3) no --follow with a stopped daemon uses replay mode (existing behavior, regression guard). The test should use a mock or fake DaemonRepository with a controllable IsAlive() return value. Check existing test patterns in the file for how daemon state is mocked."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in follow-no-op-when-stopped is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify that the follow guard checks daemon.IsAlive() AFTER the implicit-follow block, so both explicit and implicit --follow are covered by the same guard"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T01:44:24.649947Z",
+        "task": "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
+        "text": "Added daemon-alive guard in cmd/daemon/follow.go to downgrade --follow when daemon is stopped, preventing the hang"
+      },
+      {
+        "timestamp": "2026-03-22T01:46:49.000632Z",
+        "task": "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
+        "text": "Added three tests to follow_test.go covering --follow downgrade: explicit follow with stopped daemon, explicit follow with running daemon, and no-follow baseline regression guard"
+      },
+      {
+        "timestamp": "2026-03-22T01:47:39.240876Z",
+        "task": "fix-log-follow-hang-with-stopped-daemon/follow-no-op-when-stopped",
+        "text": "Audit reviewed 2 files: follow.go (guard at lines 94-100) and follow_test.go (3 new test functions at lines 654-738, plus makeDaemonAlive helper). PASS. Build, tests (with race detector), vet, and format all clean. One finding examined: dual IsAlive() calls at lines 90 and 98 constitute a benign TOCTOU; the guard at 98 catches the case where implicit follow was set but daemon stopped between calls. The residual edge (daemon dies after line 98) is inherent to PID-based liveness and handled by context cancellation (Ctrl-C). No remediation warranted. Code quality is clean: minimal diff, no new dependencies, tests are deterministic and use the existing test harness effectively."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T01:43:29.587913Z",
+    "completed_at": "2026-03-22T01:47:47.453485Z",
+    "result_summary": "Fixed wolfcastle log --follow hanging when the daemon is stopped. A six-line guard in cmd/daemon/follow.go checks IsAlive() after implicit-follow resolution and downgrades follow to false when the daemon is not running, causing the command to fall through to replay mode and exit cleanly. Three tests in follow_test.go cover explicit follow with a stopped daemon (exits promptly), explicit follow with a running daemon (blocks in follow mode), and the no-follow baseline (replay mode). Audit found no issues: build, tests with race detector, vet, and format all pass. The dual IsAlive() calls are a benign TOCTOU handled by the guard's placement."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T01:44:20.940465Z",
+      "objective": "Guard follow mode so it becomes a no-op when the daemon is stopped",
+      "what_happened": "Added a six-line guard in cmd/daemon/follow.go (after line 92) that checks follow \u0026\u0026 !app.Daemon.IsAlive() and downgrades follow to false. This sits immediately after the implicit-follow block, so both implicit and explicit follow are covered.",
+      "went_well": [
+        "Minimal change, single file, no new dependencies",
+        "Full test suite passes without modification"
+      ],
+      "improvements": [
+        "No dedicated unit test for the downgrade path; the daemon test harness would need a mock IsAlive to exercise this"
+      ],
+      "action_items": [
+        "Consider adding a test that verifies log --follow exits cleanly when daemon is stopped"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T01:46:48.902503Z",
+      "objective": "Add tests verifying the --follow downgrade behavior with stopped and running daemons",
+      "what_happened": "Added three test functions to cmd/daemon/follow_test.go: ExplicitFollowStoppedDaemon_FallsToReplay, ExplicitFollowRunningDaemon_EntersFollowMode, and NoFollowStoppedDaemon_UsesReplay. Used the existing newTestEnv with a helper makeDaemonAlive that writes os.Getpid() to the PID file to simulate a running daemon.",
+      "went_well": [
+        "Tests are deterministic: stopped-daemon tests complete instantly, running-daemon test correctly blocks past the 500ms timeout",
+        "No new dependencies or test infrastructure needed; leveraged existing newTestEnv and DaemonRepository.IsAlive() PID-file mechanics"
+      ],
+      "improvements": [
+        "followJSON and the follow path in runLog remain at 0% coverage since they block indefinitely; exercising those would require a cancellable context plumbed through the command"
+      ],
+      "action_items": [
+        "Consider a test that verifies implicit follow (no --follow flag, session 0, daemon running) also gets downgraded correctly when daemon dies mid-stream"
+      ]
+    }
+  }
+}

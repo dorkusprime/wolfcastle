@@ -4,8 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/dorkusprime/wolfcastle/internal/logging"
 )
 
 // ---------------------------------------------------------------------------
@@ -72,39 +70,5 @@ func TestShowAllStatus_NoSummaries_JSON(t *testing.T) {
 	err := showAllStatus(env.App)
 	if err != nil {
 		t.Fatalf("showAllStatus JSON with no namespaces failed: %v", err)
-	}
-}
-
-// ---------------------------------------------------------------------------
-// follow.go: new iteration header on file change
-// The follow command contains an infinite loop, so we test the sub-functions
-// directly rather than running the full command.
-// ---------------------------------------------------------------------------
-
-func TestShowHistoricalLines_ThenNewFile(t *testing.T) {
-	tmp := t.TempDir()
-
-	// Create first log file
-	logFile1 := filepath.Join(tmp, "001-first.jsonl")
-	_ = os.WriteFile(logFile1, []byte(`{"type":"assistant","text":"first"}`+"\n"), 0644)
-
-	// Show historical lines from first file
-	clearOffset(logFile1)
-	showHistoricalLines(logFile1, 10, logging.LevelDebug)
-
-	// Create second log file (simulates new iteration)
-	logFile2 := filepath.Join(tmp, "002-second.jsonl")
-	_ = os.WriteFile(logFile2, []byte(`{"type":"assistant","text":"second"}`+"\n"), 0644)
-
-	// Tail the second file from the beginning
-	clearOffset(logFile2)
-	err := tailFileStreaming(logFile2, logging.LevelDebug)
-	if err != nil {
-		t.Fatalf("tailFileStreaming second file failed: %v", err)
-	}
-
-	offset := getOffset(logFile2)
-	if offset == 0 {
-		t.Error("expected offset to advance after reading second file")
 	}
 }

@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "id": "log-record-types",
+  "name": "Log Record Types",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add iteration_start record to daemon startup",
+      "description": "Add iteration_start record to daemon startup",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logging/logger.go",
+        "internal/logging/logger_test.go"
+      ],
+      "body": "The daemon needs to emit an iteration_start record at the beginning of each iteration. This record is the primary mechanism for session boundary detection in the log command. The record should contain: type='iteration_start', the node address being worked on, the stage type (execute, intake, plan, audit, etc.), and the iteration number. The logging package's StartIteration/StartIterationWithPrefix methods are the natural place to emit this record. Check whether the daemon already logs sufficient data for the log command to reconstruct stage_start node addresses and stage types. If stage_start records are missing the node address field, add it."
+    },
+    {
+      "id": "task-0002",
+      "title": "Verify existing record types have required fields",
+      "description": "Verify existing record types have required fields",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logging/logger_test.go"
+      ],
+      "body": "Audit every call site that emits stage_start, stage_complete, planning_start, planning_complete, and audit_report_written records. The log command spec requires these fields: stage_start needs stage type and node address; stage_complete needs stage type, exit code, and timestamp (for duration calculation); audit_report_written needs the report file path; planning_start/planning_complete need node address. Grep for each record type in the daemon package, verify the fields, and add any that are missing. Write tests confirming the record shapes."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Log Record Types is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify iteration_start records are emitted at the start of every daemon iteration and contain iteration number and timestamp"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-21T21:14:32.409312Z",
+        "task": "log-command-redesign/log-record-types",
+        "text": "Added LogIterationStart method to logger.go, wired into execute/plan/intake entry points, suppressed from console, added tests with 100% coverage on new method"
+      },
+      {
+        "timestamp": "2026-03-21T21:18:01.361655Z",
+        "task": "log-command-redesign/log-record-types",
+        "text": "Fixed planning_complete missing node field in planning.go:215, added five record shape tests in logger_test.go covering all record types the log command spec consumes"
+      },
+      {
+        "timestamp": "2026-03-21T21:19:51.606156Z",
+        "task": "log-command-redesign/log-record-types",
+        "text": "Audit reviewed 5 files across 2 commits (logger.go, logger_test.go, daemon.go, stages.go, planning.go). PASS. LogIterationStart method is clean: correct conditional node field omission, proper error propagation, console suppression. planning_complete node field fix is correct. Five record shape tests cover all spec-required record types with well-factored helpers. All three daemon call sites follow the established pattern of discarding logging errors. Build, tests, and vet all pass. No findings requiring remediation."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-21T21:09:56.328348Z",
+    "completed_at": "2026-03-21T21:20:00.754502Z",
+    "result_summary": "Added iteration_start record type to the logging API (LogIterationStart method) and wired it into all three daemon entry points (execute, plan, intake) as session boundary markers for the log command. Fixed a missing node field in planning_complete records. Added five record shape tests verifying that every NDJSON record type the log command spec consumes carries its required fields plus the envelope fields (timestamp, level, trace) that Logger.Log injects. All work compiles, passes tests, and passes vet."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-21T21:14:30.022851Z",
+      "objective": "Emit iteration_start records at daemon startup so the log command can detect session boundaries",
+      "what_happened": "Added LogIterationStart method to internal/logging/logger.go. Wired it into all three daemon iteration entry points: execute loop (daemon.go), planning (planning.go), and intake (stages.go). The record includes type=iteration_start, stage type, iteration number, and node address (omitted for intake which isn't node-scoped). Added iteration_start to consoleSuppress since the daemon already prints its own human-readable iteration header. Two tests cover the happy path and the empty-node-address case.",
+      "went_well": [
+        "The existing StartIterationWithPrefix architecture made this straightforward; the method slots in right after it at each call site",
+        "stage_start records already carry node address and task ID, so no changes needed there"
+      ],
+      "improvements": [
+        "LogIterationStart could be folded into StartIterationWithPrefix via functional options to reduce call-site ceremony, but that would change the Logger API surface for all callers"
+      ],
+      "action_items": [
+        "The log command parser needs to recognize iteration_start records for boundary splitting"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-21T21:18:00.153202Z",
+      "objective": "Verify all daemon record types have the fields the log command spec requires",
+      "what_happened": "Audited six call sites across iteration.go, stages.go, and planning.go. Found one gap: planning_complete at planning.go:214 was missing the node address. Fixed it by adding the nodeAddr field. Wrote five record shape tests in logger_test.go covering stage_start, stage_complete, planning_start, planning_complete, and audit_report_written. Each test verifies spec-required fields plus envelope fields (timestamp, level, trace) injected by Logger.Log.",
+      "went_well": [
+        "The existing call sites were well-structured; only one field was actually missing",
+        "Table of call sites vs required fields made the audit systematic and complete"
+      ],
+      "improvements": [
+        "The record shapes are still defined by raw map literals at each call site rather than typed methods; a future task could add convenience methods like LogIterationStart for the other record types to enforce shapes at the API level"
+      ],
+      "action_items": [
+        "The log command parser should use these same field names when extracting data from records"
+      ]
+    }
+  }
+}
