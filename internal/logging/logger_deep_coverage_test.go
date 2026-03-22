@@ -102,7 +102,7 @@ func TestAssistantWriter_WritesNDJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 
 	if err := logger.StartIteration(); err != nil {

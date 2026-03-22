@@ -455,7 +455,7 @@ func TestStartIteration_ClosePreviousBeforeNew(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 
 	// Start 3 iterations rapidly — should close each previous
@@ -549,7 +549,7 @@ func TestLog_WriteError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 
 	_ = logger.StartIteration()
 	// Close the underlying file to force a write error

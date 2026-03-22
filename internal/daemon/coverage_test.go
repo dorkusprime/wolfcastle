@@ -14,7 +14,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// New — error paths and log level configuration
+// New — error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestNew_LogDirCreationFails(t *testing.T) {
@@ -33,25 +33,6 @@ func TestNew_LogDirCreationFails(t *testing.T) {
 	}
 }
 
-func TestNew_LogLevelFromConfig(t *testing.T) {
-	t.Parallel()
-	tmp := t.TempDir()
-	wolfDir := filepath.Join(tmp, ".wolfcastle")
-	_ = os.MkdirAll(wolfDir, 0755)
-
-	cfg := testConfig()
-	cfg.Daemon.LogLevel = "debug"
-	store := state.NewStore(filepath.Join(wolfDir, "system", "projects", "test"), 5*time.Second)
-	d, err := New(cfg, wolfDir, store, "", tmp)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer d.Logger.Close()
-
-	if d.Logger.ConsoleLevel != 0 { // LevelDebug = 0
-		t.Errorf("expected debug level, got %d", d.Logger.ConsoleLevel)
-	}
-}
 
 func TestNew_ResumesIteration(t *testing.T) {
 	t.Parallel()

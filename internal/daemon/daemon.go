@@ -87,10 +87,6 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 		return nil, err
 	}
 
-	// Apply the configured console log level (ADR-046).
-	if lvl, ok := logging.ParseLevel(cfg.Daemon.LogLevel); ok {
-		logger.ConsoleLevel = lvl
-	}
 	// Resume iteration numbering from existing log files.
 	logger.Iteration = logging.IterationFromDir(logDir)
 
@@ -99,9 +95,6 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 	inboxLogger, err := logging.NewLogger(logDir)
 	if err != nil {
 		return nil, err
-	}
-	if lvl, ok := logging.ParseLevel(cfg.Daemon.LogLevel); ok {
-		inboxLogger.ConsoleLevel = lvl
 	}
 	// Offset inbox iterations by 10000 to avoid filename collisions
 	// with the execute loop. Both write to the same directory but

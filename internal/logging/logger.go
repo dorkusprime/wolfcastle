@@ -71,14 +71,11 @@ func (l Level) String() string {
 // Tests replace it to control time.
 var nowFunc = time.Now
 
-// Logger writes per-iteration NDJSON log files and optionally mirrors
-// human-readable output to a console writer.
+// Logger writes per-iteration NDJSON log files.
 type Logger struct {
-	LogDir       string
-	Iteration    int
-	ConsoleLevel Level
-	Console      io.Writer // nil disables console output
-	TraceID      string    // set by StartIterationWithPrefix, included in every log record
+	LogDir    string
+	Iteration int
+	TraceID   string // set by StartIterationWithPrefix, included in every log record
 
 	file *os.File
 }
@@ -89,9 +86,7 @@ func NewLogger(logDir string) (*Logger, error) {
 		return nil, fmt.Errorf("creating log directory: %w", err)
 	}
 	return &Logger{
-		LogDir:       logDir,
-		ConsoleLevel: LevelInfo,
-		Console:      os.Stderr,
+		LogDir: logDir,
 	}, nil
 }
 

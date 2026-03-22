@@ -3,7 +3,6 @@ package daemon
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -141,12 +140,6 @@ Examples:
 			if err != nil {
 				return err
 			}
-
-			// Suppress the logger's console mirror: the interleaved
-			// renderer handles all display, so mirroring records to
-			// stderr would be redundant noise.
-			d.Logger.Console = io.Discard
-			d.InboxLogger.Console = io.Discard
 
 			// Write PID file for foreground mode too, so `wolfcastle status`
 			// can detect a running daemon regardless of how it was started.

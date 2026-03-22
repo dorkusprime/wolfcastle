@@ -181,7 +181,7 @@ func TestLog_WritesNDJSONRecords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil // suppress console output
+
 	defer logger.Close()
 
 	if err := logger.StartIteration(); err != nil {
@@ -242,7 +242,7 @@ func TestLog_DefaultLevelIsInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 
 	_ = logger.StartIteration()
@@ -269,7 +269,7 @@ func TestAssistantWriter_WritesAtDebugLevel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 
 	_ = logger.StartIteration()
@@ -778,7 +778,7 @@ func TestMultipleIterations_CreateSeparateFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 
 	for i := 0; i < 3; i++ {
@@ -895,7 +895,7 @@ func TestLog_MarshalError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 
 	_ = logger.StartIteration()
@@ -914,7 +914,7 @@ func TestAssistantWriter_WriteError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 
 	_ = logger.StartIteration()
 	w := logger.AssistantWriter()
@@ -1002,7 +1002,7 @@ func TestLogIterationStart_EmitsRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 
 	_ = logger.StartIterationWithPrefix("exec")
@@ -1043,7 +1043,7 @@ func TestLogIterationStart_OmitsNodeWhenEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 
 	_ = logger.StartIterationWithPrefix("intake")
@@ -1069,7 +1069,7 @@ func TestLog_IncludesTraceID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 
 	_ = logger.StartIterationWithPrefix("exec")
@@ -1093,7 +1093,7 @@ func TestLog_OmitsTraceWhenEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	logger.TraceID = ""
 	defer logger.Close()
 
@@ -1127,7 +1127,7 @@ func TestRecordShape_StageStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 	_ = logger.StartIterationWithPrefix("exec")
 
@@ -1160,7 +1160,7 @@ func TestRecordShape_StageComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 	_ = logger.StartIterationWithPrefix("exec")
 
@@ -1186,7 +1186,7 @@ func TestRecordShape_PlanningStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 	_ = logger.StartIterationWithPrefix("exec")
 
@@ -1211,7 +1211,7 @@ func TestRecordShape_PlanningComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 	_ = logger.StartIterationWithPrefix("exec")
 
@@ -1236,7 +1236,7 @@ func TestRecordShape_AuditReportWritten(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Console = nil
+
 	defer logger.Close()
 	_ = logger.StartIterationWithPrefix("exec")
 

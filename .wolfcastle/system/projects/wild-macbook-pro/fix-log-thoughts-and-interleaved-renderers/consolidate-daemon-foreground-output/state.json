@@ -44,8 +44,14 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Consolidate Daemon Foreground Output is complete and correct",
-      "state": "in_progress",
+      "state": "not_started",
       "is_audit": true,
+      "failure_count": 0
+    },
+    {
+      "id": "audit.0001",
+      "description": "Fix: Logger.Console and Logger.ConsoleLevel fields are now dead: set by cmd/ code but never read within Logger. Should be removed along with io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go, and NewLogger defaults.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output gap-consolidate-daemon-foreground-output-1",
+      "state": "in_progress",
       "failure_count": 0
     }
   ],
