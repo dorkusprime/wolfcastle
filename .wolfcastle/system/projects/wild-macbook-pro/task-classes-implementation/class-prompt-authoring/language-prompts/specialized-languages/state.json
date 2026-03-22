@@ -108,7 +108,7 @@
       "id": "task-0008",
       "title": "Author Haskell prompt",
       "description": "Author Haskell prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/haskell.md"
@@ -122,7 +122,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Specialized Languages is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -174,14 +174,37 @@
         "timestamp": "2026-03-22T07:56:53.173978Z",
         "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
         "text": "Authored Haskell class prompt (68 lines) covering idiomatic style, Cabal/HLint/Ormolu tooling, Hspec/QuickCheck testing, and common pitfalls [task-0008]"
+      },
+      {
+        "timestamp": "2026-03-22T07:58:59.858109Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Audit reviewed all 8 language prompt files (swift.md 51 lines, dart.md 68, shell.md 71, sql.md 59, r.md 66, lua.md 58, elixir.md 65, haskell.md 68; 506 lines total). PASS. All files follow the established format: title, codebase-deference opener, language-appropriate sections (Style, Build and Test, Testing, Common Pitfalls with SQL substituting Dialect Awareness and Migrations for Build and Test). Each Common Pitfalls section covers 5-7 distinct issues with concrete guidance. Technical content is accurate and version-aware. Code examples present where helpful (Dart, Shell, R, Lua, Elixir, Haskell). Files are properly embedded via go:embed all:templates. Build, tests, and lint all pass clean. No findings requiring remediation."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T07:40:04.990024Z"
+    "started_at": "2026-03-22T07:40:04.990024Z",
+    "result_summary": "Authored 8 language-specific coding prompts (Swift, Dart, Shell, SQL, R, Lua, Elixir, Haskell) totaling 506 lines across 8 files in internal/project/templates/prompts/classes/coding/. Each prompt follows the established format with a codebase-deference opener and sections covering idiomatic style, build and test tooling, testing conventions, and common pitfalls. SQL uses Dialect Awareness and Migrations sections in place of Build and Test to match its unique concerns. All files are automatically embedded via go:embed all:templates. Audit found no issues requiring remediation; build, tests, and lint pass clean."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T07:59:08.15216Z",
+      "objective": "Verify all work in the specialized-languages node is complete and correct",
+      "what_happened": "Read all 8 language prompt files (swift, dart, shell, sql, r, lua, elixir, haskell) totaling 506 lines. Compared format against the reference go.md prompt. Verified build, tests, and lint pass clean. Checked embedding via go:embed all:templates in embedded.go. Confirmed codebase-deference opener consistency across all 22 coding prompts.",
+      "went_well": [
+        "Consistent format across all files with appropriate per-language section variations",
+        "Technical content is accurate and covers modern language features with version awareness",
+        "Each file hits a good density of practical guidance in 51-71 lines"
+      ],
+      "improvements": [
+        "None identified; the work is clean"
+      ],
+      "action_items": [
+        "Future sub-classifications (swift/swiftui, dart/flutter, elixir/phoenix, etc.) can extend these base prompts as noted in individual AARs"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-22T07:42:19.312994Z",
