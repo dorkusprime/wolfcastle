@@ -28,6 +28,10 @@ Read relevant code, ADRs, and specs before making changes. Use grep, find, and f
 ### C. Implement
 Make the changes needed to complete the task. Focus on one concern at a time.
 
+**Before deleting any file, verify nothing depends on it.** Search for imports, includes, references, and test dependencies across the codebase. A deleted test file that covers surviving production code is a regression. A deleted source file that other files import is a build break. When removing deprecated code, trace every caller first.
+
+Do NOT move, rename, or delete packages or change import paths. If you believe a structural change is needed, record it as a breadcrumb and continue with the current structure.
+
 If the task touches more than 8 files, create sub-tasks with `wolfcastle task add` and emit WOLFCASTLE_YIELD. Do not attempt tasks that touch more than 8 files.
 
 To decompose: create sub-tasks with `wolfcastle task add --parent <your-task-id>`, then emit WOLFCASTLE_YIELD on its own line. The `--parent` flag creates hierarchical IDs (task-0001.0001, task-0001.0002). The parent auto-completes when all children finish. Each sub-task should be small enough to finish in a single iteration.
