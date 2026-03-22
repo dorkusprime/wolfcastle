@@ -3,14 +3,14 @@
   "id": "specialized-languages",
   "name": "Specialized Languages",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Author Swift prompt",
       "description": "Author Swift prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/swift.md"
@@ -71,7 +71,7 @@
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/r.md"
       ],
-      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/r.md (40-80 lines). REPLACES coding/default.md for R-classified tasks. Cover: idiomatic R style (tidyverse conventions, pipe operator |> or %>%, vectorized operations over loops, tibbles over data.frames, functional programming with purrr), build/test tooling (devtools, testthat, roxygen2 for documentation, lintr, styler), testing conventions (test_that blocks, expect_* assertions, snapshot testing, test fixtures), and common pitfalls (non-standard evaluation surprises, 1-based indexing, factor vs character, copy-on-modify semantics, missing values propagation with NA, package namespace conflicts). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/r.md (40-80 lines). REPLACES coding/default.md for R-classified tasks. Cover: idiomatic R style (tidyverse conventions, pipe operator |\u003e or %\u003e%, vectorized operations over loops, tibbles over data.frames, functional programming with purrr), build/test tooling (devtools, testthat, roxygen2 for documentation, lintr, styler), testing conventions (test_that blocks, expect_* assertions, snapshot testing, test fixtures), and common pitfalls (non-standard evaluation surprises, 1-based indexing, factor vs character, copy-on-modify semantics, missing values propagation with NA, package namespace conflicts). Use 'prefer X' phrasing. ZERO wolfcastle content.",
       "references": [
         ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
       ]
@@ -99,7 +99,7 @@
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/elixir.md"
       ],
-      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/elixir.md (40-80 lines). REPLACES coding/default.md for Elixir-classified tasks. Cover: idiomatic Elixir style (pattern matching everywhere, pipe operator |>, with for complex matches, GenServer/Agent/Task for concurrency, protocols for polymorphism), build/test tooling (mix compile/test/format, mix credo for linting, dialyzer for type checking, ExDoc), testing conventions (ExUnit, async tests, doctest, setup/setup_all, Mox for behavior mocking), and common pitfalls (process mailbox overflow, GenServer bottlenecks from serialized calls, atom table exhaustion from dynamic atoms, large binaries in process heap, OTP supervision tree design). Use 'prefer X' phrasing. ZERO wolfcastle content.",
+      "body": "BEFORE WRITING: Research this language's current ecosystem. Search for the official style guide, community-accepted linters/formatters, modern testing frameworks, current build tools, and recent paradigm shifts. Do not write from training data alone. The prompt must contain ZERO wolfcastle-specific content (no terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs). Use \"prefer X\" not \"always use X\" so agents in older codebases are not forced to contradict the prompt.\n\nWrite internal/project/templates/prompts/classes/coding/elixir.md (40-80 lines). REPLACES coding/default.md for Elixir-classified tasks. Cover: idiomatic Elixir style (pattern matching everywhere, pipe operator |\u003e, with for complex matches, GenServer/Agent/Task for concurrency, protocols for polymorphism), build/test tooling (mix compile/test/format, mix credo for linting, dialyzer for type checking, ExDoc), testing conventions (ExUnit, async tests, doctest, setup/setup_all, Mox for behavior mocking), and common pitfalls (process mailbox overflow, GenServer bottlenecks from serialized calls, atom table exhaustion from dynamic atoms, large binaries in process heap, OTP supervision tree design). Use 'prefer X' phrasing. ZERO wolfcastle content.",
       "references": [
         ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
       ]
@@ -134,9 +134,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T07:42:22.271032Z",
+        "task": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
+        "text": "Authored Swift class prompt (51 lines) covering idiomatic style, build/test tooling, XCTest/Swift Testing, and common pitfalls [task-0001]"
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T07:40:04.990024Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T07:42:19.312994Z",
+      "objective": "Author the Swift language prompt for coding task classification",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/swift.md at 51 lines. Studied existing prompts (go.md, ruby.md) to match the established format: boilerplate codebase-deference opener, then sections for Style, Build and Test, Testing, and Common Pitfalls. Covered value types vs reference types, guard/if-let optionals, protocol-oriented design, Result and Codable, async/await and structured concurrency, SwiftLint/SwiftFormat, XCTest and Swift Testing, and pitfalls around retain cycles, force unwrapping, IUOs, @MainActor contagion, and ABI stability.",
+      "went_well": [
+        "The prompt covers Swift 5 through Swift 6 with version-aware guidance (typed throws for 6.0+, Swift Testing for Xcode 16+)",
+        "Concurrency section addresses both legacy (completion handlers) and modern (async/await, actors) patterns"
+      ],
+      "improvements": [
+        "Could add guidance on property wrappers and result builders if line budget allowed"
+      ],
+      "action_items": [
+        "If a swift/swiftui or swift/vapor sub-classification is added later, those prompts can extend this base with framework-specific guidance"
+      ]
+    }
   }
 }

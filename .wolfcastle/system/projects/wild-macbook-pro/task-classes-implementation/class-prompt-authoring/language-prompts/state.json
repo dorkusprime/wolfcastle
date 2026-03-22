@@ -19,12 +19,12 @@
     {
       "id": "web-and-scripting",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "specialized-languages",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
-      "state": "not_started"
+      "state": "in_progress"
     }
   ],
   "tasks": [

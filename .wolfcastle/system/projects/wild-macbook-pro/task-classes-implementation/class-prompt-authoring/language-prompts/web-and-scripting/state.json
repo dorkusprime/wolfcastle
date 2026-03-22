@@ -3,7 +3,7 @@
   "id": "web-and-scripting",
   "name": "Web and Scripting",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -80,7 +80,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Web and Scripting is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -126,8 +126,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T07:27:12.020083Z",
+    "completed_at": "2026-03-22T07:40:04.859278Z",
     "result_summary": "Authored five language prompts for the coding task class covering the web and scripting language group: Python (55 lines), JavaScript (59 lines), TypeScript (59 lines), Ruby (53 lines), and PHP (55 lines). Each prompt follows the established four-section format (Style, Build and Test, Testing, Common Pitfalls) with a codebase-deference opening clause, matching the patterns set by the Go and Kotlin reference prompts. All prompts fall within the 40-80 line target, cover language-specific idioms, tooling, testing conventions, and common pitfalls with appropriate depth. Audit found no factual errors, no structural inconsistencies, and no issues requiring remediation."
   },
   "aars": {
