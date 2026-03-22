@@ -81,6 +81,11 @@
         "timestamp": "2026-03-22T09:37:58.765981Z",
         "task": "task-classes-implementation/config-and-validation-wiring",
         "text": "Wired ClassRepository.Validate() into daemon.New(): prints warning for missing class prompt files, does not block startup. Two tests added."
+      },
+      {
+        "timestamp": "2026-03-22T09:42:24.360805Z",
+        "task": "task-classes-implementation/config-and-validation-wiring",
+        "text": "Added --class validation to task add: checks against ClassRepository.List() with config fallback. Three new tests, one existing test updated."
       }
     ],
     "gaps": [],
@@ -119,6 +124,22 @@
       ],
       "action_items": [
         "If structured log queries need to find missing-prompt warnings, add a log event in Run() after the first StartIterationWithPrefix call"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T09:42:20.454184Z",
+      "objective": "Validate the --class flag in task add against configured task classes",
+      "what_happened": "Added validation logic to cmd/task/add.go that checks taskClass against ClassRepository.List(). When the repository is empty (classes not reloaded), falls back to config.TaskClasses keys. Returns a sorted list of valid classes in the error message. Added three tests in task_test.go (valid class, invalid class, empty class). Fixed TestTaskAdd_WithAllFlags in task_coverage_test.go which used the obsolete lang-go key.",
+      "went_well": [
+        "The fallback-to-config path handles the case where ClassRepository hasn't been reloaded, which surfaced in the existing TestTaskAdd_WithAllFlags test",
+        "All three new tests cover the spec requirements cleanly"
+      ],
+      "improvements": [
+        "The sort import was added to add.go for the config fallback path; if ClassRepository is always loaded before CLI commands run in production, the fallback is only exercised in tests"
+      ],
+      "action_items": [
+        "Consider whether ClassRepository should always be loaded in test environments to avoid the config fallback path"
       ]
     }
   }
