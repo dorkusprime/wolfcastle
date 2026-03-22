@@ -68,7 +68,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Scaffold Templates is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -76,7 +76,7 @@
     {
       "id": "audit.0001",
       "description": "Fix: Reinit does not rewrite system/base/prompts/README.md after tearing down the base tier. The scaffold file is written by Init's writeScaffoldFiles() but Reinit only rebuilds config and prompts, leaving the README absent after reinit.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node template-based-file-generation/call-site-migration/scaffold-templates gap-scaffold-templates-1",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0
     }
   ],
@@ -109,6 +109,11 @@
         "timestamp": "2026-03-22T22:18:38.855125Z",
         "task": "template-based-file-generation/call-site-migration/scaffold-templates",
         "text": "Fixed gap-scaffold-templates-1: added writeScaffoldFiles() call to Reinit after base-tier directory recreation. Updated snapshot test to cover all 6 scaffold files; removed the BaseTierREADMELost test that asserted the broken behavior."
+      },
+      {
+        "timestamp": "2026-03-22T22:20:30.307831Z",
+        "task": "template-based-file-generation/call-site-migration/scaffold-templates",
+        "text": "Audit reviewed 10 files (926 lines): 6 template files under templates/scaffold/, scaffold_service.go (254 lines), scaffold_service_test.go (451 lines), scaffold_readme_test.go (108 lines), embedded.go (9 lines). PASS. Build clean, all tests pass with race detector, go vet clean. One finding: TestScaffoldService_Init_CreatesScaffoldFiles in scaffold_readme_test.go duplicates TestScaffoldService_Init_SnapshotScaffoldFiles in scaffold_service_test.go (both iterate scaffoldFiles and byte-compare embedded template content to output). Accepted as harmless. Reinit fix (writeScaffoldFiles call at line 184) verified correct: placed after directory recreation, idempotent for non-base-tier files. No discarded errors in production code, no dead code, no race conditions, no security issues. Quality: clean migration that reduced scaffold_service.go by ~97 lines while preserving byte-for-byte output identity. The template-as-static-content approach (embed.FS ReadFile, not Go template execution) is the right choice. Snapshot tests provide strong regression coverage."
       }
     ],
     "gaps": [
@@ -125,7 +130,7 @@
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T22:07:45.535488Z",
-    "result_summary": "Extracted six scaffold file literals (gitignore + five READMEs) from scaffold_service.go into embedded template files under internal/project/templates/scaffold/, then migrated the service to read from embed.FS via a new writeScaffoldFiles() method. Net reduction of ~97 lines. Snapshot tests verify byte-for-byte identity on both Init and Reinit paths, with per-file subtests for granular failure output. One known gap (base-prompts README lost during Reinit's base-tier teardown) is tracked as gap-scaffold-templates-1 for follow-up. Audit passed: build clean, all tests pass with race detector, no dead code, no correctness issues."
+    "result_summary": "Migrated scaffold file generation from inline Go string literals to embedded template files. Six templates (gitignore + 5 READMEs) now live under internal/project/templates/scaffold/ and are read via embed.FS ReadFile. The migration reduced scaffold_service.go by ~97 lines while maintaining byte-for-byte output identity. Snapshot tests verify all 6 scaffold files across both Init and Reinit paths. A bug discovered during testing (base-prompts README lost on Reinit due to base-tier teardown) was fixed by adding a writeScaffoldFiles() call after directory recreation. Build clean, all tests pass with race detector, go vet clean."
   },
   "aars": {
     "audit.0001": {
