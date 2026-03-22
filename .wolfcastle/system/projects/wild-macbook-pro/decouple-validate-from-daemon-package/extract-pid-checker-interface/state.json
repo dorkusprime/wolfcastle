@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Define PIDChecker interface and remove daemon import from validate",
       "description": "Define PIDChecker interface and remove daemon import from validate",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/validate/engine.go",
@@ -33,7 +33,7 @@
       "id": "task-0002",
       "title": "Add compile-time interface satisfaction check",
       "description": "Add compile-time interface satisfaction check",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/repository.go"
@@ -68,6 +68,11 @@
         "timestamp": "2026-03-22T23:42:10.389477Z",
         "task": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
         "text": "Extracted PIDChecker interface into pid_checker.go; replaced daemon.DaemonRepository with PIDChecker across engine.go and fix.go; validate production code has zero daemon imports"
+      },
+      {
+        "timestamp": "2026-03-22T23:44:16.595997Z",
+        "task": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
+        "text": "Added compile-time interface satisfaction check var _ validate.PIDChecker = (*daemon.DaemonRepository)(nil) in repository_test.go; placed in external test package to avoid import cycle"
       }
     ],
     "gaps": [],
@@ -90,6 +95,21 @@
       ],
       "action_items": [
         "The audit task should verify no daemon import leaks back into validate production code"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T23:44:12.910602Z",
+      "objective": "Add compile-time assertion that *DaemonRepository satisfies validate.PIDChecker",
+      "what_happened": "Attempted to place var _ validate.PIDChecker = (*DaemonRepository)(nil) directly in repository.go, but this created an import cycle: validate's coverage_test.go imports daemon, and the new import of validate from daemon closed the loop. Moved the assertion to repository_test.go (external test package daemon_test), which can import both packages without creating a production-code cycle.",
+      "went_well": [
+        "Caught the cycle immediately via go test and resolved it cleanly"
+      ],
+      "improvements": [
+        "If validate's test dependency on daemon is ever removed, the assertion could move to production code in repository.go for stronger guarantees"
+      ],
+      "action_items": [
+        "Audit should verify the assertion compiles and that no import cycle exists"
       ]
     }
   }
