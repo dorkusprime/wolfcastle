@@ -121,8 +121,7 @@ Wolfcastle turns tokens into code. It uses a lot of them. Every planning pass, e
 
 - **Git** (branch verification, progress detection, auto-commit)
 - **A coding agent** that reads stdin and writes stdout
-- **Go 1.26+** (only if building from source)
-- **Local filesystem** for `.wolfcastle/` ([why](SECURITY.md))
+- **Local filesystem** for `.wolfcastle/` ([why](SECURITY.md#filesystem-requirements))
 
 ## More
 
