@@ -46,7 +46,7 @@
       "id": "task-0004",
       "title": "Author design.md, devops.md, data.md, and security.md",
       "description": "Author design.md, devops.md, data.md, and security.md",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/design.md",
@@ -60,7 +60,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Non-Language Prompts is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
       "failure_count": 0
     }
@@ -89,12 +89,18 @@
         "timestamp": "2026-03-22T09:29:06.479808Z",
         "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
         "text": "Authored design.md (33 lines), devops.md (39 lines), data.md (39 lines), and security.md (43 lines). Grounded in WCAG 2.2, Material Design 3, Apple HIG, OWASP Top 10, and current DevOps/data engineering practices. All follow established class prompt conventions. Zero wolfcastle-specific content."
+      },
+      {
+        "timestamp": "2026-03-22T09:30:58.243182Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Audit reviewed 10 files (390 lines total). PASS. All files follow established conventions: H1 title, project-deference opening, H2 sections, bold-lead list items, imperative tone. Line counts within budgets (33-53 main prompts, 35 voice.md). writing.md correctly references companion voice.md. Zero wolfcastle-specific content. No duplication across disciplines. Prose quality is high throughout with concrete examples and specific recommendations. Build, test, lint all clean. No findings warrant remediation."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T09:14:11.437394Z"
+    "started_at": "2026-03-22T09:14:11.437394Z",
+    "result_summary": "Authored 10 class prompt files across 8 non-language disciplines: writing (with companion voice.md), research, architecture, audit, testing, design, devops, data, and security. Each prompt was researched against authoritative sources (Google/Microsoft style guides, PRISMA/GRADE, CRAAP/SIFT, ATAM/C4/arc42, Fagan/IEEE 1028, xUnit Patterns, WCAG 2.2, Material Design 3, Apple HIG, OWASP Top 10) before drafting. All files follow established class prompt conventions and contain zero wolfcastle-specific content. The voice.md separation enables organizations to override voice guidance independently of writing discipline rules. Total output: 390 lines of production-ready prompt content."
   },
   "aars": {
     "task-0001": {
