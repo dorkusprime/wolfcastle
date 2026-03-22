@@ -3,14 +3,14 @@
   "id": "adr-interface-for-validate-daemon-boundary",
   "name": "ADR: Interface for Validate-Daemon Boundary",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Write ADR superseding concrete-struct-only decision",
       "description": "Write ADR superseding concrete-struct-only decision",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         ".wolfcastle/docs/decisions/"
@@ -41,9 +41,33 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:47:16.545804Z",
+        "task": "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary",
+        "text": "Created ADR 2026-03-22T23-47Z superseding the concrete-struct-only decision for the validate-daemon boundary"
+      }
+    ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-22T23:46:39.560815Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T23:47:15.204485Z",
+      "objective": "Write an ADR documenting why PIDChecker interface was introduced to decouple validate from daemon",
+      "what_happened": "Created ADR 2026-03-22T23-47Z via wolfcastle adr create. The ADR supersedes 2026-03-18T21-34Z, explains the consumer-side interface pattern, and scopes the supersession narrowly to the validate-daemon boundary.",
+      "went_well": [
+        "The five-method interface boundary was clean enough that the ADR practically wrote itself from the existing code"
+      ],
+      "improvements": [
+        "None identified; this was a straightforward documentation task"
+      ],
+      "action_items": [
+        "None"
+      ]
+    }
   }
 }

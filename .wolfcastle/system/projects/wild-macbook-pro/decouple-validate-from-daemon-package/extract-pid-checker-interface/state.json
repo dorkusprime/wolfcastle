@@ -3,7 +3,7 @@
   "id": "extract-pid-checker-interface",
   "name": "Extract PID Checker Interface",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -49,7 +49,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Extract PID Checker Interface is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -83,8 +83,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T23:37:01.658781Z",
+    "completed_at": "2026-03-22T23:46:39.468916Z",
     "result_summary": "Extracted a five-method PIDChecker interface into internal/validate/pid_checker.go, replacing the concrete daemon.DaemonRepository dependency in Engine, NewEngine, NewEngineWithRepo, FixWithVerification, FixWithVerificationRepo, ApplyDeterministicFixes, and ApplyDeterministicFixesRepo. Call sites in cmd/doctor.go and cmd/daemon/start.go construct the concrete type and pass it through the interface. A compile-time satisfaction check (var _ validate.PIDChecker = (*daemon.DaemonRepository)(nil)) in internal/daemon/repository_test.go guards against method drift. The validate package now has zero production imports of daemon. Build, vet, and all relevant tests pass."
   },
   "aars": {

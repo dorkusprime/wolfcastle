@@ -9,12 +9,12 @@
     {
       "id": "extract-pid-checker-interface",
       "address": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "adr-interface-for-validate-daemon-boundary",
       "address": "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary",
-      "state": "not_started"
+      "state": "in_progress"
     }
   ],
   "tasks": [
