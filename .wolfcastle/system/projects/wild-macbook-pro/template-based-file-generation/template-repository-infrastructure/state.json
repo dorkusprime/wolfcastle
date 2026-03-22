@@ -53,7 +53,7 @@
       "id": "task-0003",
       "title": "Define typed context structs for all template variables",
       "description": "Define typed context structs for all template variables",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/template_data.go"
@@ -72,7 +72,7 @@
       "id": "task-0004",
       "title": "Unit tests for ResolveTemplate and RenderToFile",
       "description": "Unit tests for ResolveTemplate and RenderToFile",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/pipeline/repository_test.go"
@@ -119,6 +119,11 @@
         "timestamp": "2026-03-22T22:03:16.290568Z",
         "task": "template-based-file-generation/template-repository-infrastructure",
         "text": "Added template_data.go with ADRData, SpecData, TaskData, AuditTaskData structs. Fields match spec inventory and existing call-site data."
+      },
+      {
+        "timestamp": "2026-03-22T22:05:40.048488Z",
+        "task": "template-based-file-generation/template-repository-infrastructure",
+        "text": "Refactored ResolveTemplate and RenderToFile tests to table-driven format. Added errors.Is(os.ErrNotExist) check, template execution error propagation, and write permission error test. ResolveTemplate 100%, RenderToFile 87.5%, package 97.3%."
       }
     ],
     "gaps": [],
@@ -172,6 +177,23 @@
       ],
       "action_items": [
         "Call-site migration tasks should import these structs and pass them to RenderToFile/ResolveTemplate rather than constructing inline data"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T22:05:36.62857Z",
+      "objective": "Convert ResolveTemplate and RenderToFile tests to table-driven format and add missing coverage",
+      "what_happened": "Refactored the five individual ResolveTemplate tests into a single table-driven test with four cases (base tier resolution, typed context execution, missing template with errors.Is(os.ErrNotExist), malformed template parse error) plus a separate tier-override test. Refactored four individual RenderToFile tests into a table-driven test with five cases (write to new path, parent dir creation, nil ctx raw passthrough, missing template propagation, template execution error propagation) plus separate tests for file permissions (0644) and write permission errors via read-only directory. Added errors and runtime imports.",
+      "went_well": [
+        "Table-driven structure makes it trivial to add new cases",
+        "ResolveTemplate coverage hit 100%; RenderToFile rose from 75% to 87.5% by covering the WriteFile permission error branch",
+        "The write-permission test correctly skips on Windows and cleans up the read-only dir"
+      ],
+      "improvements": [
+        "The MkdirAll error branch in RenderToFile remains uncovered (the last 12.5%); triggering it reliably would require a broken parent path, which felt contrived"
+      ],
+      "action_items": [
+        "None; test coverage for these methods is now thorough enough for the audit"
       ]
     }
   }

@@ -148,6 +148,10 @@ Base tier reads are cached behind sync.RWMutex. Safe for concurrent use."
 
 Both go through the CLI. Never write specs or ADRs as files directly.
 
+### G. Capture Codebase Knowledge
+
+If you discover something about this codebase that would be useful to future tasks and is not documented elsewhere (in the README, CONTRIBUTING.md, specs, or ADRs), append it to the codebase knowledge file using `wolfcastle knowledge add "<entry>"`. Good entries are concrete, durable, and non-obvious: build quirks, undocumented conventions, things that look wrong but are intentional, hidden dependencies between modules.
+
 ### H. Commit
 Stage your code changes and `.wolfcastle/` state together, then commit with a clear message:
 ```

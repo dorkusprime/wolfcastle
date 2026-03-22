@@ -21,6 +21,7 @@ type Config struct {
 	Unblock         UnblockConfig       `json:"unblock"`
 	Audit           AuditCommandConfig  `json:"audit"`
 	Archive         ArchiveConfig       `json:"archive"`
+	Knowledge       KnowledgeConfig     `json:"knowledge"`
 	TaskClasses     map[string]ClassDef `json:"task_classes,omitempty"`
 
 	// Warnings collects non-fatal diagnostic messages from config loading,
@@ -187,6 +188,11 @@ type ArchiveConfig struct {
 	AutoArchiveEnabled    bool `json:"auto_archive_enabled"`
 	AutoArchiveDelayHours int  `json:"auto_archive_delay_hours"`
 	PollIntervalSeconds   int  `json:"archive_poll_interval_seconds"`
+}
+
+// KnowledgeConfig controls codebase knowledge file settings.
+type KnowledgeConfig struct {
+	MaxTokens int `json:"max_tokens"`
 }
 
 // ClassDef defines a single task class entry in the config. Classes are

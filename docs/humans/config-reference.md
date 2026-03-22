@@ -690,6 +690,26 @@ Controls automatic archival of completed project trees. When all tasks in a tree
 
 ---
 
+## knowledge
+
+Controls the codebase knowledge file system, where agents record non-obvious discoveries about the codebase for future tasks. See [How It Works: Codebase Knowledge Files](how-it-works.md#codebase-knowledge-files) for the full explanation.
+
+### knowledge.max_tokens
+
+- **Type:** `int`
+- **Default:** `2000`
+- **Description:** Maximum token budget for the knowledge file. The entire file is injected into every task's context, so this directly controls context usage. When `wolfcastle knowledge add` would push the file over this limit, the command fails and asks for pruning.
+
+```json
+{
+  "knowledge": {
+    "max_tokens": 3000
+  }
+}
+```
+
+---
+
 ## task_classes
 
 Defines behavioral classes that shape how the agent approaches work. Each key is a class identifier (e.g., `coding/go`, `architecture`), and each value is a `ClassDef`. For a full guide on using and creating classes, see [Task Classes](task-classes.md).

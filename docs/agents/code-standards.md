@@ -46,6 +46,6 @@ Follow the [Go Style Guide](https://google.github.io/styleguide/go/) and these p
 - Shared test helpers live in `internal/testutil/`. Use these for common patterns (e.g., temp dir setup, state file creation)
 
 ### Formatting
-- Run `gofmt -w .` before every commit
+- Run `gofmt -w .` before signaling completion (the daemon commits on your behalf)
 - Run `go vet ./...`. Must pass cleanly
 - Run `golangci-lint run`. Configured in `.golangci.yml` (v2 format) per ADR-049. Linters: errcheck, ineffassign, staticcheck, govet, unused, misspell, nolintlint. Formatter: gofmt. CI enforces this as a hard gate.

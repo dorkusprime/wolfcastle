@@ -67,7 +67,7 @@ Wolfcastle separates planning from execution. A planning agent creates the struc
 
 Context degrades over time: windows fill up, conversations get compacted, and earlier decisions contradict later ones. When context contradicts itself, the model reconciles those conflicts on every turn, burning capacity on bookkeeping instead of work. Decisions evaporate, lessons from failures disappear, and the agent runs in circles solving the same problems over and over.
 
-Wolfcastle gives each task a fresh invocation with clean context and persists knowledge as artifacts on disk. [Architecture Decision Records](docs/decisions/INDEX.md) (ADRs) capture the "why" behind design choices so the next agent doesn't reverse a deliberate decision. [Specifications](docs/specs/) give executors a contract instead of re-interpreting the goal each time. [After Action Reviews](docs/humans/audits.md) (AARs) capture lessons learned so mistakes die the first time. The daemon injects all of these into context automatically: each invocation starts clean but informed.
+Wolfcastle gives each task a fresh invocation with clean context and persists knowledge as artifacts on disk. [Architecture Decision Records](docs/decisions/INDEX.md) (ADRs) capture the "why" behind design choices so the next agent doesn't reverse a deliberate decision. [Specifications](docs/specs/) give executors a contract instead of re-interpreting the goal each time. [After Action Reviews](docs/humans/audits.md) (AARs) capture lessons learned so mistakes die the first time. [Codebase knowledge files](docs/humans/how-it-works.md#codebase-knowledge-files) accumulate informal observations (build quirks, hidden dependencies, undocumented conventions) that grow across tasks, giving each new agent the institutional memory that none of the formal artifacts capture. The daemon injects all of these into context automatically: each invocation starts clean but informed.
 
 ### Quality
 
@@ -111,7 +111,7 @@ Three tiers: Base, custom, local. [Higher tiers override lower ones](docs/humans
 
 ## Collaboration
 
-Each engineer's work lives in its own [namespace](docs/humans/collaboration.md#engineer-namespacing). Everyone can see everyone else's state, but nobody writes to anyone else's. No merge conflicts. No coordination overhead. Wolfcastle [commits to your current branch](docs/humans/collaboration.md#git-integration) with safety checks, or to an [isolated worktree](docs/humans/collaboration.md#worktree-isolation) if you prefer.
+Each engineer's work lives in its own [namespace](docs/humans/collaboration.md#engineer-namespacing). Everyone can see everyone else's state, but nobody writes to anyone else's. No merge conflicts. No coordination overhead. The [daemon commits deterministically](docs/humans/collaboration.md#daemon-side-commits) after each task, including partial work on failure, so nothing is lost. Agents never touch git. Run in an [isolated worktree](docs/humans/collaboration.md#worktree-isolation) if you prefer.
 
 ## Token Usage
 

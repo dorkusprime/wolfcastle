@@ -12,6 +12,7 @@ import (
 	wcconfig "github.com/dorkusprime/wolfcastle/cmd/config"
 	"github.com/dorkusprime/wolfcastle/cmd/daemon"
 	"github.com/dorkusprime/wolfcastle/cmd/inbox"
+	"github.com/dorkusprime/wolfcastle/cmd/knowledge"
 	"github.com/dorkusprime/wolfcastle/cmd/orchestrator"
 	"github.com/dorkusprime/wolfcastle/cmd/project"
 	"github.com/dorkusprime/wolfcastle/cmd/task"
@@ -92,6 +93,7 @@ func setupCommands() {
 	wcconfig.Register(app, rootCmd)
 	daemon.Register(app, rootCmd)
 	inbox.Register(app, rootCmd)
+	knowledge.Register(app, rootCmd)
 	orchestrator.Register(app, rootCmd)
 	project.Register(app, rootCmd)
 	task.Register(app, rootCmd)

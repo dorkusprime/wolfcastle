@@ -1,6 +1,7 @@
 package pipeline_test
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -23,8 +24,8 @@ func TestContextBuilder_IncludesNodeContext(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("my-project/auth", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("my-project/auth", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,8 +60,8 @@ func TestContextBuilder_IncludesTaskContext(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,8 +97,8 @@ func TestContextBuilder_IncludesClassGuidance(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,8 +124,8 @@ func TestContextBuilder_FallsBackToCodingDefault_WhenClassEmpty(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,8 +150,8 @@ func TestContextBuilder_OmitsClassGuidance_WhenNoCodingDefault(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,8 +174,8 @@ func TestContextBuilder_IncludesUniversalGuidance(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,8 +200,8 @@ func TestContextBuilder_UniversalGuidance_OmittedWhenMissing(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,8 +232,8 @@ func TestContextBuilder_IncludesAuditContext(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,8 +265,8 @@ func TestContextBuilder_SummaryRequired_LastIncompleteTask(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0002", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0002", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,8 +292,8 @@ func TestContextBuilder_SummaryOmitted_OtherTasksRemain(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -315,8 +316,8 @@ func TestContextBuilder_SummaryRequired_UsesPromptTemplate(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,8 +346,8 @@ func TestContextBuilder_FailureHeader(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", cfg)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,8 +375,8 @@ func TestContextBuilder_FailureHeader_UsesPromptTemplate(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", cfg)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,8 +405,8 @@ func TestContextBuilder_DecompositionGuidance(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj/deep", "", ns, "task-0001", cfg)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj/deep", "", ns, "task-0001", "", cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -438,8 +439,8 @@ func TestContextBuilder_DecompositionGuidance_UsesPromptTemplate(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj/node", "", ns, "task-0001", cfg)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj/node", "", ns, "task-0001", "", cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -461,8 +462,8 @@ func TestContextBuilder_FailureSkippedWithNilConfig(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -481,8 +482,8 @@ func TestContextBuilder_Build_ErrorsOnMissingTask(t *testing.T) {
 		State: state.StatusNotStarted,
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	_, err := cb.Build("proj/empty", "", ns, "nonexistent", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	_, err := cb.Build("proj/empty", "", ns, "nonexistent", "", nil)
 
 	if err == nil {
 		t.Fatal("expected error when task ID does not exist in node")
@@ -508,8 +509,8 @@ func TestContextBuilder_IncludesLinkedSpecs(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +535,7 @@ func TestContextBuilder_PanicsOnNilPrompts(t *testing.T) {
 			t.Error("expected panic for nil PromptRepository")
 		}
 	}()
-	pipeline.NewContextBuilder(nil, env.Classes)
+	pipeline.NewContextBuilder(nil, env.Classes, "")
 }
 
 func TestContextBuilder_PanicsOnNilClasses(t *testing.T) {
@@ -546,7 +547,7 @@ func TestContextBuilder_PanicsOnNilClasses(t *testing.T) {
 			t.Error("expected panic for nil ClassRepository")
 		}
 	}()
-	pipeline.NewContextBuilder(env.Prompts, nil)
+	pipeline.NewContextBuilder(env.Prompts, nil, "")
 }
 
 func TestContextBuilder_UniversalGuidance_AppearsWithClassifiedTask(t *testing.T) {
@@ -564,8 +565,8 @@ func TestContextBuilder_UniversalGuidance_AppearsWithClassifiedTask(t *testing.T
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -599,8 +600,8 @@ func TestContextBuilder_ClassResolved_DoesNotUseCodingDefault(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -628,8 +629,8 @@ func TestContextBuilder_ClassResolveError_FallsToCodingDefault(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -655,8 +656,8 @@ func TestContextBuilder_ClassResolveError_NoCodingDefault_SkipsGuidance(t *testi
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -696,8 +697,8 @@ func TestContextBuilder_SectionOrdering(t *testing.T) {
 		},
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj", "", ns, "task-0001", cfg)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -731,6 +732,146 @@ func TestContextBuilder_SectionOrdering(t *testing.T) {
 	}
 }
 
+func TestContextBuilder_IncludesKnowledgeContent(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	// Write a knowledge file for the test namespace.
+	knowledgeDir := env.Root + "/docs/knowledge"
+	if err := os.MkdirAll(knowledgeDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(knowledgeDir+"/test-ns.md", []byte("- The tests require Docker\n- Go 1.26 loop semantics\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, env.Root)
+	got, err := cb.Build("proj", "", ns, "task-0001", "test-ns", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "## Codebase Knowledge") {
+		t.Error("missing codebase knowledge header")
+	}
+	if !strings.Contains(got, "The tests require Docker") {
+		t.Error("missing knowledge content")
+	}
+}
+
+func TestContextBuilder_OmitsKnowledgeWhenEmpty(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	// No knowledge file exists; section should be omitted.
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, env.Root)
+	got, err := cb.Build("proj", "", ns, "task-0001", "nonexistent-ns", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "## Codebase Knowledge") {
+		t.Error("codebase knowledge should be absent when no knowledge file exists")
+	}
+}
+
+func TestContextBuilder_OmitsKnowledgeWhenNamespaceEmpty(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, env.Root)
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "## Codebase Knowledge") {
+		t.Error("codebase knowledge should be absent when namespace is empty")
+	}
+}
+
+func TestContextBuilder_KnowledgeBetweenClassAndAARs(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithClasses(map[string]config.ClassDef{"lang-go": {}}).
+		WithPrompt("classes/lang-go.md", "Go guidance.")
+
+	knowledgeDir := env.Root + "/docs/knowledge"
+	if err := os.MkdirAll(knowledgeDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(knowledgeDir+"/test-ns.md", []byte("- Knowledge entry\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Date(2026, 3, 22, 12, 0, 0, 0, time.UTC)
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0002", Description: "Work", State: state.StatusInProgress, Class: "lang-go"},
+		},
+		AARs: map[string]state.AAR{
+			"task-0001": {
+				TaskID:       "task-0001",
+				Timestamp:    now,
+				Objective:    "Prior work",
+				WhatHappened: "Done",
+			},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, env.Root)
+	got, err := cb.Build("proj", "", ns, "task-0002", "test-ns", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	classIdx := strings.Index(got, "## Class Guidance")
+	knowledgeIdx := strings.Index(got, "## Codebase Knowledge")
+	aarIdx := strings.Index(got, "## Prior Task Reviews (AARs)")
+
+	if classIdx < 0 {
+		t.Fatal("missing class guidance section")
+	}
+	if knowledgeIdx < 0 {
+		t.Fatal("missing codebase knowledge section")
+	}
+	if aarIdx < 0 {
+		t.Fatal("missing AARs section")
+	}
+	if classIdx >= knowledgeIdx {
+		t.Error("class guidance should precede codebase knowledge")
+	}
+	if knowledgeIdx >= aarIdx {
+		t.Error("codebase knowledge should precede AARs")
+	}
+}
+
 func TestContextBuilder_TemplateCaching(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t).
@@ -746,16 +887,16 @@ func TestContextBuilder_TemplateCaching(t *testing.T) {
 	}
 
 	// Build the context builder once. Templates are cached at construction.
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
 
-	got1, err := cb.Build("proj", "", ns, "task-0001", cfg)
+	got1, err := cb.Build("proj", "", ns, "task-0001", "", cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Mutate the failure count and build again with the same builder.
 	ns.Tasks[0].FailureCount = 7
-	got2, err := cb.Build("proj", "", ns, "task-0001", cfg)
+	got2, err := cb.Build("proj", "", ns, "task-0001", "", cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

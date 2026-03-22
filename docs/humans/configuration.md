@@ -339,6 +339,22 @@ To exclude specific fragments without specifying the full list:
 
 See [Config Reference: prompts](config-reference.md#prompts) for field details.
 
+### Codebase Knowledge
+
+Codebase knowledge files accumulate what agents learn about the codebase across tasks. The main configuration control is the token budget: how large the knowledge file can grow before requiring pruning.
+
+```json
+{
+  "knowledge": {
+    "max_tokens": 2000
+  }
+}
+```
+
+The budget matters because the entire knowledge file is injected into every task's context. A larger budget gives agents more accumulated wisdom to work with but consumes more of the model's context window. The default of 2000 tokens balances usefulness against context cost.
+
+When an entry would push the file over budget, `wolfcastle knowledge add` rejects it and asks for pruning. The daemon can create a maintenance task to handle this automatically, reviewing the file, removing stale entries, and consolidating related ones. See [Config Reference: knowledge](config-reference.md#knowledge) for the field details.
+
 ### Audit Scopes
 
 Audit behavior is configured through the `audit` section. The main controls are the model used for audit analysis and the prompt file.

@@ -121,6 +121,9 @@ func Defaults() *Config {
 			Model:      "heavy",
 			PromptFile: "audits/audit.md",
 		},
+		Knowledge: KnowledgeConfig{
+			MaxTokens: 2000,
+		},
 		Archive: ArchiveConfig{
 			AutoArchiveEnabled:    true,
 			AutoArchiveDelayHours: 24,

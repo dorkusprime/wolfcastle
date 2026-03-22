@@ -77,7 +77,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		// Execute stage (and any other custom stages)
 		nodeDir := filepath.Join(d.Store.Dir(), filepath.Join(addr.Parts...))
-		iterCtx, err := d.ContextBuilder.Build(nav.NodeAddress, nodeDir, ns, nav.TaskID, d.Config)
+		namespace := d.namespace()
+		iterCtx, err := d.ContextBuilder.Build(nav.NodeAddress, nodeDir, ns, nav.TaskID, namespace, d.Config)
 		if err != nil {
 			return werrors.Config(fmt.Errorf("building context for node %s task %s: %w", nav.NodeAddress, nav.TaskID, err))
 		}

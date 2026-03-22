@@ -9,6 +9,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
+	"github.com/dorkusprime/wolfcastle/internal/knowledge"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -17,8 +18,9 @@ import (
 // class guidance and prompt-template-backed sections. It holds two repository
 // dependencies and cached templates; safe for concurrent use after construction.
 type ContextBuilder struct {
-	prompts *PromptRepository
-	classes *ClassRepository
+	prompts       *PromptRepository
+	classes       *ClassRepository
+	wolfcastleDir string
 
 	// Cached parsed templates, resolved once at construction time.
 	// nil when the corresponding prompt file is missing (fallback text is used).
@@ -30,15 +32,16 @@ type ContextBuilder struct {
 // NewContextBuilder creates a ContextBuilder. Both repositories are required;
 // panics if either is nil. Templates are parsed eagerly and cached for the
 // lifetime of the builder; missing prompt files are tolerated (fallback text
-// is used at render time).
-func NewContextBuilder(prompts *PromptRepository, classes *ClassRepository) *ContextBuilder {
+// is used at render time). wolfcastleDir is the root .wolfcastle directory,
+// used to locate knowledge files; pass "" to disable knowledge injection.
+func NewContextBuilder(prompts *PromptRepository, classes *ClassRepository, wolfcastleDir string) *ContextBuilder {
 	if prompts == nil {
 		panic("pipeline: NewContextBuilder requires a non-nil PromptRepository")
 	}
 	if classes == nil {
 		panic("pipeline: NewContextBuilder requires a non-nil ClassRepository")
 	}
-	cb := &ContextBuilder{prompts: prompts, classes: classes}
+	cb := &ContextBuilder{prompts: prompts, classes: classes, wolfcastleDir: wolfcastleDir}
 	cb.tmplSummary = cb.cacheTemplate("summary-required")
 	cb.tmplFailHeader = cb.cacheTemplate("context-headers")
 	cb.tmplDecomposition = cb.cacheTemplate("decomposition")
@@ -62,9 +65,11 @@ func (cb *ContextBuilder) cacheTemplate(name string) *template.Template {
 // Build assembles the complete iteration context for a single task within a
 // node. The returned Markdown string is ready for inclusion in the
 // execute-stage prompt. nodeDir is optional; when non-empty, per-task .md
-// files are read from it. cfg may be nil; failure context is skipped when nil.
+// files are read from it. namespace identifies the engineer namespace for
+// knowledge file lookup; pass "" to skip knowledge injection. cfg may be nil;
+// failure context is skipped when nil.
 // Returns an error when taskID does not match any task in the node.
-func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeState, taskID string, cfg *config.Config) (string, error) {
+func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeState, taskID string, namespace string, cfg *config.Config) (string, error) {
 	var b strings.Builder
 
 	// 1. Node address header
@@ -131,6 +136,17 @@ func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeS
 			b.WriteString("\n## Class Guidance\n\n")
 			b.WriteString(classGuidance)
 			if !strings.HasSuffix(classGuidance, "\n") {
+				b.WriteString("\n")
+			}
+		}
+	}
+
+	// 4c. Codebase knowledge (read fresh every iteration, never cached)
+	if cb.wolfcastleDir != "" && namespace != "" {
+		if content, err := knowledge.Read(cb.wolfcastleDir, namespace); err == nil && strings.TrimSpace(content) != "" {
+			b.WriteString("\n## Codebase Knowledge\n\n")
+			b.WriteString(content)
+			if !strings.HasSuffix(content, "\n") {
 				b.WriteString("\n")
 			}
 		}
