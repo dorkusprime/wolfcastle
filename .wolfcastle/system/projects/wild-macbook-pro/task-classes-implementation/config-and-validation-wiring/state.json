@@ -24,7 +24,7 @@
       "id": "task-0002",
       "title": "Wire ClassRepository.Validate() into daemon startup",
       "description": "Wire ClassRepository.Validate() into daemon startup",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/daemon.go",
@@ -36,7 +36,7 @@
       "id": "task-0003",
       "title": "Add --class validation to task add CLI",
       "description": "Add --class validation to task add CLI",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "cmd/task/add.go"

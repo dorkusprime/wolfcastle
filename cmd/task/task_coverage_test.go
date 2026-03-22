@@ -342,7 +342,7 @@ func TestTaskAdd_WithAllFlags(t *testing.T) {
 		"task", "add", "--node", "my-project",
 		"--body", "Full description",
 		"--type", "implementation",
-		"--class", "lang-go",
+		"--class", "coding/go",
 		"--deliverable", "cmd/api/handler.go",
 		"--constraint", "no external deps",
 		"--acceptance", "tests pass",
@@ -365,7 +365,7 @@ func TestTaskAdd_WithAllFlags(t *testing.T) {
 		if task.TaskType != "implementation" {
 			t.Errorf("type: got %q", task.TaskType)
 		}
-		if task.Class != "lang-go" {
+		if task.Class != "coding/go" {
 			t.Errorf("class: got %q", task.Class)
 		}
 		if len(task.Deliverables) != 1 || task.Deliverables[0] != "cmd/api/handler.go" {

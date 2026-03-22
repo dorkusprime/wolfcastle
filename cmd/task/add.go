@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -56,6 +57,32 @@ Examples:
 					return fmt.Errorf("reading stdin: %w", err)
 				}
 				body = string(data)
+			}
+
+			// Validate task class if provided
+			if taskClass != "" {
+				valid := app.Classes.List()
+				if len(valid) == 0 {
+					// Classes not loaded into repository; fall back to config keys.
+					cfg, err := app.Config.Load()
+					if err == nil && len(cfg.TaskClasses) > 0 {
+						valid = make([]string, 0, len(cfg.TaskClasses))
+						for k := range cfg.TaskClasses {
+							valid = append(valid, k)
+						}
+						sort.Strings(valid)
+					}
+				}
+				found := false
+				for _, k := range valid {
+					if k == taskClass {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return fmt.Errorf("unknown task class %q; valid classes: %v", taskClass, valid)
+				}
 			}
 
 			// Validate task type if provided
