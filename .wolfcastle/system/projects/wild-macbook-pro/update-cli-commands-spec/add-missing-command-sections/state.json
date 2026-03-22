@@ -123,6 +123,11 @@
         "timestamp": "2026-03-22T23:21:55.338336Z",
         "task": "update-cli-commands-spec/add-missing-command-sections",
         "text": "Added wolfcastle config show, set, append, remove, and unset sections to the CLI commands spec. Placed in Diagnostics group before wolfcastle doctor. Each section includes Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, and Error Cases. Updated leaf command count to 52 and added config to subcommand groups list."
+      },
+      {
+        "timestamp": "2026-03-22T23:24:02.912402Z",
+        "task": "update-cli-commands-spec/add-missing-command-sections",
+        "text": "Added wolfcastle knowledge add, edit, prune, and show sections to the CLI commands spec. Placed in Documentation group after spec list, before audit breadcrumb. Each section includes Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, and Error Cases. Updated leaf command count to 56 and added knowledge to subcommand groups list."
       }
     ],
     "gaps": [],
@@ -161,6 +166,22 @@
       ],
       "action_items": [
         "Verify the total leaf command count matches the actual cobra command tree"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T23:24:01.305412Z",
+      "objective": "Add spec sections for the four knowledge subcommands (add, edit, prune, show) to the CLI commands spec",
+      "what_happened": "Read source code in cmd/knowledge/*.go and --help output for all four commands, plus the codebase knowledge spec. Added four new sections to docs/specs/2026-03-12T00-06Z-cli-commands.md in the Documentation group after wolfcastle spec list and before wolfcastle audit breadcrumb. Each section follows the established format: Synopsis, Description, Arguments and Flags, Behavior, Output, Exit Codes, Examples, Error Cases. Updated the leaf command count from 52 to 56 and added knowledge to the subcommand groups list.",
+      "went_well": [
+        "The source code and knowledge spec gave complete behavioral details: token budget checking, editor fallback to vi, interactive vs JSON mode distinctions, and the ensureKnowledgeFile template creation",
+        "The prune command has meaningfully different behavior in JSON mode (status report) vs interactive mode (editor launch), which the spec captures clearly"
+      ],
+      "improvements": [
+        "The exit codes are uniformly 1 for all error cases since the commands use cobra's default error handling rather than custom exit codes. If custom codes are added later, the spec should be updated"
+      ],
+      "action_items": [
+        "Verify the total leaf command count of 56 against the actual cobra command tree, since prior tasks noted the original 43 was already stale"
       ]
     }
   }
