@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Author writing.md and writing/voice.md",
       "description": "Author writing.md and writing/voice.md",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/writing.md",
@@ -22,7 +22,7 @@
       "id": "task-0002",
       "title": "Author research.md and architecture.md",
       "description": "Author research.md and architecture.md",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/research.md",
@@ -74,6 +74,11 @@
         "timestamp": "2026-03-22T09:18:16.372371Z",
         "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
         "text": "Authored writing.md (53 lines) and writing/voice.md (35 lines). Researched Google, Microsoft, GitLab, Mailchimp, and Write the Docs style guides. Both files follow established class prompt conventions. Voice file separated for independent override."
+      },
+      {
+        "timestamp": "2026-03-22T09:20:50.861216Z",
+        "task": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
+        "text": "Authored research.md (35 lines) and architecture.md (35 lines). Researched PRISMA/GRADE, CRAAP/SIFT, ATAM, C4/arc42 before drafting. Both follow established class prompt conventions. Zero wolfcastle-specific content."
       }
     ],
     "gaps": [],
@@ -96,6 +101,22 @@
       ],
       "action_items": [
         "Consider adding a writing/api-reference.md companion for API documentation conventions (parameter tables, response schemas, error catalogs)"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T09:20:49.881521Z",
+      "objective": "Author research.md and architecture.md class prompts for research and system design disciplines",
+      "what_happened": "Created two files: research.md (35 lines) covers source evaluation, evidence weighting, conflict handling, citation, and synthesis timing. architecture.md (35 lines) covers constraint-first thinking, failure modes, dependency tracing, decomposition, alternative evaluation with quantified criteria, and ADR practices. Researched PRISMA/GRADE systematic review methodology, CRAAP/SIFT source evaluation frameworks, ATAM tradeoff analysis, and C4/arc42 architecture documentation before drafting. Both files follow the established conventions: heading structure, codebase-deference opening, imperative tone, bold-lead list items.",
+      "went_well": [
+        "Research across systematic review methodology (PRISMA, GRADE), information literacy (CRAAP, SIFT), and architecture evaluation (ATAM, C4, arc42) produced well-grounded prompt sections",
+        "Both prompts landed at 35 lines, comfortably within the 30-60 range, covering all required topics without padding"
+      ],
+      "improvements": [
+        "The research prompt is discipline-agnostic. A future companion for competitive analysis or market research could add domain-specific heuristics (Porter's Five Forces, SWOT analysis)"
+      ],
+      "action_items": [
+        "Consider adding an architecture/cloud.md companion for cloud-native architecture patterns (twelve-factor, cell-based architecture, multi-region considerations)"
       ]
     }
   }
