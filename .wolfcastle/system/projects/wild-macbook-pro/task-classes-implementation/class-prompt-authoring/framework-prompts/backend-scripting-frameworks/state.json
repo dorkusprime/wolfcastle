@@ -88,10 +88,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T08:30:39.933209Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored JavaScript/Node class prompt (51 lines) covering module systems, runtime patterns, HTTP frameworks, environment config, testing, and common pitfalls [task-0001]"
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T08:27:50.684887Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T08:30:39.002355Z",
+      "objective": "Author the JavaScript/Node.js framework class prompt covering runtime patterns, HTTP frameworks, module systems, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/javascript/node.md (51 lines). Researched Node 20+ patterns including the built-in test runner, --env-file flag, ESM/CJS interop improvements, and Fastify's automatic async error handling. Structured sections to complement without repeating the base javascript.md prompt.",
+      "went_well": [
+        "Clean separation from base JS prompt: runtime concerns (event loop, streams, buffers) and server-specific patterns (Express error middleware, Fastify plugins) sit here while language fundamentals stay in the parent",
+        "Covered the process.env string coercion pitfall, which is a constant source of production bugs in Node apps"
+      ],
+      "improvements": [
+        "Could add guidance on graceful shutdown patterns (SIGTERM handling, connection draining) but that veers into operational territory beyond the prompt's scope"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    }
   }
 }
