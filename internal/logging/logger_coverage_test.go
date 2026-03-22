@@ -550,7 +550,6 @@ func TestLog_WriteError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
 	_ = logger.StartIteration()
 	// Close the underlying file to force a write error
 	_ = logger.file.Close()

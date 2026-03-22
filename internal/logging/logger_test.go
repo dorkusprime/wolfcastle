@@ -915,7 +915,6 @@ func TestAssistantWriter_WriteError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
 	_ = logger.StartIteration()
 	w := logger.AssistantWriter()
 
