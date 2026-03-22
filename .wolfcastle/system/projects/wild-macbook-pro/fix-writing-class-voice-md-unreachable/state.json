@@ -3,7 +3,7 @@
   "id": "fix-writing-class-voice-md-unreachable",
   "name": "Fix writing class voice.md unreachable",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -14,7 +14,7 @@
     {
       "id": "prompt-and-spec-cleanup",
       "address": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -34,6 +34,8 @@
     "All existing ClassRepository tests continue to pass (no regressions)",
     "ClassRepository contract spec reflects the new assembly behavior"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T14:30:38.099847Z",
@@ -54,6 +56,7 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "passed",
+    "completed_at": "2026-03-22T15:09:49.219661Z"
   }
 }

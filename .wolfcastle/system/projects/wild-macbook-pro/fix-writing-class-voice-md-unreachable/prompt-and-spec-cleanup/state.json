@@ -3,7 +3,7 @@
   "id": "prompt-and-spec-cleanup",
   "name": "Prompt and Spec Cleanup",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -32,7 +32,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Prompt and Spec Cleanup is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     }
@@ -63,8 +63,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T14:39:07.467316Z",
+    "completed_at": "2026-03-22T14:43:23.591716Z",
     "result_summary": "Cleaned up prompt and spec artifacts related to subdirectory assembly. Removed the dangling voice.md cross-reference from writing.md (line 5) since subdirectory assembly now delivers voice content automatically. Updated the ClassRepository contract spec to document the subdirectory assembly step in Resolve's algorithm and added an invariant noting that Resolve may return multi-file assembled content. Both changes verified against the implementation; build and tests pass cleanly."
   },
   "aars": {

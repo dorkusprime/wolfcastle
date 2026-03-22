@@ -72,7 +72,8 @@
         "status": "open"
       }
     ],
-    "status": "in_progress",
-    "started_at": "2026-03-22T07:00:34.71995Z"
+    "status": "passed",
+    "started_at": "2026-03-22T07:00:34.71995Z",
+    "completed_at": "2026-03-22T15:09:49.219776Z"
   }
 }
