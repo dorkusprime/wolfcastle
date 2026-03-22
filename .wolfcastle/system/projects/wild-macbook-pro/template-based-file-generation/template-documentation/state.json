@@ -60,13 +60,18 @@
         "timestamp": "2026-03-22T23:01:17.29199Z",
         "task": "template-based-file-generation/template-documentation",
         "text": "Added Template Overrides section to docs/humans/configuration.md. Covers artifact templates (ADR, spec, task, audit-task) with their tier paths and template variables, scaffold templates and why they aren't overridable, three-tier resolution order, and a worked example showing ADR customization with a Supersedes section."
+      },
+      {
+        "timestamp": "2026-03-22T23:04:00.09321Z",
+        "task": "template-based-file-generation/template-documentation",
+        "text": "Updated adr-create.md, spec-create.md, and CONTRIBUTING.md. CLI docs now have a Template Customization section linking to configuration.md. CONTRIBUTING.md explains the template workflow (tmpl file, context struct, RenderToFile, snapshot test) for file-generating commands."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T22:57:41.825491Z",
-    "result_summary": "Documented the template override mechanism in docs/humans/configuration.md. The section covers three-tier template resolution for artifact templates (ADR, spec, task, audit-task), lists all template variables against the Go source structs, explains why scaffold templates are not overridable through tiers, and provides a worked example customizing the ADR format."
+    "result_summary": "Documented the template system across all relevant surfaces. Task 1 added a Template Overrides section to configuration.md covering artifact templates, scaffold templates, tier resolution, and a worked customization example. Task 2 added Template Customization sections to the adr-create and spec-create CLI docs with links back to configuration.md, and extended CONTRIBUTING.md with guidance for using templates in new file-generating commands."
   },
   "aars": {
     "task-0001": {
@@ -83,6 +88,22 @@
       ],
       "action_items": [
         "If a template list command is added later (wolfcastle template list), link to it from this section"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T23:03:59.010364Z",
+      "objective": "Update CLI docs and CONTRIBUTING.md to document template customization for file-generating commands",
+      "what_happened": "Added a Template Customization section to both adr-create.md and spec-create.md CLI docs, each linking back to the Template Overrides section in configuration.md. Extended CONTRIBUTING.md's Adding a CLI Command section with four-step guidance for commands that generate files: create a .tmpl, define a typed context struct, render via RenderToFile, add a snapshot test.",
+      "went_well": [
+        "Cross-referenced configuration.md rather than duplicating template variable tables, keeping a single source of truth",
+        "Verified template_data.go exists and RenderToFile signature before referencing them in docs"
+      ],
+      "improvements": [
+        "Could have also updated task-add.md since task add also uses the template system, but the task description only called out adr-create and spec-create"
+      ],
+      "action_items": [
+        "If task-add CLI docs are updated later, add a similar Template Customization section pointing to configuration.md"
       ]
     }
   }
