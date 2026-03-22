@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Write JavaScript/Node class prompt",
       "description": "Write JavaScript/Node class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/javascript/node.md"
@@ -21,7 +21,7 @@
       "id": "task-0002",
       "title": "Write Python/Django class prompt",
       "description": "Write Python/Django class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/python/django.md"
@@ -93,6 +93,11 @@
         "timestamp": "2026-03-22T08:30:39.933209Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
         "text": "Authored JavaScript/Node class prompt (51 lines) covering module systems, runtime patterns, HTTP frameworks, environment config, testing, and common pitfalls [task-0001]"
+      },
+      {
+        "timestamp": "2026-03-22T08:32:47.159059Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
+        "text": "Authored Python/Django class prompt (45 lines) covering project structure, ORM patterns, views (CBV/FBV/DRF), templates, middleware, signals, testing, and common pitfalls [task-0002]"
       }
     ],
     "gaps": [],
@@ -112,6 +117,22 @@
       ],
       "improvements": [
         "Could add guidance on graceful shutdown patterns (SIGTERM handling, connection draining) but that veers into operational territory beyond the prompt's scope"
+      ],
+      "action_items": [
+        "None; prompt is self-contained"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T08:32:42.676574Z",
+      "objective": "Author the Python/Django framework class prompt covering project structure, ORM, views, templates, testing, and common pitfalls",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/python/django.md (45 lines). Structured to complement the base python.md prompt without repeating language fundamentals. Covered Django 5.x patterns including function-based middleware factories, factory_boy over fixtures, and callable defaults for JSONField.",
+      "went_well": [
+        "Clean separation from base Python prompt: ORM patterns, Django-specific testing (TestCase vs TransactionTestCase, Client vs RequestFactory), and framework pitfalls sit here while language fundamentals stay in the parent",
+        "Signals section captures the common infinite-recursion trap that catches many Django developers"
+      ],
+      "improvements": [
+        "Could add Django 5.x specific features like GeneratedField and async view support, but these are still maturing and the prompt covers the stable patterns well"
       ],
       "action_items": [
         "None; prompt is self-contained"
