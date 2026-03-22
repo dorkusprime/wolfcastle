@@ -23,7 +23,7 @@
       "id": "task-0002",
       "title": "Add config field tests",
       "description": "Add config field tests",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/config/types_test.go"
@@ -34,9 +34,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Git Config Expansion is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -56,12 +57,18 @@
         "timestamp": "2026-03-22T19:41:59.325531Z",
         "task": "deterministic-git-activity/daemon-commit-implementation/git-config-expansion",
         "text": "Added types_test.go with 9 tests for CommitOnSuccess, CommitOnFailure, CommitState, and SkipHooks: defaults, JSON round-trip, deserialization, Load parsing, and validation"
+      },
+      {
+        "timestamp": "2026-03-22T19:43:33.334064Z",
+        "task": "deterministic-git-activity/daemon-commit-implementation/git-config-expansion",
+        "text": "Audit reviewed 5 source files: types.go, types_test.go, config.go, validate.go, iteration.go, plus config-reference.md. PASS. Build clean, all tests pass (including race detector), 95.7% coverage. No stale SkipHooksOnAutoCommit references remain. Three new fields (CommitOnSuccess, CommitOnFailure, CommitState) correctly declared, defaulted to true, validated, and tested with 9 tests. The fields are not yet consumed in daemon commit logic, which is correct: wiring is scoped to the daemon-commit-logic sibling node. One accepted tradeoff: the no-op validation (auto_commit true + both commit flags false) is an error rather than a warning, reasonable for now. No gaps, no escalations."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-22T19:38:04.516473Z"
+    "started_at": "2026-03-22T19:38:04.516473Z",
+    "result_summary": "Added CommitOnSuccess, CommitOnFailure, and CommitState bool fields to GitConfig, each defaulting to true. Renamed SkipHooksOnAutoCommit to SkipHooks (default false). Updated Defaults(), ValidateStructure() (catches the no-op case where auto_commit is true but both commit flags are false), the single iteration.go callsite, and config-reference.md docs. Nine tests in types_test.go cover defaults, JSON round-trip, deserialization, Load integration, and validation. All tests pass with 95.7% coverage. The new fields are config-only at this stage; wiring them into the daemon commit path is scoped to the daemon-commit-logic sibling node."
   },
   "aars": {
     "task-0001": {
