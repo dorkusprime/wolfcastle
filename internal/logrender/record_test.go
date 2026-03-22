@@ -143,13 +143,8 @@ func TestStageLabel(t *testing.T) {
 		stage string
 		want  string
 	}{
-		{"intake", "intake"},
-		{"plan", "plan"},
 		{"execute", "execute"},
-		{"audit", "audit"},
-		{"remediate", "remediate"},
-		{"spec-review", "spec-review"},
-		{"unknown-stage", "unknown-stage"},
+		{"custom-stage", "custom-stage"},
 		{"", ""},
 	}
 

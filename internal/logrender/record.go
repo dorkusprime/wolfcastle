@@ -28,22 +28,8 @@ type Record struct {
 	Raw map[string]any `json:"-"`
 }
 
-// stageLabels maps stage field values to their display labels.
-var stageLabels = map[string]string{
-	"intake":      "intake",
-	"plan":        "plan",
-	"execute":     "execute",
-	"audit":       "audit",
-	"remediate":   "remediate",
-	"spec-review": "spec-review",
-}
-
 // StageLabel returns the display label for this record's stage value.
-// If the stage is empty or unrecognized, the raw stage value is returned.
 func (r Record) StageLabel() string {
-	if label, ok := stageLabels[r.Stage]; ok {
-		return label
-	}
 	return r.Stage
 }
 
