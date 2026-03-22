@@ -46,10 +46,34 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T19:40:25.317683Z",
+        "task": "deterministic-git-activity/daemon-commit-implementation/git-config-expansion",
+        "text": "Added CommitOnSuccess, CommitOnFailure, CommitState to GitConfig; renamed SkipHooksOnAutoCommit to SkipHooks; updated defaults, validation, iteration.go callsite, and config-reference docs"
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-22T19:38:04.516473Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T19:40:24.203695Z",
+      "objective": "Add CommitOnSuccess, CommitOnFailure, and CommitState fields to GitConfig and rename SkipHooksOnAutoCommit to SkipHooks",
+      "what_happened": "Added three new bool fields to GitConfig in types.go. Renamed SkipHooksOnAutoCommit to SkipHooks with json tag skip_hooks (no user configs reference the old tag, so the rename is safe). Updated Defaults() with new fields and changed SkipHooks default from true to false per spec. Added validation in ValidateStructure that catches the no-op case (auto_commit true, both commit_on_success and commit_on_failure false). Updated the single callsite in iteration.go and the config-reference.md docs.",
+      "went_well": [
+        "Grep confirmed no user config files use skip_hooks_on_auto_commit, making the JSON tag rename safe",
+        "All 80+ config tests and all daemon tests pass with no changes needed"
+      ],
+      "improvements": [
+        "The validation for the no-op config is an error rather than a warning; a future task may want to make it a soft warning instead"
+      ],
+      "action_items": [
+        "The new fields are not yet consumed in daemon commit logic; the daemon-commit-logic node handles wiring them in"
+      ]
+    }
   }
 }
