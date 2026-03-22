@@ -163,9 +163,20 @@
     "consolidate-atomic-write-helpers": {
       "name": "Consolidate Atomic Write Helpers",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "consolidate-atomic-write-helpers",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "consolidate-atomic-write-helpers/refactor-and-update-tests"
+      ]
+    },
+    "consolidate-atomic-write-helpers/refactor-and-update-tests": {
+      "name": "Refactor and Update Tests",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "consolidate-atomic-write-helpers/refactor-and-update-tests",
+      "decomposition_depth": 0,
+      "parent": "consolidate-atomic-write-helpers"
     },
     "decouple-validate-from-daemon-package": {
       "name": "Decouple Validate from Daemon Package",
@@ -678,7 +689,7 @@
     "template-based-file-generation": {
       "name": "Template-Based File Generation",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "template-based-file-generation",
       "decomposition_depth": 0,
       "children": [
@@ -718,7 +729,7 @@
     "template-based-file-generation/template-documentation": {
       "name": "Template Documentation",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "template-based-file-generation/template-documentation",
       "decomposition_depth": 0,
       "parent": "template-based-file-generation"

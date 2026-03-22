@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "id": "refactor-and-update-tests",
+  "name": "Refactor and Update Tests",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Refactor atomicWriteJSON to delegate to AtomicWriteFile",
+      "description": "Refactor atomicWriteJSON to delegate to AtomicWriteFile",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/state/io.go"
+      ],
+      "body": "Replace the duplicated temp-file-rename logic in atomicWriteJSON (lines 107-143 of internal/state/io.go) with a three-line body:\n\n1. json.MarshalIndent(v, \"\", \"  \")\n2. append trailing newline\n3. return AtomicWriteFile(path, data)\n\nRemove the stale comment on line 70 (\"// atomicWriteFile writes raw bytes...\") which duplicates the godoc on line 71-73.\n\nError wrapping will change: callers that currently see \"creating state directory\" will now see \"creating directory\" (from AtomicWriteFile). This is fine; the next task updates affected tests.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "atomicWriteJSON body contains no os.CreateTemp",
+        " no os.Rename",
+        " no tmp.Write",
+        " no tmp.Sync",
+        " no tmp.Close calls",
+        "atomicWriteJSON calls json.MarshalIndent then AtomicWriteFile and nothing else",
+        "The trailing newline append is preserved before delegating",
+        "The old comment on line 70 (duplicate of line 71) is removed"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update tests for changed error messages",
+      "description": "Update tests for changed error messages",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/state/io_chmod_test.go",
+        "internal/state/io_coverage_test.go",
+        "internal/state/io_deep_coverage_test.go",
+        "internal/state/io_write_error_test.go"
+      ],
+      "body": "After the refactor, atomicWriteJSON delegates to AtomicWriteFile, so its error paths now wrap through AtomicWriteFile's error messages rather than its own. Review every test file that exercises atomicWriteJSON error paths:\n\n- internal/state/io_chmod_test.go (lines 32, 56, 75 reference atomicWriteJSON error strings)\n- internal/state/io_coverage_test.go (lines 30, 46, 61-70, 82)\n- internal/state/io_deep_coverage_test.go\n- internal/state/io_write_error_test.go\n\nUpdate any hardcoded error-message assertions to match the new wrapping. For example, \"creating state directory\" becomes \"creating directory\". Run the full test suite to confirm.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "go test ./internal/state/... passes with no failures",
+        "No test assertions reference error strings that only existed in the old atomicWriteJSON implementation (e.g. creating state directory)"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Refactor and Update Tests is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Confirm atomicWriteJSON body is exactly: marshal, append newline, delegate to AtomicWriteFile. No leftover temp-file logic.",
+    "Confirm go test ./internal/state/... passes with zero failures",
+    "Grep test files for 'creating state directory' to ensure no stale error assertions remain"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:08:45.115655Z",
+        "task": "consolidate-atomic-write-helpers/refactor-and-update-tests",
+        "text": "Refactored atomicWriteJSON to a 3-line delegate: MarshalIndent, append newline, AtomicWriteFile. Removed stale duplicate comment. Build and tests pass."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-22T23:07:55.389948Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T23:08:43.784915Z",
+      "objective": "Remove duplicated atomic-write logic from atomicWriteJSON by delegating to AtomicWriteFile",
+      "what_happened": "Replaced the 30-line temp-file-rename body in atomicWriteJSON with three lines: MarshalIndent, append newline, return AtomicWriteFile. Removed the stale comment on what was line 70 that duplicated the godoc for AtomicWriteFile.",
+      "went_well": [
+        "Net deletion of 30 lines with zero behavioral change at the caller level"
+      ],
+      "improvements": [
+        "Error message wording shifts from 'creating state directory' to 'creating directory'; the next task (task-0002) is expected to update affected test assertions"
+      ],
+      "action_items": [
+        "task-0002 should update any test assertions that match on 'creating state directory'"
+      ]
+    }
+  }
+}

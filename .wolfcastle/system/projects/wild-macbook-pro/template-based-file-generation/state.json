@@ -3,7 +3,7 @@
   "id": "template-based-file-generation",
   "name": "Template-Based File Generation",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -19,7 +19,7 @@
     {
       "id": "template-documentation",
       "address": "template-based-file-generation/template-documentation",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -40,6 +40,8 @@
     "No parallel template loading system created; PromptRepository extended, not duplicated",
     "Documentation covers template customization in configuration.md, CLI docs, and CONTRIBUTING.md"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "total_replans": 2,
   "planning_history": [
     {

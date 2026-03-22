@@ -3,7 +3,7 @@
   "id": "template-documentation",
   "name": "Template Documentation",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -43,7 +43,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Template Documentation is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -75,8 +75,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T22:57:41.825491Z",
+    "completed_at": "2026-03-22T23:06:49.476683Z",
     "result_summary": "Documented the template override mechanism across four files. configuration.md gained a Template Overrides subsection covering artifact templates (ADR, spec, task, audit-task) with their tier paths, Go template variables, resolution semantics, scaffold template limitations, and a worked ADR customization example. adr-create.md and spec-create.md each gained a Template Customization section linking back to the authoritative reference in configuration.md. CONTRIBUTING.md's 'Adding a CLI Command' section was extended with a four-step workflow for file-generating commands: create a .tmpl, define a typed context struct, render via RenderToFile, add a snapshot test. All variable inventories verified against source (template_data.go), all API references verified against implementation (repository.go), all cross-references resolve correctly."
   },
   "aars": {
