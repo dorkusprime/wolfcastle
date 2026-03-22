@@ -32,7 +32,7 @@
       "id": "task-0003",
       "title": "Write PHP/Laravel class prompt",
       "description": "Write PHP/Laravel class prompt",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/php/laravel.md"
@@ -43,7 +43,7 @@
       "id": "task-0004",
       "title": "Write PHP/Symfony class prompt",
       "description": "Write PHP/Symfony class prompt",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/templates/prompts/classes/coding/php/symfony.md"
@@ -92,6 +92,11 @@
         "timestamp": "2026-03-22T08:50:22.184679Z",
         "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
         "text": "Authored PHP/Laravel class prompt covering Laravel 11.x patterns, Eloquent ORM, routing, form requests, queues/jobs, events, Artisan, testing with RefreshDatabase/factories/fakes/Dusk, and five common pitfalls [task-0003]"
+      },
+      {
+        "timestamp": "2026-03-22T08:52:37.91973Z",
+        "task": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
+        "text": "Authored PHP/Symfony class prompt covering Symfony 7.x patterns, autowiring, Doctrine ORM, routing attributes, forms, EventDispatcher, Messenger async, Twig templating, testing with KernelTestCase/WebTestCase, and five common pitfalls [task-0004]"
       }
     ],
     "gaps": [],
@@ -143,6 +148,21 @@
       ],
       "action_items": [
         "If Livewire or Inertia prompts are needed, they should be separate framework prompts since they represent distinct frontend integration models"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T08:52:34.024724Z",
+      "objective": "Author the PHP/Symfony framework class prompt for coding tasks",
+      "what_happened": "Created internal/project/templates/prompts/classes/coding/php/symfony.md (43 lines). Studied the existing PHP language prompt and the Laravel framework prompt to ensure no overlap. Covered all required topics: Symfony 7.x structure with autowiring and compiler passes, PHP attribute routing with MapQueryString/MapRequestPayload, Doctrine ORM with attribute mapping and migrations, form component with AbstractType and Validator constraints, EventDispatcher and Messenger for async, Twig templating with inheritance and components, testing with KernelTestCase/WebTestCase/crawler/container access, and all five required pitfalls (autowiring ambiguity, Doctrine identity map staleness, form type inheritance complexity, event subscriber ordering, YAML indentation).",
+      "went_well": [
+        "The prompt complements the PHP language prompt without overlap; language fundamentals like strict_types, enums, match, and readonly properties are covered there, so this prompt stays focused on the Symfony framework layer"
+      ],
+      "improvements": [
+        "Could have covered Symfony UX Turbo/Live Components or API Platform, but those would push past the line target and are better suited to specialized prompts"
+      ],
+      "action_items": [
+        "If API Platform or Symfony UX prompts are needed, they should be separate framework prompts since they represent distinct integration models atop Symfony"
       ]
     }
   }
