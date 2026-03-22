@@ -2,7 +2,7 @@
   "version": 1,
   "root_id": "domain-repository-architecture",
   "root_name": "Domain Repository Architecture",
-  "root_state": "in_progress",
+  "root_state": "complete",
   "root": [
     "fix-log-thoughts-and-interleaved-renderers",
     "configuration-docs-overhaul",
@@ -60,9 +60,67 @@
     "configuration-docs-overhaul": {
       "name": "Configuration Docs Overhaul",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "configuration-docs-overhaul",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "configuration-docs-overhaul/write-config-pages",
+        "configuration-docs-overhaul/deep-linking-pass"
+      ]
+    },
+    "configuration-docs-overhaul/deep-linking-pass": {
+      "name": "Deep-Linking Pass",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "configuration-docs-overhaul/deep-linking-pass",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul"
+    },
+    "configuration-docs-overhaul/write-config-pages": {
+      "name": "Write Config Pages",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "configuration-docs-overhaul/write-config-pages",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul",
+      "children": [
+        "configuration-docs-overhaul/write-config-pages/config-reference",
+        "configuration-docs-overhaul/write-config-pages/task-classes",
+        "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "configuration-docs-overhaul/write-config-pages/config-quickstart"
+      ]
+    },
+    "configuration-docs-overhaul/write-config-pages/config-quickstart": {
+      "name": "Config Quickstart",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "configuration-docs-overhaul/write-config-pages/config-quickstart",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul/write-config-pages"
+    },
+    "configuration-docs-overhaul/write-config-pages/config-reference": {
+      "name": "Config Reference",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "configuration-docs-overhaul/write-config-pages/config-reference",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul/write-config-pages"
+    },
+    "configuration-docs-overhaul/write-config-pages/configuration-guide": {
+      "name": "Configuration Guide",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul/write-config-pages"
+    },
+    "configuration-docs-overhaul/write-config-pages/task-classes": {
+      "name": "Task Classes",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "configuration-docs-overhaul/write-config-pages/task-classes",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul/write-config-pages"
     },
     "consolidate-atomic-write-helpers": {
       "name": "Consolidate Atomic Write Helpers",
@@ -128,7 +186,7 @@
     "fix-log-thoughts-and-interleaved-renderers": {
       "name": "Fix log --thoughts and --interleaved renderers",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "fix-log-thoughts-and-interleaved-renderers",
       "decomposition_depth": 0,
       "children": [
@@ -139,7 +197,7 @@
     "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output": {
       "name": "Consolidate Daemon Foreground Output",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
       "decomposition_depth": 0,
       "parent": "fix-log-thoughts-and-interleaved-renderers"

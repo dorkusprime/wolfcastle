@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "id": "config-quickstart",
+  "name": "Config Quickstart",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write config-quickstart.md",
+      "description": "Write config-quickstart.md",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/config-quickstart.md"
+      ],
+      "body": "Create docs/humans/config-quickstart.md as a five-minute getting-started page. Four recipes, each 3-5 lines of prose plus one code block. No theory.\n\n1. Change Your Model — show the exact JSON to put in system/custom/config.json to switch the heavy model to a different provider/model. Then show the wolfcastle config set CLI alternative for the same change. Keep it concrete: here is the JSON, here is where to put it, done.\n\n2. Add a Custom Stage — show how to add a new stage (e.g., spec-review) to the pipeline. Include both the stage definition in the stages dict and adding it to stage_order. Show the JSON snippet for custom/config.json.\n\n3. Override a Prompt — show where to place a custom prompt file in system/custom/prompts/ to override a base prompt. Explain that same-named files in higher tiers replace lower-tier versions. One example: overriding execute.md.\n\n4. Set a Task Class — brief example with --class coding/typescript on wolfcastle task add. Show what it does (selects a behavioral prompt). Link to the full Task Classes page (task-classes.md) for the complete class list and custom class creation.\n\nOpen with a one-line intro: 'Four common configuration tasks, each under a minute.' Close with links: 'For how configuration works under the hood, see the [Configuration Guide](configuration.md). For every available field, see the [Config Reference](config-reference.md).'\n\nKeep it tight. This page exists for people who want to change something RIGHT NOW, not understand the system.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T06-00Z-config-docs-overhaul.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Config Quickstart is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify all JSON snippets are valid and would produce the described effect when placed in custom/config.json",
+    "Verify cross-reference links point to existing anchors in the other three pages"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

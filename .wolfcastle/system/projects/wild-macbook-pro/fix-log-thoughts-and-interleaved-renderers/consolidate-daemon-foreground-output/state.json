@@ -3,7 +3,7 @@
   "id": "consolidate-daemon-foreground-output",
   "name": "Consolidate Daemon Foreground Output",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -44,7 +44,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Consolidate Daemon Foreground Output is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0
     },
@@ -107,8 +107,9 @@
       }
     ],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T18:29:24.117608Z",
+    "completed_at": "2026-03-22T18:46:45.752452Z",
     "result_summary": "Consolidated all daemon foreground output through a single InterleavedRenderer pipeline. The wolfcastle start foreground path now uses FollowReader+InterleavedRenderer to tail NDJSON logs and render to stdout, matching the pattern already used by execute and intake commands. All dead console formatting code was removed from the logging package (writeConsole, consoleMessages, consoleSuppress, the Log() mirroring block), along with the now-unused Logger.Console and Logger.ConsoleLevel struct fields and their io.Discard assignments across cmd/. The stale package doc comment was updated to reflect the new architecture. Full test suite passes across all 29 packages with logging coverage at 93.4%."
   },
   "aars": {

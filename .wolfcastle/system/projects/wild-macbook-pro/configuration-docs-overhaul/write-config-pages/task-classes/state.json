@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "id": "task-classes",
+  "name": "Task Classes",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Write task-classes.md",
+      "description": "Write task-classes.md",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/task-classes.md"
+      ],
+      "body": "Create docs/humans/task-classes.md covering the full class system.\n\nPrimary sources: the task classes spec at .wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md, the ClassDef type in internal/config/types.go, and the ClassRepository in internal/pipeline/class_repository.go.\n\nPage structure:\n1. What Classes Are — behavioral prompts that shape how the agent approaches work. Two layers: universal.md (always applied) + class-specific prompt. Classes don't restrict tools, don't change markers, don't gate capabilities.\n\n2. Using a Class — show 'wolfcastle task add --class coding/typescript' for languages, '--class coding/typescript/react' for frameworks. Explain the fallback: coding/typescript/react tries the framework prompt first, falls back to coding/typescript if the framework prompt doesn't exist.\n\n3. Built-in Language Classes — full table with class key and one-line description. Pull from Defaults() in config.go. Group by category: systems (go, rust, c, cpp), JVM/.NET (java, kotlin, scala, csharp), web/scripting (javascript, typescript, python, ruby, php, lua, elixir, dart), data/specialized (r, sql, haskell, swift, shell).\n\n4. Built-in Framework Classes — full table grouped by parent language. Pull from Defaults(). Show class key and what the framework prompt covers.\n\n5. Non-language Classes — table of discipline classes (architecture, research, writing, design, devops, data, security, testing, audit) with descriptions from Defaults().\n\n6. Creating a Custom Class — step-by-step: add ClassDef to system/custom/config.json, create .md file in system/custom/prompts/classes/, verify with 'wolfcastle config show --section task_classes'. Show a complete example (e.g., coding/go-internal with team conventions).\n\n7. Overriding a Built-in Class — place a file with the same path in system/custom/prompts/classes/ to replace the base prompt. Only describe coding conventions; no wolfcastle internals needed.\n\n8. Creating a Custom Framework — add subdirectory under parent language, drop .md file, add config entry. Show fallback behavior.\n\n9. The Universal Prompt — what universal.md contains, that it applies to every task, how to override it.\n\nCross-references: link to Configuration Guide for tier mechanics, link to Config Reference for the task_classes config section.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T06-00Z-config-docs-overhaul.md",
+        ".wolfcastle/docs/specs/2026-03-15T00-04Z-task-classes.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Task Classes is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify every class key in Defaults() task_classes map appears in the built-in class tables",
+    "Verify the fallback resolution description matches ClassRepository.Resolve() logic in internal/pipeline/class_repository.go"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "id": "deep-linking-pass",
+  "name": "Deep-Linking Pass",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update cross-references in existing human docs",
+      "description": "Update cross-references in existing human docs",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/how-it-works.md",
+        "docs/humans/audits.md",
+        "docs/humans/failure-and-recovery.md",
+        "docs/humans/collaboration.md",
+        "README.md",
+        "docs/humans/README.md"
+      ],
+      "body": "Review every file in docs/humans/ and README.md for references to configuration concepts that should now deep-link to the new config pages. Specific targets:\n\n1. how-it-works.md: mentions models, stages, and pipeline. Link to configuration.md model and pipeline sections.\n2. audits.md: mentions audit scopes and configuration. Link to config-reference.md audit-related fields.\n3. failure-and-recovery.md: mentions configurable thresholds. Link to config-reference.md failure and retries sections.\n4. collaboration.md: mentions git config and worktree settings. Link to config-reference.md git section.\n5. CLI pages (config-show.md, config-set.md, config-unset.md, config-append.md, config-remove.md): add links to configuration.md for context on what they modify.\n6. task-add.md: link --class flag documentation to task-classes.md.\n7. README.md Configuration section: link to config-quickstart.md as the entry point. Update existing links that pointed to old configuration.md anchors.\n8. docs/humans/README.md: update any table of contents or navigation to include the new pages.\n\nAny mention of 'three tiers,' 'base/custom/local,' 'config.json,' or specific config field names in any human doc should link to the appropriate new page and section. Do not break existing valid links.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T06-00Z-config-docs-overhaul.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update CLI command pages with config page links",
+      "description": "Update CLI command pages with config page links",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/cli/config-show.md",
+        "docs/humans/cli/config-set.md",
+        "docs/humans/cli/task-add.md"
+      ],
+      "body": "Review all CLI command pages in docs/humans/cli/ that relate to configuration:\n- config-show.md: link to configuration.md for three-tier context and config-reference.md for field details\n- config-set.md: link to configuration.md for merge semantics explanation\n- config-unset.md: link to configuration.md for how null/unset interacts with tiers\n- config-append.md: link to configuration.md for array merge behavior\n- config-remove.md: link to configuration.md for array field context\n- task-add.md: link --class flag to task-classes.md for class details and fallback behavior\n\nEach CLI page should help the user understand what they're modifying by linking to the conceptual docs.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T06-00Z-config-docs-overhaul.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Deep-Linking Pass is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify every existing doc in docs/humans/ and README.md has been reviewed for stale config links. No broken links should remain. Links to old configuration.md anchors that no longer exist must be updated to point to the correct new page and section."
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

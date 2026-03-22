@@ -3,7 +3,7 @@
   "id": "fix-log-thoughts-and-interleaved-renderers",
   "name": "Fix log --thoughts and --interleaved renderers",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -14,7 +14,7 @@
     {
       "id": "consolidate-daemon-foreground-output",
       "address": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -34,6 +34,8 @@
     "All foreground modes (start, execute, intake) use InterleavedRenderer from internal/logrender, not Logger.writeConsole",
     "All existing tests pass, including logrender unit tests and render parity tests"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T18:12:55.381854Z",
