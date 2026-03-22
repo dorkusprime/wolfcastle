@@ -266,7 +266,25 @@ The `ClassDef.Model` field exists in the config struct but the daemon does not r
 
 ### Prompt authoring guidelines
 
-Each behavioral prompt should read like it was written by a senior practitioner of that language, framework, or discipline. Target 40-80 lines for language prompts, 30-60 for framework and non-language prompts. Cover idiomatic style, error handling, testing conventions, tooling commands, and common pitfalls. Framework prompts should not repeat language fundamentals.
+**Class prompts contain ZERO wolfcastle-specific content.** No references to wolfcastle commands, terminal markers, breadcrumbs, audit gaps, deliverables, specs, ADRs, AARs, yielding, or any other system mechanic. All of that belongs in the execute prompt and default.md. A user who overrides `go.md` in their `custom/` tier should only need to describe how they write Go at their organization: style, tooling, testing, conventions. They should not need to know or preserve any wolfcastle internals.
+
+Each behavioral prompt must be grounded in research, not just training data. Before authoring a prompt, research the language's current ecosystem: official style guides, community-accepted linters and formatters, modern testing frameworks, current build tools, and recent paradigm shifts. For example, Python's ecosystem moved from `black` + `flake8` to `ruff`; Go added `slices` and `maps` packages in 1.21; Rust's 2024 edition changed certain defaults. Prompts based on stale conventions will produce stale code.
+
+Each behavioral prompt should read like it was written by a senior practitioner of that language, framework, or discipline. Target 40-80 lines for language prompts, 30-60 for framework and non-language prompts. Cover:
+
+- **Style**: idiomatic patterns, naming, error handling, code organization
+- **Build and test**: specific tool names and invocations (not "run the project's linter" but "run `golangci-lint run ./...`")
+- **Testing conventions**: framework-specific patterns, test structure, assertion style
+- **Common pitfalls**: language-specific footguns that agents frequently trigger
+
+Do NOT include:
+- How to commit (the execute prompt handles that)
+- How to signal completion (terminal markers are system mechanics)
+- References to `.wolfcastle/` directories, specs, ADRs, or audit systems
+- Planning guidance (decomposition, file counts, yielding)
+- Deliverable instructions
+
+Framework prompts should not repeat language fundamentals (the fallback mechanism handles that).
 
 ---
 
