@@ -221,10 +221,9 @@ func TestReinit_WriteLocalConfigFailure(t *testing.T) {
 	}
 }
 
-// WriteAuditTaskMD's only uncovered branch (line 362-364) is the
-// Templates.ReadFile error return. Because Templates is a compile-time
-// embed.FS containing the audit-task.md template, ReadFile cannot fail
-// at runtime. The branch is structurally unreachable.
+// WriteAuditTaskMD delegates to PromptRepository.RenderToFile and
+// discards the error (best-effort). Coverage is exercised in
+// audit_coverage_test.go.
 
 // errSimulated is a reusable sentinel for tests that inject failures.
 var errSimulated = errorf("simulated error")

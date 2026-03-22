@@ -136,9 +136,9 @@ Examples:
 					return fmt.Errorf("saving node state: %w", err)
 				}
 
-				// Write audit.md for leaf nodes from embedded template
+				// Write audit.md for leaf nodes from template
 				if nt == state.NodeLeaf {
-					project.WriteAuditTaskMD(nodeDir)
+					project.WriteAuditTaskMD(app.Prompts, nodeDir)
 				}
 
 				// Write project description Markdown

@@ -32,7 +32,7 @@
       "id": "task-0002",
       "title": "Migrate ADR and spec generation to templates",
       "description": "Migrate ADR and spec generation to templates",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/adr_create.go",
@@ -50,7 +50,7 @@
       "id": "task-0003",
       "title": "Migrate audit-task and task markdown generation to templates",
       "description": "Migrate audit-task and task markdown generation to templates",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/project/project_create.go",

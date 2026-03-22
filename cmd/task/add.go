@@ -10,6 +10,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
@@ -152,7 +153,7 @@ Examples:
 			}
 
 			// Write task markdown file
-			writeTaskMD(nsPath, task.ID, title, body)
+			writeTaskMD(app.Prompts, nsPath, task.ID, title, body)
 
 			taskAddr := nodeAddr + "/" + task.ID
 			if app.JSON {
@@ -188,13 +189,18 @@ Examples:
 	return cmd
 }
 
-// writeTaskMD writes a {taskID}.md file in the node directory.
-func writeTaskMD(nodeDir, taskID, title, body string) {
-	var sb strings.Builder
-	sb.WriteString("# " + title + "\n")
-	if strings.TrimSpace(body) != "" {
-		sb.WriteString("\n" + body + "\n")
+// writeTaskMD writes a {taskID}.md file in the node directory by resolving
+// the task template through the three-tier system.
+func writeTaskMD(prompts *pipeline.PromptRepository, nodeDir, taskID, title, body string) {
+	// Whitespace-only bodies are treated as empty, matching the original
+	// strings.Builder behavior.
+	tmplBody := body
+	if strings.TrimSpace(body) == "" {
+		tmplBody = ""
 	}
 	// Best-effort write; errors here are non-fatal.
-	_ = os.WriteFile(filepath.Join(nodeDir, taskID+".md"), []byte(sb.String()), 0644)
+	_ = prompts.RenderToFile("artifacts/task.md", pipeline.TaskData{
+		Title: title,
+		Body:  tmplBody,
+	}, filepath.Join(nodeDir, taskID+".md"))
 }

@@ -1,11 +1,16 @@
 package task
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
+	"github.com/dorkusprime/wolfcastle/internal/project"
+	"github.com/dorkusprime/wolfcastle/internal/testutil"
 )
 
 // ---------------------------------------------------------------------------
@@ -448,9 +453,26 @@ func TestTaskAdd_JSONOutputWithDeliverables(t *testing.T) {
 // writeTaskMD — coverage for body inclusion and error path
 // ---------------------------------------------------------------------------
 
+// newTaskPrompts creates a PromptRepository with the task template seeded.
+func newTaskPrompts(t *testing.T) *pipeline.PromptRepository {
+	t.Helper()
+	env := testutil.NewEnvironment(t)
+	sub, err := fs.Sub(project.Templates, "templates")
+	if err != nil {
+		t.Fatalf("extracting templates sub-FS: %v", err)
+	}
+	data, err := fs.ReadFile(sub, "artifacts/task.md.tmpl")
+	if err != nil {
+		t.Fatalf("reading task template: %v", err)
+	}
+	env.WithTemplate("artifacts/task.md.tmpl", string(data))
+	return env.ToAppFields().Prompts
+}
+
 func TestWriteTaskMD_WithBody(t *testing.T) {
+	prompts := newTaskPrompts(t)
 	dir := t.TempDir()
-	writeTaskMD(dir, "task-0001", "Test Title", "Some body text")
+	writeTaskMD(prompts, dir, "task-0001", "Test Title", "Some body text")
 
 	data, err := os.ReadFile(filepath.Join(dir, "task-0001.md"))
 	if err != nil {
@@ -466,8 +488,9 @@ func TestWriteTaskMD_WithBody(t *testing.T) {
 }
 
 func TestWriteTaskMD_NoBody(t *testing.T) {
+	prompts := newTaskPrompts(t)
 	dir := t.TempDir()
-	writeTaskMD(dir, "task-0002", "Title Only", "")
+	writeTaskMD(prompts, dir, "task-0002", "Title Only", "")
 
 	data, err := os.ReadFile(filepath.Join(dir, "task-0002.md"))
 	if err != nil {
@@ -484,8 +507,9 @@ func TestWriteTaskMD_NoBody(t *testing.T) {
 }
 
 func TestWriteTaskMD_WhitespaceOnlyBody(t *testing.T) {
+	prompts := newTaskPrompts(t)
 	dir := t.TempDir()
-	writeTaskMD(dir, "task-0003", "Title", "   \n  ")
+	writeTaskMD(prompts, dir, "task-0003", "Title", "   \n  ")
 
 	data, err := os.ReadFile(filepath.Join(dir, "task-0003.md"))
 	if err != nil {
@@ -498,8 +522,9 @@ func TestWriteTaskMD_WhitespaceOnlyBody(t *testing.T) {
 }
 
 func TestWriteTaskMD_NonexistentDir(t *testing.T) {
+	prompts := newTaskPrompts(t)
 	// Writing to a non-existent directory is silently ignored.
-	writeTaskMD("/nonexistent/path/that/does/not/exist", "task-0001", "Title", "body")
+	writeTaskMD(prompts, "/nonexistent/path/that/does/not/exist", "task-0001", "Title", "body")
 	// No panic or error; the function is best-effort.
 }
 

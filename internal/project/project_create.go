@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -36,13 +37,11 @@ func detectIdentity() map[string]any {
 	}
 }
 
-// WriteAuditTaskMD writes audit.md into nodeDir from the embedded audit-task template.
-func WriteAuditTaskMD(nodeDir string) {
-	data, err := Templates.ReadFile("templates/audits/audit-task.md")
-	if err != nil {
-		return // best-effort
-	}
-	_ = os.WriteFile(filepath.Join(nodeDir, "audit.md"), data, 0644)
+// WriteAuditTaskMD writes audit.md into nodeDir by resolving the audit-task
+// template through the three-tier system. This allows users to override the
+// audit template via custom or local tiers.
+func WriteAuditTaskMD(prompts *pipeline.PromptRepository, nodeDir string) {
+	_ = prompts.RenderToFile("artifacts/audit-task.md", nil, filepath.Join(nodeDir, "audit.md"))
 }
 
 // CreateProject creates a new project node in the tree.
