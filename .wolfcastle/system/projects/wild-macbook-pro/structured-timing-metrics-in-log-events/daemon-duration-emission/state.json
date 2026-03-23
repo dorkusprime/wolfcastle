@@ -3,7 +3,7 @@
   "id": "daemon-duration-emission",
   "name": "Daemon Duration Emission",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -80,7 +80,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Daemon Duration Emission is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -122,8 +122,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-23T00:03:48.967647Z",
+    "completed_at": "2026-03-23T00:12:55.74504Z",
     "result_summary": "Added duration_ms (int64, milliseconds) to three log record types: stage_complete in the execute pipeline (iteration.go), stage_complete in the intake pipeline (stages.go), and planning_complete (planning.go). Each site captures time.Now() before the model invocation and computes elapsed time via time.Since().Milliseconds() in the log map. Three unit tests in iteration_test.go verify the field is emitted as a non-negative number, with reusable NDJSON parsing helpers (readLogRecords, filterRecords). All changes are minimal two-to-three-line additions with no new dependencies or architectural changes."
   },
   "aars": {

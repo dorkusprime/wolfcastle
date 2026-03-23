@@ -3,14 +3,14 @@
   "id": "renderer-duration-field-support",
   "name": "Renderer Duration Field Support",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Add DurationMS field to Record struct",
       "description": "Add DurationMS field to Record struct",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/record.go"
@@ -77,6 +77,7 @@
     "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-23T00:12:55.826991Z"
   }
 }

@@ -17,7 +17,8 @@ type Record struct {
 	Stage     string    `json:"stage"`
 	Node      string    `json:"node"`
 	Task      string    `json:"task"`
-	ExitCode  *int      `json:"exit_code"`
+	ExitCode   *int     `json:"exit_code"`
+	DurationMS *int64   `json:"duration_ms"`
 	Text      string    `json:"text"`
 	Path      string    `json:"path"`
 	Marker    string    `json:"marker"`
