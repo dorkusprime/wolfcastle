@@ -607,7 +607,12 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		return IterationDidWork, nil
 	}
 
-	// Step 4: Nothing to execute, nothing to plan, nothing to archive. Report why.
+	// Step 4: Nothing to execute, nothing to plan, nothing to archive.
+	// Commit any lingering state changes (from reconciliation, archiving
+	// on a prior tick, or propagation) so the tree is clean at idle.
+	commitStateFlush(d.RepoDir, d.Logger, d.Config.Git)
+
+	// Report why we're idle.
 	{
 		var msg string
 		switch navResult.Reason {
@@ -671,11 +676,6 @@ execute:
 	// If the knowledge file exceeds its token budget, queue a
 	// maintenance task to prune it.
 	d.checkKnowledgeBudget(navResult.NodeAddress)
-
-	// Flush any state changes that occurred after the in-iteration
-	// commit (replanning, spec review, knowledge budget, propagation).
-	// This ensures .wolfcastle/ state is never behind the last commit.
-	commitStateOnly(d.RepoDir, d.Logger, d.Config.Git)
 
 	return IterationDidWork, nil
 }

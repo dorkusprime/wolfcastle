@@ -390,19 +390,6 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			failureType = "no_progress"
 		}
 
-		// Auto-commit partial work, then increment failure count.
-		// Attempt number is the current failure count + 1 (pre-increment).
-		attemptNum := 1
-		for _, t := range ns.Tasks {
-			if t.ID == nav.TaskID {
-				attemptNum = t.FailureCount + 1
-				break
-			}
-		}
-		failMeta := extractTaskCommitMeta(ns, nav.TaskID)
-		failMeta.FailureType = failureType
-		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", attemptNum, d.Config.Git, failMeta)
-
 		_ = d.Logger.Log(map[string]any{
 			"type":  failureType,
 			"empty": result.Stdout == "",
@@ -451,6 +438,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		} else {
 			_ = d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
 		}
+
+		// Commit code + state after all failure mutations are applied.
+		failMeta := extractTaskCommitMeta(ns, nav.TaskID)
+		failMeta.FailureType = failureType
+		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta)
 	}
 
 	return nil
@@ -637,20 +629,16 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 	_ = logger.Log(map[string]any{"type": "auto_commit", "task": taskID, "kind": kind})
 }
 
-// commitStateOnly commits .wolfcastle/ state files if any have changed
-// since the last commit. Called after post-iteration housekeeping
-// (replanning, spec review, knowledge budget) to ensure state is never
-// behind the latest commit. Does nothing if auto_commit or commit_state
-// is disabled, or if there are no state changes to commit.
-//
-// Unlike commitAfterIteration, this stages only .wolfcastle/ (not -u)
-// so code changes from the next iteration aren't accidentally captured.
-func commitStateOnly(repoDir string, logger *logging.Logger, gitCfg config.GitConfig) {
+// commitStateFlush commits any uncommitted .wolfcastle/ state changes.
+// Called when the daemon goes idle (no tasks, no planning, no archiving)
+// to ensure state from reconciliation or the prior iteration's
+// post-processing is persisted. Does nothing if there are no changes
+// or if auto_commit/commit_state is disabled.
+func commitStateFlush(repoDir string, logger *logging.Logger, gitCfg config.GitConfig) {
 	if !gitCfg.AutoCommit || !gitCfg.CommitState {
 		return
 	}
 
-	// Stage .wolfcastle/ into a temporary index seeded from HEAD.
 	tmpIndex, err := os.CreateTemp(repoDir, ".git-daemon-index-*")
 	if err != nil {
 		return
@@ -671,16 +659,13 @@ func commitStateOnly(repoDir string, logger *logging.Logger, gitCfg config.GitCo
 	addState := exec.Command("git", "add", ".wolfcastle/")
 	addState.Dir = repoDir
 	addState.Env = indexEnv
-	if err := addState.Run(); err != nil {
-		return
-	}
+	_ = addState.Run()
 
-	// Check if anything was actually staged.
 	diffCmd := exec.Command("git", "diff", "--cached", "--quiet")
 	diffCmd.Dir = repoDir
 	diffCmd.Env = indexEnv
 	if diffCmd.Run() == nil {
-		return // nothing to commit
+		return // nothing changed
 	}
 
 	commitArgs := []string{"commit", "-m", "wolfcastle: update project state"}
@@ -692,9 +677,7 @@ func commitStateOnly(repoDir string, logger *logging.Logger, gitCfg config.GitCo
 	commitCmd.Env = indexEnv
 	if err := commitCmd.Run(); err != nil {
 		_ = logger.Log(map[string]any{"type": "state_flush_error", "error": err.Error()})
-		return
 	}
-	_ = logger.Log(map[string]any{"type": "state_flush"})
 }
 
 // buildCommitSubject constructs the first line of the commit message.
