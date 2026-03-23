@@ -45,13 +45,17 @@ Parallel: ParallelConfig{
 }
 ```
 
-Validation: `MaxWorkers` must be >= 1.
+Add to `ValidateStructure` in `validate.go`: `MaxWorkers` must be >= 1.
+
+The config merge system (`DeepMerge`) handles nested structs correctly via JSON round-trip. A tier overlay like `{"daemon": {"parallel": {"max_workers": 5}}}` deep-merges as expected.
 
 ## Scope Lock Table
 
 ### Location
 
-`.wolfcastle/system/scope-locks.json` at the namespace root. This file is ephemeral (not committed to git, added to `.gitignore`). It exists only while the daemon is running and is deleted on clean shutdown.
+`.wolfcastle/system/projects/{namespace}/scope-locks.json`, alongside the existing `state.json` (root index) and `.lock` file. This placement puts the scope lock table inside the namespace directory, where it is protected by the existing namespace file lock.
+
+The file is ephemeral: not committed to git (already excluded by `.wolfcastle/.gitignore`'s deny-all pattern), deleted on clean daemon shutdown. It exists only while the daemon is running.
 
 ### Schema
 
@@ -64,18 +68,14 @@ Validation: `MaxWorkers` must be >= 1.
       "node": "my-project/api-layer",
       "acquired_at": "2026-03-23T10:53:00Z",
       "pid": 12345
-    },
-    "internal/daemon/parallel.go": {
-      "task": "my-project/api-layer/task-0001",
-      "node": "my-project/api-layer",
-      "acquired_at": "2026-03-23T10:53:00Z",
-      "pid": 12345
     }
   }
 }
 ```
 
 Each key is a file path relative to the repository root. Each value identifies the holding task, its node, the acquisition timestamp, and the daemon PID (for stale lock detection after crashes).
+
+Scope locks are namespace-wide, not scoped to an orchestrator's children. Any running task in the namespace can see any other task's locks. This is intentional: tasks at different depths in the tree share the same working tree, so file conflicts are real regardless of tree position.
 
 ### Types
 
@@ -97,11 +97,15 @@ type ScopeLock struct {
 
 ### Concurrency
 
-The scope lock table file is protected by the existing namespace file lock. Every CLI command that reads or writes scope locks acquires the namespace lock first. Since scope operations are fast (read JSON, check map, write JSON), the lock is held briefly. This reuses the existing locking infrastructure without adding a new lock mechanism.
+The scope lock table is protected by the existing namespace file lock. Every CLI command that reads or writes scope locks acquires the namespace lock first. The lock is held briefly (read JSON, check map, write JSON).
+
+The namespace lock is also the serialization point for all state mutations (`MutateNode`, `MutateIndex`, `MutateInbox`). With parallel workers, lock hold time includes the full ancestor propagation walk (loading and saving each ancestor in the parent chain). For a node at depth 5, that is approximately 10 file I/O operations under a single lock hold. This is fast in absolute terms (local filesystem) but represents more work than a bare "read, apply, write." The existing 5-second lock timeout (`DefaultLockTimeout`) is generous enough for this workload even with 3 concurrent workers.
+
+A new `MutateScopeLocks` method on `Store` follows the pattern of `MutateInbox`: acquire namespace lock, read JSON from fixed path, apply callback, write atomically, release lock.
 
 ### Stale lock cleanup
 
-On daemon startup (in `selfHeal`), scan the scope lock table. For each lock, check if the PID is still alive via `signalProcess(pid, 0)`. Remove locks held by dead processes. If the scope lock file itself has a PID that doesn't match the current daemon, delete the entire file (it's from a previous crashed daemon run).
+On daemon startup (in `selfHeal`), read the scope lock table. For each lock, check if the holding PID is still alive. The `isProcessRunning` function in `internal/state/filelock.go` provides PID liveness checking; it is unexported, so either export it or add an equivalent to the daemon package. Remove locks held by dead processes. If the entire scope lock file has a PID that doesn't match the current daemon, delete the file (leftover from a previous crashed run).
 
 ## CLI Commands
 
@@ -117,27 +121,33 @@ wolfcastle task scope add --node <address> [--task <task-id>] <file> [<file>...]
 
 1. Acquire namespace lock.
 2. Read scope lock table (create if absent).
-3. For each requested file:
+3. For each requested file, check for conflicts using the bidirectional prefix rule (see below).
    a. If unlocked, grant it to the requesting task.
    b. If locked by the same task, no-op (idempotent).
    c. If locked by a different task, reject the entire request. Return an error naming the conflicting file and holding task. No partial acquisition: either all files are granted or none are.
 4. Write updated scope lock table.
 5. Release namespace lock.
 
-**All-or-nothing semantics** prevent deadlocks. If task A holds file X and wants file Y, while task B holds file Y and wants file X, neither can make progress. By rejecting the entire batch on any conflict, the requesting agent knows immediately and can yield.
+**All-or-nothing semantics** prevent deadlocks on initial acquisition. For incremental scope expansion (calling `scope add` again after already holding locks), the all-or-nothing applies only to the new request. Already-held locks are not released on failure. If the agent cannot expand its scope, it should yield. Yielding releases all held locks (see Yield Handling below), so the hold-and-wait condition is broken.
 
-**Directory scope:** If a file argument ends with `/`, it is treated as a directory prefix. The lock covers all files under that directory. A directory lock conflicts with any file lock that shares the prefix, and vice versa. For example, locking `internal/daemon/` conflicts with an existing lock on `internal/daemon/iteration.go`.
+**Directory scope:** If a file argument ends with `/`, it is treated as a directory prefix. Two scope entries conflict if either is a prefix of the other (bidirectional containment):
+- `internal/daemon/` conflicts with `internal/daemon/iteration.go` (directory contains file)
+- `internal/daemon/iteration.go` conflicts with `internal/daemon/` (file is inside directory)
+- `internal/` conflicts with `internal/daemon/` (parent contains child directory)
+- `internal/daemon/` conflicts with `internal/` (child is inside parent)
+
+A path without a trailing slash is always treated as a file, even if a directory with that name exists.
 
 **Exit codes:**
 - 0: all locks acquired.
 - 1: conflict detected. Stderr prints the conflicting file and holding task address.
 
-**JSON output:**
+**JSON output (`output.Ok`/`output.Err` envelope):**
 
 ```json
 {
   "ok": true,
-  "action": "task.scope.add",
+  "action": "task_scope_add",
   "data": {
     "acquired": ["internal/daemon/iteration.go", "internal/daemon/parallel.go"],
     "node": "my-project/api-layer",
@@ -151,7 +161,7 @@ On conflict:
 ```json
 {
   "ok": false,
-  "action": "task.scope.add",
+  "action": "task_scope_add",
   "error": "scope conflict: internal/daemon/iteration.go held by my-project/other-node/task-0002",
   "code": 1,
   "data": {
@@ -165,6 +175,8 @@ On conflict:
   }
 }
 ```
+
+Action names use underscores (`task_scope_add`) to match the existing convention (`task_add`, `task_complete`).
 
 ### `wolfcastle task scope list`
 
@@ -186,83 +198,85 @@ wolfcastle task scope release --node <address> --task <task-id> [<file>...]
 
 Without file arguments, releases all locks held by the specified task. With file arguments, releases only those files. The daemon calls this after committing a task's changes.
 
+### CLI registration
+
+The `scope` subcommand is a new command group under `task` in `cmd/task/register.go`. This is the first nested subcommand group under `task`; existing subcommands (`add`, `claim`, `complete`, `block`, `unblock`, `deliverable`, `amend`) are direct children. The `scope` parent command has no action of its own; it serves as a grouping node for `add`, `list`, `release`.
+
 ## Execute Prompt Changes
 
-The execution protocol gains a scoping phase. The current phases are:
+### How scope instructions reach the agent
+
+The existing prompt system has no conditional fragment inclusion based on config values. Rule fragments (in `rules/`) are included unconditionally via `PromptsConfig.Fragments`. Stage prompts (`stages/execute.md`) are loaded as raw markdown, not templates with conditional blocks.
+
+Rather than adding a conditional mechanism, scope instructions are injected through the **iteration context**. The daemon's `ContextBuilder.Build()` already composes per-task context that varies each iteration (task details, node state, AARs, etc.). When `parallel.enabled` is true, the context builder appends a scope acquisition section to the iteration context:
+
+```markdown
+## Parallel Execution: Scope Acquisition Required
+
+Before writing any code, declare the files you intend to modify:
+
+    wolfcastle task scope add --node {node} file1.go file2.go pkg/foo/
+
+List every file you plan to create or modify. Include directories (with trailing
+slash) when you expect to modify multiple files under a path. Be thorough: if you
+write to a file you did not scope, the daemon rejects your commit and the task fails.
+
+If the command fails with a scope conflict, another task is working on those files.
+Emit WOLFCASTLE_YIELD immediately. Do not attempt to work around the conflict.
+
+You may call `wolfcastle task scope add` again later if you discover additional files.
+If that second call fails, emit WOLFCASTLE_YIELD.
+```
+
+This approach requires no changes to `execute.md`, no new fragment mechanism, and no template conditionals. The context builder checks `d.Config.Daemon.Parallel.Enabled` and appends the section. When parallel is disabled, the section is absent and execution proceeds as today.
+
+### Phase ordering
+
+The existing execute.md phases are:
 
 ```
 A. Claim (daemon-owned)
+[Audit Tasks block - unlettered, replaces B-J for audit tasks]
 B. Study
 C. Implement
 D. Validate
 E. Record (AAR)
-F. Document (ADRs, Specs)
-G. Capture Knowledge
-H. Signal Completion
-I. Pre-block downstream
-J. Create follow-ups
+F. Document WHY (ADRs) and WHAT/HOW (Specs)
+G. Capture Codebase Knowledge
+H. Signal completion
+I. Pre-block downstream tasks
+J. Create follow-up tasks
 ```
 
-The new phase is inserted between Study and Implement:
+Scope acquisition happens between B (Study) and C (Implement). The agent reads the codebase in Study, then acquires scope based on what it learned, then implements. No change to `execute.md` is needed; the iteration context tells the agent to acquire scope after studying and before implementing.
 
-```
-A. Claim (daemon-owned)
-B. Study
-B2. Acquire Scope (new)
-C. Implement
-...
-```
-
-### Phase B2: Acquire Scope
-
-Added to `execute.md` only when `parallel.enabled` is true (via conditional prompt fragment or a separate fragment included when parallel is active):
-
-```markdown
-### B2. Acquire Scope
-
-Before writing any code, declare the files you intend to modify. Run:
-
-    wolfcastle task scope add --node <your-node> file1.go file2.go pkg/foo/
-
-List every file you plan to create or modify. Include directories (with trailing slash)
-when you expect to modify multiple files under a path. Be honest and thorough: if you
-write to a file you did not scope, the daemon will reject your work.
-
-If the command fails with a scope conflict, another task is working on those files.
-Do not attempt to work around the conflict. Emit WOLFCASTLE_YIELD immediately so the
-daemon can re-queue your task for later.
-
-You may call `wolfcastle task scope add` again later if you discover additional files
-you need. If that second call fails, yield. Do not write to files you have not scoped.
-```
-
-When `parallel.enabled` is false, this phase is omitted. The execute prompt is unchanged for serial execution.
-
-### Prompt fragment approach
-
-Rather than conditionally modifying `execute.md`, create a new prompt fragment:
-
-```
-prompts/fragments/parallel-scope.md
-```
-
-The daemon includes this fragment when `parallel.enabled` is true. This avoids modifying the core execute prompt and keeps the parallel behavior modular.
+Audit tasks skip scope acquisition entirely. Audits write only to `.wolfcastle/` via CLI commands, never to code files, so they have no scope conflicts.
 
 ## Daemon Changes
 
-### Worker pool
+### Shared mutable state
 
-Replace the serial claim-execute-wait loop with a worker pool.
+The `Daemon` struct has fields that are written during iteration without synchronization. With concurrent workers, these need protection:
+
+| Field | Current usage | Parallel fix |
+|-------|---------------|-------------|
+| `d.iteration` | Counter incremented each iteration | Use `atomic.Int64` |
+| `d.lastNoWorkMsg` | Dedup for "no work" log messages | Protect with `d.mu sync.Mutex`, or move to dispatcher |
+| `d.lastArchiveCheck` | Timestamp for archive throttling | Protect with `d.mu` |
+| `d.Logger` | Shared logger with per-iteration prefix | Each worker creates its own logger via `d.Logger.StartIterationWithPrefix(taskAddr)`. Workers do not share a logger instance. The parent logger must support concurrent `StartIterationWithPrefix` calls (create independent child loggers, not mutate the parent). |
+
+### Worker pool
 
 ```go
 // ParallelDispatcher manages concurrent task execution.
 type ParallelDispatcher struct {
-    daemon    *Daemon
-    workers   int
-    active    map[string]*WorkerSlot  // task address -> slot
-    mu        sync.Mutex
-    gitMu     sync.Mutex  // serializes git operations
-    results   chan WorkerResult
+    daemon     *Daemon
+    maxWorkers int
+    active     map[string]*WorkerSlot  // task address -> slot
+    mu         sync.Mutex
+    gitMu      sync.Mutex              // serializes all git operations
+    results    chan WorkerResult
+    blocked    map[string]string       // task address -> conflicting task address (yield backoff)
 }
 
 // WorkerSlot tracks a running task execution.
@@ -281,23 +295,48 @@ type WorkerResult struct {
 }
 ```
 
+The `blocked` map tracks which yielded tasks are waiting on which conflicting tasks. A yielded task is not eligible for re-dispatch until its blocking task completes and releases locks (see Yield Handling).
+
 ### Dispatch flow
 
-When `parallel.enabled` is true, `RunOnce` changes:
+When `parallel.enabled` is true, `RunOnce` changes to:
 
-1. Load root index.
-2. Reconcile orchestrator states (as today).
-3. Find actionable tasks via `FindParallelTasks` (see Navigation below).
-4. For each actionable task, if a worker slot is available:
-   a. Claim the task (transition to `in_progress`).
-   b. Launch a goroutine that runs the iteration (study, invoke, handle marker).
-   c. Register the goroutine in the active map.
-5. Wait for any worker to complete (read from results channel).
-6. Handle the result (propagate state, commit changes, release scope locks).
-7. Check if new siblings became available (a completed task may unblock the next one).
-8. Return `IterationDidWork` if any work was done, `IterationNoWork` if the pool is empty and no tasks are available.
+1. Check shutdown channel. *(preserved from serial)*
+2. Check stop file. *(preserved)*
+3. Check max iterations. *(preserved)*
+4. Verify branch hasn't changed. If changed, cancel all active workers and return `IterationStop`. *(preserved, extended)*
+5. Load root index. *(preserved)*
+6. `deliverPendingScope(idx)`. *(preserved)*
+7. `reconcileOrchestratorStates(idx)`. *(preserved)*
+8. **Drain completed workers.** Read all available results from the results channel (non-blocking). For each completed worker:
+   a. Handle the result (propagate state, commit scoped changes, release scope locks).
+   b. Remove from active map.
+   c. Clear any `blocked` entries that reference this task (unblock yielded siblings).
+9. **Fill worker slots.** Call `FindParallelTasks` to get actionable siblings (up to available slot count). For each:
+   a. Skip if the task is in the `blocked` map and its blocker is still active.
+   b. Claim the task (transition to `in_progress`).
+   c. Create a per-worker context via `context.WithCancel(ctx)`.
+   d. Launch a goroutine that runs the iteration (study, scope acquisition, invoke, handle marker).
+   e. Register in the active map and `runWg`.
+10. If no active workers and no tasks found:
+    a. Try `findPlanningTarget` and run planning. *(preserved)*
+    b. Try `tryAutoArchive`. *(preserved)*
+    c. Run `commitStateFlush`. *(preserved)*
+    d. Return `IterationNoWork`.
+11. If workers are active but no new tasks dispatched, return `IterationDidWork` (keep the Run loop alive to drain results next iteration).
 
-When `parallel.enabled` is false, the existing serial `RunOnce` is unchanged.
+Planning runs only when the worker pool is empty AND no actionable tasks exist. The daemon never plans while workers are active, because in-progress tasks may change the tree structure (creating subtasks, blocking, completing) and planning against a moving target produces stale plans.
+
+### IterationResult semantics
+
+The existing four values (`DidWork`, `NoWork`, `Stop`, `Error`) remain. The `Run` loop's handling:
+
+- `IterationDidWork`: call `RunOnce` again immediately (no sleep). This covers both "dispatched new workers" and "just draining active workers."
+- `IterationNoWork`: sleep on poll timeout or `workAvailable` channel. Only returned when the pool is empty AND no tasks/planning/archive work exists.
+- `IterationStop`: cancel all active workers, wait for `runWg`, return.
+- `IterationError`: cancel all active workers, wait, sleep, retry.
+
+If a single worker errors while others succeed, the dispatcher handles it per-worker (logs error, increments failure count, releases scope). The overall `RunOnce` returns `IterationDidWork` because work happened. `IterationError` is reserved for daemon-level failures (root index corruption, lock timeout on dispatch).
 
 ### Git commit serialization
 
@@ -305,33 +344,59 @@ All git operations go through `gitMu`. When a task completes:
 
 1. Acquire `gitMu`.
 2. Read the task's acquired scope from the scope lock table.
-3. Run `git add <file1> <file2> ...` (only scoped files, replacing `git add .`).
-4. If `commit_state` is enabled, also `git add .wolfcastle/`.
-5. Run `git commit` with the task-specific message.
-6. Release `gitMu`.
+3. Build the file list for `git add`:
+   - Start with the task's scoped files.
+   - If `commit_state` is true, add `.wolfcastle/` to the list.
+   - If `commit_state` is false, do not include `.wolfcastle/`.
+4. Run `git add <file1> <file2> ...` (only the files from step 3).
+5. Check `git status --porcelain` filtered to the staged files. If nothing is staged, skip the commit.
+6. Run `git commit` with the task-specific message.
+7. Release `gitMu`.
 
-If another task completes while `gitMu` is held, it waits. Git commits are fast (no network), so contention is brief.
+This replaces both the `git add .` and the `git reset HEAD -- .wolfcastle/` logic in the current `commitDirect`. The `CommitState` flag is handled at file-list construction time rather than as a post-add reset. When `parallel.enabled` is false, `commitDirect` receives `nil` as the scope and falls back to the current `git add .` behavior (with the existing `CommitState` reset logic unchanged).
+
+The `commitAfterIteration` function's pre-commit `git status` check must also be scope-aware: check for changes within the task's scoped files, not globally. Otherwise it sees other workers' changes and never triggers the "no changes" early return.
+
+### Scope validation at commit time
+
+After a task completes and the daemon prepares to commit:
+
+1. Read the task's acquired scope from the scope lock table.
+2. Run `git status --porcelain` to get all modified/untracked files.
+3. Partition the dirty files into "in scope" and "out of scope."
+4. If any code files (outside `.wolfcastle/`) are dirty and out of scope:
+   a. **The task fails.** The daemon logs the out-of-scope files, increments the failure count, and does not commit.
+   b. The scope locks are released.
+   c. The out-of-scope files remain in the working tree. They will be cleaned up by `git checkout -- <files>` to restore the working tree to a clean state for those files.
+   d. In-scope files are committed normally (the task did produce valid scoped work, just also wrote outside its scope).
+5. If no in-scope dirty files exist and HEAD has not moved from this task's commit, the `HasProgress` check fails (same as today).
+
+Out-of-scope writes are a task failure because silent exclusion produces commits that look complete but are missing files. The agent gets retried and can request a broader scope on the next attempt.
 
 ### HasProgress (scope-aware)
 
-`HasProgress` currently checks:
-- Did HEAD move?
-- Is the working tree dirty outside `.wolfcastle/`?
+The `git.Provider` interface gains a new method:
 
-With parallel execution, the working tree may be dirty from other running agents. The check changes to:
+```go
+type Provider interface {
+    // existing methods...
+    HasProgress(sinceCommit string) bool
+    HasProgressScoped(sinceCommit string, scopeFiles []string) bool
+}
+```
 
-- Did HEAD move? (still global, still valid: if any task committed since this one started, HEAD moved)
-- Are there uncommitted changes within this task's acquired scope?
+`HasProgressScoped` checks whether any of the `scopeFiles` are modified or untracked. It does not check HEAD movement, because in parallel mode, HEAD can move from a sibling's commit (false positive). The check is purely: "did this task produce changes within its declared scope?"
 
-The second check uses `git diff --name-only` filtered to the task's scoped files. If any scoped file is modified or untracked, there is progress.
+When `parallel.enabled` is false, the daemon continues calling `HasProgress` (unchanged). When true, it calls `HasProgressScoped` with the task's scope. Test stubs implementing `Provider` need the new method added (returns `true` by default for backwards compatibility).
 
 ### Scope lock release
 
-After committing a task's changes, the daemon releases all scope locks for that task:
+After committing (or failing) a task's changes:
 
 ```go
-func (d *ParallelDispatcher) releaseScope(taskAddr string) error {
-    return d.daemon.store.MutateScopeLocks(func(table *ScopeLockTable) {
+func (pd *ParallelDispatcher) releaseScope(taskAddr string) {
+    // MutateScopeLocks acquires namespace lock, reads/writes scope-locks.json
+    pd.daemon.store.MutateScopeLocks(func(table *ScopeLockTable) {
         for file, lock := range table.Locks {
             if lock.Task == taskAddr {
                 delete(table.Locks, file)
@@ -341,118 +406,100 @@ func (d *ParallelDispatcher) releaseScope(taskAddr string) error {
 }
 ```
 
-### Failure handling
+### Yield handling
 
-When a parallel task fails:
+Two kinds of yield exist in parallel mode:
 
-1. The daemon increments the failure count (as today).
-2. Scope locks for the failed task are released immediately.
-3. If decomposition is triggered, the new subtasks are created under the failed task's node. Since scope locks are released, sibling tasks are unaffected.
-4. Uncommitted changes from the failed task are committed as partial work (if `commit_on_failure` is true), scoped to the task's acquired files.
-5. Other running siblings continue uninterrupted.
+1. **Scope-conflict yield.** The agent called `wolfcastle task scope add`, got a conflict error, and emitted `WOLFCASTLE_YIELD`. The agent may or may not have done implementation work (it might have partially implemented before discovering it needs an additional file).
 
-When a parallel task yields (emits `WOLFCASTLE_YIELD`):
+2. **Normal yield.** The agent created subtasks and yielded, or made progress but needs another iteration. Same as today.
 
-1. Scope locks are released.
-2. The task transitions to `not_started` (or appropriate state for re-execution).
-3. Partial changes are committed if present.
-4. The task is eligible for re-dispatch in a future iteration (after conflicting siblings finish).
+Both types commit partial work (if `commit_on_failure` or `commit_on_success` is true, depending on whether a marker was emitted). Both release all scope locks.
+
+The distinction matters for re-dispatch:
+
+- **Scope-conflict yield**: the daemon records the conflicting task address in the `blocked` map. The yielded task is not eligible for re-dispatch until the blocking task completes and its locks are released. This prevents the hot-loop where a yielded task is immediately re-dispatched into the same conflict.
+- **Normal yield**: re-dispatch is immediate (next iteration). No backoff needed.
+
+A scope-conflict yield does NOT increment the task's failure count. The task did not fail; it was blocked by a sibling. The failure count is reserved for actual execution failures (no marker, build failures, etc.).
+
+When a yielded task is re-dispatched, it is a fresh model invocation. The agent sees the current codebase state, including its own partial work from the previous attempt (committed before yield) and any completed sibling work.
 
 ### Task cancellation
 
-If a running task needs to be cancelled (e.g., daemon shutdown, branch verification failure):
+If a running task needs to be cancelled (daemon shutdown, branch verification failure):
 
-1. The daemon cancels the task's context.
+1. Cancel the task's per-worker context (derived via `context.WithCancel` from the parent context).
 2. The model process receives SIGTERM (existing `ProcessInvoker` behavior via context cancellation).
-3. Scope locks are released on cancellation cleanup.
-4. Partial changes are either committed (if `commit_on_failure`) or left uncommitted.
+3. Scope locks are released in the worker's cleanup path.
+4. Partial changes are committed if `commit_on_failure` is true.
+5. The worker sends its result to the results channel and calls `runWg.Done()`.
 
-During daemon shutdown (SIGINT/SIGTERM), all active workers are cancelled. The daemon waits for all workers to exit (via `runWg.Wait()`) before cleanup.
+During daemon shutdown (SIGINT/SIGTERM), the parent context is cancelled, which cascades to all per-worker contexts. The `Run` function returns; `RunWithSupervisor` calls `runWg.Wait()` to ensure all workers exit before proceeding.
 
 ## Navigation Changes
 
 ### FindParallelTasks
 
-New function alongside `FindNextTask`:
-
 ```go
-// FindParallelTasks returns up to maxWorkers actionable tasks that are siblings
+// FindParallelTasks returns up to maxCount actionable tasks that are siblings
 // under the same orchestrator and eligible for parallel execution. Tasks are
 // returned in creation order. If no parallel-safe tasks exist, it falls back
 // to returning a single task (equivalent to FindNextTask).
-func FindParallelTasks(idx *RootIndex, store *Store, maxWorkers int) ([]TaskRef, error)
+func FindParallelTasks(
+    idx *RootIndex,
+    scopeAddr string,
+    loadNode func(addr string) (*NodeState, error),
+    maxCount int,
+) ([]*NavigationResult, error)
 ```
 
-**Algorithm:**
+The signature matches `FindNextTask`'s conventions: `loadNode` callback (not `*Store`), `scopeAddr` for subtree-scoped searches, and `*NavigationResult` return type (preserving `Description` and `Reason` fields used by the daemon for logging).
 
-1. Run the existing DFS to find the first actionable task (same as `FindNextTask`).
-2. If the task's parent is an orchestrator, scan the parent's other children for additional actionable tasks.
-3. A sibling is eligible if:
-   a. It is a leaf node (not an unplanned orchestrator).
-   b. Its state is `not_started` (no in-progress or blocked siblings are launched).
-   c. It has an actionable task (via `findActionableTask`).
-4. Return up to `maxWorkers` eligible tasks, in creation order.
+### Algorithm
 
-**Key constraint:** `FindParallelTasks` does NOT check scope disjointness. That's the executor's job via CLI scope commands. The daemon launches siblings optimistically; agents that discover scope conflicts yield immediately.
+`FindParallelTasks` cannot reuse the existing DFS directly. The serial DFS (`dfs` in `navigation.go`) stops at the first incomplete child that yields no actionable task (line 115: `return nil, nil`). When a sibling is `in_progress` (claimed by another worker), the serial DFS sees it as incomplete-with-no-actionable-task and stops, preventing later siblings from being considered.
 
-**Unplanned orchestrator rule:** The existing rule ("stop at unplanned orchestrators") is preserved. If sibling B is an unplanned orchestrator, siblings C, D, E after it are not eligible for parallel launch. Planning for B must happen first. Siblings before B in creation order are eligible.
+The parallel variant needs a modified traversal:
 
-### TaskRef
+1. **Find the first actionable task** using the existing `FindNextTask` logic. If nothing is found, return empty (the daemon will try planning).
+2. **Identify the parent orchestrator.** Look up the task's node in the root index; find its `Parent` field.
+3. **If no parent** (root-level node), return just the single task. Cross-orchestrator parallelism is out of scope.
+4. **Load the parent's node state** and iterate its `Children` array.
+5. **For each sibling** (other children of the same orchestrator):
+   a. Skip if the sibling's state in the index is `complete` or `blocked`.
+   b. Skip if the sibling is an orchestrator that needs planning (has no children). The unplanned-orchestrator stopping rule is preserved: siblings created after an unplanned orchestrator are not eligible.
+   c. Skip if the sibling is already `in_progress` (claimed by another worker).
+   d. Load the sibling's node state and call `findActionableTask` on it.
+   e. If an actionable task is found, add it to the result set.
+   f. Stop when the result set reaches `maxCount`.
+6. **Return the results** in creation order (Children array order).
 
-```go
-// TaskRef identifies a specific task within the tree, returned by navigation.
-type TaskRef struct {
-    NodeAddress string
-    TaskID      string
-}
-```
+The key difference from serial DFS: step 5c **skips** in-progress siblings instead of **stopping** at them. Serial execution stops because it assumes ordered dependencies. Parallel execution skips because it assumes independence (enforced later by scope locks, not by traversal order).
+
+The unplanned-orchestrator rule (step 5b) is preserved. If sibling B is an unplanned orchestrator, siblings C, D, E after it in the Children array are not eligible. Planning for B must happen first. Siblings A (before B) that are `not_started` are eligible.
 
 ## State Mutation Concurrency
 
-### Current model
+### Locking model
 
-A single namespace file lock serializes all state mutations. `MutateNode` acquires the lock, reads, applies, writes, propagates up, saves root index, releases.
+The existing single namespace file lock remains the serialization point. Every `MutateNode`, `MutateIndex`, `MutateInbox`, and `MutateScopeLocks` call acquires the same lock. No per-node locks are introduced in this version.
 
-### Parallel model
+With parallel workers, lock contention increases but remains bounded. Each mutation acquires the lock, performs I/O (read node, apply, write node, read ancestors, recompute, write ancestors, update root index), and releases. The `Propagate` function walks the ancestor chain twice (once to propagate state upward via `PropagateUp`, once to update index entries), roughly doubling the file I/O under a single lock hold compared to a bare mutation. For a node at depth 3 (typical), this is approximately 12 file operations. At local filesystem speeds, this completes in under 50ms.
 
-The namespace lock remains the serialization point. Parallel tasks mutate state (via CLI commands like `wolfcastle task complete`) through the same lock. Since CLI mutations are fast (read JSON, apply, write JSON), lock contention is acceptable even with multiple concurrent tasks.
-
-Propagation walks up the parent chain under the same lock hold. Two siblings completing simultaneously serialize on the namespace lock. The second propagation re-reads the parent (which now reflects the first sibling's completion) and recomputes correctly.
-
-No change to the locking model is needed for the first version. Per-node locks are a future optimization if contention becomes measurable.
+With 3 workers completing simultaneously, the worst case is 3 sequential lock holds totaling approximately 150ms. Well within the 5-second lock timeout.
 
 ### Invariant preservation
 
-- **Parent state derivation.** Propagation always re-reads the parent before recomputing. Two concurrent propagations serialize on the lock, so each sees the other's changes. The final parent state is correct.
-- **Root index consistency.** The root index is updated inside the namespace lock, after propagation. No concurrent writer can see a stale index.
-- **Scope lock table consistency.** The scope lock table is protected by the same namespace lock. Scope acquisitions and releases serialize correctly.
-
-## Scope Validation at Commit Time
-
-After a task completes and the daemon prepares to commit:
-
-1. Read the task's acquired scope from the scope lock table.
-2. Run `git status --porcelain` to get all modified/untracked files.
-3. Partition the dirty files into "in scope" and "out of scope" relative to the task's locks.
-4. If any code files (outside `.wolfcastle/`) are dirty and out of scope:
-   a. Log a warning identifying the out-of-scope files.
-   b. Do NOT stage or commit the out-of-scope files. They belong to another running task or are unexpected.
-   c. The task's commit includes only its scoped files (plus `.wolfcastle/` state if `commit_state` is true).
-5. If the task has no in-scope dirty files and no HEAD movement, the `HasProgress` check fails and the task is treated as a no-progress failure (same as today).
-
-Out-of-scope writes are not automatically a task failure. The agent may have read a file outside its scope (fine) or written to an unexpected location (the commit simply won't include it). The primary enforcement is positive: only scoped files are committed. Unscoped writes are orphaned in the working tree and will be attributed to the next task that scopes them, or cleaned up by the daemon.
+- **Parent state derivation.** Propagation re-reads the parent from disk inside the lock. Two concurrent propagations serialize on the namespace lock, so each sees the other's changes. The final parent state is correct.
+- **Root index consistency.** Updated inside the namespace lock, after propagation.
+- **Scope lock table consistency.** Protected by the same namespace lock.
 
 ## Status and Observability
 
 ### `wolfcastle status` changes
 
-When parallel execution is active, `wolfcastle status` shows:
-
-- The number of active workers and their tasks.
-- Scope locks held by each running task.
-- Worker pool capacity (active/max).
-
-Example output:
+When parallel execution is active:
 
 ```
 Workers: 2/3 active
@@ -462,74 +509,80 @@ Workers: 2/3 active
 
   my-project/database/task-0001 [in_progress]
     scope: internal/db/
+
+Yielded (waiting on scope):
+  my-project/auth/task-0001 -> blocked by my-project/api-layer/task-0001
 ```
 
 ### Logging
 
-Each worker logs with a task-scoped prefix so log lines from concurrent executions can be distinguished:
+Each worker logs with a task-scoped prefix. The NDJSON log format already includes node and task fields; no structural change needed. The parent `Logger` must support concurrent child logger creation (each worker calls `StartIterationWithPrefix` independently to get its own child logger).
 
-```
-[api-layer/task-0001] invoking model (execute stage)
-[database/task-0001] invoking model (execute stage)
-[api-layer/task-0001] marker detected: WOLFCASTLE_COMPLETE
-```
+### Commit ordering
 
-The NDJSON log format already includes node and task fields. No structural change needed.
+Commit order may not match task creation order. Sibling B may commit before sibling A if B finishes first. This is expected. Audit tasks and state propagation use task metadata (state files), not git commit ordering, so correctness is unaffected. The commit message includes the task address and ID for traceability.
 
 ## Interaction with Existing Features
 
 ### Inbox processing
 
-The inbox goroutine runs independently and is unaffected by parallel execution. Inbox intake acquires its own lock and does not conflict with parallel task execution.
+The inbox goroutine runs independently and is unaffected. Inbox intake acquires its own lock and does not conflict with parallel task execution.
 
 ### Planning passes
 
-Planning runs when no actionable tasks exist (or when an orchestrator needs planning). With parallel execution, planning runs when the worker pool is empty and no tasks are available. If workers are active, the daemon waits for at least one to complete before checking for planning opportunities. Planning does not run concurrently with task execution.
+Planning runs only when the worker pool is empty AND no actionable tasks exist. The trigger is explicitly gated: if `len(dispatcher.active) > 0`, skip planning. This prevents planning against a tree that is actively being modified by running workers.
+
+When planning creates new children, those children become available for dispatch in the next `RunOnce` call. The pool fills in step 9 of the dispatch flow.
 
 ### Auto-archive
 
-Auto-archive runs when the pool is empty and no tasks or planning are needed (same trigger as today). No change.
+Runs when the pool is empty and no tasks or planning are needed (same trigger as today).
 
 ### Branch verification
 
-Branch verification runs at the start of each `RunOnce` call, before dispatching workers. If the branch changed, all active workers are cancelled and the daemon stops. No change to the verification logic itself.
+Runs at the start of each `RunOnce`, before draining results or dispatching workers. If the branch changed, all active workers are cancelled (via context cancellation) and the daemon returns `IterationStop`.
 
 ### Commit state flush
 
-`commitStateFlush` runs when the daemon goes idle (no active workers, no tasks, no planning). It acquires `gitMu` and commits any pending `.wolfcastle/` state. No change to the trigger or behavior.
+`commitStateFlush` runs when the daemon goes idle (no active workers, no tasks, no planning). It acquires `gitMu` and commits any pending `.wolfcastle/` state changes. No change to the trigger or behavior.
 
 ## Rollout
 
 ### Phase 1: Scope lock infrastructure
-- Add `ScopeLockTable` type and file I/O.
-- Implement `wolfcastle task scope add/list/release` CLI commands.
-- Add stale lock cleanup to `selfHeal`.
+- Add `ScopeLockTable` type and `MutateScopeLocks` to `Store`.
+- Implement `wolfcastle task scope add/list/release` CLI commands in `cmd/task/`.
+- Add `ParallelConfig` to `DaemonConfig` and `config.Defaults()`. Add validation.
+- Add stale lock cleanup to `selfHeal` (export or duplicate PID liveness check from `internal/state/filelock.go`).
 - Add scope lock display to `wolfcastle status`.
 - No daemon dispatch changes. Parallel is not yet enabled.
 - All tests remain serial.
 
 ### Phase 2: Scope-aware git
-- Modify `commitDirect` to accept a file list (scope) instead of using `git add .`.
-- Modify `HasProgress` to check scope-filtered dirtiness.
-- Add `gitMu` for commit serialization.
-- When `parallel.enabled` is false, `commitDirect` receives `nil` scope and falls back to `git add .` (current behavior).
+- Add `HasProgressScoped` to `git.Provider` interface and `git.Service` implementation.
+- Modify `commitDirect` to accept an optional file list (scope). When non-nil, use `git add <files>` and skip the `CommitState` reset logic (handled at file-list construction time). When nil, fall back to current `git add .` behavior.
+- Modify `commitAfterIteration` to pass scope-filtered status checks.
+- Add `gitMu` to daemon for commit serialization.
+- Update test stubs implementing `git.Provider`.
 
 ### Phase 3: Parallel dispatch
-- Add `ParallelDispatcher` and worker pool.
-- Add `FindParallelTasks` to navigation.
+- Add `ParallelDispatcher` with worker pool, active map, blocked map, results channel.
+- Protect shared `Daemon` fields: `atomic.Int64` for `d.iteration`, `sync.Mutex` for `d.lastNoWorkMsg` and `d.lastArchiveCheck`.
+- Add `FindParallelTasks` to navigation with the relaxed sibling scanning algorithm.
 - Modify `RunOnce` to use the dispatcher when `parallel.enabled` is true.
-- Add parallel-scope prompt fragment.
+- Add scope acquisition instructions to `ContextBuilder.Build()` (conditional on config).
+- Ensure `Logger.StartIterationWithPrefix` supports concurrent child creation.
 - Integration tests with concurrent model invocations.
 
 ### Phase 4: Observability and hardening
 - Worker status in `wolfcastle status`.
-- Scope conflict logging and metrics.
-- Failure mode testing (scope violations, concurrent propagation, worker cancellation).
-- Documentation updates (human docs, agent docs).
+- Scope conflict logging and yield backoff tracking.
+- Failure mode testing: scope violations, concurrent propagation, worker cancellation, yield livelock prevention.
+- Documentation updates (human docs, agent docs, AGENTS.md).
 
 ## What This Does Not Cover
 
-- **Dependency edges between siblings.** Siblings are assumed independent when their file scopes are disjoint. Semantic dependencies (one creates a function, another calls it) are caught by build validation after commit, not by the scope system. Explicit dependency declarations are a future enhancement.
-- **Cross-orchestrator parallelism.** Only siblings under the same orchestrator are parallelized. Independent subtrees under different orchestrators execute serially (depth-first tree traversal is preserved).
+- **Dependency edges between siblings.** Siblings are assumed independent when their file scopes are disjoint. Semantic dependencies (one creates a function, another calls it) are caught by build validation after commit and by the audit task. Explicit dependency declarations are a future enhancement.
+- **Cross-orchestrator parallelism.** Only siblings under the same orchestrator are parallelized. Independent subtrees under different orchestrators execute serially (depth-first tree traversal is preserved across orchestrator boundaries).
 - **Dynamic worker scaling.** The worker count is static per config. Adaptive scaling based on API rate limits or system load is out of scope.
-- **Distributed execution.** All workers run on the same machine, in the same worktree, managed by the same daemon process. Multi-machine parallelism is a different architecture.
+- **Distributed execution.** All workers run on the same machine, in the same worktree, managed by the same daemon process.
+- **Working tree cleanup.** Out-of-scope writes from failed tasks are reverted via `git checkout -- <files>`. Untracked stray files from other sources are not cleaned up automatically. Working tree hygiene beyond scope validation is a future concern.

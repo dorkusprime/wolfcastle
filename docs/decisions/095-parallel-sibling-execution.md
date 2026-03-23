@@ -58,7 +58,7 @@ The parallelism model:
 
 ### What changes
 
-- **DaemonConfig** gains `parallel.enabled` (bool, default false) and `parallel.max_workers` (int, default 1). Serial execution is the default; parallelism is opt-in.
+- **DaemonConfig** gains `parallel.enabled` (bool, default false) and `parallel.max_workers` (int, default 3). Serial execution is the default; parallelism is opt-in.
 - **Execute prompt** gains a scoping phase between Study and Implement (Phase B.5 or a renamed phase). The agent calls `wolfcastle task scope add` with the files it intends to modify.
 - **New CLI commands**: `wolfcastle task scope add`, `wolfcastle task scope list`, `wolfcastle task scope release`.
 - **New state**: a scope lock table (per-namespace, ephemeral) mapping file paths to running task addresses.
@@ -66,7 +66,7 @@ The parallelism model:
 - **Daemon loop**: the run loop changes from claim-execute-wait to a worker pool model. The main loop fills the pool; workers execute and report results.
 - **commitDirect**: changes from `git add .` to `git add <files>` based on the completing task's scope. Sequential commit serialization via a git mutex.
 - **HasProgress**: checks dirtiness within the task's scope, not globally.
-- **State locking**: per-node lock files replace the single namespace lock, with parent-chain propagation acquiring locks upward.
+- **State locking**: the existing namespace lock remains the serialization point. Per-node locks are a future optimization if contention becomes measurable.
 
 ### What stays the same
 
@@ -80,9 +80,10 @@ The parallelism model:
 ### Risks
 
 - **Scope prediction accuracy.** If an agent declares too narrow a scope, it writes outside its locks and the task fails at commit validation. The agent gets retried and can request a broader scope. This wastes one invocation per scope miss.
-- **Thundering herd on parent lock.** Multiple siblings completing simultaneously all propagate to the same parent, serializing on the parent's lock. Acceptable because propagation is a fast JSON recompute, but worth monitoring.
+- **Thundering herd on namespace lock.** Multiple siblings completing simultaneously all propagate through the same namespace lock. Acceptable because propagation is a fast JSON recompute (read ancestors, update, write), but worth monitoring. The lock hold time includes the full ancestor walk (loading and saving each ancestor in the parent chain), so deep trees amplify contention.
 - **Semantic dependencies.** Two siblings with disjoint file scopes can still have semantic dependencies (one creates a function, the other calls it). Scope locks don't catch this. Build validation after commit catches some cases; the audit task catches others. For the first version, this is an accepted limitation.
 - **Worker starvation.** If all workers are occupied and one task is slow, the daemon can't start new work. The worker limit is configurable to tune this.
+- **Yield livelock.** A yielded task re-dispatched immediately can conflict with a newly-launched sibling and yield again, burning invocations. The daemon suppresses re-dispatch of yielded tasks until the conflicting task's locks are released (see spec for yield backoff).
 
 ### Migration
 
