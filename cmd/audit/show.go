@@ -3,12 +3,10 @@ package audit
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -31,12 +29,10 @@ Examples:
 				return fmt.Errorf("--node is required: specify the node to inspect")
 			}
 
-			addr, err := tree.ParseAddress(nodeAddr)
+			statePath, err := app.State.NodePath(nodeAddr)
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
-			statePath := filepath.Join(app.State.Dir(), filepath.Join(addr.Parts...), "state.json")
-
 			ns, err := state.LoadNodeState(statePath)
 			if err != nil {
 				return fmt.Errorf("loading node state: %w", err)
