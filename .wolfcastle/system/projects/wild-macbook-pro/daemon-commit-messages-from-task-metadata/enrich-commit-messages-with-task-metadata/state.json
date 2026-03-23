@@ -3,7 +3,7 @@
   "id": "enrich-commit-messages-with-task-metadata",
   "name": "Enrich Commit Messages with Task Metadata",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -51,7 +51,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Enrich Commit Messages with Task Metadata is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -85,8 +85,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-23T03:06:17.184782Z",
+    "completed_at": "2026-03-23T03:16:25.357384Z",
     "result_summary": "This node enriched daemon commit messages with task metadata. Task-0001 introduced a taskCommitMeta struct and three helper functions (buildCommitSubject, buildCommitBody, extractTaskCommitMeta) that construct structured commit messages from task title, class, deliverables, breadcrumbs, and failure type. The refactor preserves full backward compatibility via empty-title fallback paths. Task-0002 added 6 table-driven integration tests covering all formatting scenarios plus a fullCommitMessage helper. Audit found and fixed minor gofmt alignment issues; no correctness, safety, or architectural concerns."
   },
   "aars": {

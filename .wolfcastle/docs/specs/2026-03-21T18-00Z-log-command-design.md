@@ -128,9 +128,11 @@ Records missing from the current NDJSON schema should be added to the logging pa
 
 ## Non-Daemon Mode
 
-When wolfcastle runs in non-daemon mode (e.g., `wolfcastle execute`, `wolfcastle intake`), the output to stdout should match the interleaved format: stage headers with timestamps, glyphs, and agent output indented below, streaming in real time.
+When wolfcastle runs in non-daemon (foreground) mode (e.g., `wolfcastle execute`, `wolfcastle intake`), the default renderer is summary: one line per completed stage, matching the format described in the Summary section above. This keeps foreground output compact by default, showing progress without flooding the terminal with agent thoughts.
 
-The daemon itself doesn't format this output. It writes NDJSON to the log file as usual, and a goroutine tails that file and renders the interleaved view to stdout. The rendering logic is shared with `wolfcastle log --interleaved`, so the display code exists in one place.
+Foreground mode accepts the same output-mode flags as `wolfcastle log`: `--thoughts`, `--interleaved`, and `--json`. These flags follow the same last-wins semantics described in the Flags section. If no output-mode flag is passed, summary is the default.
+
+The daemon itself does not format this output. It writes NDJSON to the log file as usual, and a goroutine tails that file and renders the selected view to stdout. The rendering logic is shared with `wolfcastle log`, so the display code for each mode exists in one place.
 
 ## What This Does Not Cover
 

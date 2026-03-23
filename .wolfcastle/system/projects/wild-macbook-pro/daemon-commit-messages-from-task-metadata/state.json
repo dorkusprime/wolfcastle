@@ -3,7 +3,7 @@
   "id": "daemon-commit-messages-from-task-metadata",
   "name": "Daemon Commit Messages from Task Metadata",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -14,7 +14,7 @@
     {
       "id": "enrich-commit-messages-with-task-metadata",
       "address": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -34,6 +34,8 @@
     "Failure commits include (attempt N) in subject and failure type in body",
     "All existing tests pass and new tests cover the enriched message format"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-23T03:04:17.309872Z",

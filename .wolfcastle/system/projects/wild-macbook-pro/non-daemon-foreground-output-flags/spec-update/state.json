@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "id": "spec-update",
+  "name": "Spec Update",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update Non-Daemon Mode section in log-command-design spec",
+      "description": "Update Non-Daemon Mode section in log-command-design spec",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ],
+      "body": "The existing log-command-design spec (2026-03-21T18-00Z) has a Non-Daemon Mode section (lines 129-133) that says non-daemon output 'should match the interleaved format.' This contradicts the new requirement: foreground mode should default to summary and accept the same flags as wolfcastle log. Update that section to:\n1. State that the default renderer is summary (one line per completed stage).\n2. Document that --thoughts, --interleaved, and --json flags are accepted with the same last-wins semantics as wolfcastle log.\n3. Keep the architectural point that rendering is done by a goroutine tailing the NDJSON log file, sharing renderers with wolfcastle log.\n4. Remove or correct any statement that says interleaved is the default for non-daemon mode.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Non-Daemon Mode section says foreground defaults to summary",
+        " not interleaved",
+        "Section documents that foreground mode accepts --thoughts",
+        " --interleaved",
+        " --json flags with same semantics as wolfcastle log",
+        "No contradictions remain between Non-Daemon Mode section and the new behavior"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Spec Update is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify the Non-Daemon Mode section no longer says interleaved is the default",
+    "Verify the spec documents --thoughts, --interleaved, --json flag acceptance in foreground mode"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-23T03:20:31.640387Z",
+        "task": "non-daemon-foreground-output-flags/spec-update",
+        "text": "Updated Non-Daemon Mode section in log-command-design spec: changed default renderer from interleaved to summary, documented --thoughts/--interleaved/--json flag support with last-wins semantics, preserved goroutine-tailing architecture point"
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-23T03:19:59.416679Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-23T03:20:37.083976Z",
+      "objective": "Update the Non-Daemon Mode section of the log-command-design spec to reflect that foreground mode defaults to summary, not interleaved",
+      "what_happened": "Rewrote lines 129-133 of 2026-03-21T18-00Z-log-command-design.md. Replaced the single paragraph claiming interleaved was the default with three paragraphs: (1) summary as default renderer, (2) flag support with last-wins semantics, (3) goroutine-tailing architecture preserved. Verified no other mentions of interleaved-as-default remain in the spec.",
+      "went_well": [
+        "Clean edit with no ripple effects elsewhere in the document"
+      ],
+      "improvements": [
+        "None identified for this scope"
+      ],
+      "action_items": [
+        "Implementation tasks for the foreground renderer flags should reference this updated spec section for behavioral requirements"
+      ]
+    }
+  }
+}

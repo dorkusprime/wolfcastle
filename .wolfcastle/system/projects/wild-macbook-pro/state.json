@@ -195,7 +195,7 @@
     "daemon-commit-messages-from-task-metadata": {
       "name": "Daemon Commit Messages from Task Metadata",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "daemon-commit-messages-from-task-metadata",
       "decomposition_depth": 0,
       "children": [
@@ -214,7 +214,7 @@
     "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata": {
       "name": "Enrich Commit Messages with Task Metadata",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
       "decomposition_depth": 0,
       "parent": "daemon-commit-messages-from-task-metadata"
@@ -596,9 +596,29 @@
     "non-daemon-foreground-output-flags": {
       "name": "Non-Daemon Foreground Output Flags",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "non-daemon-foreground-output-flags",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "non-daemon-foreground-output-flags/spec-update",
+        "non-daemon-foreground-output-flags/foreground-renderer-flags"
+      ]
+    },
+    "non-daemon-foreground-output-flags/foreground-renderer-flags": {
+      "name": "Foreground Renderer Flags",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "non-daemon-foreground-output-flags/foreground-renderer-flags",
+      "decomposition_depth": 0,
+      "parent": "non-daemon-foreground-output-flags"
+    },
+    "non-daemon-foreground-output-flags/spec-update": {
+      "name": "Spec Update",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "non-daemon-foreground-output-flags/spec-update",
+      "decomposition_depth": 0,
+      "parent": "non-daemon-foreground-output-flags"
     },
     "structured-timing-metrics-in-log-events": {
       "name": "Structured Timing Metrics in Log Events",

@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "foreground-renderer-flags",
+  "name": "Foreground Renderer Flags",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add output mode flags to start command and wire renderer dispatch",
+      "description": "Add output mode flags to start command and wire renderer dispatch",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/start.go",
+        "cmd/daemon/register.go"
+      ],
+      "body": "In register.go, call registerModeFlags(startCmd, \u0026mode) where mode is a package-level or closure-scoped outputMode variable defaulting to modeSummary. The mode variable must be accessible from start.go's RunE.\n\nIn start.go, replace the hardcoded InterleavedRenderer block (lines 154-165) with a switch on mode:\n- modeSummary: logrender.NewSummaryRenderer(os.Stdout).Follow(ctx, records)\n- modeThoughts: logrender.NewThoughtsRenderer(os.Stdout).Render(ctx, records)\n- modeInterleaved: logrender.NewInterleavedRenderer(os.Stdout).Render(ctx, records)\n- modeJSON: marshal each record from the channel to JSON and write to stdout\n\nThe mode variable needs to flow from flag registration in register.go to the RunE closure in start.go. Options: (a) make newStartCmd accept a *outputMode parameter, (b) use a closure in register.go, or (c) register flags inside newStartCmd. Option (c) matches how newLogCmd handles it (mode declared at the top of newLogCmd, registerModeFlags called on cmd inside newLogCmd). Follow the same pattern: declare mode inside newStartCmd and call registerModeFlags there.\n\nWhen -d is passed, the mode flags should have no effect (background mode redirects to daemon.log and never renders to stdout).",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "registerModeFlags is called on startCmd in register.go",
+        "start.go foreground path dispatches to SummaryRenderer",
+        " ThoughtsRenderer",
+        " InterleavedRenderer",
+        " or JSON based on mode flag",
+        "Default mode is modeSummary (not modeInterleaved)",
+        "SummaryRenderer uses Follow method (not Replay) since foreground is live",
+        "Mode flags are only effective in foreground mode; they are ignored when -d is passed",
+        "Code compiles with go build ./..."
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Add tests for foreground output mode flag wiring",
+      "description": "Add tests for foreground output mode flag wiring",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/start_test.go"
+      ],
+      "body": "Write table-driven tests for the output mode flag parsing on the start command. The test should:\n1. Create a startCmd via newStartCmd (or the registered command) with various flag combinations.\n2. Parse the flags using cmd.ParseFlags or cmd.SetArgs and verify the mode variable is set correctly.\n3. Test last-wins semantics: passing multiple mode flags should result in the last one taking effect.\n\nIf the mode variable is scoped inside newStartCmd, the test may need to verify behavior indirectly (e.g., by checking that the flags are registered on the command, or by testing a helper function that maps mode to renderer). Follow the same testing approach used for the log command's mode flags if tests exist in follow_test.go.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Test verifies default mode is modeSummary when no output flags passed",
+        "Test verifies --thoughts sets modeThoughts",
+        "Test verifies --interleaved sets modeInterleaved",
+        "Test verifies --json sets modeJSON",
+        "Test verifies last-wins semantics (--thoughts --interleaved results in modeInterleaved)",
+        "Coverage of modified code in start.go and register.go exceeds 90%"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Foreground Renderer Flags is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify registerModeFlags is called on startCmd, not just logCmd",
+    "Verify the foreground goroutine dispatches to SummaryRenderer.Follow by default (not InterleavedRenderer)",
+    "Verify mode flags have no effect when -d (background) is passed",
+    "Run go test ./cmd/daemon/... and verify tests pass"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}
