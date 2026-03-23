@@ -2,6 +2,12 @@
 
 When the codebase you're working in has established conventions that differ from what's described here, follow the codebase.
 
+## Standard
+
+C23 (ISO/IEC 9899:2024) is the current standard. GCC 15 made C23 the default dialect and has essentially feature-complete support. Clang 19+ supports most C23 features. Prefer `-std=c23` (or `-std=gnu23` for GNU extensions) when the project's toolchain supports it. Fall back to `-std=c17` for older compilers.
+
+C23 adds `nullptr` and `nullptr_t` (prefer these over `NULL`), `constexpr` for compile-time object definitions, `typeof` and `typeof_unqual` for type inference, `auto` for object type inference, `_BitInt(N)` for bit-precise integers, and `#embed` for including binary resources directly in source. `bool`, `true`, and `false` are keywords, no longer requiring `<stdbool.h>`. Adopt these when your minimum compiler version supports them.
+
 ## Style
 
 Prefer explicit memory management with clear ownership semantics. Every `malloc`, `calloc`, or `realloc` should have a single, obvious corresponding `free`. Document which function owns allocated memory and which callers are responsible for freeing it.
@@ -16,7 +22,7 @@ Prefer `static` for file-scoped functions and variables. Internal linkage preven
 
 Prefer `size_t` for array indices, buffer lengths, and loop counters that interact with memory sizes. Signed/unsigned comparison mismatches are a persistent source of bugs.
 
-Prefer `enum` or `#define` constants over magic numbers. Named constants make intent clear and centralize changes.
+Prefer `enum` or `constexpr` constants over magic numbers. In C23, `constexpr` object definitions replace many uses of `#define` for named constants. In pre-C23 code, `enum` or `#define` constants serve the same purpose.
 
 Prefer `typedef struct { ... } FooBar;` or a project-consistent struct naming convention. Whichever the codebase uses, match it.
 
@@ -28,11 +34,11 @@ Prefer compiling with warnings enabled: `-Wall -Wextra -Wpedantic` for GCC and C
 
 Prefer `clang-format` for code formatting. Check for a `.clang-format` file in the project root. Run it before committing.
 
-Prefer AddressSanitizer (`-fsanitize=address`) and UndefinedBehaviorSanitizer (`-fsanitize=undefined`) during development and testing. They catch buffer overflows, use-after-free, signed overflow, and null dereference at runtime with low overhead.
+Prefer AddressSanitizer (`-fsanitize=address`) and UndefinedBehaviorSanitizer (`-fsanitize=undefined`) during development and testing. They catch buffer overflows, use-after-free, signed overflow, and null dereference at runtime with low overhead. ThreadSanitizer (`-fsanitize=thread`) catches data races in multithreaded code. MemorySanitizer (`-fsanitize=memory`, Clang only) catches reads of uninitialized memory. Combine sanitizers with static analysis for the best coverage.
 
 Prefer Valgrind (`valgrind --leak-check=full`) for detecting memory leaks and invalid memory access when sanitizers are not available or when you need a second opinion.
 
-Prefer `cppcheck` or `clang-tidy` for static analysis when the project includes them. They catch bugs that the compiler and sanitizers miss (dead code, resource leaks, suspicious logic).
+Prefer `clang-tidy` for static analysis. It catches bugs the compiler and sanitizers miss (use-after-free patterns, resource leaks, suspicious logic, modernization opportunities). `cppcheck` is a useful supplement when the project includes it in CI.
 
 ## Testing
 
@@ -68,4 +74,4 @@ Missing include guards cause duplicate definition errors and subtle ODR violatio
 
 POSIX portability varies across platforms. Prefer POSIX.1-2008 interfaces when possible, check `_POSIX_C_SOURCE` feature test macros, and avoid platform-specific extensions (GNU, BSD) unless the project explicitly targets a single platform.
 
-Implicit function declarations (calling a function without a visible prototype) were removed in C99 but some compilers still allow them by default. Prefer compiling with `-std=c17` or later and `-Wpedantic` to catch these. C23 is the current standard; adopt it when compiler support in the project's toolchain is sufficient. A missing prototype means the compiler assumes the function returns `int` and accepts any arguments, which can silently corrupt the stack.
+Implicit function declarations (calling a function without a visible prototype) were removed in C99 and are an error in C23. Prefer compiling with `-std=c23` or `-std=c17` and `-Wpedantic` to catch these. A missing prototype means the compiler assumes the function returns `int` and accepts any arguments, which can silently corrupt the stack.
