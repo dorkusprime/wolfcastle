@@ -47,13 +47,13 @@ Tests run on `ubuntu-latest` only. Cross-compilation to darwin and windows is ve
 
 Steps in order:
 
-1. **Checkout**: `actions/checkout@v4`
-2. **Setup Go**: `actions/setup-go@v5` with the matrix Go version
+1. **Checkout**: `actions/checkout@v6` (with `fetch-depth: 0`)
+2. **Setup Go**: `actions/setup-go@v6` with the matrix Go version
 3. **Build**: `go build -trimpath ./...`
 4. **Vet**: `go vet ./...`
 5. **Format check**: fails if any file is unformatted
 6. **Unit tests**: `go test -race -coverprofile=coverage.out ./...`
-7. **Upload coverage**: artifact upload for coverage.out (stable Go version only)
+7. **Upload coverage**: Codecov upload via `codecov/codecov-action@v5` (stable Go version only, requires `CODECOV_TOKEN` secret)
 
 ### Job: `cross-compile`
 
@@ -73,7 +73,9 @@ Runs smoke tests with the `smoke` build tag: `go test -tags smoke -v ./test/smok
 
 ### Job: `integration-tests`
 
-Runs integration tests with the `integration` build tag: `go test -tags integration -v -timeout 120s ./test/integration/...`
+Runs integration tests with the `integration` build tag: `go test -tags integration -short -v -timeout 300s ./test/integration/...`
+
+The `-short` flag skips long-running live daemon tests in CI, running only the structural integration tests. The timeout is 300s to accommodate the full integration suite.
 
 ### Job: `lint`
 
@@ -81,7 +83,11 @@ Runs in parallel with `build-and-test`:
 
 1. **Checkout**
 2. **Setup Go**
-3. **golangci-lint**: `golangci/golangci-lint-action@v6` with version pinned in the workflow
+3. **golangci-lint**: `golangci/golangci-lint-action@v7` with version pinned to `v2.11.3`
+
+### Job: `govulncheck`
+
+Runs Go vulnerability scanning: `govulncheck ./...`. Installs the latest `govulncheck` via `go install` before running.
 
 ### Quality Gates
 
@@ -97,6 +103,7 @@ All of the following must pass for a PR to be mergeable:
 | Integration tests | All pass |
 | Lint | golangci-lint exits 0 |
 | Cross-compile | All target platforms compile |
+| Vulnerability scan | `govulncheck` exits 0 |
 
 ### Performance Target
 

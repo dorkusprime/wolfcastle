@@ -44,6 +44,8 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
 | `unblock` | Yes | Yes | Yes | |
 | `overlap_advisory` | Yes | Yes | Yes | Enabled by default in team config; can be disabled in local config |
 | `audit` | Yes | Yes | Yes | Codebase audit command configuration (ADR-029) |
+| `archive` | Yes | Yes | Yes | Automatic archival of completed nodes |
+| `knowledge` | Yes | Yes | Yes | Codebase knowledge file settings |
 
 `identity` is the only field restricted to `local/config.json`. All other fields may appear in any tier.
 
@@ -144,6 +146,37 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
           "items": { "type": "string" },
           "description": "Execution order of pipeline stages. Each entry must name a key in stages. If omitted, stage keys are sorted alphabetically.",
           "default": ["intake", "execute"]
+        },
+        "planning": {
+          "type": "object",
+          "description": "Orchestrator planning pass configuration. Controls lazy recursive planning for orchestrator nodes.",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether to enable orchestrator planning passes."
+            },
+            "model": {
+              "type": "string",
+              "description": "Key referencing an entry in the `models` dictionary for planning invocations."
+            },
+            "max_children": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum number of children a planning pass may create for one orchestrator."
+            },
+            "max_tasks_per_leaf": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum number of tasks a planning pass may create per leaf."
+            },
+            "max_replans": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Maximum number of re-planning passes allowed per orchestrator."
+            }
+          }
         }
       }
     },
@@ -376,8 +409,14 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
         "blocked_poll_interval_seconds": {
           "type": "integer",
           "minimum": 1,
-          "default": 60,
-          "description": "Seconds to wait between checks when all tasks are blocked or there is no work. Longer interval to avoid busy-waiting."
+          "default": 5,
+          "description": "Seconds to wait between checks when all tasks are blocked or there is no work."
+        },
+        "inbox_poll_interval_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 5,
+          "description": "Seconds between inbox polls in the parallel intake goroutine (ADR-064)."
         },
         "max_iterations": {
           "type": "integer",
@@ -397,6 +436,12 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
           "default": 3600,
           "description": "Maximum wall-clock time in seconds for a single model invocation. If exceeded, the child process is killed and the invocation is treated as an invocation failure (retried with backoff per the retries config). Default is 3600 (1 hour)."
         },
+        "stall_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 120,
+          "description": "Seconds of no stdout output from a model invocation before the stall detector kills the child process. Prevents hangs from processes that stay alive but stop producing output."
+        },
         "max_restarts": {
           "type": "integer",
           "minimum": 0,
@@ -408,16 +453,25 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
           "minimum": 0,
           "default": 2,
           "description": "Delay in seconds between automatic restart attempts."
+        },
+        "log_level": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Minimum log level for console output. NDJSON log files always capture all levels. The --verbose flag on `wolfcastle start` overrides this to debug."
         }
       },
       "default": {
         "poll_interval_seconds": 5,
-        "blocked_poll_interval_seconds": 60,
+        "blocked_poll_interval_seconds": 5,
+        "inbox_poll_interval_seconds": 5,
         "max_iterations": -1,
         "max_turns_per_invocation": 200,
         "invocation_timeout_seconds": 3600,
+        "stall_timeout_seconds": 120,
         "max_restarts": 3,
-        "restart_delay_seconds": 2
+        "restart_delay_seconds": 2,
+        "log_level": "info"
       }
     },
 
@@ -505,13 +559,13 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
         },
         "prompt_file": {
           "type": "string",
-          "default": "audit.md",
+          "default": "audits/audit.md",
           "description": "Prompt template for the audit command, resolved through three-tier merge."
         }
       },
       "default": {
         "model": "heavy",
-        "prompt_file": "audit.md"
+        "prompt_file": "audits/audit.md"
       }
     },
 
@@ -525,6 +579,26 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
           "default": true,
           "description": "Whether the daemon automatically commits state and code changes after each task completion."
         },
+        "commit_on_success": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to auto-commit after a successful task completion."
+        },
+        "commit_on_failure": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to auto-commit after a task failure or block."
+        },
+        "commit_state": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to commit state file changes (flush state to git periodically)."
+        },
+        "commit_prefix": {
+          "type": "string",
+          "default": "wolfcastle",
+          "description": "Prefix for auto-generated commit messages. The daemon prepends this to all state flush commits."
+        },
         "commit_message_format": {
           "type": "string",
           "default": "wolfcastle: {action} [{node}]",
@@ -534,12 +608,69 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
           "type": "boolean",
           "default": true,
           "description": "Whether to verify the current branch matches the startup branch before each commit. If false, Wolfcastle will not check for branch switches. (ADR-015)"
+        },
+        "skip_hooks_on_auto_commit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to pass --no-verify on auto-commits. Skips pre-commit hooks that may interfere with daemon-generated commits."
         }
       },
       "default": {
         "auto_commit": true,
+        "commit_on_success": true,
+        "commit_on_failure": true,
+        "commit_state": true,
+        "commit_prefix": "wolfcastle",
         "commit_message_format": "wolfcastle: {action} [{node}]",
-        "verify_branch": true
+        "verify_branch": true,
+        "skip_hooks_on_auto_commit": true
+      }
+    },
+
+    "archive": {
+      "type": "object",
+      "description": "Automatic archival of completed project trees.",
+      "additionalProperties": false,
+      "properties": {
+        "auto_archive_enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to automatically archive completed nodes after the delay period."
+        },
+        "auto_archive_delay_hours": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 24,
+          "description": "Hours to wait after node completion before auto-archiving. Allows time for review before archival."
+        },
+        "archive_poll_interval_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 300,
+          "description": "Seconds between checks for archive-eligible nodes."
+        }
+      },
+      "default": {
+        "auto_archive_enabled": true,
+        "auto_archive_delay_hours": 24,
+        "archive_poll_interval_seconds": 300
+      }
+    },
+
+    "knowledge": {
+      "type": "object",
+      "description": "Codebase knowledge file settings.",
+      "additionalProperties": false,
+      "properties": {
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 2000,
+          "description": "Maximum token budget for the knowledge file. When exceeded, the daemon queues a maintenance task to prune it."
+        }
+      },
+      "default": {
+        "max_tokens": 2000
       }
     }
   }
@@ -576,15 +707,23 @@ All fields are optional. Omitted fields use the defaults specified above. A comp
 | `prompts.fragments` | `[]` (auto-discover, alphabetical) |
 | `prompts.exclude_fragments` | `[]` |
 | `daemon.poll_interval_seconds` | `5` |
-| `daemon.blocked_poll_interval_seconds` | `60` |
+| `daemon.blocked_poll_interval_seconds` | `5` |
+| `daemon.inbox_poll_interval_seconds` | `5` |
 | `daemon.max_iterations` | `-1` (unlimited) |
 | `daemon.max_turns_per_invocation` | `200` |
 | `daemon.invocation_timeout_seconds` | `3600` (1 hour) |
+| `daemon.stall_timeout_seconds` | `120` |
 | `daemon.max_restarts` | `3` |
 | `daemon.restart_delay_seconds` | `2` |
+| `daemon.log_level` | `"info"` |
 | `git.auto_commit` | `true` |
+| `git.commit_on_success` | `true` |
+| `git.commit_on_failure` | `true` |
+| `git.commit_state` | `true` |
+| `git.commit_prefix` | `"wolfcastle"` |
 | `git.commit_message_format` | `"wolfcastle: {action} [{node}]"` |
 | `git.verify_branch` | `true` |
+| `git.skip_hooks_on_auto_commit` | `true` |
 | `doctor.model` | `"mid"` |
 | `doctor.prompt_file` | `"doctor.md"` |
 | `unblock.model` | `"heavy"` |
@@ -593,7 +732,11 @@ All fields are optional. Omitted fields use the defaults specified above. A comp
 | `overlap_advisory.model` | `"fast"` |
 | `overlap_advisory.threshold` | `0.3` |
 | `audit.model` | `"heavy"` |
-| `audit.prompt_file` | `"audit.md"` |
+| `audit.prompt_file` | `"audits/audit.md"` |
+| `archive.auto_archive_enabled` | `true` |
+| `archive.auto_archive_delay_hours` | `24` |
+| `archive.archive_poll_interval_seconds` | `300` |
+| `knowledge.max_tokens` | `2000` |
 
 ---
 
@@ -692,10 +835,13 @@ This is the team-shared configuration committed to git. Shows all fields with th
 
   "daemon": {
     "poll_interval_seconds": 5,
-    "blocked_poll_interval_seconds": 60,
+    "blocked_poll_interval_seconds": 5,
+    "inbox_poll_interval_seconds": 5,
     "max_iterations": -1,
     "max_turns_per_invocation": 200,
-    "invocation_timeout_seconds": 3600
+    "invocation_timeout_seconds": 3600,
+    "stall_timeout_seconds": 120,
+    "log_level": "info"
   },
 
   "doctor": {
@@ -716,13 +862,28 @@ This is the team-shared configuration committed to git. Shows all fields with th
 
   "audit": {
     "model": "heavy",
-    "prompt_file": "audit.md"
+    "prompt_file": "audits/audit.md"
   },
 
   "git": {
     "auto_commit": true,
+    "commit_on_success": true,
+    "commit_on_failure": true,
+    "commit_state": true,
+    "commit_prefix": "wolfcastle",
     "commit_message_format": "wolfcastle: {action} [{node}]",
-    "verify_branch": true
+    "verify_branch": true,
+    "skip_hooks_on_auto_commit": true
+  },
+
+  "archive": {
+    "auto_archive_enabled": true,
+    "auto_archive_delay_hours": 24,
+    "archive_poll_interval_seconds": 300
+  },
+
+  "knowledge": {
+    "max_tokens": 2000
   }
 }
 ```
@@ -846,5 +1007,7 @@ The following validation is performed when config is loaded:
 | `unblock` | ADR-028 |
 | `overlap_advisory` | ADR-027, ADR-041 |
 | `audit` | ADR-029 |
+| `archive` | ADR-016 |
+| `knowledge` | -- |
 | Merge semantics | ADR-018 |
 | Three-tier layering | ADR-009 |

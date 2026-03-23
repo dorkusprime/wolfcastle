@@ -92,7 +92,7 @@ The daemon has a test file but only tests helper functions. Add:
 
 ### Shared Test Helpers (`internal/testutil`)
 
-Create a new package with reusable helpers:
+The `internal/testutil` package provides reusable helpers for tests across the codebase:
 
 ```go
 package testutil
@@ -111,6 +111,8 @@ func SetupNodeState(t *testing.T, projectsDir, addr string, nodeType state.NodeT
 // NewTestConfig returns a minimal valid Config for testing.
 func NewTestConfig() *config.Config
 ```
+
+The package also includes `environment.go` with helpers for test environment setup and teardown.
 
 ---
 
