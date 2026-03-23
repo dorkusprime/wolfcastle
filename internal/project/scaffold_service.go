@@ -181,6 +181,12 @@ func (s *ScaffoldService) Reinit() error {
 		}
 	}
 
+	// Ensure scaffold directories exist (Init creates them, but they may
+	// be missing if the .wolfcastle/ tree was created minimally).
+	for _, d := range []string{"docs", "archive"} {
+		_ = os.MkdirAll(filepath.Join(s.root, d), 0755)
+	}
+
 	// Restore scaffold files destroyed by the base-tier teardown.
 	if err := s.writeScaffoldFiles(); err != nil {
 		return err
