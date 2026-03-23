@@ -423,7 +423,7 @@ func TestCheckOverlap_NilIdentity(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.OverlapAdvisory.Enabled = true
 	cfg.OverlapAdvisory.Threshold = 0.3
-	cfgRepo := config.NewConfigRepository(wcDir)
+	cfgRepo := config.NewRepository(wcDir)
 	_ = cfgRepo.WriteBase(cfg)
 
 	a := &App{
@@ -439,7 +439,7 @@ func TestCheckOverlap_NotEnabled(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755)
 	cfg := config.Defaults()
 	cfg.OverlapAdvisory.Enabled = false
-	cfgRepo := config.NewConfigRepository(wcDir)
+	cfgRepo := config.NewRepository(wcDir)
 	_ = cfgRepo.WriteBase(cfg)
 
 	a := &App{
@@ -459,7 +459,7 @@ func TestCheckOverlap_EmptyProject(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.OverlapAdvisory.Enabled = true
 	cfg.OverlapAdvisory.Threshold = 0.3
-	cfgRepo := config.NewConfigRepository(wcDir)
+	cfgRepo := config.NewRepository(wcDir)
 	_ = cfgRepo.WriteBase(cfg)
 
 	a := &App{
@@ -486,7 +486,7 @@ func TestCheckOverlap_FindsMatch(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.OverlapAdvisory.Enabled = true
 	cfg.OverlapAdvisory.Threshold = 0.1
-	cfgRepo := config.NewConfigRepository(wcDir)
+	cfgRepo := config.NewRepository(wcDir)
 	_ = cfgRepo.WriteBase(cfg)
 
 	a := &App{

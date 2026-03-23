@@ -1,3 +1,5 @@
+// Package knowledge manages per-namespace codebase knowledge files that
+// accumulate informal observations across daemon iterations.
 package knowledge
 
 import (

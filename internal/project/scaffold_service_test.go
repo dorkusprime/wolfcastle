@@ -32,7 +32,7 @@ func newScaffoldService(t *testing.T) (*ScaffoldService, *stubPromptWriter, stri
 		t.Fatal(err)
 	}
 	tiers := tierfs.New(filepath.Join(root, "system"))
-	cfg := config.NewConfigRepositoryWithTiers(tiers, root)
+	cfg := config.NewRepositoryWithTiers(tiers, root)
 	pw := &stubPromptWriter{}
 	svc := NewScaffoldService(cfg, pw, nil, root)
 	return svc, pw, root

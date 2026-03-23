@@ -16,10 +16,10 @@ import (
 // repository.go Root()
 // ---------------------------------------------------------------------------
 
-func TestConfigRepository_Root_ReturnsConfiguredPath(t *testing.T) {
+func TestRepository_Root_ReturnsConfiguredPath(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	if got := repo.Root(); got != env.Root {
 		t.Errorf("Root() = %q, want %q", got, env.Root)
@@ -30,7 +30,7 @@ func TestConfigRepository_Root_ReturnsConfiguredPath(t *testing.T) {
 // repository.go WriteBase error paths
 // ---------------------------------------------------------------------------
 
-func TestConfigRepository_WriteBase_WriteError(t *testing.T) {
+func TestRepository_WriteBase_WriteError(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("chmod restrictions have no effect on Windows")
@@ -40,7 +40,7 @@ func TestConfigRepository_WriteBase_WriteError(t *testing.T) {
 	}
 
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	// Remove config.json if it exists, then make the base tier directory
 	// read-only so WriteBase cannot create the file.
@@ -65,7 +65,7 @@ func TestConfigRepository_WriteBase_WriteError(t *testing.T) {
 // repository.go writeTier error paths (via WriteCustom / WriteLocal)
 // ---------------------------------------------------------------------------
 
-func TestConfigRepository_WriteCustom_MkdirAllFailure(t *testing.T) {
+func TestRepository_WriteCustom_MkdirAllFailure(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("chmod restrictions have no effect on Windows")
@@ -75,7 +75,7 @@ func TestConfigRepository_WriteCustom_MkdirAllFailure(t *testing.T) {
 	}
 
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	// Make the custom tier's parent unwritable so MkdirAll cannot create
 	// subdirectories. First remove the pre-created custom dir, then lock
@@ -99,7 +99,7 @@ func TestConfigRepository_WriteCustom_MkdirAllFailure(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_WriteLocal_WriteFileFailure(t *testing.T) {
+func TestRepository_WriteLocal_WriteFileFailure(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("chmod restrictions have no effect on Windows")
@@ -109,7 +109,7 @@ func TestConfigRepository_WriteLocal_WriteFileFailure(t *testing.T) {
 	}
 
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	// Remove any existing config.json, then make the local tier directory
 	// read-only so WriteFile fails (MkdirAll succeeds because the directory exists).
@@ -133,7 +133,7 @@ func TestConfigRepository_WriteLocal_WriteFileFailure(t *testing.T) {
 // repository.go Load: validation failure after successful merge
 // ---------------------------------------------------------------------------
 
-func TestConfigRepository_Load_ValidationFailure(t *testing.T) {
+func TestRepository_Load_ValidationFailure(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
 
@@ -150,7 +150,7 @@ func TestConfigRepository_Load_ValidationFailure(t *testing.T) {
 		t.Fatalf("writing invalid config: %v", err)
 	}
 
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 	_, err := repo.Load()
 	if err == nil {
 		t.Fatal("expected validation error for empty pipeline stages")
@@ -164,7 +164,7 @@ func TestConfigRepository_Load_ValidationFailure(t *testing.T) {
 // repository.go Load: custom tier parse error
 // ---------------------------------------------------------------------------
 
-func TestConfigRepository_Load_CustomTierParseError(t *testing.T) {
+func TestRepository_Load_CustomTierParseError(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
 
@@ -173,7 +173,7 @@ func TestConfigRepository_Load_CustomTierParseError(t *testing.T) {
 		t.Fatalf("writing corrupt custom config: %v", err)
 	}
 
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 	_, err := repo.Load()
 	if err == nil {
 		t.Fatal("expected error for malformed custom tier JSON")

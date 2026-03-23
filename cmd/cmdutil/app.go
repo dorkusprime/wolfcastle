@@ -24,7 +24,7 @@ import (
 // identity, and flags that cut across subcommands.
 type App struct {
 	// Repository fields (new, preferred).
-	Config   *config.ConfigRepository
+	Config   *config.Repository
 	Identity *config.Identity // nil if identity not configured
 	Prompts  *pipeline.PromptRepository
 	Classes  *pipeline.ClassRepository
@@ -66,7 +66,7 @@ func (a *App) Init() error {
 	}
 
 	// Create repositories.
-	a.Config = config.NewConfigRepository(root)
+	a.Config = config.NewRepository(root)
 	a.Prompts = pipeline.NewPromptRepository(root)
 	a.Daemon = daemon.NewDaemonRepository(root)
 	a.Git = git.NewService(filepath.Dir(root))

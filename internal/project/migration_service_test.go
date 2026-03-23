@@ -17,7 +17,7 @@ func newMigrationService(t *testing.T) (*MigrationService, string) {
 		t.Fatal(err)
 	}
 	tiers := tierfs.New(filepath.Join(root, "system"))
-	cfg := config.NewConfigRepositoryWithTiers(tiers, root)
+	cfg := config.NewRepositoryWithTiers(tiers, root)
 	return &MigrationService{config: cfg, root: root}, root
 }
 

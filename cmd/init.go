@@ -94,7 +94,7 @@ func init() {
 // newScaffoldService constructs a ScaffoldService with real repositories
 // rooted at the given .wolfcastle directory.
 func newScaffoldService(wcDir string) *project.ScaffoldService {
-	cfgRepo := config.NewConfigRepository(wcDir)
+	cfgRepo := config.NewRepository(wcDir)
 	promptRepo := pipeline.NewPromptRepository(wcDir)
 	return project.NewScaffoldService(cfgRepo, promptRepo, nil, wcDir)
 }

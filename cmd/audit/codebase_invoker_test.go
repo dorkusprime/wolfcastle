@@ -378,7 +378,7 @@ Description.
 		},
 	}
 
-	configRepo := config.NewConfigRepository(wcDir)
+	configRepo := config.NewRepository(wcDir)
 	if err := configRepo.WriteBase(cfg); err != nil {
 		t.Fatalf("writing base config: %v", err)
 	}

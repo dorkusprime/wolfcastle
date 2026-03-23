@@ -35,7 +35,7 @@ var scaffoldFiles = map[string]string{
 // tree. Init builds the full structure from nothing; Reinit tears down and
 // rebuilds the base tier while preserving custom and local content.
 type ScaffoldService struct {
-	config  *config.ConfigRepository
+	config  *config.Repository
 	prompts promptWriter
 	daemon  any    // *daemon.DaemonRepository; stored for future use, typed as any to avoid import cycle
 	root    string // path to .wolfcastle/
@@ -44,7 +44,7 @@ type ScaffoldService struct {
 // NewScaffoldService creates a ScaffoldService with the given dependencies.
 // No filesystem work happens at construction time.
 func NewScaffoldService(
-	cfg *config.ConfigRepository,
+	cfg *config.Repository,
 	prompts promptWriter,
 	dmn any,
 	root string,
