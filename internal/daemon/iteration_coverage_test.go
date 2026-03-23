@@ -758,7 +758,7 @@ func TestCommitAfterIteration_SkipHooksFalse(t *testing.T) {
 // staging area preservation
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestCommitAfterIteration_PreservesUserStagedChanges(t *testing.T) {
+func TestCommitAfterIteration_DirectCommitCleanStatus(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -777,68 +777,26 @@ func TestCommitAfterIteration_PreservesUserStagedChanges(t *testing.T) {
 		}
 	}
 
-	// Create two tracked files
-	userFile := filepath.Join(repoDir, "user.go")
+	// Create a tracked file and commit it
 	daemonFile := filepath.Join(repoDir, "daemon.go")
-	_ = os.WriteFile(userFile, []byte("package main\n"), 0644)
 	_ = os.WriteFile(daemonFile, []byte("package main\n"), 0644)
-	run("add", "user.go", "daemon.go")
+	run("add", "daemon.go")
 	run("commit", "-m", "initial")
 
-	// User stages a change to user.go
-	_ = os.WriteFile(userFile, []byte("package main\n// user edit\n"), 0644)
-	run("add", "user.go")
-
-	// Daemon modifies daemon.go (unstaged working tree change)
+	// Daemon modifies the file
 	_ = os.WriteFile(daemonFile, []byte("package main\n// daemon edit\n"), 0644)
-
-	// Snapshot the index file content before daemon commit.
-	// The separate-index approach must leave .git/index byte-identical.
-	indexPath := filepath.Join(repoDir, ".git", "index")
-	indexBefore, err := os.ReadFile(indexPath)
-	if err != nil {
-		t.Fatalf("failed to read index: %v", err)
-	}
-
-	// Also capture the staged blob SHA for user.go via ls-files
-	lsCmd := exec.Command("git", "ls-files", "--stage", "user.go")
-	lsCmd.Dir = repoDir
-	lsBefore, _ := lsCmd.Output()
-	if len(lsBefore) == 0 {
-		t.Fatal("precondition: user.go should be staged")
-	}
 
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
 	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{})
 
-	// Verify daemon.go was committed
-	showCmd := exec.Command("git", "show", "--name-only", "--format=")
-	showCmd.Dir = repoDir
-	showOut, showErr := showCmd.Output()
-	if showErr != nil {
-		t.Fatalf("git show failed: %v", showErr)
-	}
-	if !strings.Contains(string(showOut), "daemon.go") {
-		t.Error("daemon.go should have been committed by the daemon")
-	}
-
-	// Verify the index file is byte-identical to the pre-commit snapshot.
-	indexAfter, err := os.ReadFile(indexPath)
-	if err != nil {
-		t.Fatalf("failed to read index after commit: %v", err)
-	}
-	if string(indexBefore) != string(indexAfter) {
-		t.Error("the user's .git/index should not be modified by the daemon commit")
-	}
-
-	// Verify the staged blob SHA for user.go is unchanged in the index.
-	lsAfter := exec.Command("git", "ls-files", "--stage", "user.go")
-	lsAfter.Dir = repoDir
-	lsAfterOut, _ := lsAfter.Output()
-	if string(lsBefore) != string(lsAfterOut) {
-		t.Errorf("user.go staged blob changed: before=%q after=%q", lsBefore, lsAfterOut)
+	// Verify git status shows no phantom diffs after direct commit
+	statusCmd := exec.Command("git", "status", "--porcelain")
+	statusCmd.Dir = repoDir
+	out, _ := statusCmd.Output()
+	if len(strings.TrimSpace(string(out))) != 0 {
+		t.Errorf("git status should be clean after daemon commit, got: %s", out)
 	}
 }
 
