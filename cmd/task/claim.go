@@ -12,26 +12,28 @@ import (
 
 func newClaimCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "claim",
+		Use:   "claim [task-address]",
 		Short: "Claim a task and begin the assault",
 		Long: `Transitions a task from not_started to in_progress. The target is yours.
 Use 'wolfcastle navigate' to find the next one worth claiming.
 
 Examples:
+  wolfcastle task claim my-project/task-1
   wolfcastle task claim --node my-project/task-1`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
-			nodeFlag, _ := cmd.Flags().GetString("node")
-			if nodeFlag == "" {
-				return fmt.Errorf("--node is required: specify the task address (e.g. my-project/task-1)")
+			nodeFlag, err := resolveNode(cmd, args, 0)
+			if err != nil {
+				return err
 			}
 
 			// Parse as task address (node/task-N)
 			nodeAddr, taskID, err := tree.SplitTaskAddress(nodeFlag)
 			if err != nil {
-				return fmt.Errorf("--node must be a task address (e.g. my-project/task-1): %w", err)
+				return fmt.Errorf("task address must be node-path/task-id (e.g. my-project/task-1): %w", err)
 			}
 
 			// MutateNode handles save + propagation automatically.
@@ -54,7 +56,6 @@ Examples:
 		},
 	}
 
-	cmd.Flags().String("node", "", "Task address: node-path/task-id (required)")
-	_ = cmd.MarkFlagRequired("node")
+	cmd.Flags().String("node", "", "Task address: node-path/task-id (alias for positional argument)")
 	return cmd
 }

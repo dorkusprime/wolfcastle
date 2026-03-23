@@ -98,12 +98,6 @@ func (a *App) Init() error {
 	return nil
 }
 
-// LoadConfig is a backward-compatible wrapper for Init. Deprecated:
-// callers should migrate to Init.
-func (a *App) LoadConfig() error {
-	return a.Init()
-}
-
 // RequireIdentity returns an error if identity is not configured.
 // Commands that operate on the project tree should call this early
 // to surface a clear message.

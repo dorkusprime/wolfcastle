@@ -9,14 +9,17 @@ Loads the task's `state.json`, verifies the task is `in_progress`, transitions i
 ## Usage
 
 ```
-wolfcastle task complete --node <path>
+wolfcastle task complete <task-address>
+wolfcastle task complete --node <task-address>
 ```
+
+The task address can be given as a positional argument or via `--node`. Both forms are equivalent. Providing both is an error.
 
 ## Flags
 
 | Flag | Description |
 |------|-------------|
-| `--node <path>` | **(Required)** Tree address of the task to complete. |
+| `--node <path>` | Tree address of the task to complete. Alias for the positional argument. |
 | `--json` | Output as structured JSON. |
 
 ## Exit Codes

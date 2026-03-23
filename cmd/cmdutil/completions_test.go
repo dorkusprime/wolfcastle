@@ -202,7 +202,7 @@ func TestLoadConfig_MalformedConfig(t *testing.T) {
 	t.Chdir(tmp)
 
 	a := &App{}
-	err := a.LoadConfig()
+	err := a.Init()
 	if err == nil {
 		t.Error("expected error for malformed config")
 	}

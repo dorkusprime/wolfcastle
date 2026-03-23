@@ -9,20 +9,24 @@ Loads the task's `state.json`, verifies the task is `in_progress` (only claimed 
 ## Usage
 
 ```
-wolfcastle task block --node <path> "<reason>"
+wolfcastle task block <task-address> "<reason>"
+wolfcastle task block --node <task-address> "<reason>"
 ```
+
+When using the positional form, the task address is the first argument and the reason is the second. When using `--node`, the reason is the only positional argument. Providing both a positional task address and `--node` is an error.
 
 ## Flags
 
 | Flag | Description |
 |------|-------------|
-| `--node <path>` | **(Required)** Tree address of the task to block. |
+| `--node <path>` | Tree address of the task to block. Alias for the positional task address. |
 | `--json` | Output as structured JSON. |
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
+| `task-address` | Task address (positional, or via `--node`). |
 | `reason` | **(Required)** Why the task cannot proceed. This is stored and displayed in [`status`](status.md) output and fed to models during [unblock](../failure-and-recovery.md#the-unblock-workflow) sessions. Make it useful. |
 
 ## Exit Codes

@@ -21,10 +21,10 @@ Either way, Wolfcastle keeps moving.
 
 Examples:
   wolfcastle task add --node my-project "implement the API endpoint"
-  wolfcastle task claim --node my-project/task-1
-  wolfcastle task complete --node my-project/task-1
-  wolfcastle task block --node my-project/task-1 "waiting on API spec"
-  wolfcastle task unblock --node my-project/task-1`,
+  wolfcastle task claim my-project/task-1
+  wolfcastle task complete my-project/task-1
+  wolfcastle task block my-project/task-1 "waiting on API spec"
+  wolfcastle task unblock my-project/task-1`,
 	}
 
 	addCmd := newAddCmd(app)
@@ -38,7 +38,8 @@ Examples:
 	// Node address completions for task add (takes a node address)
 	_ = addCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 
-	// Task address completions for commands that operate on tasks
+	// Task address completions for commands that operate on tasks.
+	// Registered on both the --node flag and as positional argument completions.
 	completeFn := cmdutil.CompleteTaskAddresses(app)
 	_ = claimCmd.RegisterFlagCompletionFunc("node", completeFn)
 	_ = completeCmd.RegisterFlagCompletionFunc("node", completeFn)
@@ -46,6 +47,14 @@ Examples:
 	_ = unblockCmd.RegisterFlagCompletionFunc("node", completeFn)
 	_ = deliverableCmd.RegisterFlagCompletionFunc("node", completeFn)
 	_ = amendCmd.RegisterFlagCompletionFunc("node", completeFn)
+
+	// Positional argument completions for commands that now accept task address
+	// as the first positional argument.
+	claimCmd.ValidArgsFunction = completeFn
+	completeCmd.ValidArgsFunction = completeFn
+	unblockCmd.ValidArgsFunction = completeFn
+	amendCmd.ValidArgsFunction = completeFn
+	blockCmd.ValidArgsFunction = completeFn
 
 	taskCmd.AddCommand(addCmd, claimCmd, completeCmd, blockCmd, unblockCmd, deliverableCmd, amendCmd)
 	taskCmd.GroupID = "work"
