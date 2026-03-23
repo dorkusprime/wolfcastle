@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -632,6 +633,9 @@ func TestCommitAfterIteration_NotAGitRepo(t *testing.T) {
 }
 
 func TestCommitAfterIteration_GitAddFails(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission-based test not supported on Windows")
+	}
 	t.Parallel()
 	repoDir := initGitRepo(t)
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
@@ -223,6 +224,9 @@ func TestStartCmd_VerboseFlag(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestRecoverStaleDaemonState_UnreadablePidFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission-based test not supported on Windows")
+	}
 	tmp := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
 	pidPath := filepath.Join(tmp, "system", "wolfcastle.pid")
