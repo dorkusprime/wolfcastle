@@ -87,13 +87,13 @@ Each spec was verified against current code. Status meanings:
 
 ## Drafts
 
-Specs that explore potential directions without proposing adoption. Implementation status as of 2026-03-21:
+Specs that explore potential directions without proposing adoption. Implementation status as of 2026-03-23:
 
 | Spec | Description | Implementation Status |
 |------|-------------|-----------------------|
 | [TUI](2026-03-15T00-02Z-tui.md) | Bubbletea-based terminal UI for observing and commanding the daemon | Not started. No bubbletea dependency or TUI code exists |
 | [Worktree by Default](2026-03-15T00-03Z-worktree-by-default.md) | Running all daemon work in isolated git worktrees by default | Not started. The opt-in `--worktree` flag exists (spec Section 1 status quo) but none of the default-worktree behavior, auto-merge, or config gates have been built |
-| [Task Classes](2026-03-15T00-04Z-task-classes.md) | Classification system for tasks routing each to a behavioral prompt | Fully implemented. 55 behavioral prompt files, CLI validation, daemon startup validation, audit auto-assign, planning-time assignment. Remaining: model override dispatch, dual prompt assembly for framework keys, intake-level classification |
+| [Task Classes](2026-03-15T00-04Z-task-classes.md) | Classification system for tasks routing each to a behavioral prompt | Pipeline implemented: class resolution, prompt injection, CLI validation, daemon startup validation, audit auto-assign, planning-time assignment, 54 config entries. Remaining: author 55 behavioral prompt `.md` files, model override dispatch, intake-level classification |
 
 ## Superseded
 

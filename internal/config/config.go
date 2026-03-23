@@ -180,7 +180,7 @@ func Defaults() *Config {
 
 			// Non-language classes
 			"architecture": {Description: "ADRs, dependency analysis, failure modes, decomposition"},
-			"research":     {Description: "Source citation, accuracy over speed, structured output", Model: "light"},
+			"research":     {Description: "Source citation, accuracy over speed, structured output", Model: "fast"},
 			"writing":      {Description: "Reader-first, concrete examples, scannable structure"},
 			"design":       {Description: "User goals, interaction sequences, edge states"},
 			"devops":       {Description: "Dockerfile, GitHub Actions, Terraform, deployment safety"},

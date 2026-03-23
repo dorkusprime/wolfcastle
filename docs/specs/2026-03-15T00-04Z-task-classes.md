@@ -2,7 +2,7 @@
 
 Tasks are not all the same shape. Writing Go code requires different instincts than researching POS systems or drafting documentation. Today, every task gets the same execute prompt regardless of what it actually involves. Task classes fix that: the task's class selects a behavioral prompt that tells the execute model how to think, not what tools it has.
 
-The full system is implemented: class resolution, prompt injection, task-level classification, 55 behavioral prompt files (20 languages, 22 frameworks, 9 non-language disciplines, universal guidance, and a coding default), default config entries, CLI validation, daemon startup validation, audit auto-assignment, and planning-time class assignment via the planning prompt.
+The resolution pipeline is fully implemented: class resolution, prompt injection, task-level classification, default config entries for 54 classes (21 languages, 22 frameworks, 9 non-language disciplines, plus universal guidance and a coding default), CLI validation, daemon startup validation, audit auto-assignment, and planning-time class assignment via the planning prompt. The behavioral prompt `.md` files have not yet been authored; the `base/prompts/classes/` directory does not exist. Daemon startup validation will warn about every missing prompt file until they are written.
 
 ## Governing ADRs
 
@@ -60,7 +60,7 @@ Default `task_classes` entries ship in the hardcoded `Defaults()` function in `i
 {
   "task_classes": {
     "coding/go": { "description": "gofmt, go vet, table-driven tests, error wrapping" },
-    "research": { "description": "Source citation, accuracy over speed, structured output", "model": "light" },
+    "research": { "description": "Source citation, accuracy over speed, structured output", "model": "fast" },
     "audit": { "description": "Read-only review, gap recording, no fixes" }
   }
 }
@@ -209,19 +209,9 @@ The `ClassRepository` in `internal/pipeline/class_repository.go` owns class prom
 
 ---
 
-## Intake Classification
-
-**Future work.** The intake prompt has not been updated to include class information. Automatic classification by the intake model, dynamic class list generation for the intake prompt, and split-by-class task decomposition rules are all planned but unimplemented.
-
----
-
 ## Daemon Dispatch
 
-The daemon wires `ClassRepository` into the `ContextBuilder` at startup. Class prompt resolution happens inside `ContextBuilder.Build` when it encounters a task with a non-empty `Class` field.
-
-The `ClassDef.Model` field exists in the config struct but the daemon does not read it during dispatch. All tasks use the execute stage's configured model regardless of class.
-
-**Future work:** Model override dispatch, where the daemon reads `ClassDef.Model` and uses a different model for classes that specify one.
+The daemon wires `ClassRepository` into the `ContextBuilder` at startup. Class prompt resolution happens inside `ContextBuilder.Build` when it encounters a task with a non-empty `Class` field. All tasks currently use the execute stage's configured model regardless of class (see Remaining Work for model override dispatch).
 
 ---
 
@@ -328,6 +318,18 @@ This is additive. Existing tasks without a `Class` field continue to work exactl
 
 ---
 
+## Remaining Work
+
+Three pieces remain before task classes are fully operational:
+
+1. **Behavioral prompt authoring.** The 55 `.md` files under `base/prompts/classes/` (universal, coding/default, 21 language, 22 framework, and 9 non-language prompts, plus `writing/voice.md`) do not exist yet. The resolution pipeline, config defaults, CLI validation, and daemon wiring are all in place; what's missing is the content. Until the files are written, the ContextBuilder falls back to `coding/default.md` for every task (which also doesn't exist), so class guidance sections will be empty. Follow the prompt authoring guidelines in this spec when writing them.
+
+2. **Model override dispatch.** The `ClassDef.Model` field exists in the config struct and defaults ship for the `research` class (`Model: "fast"`), but the daemon does not read it during dispatch. All tasks use the execute stage's configured model regardless of class. Wiring this means reading `ClassDef.Model` in the daemon's stage invocation path and selecting the corresponding model from the config's `Models` map.
+
+3. **Intake classification.** The intake prompt has not been updated to include class information. Automatic classification by the intake model, dynamic class list generation for the intake prompt, and split-by-class task decomposition rules are all planned but unimplemented.
+
+---
+
 ## What This Does Not Cover
 
 - **Class-specific allowed commands.** Classes don't restrict tools. If a future need arises, `allowed_commands` could be added to the class config, but that's a separate decision.
@@ -335,3 +337,4 @@ This is additive. Existing tasks without a `Class` field continue to work exactl
 - **Automatic class detection from file types.** Classification is manual (via `--class` at the CLI or assigned by the planning agent). Intake-level automatic classification is not implemented.
 - **Class-specific validation rules.** All tasks follow the same deliverable verification and state transition rules regardless of class.
 - **Dual prompt assembly for hierarchical keys.** The spec originally proposed assembling both the parent language prompt and the child framework prompt together. The implementation uses single-file resolution with fallback instead.
+- **Config-level validation of ClassDef.Model.** When a class specifies a `model` override, nothing currently validates that the model key exists in the `Models` map. Invalid references will fail at dispatch time (once model override dispatch is implemented) rather than at config load time.
