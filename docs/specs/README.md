@@ -34,7 +34,7 @@ Each spec was verified against current code. Status meanings:
 | RenderContext Rendering Contract | Current | |
 | Git Provider Contract | Current | |
 | Identity Domain Type Contract | Current | |
-| ConfigRepository Contract | Current | |
+| ConfigRepository Contract (type renamed to Repository) | Current | Type renamed from `ConfigRepository` to `Repository` per commit 47252ec |
 | ClassRepository Contract | Current | |
 | MigrationService Contract | Current | |
 | ScaffoldService Contract | Current | |
