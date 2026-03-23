@@ -203,7 +203,7 @@ func Validate(cfg *Config) error {
 
 	// Check identity presence
 	if cfg.Identity == nil {
-		errs = append(errs, "identity not configured. Run wolfcastle init first")
+		errs = append(errs, "identity not configured. Run 'wolfcastle init' first")
 	}
 
 	if len(errs) > 0 {
