@@ -25,7 +25,7 @@ func TestScaffoldService_Init_MkdirAllFailure(t *testing.T) {
 	}
 
 	tiers := tierfs.New(filepath.Join(blocker, "system"))
-	cfg := config.NewConfigRepositoryWithTiers(tiers, blocker)
+	cfg := config.NewRepositoryWithTiers(tiers, blocker)
 	pw := &stubPromptWriter{}
 	svc := NewScaffoldService(cfg, pw, nil, blocker)
 
@@ -64,9 +64,9 @@ func TestScaffoldService_Init_GitignoreWriteFailure(t *testing.T) {
 
 	err := svc.Init(testIdentity())
 	if err == nil {
-		t.Fatal("expected error when .gitignore cannot be written")
+		t.Fatal("expected error when scaffold files cannot be written")
 	}
-	if !strings.Contains(err.Error(), ".gitignore") {
+	if !strings.Contains(err.Error(), "scaffold: writing") {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
@@ -93,7 +93,7 @@ func TestScaffoldService_Init_WriteBaseConfigFailure(t *testing.T) {
 	}
 
 	tiers := tierfs.New(filepath.Join(root, "system"))
-	cfg := config.NewConfigRepositoryWithTiers(tiers, root)
+	cfg := config.NewRepositoryWithTiers(tiers, root)
 	pw := &stubPromptWriter{}
 	svc := NewScaffoldService(cfg, pw, nil, root)
 
@@ -127,7 +127,7 @@ func TestScaffoldService_Init_WriteCustomConfigFailure(t *testing.T) {
 	}
 
 	tiers := tierfs.New(filepath.Join(root, "system"))
-	cfg := config.NewConfigRepositoryWithTiers(tiers, root)
+	cfg := config.NewRepositoryWithTiers(tiers, root)
 	pw := &stubPromptWriter{}
 	svc := NewScaffoldService(cfg, pw, nil, root)
 
@@ -161,7 +161,7 @@ func TestScaffoldService_Init_WriteLocalConfigFailure(t *testing.T) {
 	}
 
 	tiers := tierfs.New(filepath.Join(root, "system"))
-	cfg := config.NewConfigRepositoryWithTiers(tiers, root)
+	cfg := config.NewRepositoryWithTiers(tiers, root)
 	pw := &stubPromptWriter{}
 	svc := NewScaffoldService(cfg, pw, nil, root)
 
