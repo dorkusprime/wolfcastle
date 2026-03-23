@@ -16,17 +16,23 @@ Prefer extension methods to add functionality to types you don't own rather than
 
 Prefer `lowerCamelCase` for variables, functions, methods, and parameters; `UpperCamelCase` for classes, enums, typedefs, and type parameters; `lowercase_with_underscores` for library prefixes and file names. Follow the Effective Dart naming conventions.
 
+Prefer pattern matching with `switch` expressions and `if-case` for destructuring records, sealed classes, and collections. Patterns replace verbose `if`/`else` chains and make exhaustiveness checking possible. Use sealed classes when a type has a fixed set of subtypes; the compiler enforces that every subtype is handled in `switch` expressions.
+
+Prefer records for lightweight, immutable groupings of values. A function that returns `(String name, int age)` is clearer than returning a `Map` or a custom class for throwaway tuples. Records have structural equality by default.
+
+Prefer the wildcard `_` for unused variables and parameters. As of Dart 3.7, `_` is a true wildcard that does not create an actual binding, so multiple `_` parameters in the same scope are legal.
+
 Prefer small, focused libraries. Use `part`/`part of` sparingly; prefer separate library files with explicit imports. Use `show` and `hide` combinators when importing to keep the namespace clean and make dependencies obvious.
 
 ## Build and Test
 
 Prefer `dart analyze` to catch type errors, unused imports, and style issues before committing. It subsumes the older `dartanalyzer`. Check for an `analysis_options.yaml` at the project root; when one exists, respect its rules. When none exists, `package:lints/recommended.yaml` or `package:flutter_lints/flutter.yaml` provide sensible defaults.
 
-Prefer `dart format` (or `dart format .`) to format code. All Dart code should be formatted before committing. The formatter is opinionated and non-configurable by design; do not fight it.
+Prefer `dart format` (or `dart format .`) to format code. All Dart code should be formatted before committing. Dart 3.7 introduced a new "tall" style formatter that is the default in Dart 3.8+. The formatter is opinionated and non-configurable by design; do not fight it.
 
 Prefer `dart test` for pure Dart projects and `flutter test` for Flutter projects. Run `dart pub get` or `flutter pub get` before testing to ensure dependencies are resolved. For Flutter widget tests, use `flutter test`; for integration tests, use `flutter test integration_test/`.
 
-Prefer DCM (formerly `dart_code_metrics`) when the project has it configured, for additional static analysis covering cyclomatic complexity, lines of code, and maintainability metrics. Do not introduce it into projects that don't already use it.
+Prefer DCM (formerly `dart_code_metrics`) when the project has it configured. DCM provides over 475 customizable rules covering cyclomatic complexity, maintainability metrics, and Flutter-specific patterns. Do not introduce it into projects that don't already use it.
 
 Prefer `dart pub` for dependency management. Pin version constraints in `pubspec.yaml` using caret syntax (`^1.2.3`) for libraries and tighter constraints for applications. Run `dart pub upgrade --major-versions` deliberately, not as part of routine changes.
 
@@ -66,3 +72,5 @@ Pubspec version constraints that are too loose (`any`, or bare `>=1.0.0`) invite
 Dart `Future`s that are neither awaited nor assigned to a variable have their errors silently swallowed. The `unawaited_futures` lint catches this. Prefer awaiting every future, or use `unawaited()` from `dart:async` to signal deliberate fire-and-forget intent.
 
 Equality comparisons on collections use identity by default, not structural equality. `[1, 2] == [1, 2]` is `false`. Use `ListEquality`, `SetEquality`, or `DeepCollectionEquality` from `package:collection`, or prefer `const` collections where possible (const collections with identical elements share identity).
+
+The macros proposal was cancelled in early 2025 because deep semantic introspection broke hot reload performance. The Dart team plans to ship augmentations (the `augment` keyword for splitting class definitions across files) as a standalone feature instead. Continue using code generation (`build_runner`, Freezed, `json_serializable`) for the time being.

@@ -8,7 +8,7 @@ Prefer `"strict": true` in `tsconfig.json`. This enables `strictNullChecks`, `no
 
 Prefer `"module": "NodeNext"` and `"moduleResolution": "NodeNext"` for projects targeting Node.js. This setting respects the `"type"` field in `package.json` and enforces correct ESM/CJS interop rules at the type level. Import paths must include the `.js` extension even when the source file is `.ts`, because TypeScript emits to JavaScript and the runtime resolves the emitted paths.
 
-Prefer `"target": "ES2022"` or later. Node.js 20+ supports top-level `await`, private class fields, `Array.prototype.at()`, `structuredClone`, and `Error.cause` natively. There is no reason to downlevel to ES2015 unless the output must run on an older runtime.
+Prefer `"target": "ES2024"` or later for Node.js 22+. Node.js 22+ supports `Object.groupBy`, `Set` methods, `Promise.withResolvers`, and all ES2024 features natively. Use `"target": "ES2022"` for Node.js 20. There is no reason to downlevel to ES2015 unless the output must run on an older runtime.
 
 Prefer `"verbatimModuleSyntax": true` to enforce that type-only imports use the `import type` syntax. This prevents runtime side effects from modules imported solely for their types.
 
@@ -22,11 +22,13 @@ Prefer `"moduleResolution": "NodeNext"` over `"node"` (the legacy resolution). N
 
 When publishing a library that must support both ESM and CJS consumers, prefer the `"exports"` field in `package.json` with conditional exports: `{ ".": { "import": "./dist/index.js", "require": "./dist/index.cjs" } }`. Build tools like `tsup` and `tshy` automate dual-format output from a single TypeScript source.
 
-Prefer dynamic `import()` at the boundary when a CJS module must consume an ESM-only dependency. Node.js 22+ allows `require()` of ESM modules under certain conditions, but `import()` works consistently across versions.
+Prefer dynamic `import()` at the boundary when a CJS module must consume an ESM-only dependency. Node.js 22+ supports `require()` of synchronous ESM modules (enabled by default in Node.js 23+), but `import()` works consistently across all versions.
 
 ## Runtime Patterns
 
 Prefer `node:` prefixed imports (`node:fs`, `node:path`, `node:crypto`, `node:test`) to distinguish built-in modules from npm packages with colliding names.
+
+Node.js 22.6+ can run TypeScript files natively via type stripping (stable in Node.js 24.3+/22.18+). This strips type annotations at load time without a separate tool. When using native execution, enable `"erasableSyntaxOnly": true` in `tsconfig.json` (TypeScript 5.8+) to ensure all TypeScript syntax is erasable; enums, namespaces, and parameter properties are not supported in this mode. For projects that need those constructs, prefer `tsx` over `ts-node`; it uses esbuild, starts faster, and handles ESM without extra configuration.
 
 Prefer `async`/`await` throughout the request lifecycle. When wrapping callback-based APIs, use `node:util` `promisify` or construct a `new Promise` at the boundary rather than mixing callbacks with awaited code.
 
@@ -64,7 +66,7 @@ Prefer declaring `process.env` types with a `.d.ts` file or module augmentation:
 
 ## Testing
 
-Prefer the project's established test runner. Vitest handles TypeScript natively without separate transform configuration and is the current standard for ESM projects. Jest with `ts-jest` or `@swc/jest` remains common in existing codebases. The built-in `node:test` runner (stable since Node 20) works with TypeScript via `--import tsx` or `--experimental-strip-types` (Node 22+).
+Prefer the project's established test runner. Vitest handles TypeScript natively without separate transform configuration and is the standard choice for new projects. Jest with `ts-jest` or `@swc/jest` remains common in existing codebases. The built-in `node:test` runner (stable since Node.js 20) works with TypeScript via `--import tsx` or native type stripping (Node.js 22.6+).
 
 Prefer `supertest` (or Fastify's `app.inject()`) for HTTP-level tests that exercise middleware, routing, and serialization together without binding a port.
 
@@ -72,7 +74,7 @@ Prefer typing mock functions to match the real interface. `vi.fn<Parameters<type
 
 ## Common Pitfalls
 
-An unhandled promise rejection terminates the process by default in Node 20+. Every async code path must either be awaited in a context with error handling, or have an explicit `.catch()`.
+An unhandled promise rejection terminates the process by default in Node.js 20+. Every async code path must either be awaited in a context with error handling, or have an explicit `.catch()`.
 
 Synchronous operations (`fs.readFileSync`, `crypto.pbkdf2Sync`, CPU-heavy loops) block the event loop and stall all concurrent requests. Prefer async equivalents for I/O. For CPU-bound work, prefer `worker_threads`.
 

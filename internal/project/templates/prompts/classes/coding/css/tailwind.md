@@ -12,13 +12,15 @@ Prefer `@apply` sparingly. It exists for cases where you must write CSS (third-p
 
 ## Configuration
 
-### Tailwind v4 (CSS-first)
+### Tailwind v4 (CSS-first, stable since January 2025)
 
-Tailwind v4 moves configuration into CSS. Add `@import "tailwindcss"` in your main stylesheet. No JavaScript config file is required.
+Tailwind v4 moves configuration into CSS with the Oxide engine, a complete Rust rewrite that makes incremental builds over 100x faster (measured in microseconds). Add `@import "tailwindcss"` in your main stylesheet. No JavaScript config file is required. Content detection is automatic; no `content` array needed.
 
 Customize the theme with the `@theme` directive. Values defined in `@theme` become CSS custom properties and generate corresponding utility classes. `--color-brand: oklch(0.65 0.15 250)` in a `@theme` block creates `bg-brand`, `text-brand`, and all related utilities.
 
 Override default variants with `@custom-variant`. Dark mode, for example, uses `prefers-color-scheme` by default. Switch to class-based dark mode with `@custom-variant dark (&:where(.dark, .dark *))`.
+
+v4 is built on cascade layers, registered custom properties via `@property`, and `color-mix()`. It adds built-in container query variants (`@sm`, `@lg`, `@min-*`, `@max-*`) with no plugin required, and 3D transform utilities (`rotate-x-*`, `rotate-y-*`, `scale-z-*`, `translate-z-*`, `perspective-*`).
 
 ### Tailwind v3 (JavaScript config)
 
@@ -40,7 +42,7 @@ Tailwind's breakpoint prefixes (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`) are mobile-f
 
 Prefer designing for mobile first, then layering on wider-screen adjustments. Start with the unprefixed utility and add breakpoint variants for larger viewports.
 
-In v4, container queries are built in with no plugin required. Use `@container` utilities for components that should respond to their parent's size rather than the viewport.
+In v4, container queries are built in with no plugin required. Use `@container` utilities (`@sm:`, `@md:`, `@lg:`, etc.) for components that should respond to their parent's size rather than the viewport.
 
 ## Spacing and Sizing
 

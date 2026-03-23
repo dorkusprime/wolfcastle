@@ -4,7 +4,7 @@ When the codebase you're working in has established conventions that differ from
 
 ## Module System
 
-Prefer `@use` and `@forward` over `@import`. The `@import` rule is deprecated as of Dart Sass 1.80.0 and will be removed in Dart Sass 3.0.0. New code should never use `@import`.
+Prefer `@use` and `@forward` over `@import`. The `@import` rule is deprecated as of Dart Sass 1.80.0 and will be removed in Dart Sass 3.0.0 (no sooner than two years after 1.80.0). Global built-in functions (`darken()`, `lighten()`, etc.) are deprecated on the same timeline; use their namespaced equivalents from `sass:color` instead. New code should never use `@import`.
 
 `@use` loads a module and makes its members available under a namespace: `@use 'variables' as vars` gives you `vars.$primary-color`. Prefer explicit namespaces over `@use 'variables' as *` to keep the origin of each member clear. Use `as *` sparingly and only for modules used so pervasively that the namespace becomes noise (a design-tokens file, for example).
 
@@ -75,6 +75,6 @@ Sass's `@use` loads each module only once. If two files `@use` the same module, 
 
 Nesting media queries inside selectors compiles to duplicated media query blocks in the output, one per selector. This increases file size but does not affect behavior. In performance-critical stylesheets, prefer grouping media queries at a higher level or using a post-processing tool to merge them.
 
-Color functions like `darken()`, `lighten()`, `saturate()`, and `desaturate()` operate in HSL space, which is not perceptually uniform. A 10% lightening of two different hues produces visually inconsistent results. For perceptually uniform color manipulation, prefer `color.adjust()` with `$space: oklch` (Dart Sass 1.62+) or defer to CSS `color-mix()` in oklch space.
+The global color functions `darken()`, `lighten()`, `saturate()`, `desaturate()`, `adjust-hue()`, `opacify()`, `fade-in()`, `transparentize()`, and `fade-out()` are deprecated as of Dart Sass 1.79.0 and will be removed in 3.0.0. They operate in HSL space, which is not perceptually uniform. Prefer `color.adjust()`, `color.scale()`, and `color.change()` from the `sass:color` module. For perceptually uniform manipulation, use `color.adjust()` with `$space: oklch` (Dart Sass 1.62+) or defer to CSS `color-mix()` in oklch space.
 
 Interpolation (`#{$var}`) in `calc()` expressions is no longer necessary in modern Sass. Write `calc(100% - $sidebar-width)` directly. The interpolation syntax was required in older versions and persists in many tutorials, but it obscures the expression unnecessarily.

@@ -69,19 +69,21 @@ Prefer `variants` in the theme for adding custom variant options to components. 
 
 ## Component Composition
 
-Prefer MUI's `component` and `slots`/`slotProps` props for structural customization. The `component` prop changes the rendered root element: `<Button component={Link}>` renders a link that looks like a button. The `slots` API (v5.10+) lets you replace internal sub-components.
+Prefer MUI's `component` and `slots`/`slotProps` props for structural customization. The `component` prop changes the rendered root element: `<Button component={Link}>` renders a link that looks like a button. The `slots` API (standardized across all components in v7) lets you replace internal sub-components.
 
 Prefer composing MUI components with `Box`, `Stack`, and `Grid` for layout. `Stack` handles one-dimensional spacing (column or row of items with `spacing`). `Grid` handles two-dimensional responsive layouts. `Box` is a generic container with `sx` support.
 
 Prefer `Stack` with `spacing` over manual margin utilities for vertical or horizontal lists of elements. Stack's `spacing` prop uses the theme's spacing scale and handles the gap uniformly.
 
-## MUI v5/v6 Patterns
+## MUI v7 Patterns
 
-Prefer `@mui/material` v5 or v6 over `@material-ui/core` v4. The v4 package uses a different import structure and styling engine (JSS vs. Emotion).
+Prefer `@mui/material` v7 (released March 2025) for new projects. v7 brings full React 19 support, standardized `slots`/`slotProps` across all components, CSS layers support via `enableCssLayer`, and improved ESM/CommonJS compatibility for bundlers like Vite and webpack. The upgrade from v6 is straightforward.
 
-System props (`color`, `bgcolor`, `p`, `m` directly on components) are deprecated in v6 in favor of the `sx` prop. Write `sx={{ p: 2 }}` rather than `p={2}` directly on the component.
+Prefer `@mui/material` v6 or v7 over `@material-ui/core` v4. The v4 package uses a different import structure and styling engine (JSS vs. Emotion).
 
-MUI v6 introduces Pigment CSS, a zero-runtime CSS-in-JS engine that extracts styles at build time. It is opt-in and experimental as of v6. For new projects, Emotion remains the default and stable styling engine. Evaluate Pigment CSS when your project requires React Server Component compatibility or has strict bundle-size requirements.
+System props (`color`, `bgcolor`, `p`, `m` directly on components) were deprecated in v6 in favor of the `sx` prop and are removed in v7. Write `sx={{ p: 2 }}` rather than `p={2}` directly on the component.
+
+Pigment CSS (zero-runtime CSS-in-JS) remains in alpha and is on hold. The MUI team has shifted focus to stabilizing Base UI instead. For new projects, Emotion remains the default and stable styling engine. Do not adopt Pigment CSS for production use.
 
 Prefer the `@mui/material` import path for all components. Tree shaking works correctly with modern bundlers (Webpack 5, Vite, esbuild). The second-level import pattern (`@mui/material/Button`) is no longer necessary for bundle size but remains valid.
 

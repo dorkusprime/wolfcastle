@@ -6,7 +6,7 @@ When the codebase you're working in has established conventions that differ from
 
 Prefer the tidyverse style guide for naming and formatting. Use `snake_case` for variables and functions, `PascalCase` for R6 classes and S4 classes. Keep line length under 80 characters.
 
-Prefer the native pipe `|>` in R 4.1+ projects. In codebases targeting older R versions or using tidyverse extensively, `%>%` from magrittr is acceptable. Avoid mixing the two pipe styles within a single file.
+Prefer the native pipe `|>` in R 4.1+ projects. The tidyverse style guide and R for Data Science (2nd edition) now use `|>` in all examples, and it is the idiomatic default for new code. In codebases targeting older R versions or using magrittr's extra features (`.` placeholder, `%<>%`), `%>%` is acceptable. Avoid mixing the two pipe styles within a single file.
 
 Prefer tibbles (`tibble()`, `as_tibble()`) over `data.frame()` for interactive and pipeline-oriented work. Tibbles print more sanely, never convert strings to factors by default, and never create row names. In package code that minimizes dependencies, `data.frame()` is fine.
 
@@ -29,6 +29,8 @@ Prefer `lintr` for static analysis. When the project has a `.lintr` configuratio
 Prefer `styler` for automated formatting. `styler::style_pkg()` reformats a package to tidyverse style; `styler::style_file()` handles individual scripts. Run the formatter before committing to avoid style-only diffs in future changes.
 
 Prefer `renv` for dependency management. `renv::snapshot()` records the lockfile; `renv::restore()` reproduces the environment. Commit `renv.lock` to version control.
+
+Prefer Quarto over R Markdown for new literate programming documents. Quarto is a standalone tool (not an R package), supports R, Python, Julia, and JavaScript, and unifies the functionality of R Markdown, bookdown, distill, and xaringan into one system with native support for websites, books, and blogs. R Markdown continues to be supported and is fine for existing projects; there is no urgency to migrate.
 
 ## Testing
 

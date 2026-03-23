@@ -24,7 +24,7 @@ Prefer functions over repeated inline code. Name them with underscores (`process
 
 Prefer ShellCheck for static analysis. Run `shellcheck -x script.sh` to follow sourced files. ShellCheck catches quoting errors, deprecated syntax, and portability issues that are invisible to manual review. When the project has a `.shellcheckrc`, respect its directives; add inline `# shellcheck disable=SC2xxx` comments only with a justifying explanation.
 
-Prefer `shfmt` for formatting. Run `shfmt -w -i 2` (or the project's chosen indent width) to normalize style. `shfmt -d` shows diffs without writing, useful for CI gates.
+Prefer `shfmt` for formatting. Run `shfmt -w -i 2 -ci -s` (or the project's chosen indent width) to normalize style. The `-ci` flag indents switch cases, and `-s` simplifies code. `shfmt -d` shows diffs without writing, useful for CI gates. Run both ShellCheck and shfmt as pre-commit hooks.
 
 Prefer Bats (Bash Automated Testing System) for structured tests. The `bats-core` project is the maintained fork. Install `bats-support` and `bats-assert` helper libraries for readable assertions.
 

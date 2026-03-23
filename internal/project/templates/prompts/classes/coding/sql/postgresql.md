@@ -10,7 +10,7 @@ Prefer `timestamptz` over `timestamp`. A `timestamp without time zone` discards 
 
 Prefer `jsonb` over `json`. `jsonb` is stored in a decomposed binary format that supports indexing, containment operators (`@>`, `<@`), and existence checks (`?`, `?|`, `?&`). `json` preserves formatting and key order but requires re-parsing on every access. Use `json` only when exact input preservation matters.
 
-Prefer `uuid` as a column type for identifiers when the application generates UUIDs. PostgreSQL validates format on insert. For ordered inserts with minimal index fragmentation, prefer UUIDv7 (time-sorted) over UUIDv4 (random). The `gen_random_uuid()` function produces v4; use `uuidv7()` from the `pg_uuidv7` extension or generate v7 values in application code.
+Prefer `uuid` as a column type for identifiers when the application generates UUIDs. PostgreSQL validates format on insert. For ordered inserts with minimal index fragmentation, prefer UUIDv7 (time-sorted) over UUIDv4 (random). The `gen_random_uuid()` function produces v4. PostgreSQL 18 added a built-in `uuidv7()` function; on older versions, use the `pg_uuidv7` extension or generate v7 values in application code.
 
 Prefer `bigint` or `bigserial` over `integer`/`serial` for primary keys on tables expected to grow. Migrating from `int4` to `int8` on a large table requires a full rewrite and exclusive lock.
 
@@ -61,6 +61,16 @@ Prefer declarative partitioning (`PARTITION BY RANGE`, `PARTITION BY LIST`, `PAR
 Prefer range partitioning on time columns for time-series and event data. Each partition covers a fixed interval (day, week, month). Create future partitions ahead of schedule; an insert into a nonexistent partition fails rather than falling back to the parent.
 
 Prefer keeping partition counts in the low hundreds. PostgreSQL 17 improved partition pruning performance, but thousands of partitions still slow planning. If each partition holds fewer than 10,000 rows, the overhead of partition management likely exceeds the benefit.
+
+## PostgreSQL 18 Features
+
+Prefer virtual generated columns (`GENERATED ALWAYS AS (expr) VIRTUAL`, PostgreSQL 18+) for computed values that don't need to be stored on disk. Virtual columns compute on read and use no storage, unlike stored generated columns. Use stored generated columns only when the value needs an index or is expensive to compute repeatedly.
+
+Prefer temporal constraints (PostgreSQL 18) for `PRIMARY KEY`, `UNIQUE`, and `FOREIGN KEY` constraints over ranges. Temporal constraints enforce validity periods directly in the schema, useful for slowly-changing dimensions and bitemporal data models.
+
+PostgreSQL 18 supports `OLD` and `NEW` in `RETURNING` clauses for `INSERT`, `UPDATE`, `DELETE`, and `MERGE`, making it possible to return both pre- and post-modification values in a single statement.
+
+PostgreSQL 18 adds OAuth 2.0 authentication support and a new I/O subsystem with up to 3x read performance improvements.
 
 Prefer `DETACH PARTITION ... CONCURRENTLY` (PostgreSQL 14+) for dropping old data. It avoids an `ACCESS EXCLUSIVE` lock on the parent, allowing concurrent queries to continue.
 

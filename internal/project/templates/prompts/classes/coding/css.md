@@ -68,6 +68,14 @@ Prefer `clamp()` for fluid typography and spacing: `font-size: clamp(1rem, 0.5re
 
 Prefer `aspect-ratio` over the padding-bottom hack for maintaining aspect ratios on elements.
 
+Prefer anchor positioning (`anchor-name`, `position-anchor`, `position-area`) for tooltips, popovers, and dropdowns that need to attach to a trigger element. Anchor positioning handles fallback placement to avoid viewport overflow directly in CSS. All major browsers are converging on support via Interop 2026.
+
+Prefer scroll-driven animations (`animation-timeline: scroll()` or `animation-timeline: view()`) for effects tied to scroll position. They replace JavaScript scroll listeners for parallax, progress bars, and reveal-on-scroll patterns.
+
+Prefer view transitions (`view-transition-name`, the View Transition API) for smooth animated transitions between page states. Same-document transitions are well-supported; cross-document (multi-page) transitions are an Interop 2026 focus area.
+
+Prefer `@starting-style` for entry animations on elements that appear via `display: none` toggling or DOM insertion. Without it, the browser renders the final state on the first frame, causing a flash.
+
 Prefer `@supports` for feature detection when using newer properties that may not be available in all target browsers.
 
 ## Common Pitfalls

@@ -4,7 +4,7 @@ When the codebase you're working in has established conventions that differ from
 
 ## Grid System
 
-Prefer the Bootstrap 5 grid (`container`, `row`, `col-*`) for page-level layouts. The grid uses Flexbox under the hood and supports 12 columns by default with responsive breakpoints (`col-sm-6`, `col-lg-4`).
+Prefer the Bootstrap 5 grid (`container`, `row`, `col-*`) for page-level layouts. The current stable release is Bootstrap 5.3.x (5.3.8 as of late 2025). Bootstrap 5.4 is planned as the last feature release of v5, and Bootstrap 6 has no announced release date. The grid uses Flexbox under the hood and supports 12 columns by default with responsive breakpoints (`col-sm-6`, `col-lg-4`).
 
 Prefer `row-cols-*` for uniform column widths in card grids: `row-cols-1 row-cols-md-2 row-cols-lg-3` is cleaner than putting `col-md-6 col-lg-4` on every child.
 

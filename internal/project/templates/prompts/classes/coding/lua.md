@@ -24,6 +24,8 @@ Prefer `busted` as the testing framework. Run `busted` from the project root; it
 
 Prefer `LuaFormatter` or `StyLua` for automated formatting when the project uses one. Neither is universal in Lua projects, so follow whatever the project has configured.
 
+Prefer LuaLS (Lua Language Server) type annotations (`---@param`, `---@return`, `---@class`, `---@field`) in projects that use them. Annotations provide IDE completion, warnings, and documentation for a dynamically typed language. The Neovim plugin ecosystem has broadly adopted LuaLS annotations as a standard practice.
+
 ## Testing
 
 Prefer `describe`/`it` blocks in busted for test organization. Write descriptions that read as sentences. Group related assertions inside a single `it` block rather than scattering them across blocks with identical setup.
@@ -51,7 +53,7 @@ The length operator `#` is only reliable on sequences (tables with consecutive i
 
 Lua uses 1-based indexing. `t[1]` is the first element. Off-by-one errors are common when translating algorithms from 0-based languages. `ipairs` starts at 1 and stops at the first `nil`; `pairs` iterates all keys in undefined order.
 
-Lua 5.1, 5.2, 5.3, 5.4, and LuaJIT differ in significant ways. Integer division (`//`) and bitwise operators exist in 5.3+. `setfenv`/`getfenv` exist in 5.1 and LuaJIT but were removed in 5.2. `goto` was added in 5.2. LuaJIT is 5.1-compatible with extensions (FFI, bit library) but does not support 5.2+ features. Check which runtime the project targets before using version-specific features.
+Lua 5.1, 5.2, 5.3, 5.4, 5.5, and LuaJIT differ in significant ways. Integer division (`//`) and bitwise operators exist in 5.3+. `setfenv`/`getfenv` exist in 5.1 and LuaJIT but were removed in 5.2. `goto` was added in 5.2. Lua 5.5 (released December 2025) adds explicit global variable declarations, read-only `for`-loop variables, more compact arrays (up to 60% less memory), and incremental major garbage collection cycles. LuaJIT is 5.1-compatible with extensions (FFI, bit library) but does not support 5.2+ features. Check which runtime the project targets before using version-specific features.
 
 Strings in Lua are immutable and interned. Every distinct string value has exactly one copy in memory, making string equality checks fast (pointer comparison), but string mutation impossible. Building strings incrementally with `..` in a loop is O(n²); collect into a table and `table.concat()`.
 
