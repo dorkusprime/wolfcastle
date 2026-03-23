@@ -14,12 +14,12 @@
     {
       "id": "renderer-duration-field-support",
       "address": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "schema-documentation-update",
       "address": "structured-timing-metrics-in-log-events/schema-documentation-update",
-      "state": "not_started"
+      "state": "in_progress"
     }
   ],
   "tasks": [

@@ -103,7 +103,7 @@ Agent thoughts are indented to visually separate them from stage headers.
 
 ## Data Source
 
-All formatting, duration math, and display logic lives in the `wolfcastle log` command. The daemon writes raw NDJSON records with timestamps and moves on. No computation happens in the daemon's hot path for human display purposes.
+Display formatting and layout logic lives in the `wolfcastle log` command. The daemon writes NDJSON records with timestamps and pre-computes `duration_ms` (elapsed milliseconds as an integer) on `stage_complete` and `planning_complete` records for structured consumers. Renderers own display formatting: they may prefer the pre-computed `duration_ms` value or fall back to computing durations from timestamp diffs.
 
 All output is reconstructed from the NDJSON log files in `.wolfcastle/system/logs/`. The command never reads the daemon's stdout directly. This means:
 
@@ -119,10 +119,10 @@ The log command reads these record types from the log files:
 |--------------|----------|
 | `iteration_start` | Stage header (node address, stage type) |
 | `stage_start` | Stage start timestamp, stage type |
-| `stage_complete` | Stage end timestamp (for duration), exit code (for `✓`/`✗`) |
+| `stage_complete` | Stage end timestamp (for duration), exit code (for `✓`/`✗`). Contains `duration_ms` (integer): pre-computed elapsed milliseconds for the stage. |
 | `assistant` | Agent thoughts (debug level) |
 | `audit_report_written` | Audit report path |
-| `planning_start` / `planning_complete` | Planning stage boundaries |
+| `planning_start` / `planning_complete` | Planning stage boundaries. `planning_complete` contains `duration_ms` (integer): pre-computed elapsed milliseconds for the planning phase. |
 
 Records missing from the current NDJSON schema should be added to the logging package. The log command should degrade gracefully if a record type is absent (skip that detail, don't crash).
 

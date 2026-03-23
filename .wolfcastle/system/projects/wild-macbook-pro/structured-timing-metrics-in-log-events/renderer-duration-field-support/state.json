@@ -3,7 +3,7 @@
   "id": "renderer-duration-field-support",
   "name": "Renderer Duration Field Support",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -62,7 +62,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Renderer Duration Field Support is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -99,8 +99,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-23T00:12:55.826991Z",
+    "completed_at": "2026-03-23T00:22:48.054538Z",
     "result_summary": "Added DurationMS *int64 field to the logrender Record struct for structured timing data, created a resolveDuration helper that prefers pre-computed DurationMS over timestamp subtraction, and wired it into all six completion handlers across summary.go (Replay, Follow) and interleaved.go (Render) for both stage_complete and planning_complete record types. Comprehensive test coverage spans 11 DurationMS-specific tests across duration_test.go, record_test.go, summary_test.go, and interleaved_test.go, verifying preference, fallback, zero-value, and absent-field behavior. Audit found and fixed one gofmt alignment violation; no correctness or concurrency issues."
   },
   "aars": {

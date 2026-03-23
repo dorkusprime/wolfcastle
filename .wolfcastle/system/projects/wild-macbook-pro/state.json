@@ -573,7 +573,7 @@
     "structured-timing-metrics-in-log-events/renderer-duration-field-support": {
       "name": "Renderer Duration Field Support",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
       "decomposition_depth": 0,
       "parent": "structured-timing-metrics-in-log-events"
@@ -581,7 +581,7 @@
     "structured-timing-metrics-in-log-events/schema-documentation-update": {
       "name": "Schema Documentation Update",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "structured-timing-metrics-in-log-events/schema-documentation-update",
       "decomposition_depth": 0,
       "parent": "structured-timing-metrics-in-log-events"
