@@ -3,7 +3,7 @@
   "id": "structured-timing-metrics-in-log-events",
   "name": "Structured Timing Metrics in Log Events",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -19,7 +19,7 @@
     {
       "id": "schema-documentation-update",
       "address": "structured-timing-metrics-in-log-events/schema-documentation-update",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -40,6 +40,8 @@
     "All existing tests pass and new tests cover the duration_ms field",
     "The log command design spec documents the duration_ms field"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-23T00:03:48.866764Z",
