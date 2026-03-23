@@ -3,12 +3,10 @@ package audit
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -31,12 +29,16 @@ Examples:
 				return fmt.Errorf("--node is required: specify the node to inspect")
 			}
 
-			addr, err := tree.ParseAddress(nodeAddr)
-			if err != nil {
-				return fmt.Errorf("invalid node address: %w", err)
-			}
-
 			pathOnly, _ := cmd.Flags().GetBool("path")
+
+			// Validate that the node exists in the index
+			idx, err := app.State.ReadIndex()
+			if err != nil {
+				return fmt.Errorf("reading index: %w", err)
+			}
+			if _, exists := idx.Nodes[nodeAddr]; !exists {
+				return fmt.Errorf("node %q not found in index. Check the address with 'wolfcastle status'", nodeAddr)
+			}
 
 			// Check for an existing report file
 			reportPath := state.LatestAuditReport(app.State.Dir(), nodeAddr)
@@ -83,8 +85,7 @@ Examples:
 			}
 
 			// No report on disk: generate a preview from current state
-			statePath := filepath.Join(app.State.Dir(), filepath.Join(addr.Parts...), "state.json")
-			ns, err := state.LoadNodeState(statePath)
+			ns, err := app.State.ReadNode(nodeAddr)
 			if err != nil {
 				return fmt.Errorf("loading node state: %w", err)
 			}
