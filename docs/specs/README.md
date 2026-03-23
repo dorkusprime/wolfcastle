@@ -44,6 +44,7 @@ Each spec was verified against current code. Status meanings:
 | Auto-Archive Service Contract | Current | |
 | Config Write Commands | Current | |
 | Dict-Format Pipeline Stages | Current | Implemented; `StageOrder` field and dict-format stages in source |
+| Log Command Design | Current | |
 
 ## Specs
 
@@ -82,6 +83,7 @@ Each spec was verified against current code. Status meanings:
 | [Dict-Format Pipeline Stages](2026-03-21T03-11Z-dict-format-stages.md) | Migration of pipeline.stages from array to dict format, stage_order field, validation rules |
 | [Auto-Archive Service Contract](2026-03-21T12-27Z-auto-archive-service-contract.md) | Archive state model, file layout, move/restore/delete operations, daemon timer integration |
 | [Config Write Commands](2026-03-21T14-23Z-config-write-commands.md) | CLI spec for `config set`, `unset`, `append`, `remove` with dot-notation paths and rollback |
+| [Log Command Design](2026-03-21T18-00Z-log-command-design.md) | `wolfcastle log` display modes, session reconstruction, verbosity flags |
 
 ## Drafts
 
