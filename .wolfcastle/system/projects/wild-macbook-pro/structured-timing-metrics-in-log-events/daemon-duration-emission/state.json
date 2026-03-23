@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Add duration_ms to execute stage_complete records",
       "description": "Add duration_ms to execute stage_complete records",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration.go"
@@ -29,7 +29,7 @@
       "id": "task-0002",
       "title": "Add duration_ms to intake stage_complete records",
       "description": "Add duration_ms to intake stage_complete records",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/stages.go"
@@ -97,6 +97,11 @@
         "timestamp": "2026-03-23T00:04:46.858652Z",
         "task": "structured-timing-metrics-in-log-events/daemon-duration-emission",
         "text": "Added duration_ms (int64) field to stage_complete log records in iteration.go. Captures time.Now() before stage_start, computes elapsed via time.Since after invocation completes."
+      },
+      {
+        "timestamp": "2026-03-23T00:05:50.272551Z",
+        "task": "structured-timing-metrics-in-log-events/daemon-duration-emission",
+        "text": "Added duration_ms to intake stage_complete log records in stages.go. Per-item timing via time.Now() before invokeWithRetry and time.Since() in the log map."
       }
     ],
     "gaps": [],
@@ -118,6 +123,21 @@
       ],
       "action_items": [
         "Downstream tasks should add similar timing to renderer and other log sites"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-23T00:05:49.22043Z",
+      "objective": "Add duration_ms to intake stage_complete log records in stages.go",
+      "what_happened": "Added itemStart := time.Now() before invokeWithRetry call inside the per-item loop, then added duration_ms: time.Since(itemStart).Milliseconds() to the stage_complete log map. Timing is per-item since the start time resets each iteration.",
+      "went_well": [
+        "Two-line change, mirrors the pattern from task-0001 in iteration.go"
+      ],
+      "improvements": [
+        "None; straightforward addition"
+      ],
+      "action_items": [
+        "Remaining stage_complete sites (renderer, other stages) still need duration_ms"
       ]
     }
   }

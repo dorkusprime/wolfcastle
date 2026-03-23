@@ -222,6 +222,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 			invokeCtx, invokeCancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
 		}
 
+		itemStart := time.Now()
 		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.InboxLogger.AssistantWriter(), "intake")
 		if invokeCancel != nil {
 			invokeCancel()
@@ -231,11 +232,12 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		}
 
 		_ = d.InboxLogger.Log(map[string]any{
-			"type":       "stage_complete",
-			"stage":      "intake",
-			"item_index": itemIdx,
-			"exit_code":  result.ExitCode,
-			"output_len": len(result.Stdout),
+			"type":        "stage_complete",
+			"stage":       "intake",
+			"item_index":  itemIdx,
+			"exit_code":   result.ExitCode,
+			"output_len":  len(result.Stdout),
+			"duration_ms": time.Since(itemStart).Milliseconds(),
 		})
 
 		if result.ExitCode != 0 {
