@@ -65,10 +65,36 @@
     "scope": {
       "description": ""
     },
-    "breadcrumbs": [],
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-23T03:11:30.111858Z",
+        "task": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
+        "text": "Refactored commitAfterIteration to accept taskCommitMeta struct. Added buildCommitSubject, buildCommitBody, and extractTaskCommitMeta helpers. Subject uses CommitPrefix + task title with fallback to taskID. Body includes task class, deliverables, failure type, and latest breadcrumb. Updated both call sites in runIteration to extract metadata from NodeState. All 21 existing tests updated and passing."
+      }
+    ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
     "started_at": "2026-03-23T03:06:17.184782Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-23T03:11:41.773582Z",
+      "objective": "Refactor commitAfterIteration to build enriched commit messages from task metadata",
+      "what_happened": "Introduced a taskCommitMeta struct to carry title, class, deliverables, latest breadcrumb, and failure type. Extracted three helper functions: buildCommitSubject (handles prefix/title/fallback logic), buildCommitBody (assembles structured body with task ID, class, deliverables, failure type, breadcrumb), and extractTaskCommitMeta (pulls metadata from NodeState). Updated both call sites in runIteration: the success path extracts meta directly, the failure path also sets FailureType from the already-computed variable. Updated all 21 test call sites across iteration_test.go and iteration_coverage_test.go to pass empty taskCommitMeta{}.",
+      "went_well": [
+        "Clean separation between subject and body construction",
+        "Empty-title fallback preserves exact backward compatibility with existing tests",
+        "The struct approach keeps the function signature manageable vs 5 extra string params"
+      ],
+      "improvements": [
+        "No new tests for the enriched path (with title/class/deliverables populated). A follow-up test with non-empty taskCommitMeta would verify the body formatting."
+      ],
+      "action_items": [
+        "Add tests that verify enriched commit messages with populated taskCommitMeta fields",
+        "Consider whether buildCommitSubject and buildCommitBody warrant their own unit tests for edge cases"
+      ]
+    }
   }
 }
