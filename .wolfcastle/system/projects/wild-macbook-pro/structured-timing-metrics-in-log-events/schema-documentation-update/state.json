@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Update log command design spec with duration_ms field",
       "description": "Update log command design spec with duration_ms field",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
@@ -26,9 +26,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Schema Documentation Update is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -43,12 +44,18 @@
         "timestamp": "2026-03-23T00:23:12.881343Z",
         "task": "structured-timing-metrics-in-log-events/schema-documentation-update",
         "text": "Updated log command design spec: added duration_ms to NDJSON Records Used table for stage_complete and planning_complete rows; revised Data Source section to reflect daemon pre-computation of duration_ms"
+      },
+      {
+        "timestamp": "2026-03-23T00:24:55.542963Z",
+        "task": "structured-timing-metrics-in-log-events/schema-documentation-update",
+        "text": "Audit reviewed 1 file (.wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md, 147 lines). PASS. Task-0001 made two changes: (1) added duration_ms documentation to stage_complete and planning_complete rows in the NDJSON Records Used table, (2) revised the Data Source paragraph to reflect daemon pre-computation. Both changes verified against implementation: daemon writes duration_ms in stages.go:240, iteration.go:133, planning.go:220; logrender Record struct parses it as *int64 in record.go:21; renderers prefer it with timestamp-diff fallback in duration.go:12-18. Build passes, all tests pass (one flaky test in cmd/ is pre-existing). No gaps, no escalations."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-23T00:22:48.132598Z"
+    "started_at": "2026-03-23T00:22:48.132598Z",
+    "result_summary": "Schema Documentation Update added duration_ms field documentation to the log command design spec. Two surgical edits to .wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md: the NDJSON Records Used table now documents duration_ms on stage_complete and planning_complete rows, and the Data Source section accurately reflects that the daemon pre-computes duration_ms for structured consumers while renderers own display formatting with timestamp-diff fallback. Verified against implementation in daemon (stages.go, iteration.go, planning.go) and logrender (record.go, duration.go). Clean, accurate documentation work."
   },
   "aars": {
     "task-0001": {
