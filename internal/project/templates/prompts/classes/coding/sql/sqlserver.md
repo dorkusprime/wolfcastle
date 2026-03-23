@@ -72,6 +72,16 @@ Prefer `IS [NOT] DISTINCT FROM` for null-safe equality comparisons. `a IS NOT DI
 
 Prefer `WINDOW` clause (SQL Server 2022+) to define a named window specification reused across multiple window functions in the same query, reducing duplication.
 
+## SQL Server 2025 Features
+
+SQL Server 2025 is generally available. It adds a native `VECTOR` data type with built-in vector search, native JSON document support, REST API endpoints, and RegEx functions directly in T-SQL.
+
+Prefer Change Event Streaming (CES) over CDC or polling for real-time data streaming to Azure Event Hubs.
+
+Prefer Optional Parameter Plan Optimization (SQL Server 2025) to reduce parameter sniffing issues without manual `OPTION (RECOMPILE)` hints.
+
+SQL Server 2025 enforces TLS 1.3 by default on new installations. Resource Governor is now available in Standard edition. The Express edition maximum database size is now 50 GB, and Express with Advanced Services has been discontinued (its features are folded into the base Express edition).
+
 ## Testing
 
 Prefer tSQLt for unit testing stored procedures, functions, and views. tSQLt runs inside the database, uses transactions for isolation (each test rolls back automatically), and provides `FakeTable`, `SpyProcedure`, and `AssertEqualsTable` for test setup and assertions.

@@ -18,19 +18,19 @@ Prefer branded types for domain identifiers that share a primitive representatio
 
 Prefer `unknown` over `any` for values whose type is genuinely uncertain. `unknown` forces you to narrow before use; `any` silently disables type checking for everything it touches.
 
-Prefer `satisfies` to validate a value matches a type without widening it. `const config = { ... } satisfies Config` preserves literal types while still catching structural mismatches.
+Prefer `satisfies` to validate a value matches a type without widening it. `const config = { ... } satisfies Config` preserves literal types while still catching structural mismatches. Combine with `as const` when you need both immutability and type validation: `const config = { ... } as const satisfies Config`.
 
 ## Build and Test
 
 Prefer `tsc --noEmit` for type checking as a separate step from bundling. Most modern projects use a bundler (esbuild, swc, Vite) for output and `tsc` purely for type verification.
 
-Prefer `tsx` or `ts-node` for running TypeScript scripts directly. Check which the project uses before introducing the other.
+Prefer `tsx` for running TypeScript scripts directly; it uses esbuild under the hood, starts faster than `ts-node`, and handles ESM without extra configuration. Node.js 22.6+ can run TypeScript files natively via `--experimental-strip-types` (stable in Node.js 24.3+/22.18+), which strips type annotations at load time without a separate tool. Check which approach the project uses before introducing another.
 
-Prefer ESLint with `typescript-eslint` for linting. Look for `eslint.config.*` (flat config, the only supported format since ESLint v10). The `@typescript-eslint/recommended-type-checked` ruleset catches type-aware issues that plain ESLint misses. Biome is a fast alternative that combines linting and formatting; when the project uses it, follow that.
+Prefer ESLint with `typescript-eslint` for linting. Look for `eslint.config.*` (flat config, the only format since ESLint v9; legacy `.eslintrc.*` removed in v10). Use the `projectService` option (stable in typescript-eslint v8) for easier type-aware linting configuration. The `tseslint.configs.recommendedTypeChecked` ruleset catches type-aware issues that plain ESLint misses. Biome is a widely adopted alternative that combines linting and formatting with significantly faster execution; when the project uses `biome.json`, follow that.
 
-Prefer Prettier for formatting. Check for `.prettierrc`, `prettier.config.*`, or a `"prettier"` key in `package.json`. When the project uses ESLint's formatting rules instead, follow that approach.
+Prefer Prettier for formatting when the project uses it. Check for `.prettierrc`, `prettier.config.*`, or a `"prettier"` key in `package.json`. Biome's formatter is a drop-in alternative with near-identical output and faster execution. When the project uses Biome for formatting, follow that.
 
-Prefer the project's existing test runner. Look for Vitest (`vitest.config.*`), Jest with `ts-jest` or `@swc/jest` (`jest.config.*`), or Node's built-in test runner with a TypeScript loader. When starting fresh, Vitest handles TypeScript natively without separate transform configuration.
+Prefer the project's existing test runner. Look for Vitest (`vitest.config.*`), Jest with `ts-jest` or `@swc/jest` (`jest.config.*`), or Node's built-in test runner with a TypeScript loader. When starting fresh, Vitest is the standard choice; it handles TypeScript natively without separate transform configuration, runs significantly faster than Jest, and is the default runner for most modern frameworks.
 
 ## Testing
 
@@ -57,3 +57,5 @@ Index signatures (`[key: string]: T`) make every property access on the object r
 Overusing generics creates types that are harder to read than the problem they solve. A function with four type parameters and conditional types is often clearer as two or three concrete overloads. Prefer generics when the type relationship is real and simple; prefer overloads or separate functions when the abstraction is strained.
 
 `!` (non-null assertion) silently tells the compiler a value is not `null` or `undefined`. Like `as`, it is an escape hatch that hides bugs. Prefer narrowing with an explicit check or an early return. Reserve `!` for cases where the assertion is provably correct and a check would be misleading noise.
+
+When targeting Node.js native TypeScript execution (`--experimental-strip-types` or Node.js 23.6+), enable `"erasableSyntaxOnly": true` in `tsconfig.json`. This flag (TypeScript 5.8+) errors on constructs that have runtime semantics and cannot be stripped by simply removing type annotations: enums, namespaces, parameter properties, and experimental decorators. Combine with `"verbatimModuleSyntax": true` for full compatibility.

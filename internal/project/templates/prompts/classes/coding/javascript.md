@@ -24,11 +24,11 @@ Prefer `===` and `!==` over `==` and `!=`. Strict equality avoids the abstract e
 
 Prefer the project's existing package manager. Look for `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), or `yarn.lock` (yarn). Do not introduce a different lockfile into a project that already has one.
 
-Prefer ESLint for linting. Check for `eslint.config.js` (flat config, the only supported format since ESLint v10). Legacy `.eslintrc.*` files are no longer recognized. Biome is a fast alternative that combines linting and formatting in a single tool; when the project uses it, follow that. Run the linter before committing; most projects include a `lint` script in `package.json`.
+Prefer ESLint for linting. Check for `eslint.config.js` or `eslint.config.mjs` (flat config, the only format since ESLint v9; legacy `.eslintrc.*` files are removed in ESLint v10). Biome is a widely adopted alternative that combines linting and formatting in a single tool with significantly faster execution; when the project uses `biome.json`, follow that. Run the linter before committing; most projects include a `lint` script in `package.json`.
 
-Prefer Prettier for formatting. Check for `.prettierrc`, `prettier.config.js`, or a `"prettier"` key in `package.json`. When the project uses ESLint's formatting rules instead of Prettier, follow that approach.
+Prefer Prettier for formatting when the project uses it. Check for `.prettierrc`, `prettier.config.js`, or a `"prettier"` key in `package.json`. Biome's formatter is a drop-in alternative with near-identical output and faster execution. When the project uses Biome for formatting, follow that.
 
-Prefer the project's existing test runner. Look for configuration for Vitest (`vitest.config.*`), Jest (`jest.config.*` or `"jest"` in `package.json`), or Node's built-in test runner (`node --test`). When starting fresh, Vitest is the current standard for ESM projects; Jest remains common in older and CJS codebases.
+Prefer the project's existing test runner. Look for configuration for Vitest (`vitest.config.*`), Jest (`jest.config.*` or `"jest"` in `package.json`), or Node's built-in test runner (`node --test`). When starting fresh, Vitest is the standard choice; it handles ESM natively, runs significantly faster than Jest, and is the default runner for most modern frameworks. Jest remains common in existing codebases and is the only officially supported runner for React Native.
 
 ## Testing
 
@@ -56,4 +56,4 @@ Floating promises silently swallow rejections. Every `async` call in a non-async
 
 Callback-style error handling (`if (err) return callback(err)`) and promise-style error handling (`try`/`catch` around `await`) must never be mixed in the same flow. Pick one pattern and carry it through.
 
-Array methods like `.sort()` mutate the original array. When the caller expects the original to remain unchanged, copy first with `.slice()` or the spread operator before sorting.
+Array methods like `.sort()`, `.reverse()`, and `.splice()` mutate the original array. Prefer the non-mutating counterparts `.toSorted()`, `.toReversed()`, `.toSpliced()`, and `.with()` (ES2023, supported in all modern engines and Node.js 20+). These return a new array and leave the original intact.

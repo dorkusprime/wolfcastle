@@ -16,13 +16,17 @@ Prefer `Codable` for serialization. Implement `CodingKeys` only when JSON field 
 
 Prefer Swift's naming conventions: `lowerCamelCase` for functions, methods, properties, and variables; `UpperCamelCase` for types and protocols. Boolean properties read as assertions (`isEmpty`, `canBecomeFirstResponder`). Methods that perform actions use verb phrases (`append`, `removeAll`); methods that return transformed values use noun or past-participle phrases (`sorted`, `distance(to:)`).
 
-Prefer `async`/`await` over completion handlers for new asynchronous code. Structured concurrency with `TaskGroup` and `async let` makes concurrency relationships explicit. Use actors to protect mutable state accessed from multiple tasks. Mark types `@Sendable` only when they are genuinely safe to cross isolation boundaries.
+Prefer `async`/`await` over completion handlers for new asynchronous code. Structured concurrency with `TaskGroup` and `async let` makes concurrency relationships explicit. Use actors to protect mutable state accessed from multiple tasks. Mark types `@Sendable` only when they are genuinely safe to cross isolation boundaries. Swift 6 enforces complete concurrency checking by default, diagnosing potential data races as compiler errors. Swift 6.2 defaults to main-actor isolation, so code runs on the main thread unless explicitly opted out.
+
+Prefer noncopyable types (`~Copyable`) for values that represent unique ownership of a resource (file handles, database connections, hardware tokens). Noncopyable types prevent accidental duplication at compile time. They work with generics as of Swift 6, including `Optional`.
+
+Prefer `InlineArray` and `Span` (Swift 6.2) for performance-sensitive fixed-size collections and safe alternatives to unsafe buffer pointers, respectively.
 
 ## Build and Test
 
 Prefer `swift build` and `swift test` for Swift Package Manager projects. Check for a `Package.swift` at the project root. When the project is an Xcode workspace, use `xcodebuild -scheme <SchemeName> -destination <platform> build test` instead.
 
-Prefer SwiftLint for style enforcement. Check for a `.swiftlint.yml` in the project root and run `swiftlint` before committing. When the project uses SwiftFormat, run `swiftformat .` as well; the two tools are complementary (SwiftLint checks rules, SwiftFormat rewrites formatting).
+Prefer SwiftLint for style enforcement. Check for a `.swiftlint.yml` in the project root and run `swiftlint` before committing. When the project uses SwiftFormat (nicklockwood/SwiftFormat) or the official swift-format (swiftlang/swift-format), run the formatter as well; the two approaches are complementary (SwiftLint checks rules, the formatter rewrites formatting).
 
 Prefer Swift Package Manager for dependency management in libraries and server-side projects. For iOS/macOS apps, follow whatever the project already uses (SPM, CocoaPods, or Carthage). Do not introduce a second dependency manager into a project that already has one.
 
@@ -34,7 +38,7 @@ Prefer `XCTAssertEqual`, `XCTAssertTrue`, `XCTAssertNil`, and `XCTAssertThrowsEr
 
 Prefer `async` test methods for testing asynchronous code (Xcode 13.2+ / Swift 5.5+). Write `func testFetch() async throws` and `await` directly inside the test body, rather than using `XCTestExpectation` and `wait(for:timeout:)`. Use expectations only when testing delegate callbacks or Combine publishers that don't bridge to async.
 
-Prefer Swift Testing (`@Test`, `#expect`, `@Suite`) for new test targets. Swift Testing provides parameterized tests, traits for configuration, and a cleaner assertion syntax than XCTest. When the project uses XCTest, continue with XCTest; do not mix frameworks within a single test target without a migration plan.
+Prefer Swift Testing (`@Test`, `#expect`, `@Suite`) for new test targets. Swift Testing is included with the Swift 6 toolchain and Xcode 16+; no package dependency is needed. It provides parameterized tests, traits for configuration (including the `TestScoping` protocol in Swift 6.1 for shared setup/teardown), and a cleaner assertion syntax than XCTest. Tests run in parallel by default and integrate with Swift concurrency. When the project uses XCTest, continue with XCTest; do not mix frameworks within a single test target without a migration plan.
 
 Prefer test doubles at boundaries (network, persistence, system clock) rather than mocking internal types. Inject dependencies through initializer parameters or protocol-typed properties. Avoid mocking types you own unless testing interaction behavior at an architectural seam.
 

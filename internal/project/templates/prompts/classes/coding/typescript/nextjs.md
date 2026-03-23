@@ -14,7 +14,9 @@ Prefer `import 'server-only'` in files that use secrets, database clients, or ot
 
 Prefer Server Actions for mutations. Define them in dedicated `'use server'` files when they need to be called from Client Components; inline `'use server'` works only inside Server Components. Server Actions are public HTTP endpoints, so always verify authentication and authorization inside each function.
 
-Prefer `fetch()` with explicit caching options. Next.js 15 does not cache fetches by default; opt in with `{ cache: 'force-cache' }` or `{ next: { revalidate: seconds } }`. Use `{ next: { tags: ['key'] } }` combined with `revalidateTag('key')` in Server Actions for on-demand invalidation.
+Prefer `fetch()` with explicit caching options. Since Next.js 15, fetches, GET Route Handlers, and client navigations are not cached by default. Opt in with `{ cache: 'force-cache' }` or `{ next: { revalidate: seconds } }`. Use `{ next: { tags: ['key'] } }` combined with `revalidateTag('key')` in Server Actions for on-demand invalidation.
+
+Next.js 16 introduces the `'use cache'` directive for explicit, granular caching of pages, components, and functions. The compiler generates cache keys automatically. This replaces the implicit caching model of earlier App Router versions. All dynamic code runs at request time by default; caching is entirely opt-in.
 
 Prefer React's `cache()` function to deduplicate identical data-fetching calls within a single render pass (for example, sharing a query between `generateMetadata` and the page component).
 
@@ -33,6 +35,14 @@ Prefer the static `metadata` export for pages with fixed titles and descriptions
 ## Middleware
 
 Prefer middleware (`middleware.ts` at the project root) for cross-cutting concerns: redirects, rewrites, header manipulation, cookie-based routing. Use the `matcher` config to scope it to specific paths. Middleware should not be the sole authentication gate; always re-verify inside Server Actions and data-fetching functions.
+
+## TypeScript Configuration
+
+Enable `typedRoutes` in `next.config.ts` for compile-time route safety. Next.js generates type definitions in `.next/types` that make `<Link href="...">` and `router.push()` type-checked against your actual file-system routes. This is stable and works with both Webpack and Turbopack.
+
+Next.js automatically generates `PageProps`, `LayoutProps`, and `RouteContext` types with full parameter typing. Run `npx next typegen` to regenerate these globally available types. In Next.js 15+, `params` and `searchParams` are typed as Promises; the generated types reflect this.
+
+Turbopack is stable and the default bundler in Next.js 16, providing significantly faster Fast Refresh and builds compared to Webpack. It supports filesystem caching in development, storing compiler artifacts on disk between runs.
 
 ## Testing
 

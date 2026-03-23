@@ -2,6 +2,10 @@
 
 When the codebase you're working in has established conventions that differ from what's described here, follow the codebase.
 
+## Community Context
+
+Actix Web 4.x is the current major version. It remains one of the fastest Rust web frameworks. Axum has gained significant community adoption for new projects due to its simpler middleware model and tighter Tower/Tokio integration. For existing Actix Web codebases, stay with Actix Web. For new projects, evaluate both; choose Actix Web when raw throughput matters most, Axum when middleware composability and ecosystem breadth are priorities.
+
 ## Application Structure and Routing
 
 Prefer building the `App` with `web::scope` to group related routes under a shared prefix and middleware set. Prefer explicit method guards (`web::resource("/items").route(web::get().to(list)).route(web::post().to(create))`) over catch-all handlers. Prefer handler functions as `async fn` with typed extractors in the signature; Actix resolves `Path<T>`, `Query<T>`, `Json<T>`, and `web::Data<T>` from the request automatically based on position. Keep route registration in a `configure` function (`pub fn configure(cfg: &mut web::ServiceConfig)`) per module so the main `App` builder stays clean.
@@ -16,7 +20,7 @@ Prefer implementing the `ResponseError` trait on custom error types. This gives 
 
 ## Middleware
 
-Prefer `actix_web::middleware::Logger` for request logging and `actix_cors::Cors` for CORS. For custom middleware, prefer the `from_fn` middleware (Actix Web 4.x) for simple cases; it takes an async function and avoids the full `Transform`/`Service` trait boilerplate. Reserve manual `Transform` + `Service` implementations for middleware that needs to inspect or buffer the response body.
+Prefer `actix_web::middleware::Logger` for request logging and `actix_cors::Cors` for CORS. For custom middleware, prefer the `from_fn` middleware for simple cases; it takes an async function, supports extractors as leading parameters, and avoids the full `Transform`/`Service` trait boilerplate. Reserve manual `Transform` + `Service` implementations for middleware that needs to inspect or buffer the response body. Be careful with extractors that consume the request body in middleware; handlers will not be able to read it again unless you put the body back into the request.
 
 ## Database Integration
 

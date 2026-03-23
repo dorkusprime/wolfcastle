@@ -14,6 +14,10 @@ Prefer the built-in control flow (`@if`, `@for`, `@switch`) over structural dire
 
 Prefer `signal()` for synchronous component state and `computed()` for derived values. Both are read by calling as functions (`count()`, `doubleCount()`). Use `.set()` for replacement and `.update(prev => ...)` for state that depends on the previous value.
 
+Prefer `linkedSignal()` (Angular 19+) when a signal should reset to a computed default whenever a source changes, but still accept direct writes. This replaces the pattern of using `effect()` to reset a `signal()` in response to another signal's changes.
+
+Prefer `resource()` and `rxResource()` (Angular 19+) for async data loading triggered by signal changes. `resource<T>()` accepts a promise-based loader; `rxResource<T>()` (from `@angular/core/rxjs-interop`) accepts an Observable-based loader. Both expose `.value()`, `.isLoading()`, and `.error()` signals.
+
 Prefer `effect()` sparingly, for side effects that must react to signal changes (logging, localStorage sync, imperative DOM calls). Most derived state belongs in `computed()` instead. Signal reads after an `await` inside `effect()` or `computed()` lose tracking; read all dependencies synchronously before any async boundary.
 
 Prefer `toSignal()` to bridge Observables into the signal graph, and `toObservable()` for the reverse. Call `toSignal()` once per Observable and reuse the returned signal rather than converting repeatedly.
@@ -26,7 +30,7 @@ Prefer `providedIn: 'root'` for application-wide singletons. Scope services to a
 
 ## Forms
 
-Prefer reactive forms (`FormGroup`, `FormControl`, `FormArray`) for anything beyond trivial inputs. Validators live in TypeScript, making them unit-testable without rendering. Template-driven forms with `ngModel` suit simple, static fields where programmatic control adds no value.
+Prefer reactive forms (`FormGroup`, `FormControl`, `FormArray`) for anything beyond trivial inputs. Validators live in TypeScript, making them unit-testable without rendering. Template-driven forms with `ngModel` suit simple, static fields where programmatic control adds no value. Angular 20 introduced signal-based forms (developer preview) via the `form()` function, which infers types directly from the initial value and integrates naturally with the signal graph. For new projects on Angular 20+, evaluate signal forms as a replacement for the reactive forms API.
 
 ## Routing
 
@@ -53,3 +57,5 @@ Tracking `@for` by object reference instead of a stable identity (`track item.id
 Circular dependency injection (`NG0200`) surfaces at runtime, not compile time. When two services depend on each other, break the cycle with a mediator service, `forwardRef()`, or interface segregation. Architectural refactoring is preferable to `forwardRef()` as a long-term fix.
 
 OnPush components with signal reads in the template automatically mark dirty when the signal changes. The trap is mixing OnPush with zone-triggered Observables that mutate state outside signals: the component will not re-render unless you call `markForCheck()` or bridge the Observable through `toSignal()`.
+
+Zoneless change detection (experimental since Angular 18, improved in 19) removes the zone.js dependency entirely, improving performance and debugging. In zoneless mode, change detection is driven entirely by signals and explicit `markForCheck()` calls. The `whenStable()` API is the only reliable synchronization point in both zoneless and zone-based tests.

@@ -2,13 +2,19 @@
 
 When the codebase you're working in has established conventions that differ from what's described here, follow the codebase.
 
+## Version
+
+Tokio 1.x is the current major version (latest stable: 1.49.0). It follows a regular release cadence with LTS releases that receive backports. The API has been stable since 1.0; minor versions add features without breaking changes.
+
 ## Runtime and Task Spawning
 
 Prefer `#[tokio::main]` with the multi-threaded runtime for applications. Use `#[tokio::main(flavor = "current_thread")]` only for lightweight tools or when single-threaded semantics simplify the design. Prefer `tokio::spawn` to create concurrent tasks, and always store the returned `JoinHandle<T>` so panics propagate and results are retrievable. A dropped `JoinHandle` detaches the task silently: panics vanish, errors go unobserved, and cancellation becomes impossible. Prefer `.abort()` on the handle when early cancellation is needed rather than relying on drop behavior.
 
 ## Structured Concurrency
 
-Prefer `tokio::task::JoinSet` when spawning a dynamic set of tasks that should be collected together. `JoinSet::join_next()` returns results in completion order and propagates panics. For fan-out/fan-in patterns, `JoinSet` replaces manual `Vec<JoinHandle<T>>` with `futures::future::join_all`, which swallows panics. Prefer `tokio_util::task::TaskTracker` when you need to wait for all spawned tasks during shutdown without collecting their results.
+Prefer `tokio::task::JoinSet` when spawning a dynamic set of tasks that should be collected together. `JoinSet::join_next()` returns results in completion order and propagates panics. Dropping a `JoinSet` aborts all its tasks immediately. For fan-out/fan-in patterns, `JoinSet` replaces manual `Vec<JoinHandle<T>>` with `futures::future::join_all`, which swallows panics.
+
+Prefer `tokio_util::task::TaskTracker` when you need to wait for all spawned tasks during shutdown without collecting their results. Unlike `JoinSet`, dropping a `TaskTracker` does not abort its tasks, and completed tasks are cleaned up immediately rather than accumulating in memory. Combine `TaskTracker` with `CancellationToken` for graceful shutdown: the token signals tasks to stop, the tracker waits for them to finish.
 
 ## Channels
 
@@ -28,7 +34,7 @@ Prefer `tokio::sync::Mutex` when the lock must be held across an `.await` point;
 
 ## Graceful Shutdown
 
-Prefer `tokio::signal::ctrl_c()` or a `broadcast`/`watch` channel to distribute a shutdown signal. The pattern: the main task receives the signal, drops or closes the channel sender, and all workers detect closure via their receiver's `.recv()` returning `None` or `.changed()` returning an error. Combine with `TaskTracker` or `JoinSet` to await in-flight work before exiting. Prefer `tokio::time::timeout` on the drain period so the process terminates even if a task hangs.
+Prefer `tokio::signal::ctrl_c()` or a `broadcast`/`watch` channel to distribute a shutdown signal. The pattern: the main task receives the signal, drops or closes the channel sender, and all workers detect closure via their receiver's `.recv()` returning `None` or `.changed()` returning an error. Combine with `TaskTracker` or `JoinSet` to await in-flight work before exiting. Prefer `tokio::time::timeout` on the drain period so the process terminates even if a task hangs. `tokio_util::sync::CancellationToken` provides a clean, cloneable signal that integrates well with `select!` branches.
 
 ## Testing
 

@@ -4,9 +4,9 @@ When the codebase you're working in has established conventions that differ from
 
 ## Style
 
-Prefer type hints on public API boundaries: function signatures, class attributes, and return types. Internal locals rarely need annotation. Use `from __future__ import annotations` to enable postponed evaluation and avoid forward-reference pain.
+Prefer type hints on public API boundaries: function signatures, class attributes, and return types. Internal locals rarely need annotation. On Python 3.14+, annotations are evaluated lazily by default (PEP 649/749), so `from __future__ import annotations` is unnecessary and will eventually be deprecated. On 3.13 and earlier, `from __future__ import annotations` still works for postponed evaluation. Prefer the PEP 695 `type` statement for type aliases (`type Vector = list[float]`) and the new generic syntax (`def first[T](items: list[T]) -> T`) on Python 3.12+.
 
-Prefer `dataclasses.dataclass` for structured data with known fields. Use `attrs` when the project already depends on it or when you need validators and converters. Reserve plain classes for types with significant behavior or non-trivial initialization.
+Prefer `dataclasses.dataclass` for internal structured data with known fields where the inputs are trusted. Use Pydantic `BaseModel` when data crosses a trust boundary (API inputs, config files, user-supplied data) and needs validation or coercion. Use `attrs` when the project already depends on it or when you need composable validators and slotted classes. Reserve plain classes for types with significant behavior or non-trivial initialization.
 
 Prefer context managers (`with` statements) for any resource that needs cleanup: files, locks, database connections, temporary directories. Write custom context managers with `contextlib.contextmanager` when a class-based `__enter__`/`__exit__` pair is overkill.
 
@@ -22,7 +22,7 @@ Prefer raising specific exceptions with context over generic ones. `raise ValueE
 
 ## Build and Test
 
-Prefer the project's existing dependency and build tooling. Look for `pyproject.toml` (pip, uv, poetry, hatch, pdm), `setup.py`/`setup.cfg`, or a `Makefile`. When starting fresh, `pyproject.toml` with `uv` or `pip` is the current standard; `setup.py` alone is legacy.
+Prefer the project's existing dependency and build tooling. Look for `pyproject.toml` (uv, pip, poetry, hatch, pdm), `setup.py`/`setup.cfg`, or a `Makefile`. When starting fresh, `pyproject.toml` with `uv` is the current standard. `uv` handles package installation, virtual environments, Python version management, and lockfiles in a single fast binary (10-100x faster than pip). Poetry remains a strong choice for library publishing. `setup.py` alone is legacy.
 
 Prefer ruff for both linting and formatting. It replaces flake8, isort, black, and several other tools in a single fast binary. Check for a `[tool.ruff]` section in `pyproject.toml` or a `ruff.toml` file. When the project uses black, flake8, or isort, follow those.
 
@@ -39,6 +39,8 @@ Prefer fixtures over `setUp`/`tearDown`. Fixtures compose naturally (`def test_u
 Prefer `tmp_path` (function-scoped) and `tmp_path_factory` (session-scoped) over `tempfile` for temporary files and directories in tests. Pytest cleans them up and provides unique directories per test.
 
 Prefer `unittest.mock.patch` or `monkeypatch` for isolating external boundaries (network, filesystem, environment variables). Mock at the boundary where the dependency is imported, not at its definition site: `patch("mymodule.requests.get")`, not `patch("requests.get")`.
+
+Prefer `pytest-asyncio` for testing async code. Set `asyncio_mode = "auto"` in `pyproject.toml` so async tests run without requiring `@pytest.mark.asyncio` on every function. The default mode is `strict`, which requires explicit markers.
 
 ## Common Pitfalls
 

@@ -10,15 +10,13 @@ Prefer small, single-responsibility components. Co-locate closely related compon
 
 ## Props and Runtime Type Checking
 
-Prefer PropTypes for documenting and validating component props at development time. Define `ComponentName.propTypes` immediately after the component declaration so the contract is visible alongside the implementation. Pair with `ComponentName.defaultProps` for optional props that need fallback values.
-
 Prefer JSDoc `@param` annotations on the component function to give editors type information for autocompletion and inline documentation. `/** @param {{ name: string, count: number }} props */` provides IDE support without a build step.
 
-Prefer `PropTypes.shape({})` over `PropTypes.object` for object props. A bare `object` validation catches nothing; `shape` documents the expected structure and warns on missing fields. Use `PropTypes.exact({})` when extra properties should be flagged.
+Prefer PropTypes for runtime validation of component props when the project uses them. Define `ComponentName.propTypes` immediately after the component declaration. Use `PropTypes.shape({})` over `PropTypes.object` for object props, and `PropTypes.isRequired` on every prop that has no default value. PropTypes is no longer bundled with React; it lives in the separate `prop-types` package.
 
-Prefer `PropTypes.oneOfType` for props that change shape based on a variant. For example, a button that is either a link or a click handler: `PropTypes.oneOfType([PropTypes.shape({ variant: ..., href: ... }), PropTypes.shape({ variant: ..., onClick: ... })])`. This is the closest JavaScript equivalent to discriminated unions.
+Prefer default parameter values in the component signature (`function Button({ variant = "primary", ...rest })`) over `defaultProps`, which is deprecated in React 19 for function components.
 
-Prefer `PropTypes.isRequired` on every prop that has no default value. Without a type system, missing a required prop produces no error at build time; PropTypes warnings in the console are the only safety net.
+In React 19, `ref` is a regular prop on function components. Pass it directly in the props object (`function Input({ ref, ...props })`) instead of wrapping with `forwardRef`. `forwardRef` is deprecated and will be removed in a future release.
 
 ## Hooks
 
@@ -26,9 +24,13 @@ Prefer calling hooks at the top level of the component body, never inside condit
 
 Prefer `useState` for independent, simple values. Prefer `useReducer` when the next state depends on the previous state in non-trivial ways, or when multiple state values change together in response to a single event.
 
+Prefer `useActionState` for form submission handling in React 19. It manages the pending state, error state, and return value of a Server Action or form action in a single hook. Prefer `useOptimistic` for instant UI feedback while an async action is in flight; it shows a temporary value that reverts automatically on failure.
+
+Prefer the `use` API (React 19) for reading promises and context in render. `use(somePromise)` suspends the component until the promise resolves. Unlike hooks, `use` can be called inside conditions and loops.
+
 Prefer extracting related stateful logic into custom hooks (`useDebounce`, `useMediaQuery`, `usePagination`). A custom hook is a function starting with `use` that calls other hooks. It shares logic without sharing state.
 
-Prefer `useMemo` and `useCallback` only when you have measured a performance problem or need referential stability for a dependency array. Memoizing everything adds complexity and memory overhead for no benefit when the computation is cheap.
+Prefer `useMemo` and `useCallback` only when you have measured a performance problem or need referential stability for a dependency array. The React Compiler (stable since v1.0, October 2025) automates memoization at build time; in projects that use it, manual `useMemo`/`useCallback` is rarely needed.
 
 ## Effects and Lifecycle
 
@@ -52,8 +54,8 @@ PropTypes only run in development mode and are stripped from production builds. 
 
 Stale closures in effects capture the values of state and props from the render in which the effect was created. If an effect reads a value that changes between renders but the dependency array does not include it, the effect sees stale data. The ESLint plugin `react-hooks/exhaustive-deps` catches most of these; without TypeScript's compile-time checks, this plugin is the primary guard.
 
-Missing `defaultProps` for optional props can produce `undefined` values deep in the rendering tree. Unlike TypeScript where the type system flags nullable access, JavaScript silently propagates `undefined` until it causes a runtime error far from the source. Define defaults for every optional prop.
+Missing default values for optional props can produce `undefined` values deep in the rendering tree. Unlike TypeScript where the type system flags nullable access, JavaScript silently propagates `undefined` until it causes a runtime error far from the source. Define defaults via destructuring defaults for every optional prop.
 
-Object and array literals created inline in JSX (`style={{ color: "red" }}`, `options={[1, 2, 3]}`) produce a new reference every render. When passed to a memoized child, they defeat the memoization. Prefer lifting stable objects outside the component or wrapping them in `useMemo` when the child is expensive to re-render.
+Object and array literals created inline in JSX (`style={{ color: "red" }}`, `options={[1, 2, 3]}`) produce a new reference every render. When passed to a memoized child, they defeat the memoization. Prefer lifting stable objects outside the component or wrapping them in `useMemo` when the child is expensive to re-render. Projects using the React Compiler handle this automatically.
 
 Missing or non-unique `key` props on list items cause React to misidentify which items changed, leading to stale state, broken animations, and incorrect DOM reuse. Prefer stable, unique identifiers from the data (database IDs, slugs) over array indices.

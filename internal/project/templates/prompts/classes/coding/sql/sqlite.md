@@ -8,6 +8,8 @@ SQLite uses type affinity, not strict types. A column declared as `INTEGER` will
 
 Prefer `STRICT` tables (SQLite 3.37+) when type enforcement matters. A `CREATE TABLE t (...) STRICT` declaration rejects values that do not match the declared column type. Strict tables support `INT`, `INTEGER`, `REAL`, `TEXT`, `BLOB`, and `ANY`. Use `ANY` for columns that intentionally accept mixed types.
 
+Prefer JSONB storage (SQLite 3.45+) for JSON data that will be queried or manipulated frequently. JSONB stores JSON in a decomposed binary format that avoids re-parsing on every access. All JSON functions were rewritten in 3.45 to use JSONB internally. Use `jsonb()` to convert text JSON to JSONB on insert, and `json()` to convert back to text for display. SQLite 3.51 added `jsonb_each()` and `jsonb_tree()` for iterating JSONB directly.
+
 Prefer `INTEGER PRIMARY KEY` for rowid aliases. This makes the column an alias for SQLite's internal rowid, giving it auto-increment behavior without the `AUTOINCREMENT` keyword. `AUTOINCREMENT` adds a monotonically increasing guarantee (never reuses deleted IDs) at the cost of a lookup in the `sqlite_sequence` table on every insert. Use `AUTOINCREMENT` only when reuse would be harmful.
 
 ## WAL Mode
@@ -40,7 +42,7 @@ Prefer applying multiple schema changes inside a single transaction. SQLite supp
 
 SQLite allows multiple readers but only one writer at a time, even in WAL mode. The write lock is database-wide, not table-wide or row-wide. High write concurrency from multiple processes or threads will serialize at the lock, creating contention.
 
-Prefer a single writer process with internal queuing when write throughput matters. Application architectures that funnel writes through one connection (or a small pool with serialized access) avoid `SQLITE_BUSY` errors entirely.
+Prefer a single writer process with internal queuing when write throughput matters. Application architectures that funnel writes through one connection (or a small pool with serialized access) avoid `SQLITE_BUSY` errors entirely. WAL2 mode and `BEGIN CONCURRENT` exist as experimental branches and in SQLite forks like LibSQL; they allow multiple concurrent writers to proceed as long as they don't modify the same pages. These features are not in mainline SQLite as of 3.51.
 
 Prefer connection pooling with `SQLITE_OPEN_FULLMUTEX` (serialized threading mode) or `SQLITE_OPEN_NOMUTEX` (multi-thread mode with the application guaranteeing single-thread-per-connection). The wrong threading mode produces silent corruption.
 

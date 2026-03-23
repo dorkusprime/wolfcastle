@@ -40,7 +40,7 @@ Do not pretty-print JSONL. Each record must occupy exactly one line. Newlines in
 
 ## jq Patterns
 
-Prefer `jq` for command-line JSON manipulation. It is the standard tool and available on every major platform.
+Prefer `jq` (current stable: 1.8.x) for command-line JSON manipulation. It is the standard tool and available on every major platform.
 
 Prefer `jq '.field'` for simple extraction, `jq '.[] | select(.active)'` for filtering arrays, and `jq '{name, email}'` for reshaping objects. Compose filters with pipes inside the jq expression rather than piping between multiple `jq` invocations.
 

@@ -8,15 +8,23 @@ Prefer nullable reference types enabled (`<Nullable>enable</Nullable>` in the pr
 
 Prefer records (`record` or `record struct`) for immutable data types. A `record Point(int X, int Y);` gives you value equality, `ToString`, deconstruction, and `with`-expressions for nondestructive mutation. Use classes when the type has significant mutable state or complex behavior.
 
+Prefer primary constructors (C# 12+) for classes and structs that capture dependencies or configuration. `class UserService(IRepository repo, ILogger logger)` eliminates constructor boilerplate and private field declarations for simple dependency injection. Primary constructor parameters are available throughout the class body. For types where the constructor parameters should be exposed as public properties, prefer records instead.
+
 Prefer pattern matching for control flow involving type checks, value decomposition, and complex conditions. `switch` expressions with property patterns, relational patterns, and `when` guards replace chains of `if`/`else if` with something the compiler can verify for exhaustiveness. Prefer `is` patterns for simple type checks over explicit casts.
+
+Prefer collection expressions (C# 12+) for initializing collections. `int[] nums = [1, 2, 3];` and `List<int> list = [1, 2, 3];` replace verbose `new` expressions. Use the spread element (`..other`) to flatten one collection into another.
 
 Prefer LINQ for collection transformations when the pipeline reads clearly. A `.Where().Select().ToList()` chain that fits one screen beats a manual loop with an accumulator. When the pipeline needs index access, side effects, or spans multiple screens, a `foreach` loop is clearer. Prefer method syntax over query syntax unless the query involves multiple `from` clauses or `join`.
 
 Prefer `async`/`await` for all I/O-bound operations. Suffix async methods with `Async` by convention. Use `ConfigureAwait(false)` in library code to avoid capturing the synchronization context; omit it in application code (ASP.NET Core has no sync context, so it's a no-op there, but older frameworks still do).
 
+Prefer `params` with any collection type (C# 13+), not just arrays. `params ReadOnlySpan<int>` avoids heap allocation entirely; `params IEnumerable<T>` accepts any sequence. The compiler uses inline arrays on the stack when possible.
+
 Prefer file-scoped namespaces (`namespace Foo;`) over block-scoped namespaces to reduce nesting. Prefer top-level statements in console applications and tools where a `Main` method would be ceremonial.
 
 Prefer `sealed` on classes that aren't designed for inheritance. Sealing enables devirtualization optimizations and communicates intent.
+
+Prefer extension members (C# 14) over static utility classes when adding behavior to types you don't own. C# 14 extends the extension concept beyond methods to include properties, making `extension` blocks a cleaner pattern than scattered static methods with `this` parameters.
 
 ## Build and Test
 
@@ -49,3 +57,5 @@ Calling `.Result` or `.Wait()` on a `Task` in code that has a synchronization co
 Mutable structs behave unexpectedly when stored in collections or accessed through interfaces. Modifying a struct retrieved from a `List<T>` modifies a copy, not the original. Prefer `readonly struct` for value types, and prefer records or classes when mutation is needed.
 
 String concatenation in loops creates a new `string` per iteration. Prefer `StringBuilder` for loops, `string.Join()` for assembling delimited sequences, and string interpolation (`$"..."`) for simple expressions.
+
+Primary constructor parameters are mutable captures, not fields. Assigning to a primary constructor parameter from within the class compiles but mutates only the local capture, which can surprise developers expecting field semantics. When immutability matters, assign the parameter to a `readonly` field or use a record.

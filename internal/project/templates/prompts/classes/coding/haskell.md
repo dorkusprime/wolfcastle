@@ -24,9 +24,9 @@ Prefer `camelCase` for functions and values, `PascalCase` for types, constructor
 
 ## Build and Test
 
-Prefer Cabal as the build tool, with Stack as an alternative when the project already uses it. Both manage dependency resolution and build configuration; pick whichever the project has committed to and don't mix them.
+Prefer Cabal as the build tool for new projects. Cabal has gained significant momentum and development velocity, while Stack has slowed. Stack's HLS integration has historically been frustrating. The Haskell Foundation now administers Stackage, so both ecosystems remain viable, but Cabal is the safer default for new work. When the project already uses Stack, continue with Stack; don't mix the two.
 
-Prefer `ghc -Wall -Werror` (or the equivalent in `ghc-options` in the `.cabal` file) to surface unused binds, incomplete patterns, missing signatures, and other warnings. Treat warnings as errors in CI.
+Prefer `ghc -Wall -Werror` (or the equivalent in `ghc-options` in the `.cabal` file) to surface unused binds, incomplete patterns, missing signatures, and other warnings. Treat warnings as errors in CI. GHC 9.12 introduced `OrPatterns` (combining multiple pattern clauses), `MultilineStrings`, and type syntax in expressions. GHC 9.14 improves specialization with type application syntax in the `SPECIALISE` pragma.
 
 Prefer Ormolu or Fourmolu for deterministic formatting. Both produce consistent output without configuration debates. Run the formatter before committing.
 
@@ -63,6 +63,6 @@ Partial functions (`head`, `tail`, `fromJust`, `read`, `!!`) crash on empty or i
 
 Orphan instances (type class instances defined in a module that owns neither the class nor the type) create incoherence risks and confuse dependency resolution. Define instances in the module that defines the type or the class. When you cannot avoid an orphan, isolate it in a clearly named module and document why.
 
-Over-abstracted monad transformer stacks (`ReaderT Config (StateT AppState (ExceptT AppError (LoggingT IO)))`) become difficult to reason about and compose. Prefer a concrete application monad with `newtype AppM a = AppM (ReaderT Env IO a)` and `Has`-style constraints or `MonadReader`/`MonadIO` classes for testability without the tower of transformers.
+Over-abstracted monad transformer stacks (`ReaderT Config (StateT AppState (ExceptT AppError (LoggingT IO)))`) become difficult to reason about and compose. Prefer a concrete application monad with `newtype AppM a = AppM (ReaderT Env IO a)` and `Has`-style constraints or `MonadReader`/`MonadIO` classes for testability without the tower of transformers. For new projects that want a more principled approach, consider `effectful` (type-level effect tracking with good performance) or `bluefin` (value-level effect handles that make disambiguating multiple effects of the same type straightforward). Both outperform the older `polysemy` and `fused-effects` libraries. Prefer whichever the project already uses; do not introduce an effect system into a codebase that manages fine without one.
 
 Strictness annotations and evaluation strategy mismatches between lazy and strict variants of containers (`Data.Map.Lazy` vs `Data.Map.Strict`) can produce subtle performance differences. Prefer the strict variants (`Data.Map.Strict`, `Data.HashMap.Strict`) unless laziness in values is specifically needed.

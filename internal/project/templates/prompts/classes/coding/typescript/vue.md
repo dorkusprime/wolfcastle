@@ -16,6 +16,8 @@ Prefer type-based declarations for props and emits. `defineProps<{ title: string
 
 Prefer `withDefaults` when default values are needed for optional props: `withDefaults(defineProps<Props>(), { count: 0 })`. Default values for object or array props must use factory functions to avoid shared references.
 
+Prefer `defineModel()` (stable since Vue 3.4) for two-way binding props. `const title = defineModel<string>('title')` creates a typed ref that syncs with the parent's `v-model:title` binding, eliminating the `defineProps` + `defineEmits` + `update:` boilerplate.
+
 ## Templates and Rendering
 
 Prefer templates over JSX for most components. Templates enable compile-time optimizations (static hoisting, patch flags) that the JSX path cannot apply. Reserve JSX or render functions for highly dynamic components where programmatic vnode construction is clearer than template directives.
@@ -27,6 +29,10 @@ Prefer `v-bind` shorthand (`:prop="value"`) for dynamic attributes. A bare attri
 Prefer Pinia for shared application state. Define stores with `defineStore` using the setup syntax (a function returning refs and computed properties) for full TypeScript inference. Option stores work but require manual type annotations for getters and actions.
 
 Prefer keeping component-local state in `ref`/`reactive` rather than pushing everything into a store. Pinia is for state that crosses component boundaries or persists across route changes.
+
+## Type Checking
+
+Prefer `vue-tsc` for command-line type checking of `.vue` files. It wraps `tsc` to understand single-file component structure and is included automatically in Vite-scaffolded Vue projects. The Vue (Official) VS Code extension (formerly Volar) provides in-editor diagnostics, autocompletion, and go-to-definition for SFC templates. Both require TypeScript 5.0+.
 
 ## Routing
 

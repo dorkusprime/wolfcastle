@@ -54,6 +54,10 @@ Prefer `ALTER TABLE ... ALGORITHM=INPLACE` for index creation, column reordering
 
 Prefer external schema migration tools (`gh-ost`, `pt-online-schema-change`, `spirit`) for large tables in production when the ALTER requires a table copy. These tools copy data in the background, apply changes incrementally, and perform an atomic cutover with minimal locking.
 
+## MySQL 9.x Series
+
+MySQL now follows an Innovation/LTS release model. MySQL 8.4 is the current Long-Term Support release; MySQL 9.x releases are Innovation releases with rapid feature delivery. MySQL 9.0 added native vector data type support for AI/embedding workloads. MySQL 9.1 made `CREATE DATABASE` and `DROP DATABASE` crash-safe for InnoDB tables. The Innovation releases move quickly (9.0 through 9.6 as of early 2026), so pin to the LTS release (8.4) for production stability unless you need specific Innovation features.
+
 ## Testing
 
 Prefer testing against a real MySQL instance matching the production version. MariaDB diverges from MySQL on CTE optimization, JSON functions, window function edge cases, and system variable names. A test suite passing on MariaDB does not guarantee correctness on MySQL (and vice versa).

@@ -6,9 +6,11 @@ When the codebase you're working in has established conventions that differ from
 
 Prefer ASP.NET Core on .NET 10+. Use minimal APIs (`app.MapGet`, `app.MapPost`) for small services and microservices where controller ceremony adds no value. Use controller-based APIs (`[ApiController]`) when the project needs model validation, filters, or conventional routing across many endpoints. Register services through `IServiceCollection` in `Program.cs` or via extension methods grouped by feature (`services.AddBillingServices()`). Prefer the `WebApplication.CreateBuilder()` pattern over the older `Startup` class.
 
+For distributed applications, prefer .NET Aspire for local development orchestration. Aspire's AppHost project defines service dependencies, containers, and connection strings in code (`builder.AddProject`, `builder.AddPostgres`, `builder.AddRedis`). `WithReference()` wires service discovery and `WaitFor()` controls startup ordering. Aspire eliminates manual docker-compose files for local dev and provides a dashboard for observing service health, logs, and traces.
+
 ## Dependency Injection
 
-Prefer constructor injection with the built-in container. Register services with the appropriate lifetime: `AddTransient` for stateless utilities, `AddScoped` for per-request work (DbContext, unit-of-work), `AddSingleton` for thread-safe shared state. Prefer `IOptions<T>` and `IOptionsSnapshot<T>` for typed configuration bound from `appsettings.json` sections via `builder.Services.Configure<T>(builder.Configuration.GetSection("SectionName"))`. Use `IOptionsMonitor<T>` when the application needs to react to configuration changes at runtime without restarting.
+Prefer constructor injection with the built-in container. Register services with the appropriate lifetime: `AddTransient` for stateless utilities, `AddScoped` for per-request work (DbContext, unit-of-work), `AddSingleton` for thread-safe shared state. Prefer `IOptions<T>` and `IOptionsSnapshot<T>` for typed configuration bound from `appsettings.json` sections via `builder.Services.Configure<T>(builder.Configuration.GetSection("SectionName"))`. Use `IOptionsMonitor<T>` when the application needs to react to configuration changes at runtime without restarting. Enable `ValidateOnBuild` (`builder.Host.UseDefaultServiceProvider(o => o.ValidateOnBuild = true)`) to catch missing registrations at startup rather than at runtime.
 
 ## Middleware Pipeline
 
@@ -16,7 +18,13 @@ Prefer ordering middleware deliberately: exception handling and HSTS first, then
 
 ## Entity Framework Core
 
-Prefer a single `DbContext` per bounded context, registered as scoped. Define entity configuration in `IEntityTypeConfiguration<T>` classes rather than overloading `OnModelCreating`. Use migrations (`dotnet ef migrations add`, `dotnet ef database update`) to evolve the schema. Prefer explicit loading or `Include()`/`ThenInclude()` over lazy loading; lazy loading triggers N+1 queries silently when iterating navigation properties in loops. Prefer `AsNoTracking()` for read-only queries to avoid change-tracking overhead. Use `ExecuteUpdateAsync()`/`ExecuteDeleteAsync()` for bulk operations instead of loading entities into memory.
+Prefer EF Core 10 (ships with .NET 10, LTS until November 2028). Prefer a single `DbContext` per bounded context, registered as scoped. Define entity configuration in `IEntityTypeConfiguration<T>` classes rather than overloading `OnModelCreating`. Use migrations (`dotnet ef migrations add`, `dotnet ef database update`) to evolve the schema. Prefer explicit loading or `Include()`/`ThenInclude()` over lazy loading; lazy loading triggers N+1 queries silently when iterating navigation properties in loops. Prefer `AsNoTracking()` for read-only queries to avoid change-tracking overhead. Use `ExecuteUpdateAsync()`/`ExecuteDeleteAsync()` for bulk operations instead of loading entities into memory. Use `LeftJoin` and `RightJoin` LINQ operators (new in EF Core 10) instead of manual `DefaultIfEmpty()` patterns for outer joins.
+
+## Native AOT and Source Generators
+
+Prefer Native AOT compilation (`PublishAot=true`) for CLI tools, serverless functions, and microservices where startup time and memory footprint matter. AOT eliminates the JIT compiler, producing a self-contained native binary. Use source generators instead of runtime reflection for serialization (`System.Text.Json` source generation), DI, and configuration binding. Avoid reflection-heavy patterns in AOT-published code; the trimmer removes unreferenced types, breaking dynamic loading. Test the published AOT binary, not just the JIT-compiled debug build.
+
+.NET 10 supports partial AOT, where specific assemblies are AOT-compiled while others remain JIT-compiled. This is useful for applications that need AOT startup performance but rely on libraries that require JIT.
 
 ## Authentication and Authorization
 
@@ -28,7 +36,7 @@ Prefer `BackgroundService` (implements `IHostedService`) for long-running backgr
 
 ## Testing
 
-Prefer `WebApplicationFactory<Program>` for integration tests that spin up the full HTTP pipeline in-memory. Override service registrations in `WithWebHostBuilder(builder => builder.ConfigureServices(...))` to swap real dependencies for test doubles. Use `HttpClient` from the factory to issue requests and assert on responses. Prefer `TestServer` when finer control over the host is needed. For EF Core tests, prefer SQLite in-memory provider (`UseInMemoryDatabase` is acceptable for simple cases but does not enforce relational constraints). Use `IClassFixture<WebApplicationFactory<Program>>` to share the server across tests in a class. Prefer Moq or NSubstitute for mocking service boundaries; avoid mocking DbContext directly, test against a real provider instead.
+Prefer `WebApplicationFactory<Program>` for integration tests that spin up the full HTTP pipeline in-memory. Override service registrations in `WithWebHostBuilder(builder => builder.ConfigureServices(...))` to swap real dependencies for test doubles. Use `HttpClient` from the factory to issue requests and assert on responses. Prefer `TestServer` when finer control over the host is needed. For EF Core tests, prefer a real database provider (SQL Server, PostgreSQL via Testcontainers) over `UseInMemoryDatabase`, which does not enforce relational constraints, foreign keys, or transactions. Use `IClassFixture<WebApplicationFactory<Program>>` to share the server across tests in a class. Prefer NSubstitute or Moq for mocking service boundaries; avoid mocking DbContext directly, test against a real provider instead.
 
 ## Common Pitfalls
 
@@ -40,4 +48,6 @@ Middleware ordering sensitivity means that calling `app.UseAuthorization()` befo
 
 EF Core lazy-loading N+1 queries surface when navigation properties are accessed in a loop without a prior `Include()`. Each access fires a separate query. Prefer eager loading with `Include()`/`ThenInclude()`, or project into a DTO with `Select()` to load exactly the data needed in one query.
 
-Forgetting to register services produces runtime `InvalidOperationException` with "No service for type X has been registered." The DI container has no compile-time verification. Prefer integration tests that resolve key services from the container, or use `ValidateOnBuild` (`builder.Host.UseDefaultServiceProvider(o => o.ValidateOnBuild = true)`) to catch missing registrations at startup.
+Forgetting to register services produces runtime `InvalidOperationException` with "No service for type X has been registered." The DI container has no compile-time verification. Prefer integration tests that resolve key services from the container, or enable `ValidateOnBuild` to catch missing registrations at startup.
+
+Native AOT trimming removes types the trimmer considers unreferenced. Serialization, DI, and configuration binding that rely on reflection break silently in trimmed builds. Prefer source-generated serializers (`[JsonSerializable]` on a `JsonSerializerContext`), and use `[DynamicallyAccessedMembers]` annotations to preserve types the trimmer cannot see. Always test the published binary.

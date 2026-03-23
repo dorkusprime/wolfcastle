@@ -6,6 +6,8 @@ When the codebase you're working in has established conventions that differ from
 
 Prefer modular style (subclassing `Sinatra::Base`) over classic style (`require 'sinatra'` with top-level DSL) for any application beyond a single-file prototype. Classic style mixes route definitions into `Object`'s namespace, which pollutes every object in the process and breaks when multiple Sinatra apps coexist. Modular apps are also mountable as Rack endpoints, composable behind `Rack::URLMap` or inside a `config.ru`.
 
+For new projects that need more structure than Sinatra but less than Rails, consider Roda. Roda uses a routing tree architecture (routes are matched dynamically as requests traverse the tree), offers better performance and lower memory usage than Sinatra, and has a rich plugin system. When the project already uses Sinatra, follow that.
+
 ## Routes and Parameters
 
 Prefer explicit route ordering: Sinatra matches routes top-down and stops at the first match, so place specific patterns (`get '/users/search'`) before parameterized ones (`get '/users/:id'`). Use named parameters (`:id`) for path segments and `params[:key]` for query strings. Use `pass` to skip a route and continue matching. Prefer route conditions (`get '/feed', provides: 'rss'`) over manual content-type branching in the handler body.

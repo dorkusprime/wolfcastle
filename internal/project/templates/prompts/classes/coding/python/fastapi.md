@@ -32,13 +32,13 @@ Prefer async SQLAlchemy sessions (`AsyncSession` from `sqlalchemy.ext.asyncio`) 
 
 ## Testing
 
-Prefer `httpx.AsyncClient` with `ASGITransport` (or the `async_client` fixture pattern) over the older `TestClient` for async applications. Use `app.dependency_overrides` to swap real dependencies (database sessions, external API clients) with test doubles. Prefer `pytest-asyncio` with `asyncio_mode = "auto"` so async tests run without manual `@pytest.mark.asyncio` on every function. Use a separate test database; create and drop tables per session or per test via fixtures, not shared mutable state.
+Prefer `httpx.AsyncClient` with `ASGITransport` (or the `async_client` fixture pattern) over the older `TestClient` for async applications. Use `app.dependency_overrides` to swap real dependencies (database sessions, external API clients) with test doubles. Prefer `pytest-asyncio` with `asyncio_mode = "auto"` in `pyproject.toml` so async tests run without manual `@pytest.mark.asyncio` on every function; the default mode is `strict`, which requires explicit markers. Use a separate test database; create and drop tables per session or per test via fixtures, not shared mutable state.
 
 ## Common Pitfalls
 
 Calling `requests.get()`, `open()`, or any synchronous blocking call inside an `async def` endpoint freezes the event loop for all concurrent requests. The application appears to hang under load with no obvious error. Use async equivalents or move the operation to a sync `def` endpoint.
 
-Pydantic v2 changed validation semantics: `@validator` is `@field_validator` with `mode="before"` or `mode="after"`, `@root_validator` is `@model_validator`, and `Config` inner classes are replaced by `model_config = ConfigDict(...)`. Mixing v1 and v2 APIs produces silent validation failures or confusing deprecation errors at startup.
+Pydantic v2 changed validation semantics: `@validator` is `@field_validator` with `mode="before"` or `mode="after"`, `@root_validator` is `@model_validator`, and `Config` inner classes are replaced by `model_config = ConfigDict(...)`. Mixing v1 and v2 APIs produces silent validation failures or confusing deprecation errors at startup. FastAPI has dropped Pydantic v1 support entirely; the minimum is now `pydantic>=2.7.0`. Use `model_validate()` and `model_dump()` instead of the v1 `.parse_obj()` and `.dict()` methods.
 
 Dependencies using `yield` must not catch and suppress exceptions before the `yield` point; FastAPI relies on exception propagation to trigger proper HTTP error responses. A bare `except Exception` around the `yield` in a database session dependency silently swallows request errors and returns 500s with no traceback.
 

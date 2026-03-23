@@ -20,15 +20,21 @@ Prefer explicit `children: React.ReactNode` in the props type over `React.PropsW
 
 Prefer `ComponentProps<"button">` or `ComponentProps<typeof SomeComponent>` when extending native or third-party element props. This tracks upstream type changes automatically.
 
+In React 19, `ref` is a regular prop on function components. Accept it directly in the props type (`function Input({ ref, ...props }: { ref?: React.Ref<HTMLInputElement> } & InputProps)`) instead of wrapping with `forwardRef`. `forwardRef` is deprecated and will be removed in a future release. Prefer default parameter values in the component signature over `defaultProps`, which is deprecated in React 19 for function components.
+
 ## Hooks
 
 Prefer calling hooks at the top level of the component body, never inside conditions, loops, or nested functions. React relies on call order to associate hook state with the component instance.
 
 Prefer `useState` for independent, simple values. Prefer `useReducer` when the next state depends on the previous state in non-trivial ways, or when multiple state values change together in response to a single event.
 
+Prefer `useActionState` for form submission handling in React 19. It manages the pending state, error state, and return value of a Server Action or form action in a single hook. Prefer `useOptimistic` for instant UI feedback while an async action is in flight; it shows a temporary value that reverts automatically on failure.
+
+Prefer the `use` API (React 19) for reading promises and context in render. `use(somePromise)` suspends the component until the promise resolves. Unlike hooks, `use` can be called inside conditions and loops.
+
 Prefer extracting related stateful logic into custom hooks (`useDebounce`, `useMediaQuery`, `usePagination`). A custom hook is a function starting with `use` that calls other hooks. It shares logic without sharing state.
 
-Prefer `useMemo` and `useCallback` only when you have measured a performance problem or need referential stability for a dependency array. Memoizing everything adds complexity and memory overhead for no benefit when the computation is cheap.
+Prefer `useMemo` and `useCallback` only when you have measured a performance problem or need referential stability for a dependency array. The React Compiler (stable since v1.0, October 2025) automates memoization at build time; in projects that use it, manual `useMemo`/`useCallback` is rarely needed.
 
 ## Effects and Lifecycle
 
@@ -60,7 +66,7 @@ Prefer `waitFor` or `findBy` queries for assertions that depend on async state u
 
 Stale closures in effects capture the values of state and props from the render in which the effect was created. If an effect reads a value that changes between renders but the dependency array does not include it, the effect sees stale data. The ESLint plugin `react-hooks/exhaustive-deps` catches most of these.
 
-Object and array literals created inline in JSX (`style={{ color: "red" }}`, `options={[1, 2, 3]}`) produce a new reference every render. When passed to a memoized child, they defeat the memoization. Prefer lifting stable objects outside the component or wrapping them in `useMemo` when the child is expensive to re-render.
+Object and array literals created inline in JSX (`style={{ color: "red" }}`, `options={[1, 2, 3]}`) produce a new reference every render. When passed to a memoized child, they defeat the memoization. Prefer lifting stable objects outside the component or wrapping them in `useMemo` when the child is expensive to re-render. Projects using the React Compiler handle this automatically.
 
 Missing or non-unique `key` props on list items cause React to misidentify which items changed, leading to stale state, broken animations, and incorrect DOM reuse. Prefer stable, unique identifiers from the data (database IDs, slugs) over array indices.
 
