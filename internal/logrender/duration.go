@@ -8,6 +8,21 @@ import (
 	"time"
 )
 
+// resolveDuration returns the duration for a completed stage or planning
+// record. When the record carries a pre-computed DurationMS value it is
+// converted directly to a time.Duration; otherwise the function falls back
+// to the difference between the record timestamp and the tracked start time.
+// If neither source is available the result is zero.
+func resolveDuration(r Record, startTime time.Time, haveStart bool) time.Duration {
+	if r.DurationMS != nil {
+		return time.Duration(*r.DurationMS) * time.Millisecond
+	}
+	if haveStart {
+		return r.Timestamp.Sub(startTime)
+	}
+	return 0
+}
+
 // FormatDuration renders a duration as compact human shorthand with no spaces.
 // Durations under one minute show seconds only (34s). Durations under one hour
 // show minutes and seconds (1m22s), dropping zero seconds (2m). Durations of

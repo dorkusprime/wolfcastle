@@ -56,11 +56,10 @@ func (sr *SummaryRenderer) Replay(records <-chan Record) {
 			if skipStage(r.Stage) {
 				continue
 			}
-			dur := time.Duration(0)
-			if t, ok := starts[keyFor(r)]; ok {
-				dur = r.Timestamp.Sub(t)
-				delete(starts, keyFor(r))
-			}
+			key := keyFor(r)
+			t, ok := starts[key]
+			dur := resolveDuration(r, t, ok)
+			delete(starts, key)
 			lines = append(lines, summaryLine{
 				glyph:   glyphFor(r.ExitCode),
 				label:   fmt.Sprintf("[%s]", r.StageLabel()),
@@ -73,11 +72,9 @@ func (sr *SummaryRenderer) Replay(records <-chan Record) {
 
 		case "planning_complete":
 			pk := stageKey{node: r.Node, task: r.Task, stage: "plan"}
-			dur := time.Duration(0)
-			if t, ok := starts[pk]; ok {
-				dur = r.Timestamp.Sub(t)
-				delete(starts, pk)
-			}
+			t, ok := starts[pk]
+			dur := resolveDuration(r, t, ok)
+			delete(starts, pk)
 			lines = append(lines, summaryLine{
 				glyph:   glyphFor(r.ExitCode),
 				label:   "[plan]",
@@ -130,11 +127,9 @@ func (sr *SummaryRenderer) handleFollowRecord(r Record, starts map[stageKey]time
 			return
 		}
 		key := keyFor(r)
-		dur := time.Duration(0)
-		if t, ok := starts[key]; ok {
-			dur = r.Timestamp.Sub(t)
-			delete(starts, key)
-		}
+		t, ok := starts[key]
+		dur := resolveDuration(r, t, ok)
+		delete(starts, key)
 		_, _ = fmt.Fprintf(sr.w, "%s [%s] %s (%s)\n", glyphFor(r.ExitCode), r.StageLabel(), nodeAddress(r), FormatDuration(dur))
 
 	case "planning_start":
@@ -144,11 +139,9 @@ func (sr *SummaryRenderer) handleFollowRecord(r Record, starts map[stageKey]time
 
 	case "planning_complete":
 		pk := stageKey{node: r.Node, task: r.Task, stage: "plan"}
-		dur := time.Duration(0)
-		if t, ok := starts[pk]; ok {
-			dur = r.Timestamp.Sub(t)
-			delete(starts, pk)
-		}
+		t, ok := starts[pk]
+		dur := resolveDuration(r, t, ok)
+		delete(starts, pk)
 		_, _ = fmt.Fprintf(sr.w, "%s [plan] %s (%s)\n", glyphFor(r.ExitCode), nodeAddress(r), FormatDuration(dur))
 
 	case "audit_report_written":

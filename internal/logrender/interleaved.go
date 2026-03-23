@@ -57,11 +57,9 @@ func (ir *InterleavedRenderer) handleRecord(r Record, starts map[stageKey]time.T
 			return
 		}
 		key := keyFor(r)
-		dur := time.Duration(0)
-		if t, ok := starts[key]; ok {
-			dur = r.Timestamp.Sub(t)
-			delete(starts, key)
-		}
+		t, ok := starts[key]
+		dur := resolveDuration(r, t, ok)
+		delete(starts, key)
 		_, _ = fmt.Fprintf(ir.w, "%s %s [%s] %s (%s)\n",
 			formatTimestamp(r.Timestamp), glyphFor(r.ExitCode),
 			r.StageLabel(), nodeAddress(r), FormatDuration(dur))
@@ -74,11 +72,9 @@ func (ir *InterleavedRenderer) handleRecord(r Record, starts map[stageKey]time.T
 
 	case "planning_complete":
 		pk := stageKey{node: r.Node, task: r.Task, stage: "plan"}
-		dur := time.Duration(0)
-		if t, ok := starts[pk]; ok {
-			dur = r.Timestamp.Sub(t)
-			delete(starts, pk)
-		}
+		t, ok := starts[pk]
+		dur := resolveDuration(r, t, ok)
+		delete(starts, pk)
 		_, _ = fmt.Fprintf(ir.w, "%s %s [plan] %s (%s)\n",
 			formatTimestamp(r.Timestamp), glyphFor(r.ExitCode),
 			nodeAddress(r), FormatDuration(dur))

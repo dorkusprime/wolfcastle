@@ -366,3 +366,51 @@ func TestInterleavedRenderer_NodeOnlyAddress(t *testing.T) {
 		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
 	}
 }
+
+// --- DurationMS preference tests ---
+
+func TestInterleavedRenderer_DurationMS_Stage(t *testing.T) {
+	// DurationMS says 5 seconds; timestamps are 82 seconds apart.
+	recs := []Record{
+		{Type: "stage_start", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "stage_complete", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:01:22Z"), ExitCode: intPtr(0), DurationMS: int64Ptr(5000)},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s ✓ [execute] proj/task-0001 (5s)", localTS("2026-03-21T10:01:22Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_DurationMS_Planning(t *testing.T) {
+	recs := []Record{
+		{Type: "planning_start", Node: "proj", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "planning_complete", Node: "proj", Timestamp: makeTime("2026-03-21T10:00:45Z"), ExitCode: intPtr(0), DurationMS: int64Ptr(12000)},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s ✓ [plan] proj (12s)", localTS("2026-03-21T10:00:45Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_NilDurationMS_FallsBack(t *testing.T) {
+	recs := []Record{
+		{Type: "stage_start", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "stage_complete", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:01:22Z"), ExitCode: intPtr(0)},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s ✓ [execute] proj/task-0001 (1m22s)", localTS("2026-03-21T10:01:22Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
