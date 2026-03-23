@@ -40,9 +40,9 @@ The `auto_commit` [configuration field](config-reference.md#git) is the master s
 
 At the start of each iteration and before every commit, Wolfcastle verifies the current branch matches the branch recorded at startup. If someone switched branches underneath it, the daemon blocks immediately. It does not commit to the wrong branch.
 
-### Staging Area Preservation
+### Staging Area
 
-If you have files staged in your working directory, the daemon will not disturb them. Daemon commits operate through a temporary index file (`GIT_INDEX_FILE`) seeded from HEAD, so anything you have staged in `.git/index` remains untouched.
+The daemon commits by running `git add .` and `git commit` against the default index. If you have files staged in your working directory, they will be included in the daemon's next commit. For isolated work, use the `--worktree` flag to run the daemon in a separate git worktree.
 
 ### Worktree Isolation
 

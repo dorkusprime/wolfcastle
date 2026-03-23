@@ -9,19 +9,23 @@
 ## Type
 
 ```go
+type promptWriter interface {
+    WriteAllBase(templates fs.FS) error
+}
+
 type ScaffoldService struct {
     config  *config.Repository
-    prompts *pipeline.PromptRepository
-    daemon  *daemon.DaemonRepository
+    prompts promptWriter
+    daemon  any    // *daemon.DaemonRepository; stored for future use, typed as any to avoid import cycle
     root    string // path to .wolfcastle/
 }
 ```
 
-The `config` field provides tier-aware config reads and writes. The `prompts` field provides embedded template extraction via `WriteAllBase`. The `daemon` field provides daemon-related filesystem operations (PID files, stop files, log paths). The `root` field is the absolute path to the `.wolfcastle/` directory, from which all scaffold paths are derived.
+The `config` field provides tier-aware config reads and writes. The `prompts` field provides embedded template extraction via `WriteAllBase`; it is declared as an interface (`promptWriter`) rather than a direct `*pipeline.PromptRepository` to avoid an import cycle between the `project` and `pipeline` packages. The `daemon` field is typed as `any` (also to avoid import cycles) and stored for future use. The `root` field is the absolute path to the `.wolfcastle/` directory, from which all scaffold paths are derived.
 
 ## Constructor
 
-### NewScaffoldService(config \*config.Repository, prompts \*pipeline.PromptRepository, daemon \*daemon.DaemonRepository, root string) \*ScaffoldService
+### NewScaffoldService(cfg \*config.Repository, prompts promptWriter, dmn any, root string) \*ScaffoldService
 
 Stores the provided dependencies and returns the service. No filesystem work happens at construction time.
 
@@ -33,12 +37,16 @@ Creates the full `.wolfcastle/` directory structure for a fresh `wolfcastle init
 
 **Algorithm:**
 
-1. Create the directory tree. Each path is joined against `root`:
+1. Create the directory tree. Tier directories are derived from `tierfs.SystemTierPaths()` (the canonical source of truth), then scaffold-specific subdirectories are added. Each path is joined against `root`:
+   - `system/base` (from tierfs)
+   - `system/custom` (from tierfs)
+   - `system/local` (from tierfs)
    - `system/base/prompts`
+   - `system/base/prompts/stages`
+   - `system/base/prompts/classes`
+   - `system/base/prompts/audits`
    - `system/base/rules`
    - `system/base/audits`
-   - `system/custom`
-   - `system/local`
    - `system/projects`
    - `system/logs`
    - `archive`
@@ -48,7 +56,7 @@ Creates the full `.wolfcastle/` directory structure for a fresh `wolfcastle init
 
    All directories are created with `0755` permissions via `os.MkdirAll`. A failure on any directory returns immediately with a wrapped error.
 
-2. Write `.gitignore` at `{root}/.gitignore` with `0644` permissions. The gitignore content ignores everything by default, then whitelists `system/custom/`, `system/projects/`, `archive/`, and `docs/` (each with the multi-level unignore pattern Git requires).
+2. Write scaffold files (`.gitignore`, READMEs) from embedded templates. A `scaffoldFiles` map defines the source template path and output path for each file. Templates are read from the embedded `Templates` filesystem and written to the corresponding output paths with `0644` permissions.
 
 3. Write base config. Call `config.Defaults()` to obtain a fresh `*Config`, set `Identity` to nil (identity belongs only in the local tier), then write it via `s.config.WriteBase(defaults)`.
 
@@ -60,7 +68,7 @@ Creates the full `.wolfcastle/` directory structure for a fresh `wolfcastle init
 
 7. Write the empty root index. Create a `state.NewRootIndex()`, marshal it to indented JSON, and write it to `{identity.ProjectsDir(root)}/state.json` with `0644` permissions.
 
-8. Extract embedded prompts. Call `s.prompts.WriteAllBase(project.Templates)` to walk the embedded `templates/` filesystem and write each file into the base tier. The `Templates` variable is the `embed.FS` already present in the project package.
+8. Extract embedded prompts. Call `fs.Sub(Templates, "templates")` to strip the `templates/` prefix from the embedded filesystem, then pass the result to `s.prompts.WriteAllBase(sub)` to write each file into the base tier. The `Templates` variable is the `embed.FS` already present in the project package.
 
 9. Return nil on success.
 
@@ -70,26 +78,30 @@ Regenerates the base tier and refreshes identity for `wolfcastle update`. Preser
 
 **Algorithm:**
 
-1. Run migrations. Construct a `MigrationService{config: s.config, root: s.root}` and call both `MigrateDirectoryLayout()` and `MigrateOldConfig()`. Discard both return values (migrations are best-effort; errors are logged but do not abort rescaffold).
+1. Run migrations. Construct a `MigrationService{config: s.config, root: s.root}` and call all four migration methods: `MigrateDirectoryLayout()`, `MigrateOldConfig()`, `MigrateStagesFormat()`, and `MigratePromptLayout()`. Errors propagate immediately (wrapped with `"scaffold: migrating ..."` context).
 
-2. Remove and recreate `system/base/`. Call `os.RemoveAll(filepath.Join(root, "system", "base"))`, then create the subdirectories `system/base/prompts`, `system/base/rules`, and `system/base/audits` with `os.MkdirAll`. Errors from removal or creation propagate immediately.
+2. Remove and recreate `system/base/`. Call `os.RemoveAll(filepath.Join(root, "system", "base"))`, then create the subdirectories `system/base/prompts`, `system/base/prompts/stages`, `system/base/prompts/classes`, `system/base/prompts/audits`, `system/base/rules`, and `system/base/audits` with `os.MkdirAll`. Errors from removal or creation propagate immediately.
 
-3. Regenerate base config. Same logic as `Init` step 3: `config.Defaults()` with `Identity` set to nil, written via `s.config.WriteBase(defaults)`.
+3. Ensure scaffold directories exist (`docs`, `archive`). These are created with `os.MkdirAll`; errors are discarded (best-effort).
 
-4. Extract embedded prompts. Same as `Init` step 8: `s.prompts.WriteAllBase(project.Templates)`.
+4. Restore scaffold files (`.gitignore`, READMEs) that may have been destroyed by the base-tier teardown. Uses the same `writeScaffoldFiles()` helper as `Init`.
 
-5. Ensure custom config exists. If `system/custom/config.json` does not exist (checked via `os.Stat`), call `s.config.WriteCustom(map[string]any{})`. If it already exists, leave it untouched.
+5. Regenerate base config. Same logic as `Init` step 3: `config.Defaults()` with `Identity` set to nil, written via `s.config.WriteBase(defaults)`.
 
-6. Refresh identity in local config. Read the existing `system/local/config.json` (if present) into `map[string]any`. Overlay the current identity by setting `localCfg["identity"]` to `DetectIdentity()`'s result (as a map with `"user"` and `"machine"` keys). Write back via `s.config.WriteLocal(merged)`. If the local tier directory or file does not exist, create it fresh with only the identity key.
+6. Extract embedded prompts. Same as `Init` step 8: `fs.Sub(Templates, "templates")` then `s.prompts.WriteAllBase(sub)`.
 
-7. Return nil on success.
+7. Ensure custom config exists. If `system/custom/config.json` does not exist (checked via `os.Stat`), call `s.config.WriteCustom(map[string]any{})`. If it already exists, leave it untouched.
+
+8. Refresh identity in local config. Read the existing `system/local/config.json` (if present) into `map[string]any`. Overlay the current identity by setting `localCfg["identity"]` to `DetectIdentity()`'s result (as a map with `"user"` and `"machine"` keys). Write back via `s.config.WriteLocal(merged)`. If the local tier directory or file does not exist, create it fresh with only the identity key.
+
+9. Return nil on success.
 
 ## Error Behavior
 
 All errors returned by ScaffoldService are prefixed with `"scaffold:"` for consistent identification at call sites.
 
 - **Init**: any filesystem or repository error halts the method and propagates immediately. A partial scaffold may remain on disk; rerunning `Init` is not idempotent (it may collide with existing files). The caller (`wolfcastle init`) should check for an existing `.wolfcastle/` directory before calling `Init`.
-- **Reinit**: migration errors are discarded (step 1). All subsequent errors propagate immediately. Because `Reinit` removes `system/base/` before rebuilding it, a failure partway through step 2-4 leaves the base tier incomplete. Rerunning `Reinit` recovers cleanly since `os.RemoveAll` followed by `os.MkdirAll` is idempotent.
+- **Reinit**: migration errors propagate immediately (step 1). All subsequent errors also propagate. Because `Reinit` removes `system/base/` before rebuilding it, a failure partway through the rebuild leaves the base tier incomplete. Rerunning `Reinit` recovers cleanly since `os.RemoveAll` followed by `os.MkdirAll` is idempotent.
 
 ## Thread Safety
 

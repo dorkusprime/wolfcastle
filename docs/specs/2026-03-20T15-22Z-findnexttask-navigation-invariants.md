@@ -120,9 +120,9 @@ The random tree generator from `propagation_property_test.go` should be reused. 
 ## Source references
 
 - `FindNextTask`: `internal/state/navigation.go:20-73`
-- `findActionableTask`: `internal/state/navigation.go:110-220`
-- `hasNotStartedAncestor`: `internal/state/navigation.go:256-273`
+- `findActionableTask`: `internal/state/navigation.go:130-240`
+- `hasNotStartedAncestor`: `internal/state/navigation.go:276-293`
 - `TaskChildren`: `internal/state/mutations.go:108-116`
-- `DeriveParentStatus`: `internal/state/mutations.go:121-170`
-- `allChildrenComplete`: `internal/state/navigation.go:277-294`
-- Random tree generator: `internal/state/propagation_property_test.go:23-94`
+- `DeriveParentStatus`: `internal/state/mutations.go:121-180`
+- `allChildrenComplete`: `internal/state/navigation.go:297-314`
+- Random tree generator: `internal/state/propagation_property_test.go:23-122`

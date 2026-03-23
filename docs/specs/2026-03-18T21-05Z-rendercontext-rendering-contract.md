@@ -91,44 +91,44 @@ Timestamp format: `2006-01-02T15:04Z` (Go reference time, minute precision, UTC)
 
 ## ContextBuilder Assembly
 
-`buildIterationContext` (the private core function behind three public entry points) composes the final iteration context. It does not call the domain `RenderContext` methods directly; instead it duplicates their rendering logic, augmenting it with filesystem access, config-driven failure policy, and instructional sections that domain types cannot produce.
+`ContextBuilder.Build` (the single public entry point) composes the final iteration context. It calls the domain `RenderContext` methods directly, then layers on sections that require repository access, config thresholds, or filesystem I/O. Returns an error when the taskID does not match any task in the node.
 
-### Public Entry Points
+### Public Entry Point
 
-| Function | wolfcastleDir | nodeDir | Use Case |
-|---|---|---|---|
-| `BuildIterationContext` | empty | empty | Tests, backward compatibility |
-| `BuildIterationContextWithDir` | provided | empty | Standard iteration (no per-task .md) |
-| `BuildIterationContextFull` | provided | provided | Full iteration with per-task .md files |
+```go
+func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeState, taskID string, namespace string, cfg *config.Config) (string, error)
+```
+
+Parameters: `nodeDir` is optional (pass "" to skip per-task .md files); `namespace` identifies the engineer namespace for knowledge lookup (pass "" to skip); `cfg` may be nil (failure context is skipped).
 
 ### Composite Section Ordering
 
 1. **Node header** (always):
    - `**Node:** {nodeAddr}`
-   - `**Node Type:** {Type}`
-   - `**Node State:** {State}`
-   - Blank line
+   - Node context via `ns.RenderContext(taskID)` (type, state, linked specs)
 
-2. **Task block** (single-pass search for matching taskID):
+2. **Task block** (returns error if taskID not found):
    - `**Task:** {nodeAddr}/{taskID}` (full qualified address, unlike domain method)
-   - `**Description:**`
-   - Per-task `.md` content (only when nodeDir is provided; reads `{nodeDir}/{taskID}.md`, trims, includes if non-empty)
-   - `**Task Type:**` through `**Reference Material:**` with inlining (same logic as Task.RenderContext)
-   - `**Task State:**`, `**Failure Count:**`, `## Previous Attempt Failed` (same logic)
-   - `## Failure History` section with policy thresholds (only when FailureCount > 0 AND config is provided)
-   - Decomposition instructions (only when `NeedsDecomposition` is true, nested under failure context)
+   - Per-task `.md` content (only when nodeDir is provided; reads `{nodeDir}/{taskID}.md`, trims, inserts after Description)
+   - Remaining task context via `task.RenderContext()` (with the duplicate task ID line stripped)
+   - `## Universal Guidance` section (from `prompts/classes/universal.md`, always injected when file exists)
+   - `## Class Guidance` section (from task's class key via ClassRepository, falling back to `prompts/classes/coding/default.md`)
 
-3. **Audit breadcrumbs** (same cap-of-10 logic as AuditState.RenderContext, reading from `ns.Audit.Breadcrumbs`)
+3. **Codebase Knowledge** section (when wolfcastleDir and namespace are non-empty, via `knowledge.Read`)
 
-4. **Audit scope** (same logic as AuditState.RenderContext, reading from `ns.Audit.Scope`)
+4. **Prior Task Reviews (AARs)** via `state.RenderAARs(ns.AARs)`
 
-5. **Linked Specs** bulleted list (from `ns.Specs`)
+5. **Audit context** via `ns.Audit.RenderContext()` (breadcrumbs and scope)
 
-6. **Summary Required** section (conditional: only when the task was found AND it is the last incomplete task in the node, determined by `isLastIncompleteTask`)
+6. **Summary Required** section (conditional: only when task is the last incomplete task in the node, determined by `shouldIncludeSummary`)
+
+7. **Failure context** (conditional: FailureCount > 0 AND cfg is non-nil):
+   - `## Failure History` section with policy thresholds
+   - Decomposition instructions (only when `NeedsDecomposition` is true)
 
 ### Template Resolution
 
-Three instructional sections use externalized templates with hardcoded fallbacks:
+Three instructional sections use externalized templates with hardcoded fallbacks. Templates are parsed eagerly at `NewContextBuilder` construction time and cached for the builder's lifetime:
 
 | Section | Template File | Fallback Behavior |
 |---|---|---|
@@ -136,29 +136,33 @@ Three instructional sections use externalized templates with hardcoded fallbacks
 | Decomposition | `decomposition.md` | Step-by-step CLI instructions for breaking the leaf into child nodes |
 | Summary Required | `summary-required.md` | Instructs agent to run `wolfcastle audit summary` before WOLFCASTLE_COMPLETE |
 
-Templates are resolved via `ResolvePromptTemplate(wolfcastleDir, name, ctx)`. When `wolfcastleDir` is empty or resolution fails, the hardcoded fallback is used. This makes the builder functional without a `.wolfcastle/` directory (useful in tests).
+Templates are resolved via `PromptRepository.Resolve(name, nil)` at construction time. When a prompt file is missing or fails to parse, the cached template pointer is nil and the hardcoded fallback is used at render time. This makes the builder functional without a `.wolfcastle/` directory (useful in tests).
 
 ### Last-Incomplete-Task Detection
 
-`isLastIncompleteTask(ns, taskID)` returns true when every task in the node other than `taskID` has state `StatusComplete`. This triggers the Summary Required section, prompting the agent to write a node-level audit summary before finishing.
+`shouldIncludeSummary(ns, taskID)` returns true when every task in the node other than `taskID` has state `StatusComplete`. This triggers the Summary Required section, prompting the agent to write a node-level audit summary before finishing.
 
 ## Division of Responsibility
 
 | Concern | Domain RenderContext | ContextBuilder |
 |---|---|---|
-| Task metadata fields | Yes | Duplicated (augmented) |
-| Node address in task line | No (ID only) | Yes (full path) |
+| Task metadata fields | Yes | Delegates to Task.RenderContext() |
+| Node address in task line | No (ID only) | Yes (full path, strips duplicate) |
+| Node type/state/specs | Yes (NodeState.RenderContext) | Delegates |
 | Per-task .md file content | No | Yes (requires nodeDir) |
-| Reference inlining | Yes (os.ReadFile) | Yes (duplicated) |
+| Reference inlining | Yes (os.ReadFile) | Delegates to Task.RenderContext() |
+| Universal guidance | No | Yes (from prompts/classes/universal.md) |
+| Class guidance | No | Yes (from ClassRepository, fallback to coding/default.md) |
+| Codebase knowledge | No | Yes (from knowledge.Read) |
+| Prior AARs | No | Yes (from state.RenderAARs) |
 | Failure policy context | No | Yes (requires config) |
 | Decomposition guidance | No | Yes (requires config) |
-| Breadcrumb cap of 10 | Yes | Yes (duplicated) |
-| Audit scope rendering | Yes | Yes (duplicated) |
-| Linked specs | Yes | Yes (duplicated) |
+| Breadcrumb cap of 10 | Yes | Delegates to AuditState.RenderContext() |
+| Audit scope rendering | Yes | Delegates to AuditState.RenderContext() |
 | Summary guidance | No | Yes (requires task scan) |
-| Template resolution | No | Yes (requires wolfcastleDir) |
+| Template resolution | No | Yes (cached at construction) |
 
-The domain methods provide a self-contained, dependency-free rendering path suitable for testing and simple consumers. ContextBuilder provides the full, production-grade composition with filesystem and config access. The duplication is intentional: domain types stay pure (no config, no filesystem beyond reference inlining), while ContextBuilder owns the orchestration concerns.
+The ContextBuilder now delegates to domain `RenderContext` methods rather than duplicating their logic. Domain types provide self-contained, dependency-free rendering. ContextBuilder composes their outputs and layers on sections that require repository access, config thresholds, or filesystem I/O.
 
 ## Audit Gap Resolution
 
@@ -177,6 +181,9 @@ This spec, together with ADR 078 (Task.RenderContext parameterless refactoring) 
 | Reference inlining | `.md` suffix, readable, non-empty, < 8000 chars | Content inlined under `### Reference:` |
 | Reference inlining skip | Non-`.md`, unreadable, empty, or >= 8000 chars | Silently skipped (path still listed) |
 | AuditState empty return | No breadcrumbs and no scope | Returns empty string |
-| Failure history | FailureCount > 0 and config present | Renders thresholds and policy |
+| Failure history | FailureCount > 0 and config non-nil | Renders thresholds and policy |
 | Summary guidance | Last incomplete task in node | Renders summary-required instructions |
 | Per-task .md | nodeDir provided and file exists | Content inserted after Description |
+| Task not found | taskID not in node | Build returns error |
+| AARs | ns.AARs non-empty | Chronologically sorted AAR sections rendered |
+| Knowledge | wolfcastleDir + namespace non-empty, file readable | Codebase knowledge section rendered |

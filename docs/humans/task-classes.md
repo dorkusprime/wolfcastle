@@ -205,7 +205,7 @@ Class prompts should contain zero Wolfcastle-specific content. No references to 
 **Step 3: Verify.**
 
 ```
-wolfcastle config show --section task_classes
+wolfcastle config show task_classes
 ```
 
 Your new class should appear in the merged output alongside the built-in classes.

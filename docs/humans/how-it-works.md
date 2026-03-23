@@ -91,7 +91,7 @@ At the start of each daemon iteration, the daemon reconciles every orchestrator'
 
 ## Auto-Archive
 
-When a root-level project completes, the daemon can automatically archive it. Auto-archive runs inline in the main daemon loop ([Architecture Decision Record](../decisions/INDEX.md) ADR-064), after the execute and planning stages find nothing to do. The daemon polls for eligible nodes at a configurable interval, and each completed project must sit idle for a configurable delay (default 24 hours) before archival triggers. One node is archived per poll cycle, generating an archive rollup entry and moving the project tree to archived state. Archived nodes can be restored or permanently deleted via the CLI. The feature is disabled by default; enable it in [configuration](config-reference.md#archive):
+When a root-level project completes, the daemon can automatically archive it. Auto-archive runs inline in the main daemon loop ([Architecture Decision Record](../decisions/INDEX.md) ADR-064), after the execute and planning stages find nothing to do. The daemon polls for eligible nodes at a configurable interval, and each completed project must sit idle for a configurable delay (default 24 hours) before archival triggers. One node is archived per poll cycle, generating an archive rollup entry and moving the project tree to archived state. Archived nodes can be restored or permanently deleted via the CLI. The feature is enabled by default; disable it in [configuration](config-reference.md#archive):
 
 ```json
 {
@@ -153,7 +153,7 @@ The agent never runs git commands. After each iteration, the daemon commits the 
 
 Four [configuration fields](config-reference.md#git) control this behavior. `auto_commit` is the master switch; when `false`, the daemon writes no commits at all. `commit_on_success` and `commit_on_failure` toggle commits for their respective outcomes independently. `commit_state` controls whether `.wolfcastle/` state files are included in the commit or left out so that only code changes land.
 
-The daemon commits through a temporary index file (`GIT_INDEX_FILE`), seeded from HEAD with `git read-tree`. All staging and committing happen against this temporary index, so anything the user has staged in `.git/index` remains untouched. If the temporary index cannot be created, the daemon falls back to a direct commit rather than lose work.
+The daemon commits by running `git add .` followed by `git commit` against the default index. If `.wolfcastle/` state files should be excluded (when `commit_state` is `false`), only code changes are staged.
 
 ## Codebase Knowledge Files
 

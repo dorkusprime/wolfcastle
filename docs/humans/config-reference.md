@@ -398,6 +398,20 @@ Controls automatic commit behavior and branch verification.
 - **Default:** `true`
 - **Description:** Whether the daemon automatically commits changes after task completion. When `false`, the agent must commit manually.
 
+### git.commit_prefix
+
+- **Type:** `string`
+- **Default:** `"wolfcastle"`
+- **Description:** Prefix prepended to all daemon commit messages. The resulting commit subject is `{prefix}: {title}` for successful tasks and `{prefix}: {title} (attempt N)` for failures. When the task has no title, the task ID is used as fallback. Set to an empty string to omit the prefix entirely.
+
+```json
+{
+  "git": {
+    "commit_prefix": "wc"
+  }
+}
+```
+
 ### git.commit_message_format
 
 - **Type:** `string`

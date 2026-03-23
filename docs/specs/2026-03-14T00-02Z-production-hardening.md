@@ -95,17 +95,9 @@ No lock acquired. Read-only commands (`status`, `pending`, `spec list`, `follow`
 | `spec list` | No |
 | `follow` | No |
 
-### Lock Timeout Configuration
+### Lock Timeout
 
-```json
-{
-  "daemon": {
-    "lock_timeout_seconds": 5
-  }
-}
-```
-
-Default: 5 seconds. CLI commands use this timeout. The daemon uses a longer internal timeout (30 seconds) to handle slow filesystem operations.
+The lock timeout is a compiled constant (`DefaultLockTimeout = 5 * time.Second` in `internal/state/filelock.go`), not a config field. Both CLI commands and the daemon use this default. The Store accepts a custom timeout at construction for testing purposes.
 
 ### Stale Lock Recovery
 
@@ -147,6 +139,8 @@ Every log record gains a `level` field:
 
 ### Configuration
 
+Log level is a field on the `daemon` config section:
+
 ```json
 {
   "daemon": {
@@ -155,7 +149,7 @@ Every log record gains a `level` field:
 }
 ```
 
-The `--verbose` / `-v` flag on `wolfcastle start` overrides `log_level` to `debug`.
+Default: `"info"`. The `--verbose` / `-v` flag on `wolfcastle start` overrides `log_level` to `debug`. See the [Config Schema spec](2026-03-12T00-01Z-config-schema.md) for the full `daemon` object definition.
 
 ### Logger API Changes
 
@@ -265,7 +259,7 @@ Not:
 
 ### readline Integration
 
-Replace the raw `bufio.Scanner` loop in `cmd/unblock.go` with `github.com/chzyer/readline`:
+`cmd/unblock.go` uses `github.com/chzyer/readline` for interactive input. The readline instance is lazily initialized on first user prompt, so invocation failures that don't reach the interactive loop never spawn readline's ioloop goroutine:
 
 ```go
 rl, err := readline.NewEx(&readline.Config{
@@ -312,13 +306,4 @@ Consistent, branded, no ambiguity about what's accepting input.
 
 ## 6. Contributing Guide
 
-A `CONTRIBUTING.md` at the project root covering:
-
-1. **Development setup**. Go version, `make build`, `make test`
-2. **Code standards**: link to `docs/agents/code-standards.md`
-3. **Testing**: how to run each test tier, how to write new tests
-4. **Pull request process**: branch naming, commit messages, CI expectations
-5. **ADR process**: when to write one, format, numbering
-6. **Issue reporting**: what to include, labels
-
-This is a living document: it grows as the contributor community grows.
+`CONTRIBUTING.md` exists at the project root, covering development setup, code standards, testing tiers, pull request process, ADR process, and issue reporting.

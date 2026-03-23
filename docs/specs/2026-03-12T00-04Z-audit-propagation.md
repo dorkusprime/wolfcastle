@@ -171,7 +171,7 @@ AARs are a structured retrospective format that complements breadcrumbs. While b
 }
 ```
 
-AARs are stored in the node's `audit.aars` array and recorded via `wolfcastle audit aar`. They flow into the iteration context for subsequent tasks, so the executing model can learn from prior task outcomes within the same node. They also feed into archive entries alongside breadcrumbs.
+AARs are stored in the node's `aars` field (a map keyed by task ID, at the top level of the node state, not nested under `audit`) and recorded via `wolfcastle audit aar`. They flow into the iteration context for subsequent tasks, so the executing model can learn from prior task outcomes within the same node. They also feed into archive entries alongside breadcrumbs.
 
 ### When AARs Are Written
 

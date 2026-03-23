@@ -282,7 +282,7 @@ Task classes are behavioral prompts that shape how the execution agent approache
 }
 ```
 
-Then place your prompt at `system/custom/prompts/classes/coding/go-internal.md`. The prompt should describe your coding conventions, nothing about Wolfcastle internals. Verify with `wolfcastle config show --section task_classes`.
+Then place your prompt at `system/custom/prompts/classes/coding/go-internal.md`. The prompt should describe your coding conventions, nothing about Wolfcastle internals. Verify with `wolfcastle config show task_classes`.
 
 **Overriding a built-in class prompt:**
 
@@ -494,7 +494,7 @@ wolfcastle config show --raw
 A practical workflow: dump the current config as a starting point, then edit what you need.
 
 ```
-wolfcastle config show --section pipeline > /tmp/pipeline.json
+wolfcastle config show pipeline > /tmp/pipeline.json
 # Edit /tmp/pipeline.json
 # Copy the relevant parts into system/custom/config.json
 ```

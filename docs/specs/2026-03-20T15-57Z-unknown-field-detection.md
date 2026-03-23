@@ -48,11 +48,11 @@ After unmarshalling into `Config`, marshal the struct back to a `map[string]any`
 - Fields with `omitempty` that happen to have their zero value after unmarshalling will be absent from the round-tripped map, producing false positives. Mitigation requires inspecting `omitempty` tags during the diff, which adds complexity.
 - `map[string]ModelDef` entries survive the round trip, so they won't produce false positives, but the diff walker needs to know when to skip map-typed fields.
 
-### 2.3 Recommendation
+### 2.3 Implementation Choice
 
-Use Approach A (`DisallowUnknownFields`). It is the standard Go mechanism for this problem, requires minimal new code, and handles nested structs automatically. The retry-on-error loop to collect multiple unknown fields is a minor cost given that the typical case is zero unknown fields.
+The implementation uses **Approach B** (post-unmarshal diff via round-trip). The `checkUnknownFields` function in `internal/config/unknown.go` unmarshals leniently into `Config` (unknown fields silently dropped), marshals back to a `map[string]any` via `structToMap`, then recursively diffs the original map's keys against the round-tripped map's keys. Any key present in the original but absent after the round-trip is flagged as unknown.
 
-Approach B remains a valid fallback if future requirements demand single-pass collection of all unknowns, or if custom `UnmarshalJSON` methods are introduced that interfere with the decoder's field tracking.
+This approach was chosen over Approach A because it collects all unknown fields in a single pass (no retry loop) and handles nested structs and array elements naturally via the recursive `diffKeys` function. The `omitempty` false-positive concern documented for Approach B is mitigated by the fact that Config defaults are always fully populated via `structToMap`, so round-tripped zero values are unlikely.
 
 ---
 
@@ -180,17 +180,18 @@ type Config struct {
 ### 7.2 Detection Function
 
 ```go
-// checkUnknownFields unmarshals raw JSON into Config using
-// DisallowUnknownFields. Returns a list of unknown field warnings.
-// The decoded Config value is discarded; only warnings are retained.
+// checkUnknownFields detects JSON keys that don't correspond to any
+// field in the Config struct via round-trip diffing.
 func checkUnknownFields(raw []byte, tier string) []string
 ```
 
 This function:
-1. Creates a `json.Decoder` with `DisallowUnknownFields()`.
-2. Attempts to decode into a `Config`.
-3. If the error names an unknown field, records a warning, removes the field from the raw JSON (by decoding to map, deleting the key, re-encoding), and retries.
-4. Returns the accumulated warnings.
+1. Unmarshals the raw JSON into `map[string]any` (the original keys).
+2. Unmarshals the raw JSON leniently into `Config` (unknown fields silently dropped).
+3. Round-trips the `Config` back to `map[string]any` via `structToMap` (only known fields survive).
+4. Recursively diffs the original map against the round-tripped map via `diffKeys`.
+5. Any key present in the original but absent from the round-trip is flagged as unknown.
+6. Returns the accumulated warnings. Array elements are compared pairwise for nested unknown fields.
 
 ### 7.3 Integration Points
 

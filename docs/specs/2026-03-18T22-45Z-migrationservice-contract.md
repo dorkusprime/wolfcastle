@@ -4,7 +4,7 @@
 
 `MigrationService` in `internal/project` handles layout and config migrations for users upgrading from older wolfcastle directory structures. It is separate from `ScaffoldService` because migrations serve a distinct audience (upgrading users) with a distinct error profile (non-fatal, best-effort). Both methods are idempotent: running them against an already-migrated directory is a no-op.
 
-`ScaffoldService.Reinit()` calls both migration methods before regenerating base files. Migration errors are discarded (logged but not propagated), so rescaffold proceeds even on a clean install where there is nothing to migrate.
+`ScaffoldService.Reinit()` calls all four migration methods before regenerating base files. Migration errors propagate (Reinit returns them), so callers see migration failures.
 
 ## Type
 
@@ -20,9 +20,11 @@ The `config` field provides access to `config.Repository` for tier-aware config 
 `MigrationService` is not constructed via a public constructor. `ScaffoldService.Reinit()` builds it inline as a short-lived value:
 
 ```go
-migrator := &MigrationService{config: s.config, root: s.root}
-_ = migrator.MigrateDirectoryLayout()
-_ = migrator.MigrateOldConfig()
+m := &MigrationService{config: s.config, root: s.root}
+if err := m.MigrateDirectoryLayout(); err != nil { return ... }
+if err := m.MigrateOldConfig(); err != nil { return ... }
+if err := m.MigrateStagesFormat(); err != nil { return ... }
+if err := m.MigratePromptLayout(); err != nil { return ... }
 ```
 
 ## Methods
@@ -66,14 +68,34 @@ Migrates pre-ADR-063 config files from the wolfcastle root into the three-tier l
 
 The merge step preserves keys already present in `system/local/config.json` while layering in the migrated values. This means running `MigrateOldConfig` twice (if the old file somehow reappears) produces the same final state.
 
+### MigratePromptLayout() error
+
+Moves flat prompt files into the new subdirectory structure (`stages/`, `audits/`) within each tier. Idempotent: if `prompts/stages/` already exists in a tier, that tier is skipped.
+
+**Algorithm:**
+
+1. Define the stage files to move: `intake.md`, `execute.md`, `intake-planning.md`, `plan-initial.md`, `plan-amend.md`, `plan-review.md`, `plan-remediate.md`.
+2. Define the audit files to move: `audit.md`.
+3. For each tier (base, custom, local):
+   a. Check if `{root}/system/{tier}/prompts/` exists. If not, skip the tier.
+   b. Check if `{root}/system/{tier}/prompts/stages/` exists. If it does, skip the tier (already migrated).
+   c. For each stage file: if it exists in `prompts/`, move it to `prompts/stages/`.
+   d. For each audit file: if it exists in `prompts/`, move it to `prompts/audits/`.
+
+### MigrateStagesFormat() error
+
+Converts `pipeline.stages` from the old JSON array format to the new dict (map) format in each tier's `config.json`. Documented in detail in the Dict-Format Pipeline Stages spec (2026-03-21T03-11Z). Idempotent: if `stages` is already a map or absent, the tier is skipped.
+
 ## Error Behavior
 
-Both methods return `error`, but callers discard the return value. Errors are informational, suitable for logging, not for control flow.
+All four methods return `error`. Migration errors propagate through `ScaffoldService.Reinit()`.
 
-- **MigrateDirectoryLayout**: wraps errors from `os.MkdirAll` and `os.Rename` with context strings like `"creating system: ..."` and `"migrating base to system/base: ..."`. Missing source directories and files are not errors.
-- **MigrateOldConfig**: wraps errors from file reads, JSON parsing, and file writes. Invalid JSON in `config.local.json` returns an error (the file is left in place). Missing source files are not errors. `os.MkdirAll` failures for tier directories are silently discarded (best-effort directory creation).
+- **MigrateDirectoryLayout**: wraps errors from `os.MkdirAll` and `os.Rename` with context strings like `"creating system/: ..."` and `"migrating base to system/base: ..."`. Missing source directories and files are not errors. Directory names to move are derived from `tierfs.TierNames` plus `"projects"` and `"logs"`.
+- **MigrateOldConfig**: wraps errors from file reads, JSON parsing, and file writes. Invalid JSON in `config.local.json` returns an error (the file is left in place). Missing source files are not errors.
+- **MigratePromptLayout**: wraps errors from `os.MkdirAll` and `os.Rename`. Missing source files and tiers without a `prompts/` directory are silently skipped.
+- **MigrateStagesFormat**: wraps errors from file reads, JSON marshaling, and file writes. Invalid JSON is silently skipped (not this method's responsibility). Missing tier files are silently skipped.
 
-Neither method logs directly. The caller (`Reinit`) is responsible for logging if it chooses to inspect the error before discarding it.
+No method logs directly. The caller (`Reinit`) wraps errors with `"scaffold: migrating ..."` prefixes before returning them.
 
 ## Thread Safety
 
@@ -84,5 +106,7 @@ Neither method logs directly. The caller (`Reinit`) is responsible for logging i
 - `MigrateDirectoryLayout` is a no-op when `system/` exists. It will never move directories that have already been migrated.
 - `MigrateOldConfig` will not overwrite an existing `system/custom/config.json`. If the custom tier already has config, the old root `config.json` is removed without copying.
 - `MigrateOldConfig` merges into `system/local/config.json` rather than replacing it, preserving any keys that were set by other means.
-- Both methods leave the source files removed on success. A second call with no source files is a silent no-op.
-- Neither method creates tier directories beyond what it needs (`system/custom/` and `system/local/`). The `system/base/` directory comes from `MigrateDirectoryLayout` (renaming the old `base/`), not from config migration.
+- `MigratePromptLayout` is a no-op when `prompts/stages/` already exists in a tier. It processes all three tiers independently.
+- `MigrateStagesFormat` is a no-op when `pipeline.stages` is already a map or absent. It processes all three tiers independently.
+- All methods leave source files removed on success. A second call with no source files is a silent no-op.
+- Neither `MigrateDirectoryLayout` nor `MigrateOldConfig` creates tier directories beyond what it needs (`system/custom/` and `system/local/`). The `system/base/` directory comes from `MigrateDirectoryLayout` (renaming the old `base/`), not from config migration.

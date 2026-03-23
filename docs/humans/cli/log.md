@@ -1,31 +1,40 @@
 # wolfcastle log
 
-Reads the daemon's logs. Without flags, shows recent output and exits. With `--follow`, streams in real time.
+Shows daemon activity reconstructed from NDJSON log files.
 
 ## What It Does
 
-Finds the highest-numbered [log file](../collaboration.md#logging) in `.wolfcastle/system/logs/`, parses NDJSON into human-readable output with timestamps, stage names, and model activity, then prints the last `n` lines.
+Finds the latest session in `.wolfcastle/system/logs/` and renders it. Default output is a summary: one line per completed stage showing what the daemon did (or is doing).
 
-With `--follow` (`-f`), continues streaming new lines as they appear. When the daemon moves to a new iteration and creates a new log file, `log -f` detects the switch, prints a separator, and starts tailing the new file. Continues until Ctrl+C.
+When the daemon is running, output streams in real time (implicit `--follow`). When the daemon is stopped, the last session's output is displayed and the command exits. `--follow` is a no-op when the daemon is not running.
 
 The old command name `wolfcastle follow` still works as an alias.
+
+Four output modes are available, mutually exclusive. When multiple mode flags appear, the last one wins:
+
+- **(default)** Summary: one line per stage with duration.
+- `--thoughts` / `-t`: Raw agent output only.
+- `--interleaved` / `-i`: Stage headers and agent output with timestamps.
+- `--json`: Raw NDJSON, no formatting.
 
 ## Flags
 
 | Flag | Description |
 |------|-------------|
-| `--follow`, `-f` | Stream output in real time (like `tail -f`). Without this flag, prints recent lines and exits. |
-| `--lines <n>` | Number of lines to show. Default: 20. |
-| `--level`, `-l` | Minimum log level to display: `debug`, `info`, `warn`, `error`. Default: `info`. |
-| `--json` | Output as structured JSON. |
+| `--follow`, `-f` | Stream output in real time. Implicit when the daemon is running and viewing the latest session. |
+| `--session <n>`, `-s` | Session index to display. `0` is the latest (default), `1` is the previous, etc. |
+| `--thoughts`, `-t` | Show raw agent output only. |
+| `--interleaved`, `-i` | Show stage headers and agent output with timestamps. |
+| `--json` | Show raw NDJSON output with no formatting. |
 
 ## Examples
 
 ```
-wolfcastle log                  # show last 20 lines, exit
-wolfcastle log --lines 50       # show last 50 lines, exit
-wolfcastle log -f               # stream in real time
-wolfcastle log -f -l debug      # stream everything including debug
+wolfcastle log                  # summary of latest session
+wolfcastle log --thoughts       # raw agent output
+wolfcastle log -i -f            # interleaved, streaming
+wolfcastle log --session 1      # previous session
+wolfcastle log --json | jq '.type'
 ```
 
 ## Exit Codes

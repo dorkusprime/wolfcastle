@@ -72,7 +72,8 @@ type Repository struct {
 }
 
 // NewRepository creates a repository backed by the filesystem.
-// Constructs a tierfs.FS internally from wolfcastleRoot + "/system".
+// Constructs a tierfs.FS internally from wolfcastleRoot + "/system",
+// wrapped with a CachingResolver (TTL: DefaultConfigCacheTTL = 30s).
 func NewRepository(wolfcastleRoot string) *Repository
 
 // NewRepositoryWithTiers creates a repository with an injected
@@ -98,6 +99,23 @@ func (r *Repository) WriteCustom(data map[string]any) error
 // WriteLocal writes personal overrides to the local tier. Same
 // partial-overlay semantics as WriteCustom.
 func (r *Repository) WriteLocal(data map[string]any) error
+
+// Root returns the wolfcastle root directory path.
+func (r *Repository) Root() string
+
+// ReadTier reads a single tier's config.json overlay. Returns an
+// empty map if the file does not exist. Accepts "custom" or "local";
+// rejects "base".
+func (r *Repository) ReadTier(tier string) (map[string]any, error)
+
+// WriteTier writes an overlay to the specified tier. Dispatches to
+// WriteCustom or WriteLocal. Rejects "base".
+func (r *Repository) WriteTier(tier string, overlay map[string]any) error
+
+// ApplyMutation performs a read-modify-write-validate cycle on a tier
+// overlay. Reads the current overlay, calls mutate, writes back, then
+// validates the merged result. Rolls back on validation failure.
+func (r *Repository) ApplyMutation(tier string, mutate func(overlay map[string]any) error) error
 ```
 
 The asymmetry between `WriteBase(*Config)` and `WriteCustom/WriteLocal(map[string]any)` reflects intent: base is a complete snapshot regenerated from code; custom/local are partial overlays that preserve keys not present in the map.
@@ -138,7 +156,8 @@ type PromptRepository struct {
 }
 
 // NewPromptRepository creates a repository backed by the filesystem.
-// Constructs a tierfs.FS internally from wolfcastleRoot + "/system".
+// Constructs a tierfs.FS internally from wolfcastleRoot + "/system",
+// wrapped with a CachingResolver (TTL: DefaultCacheTTL = 30s).
 func NewPromptRepository(wolfcastleRoot string) *PromptRepository
 
 // NewPromptRepositoryWithTiers creates a repository with an injected
@@ -173,6 +192,15 @@ func (r *PromptRepository) WriteBase(relPath string, data []byte) error
 // internal/project/templates/ (go:embed). Paths within the FS map
 // directly to base tier paths: "prompts/execute.md" -> system/base/prompts/execute.md.
 func (r *PromptRepository) WriteAllBase(templates fs.FS) error
+
+// ResolveTemplate resolves a template file by short name from the
+// templates/ subdirectory using .tmpl extension. If ctx is non-nil,
+// the content is parsed and executed as a Go text/template.
+func (r *PromptRepository) ResolveTemplate(name string, ctx any) (string, error)
+
+// RenderToFile resolves a template, executes it with data, and writes
+// the result to destPath. Parent directories are created as needed.
+func (r *PromptRepository) RenderToFile(tmplName string, data any, destPath string) error
 ```
 
 `Resolve` takes a short name (e.g., `"execute"`) and appends `prompts/` prefix and `.md` extension internally. `ResolveRaw` takes explicit `(category, name)` for non-prompt content where the caller knows the category. This distinction reflects usage: stages always resolve prompts by name; rule fragment listing always specifies the category.
@@ -217,7 +245,9 @@ func (r *ClassRepository) List() []string
 func (r *ClassRepository) Validate() []string
 ```
 
-Class prompts are resolved via `PromptRepository.ResolveRaw("prompts/classes", key+".md")`. The hierarchical fallback strips the last segment after the hyphen: `"lang-go"` tries `lang-go.md`, then `lang.md`. If neither exists, `Resolve` returns an error. There is no catch-all default file.
+Class prompts are resolved via `PromptRepository.ResolveRaw("prompts/classes", key+".md")`. The hierarchical fallback tries both `/` and `-` separators: `parentKey` strips the last segment after the last `/` first, then the last `-`. For example, `"typescript/react"` falls back to `"typescript"`, while `"lang-go"` falls back to `"lang"`. If neither exists, `Resolve` returns an error. There is no catch-all default file.
+
+After resolving the main prompt file, `Resolve` also collects any `.md` files from a subdirectory matching the resolved key (`prompts/classes/{resolvedKey}/`) via `ListFragments`. If subdirectory assets exist, they are appended to the main prompt content. A missing subdirectory is not an error.
 
 New code; no existing function replaced. Prevents class resolution from being inlined into `buildIterationContext` and `AssemblePrompt` as the task-classes feature lands. A new class is one `.md` file in a tier directory; the repository finds it automatically.
 
@@ -241,6 +271,9 @@ func (r *DaemonRepository) RemovePID() error
 func (r *DaemonRepository) HasStopFile() bool
 func (r *DaemonRepository) WriteStopFile() error
 func (r *DaemonRepository) RemoveStopFile() error
+func (r *DaemonRepository) IsAlive() bool
+func (r *DaemonRepository) PIDFileExists() bool
+func (r *DaemonRepository) StopFileExists() bool
 
 // LogDir returns the log directory path. This is an intentional escape
 // hatch: the Logger manages its own file handles, rotation, and
@@ -405,47 +438,36 @@ func (a *AuditState) RenderContext() string { ... }
 func (ns *NodeState) RenderContext(taskID string) string { ... }
 ```
 
-The builder becomes a compositor with repository dependencies:
+The builder becomes a compositor with repository dependencies and cached templates:
 
 ```go
 // In internal/pipeline
 type ContextBuilder struct {
-    prompts *PromptRepository
-    classes *ClassRepository
+    prompts       *PromptRepository
+    classes       *ClassRepository
+    wolfcastleDir string
+
+    // Cached parsed templates, resolved once at construction time.
+    // nil when the corresponding prompt file is missing (fallback text is used).
+    tmplSummary       *template.Template
+    tmplFailHeader    *template.Template
+    tmplDecomposition *template.Template
 }
 
-func NewContextBuilder(prompts *PromptRepository, classes *ClassRepository) *ContextBuilder
+func NewContextBuilder(prompts *PromptRepository, classes *ClassRepository, wolfcastleDir string) *ContextBuilder
 
-func (cb *ContextBuilder) Build(nodeAddr string, ns *state.NodeState, taskID string, cfg *config.Config) string {
-    var b strings.Builder
-    b.WriteString(ns.RenderContext(taskID))
-
-    if task := ns.FindTask(taskID); task != nil {
-        b.WriteString(task.RenderContext())
-
-        if task.Class != "" {
-            if classPrompt, err := cb.classes.Resolve(task.Class); err == nil {
-                b.WriteString("\n## Class Guidance\n\n")
-                b.WriteString(classPrompt)
-            }
-        }
-    }
-
-    b.WriteString(ns.Audit.RenderContext())
-
-    if cb.shouldIncludeSummary(ns, taskID, cfg) {
-        b.WriteString(cb.renderSummaryRequired())
-    }
-
-    if task := ns.FindTask(taskID); task != nil && task.FailureCount > 0 {
-        b.WriteString(cb.renderFailureContext(task, cfg))
-    }
-
-    return b.String()
-}
+func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeState, taskID string, namespace string, cfg *config.Config) (string, error)
 ```
 
-`cfg` is passed to `shouldIncludeSummary` and `renderFailureContext` (both need config for thresholds). The `ContextBuilder` holds `prompts` and `classes` as struct fields; `cfg` is a parameter because it may change between calls (config reload).
+`Build` returns an error when `taskID` does not match any task in the node. `cfg` is passed to failure context rendering (needs config for thresholds); `cfg` may be nil (failure context is skipped). `namespace` identifies the engineer namespace for knowledge file lookup; pass "" to skip knowledge injection. `nodeDir` is optional; when non-empty, per-task `.md` files are read from it.
+
+The builder caches templates eagerly at construction time and uses hardcoded fallback text when prompt files are missing. It also injects:
+- Universal guidance (from `prompts/classes/universal.md`)
+- Class guidance (from the task's class key, falling back to `prompts/classes/coding/default.md`)
+- Codebase knowledge (from the `internal/knowledge` package)
+- Prior task AARs (via `state.RenderAARs`)
+
+`cfg` is a parameter rather than a struct field because it may change between calls (config reload). `wolfcastleDir` is stored on the struct for knowledge file access.
 
 ### Where render methods live
 
@@ -480,6 +502,7 @@ After:
 
 ```go
 type App struct {
+    // Repository fields
     Config   *config.Repository
     Identity *config.Identity          // nil if identity not configured
     Prompts  *pipeline.PromptRepository
@@ -487,10 +510,12 @@ type App struct {
     Daemon   *daemon.DaemonRepository
     State    *state.Store         // nil if identity not configured
     Git      git.Provider
+
+    // Retained fields
     Clock    clock.Clock
     Invoker  invoke.Invoker
-    JSON     bool
     Version  string
+    JSON     bool                 // set by --json persistent flag
 }
 ```
 
