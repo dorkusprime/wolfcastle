@@ -356,6 +356,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 							})
 							output.PrintHuman("  Audit blocked: open gaps remain.")
 						}
+						// Commit the decomposition: audit gaps, remediation
+						// subtasks, and reverted audit state. This gives a
+						// clean revert point before remediation work starts.
+						auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
+						commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta)
 						return nil
 					}
 				}
