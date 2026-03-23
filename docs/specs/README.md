@@ -2,54 +2,6 @@
 
 Living system specifications for Wolfcastle. These describe the current design and are the implementation reference.
 
-## Currency Audit (2026-03-23)
-
-Each spec was verified against current code. Status meanings:
-
-- **Current**: Spec matches implementation; no action needed.
-- **Needs update**: Implementation has moved beyond the spec. The spec is still directionally correct but omits features, changes names, or describes behavior that was later revised.
-
-| Spec | Status | Drift Notes |
-|------|--------|-------------|
-| State Machine | Current | |
-| Config Schema | Current | Code adds fields (Archive, TaskClasses, Planning) beyond spec, but these follow the same patterns and don't contradict it |
-| Tree Addressing | Current | Code extends with archived node tracking and hierarchical child tasks; no contradictions |
-| Pipeline Stage Contract | Current | Updated: added AARs in iteration context, spec-review auto-trigger section, planning pipeline cross-reference |
-| Audit Propagation | Current | Updated: breadcrumb timestamp precision corrected to time.Time, gap ID format corrected to use node internal ID, breadcrumb task field sourced from --node argument, AAR section added |
-| Archive Format | Current | Updated: Commit SHA documented in metadata table, summary.enabled config gate documented, audit section rendering updated to match combined Findings format with status badges |
-| CLI Commands | Current | Updated: added `audit aar` and `audit report` subcommands, added `--detail` and `--archived` flags to `status` |
-| Orchestrator Prompt | Current | Updated: marker table expanded with SKIP and CONTINUE markers and pass-type column, namespace isolation section added documenting scanTerminalMarker's validMarkers parameter, daemon behavior split by pass type |
-| Structural Validation | Current | Updated: added CHILDREF_STATE_MISMATCH, ORPHANED_TEMP_FILE, INVALID_TASK_ID categories; five audit state categories added to severity and fix tables; built-in checks table updated |
-| CI/CD Pipeline | Current | Integration timeout intentionally expanded to 300s (spec says 120s); `govulncheck` job added post-spec |
-| Test Strategy | Current | `internal/testutil` shared helper package not yet extracted (low priority) |
-| Production Hardening | Current | Readline integration for `unblock` pending; CONTRIBUTING.md not yet created |
-| Testability and Decoupling | Current | Updated: callback marker parsing and property-based tests marked as not implemented with status notes; implementation priority table updated with status column |
-| Prompt Externalization | Current | Updated: file renames documented, new prompts documented (context-headers.md, spec-review.md, stages/ subdirectory), deployment tree updated |
-| Goroutine Architecture | Current | Updated: Phase 3 status corrected (StdoutPipe not io.Pipe), stall detector location documented, auto-archive inline documented, Section 6 rewritten |
-| Store | Current | |
-| Domain Repository Architecture | Current | |
-| Orchestrator Planning Pipeline | Current | Updated: marker scanning branching documented (execution excludes CONTINUE, planning defaults to all), planning context updated to match BuildPlanningContext with note on extended metadata |
-| Unknown Field Detection | Current | Implemented via `DisallowUnknownFields` in `internal/config/unknown.go`; warnings on Config struct per spec recommendation |
-| tierfs Resolver Contract | Current | |
-| RenderContext Rendering Contract | Current | |
-| Git Provider Contract | Current | |
-| Identity Domain Type Contract | Current | |
-| ConfigRepository Contract (type renamed to Repository) | Current | Type renamed from `ConfigRepository` to `Repository` per commit 47252ec |
-| ClassRepository Contract | Current | |
-| MigrationService Contract | Current | |
-| ScaffoldService Contract | Current | |
-| ContextBuilder Contract | Current | |
-| FindNextTask Navigation Invariants | Current | Property-based test invariants for navigation; no implementation drift |
-| Config Show Command | Current | |
-| Auto-Archive Service Contract | Current | |
-| Config Write Commands | Current | |
-| Dict-Format Pipeline Stages | Current | Implemented; `StageOrder` field and dict-format stages in source |
-| Log Command Design | Current | |
-| Config Docs Overhaul | Current | Planning spec for documentation restructuring; all four target pages exist |
-| Deterministic Git | Needs update | Updated: config field names corrected (`skip_hooks_on_auto_commit`, `commit_prefix`), staging area section rewritten to reflect `commitDirect` implementation (GIT_INDEX_FILE reversed), commit message format updated with prefix/title/body support, `commitStateFlush` documented |
-| Codebase Knowledge | Current | `internal/knowledge` package implements described file layout, read/append/budget mechanics |
-| Template File Generation | Current | Design spec for future refactor; `TemplateRepository` and tier resolution exist in pipeline, scaffold files still use string builders |
-
 ## Specs
 
 | Spec | Description |
@@ -88,6 +40,7 @@ Each spec was verified against current code. Status meanings:
 | [Auto-Archive Service Contract](2026-03-21T12-27Z-auto-archive-service-contract.md) | Archive state model, file layout, move/restore/delete operations, daemon timer integration |
 | [Config Write Commands](2026-03-21T14-23Z-config-write-commands.md) | CLI spec for `config set`, `unset`, `append`, `remove` with dot-notation paths and rollback |
 | [Log Command Design](2026-03-21T18-00Z-log-command-design.md) | `wolfcastle log` display modes, session reconstruction, verbosity flags |
+| [Task Classes](2026-03-15T00-04Z-task-classes.md) | Classification system routing tasks to behavioral prompts via class keys, hierarchical fallback, and three-tier prompt resolution |
 | [Config Docs Overhaul](2026-03-22T06-00Z-config-docs-overhaul.md) | Four-page configuration documentation restructure: quickstart, guide, reference, task classes |
 | [Deterministic Git](2026-03-22T07-00Z-deterministic-git.md) | Daemon-owned git commits after every iteration, configurable via `git.*` fields, agent never touches git |
 | [Codebase Knowledge](2026-03-22T08-00Z-codebase-knowledge.md) | Per-namespace markdown knowledge files accumulating codebase observations across tasks |
@@ -101,7 +54,6 @@ Specs that explore potential directions without proposing adoption. Implementati
 |------|-------------|-----------------------|
 | [TUI](2026-03-15T00-02Z-tui.md) | Bubbletea-based terminal UI for observing and commanding the daemon | Not started. No bubbletea dependency or TUI code exists |
 | [Worktree by Default](2026-03-15T00-03Z-worktree-by-default.md) | Running all daemon work in isolated git worktrees by default | Not started. The opt-in `--worktree` flag exists (spec Section 1 status quo) but none of the default-worktree behavior, auto-merge, or config gates have been built |
-| [Task Classes](2026-03-15T00-04Z-task-classes.md) | Classification system for tasks routing each to a behavioral prompt | Pipeline implemented: class resolution, prompt injection, CLI validation, daemon startup validation, audit auto-assign, planning-time assignment, 54 config entries. Remaining: author 55 behavioral prompt `.md` files, model override dispatch, intake-level classification |
 
 ## Superseded
 
