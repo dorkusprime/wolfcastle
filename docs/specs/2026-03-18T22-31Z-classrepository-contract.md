@@ -10,11 +10,11 @@
 type ClassRepository struct {
     prompts *PromptRepository
     mu      sync.RWMutex
-    classes map[string]ClassDef
+    classes map[string]config.ClassDef
 }
 ```
 
-The `prompts` field delegates all file resolution to `PromptRepository.ResolveRaw`. The `mu` field guards the `classes` map for concurrent access: `Reload` acquires a write lock; `Resolve`, `List`, and `Validate` acquire read locks. The `classes` map holds the current class definitions from config, keyed by class name.
+The `prompts` field delegates all file resolution to `PromptRepository.ResolveRaw` and `PromptRepository.ListFragments`. The `mu` field guards the `classes` map for concurrent access: `Reload` acquires a write lock; `Resolve`, `List`, and `Validate` acquire read locks. The `classes` map holds the current class definitions from config (using `config.ClassDef`), keyed by class name.
 
 ## Constructor
 
@@ -24,7 +24,7 @@ Creates a `ClassRepository` that delegates prompt resolution to the given `Promp
 
 ## Methods
 
-### Reload(classes map[string]ClassDef)
+### Reload(classes map[string]config.ClassDef)
 
 Replaces the internal class map with the provided definitions. Goroutine-safe: acquires a write lock on `mu`. The daemon calls this once at startup after loading config, and again if config is reloaded. The map is stored by reference; the caller should not mutate it after passing it in.
 
@@ -35,10 +35,11 @@ Returns the behavioral prompt content for a class key by resolving it through `P
 **Algorithm:**
 
 1. Acquire read lock. Check that `key` exists in the `classes` map. If not, return an error indicating the key is not a configured class.
-2. Attempt `prompts.ResolveRaw("prompts/classes", key+".md")`. If the file exists, return its content.
+2. Attempt `prompts.ResolveRaw("prompts/classes", key+".md")`. If the file exists, record its content and note the resolved key.
 3. If the file does not exist (`os.ErrNotExist`), compute the parent key by stripping the last path segment: for `"typescript/react"`, the parent is `"typescript"`; for `"lang-go"`, the parent is `"lang"` (strip after the last hyphen). The separator is `/` for hierarchical keys and `-` for hyphenated keys.
-4. Attempt `prompts.ResolveRaw("prompts/classes", parentKey+".md")`. If the file exists, return its content.
+4. Attempt `prompts.ResolveRaw("prompts/classes", parentKey+".md")`. If the file exists, record its content and note the parent as the resolved key.
 5. If neither file exists, return an error describing the key and the resolution attempts made.
+6. **Subdirectory fragment assembly:** Call `prompts.ListFragments("prompts/classes/"+resolvedKey, nil, nil)` to collect any supplementary `.md` files in a subdirectory matching the resolved key. If fragments are found, append them (newline-joined) to the main prompt content. A missing or unreadable subdirectory is silently ignored; the main file content is always sufficient on its own.
 
 The fallback is one level deep. `"typescript/react"` falls back to `"typescript"`, but `"typescript"` does not fall back further. There is no catch-all default prompt file.
 
@@ -76,7 +77,7 @@ The daemon should call `Reload` once at startup (before spawning iteration gorou
 
 ## Invariants
 
-- `Resolve` always delegates to `PromptRepository.ResolveRaw("prompts/classes", ...)`. ClassRepository never constructs tier paths or reads files directly.
+- `Resolve` delegates to `PromptRepository.ResolveRaw("prompts/classes", ...)` for the main prompt file and `PromptRepository.ListFragments("prompts/classes/"+resolvedKey, ...)` for supplementary fragments. ClassRepository never constructs tier paths or reads files directly.
 - The fallback chain is exactly one level deep: exact key, then parent key, then error. No recursive or multi-level fallback.
 - `List` returns keys sorted lexicographically. The order is deterministic regardless of map iteration order.
 - `Validate` uses the same fallback logic as `Resolve`. A class that `Resolve` would successfully serve will not appear in `Validate`'s missing list.

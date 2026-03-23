@@ -24,7 +24,7 @@ Sets a configuration key to a value. If intermediate keys along the dot-notation
 
 ### config unset
 
-Removes a configuration key by writing `null` at that path in the tier overlay. On the next `Load`, `DeepMerge` sees the null and deletes the key from the merged result, effectively reverting it to whatever lower tiers or defaults provide. If no lower tier sets the key, it disappears from the resolved config entirely.
+Removes a configuration key by deleting it from the tier overlay via `config.DeletePath`. The key and any nested structure beneath it are removed from the tier's `config.json`. If the key does not exist, the command succeeds silently. On the next `Load`, the key reverts to whatever lower tiers or defaults provide. If no lower tier sets the key, it disappears from the resolved config entirely.
 
 ### config append
 
@@ -70,22 +70,22 @@ The `--tier` flag accepts two values:
 - `local` (default): writes to `.wolfcastle/system/local/config.json`
 - `custom`: writes to `.wolfcastle/system/custom/config.json`
 
-Writing to `base` is rejected with: `error: cannot write to base tier (base is managed by the system)`.
+Writing to `base` (or any other invalid tier value) is rejected with: `--tier must be "local" or "custom"`.
 
 The default of `local` follows the tier's purpose as the highest-priority, machine-specific overlay. The `custom` tier exists for project-level overrides that should be shared. The ADR "WithConfig writes to custom tier" governs programmatic writes from `Environment.WithConfig`; the CLI defaults to `local` because interactive users are typically adjusting their own machine's config.
 
 ## Read-Modify-Write Flow
 
-All four commands share the same transactional flow:
+All four commands delegate to `ConfigRepository.ApplyMutation(tier, mutateFunc)`, which encapsulates the transactional flow:
 
-1. **Read** the current tier overlay file using `readTierFile(wolfcastleRoot, tier)`. If the file does not exist, start with an empty map (`{}`).
-2. **Mutate** the overlay map according to the command:
-   - `set`: walk the dot-notation path, creating intermediate maps as needed, and assign the parsed value at the leaf.
-   - `unset`: walk the dot-notation path and assign `nil` (JSON null) at the leaf. Intermediate maps are created if needed so the null lands at the correct depth. The null value flows through `DeepMerge` on the next `Load`, deleting the key from the merged result.
-   - `append`: walk the path to the leaf. If the leaf is an array, append the parsed value. If the leaf does not exist, create a single-element array. If the leaf exists but is not an array, return an error.
-   - `remove`: walk the path to the leaf. If the leaf is not an array, return an error. Search for the value by JSON-string equality and remove it. If not found, return an error.
-3. **Write** the modified overlay back to the tier file using `ConfigRepository.WriteCustom` or `ConfigRepository.WriteLocal` (depending on the tier).
-4. **Validate**: call `ConfigRepository.Load()` to produce the fully merged config. This runs `ValidateStructure` internally.
+1. **Read** the current tier overlay file. If the file does not exist, start with an empty map (`{}`).
+2. **Mutate** the overlay map by calling the command's mutation function:
+   - `set`: calls `config.SetPath(overlay, key, value)`, creating intermediate maps as needed.
+   - `unset`: calls `config.DeletePath(overlay, key)`, removing the key and any nested structure beneath it.
+   - `append`: calls `config.GetPath` to locate the current value. If the leaf is an array, appends the parsed value via `config.SetPath`. If the leaf does not exist, creates a single-element array. If the leaf exists but is not an array, returns an error.
+   - `remove`: calls `config.GetPath` to locate the current value. If the leaf is not an array, returns an error. Searches for the value by JSON-string equality (marshal both, compare strings) and removes it. If not found, returns an error.
+3. **Write** the modified overlay back to the tier file.
+4. **Validate**: call `ConfigRepository.Load()` to produce the fully merged config. This runs validation internally.
 5. **Rollback on failure**: if validation fails, restore the original tier file content (saved before step 3) and return the validation error to the user. The config on disk remains as it was before the command ran.
 6. **Output**: on success, print a confirmation message (human mode) or a JSON envelope (JSON mode).
 
@@ -140,8 +140,7 @@ Error:
 | Scenario | Behavior |
 |----------|----------|
 | `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
-| `--tier base` | Exit 1: `error: cannot write to base tier (base is managed by the system)` |
-| `--tier` given invalid value | Exit 1: `error: --tier must be one of: local, custom` |
+| `--tier base` or invalid value | Exit 1: `--tier must be "local" or "custom"` |
 | Malformed key: empty segments | Exit 1: `error: invalid key "daemon..poll": empty path segment` |
 | Malformed key: trailing dot | Exit 1: `error: invalid key "daemon.": trailing dot` |
 | Malformed key: array indexing | Exit 1: `error: invalid key "commands[0]": array indexing is not supported` |
@@ -166,7 +165,7 @@ wolfcastle config append
 wolfcastle config remove
 ```
 
-Each command registers its own `--tier` and `--json` flags. The positional arguments (`key`, `value`) are handled via `cobra.ExactArgs(2)` for `set`, `append`, and `remove`, and `cobra.ExactArgs(1)` for `unset`.
+Each command registers its own `--tier` flag (defaulting to `"local"`). The `--json` flag is inherited from the root command via `App.JSON`. Positional arguments (`key`, `value`) are validated in the command's `RunE` function: `set`, `append`, and `remove` require 2 arguments, `unset` requires 1.
 
 ## Implementation Notes
 
@@ -174,4 +173,4 @@ Each command registers its own `--tier` and `--json` flags. The positional argum
 - The dot-notation path walker and value parser are new utilities. Place them in `cmd/config/` as shared helpers since they serve all four write commands.
 - For rollback, save the original file bytes (or "absent" sentinel) before writing. On validation failure, either write the saved bytes back or remove the file if it was absent.
 - Use `json.Marshal` for value equality comparison in `remove`: marshal both the candidate and each element, compare the byte strings.
-- The `unset` command writes `nil` into the overlay map, not `json.RawMessage("null")`. When the overlay is serialized, `nil` map values become JSON `null`, which `DeepMerge` treats as deletion on the next `Load`.
+- The `unset` command calls `config.DeletePath` to remove the key entirely from the overlay map, rather than writing null. The key simply disappears from the tier file.

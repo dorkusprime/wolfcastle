@@ -285,13 +285,14 @@ If `pipeline.stages` is already a map in every tier, the method performs no writ
 `ScaffoldService.Reinit()` calls `MigrateStagesFormat()` alongside the existing migration methods, before regenerating base files:
 
 ```go
-migrator := &MigrationService{config: s.config, root: s.root}
-_ = migrator.MigrateDirectoryLayout()
-_ = migrator.MigrateOldConfig()
-_ = migrator.MigrateStagesFormat()
+m := &MigrationService{config: s.config, root: s.root}
+if err := m.MigrateDirectoryLayout(); err != nil { return ... }
+if err := m.MigrateOldConfig(); err != nil { return ... }
+if err := m.MigrateStagesFormat(); err != nil { return ... }
+if err := m.MigratePromptLayout(); err != nil { return ... }
 ```
 
-Migration errors are discarded (logged but not propagated), consistent with the existing pattern.
+Migration errors propagate through Reinit (wrapped with `"scaffold: migrating ..."` context).
 
 ---
 
