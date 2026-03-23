@@ -11,7 +11,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/output"
 )
 
-// invokeWithRetry wraps invoke.InvokeStreaming with exponential backoff
+// invokeWithRetry wraps ProcessInvoker.Invoke with exponential backoff
 // governed by the config's retries settings. Only invocation errors (non-nil
 // error returns) are retried — a successful process exit (even with a
 // non-zero exit code captured in Result) is not retried here.

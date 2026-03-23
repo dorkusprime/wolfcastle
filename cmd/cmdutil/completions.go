@@ -70,7 +70,7 @@ func loadRootIndexForCompletion(app *App) (*state.RootIndex, error) {
 	if app.State != nil {
 		return app.State.ReadIndex()
 	}
-	if err := app.LoadConfig(); err != nil {
+	if err := app.Init(); err != nil {
 		return nil, err
 	}
 	if app.State == nil {
@@ -84,7 +84,7 @@ func storeForCompletion(app *App) (*state.Store, error) {
 	if app.State != nil {
 		return app.State, nil
 	}
-	if err := app.LoadConfig(); err != nil {
+	if err := app.Init(); err != nil {
 		return nil, err
 	}
 	if app.State == nil {

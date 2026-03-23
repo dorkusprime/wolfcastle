@@ -375,15 +375,3 @@ func InvokeSimple(ctx context.Context, model config.ModelDef, prompt string, wor
 	return NewProcessInvoker().Invoke(ctx, model, prompt, workDir, nil, nil)
 }
 
-// Invoke runs a model CLI command with the given prompt piped to stdin.
-// Preserved for backward compatibility with existing callers.
-func Invoke(ctx context.Context, model config.ModelDef, prompt string, workDir string) (*Result, error) {
-	return InvokeSimple(ctx, model, prompt, workDir)
-}
-
-// InvokeStreaming runs a model CLI command, streaming each line of stdout to
-// logWriter (if non-nil) while also capturing the full output in Result.Stdout.
-// Preserved for backward compatibility with existing callers.
-func InvokeStreaming(ctx context.Context, model config.ModelDef, prompt string, workDir string, logWriter io.Writer) (*Result, error) {
-	return NewProcessInvoker().Invoke(ctx, model, prompt, workDir, logWriter, nil)
-}

@@ -14,7 +14,7 @@ import (
 )
 
 // echoModel returns a ModelDef that runs "echo" with the given args.
-// Because Invoke pipes prompt to stdin, echo ignores it and prints args.
+// Because the invoker pipes prompt to stdin, echo ignores it and prints args.
 func echoModel(args ...string) config.ModelDef {
 	return config.ModelDef{Command: "echo", Args: args}
 }
@@ -29,8 +29,8 @@ func shModel(script string) config.ModelDef {
 	return config.ModelDef{Command: "sh", Args: []string{"-c", script}}
 }
 
-func TestInvoke_BasicOutput(t *testing.T) {
-	result, err := Invoke(context.Background(), echoModel("hello", "world"), "", ".")
+func TestInvokeSimple_BasicOutput_Echo(t *testing.T) {
+	result, err := InvokeSimple(context.Background(), echoModel("hello", "world"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -43,8 +43,8 @@ func TestInvoke_BasicOutput(t *testing.T) {
 	}
 }
 
-func TestInvoke_StdinPiped(t *testing.T) {
-	result, err := Invoke(context.Background(), catModel(), "prompt text here", ".")
+func TestInvokeSimple_StdinPiped(t *testing.T) {
+	result, err := InvokeSimple(context.Background(), catModel(), "prompt text here", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -54,8 +54,8 @@ func TestInvoke_StdinPiped(t *testing.T) {
 	}
 }
 
-func TestInvoke_NonZeroExitCode(t *testing.T) {
-	result, err := Invoke(context.Background(), shModel("exit 42"), "", ".")
+func TestInvokeSimple_NonZeroExitCode(t *testing.T) {
+	result, err := InvokeSimple(context.Background(), shModel("exit 42"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -64,8 +64,8 @@ func TestInvoke_NonZeroExitCode(t *testing.T) {
 	}
 }
 
-func TestInvoke_StderrCaptured(t *testing.T) {
-	result, err := Invoke(context.Background(), shModel("echo error-text >&2"), "", ".")
+func TestInvokeSimple_StderrCaptured(t *testing.T) {
+	result, err := InvokeSimple(context.Background(), shModel("echo error-text >&2"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -74,8 +74,8 @@ func TestInvoke_StderrCaptured(t *testing.T) {
 	}
 }
 
-func TestInvoke_CommandNotFound(t *testing.T) {
-	_, err := Invoke(context.Background(), config.ModelDef{Command: "nonexistent-command-xyz"}, "", ".")
+func TestInvokeSimple_CommandNotFound(t *testing.T) {
+	_, err := InvokeSimple(context.Background(), config.ModelDef{Command: "nonexistent-command-xyz"}, "", ".")
 	if err == nil {
 		t.Fatal("expected error for missing command")
 	}
@@ -84,9 +84,9 @@ func TestInvoke_CommandNotFound(t *testing.T) {
 	}
 }
 
-func TestInvoke_WorkingDirectory(t *testing.T) {
+func TestInvokeSimple_WorkingDirectory(t *testing.T) {
 	dir := t.TempDir()
-	result, err := Invoke(context.Background(), shModel("pwd"), "", dir)
+	result, err := InvokeSimple(context.Background(), shModel("pwd"), "", dir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -99,20 +99,20 @@ func TestInvoke_WorkingDirectory(t *testing.T) {
 	}
 }
 
-func TestInvoke_ContextCancelled(t *testing.T) {
+func TestInvokeSimple_ContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
-	_, err := Invoke(ctx, shModel("sleep 10"), "", ".")
+	_, err := InvokeSimple(ctx, shModel("sleep 10"), "", ".")
 	if err == nil {
 		t.Fatal("expected error for cancelled context")
 	}
 }
 
-// --- InvokeStreaming tests ---
+// --- Streaming tests ---
 
-func TestInvokeStreaming_LogWriterReceivesOutput(t *testing.T) {
+func TestProcessInvoker_Streaming_LogWriterReceivesOutput(t *testing.T) {
 	var logBuf bytes.Buffer
-	result, err := InvokeStreaming(context.Background(), echoModel("line1"), "", ".", &logBuf)
+	result, err := NewProcessInvoker().Invoke(context.Background(), echoModel("line1"), "", ".", &logBuf, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -124,10 +124,10 @@ func TestInvokeStreaming_LogWriterReceivesOutput(t *testing.T) {
 	}
 }
 
-func TestInvokeStreaming_MultipleLines(t *testing.T) {
+func TestProcessInvoker_Streaming_MultipleLines(t *testing.T) {
 	var logBuf bytes.Buffer
 	model := shModel("echo line1; echo line2; echo line3")
-	result, err := InvokeStreaming(context.Background(), model, "", ".", &logBuf)
+	result, err := NewProcessInvoker().Invoke(context.Background(), model, "", ".", &logBuf, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -141,9 +141,9 @@ func TestInvokeStreaming_MultipleLines(t *testing.T) {
 	}
 }
 
-func TestInvokeStreaming_NilLogWriter(t *testing.T) {
+func TestProcessInvoker_Streaming_NilLogWriter(t *testing.T) {
 	// With nil logWriter, should still capture output via non-streaming path.
-	result, err := InvokeStreaming(context.Background(), echoModel("hello"), "", ".", nil)
+	result, err := NewProcessInvoker().Invoke(context.Background(), echoModel("hello"), "", ".", nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -152,9 +152,9 @@ func TestInvokeStreaming_NilLogWriter(t *testing.T) {
 	}
 }
 
-func TestInvokeStreaming_NonZeroExitCode(t *testing.T) {
+func TestProcessInvoker_Streaming_NonZeroExitCode(t *testing.T) {
 	var logBuf bytes.Buffer
-	result, err := InvokeStreaming(context.Background(), shModel("echo output; exit 7"), "", ".", &logBuf)
+	result, err := NewProcessInvoker().Invoke(context.Background(), shModel("echo output; exit 7"), "", ".", &logBuf, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -166,9 +166,9 @@ func TestInvokeStreaming_NonZeroExitCode(t *testing.T) {
 	}
 }
 
-func TestInvokeStreaming_StderrCaptured(t *testing.T) {
+func TestProcessInvoker_Streaming_StderrCaptured(t *testing.T) {
 	var logBuf bytes.Buffer
-	result, err := InvokeStreaming(context.Background(), shModel("echo ok; echo err >&2"), "", ".", &logBuf)
+	result, err := NewProcessInvoker().Invoke(context.Background(), shModel("echo ok; echo err >&2"), "", ".", &logBuf, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestInvokeStreaming_StderrCaptured(t *testing.T) {
 // --- Marker detection tests ---
 
 func TestMarkerDetection_Complete(t *testing.T) {
-	result, err := Invoke(context.Background(), echoModel("WOLFCASTLE_COMPLETE"), "", ".")
+	result, err := InvokeSimple(context.Background(), echoModel("WOLFCASTLE_COMPLETE"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestMarkerDetection_Complete(t *testing.T) {
 }
 
 func TestMarkerDetection_Yield(t *testing.T) {
-	result, err := Invoke(context.Background(), echoModel("WOLFCASTLE_YIELD"), "", ".")
+	result, err := InvokeSimple(context.Background(), echoModel("WOLFCASTLE_YIELD"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestMarkerDetection_Yield(t *testing.T) {
 }
 
 func TestMarkerDetection_Blocked(t *testing.T) {
-	result, err := Invoke(context.Background(), shModel("echo 'WOLFCASTLE_BLOCKED: missing dependency'"), "", ".")
+	result, err := InvokeSimple(context.Background(), shModel("echo 'WOLFCASTLE_BLOCKED: missing dependency'"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestMarkerDetection_Blocked(t *testing.T) {
 }
 
 func TestMarkerDetection_Summary(t *testing.T) {
-	result, err := Invoke(context.Background(), shModel("echo 'WOLFCASTLE_SUMMARY: Implemented the feature'"), "", ".")
+	result, err := InvokeSimple(context.Background(), shModel("echo 'WOLFCASTLE_SUMMARY: Implemented the feature'"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestMarkerDetection_Summary(t *testing.T) {
 func TestMarkerDetection_SummaryWithComplete(t *testing.T) {
 	script := `echo "WOLFCASTLE_SUMMARY: Task done successfully"
 echo "WOLFCASTLE_COMPLETE"`
-	result, err := Invoke(context.Background(), shModel(script), "", ".")
+	result, err := InvokeSimple(context.Background(), shModel(script), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -237,7 +237,7 @@ echo "WOLFCASTLE_COMPLETE"`
 func TestMarkerDetection_FirstTerminalMarkerWins(t *testing.T) {
 	script := `echo "WOLFCASTLE_YIELD"
 echo "WOLFCASTLE_COMPLETE"`
-	result, err := Invoke(context.Background(), shModel(script), "", ".")
+	result, err := InvokeSimple(context.Background(), shModel(script), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -247,7 +247,7 @@ echo "WOLFCASTLE_COMPLETE"`
 }
 
 func TestMarkerDetection_Skip(t *testing.T) {
-	result, err := Invoke(context.Background(), echoModel("WOLFCASTLE_SKIP reason here"), "", ".")
+	result, err := InvokeSimple(context.Background(), echoModel("WOLFCASTLE_SKIP reason here"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestMarkerDetection_Skip(t *testing.T) {
 }
 
 func TestMarkerDetection_Continue(t *testing.T) {
-	result, err := Invoke(context.Background(), echoModel("WOLFCASTLE_CONTINUE"), "", ".")
+	result, err := InvokeSimple(context.Background(), echoModel("WOLFCASTLE_CONTINUE"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -267,7 +267,7 @@ func TestMarkerDetection_Continue(t *testing.T) {
 }
 
 func TestMarkerDetection_NoMarker(t *testing.T) {
-	result, err := Invoke(context.Background(), echoModel("just some output"), "", ".")
+	result, err := InvokeSimple(context.Background(), echoModel("just some output"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -277,7 +277,7 @@ func TestMarkerDetection_NoMarker(t *testing.T) {
 }
 
 func TestMarkerDetection_EmptySummaryIgnored(t *testing.T) {
-	result, err := Invoke(context.Background(), shModel("echo 'WOLFCASTLE_SUMMARY:'"), "", ".")
+	result, err := InvokeSimple(context.Background(), shModel("echo 'WOLFCASTLE_SUMMARY:'"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -291,7 +291,7 @@ func TestMarkerDetection_Streaming(t *testing.T) {
 	script := `echo "some output"
 echo "WOLFCASTLE_SUMMARY: streamed summary"
 echo "WOLFCASTLE_COMPLETE"`
-	result, err := InvokeStreaming(context.Background(), shModel(script), "", ".", &logBuf)
+	result, err := NewProcessInvoker().Invoke(context.Background(), shModel(script), "", ".", &logBuf, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -425,7 +425,7 @@ func TestDetectLineMarker_NoOp(t *testing.T) {
 
 // --- Large output test ---
 
-func TestInvokeStreaming_LargeOutput(t *testing.T) {
+func TestProcessInvoker_Streaming_LargeOutput(t *testing.T) {
 	// Generate output with many lines to test streaming works correctly.
 	// Use printf with a fixed string instead of /dev/zero for speed.
 	padding := strings.Repeat("A", 100)
@@ -444,7 +444,7 @@ echo "WOLFCASTLE_COMPLETE"
 	}
 
 	var logBuf bytes.Buffer
-	result, err := InvokeStreaming(context.Background(), config.ModelDef{Command: "sh", Args: []string{scriptPath}}, "", ".", &logBuf)
+	result, err := NewProcessInvoker().Invoke(context.Background(), config.ModelDef{Command: "sh", Args: []string{scriptPath}}, "", ".", &logBuf, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -459,8 +459,8 @@ echo "WOLFCASTLE_COMPLETE"
 
 // --- Empty output test ---
 
-func TestInvoke_EmptyOutput(t *testing.T) {
-	result, err := Invoke(context.Background(), shModel("true"), "", ".")
+func TestInvokeSimple_EmptyOutput(t *testing.T) {
+	result, err := InvokeSimple(context.Background(), shModel("true"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

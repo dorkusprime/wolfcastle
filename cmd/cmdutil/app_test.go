@@ -371,9 +371,9 @@ func TestLoadConfig_Success(t *testing.T) {
 	t.Chdir(tmp)
 
 	a := &App{}
-	err := a.LoadConfig()
+	err := a.Init()
 	if err != nil {
-		t.Fatalf("LoadConfig failed: %v", err)
+		t.Fatalf("Init failed: %v", err)
 	}
 	// Verify repository fields are populated.
 	if a.Config == nil {
@@ -395,12 +395,12 @@ func TestLoadConfig_Success(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_NoWolfcastleDir(t *testing.T) {
+func TestInit_NoWolfcastleDir(t *testing.T) {
 	tmp := t.TempDir()
 	t.Chdir(tmp)
 
 	a := &App{}
-	err := a.LoadConfig()
+	err := a.Init()
 	if err == nil {
 		t.Error("expected error when no .wolfcastle exists")
 	}
