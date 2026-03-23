@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Add output mode flags to start command and wire renderer dispatch",
       "description": "Add output mode flags to start command and wire renderer dispatch",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "cmd/daemon/start.go",
@@ -34,7 +34,7 @@
       "id": "task-0002",
       "title": "Add tests for foreground output mode flag wiring",
       "description": "Add tests for foreground output mode flag wiring",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "cmd/daemon/start_test.go"
@@ -74,6 +74,11 @@
         "timestamp": "2026-03-23T03:24:51.691564Z",
         "task": "non-daemon-foreground-output-flags/foreground-renderer-flags",
         "text": "Added output mode flags to start command: declared mode inside newStartCmd, called registerModeFlags, replaced hardcoded InterleavedRenderer with mode switch dispatching to SummaryRenderer (Follow), ThoughtsRenderer, InterleavedRenderer, or JSON. Default is modeSummary. Mode flags have no effect in background mode (-d) since that path returns before the renderer goroutine starts."
+      },
+      {
+        "timestamp": "2026-03-23T03:28:08.020367Z",
+        "task": "non-daemon-foreground-output-flags/foreground-renderer-flags",
+        "text": "Added mode flag wiring tests to start_test.go: TestStartCmd_ModeFlagsRegistered (3 subtests verifying flag existence, shorthands, NoOptDefVal) and TestStartCmd_ModeResolution (11 subtests covering defaults, individual flags, shorthands, and last-wins semantics). register.go 100%, registerModeFlags 100%."
       }
     ],
     "gaps": [],
@@ -96,6 +101,22 @@
       ],
       "action_items": [
         "None. The renderers themselves are tested in logrender; no new logic was introduced here beyond dispatch."
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-23T03:28:05.981828Z",
+      "objective": "Write table-driven tests verifying the start command's output mode flag wiring.",
+      "what_happened": "Added two test functions to start_test.go: TestStartCmd_ModeFlagsRegistered verifies the flags exist on the actual start command with correct shorthands and NoOptDefVal config (proving registerModeFlags was called during construction). TestStartCmd_ModeResolution is a table-driven test with 11 cases covering default mode, each individual flag, shorthand variants, and last-wins semantics across multiple flag combinations. Used parseMode from follow_test.go since mode is scoped inside newStartCmd's closure.",
+      "went_well": [
+        "The wiring test approach cleanly separates concerns: flag registration (start-specific) vs mode resolution (shared registerModeFlags behavior)",
+        "All 14 subtests pass with race detector, register.go at 100% coverage, registerModeFlags at 100%"
+      ],
+      "improvements": [
+        "newStartCmd coverage is 83% because the RunE body (daemon startup, signal handling, renderer goroutine) requires full integration test infrastructure. The existing ValidationErrors/ValidationWarnings tests exercise some of that path."
+      ],
+      "action_items": [
+        "None. Coverage targets for the modified code are met."
       ]
     }
   }
