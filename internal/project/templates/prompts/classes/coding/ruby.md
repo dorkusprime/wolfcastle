@@ -14,7 +14,11 @@ Prefer `Enumerable` methods over manual loops. `select`, `map`, `reject`, `each_
 
 Prefer convention over configuration. Follow Ruby's naming: `snake_case` for methods and variables, `CamelCase` for classes and modules, `SCREAMING_SNAKE_CASE` for constants. Predicate methods end with `?`, dangerous methods with `!`. Setters end with `=`.
 
-Prefer `Struct` or `Data` (Ruby 3.2+) for simple value objects with named fields. Use full classes when behavior or validation is significant. Avoid `OpenStruct`; it's slow, creates methods via `method_missing`, and makes typos invisible.
+Prefer `Struct` or `Data` (Ruby 3.2+) for simple value objects with named fields. Use full classes when behavior or validation is significant. Avoid `OpenStruct`; it's slow, creates methods via `method_missing`, and makes typos invisible. `Set` is a core class as of Ruby 4.0; no `require 'set'` needed.
+
+Prefer YJIT for production workloads. Enable with `--yjit` or `RUBY_YJIT_ENABLE=1`. YJIT is mature and recommended over the newer ZJIT compiler (Ruby 4.0), which is still experimental. Ractors provide true parallelism but their API is still evolving (Ruby 4.0 introduced `Ractor::Port` for communication). Use Ractors for CPU-bound parallel work; prefer threads or async I/O for I/O-bound concurrency.
+
+Prefer Sorbet or RBS for gradual type checking in larger codebases. Sorbet supports inline RBS comments as of 2025, allowing gradual migration from its proprietary `sig {}` syntax to Ruby's official type annotation format. Steep is a lighter-weight alternative for RBS-only type checking.
 
 Prefer keyword arguments for methods with more than two parameters or any boolean parameters. `create_user(name:, admin: false)` is self-documenting at the call site.
 

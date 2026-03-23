@@ -12,11 +12,11 @@ Prefer `Ecto.Schema` with explicit `field`, `belongs_to`, `has_many` declaration
 
 ## Router and Pipelines
 
-Prefer `pipeline` blocks to group plugs by concern (`:browser`, `:api`, `:authenticated`). Use `scope` to apply pipelines to route groups. Prefer `resources` macro for standard CRUD, `live` macro for LiveView routes. In Phoenix 1.7+, prefer verified routes (`~p"/users/#{user}"`) over route helpers; verified routes are compile-time checked and fail fast on typos.
+Prefer `pipeline` blocks to group plugs by concern (`:browser`, `:api`, `:authenticated`). Use `scope` to apply pipelines to route groups. Prefer `resources` macro for standard CRUD, `live` macro for LiveView routes. Prefer verified routes (`~p"/users/#{user}"`) over route helpers; verified routes are compile-time checked and fail fast on typos. Phoenix 1.8 introduces scoped data access in generators, making secure data access the default.
 
 ## LiveView
 
-Prefer `mount/3` for initial state, `handle_params/3` for URL-driven state changes, and `handle_event/3` for user interactions. Keep assigns minimal: store IDs and lightweight data, not large structs or full query results that persist in process memory across events. Prefer streams (`stream/3`, `stream_insert/3`, `stream_delete/3`) for rendering collections; streams avoid holding the entire list in assigns and send only diffs to the client. Extract reusable UI into function components (`attr`/`slot` declarations); use live components (`live_component`) only when the component needs its own state or event handling. Prefer `assign_async/3` and `start_async/3` for data that loads after mount, keeping the initial render fast.
+Prefer `mount/3` for initial state, `handle_params/3` for URL-driven state changes, and `handle_event/3` for user interactions. Keep assigns minimal: store IDs and lightweight data, not large structs or full query results that persist in process memory across events. Prefer streams (`stream/3`, `stream_insert/3`, `stream_delete/3`) for rendering collections; streams avoid holding the entire list in assigns and send only diffs to the client. Extract reusable UI into function components (`attr`/`slot` declarations); use live components (`live_component`) only when the component needs its own state or event handling. Prefer `assign_async/3` and `start_async/3` for data that loads after mount, keeping the initial render fast. LiveView 1.1 introduces colocated hooks: write a hook's JavaScript in the same file as the component using a `<script>` tag with a special `:type` attribute, reducing the need for separate JS files.
 
 ## Ecto and Repo
 
@@ -25,6 +25,10 @@ Prefer query composition with `from` and `Ecto.Query` pipelines over building ra
 ## PubSub and Channels
 
 Prefer `Phoenix.PubSub` for intra-cluster real-time messaging. Subscribe in `mount/3`, handle messages in `handle_info/3`. Use topic namespacing (`"user:#{user_id}"`) to scope broadcasts. Do not assume PubSub message ordering across nodes or under high load; design handlers to be idempotent. Prefer Phoenix Channels with `socket` and `channel` modules when clients need bidirectional communication over WebSockets; use Presence for tracking connected users. For server-push-only updates to LiveViews, `PubSub` alone is sufficient without Channels.
+
+## Authentication
+
+Phoenix 1.8's `phx.gen.auth` ships with magic link (passwordless) support out of the box. Prefer it as the starting point for authentication. The generator creates the necessary schemas, contexts, and LiveView/controller code.
 
 ## Background Jobs
 

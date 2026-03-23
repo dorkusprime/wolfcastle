@@ -16,7 +16,9 @@ Prefer writing migrations with `makemigrations` and reviewing the generated SQL 
 
 ## Views
 
-Prefer class-based views when the project uses them consistently, and function-based views when simplicity matters more than inheritance. For API work, prefer Django REST Framework's `ModelSerializer` for CRUD resources, `APIView` or `@api_view` for custom endpoints, and viewset/router combinations when the resource maps cleanly to REST semantics. Prefer `Serializer.validated_data` over manual `request.data` access for input handling.
+Prefer class-based views when the project uses them consistently, and function-based views when simplicity matters more than inheritance. Prefer `async def` views for I/O-bound work under ASGI; Django 6.x supports async views, async middleware, async ORM operations, and async template rendering. Sync views still work under ASGI and remain the default under WSGI.
+
+For API work, prefer Django REST Framework's `ModelSerializer` for CRUD resources, `APIView` or `@api_view` for custom endpoints, and viewset/router combinations when the resource maps cleanly to REST semantics. Django Ninja is a strong alternative for new API projects: it uses Pydantic for validation, has native async support, and generates OpenAPI schemas from type hints with less boilerplate than DRF. When the project already uses DRF, follow that. Prefer `Serializer.validated_data` over manual `request.data` access for input handling.
 
 ## Templates and Middleware
 

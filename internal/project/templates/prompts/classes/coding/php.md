@@ -16,7 +16,9 @@ Prefer `match` expressions over `switch` when returning a value or mapping input
 
 Prefer named arguments for functions with boolean or optional parameters. `array_slice($arr, offset: 2, preserve_keys: true)` is self-documenting where positional arguments are not.
 
-Prefer PSR-12 (or the project's adopted standard) for code style. Follow one class per file, `PascalCase` for classes, `camelCase` for methods, `SCREAMING_SNAKE_CASE` for constants. Declare `namespace` and `use` statements at the top, grouped and alphabetized.
+Prefer property hooks (PHP 8.4+) for computed or validated properties instead of explicit getter/setter pairs. Prefer asymmetric visibility (`public private(set) string $name`) for properties that should be publicly readable but only privately writable. Prefer the pipe operator `|>` (PHP 8.5+) for functional transformation chains.
+
+Prefer PER Coding Style (the current successor to PSR-12) or the project's adopted standard. PER Coding Style extends PSR-12 with rules for modern PHP features: enums, attributes, match expressions, named arguments, and union/intersection types. Follow one class per file, `PascalCase` for classes, `camelCase` for methods, `SCREAMING_SNAKE_CASE` for constants. Declare `namespace` and `use` statements at the top, grouped and alphabetized.
 
 Prefer early returns over deep nesting. Guard clauses at the top of a method (`if (!$user) { return null; }`) keep the happy path at the base indentation level.
 

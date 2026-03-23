@@ -14,15 +14,19 @@ Prefer GenServer for stateful processes that serialize access, Agent for trivial
 
 Prefer protocols for polymorphism across types you don't control. Use behaviours (`@callback`) for contracts within your own codebase where modules must implement a known interface.
 
-Prefer `defstruct` with `@enforce_keys` for domain types. Structs catch typos at compile time and make pattern matching on map shape explicit. Tag structs with `@type t()` for Dialyzer.
+Prefer `defstruct` with `@enforce_keys` for domain types. Structs catch typos at compile time and make pattern matching on map shape explicit. Tag structs with `@type t()` for the type system.
 
 Prefer `snake_case` for functions and variables, `PascalCase` for modules. Prefix unused variables with `_`. Use `@moduledoc` and `@doc` with markdown for public API documentation.
+
+## Type System
+
+Elixir 1.17+ includes a gradual set-theoretic type system integrated into the compiler. Types compose with unions (`atom() or integer()`), intersections, and negations. The compiler infers types from patterns and return values, emitting warnings for type mismatches. As of Elixir 1.19, the compiler also type-checks protocol dispatch and function captures. Full type inference is expected in Elixir 1.20. Prefer `@spec` annotations on public functions. Dialyzer (via `dialyxir`) remains useful for checking contracts across module boundaries until the built-in type system reaches full coverage.
 
 ## Build and Test
 
 Prefer `mix compile --warnings-as-errors` to catch unused variables, imports, and deprecated calls. Prefer `mix test` for the test suite and `mix test --stale` during development to run only tests affected by recent changes.
 
-Prefer `mix format` before committing. Elixir ships a deterministic formatter configured by `.formatter.exs`; no debates about style. Prefer `mix credo --strict` for static analysis covering consistency, readability, and complexity. Prefer Dialyzer (via `mix dialyzer` through the `dialyxir` dependency) for type checking; start from `@spec` annotations on public functions and expand.
+Prefer `mix format` before committing. Elixir ships a deterministic formatter configured by `.formatter.exs`; no debates about style. Prefer `mix credo --strict` for static analysis covering consistency, readability, and complexity. The compiler's built-in type checking (Elixir 1.17+) catches many issues that previously required Dialyzer. Prefer Dialyzer (via `mix dialyzer` through the `dialyxir` dependency) for cross-module contract checking and specs verification; start from `@spec` annotations on public functions and expand.
 
 Prefer `mix docs` (via `ex_doc`) for generating documentation. Doctests embedded in `@doc` attributes serve double duty as documentation examples and executable tests.
 

@@ -4,7 +4,7 @@ When the codebase you're working in has established conventions that differ from
 
 ## Application Structure
 
-Prefer Laravel 13.x's streamlined skeleton with a slim `bootstrap/app.php` for routing, middleware, and exception configuration. Organize by domain when the application grows beyond a handful of models: group related models, actions, and policies into feature directories rather than relying solely on the default `app/Models`, `app/Http/Controllers` flat structure. Use service providers only for bindings and bootstrapping that cannot live in the container's automatic resolution. Register bindings with interfaces (`$this->app->bind(PaymentGateway::class, StripeGateway::class)`) so implementations are swappable. Prefer constructor injection over the `app()` helper or facades when the dependency is used throughout the class; use facades for one-off calls in Blade templates and Artisan commands where injection is awkward.
+Prefer Laravel 13.x's streamlined skeleton with a slim `bootstrap/app.php` for routing, middleware, and exception configuration. Use `Queue::route()` to centralize queue/connection mapping for job classes in a service provider. Organize by domain when the application grows beyond a handful of models: group related models, actions, and policies into feature directories rather than relying solely on the default `app/Models`, `app/Http/Controllers` flat structure. Use service providers only for bindings and bootstrapping that cannot live in the container's automatic resolution. Register bindings with interfaces (`$this->app->bind(PaymentGateway::class, StripeGateway::class)`) so implementations are swappable. Prefer constructor injection over the `app()` helper or facades when the dependency is used throughout the class; use facades for one-off calls in Blade templates and Artisan commands where injection is awkward.
 
 ## Routing and Middleware
 
@@ -26,13 +26,17 @@ Prefer dedicated `FormRequest` classes over inline `$request->validate()` for an
 
 Prefer dispatching jobs to a queue (`dispatch(new ProcessInvoice($invoice))`) for any work that can run asynchronously: email, PDF generation, external API calls. Implement `ShouldQueue` on the job class. Use `retryUntil()` or `$tries` and `$backoff` to control retry behavior; handle permanent failures in the `failed()` method. Prefer events and listeners for decoupled cross-cutting side effects (logging, notifications). Keep listeners small; if a listener grows beyond a few lines, extract the logic into a job.
 
+## Frontend and Starter Kits
+
+Prefer the official Laravel starter kits over Breeze or Jetstream (both are no longer updated). The React, Vue, and Svelte kits use Inertia 2, TypeScript, shadcn/ui, and Tailwind. The Livewire kit uses Flux UI and Laravel Volt. Prefer Inertia for SPAs that want server-side routing with a React/Vue/Svelte frontend. Prefer Livewire for server-rendered interactive UIs without a JavaScript build step.
+
 ## Artisan Commands
 
 Prefer custom Artisan commands (`make:command`) for scheduled tasks and maintenance scripts. Define the schedule in `routes/console.php` using `Schedule::command()`. Prefer `$this->components->info()` and `$this->components->error()` for console output over raw `$this->info()`.
 
 ## Testing
 
-Prefer `RefreshDatabase` for feature tests that touch the database; it wraps each test in a transaction rollback. Use model factories (`User::factory()->count(5)->create()`) with states (`->unverified()`, `->admin()`) for test data. Prefer HTTP tests (`$this->getJson('/api/posts')->assertOk()`) for endpoint verification and assert on response structure with `assertJsonStructure()`. Mock external services with `Http::fake()` and mail with `Mail::fake()` followed by `Mail::assertSent()`. Use `Bus::fake()`, `Event::fake()`, and `Queue::fake()` to verify jobs and events were dispatched without executing them. For browser testing, Dusk provides `browse()` with methods like `type()`, `press()`, and `assertSee()`. Prefer feature tests over unit tests for most Laravel code; the framework's service container and test helpers make integration-level assertions cheap and reliable.
+Prefer Pest as the test framework for new Laravel projects; it is the default in new Laravel skeletons and wraps PHPUnit with a more expressive, closure-based API. When the project uses PHPUnit directly, follow that. Prefer `RefreshDatabase` for feature tests that touch the database; it wraps each test in a transaction rollback. Use model factories (`User::factory()->count(5)->create()`) with states (`->unverified()`, `->admin()`) for test data. Prefer HTTP tests (`$this->getJson('/api/posts')->assertOk()`) for endpoint verification and assert on response structure with `assertJsonStructure()`. Mock external services with `Http::fake()` and mail with `Mail::fake()` followed by `Mail::assertSent()`. Use `Bus::fake()`, `Event::fake()`, and `Queue::fake()` to verify jobs and events were dispatched without executing them. For browser testing, Dusk provides `browse()` with methods like `type()`, `press()`, and `assertSee()`. Prefer feature tests over unit tests for most Laravel code; the framework's service container and test helpers make integration-level assertions cheap and reliable.
 
 ## Common Pitfalls
 

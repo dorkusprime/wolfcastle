@@ -22,7 +22,15 @@ Prefer `resources` and `resource` declarations over hand-written routes. Nest re
 
 ## Background Jobs
 
-Prefer ActiveJob as the interface layer. Solid Queue is the default backend in Rails 8+. Sidekiq and GoodJob remain common in existing projects. Keep job arguments serializable (primitives, GlobalID references); passing full ActiveRecord objects risks stale state between enqueue and execution. Prefer `perform_later` over `perform_now` in request cycles to keep response times short. Use `retry_on` and `discard_on` for error handling within the job rather than wrapping the entire `perform` body in a rescue.
+Prefer ActiveJob as the interface layer. Solid Queue is the default backend in Rails 8+, replacing Redis-backed solutions for new applications. Solid Cache handles fragment caching, Solid Cable handles WebSocket pub/sub, and all three use the database as the backing store. Sidekiq and GoodJob remain common in existing projects. Keep job arguments serializable (primitives, GlobalID references); passing full ActiveRecord objects risks stale state between enqueue and execution. Prefer `perform_later` over `perform_now` in request cycles to keep response times short. Use `retry_on` and `discard_on` for error handling within the job rather than wrapping the entire `perform` body in a rescue.
+
+## Deployment
+
+Rails 8+ ships with Kamal 2 preconfigured for deployment. Kamal provisions Linux servers, manages zero-downtime deploys, and handles SSL via Let's Encrypt through its built-in Kamal Proxy. The Dockerfile includes Thruster (a reverse proxy in front of Puma) for asset caching, compression, and X-Sendfile acceleration. Propshaft is the default asset pipeline, replacing Sprockets.
+
+## Authentication
+
+Rails 8 includes a built-in authentication generator (`bin/rails generate authentication`) that creates a session-based auth system with password resets and session tracking. Prefer it over Devise for new applications when the auth requirements are standard. Devise remains appropriate for applications needing OAuth, OmniAuth, or complex multi-strategy authentication.
 
 ## Hotwire and Turbo
 

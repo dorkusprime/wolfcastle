@@ -26,6 +26,10 @@ Prefer Jinja2 template inheritance (`{% extends "base.html" %}` with `{% block %
 
 Prefer `@app.errorhandler(404)` and `@app.errorhandler(Exception)` for centralized error responses. For API applications, register error handlers that return JSON with appropriate status codes rather than rendering HTML templates. Prefer `@app.before_request` and `@app.after_request` hooks for cross-cutting concerns (authentication checks, response headers, timing). Use `@app.teardown_appcontext` for resource cleanup (closing connections) rather than `after_request`, which doesn't run when an unhandled exception occurs.
 
+## Async Support
+
+Flask 3.x supports async views (`async def`), async error handlers, and async before/after request hooks. Async views work under both WSGI and ASGI, but WSGI mode runs them in a thread executor with overhead. For applications that are primarily async, prefer Quart (an ASGI reimplementation of Flask with the same API) or consider FastAPI. Flask's async support is adequate for occasional async handlers in an otherwise sync application.
+
 ## Testing
 
 Prefer the `app.test_client()` fixture for HTTP-level integration tests. Create a test-specific factory configuration (`create_app(testing=True)` or `create_app(config_class=TestConfig)`) with `TESTING=True`, an in-memory or disposable database, and disabled CSRF protection. Use `app.test_request_context()` when testing functions that depend on `request`, `g`, or `current_app` without making a full HTTP request. Prefer `pytest` fixtures that yield an app, a client, and a database session scoped to each test, rolling back transactions between tests. Use `client.get()`, `client.post()` and assert on `response.status_code` and `response.get_json()`.

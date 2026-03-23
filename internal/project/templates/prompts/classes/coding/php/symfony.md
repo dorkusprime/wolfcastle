@@ -4,7 +4,7 @@ When the codebase you're working in has established conventions that differ from
 
 ## Application Structure
 
-Prefer Symfony 8.x with Flex recipes for bundle installation and auto-configuration. Organize code by domain under `src/` with subdirectories per bounded context rather than a flat `Controller/`, `Entity/`, `Repository/` layout once the application grows beyond a handful of entities. Prefer autowiring with `services.yaml` defaults (`_defaults: autowire: true, autoconfigure: true`) and let the container resolve dependencies by type. Register services explicitly only when autowiring is ambiguous (multiple implementations of one interface). Use compiler passes for container manipulation that cannot be expressed through configuration; avoid them when a tagged service or `#[AutoconfigureTag]` attribute suffices.
+Prefer Symfony 7.4 LTS (bug fixes until November 2028, security fixes until November 2029) for long-lived projects, or Symfony 8.x for projects that stay current. Symfony 8.0 is identical to 7.4 minus deprecated code paths. Use Flex recipes for bundle installation and auto-configuration. Organize code by domain under `src/` with subdirectories per bounded context rather than a flat `Controller/`, `Entity/`, `Repository/` layout once the application grows beyond a handful of entities. Prefer autowiring with `services.yaml` defaults (`_defaults: autowire: true, autoconfigure: true`) and let the container resolve dependencies by type. Register services explicitly only when autowiring is ambiguous (multiple implementations of one interface). Use compiler passes for container manipulation that cannot be expressed through configuration; avoid them when a tagged service or `#[AutoconfigureTag]` attribute suffices.
 
 ## Routing
 
@@ -20,7 +20,7 @@ Prefer Symfony form types (`AbstractType`) with `configureOptions` setting the `
 
 ## Events and Messenger
 
-Prefer the EventDispatcher for synchronous, in-process hooks (kernel events, domain events). Use `#[AsEventListener]` attributes on listener methods instead of manual subscriber registration when each listener handles a single event. Prefer Symfony Messenger for asynchronous work: define message classes as simple DTOs, handlers as `#[AsMessageHandler]` services, and route messages to transports (`doctrine`, `amqp`, `redis`) in `messenger.yaml`. Use `stamps` for metadata (delay, priority). Configure retry strategies per transport with `max_retries` and `multiplier`; handle poison messages with the failure transport.
+Prefer the EventDispatcher for synchronous, in-process hooks (kernel events, domain events). Use `#[AsEventListener]` attributes on listener methods instead of manual subscriber registration when each listener handles a single event. Prefer Symfony Messenger for asynchronous work: define message classes as simple DTOs, handlers as `#[AsMessageHandler]` services, and route messages to transports (`doctrine`, `amqp`, `redis`) in `messenger.yaml`. Use `#[AsMessage]` (Symfony 7.2+) to configure the transport directly on the message class instead of in YAML. Use `stamps` for metadata (delay, priority). Configure retry strategies per transport with `max_retries` and `multiplier`; handle poison messages with the failure transport. Message signing (Symfony 7.4+) ensures messages have not been tampered with in transit.
 
 ## Twig Templating
 
