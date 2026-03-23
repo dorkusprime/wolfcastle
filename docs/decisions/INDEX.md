@@ -68,7 +68,7 @@
 | 064 | [Consolidated Intake Stage and Parallel Inbox Processing](064-intake-stage-and-parallel-inbox.md) | Accepted | 2026-03-14 |
 | 065 | [Typed Error Categories](065-typed-errors.md) | Accepted | 2026-03-14 |
 | 066 | [Scoped Script References per Pipeline Stage](066-scoped-script-references.md) | Accepted | 2026-03-15 |
-| 067 | [Terminal Markers Only via CLI Audit](067-terminal-markers-only-cli-audit.md) | Accepted | 2026-03-15 |
+| 067 | [Terminal Markers Only; Audit Mutations via CLI](067-terminal-markers-only-cli-audit.md) | Accepted | 2026-03-15 |
 | 068 | [Unified Store for File-Backed State](068-unified-state-store.md) | Accepted | 2026-03-15 |
 | 069 | [Task Deliverables](069-task-deliverables.md) | Accepted | 2026-03-15 |
 | 070 | [Deliverable Change Detection](070-deliverable-change-detection.md) | Accepted | 2026-03-16 |
@@ -77,7 +77,7 @@
 | 073 | [Follow-to-Log Rename](073-follow-to-log-rename.md) | Accepted | 2026-03-16 |
 | 074 | [Status Tree View](074-status-tree-view.md) | Accepted | 2026-03-16 |
 | 075 | [Foreground Process Group Reclaim](075-foreground-process-group-reclaim.md) | Accepted | 2026-03-16 |
-| 076 | [Signal Handling and Terminal Restoration](076-signal-handling-and-terminal-restoration.md) | Accepted | 2026-03-16 |
+| 076 | [Signal Handling and Terminal Restoration After Model Invocation](076-signal-handling-and-terminal-restoration.md) | Accepted | 2026-03-16 |
 | 077 | [System Directory Restructure](077-system-directory-restructure.md) | Accepted | 2026-03-16 |
 | 078 | [Task.RenderContext Parameterless Refactoring](078-task-rendercontext-parameterless.md) | Accepted | 2026-03-18 |
 | 079 | [NodeState.RenderContext Phantom taskID Parameter](079-nodestate-rendercontext-phantom-taskid.md) | Accepted | 2026-03-18 |
