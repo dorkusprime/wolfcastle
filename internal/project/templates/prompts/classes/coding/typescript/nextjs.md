@@ -1,10 +1,10 @@
-# Next.js (App Router)
+# Next.js
 
 When the codebase you're working in has established conventions that differ from what's described here, follow the codebase.
 
 ## Server and Client Components
 
-All components in the App Router are Server Components by default. Add `'use client'` only to the specific leaf components that need interactivity (state, effects, event handlers, browser APIs). Pushing the boundary down keeps the client bundle small.
+The App Router is the default and recommended routing system. All components in the App Router are Server Components by default. Add `'use client'` only to the specific leaf components that need interactivity (state, effects, event handlers, browser APIs). Pushing the boundary down keeps the client bundle small.
 
 Prefer passing Server Components as `children` to Client Components (the "donut" pattern) over marking entire subtrees as client code. The server-rendered content slots into the client wrapper without entering the client bundle.
 

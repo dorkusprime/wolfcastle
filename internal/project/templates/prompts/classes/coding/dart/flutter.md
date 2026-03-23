@@ -10,7 +10,7 @@ Prefer composition over inheritance for widget reuse. Build complex screens by c
 
 ## State Management
 
-Prefer Riverpod (`flutter_riverpod`) for state management in new projects. Define providers at the top level as global finals; use `ref.watch` in widgets for reactive rebuilds and `ref.read` for one-shot access in callbacks. Prefer `NotifierProvider` and `AsyncNotifierProvider` (Riverpod 2.x code-gen style) over the legacy `StateNotifierProvider`. For projects already using Bloc, prefer Cubit for simple state with `emit()` and full Bloc with event classes only when you need event-driven traceability or complex event transformations like `debounce` or `throttle`. Do not mix state management solutions within the same feature.
+Prefer Riverpod (`flutter_riverpod`) for state management in new projects. Define providers at the top level as global finals; use `ref.watch` in widgets for reactive rebuilds and `ref.read` for one-shot access in callbacks. Prefer `NotifierProvider` and `AsyncNotifierProvider` over the legacy `StateNotifierProvider`. For projects already using Bloc, prefer Cubit for simple state with `emit()` and full Bloc with event classes only when you need event-driven traceability or complex event transformations like `debounce` or `throttle`. Do not mix state management solutions within the same feature.
 
 ## Navigation
 
@@ -44,4 +44,4 @@ Placing unbounded-height children (`ListView`, `GridView`, `Column` with `Expand
 
 Omitting `Key` on widgets in dynamic lists, or using index-based keys, causes Flutter to reuse state from the wrong element when items are reordered, inserted, or removed. Prefer `ValueKey` based on a stable identifier from the data model. Conversely, assigning new `UniqueKey()` on every rebuild forces unnecessary state destruction; only do this when you intentionally want to reset a widget.
 
-Platform rendering differs between Android (Material, Skia/Impeller) and iOS (Cupertino, Impeller). Pixel-perfect golden tests generated on one platform will fail on the other. Run goldens on a single CI platform and tag them by OS. Test visual fidelity on both platforms through integration tests rather than cross-platform golden matching.
+Platform rendering differs between Android (Material, Impeller) and iOS (Cupertino, Impeller). Pixel-perfect golden tests generated on one platform will fail on the other. Run goldens on a single CI platform and tag them by OS. Test visual fidelity on both platforms through integration tests rather than cross-platform golden matching.

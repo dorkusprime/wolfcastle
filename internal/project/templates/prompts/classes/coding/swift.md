@@ -10,7 +10,7 @@ Prefer `guard` for early exits and precondition checks. `guard let user = option
 
 Prefer protocol-oriented design over deep class hierarchies. Define behavior through protocols with default implementations in extensions. Protocols compose where classes cannot: a type can conform to many protocols but inherit from only one class. Use protocol extensions to provide shared behavior, and constrained extensions (`extension Collection where Element: Comparable`) for type-specific defaults.
 
-Prefer `Result<Success, Failure>` for operations that can fail in ways the caller should handle explicitly. Use `throws` when the function's failure mode is truly exceptional and callers will typically propagate with `try`. Prefer typed throws (Swift 6.0+) when the project's minimum deployment target supports them, to give callers exhaustive `catch` patterns.
+Prefer `Result<Success, Failure>` for operations that can fail in ways the caller should handle explicitly. Use `throws` when the function's failure mode is truly exceptional and callers will typically propagate with `try`. Prefer typed throws (`throws(MyError)`) to give callers exhaustive `catch` patterns.
 
 Prefer `Codable` for serialization. Implement `CodingKeys` only when JSON field names diverge from Swift property names. For complex decoding logic, write a custom `init(from:)` rather than reaching for third-party mapping libraries.
 
@@ -34,7 +34,7 @@ Prefer `XCTAssertEqual`, `XCTAssertTrue`, `XCTAssertNil`, and `XCTAssertThrowsEr
 
 Prefer `async` test methods for testing asynchronous code (Xcode 13.2+ / Swift 5.5+). Write `func testFetch() async throws` and `await` directly inside the test body, rather than using `XCTestExpectation` and `wait(for:timeout:)`. Use expectations only when testing delegate callbacks or Combine publishers that don't bridge to async.
 
-Prefer Swift Testing (`@Test`, `#expect`, `@Suite`) when the project targets Swift 6.0+ and Xcode 16+. Swift Testing provides parameterized tests, traits for configuration, and a cleaner assertion syntax. When the project uses XCTest, continue with XCTest; do not mix frameworks within a single test target without a migration plan.
+Prefer Swift Testing (`@Test`, `#expect`, `@Suite`) for new test targets. Swift Testing provides parameterized tests, traits for configuration, and a cleaner assertion syntax than XCTest. When the project uses XCTest, continue with XCTest; do not mix frameworks within a single test target without a migration plan.
 
 Prefer test doubles at boundaries (network, persistence, system clock) rather than mocking internal types. Inject dependencies through initializer parameters or protocol-typed properties. Avoid mocking types you own unless testing interaction behavior at an architectural seam.
 

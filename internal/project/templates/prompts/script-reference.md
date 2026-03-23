@@ -15,7 +15,7 @@ Manage tasks on leaf nodes. Tasks follow the lifecycle: not_started -> in_progre
 Add a new task to a leaf node.
 
 ```
-wolfcastle task add "task title" --node <node-address> [--body "detailed description"] [--stdin] [--deliverable "path/to/file"]
+wolfcastle task add "task title" --node <node-address> [--body "detailed description"] [--stdin] [--class coding/go] [--deliverable "path/to/file"]
 ```
 
 | Flag | Required | Description |
@@ -23,14 +23,15 @@ wolfcastle task add "task title" --node <node-address> [--body "detailed descrip
 | `--node` | Yes | Target leaf node address |
 | `--body` | No | Detailed task description/body text |
 | `--stdin` | No | Read task body from stdin |
+| `--class` | No | Task class key (e.g., `coding/go`, `coding/ruby/rails`, `writing`, `devops`). Use the most specific key from `wolfcastle config show task_classes`. One class per task. |
 | `--deliverable` | No | Expected output file (repeatable) |
 
 **Examples:**
 ```
-wolfcastle task add "Implement user authentication middleware" --node my-project/auth
-wolfcastle task add "Add rate limiting" --node my-project/auth --body "Implement token-bucket rate limiting at 100 req/s per user."
+wolfcastle task add "Implement user authentication middleware" --node my-project/auth --class coding/go
+wolfcastle task add "Add rate limiting" --node my-project/auth --class coding/go --body "Implement token-bucket rate limiting at 100 req/s per user."
 wolfcastle task add "Research POS systems" --node pizza-docs --deliverable "docs/pos-research.md" --deliverable "docs/comparison-table.md"
-echo "Detailed spec..." | wolfcastle task add "Add caching layer" --node my-project/auth --stdin
+echo "Detailed spec..." | wolfcastle task add "Add caching layer" --node my-project/auth --class coding/go --stdin
 ```
 
 ### wolfcastle task deliverable

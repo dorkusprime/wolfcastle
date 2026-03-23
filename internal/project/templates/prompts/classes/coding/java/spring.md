@@ -4,7 +4,7 @@ When the codebase you're working in has established conventions that differ from
 
 ## Application Structure
 
-Prefer Spring Boot 3.x with the `@SpringBootApplication` entry point and auto-configuration. Organize packages by domain feature (`com.example.billing`, `com.example.shipping`) rather than by technical layer (`controllers`, `services`, `repositories`). Each feature package owns its controller, service, repository, and DTOs. Use starter dependencies (`spring-boot-starter-web`, `spring-boot-starter-data-jpa`) to pull consistent, tested dependency sets. Configure behavior through `application.yml` with profile-specific overrides (`application-dev.yml`, `application-prod.yml`). Prefer `@ConfigurationProperties` bound to a record or POJO over scattered `@Value` annotations; it groups related settings, supports validation with `@Validated`, and is testable without loading the full context.
+Prefer Spring Boot 4.x with the `@SpringBootApplication` entry point and auto-configuration. Organize packages by domain feature (`com.example.billing`, `com.example.shipping`) rather than by technical layer (`controllers`, `services`, `repositories`). Each feature package owns its controller, service, repository, and DTOs. Use starter dependencies (`spring-boot-starter-web`, `spring-boot-starter-data-jpa`) to pull consistent, tested dependency sets. Configure behavior through `application.yml` with profile-specific overrides (`application-dev.yml`, `application-prod.yml`). Prefer `@ConfigurationProperties` bound to a record or POJO over scattered `@Value` annotations; it groups related settings, supports validation with `@Validated`, and is testable without loading the full context.
 
 ## Dependency Injection
 
@@ -28,7 +28,7 @@ Prefer Spring Security's `SecurityFilterChain` bean (configured via `HttpSecurit
 
 ## Testing
 
-Prefer `@SpringBootTest` for full integration tests that load the entire context. Use `@WebMvcTest(SomeController.class)` with `MockMvc` for testing controllers in isolation without starting the server or loading the persistence layer. Use `@DataJpaTest` for repository tests; it auto-configures an embedded database, applies Flyway/Liquibase migrations, and wraps each test in a rollback transaction. Prefer `TestRestTemplate` or `WebTestClient` for tests that need a running server (embedded Tomcat). Use `@MockitoBean` to replace specific beans in the context for integration tests. Prefer sliced test annotations over `@SpringBootTest` when the test scope is narrow; sliced tests start faster and isolate failures more clearly.
+Prefer `@SpringBootTest` for full integration tests that load the entire context. Use `@WebMvcTest(SomeController.class)` with `MockMvc` for testing controllers in isolation without starting the server or loading the persistence layer. Use `@DataJpaTest` for repository tests; it auto-configures an embedded database, applies Flyway/Liquibase migrations, and wraps each test in a rollback transaction. Prefer `TestRestTemplate` or `WebTestClient` for tests that need a running server (embedded Tomcat). Use `@MockitoBean` (from Spring Framework, replacing the deprecated `@MockBean` from spring-boot-test) to replace specific beans in the context for integration tests. Note that `@MockitoBean` is not a drop-in replacement: it does not work on `@Configuration` classes or `@Component` classes the way `@MockBean` did. Prefer sliced test annotations over `@SpringBootTest` when the test scope is narrow; sliced tests start faster and isolate failures more clearly.
 
 ## Common Pitfalls
 

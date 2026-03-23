@@ -26,7 +26,7 @@ Prefer `dart format` (or `dart format .`) to format code. All Dart code should b
 
 Prefer `dart test` for pure Dart projects and `flutter test` for Flutter projects. Run `dart pub get` or `flutter pub get` before testing to ensure dependencies are resolved. For Flutter widget tests, use `flutter test`; for integration tests, use `flutter test integration_test/`.
 
-Prefer `dart_code_metrics` (or its successor `dcm`) when the project has it configured, for additional static analysis covering cyclomatic complexity, lines of code, and maintainability metrics. Do not introduce it into projects that don't already use it.
+Prefer DCM (formerly `dart_code_metrics`) when the project has it configured, for additional static analysis covering cyclomatic complexity, lines of code, and maintainability metrics. Do not introduce it into projects that don't already use it.
 
 Prefer `dart pub` for dependency management. Pin version constraints in `pubspec.yaml` using caret syntax (`^1.2.3`) for libraries and tighter constraints for applications. Run `dart pub upgrade --major-versions` deliberately, not as part of routine changes.
 

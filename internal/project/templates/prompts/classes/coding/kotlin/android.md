@@ -22,7 +22,7 @@ Prefer structured concurrency throughout. Avoid `GlobalScope` in Android code. W
 
 Prefer Room for local persistence. Define DAOs as interfaces with `@Query`-annotated suspend functions that return `Flow<T>` for observable queries. Use `@Transaction` on methods that perform multiple writes. Provide the database instance via Hilt with a `@Singleton` scope. Prefer migrations over destructive recreation; `fallbackToDestructiveMigration()` loses user data silently.
 
-Prefer Retrofit with a `kotlinx.serialization` converter (or Moshi) for REST networking. Define API interfaces with suspend functions returning the response body type directly; use `Response<T>` wrapper only when you need to inspect status codes or headers. For newer projects, Ktor client is a viable alternative with native coroutine support. Provide `OkHttpClient` and API service instances through Hilt modules.
+Prefer Retrofit with a `kotlinx.serialization` converter for REST networking. Moshi remains common in existing projects. Define API interfaces with suspend functions returning the response body type directly; use `Response<T>` wrapper only when you need to inspect status codes or headers. For newer projects, Ktor client is a viable alternative with native coroutine support. Provide `OkHttpClient` and API service instances through Hilt modules.
 
 ## Gradle Configuration
 

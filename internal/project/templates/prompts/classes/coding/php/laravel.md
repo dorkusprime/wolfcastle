@@ -4,7 +4,7 @@ When the codebase you're working in has established conventions that differ from
 
 ## Application Structure
 
-Prefer Laravel 11.x's streamlined skeleton with a slim `bootstrap/app.php` for routing, middleware, and exception configuration. Organize by domain when the application grows beyond a handful of models: group related models, actions, and policies into feature directories rather than relying solely on the default `app/Models`, `app/Http/Controllers` flat structure. Use service providers only for bindings and bootstrapping that cannot live in the container's automatic resolution. Register bindings with interfaces (`$this->app->bind(PaymentGateway::class, StripeGateway::class)`) so implementations are swappable. Prefer constructor injection over the `app()` helper or facades when the dependency is used throughout the class; use facades for one-off calls in Blade templates and Artisan commands where injection is awkward.
+Prefer Laravel 13.x's streamlined skeleton with a slim `bootstrap/app.php` for routing, middleware, and exception configuration. Organize by domain when the application grows beyond a handful of models: group related models, actions, and policies into feature directories rather than relying solely on the default `app/Models`, `app/Http/Controllers` flat structure. Use service providers only for bindings and bootstrapping that cannot live in the container's automatic resolution. Register bindings with interfaces (`$this->app->bind(PaymentGateway::class, StripeGateway::class)`) so implementations are swappable. Prefer constructor injection over the `app()` helper or facades when the dependency is used throughout the class; use facades for one-off calls in Blade templates and Artisan commands where injection is awkward.
 
 ## Routing and Middleware
 
@@ -28,7 +28,7 @@ Prefer dispatching jobs to a queue (`dispatch(new ProcessInvoice($invoice))`) fo
 
 ## Artisan Commands
 
-Prefer custom Artisan commands (`make:command`) for scheduled tasks and maintenance scripts. Define the schedule in `routes/console.php` using `Schedule::command()`. Prefer `$this->components->info()` and `$this->components->error()` for console output in Laravel 11.x over raw `$this->info()`.
+Prefer custom Artisan commands (`make:command`) for scheduled tasks and maintenance scripts. Define the schedule in `routes/console.php` using `Schedule::command()`. Prefer `$this->components->info()` and `$this->components->error()` for console output over raw `$this->info()`.
 
 ## Testing
 

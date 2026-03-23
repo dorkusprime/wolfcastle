@@ -23,8 +23,10 @@ wolfcastle project create "Parent Project" --type orchestrator
 
 ### Add a task to a leaf node
 ```
-wolfcastle task add "Task description" --node <node-address>
+wolfcastle task add "Task description" --node <node-address> --class coding/go
 ```
+
+Assign a task class to every task using `--class` with the most specific key from `wolfcastle config show task_classes`. A task modifying Go files gets `coding/go`; a task building a Rails controller gets `coding/ruby/rails`; a task writing docs gets `writing`; a task updating CI gets `devops`. If no class fits, omit the flag. Each task gets one class; if a task would need multiple classes, split it into separate tasks.
 
 Refer to the script-reference.md section above for the full command reference.
 

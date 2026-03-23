@@ -54,7 +54,7 @@ Do NOT move, rename, or delete packages or change import paths. If you believe a
 
 If the task touches more than 8 files, create sub-tasks with `wolfcastle task add` and emit WOLFCASTLE_YIELD. Do not attempt tasks that touch more than 8 files.
 
-To decompose: create sub-tasks with `wolfcastle task add --parent <your-task-id>`, then emit WOLFCASTLE_YIELD on its own line. The `--parent` flag creates hierarchical IDs (task-0001.0001, task-0001.0002). The parent auto-completes when all children finish. Each sub-task should be small enough to finish in a single iteration.
+To decompose: create sub-tasks with `wolfcastle task add --parent <your-task-id>`, then emit WOLFCASTLE_YIELD on its own line. The `--parent` flag creates hierarchical IDs (task-0001.0001, task-0001.0002). The parent auto-completes when all children finish. Each sub-task should be small enough to finish in a single iteration. Assign a task class to every sub-task using `--class` with the most specific key from `wolfcastle config show task_classes`. Each task gets one class; if a sub-task would need multiple classes, split it further.
 
 **Before decomposing, check for prior attempts.** Run `wolfcastle status --node <your-node>` and look for existing subtasks from a failed decomposition. Block every one of them before creating new ones:
 ```
@@ -202,8 +202,10 @@ Only do this when you have concrete evidence that the downstream task cannot suc
 If your task is a discovery or spec-writing task, you may need to create follow-up tasks based on your findings:
 
 ```
-wolfcastle task add "Follow-up task title" --node <your-node> --deliverable "path/to/output" --body "details"
+wolfcastle task add "Follow-up task title" --node <your-node> --class coding/go --deliverable "path/to/output" --body "details"
 ```
+
+Assign a task class to every follow-up task using `--class` with the most specific key from `wolfcastle config show task_classes`. Each task gets one class; if a task would need multiple classes, split it into separate tasks.
 
 Create implementation tasks only when you have enough information to make them specific and actionable. Each task should have a clear deliverable and enough context in its body for the next agent to work without guessing.
 

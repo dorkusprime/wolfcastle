@@ -26,13 +26,13 @@ In Fastify, prefer the plugin system for encapsulating related routes, hooks, an
 
 ## Environment and Configuration
 
-Prefer `--env-file` (Node 20.6+) for loading `.env` files without external dependencies. For projects already using `dotenv`, follow the existing pattern. Never commit `.env` files; use `.env.example` to document required variables without values.
+Prefer `--env-file` for loading `.env` files without external dependencies. For projects already using `dotenv`, follow the existing pattern. Never commit `.env` files; use `.env.example` to document required variables without values.
 
 Prefer reading configuration at startup and validating eagerly. A missing `DATABASE_URL` that surfaces on the first request ten minutes into production is harder to diagnose than one that crashes the process immediately on boot.
 
 ## Testing
 
-Prefer the project's established test runner. The built-in `node:test` runner (stable since Node 20) provides `describe`/`it`, mocking via `mock.method()`, timer mocking via `mock.timers`, and coverage reporting without external dependencies. For projects on Jest, use `jest.fn()` and `jest.spyOn()` in the usual way.
+Prefer the project's established test runner. The built-in `node:test` runner provides `describe`/`it`, mocking via `mock.method()`, timer mocking via `mock.timers`, and coverage reporting without external dependencies. For projects on Jest, use `jest.fn()` and `jest.spyOn()` in the usual way.
 
 Prefer `supertest` (or the framework's injection method, like Fastify's `app.inject()`) for HTTP-level tests that exercise middleware, routing, and serialization together without binding a port.
 
@@ -40,7 +40,7 @@ Prefer mocking `node:fs`, `node:child_process`, and other system interfaces at t
 
 ## Common Pitfalls
 
-An unhandled promise rejection terminates the process by default in Node 20+. Every async code path must either be awaited in a context with error handling, or have an explicit `.catch()`. The `unhandledRejection` process event is a diagnostic backstop, not a recovery mechanism.
+An unhandled promise rejection terminates the process by default. Every async code path must either be awaited in a context with error handling, or have an explicit `.catch()`. The `unhandledRejection` process event is a diagnostic backstop, not a recovery mechanism.
 
 Synchronous operations (`fs.readFileSync`, `crypto.pbkdf2Sync`, CPU-heavy loops) block the event loop and stall all concurrent requests. Prefer async equivalents for I/O. For CPU-bound work, prefer `worker_threads` or offloading to a separate process.
 

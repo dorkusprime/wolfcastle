@@ -27,10 +27,12 @@ wolfcastle project create "Parent Project" --type orchestrator --description "Wh
 
 ### Add a task to a leaf node
 ```
-wolfcastle task add "Task title" --node <node-address> [--body "detailed description"] [--deliverable "path/to/output.md"]
+wolfcastle task add "Task title" --node <node-address> [--body "detailed description"] [--class coding/go] [--deliverable "path/to/output.md"]
 ```
 
 Use `--body` when a task needs more context than the title alone provides. For simple, self-explanatory tasks, the title is sufficient.
+
+Assign a task class to every task using `--class` with the most specific key that matches what the task will touch. Run `wolfcastle config show task_classes` to see available keys. A task modifying Go files gets `coding/go`; a task building a Rails controller gets `coding/ruby/rails`; a task writing docs gets `writing`; a task updating CI gets `devops`. If no class fits, omit the flag. Each task gets one class. If a task would need multiple classes (it touches both Go backend and React frontend, for example), split it into separate tasks. Mixed-concern tasks get diluted guidance from the class prompt system.
 
 **Always specify at least one deliverable per task** using `--deliverable "path/to/file"`. The daemon verifies deliverables exist before accepting task completion. Tasks without deliverables cannot be verified and will complete without proof of work. Use glob patterns when the exact filename isn't known yet (e.g. `--deliverable ".wolfcastle/artifacts/report-*.md"`). Research and spec deliverables go in `.wolfcastle/artifacts/`. Implementation deliverables go in the repo (e.g. `src/`).
 
@@ -73,24 +75,25 @@ For simple, well-understood requests (e.g., "create a hello world file"), skip d
 Inbox: "Build a website using BlazeJS framework"
 → Create project "BlazeJS Website"
 → Task 1: "Research BlazeJS framework" --deliverable ".wolfcastle/artifacts/blazejs-research.md"
-→ Task 2: "Write implementation spec" --deliverable ".wolfcastle/artifacts/blazejs-spec.md"
+→ Task 2: "Write implementation spec" --class writing --deliverable ".wolfcastle/artifacts/blazejs-spec.md"
 → Task 3: "Implement website based on spec" --deliverable "src/**"
    (If BlazeJS doesn't exist, the research agent pre-blocks tasks 2 and 3)
+   (Omit --class on tasks 1 and 3 until discovery reveals the technology)
 ```
 
 **Known framework, vague requirements:**
 ```
 Inbox: "Build a REST API for user management"
 → Create project "User Management API"
-→ Task 1: "Design API spec" --deliverable ".wolfcastle/artifacts/api-spec.md"
-→ Task 2: "Implement API based on spec" --deliverable "src/api/**"
+→ Task 1: "Design API spec" --class writing --deliverable ".wolfcastle/artifacts/api-spec.md"
+→ Task 2: "Implement API based on spec" --class coding/go --deliverable "src/api/**"
 ```
 
 **Known technology, specific requirements:**
 ```
 Inbox: "Create a Python script that converts CSV to JSON"
 → Create project "CSV to JSON Converter"
-→ Task 1: "Implement CSV to JSON converter" --deliverable "convert.py"
+→ Task 1: "Implement CSV to JSON converter" --class coding/python --deliverable "convert.py"
 ```
 
 ## Instructions
@@ -110,6 +113,7 @@ For each inbox item provided below:
 - Every `project create` MUST include `--description`. The description is the primary context for execution and auditing. Use the inbox item's text as the basis. A project without a description is useless to the agents that work on it.
 - Create projects at the root level unless there is a clear parent-child relationship.
 - **Never create a project whose scope overlaps with an existing root project.** Check the "Existing Root Projects" list above. If an inbox item is related to an existing project (e.g., "ensure coverage for X" when project X exists, or "fix bug in X" when X exists), file the work under the existing project with --node, not as a new root. Two projects about the same feature is always wrong.
+- Assign a task class to every task using `--class`. Use the most specific key from `wolfcastle config show task_classes`. Each task gets one class; if a task would need multiple classes, split it into separate tasks.
 - Each leaf node must have at least one task (besides the auto-generated audit task).
 - Execute the commands directly. Do not just output them as text.
 - **Never invent structure for technologies you don't know.** If you can't confidently describe a framework's project layout, component model, and build system, create a discovery task instead of guessing.

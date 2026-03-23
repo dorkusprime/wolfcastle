@@ -19,7 +19,7 @@ Determine the remediation strategy:
 
 ### C. Execute
 Apply the strategy using wolfcastle CLI commands:
-- Create new leaves with `wolfcastle project create` and add tasks with `wolfcastle task add`. Do NOT add tasks to child orchestrators or grandchildren.
+- Create new leaves with `wolfcastle project create` and add tasks with `wolfcastle task add`. Do NOT add tasks to child orchestrators or grandchildren. Assign a task class to every new task using `--class` with the most specific key from `wolfcastle config show task_classes`. Each task gets one class; if a task would need multiple classes, split it into separate tasks.
 - Amend unstarted tasks: `wolfcastle task amend`
 - Block yourself: `wolfcastle task block --node <your-node> "reason"` (only if escalating)
 

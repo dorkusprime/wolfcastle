@@ -15,7 +15,7 @@ Determine where the new work fits:
 
 ### C. Amend
 Make changes using wolfcastle CLI commands:
-- Create new children with `wolfcastle project create`. Add tasks to direct leaf children with `wolfcastle task add`. Do NOT add tasks to child orchestrators or grandchildren.
+- Create new children with `wolfcastle project create`. Add tasks to direct leaf children with `wolfcastle task add`. Do NOT add tasks to child orchestrators or grandchildren. Assign a task class to every new task using `--class` with the most specific key from `wolfcastle config show task_classes`. Each task gets one class; if a task would need multiple classes, split it into separate tasks.
 - Amend unstarted tasks with `wolfcastle task amend`.
 - Do not modify in-progress or complete tasks.
 - Do not modify children of child orchestrators. If a child orchestrator needs to absorb this scope, note it in the breadcrumb; the daemon will route it.
