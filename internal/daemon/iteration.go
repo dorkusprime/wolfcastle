@@ -637,6 +637,66 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 	_ = logger.Log(map[string]any{"type": "auto_commit", "task": taskID, "kind": kind})
 }
 
+// commitStateOnly commits .wolfcastle/ state files if any have changed
+// since the last commit. Called after post-iteration housekeeping
+// (replanning, spec review, knowledge budget) to ensure state is never
+// behind the latest commit. Does nothing if auto_commit or commit_state
+// is disabled, or if there are no state changes to commit.
+//
+// Unlike commitAfterIteration, this stages only .wolfcastle/ (not -u)
+// so code changes from the next iteration aren't accidentally captured.
+func commitStateOnly(repoDir string, logger *logging.Logger, gitCfg config.GitConfig) {
+	if !gitCfg.AutoCommit || !gitCfg.CommitState {
+		return
+	}
+
+	// Stage .wolfcastle/ into a temporary index seeded from HEAD.
+	tmpIndex, err := os.CreateTemp(repoDir, ".git-daemon-index-*")
+	if err != nil {
+		return
+	}
+	tmpIndexPath := tmpIndex.Name()
+	_ = tmpIndex.Close()
+	defer os.Remove(tmpIndexPath)
+
+	indexEnv := append(os.Environ(), "GIT_INDEX_FILE="+tmpIndexPath)
+
+	readTree := exec.Command("git", "read-tree", "HEAD")
+	readTree.Dir = repoDir
+	readTree.Env = indexEnv
+	if err := readTree.Run(); err != nil {
+		return
+	}
+
+	addState := exec.Command("git", "add", ".wolfcastle/")
+	addState.Dir = repoDir
+	addState.Env = indexEnv
+	if err := addState.Run(); err != nil {
+		return
+	}
+
+	// Check if anything was actually staged.
+	diffCmd := exec.Command("git", "diff", "--cached", "--quiet")
+	diffCmd.Dir = repoDir
+	diffCmd.Env = indexEnv
+	if diffCmd.Run() == nil {
+		return // nothing to commit
+	}
+
+	commitArgs := []string{"commit", "-m", "wolfcastle: update project state"}
+	if gitCfg.SkipHooksOnAutoCommit {
+		commitArgs = append(commitArgs, "--no-verify")
+	}
+	commitCmd := exec.Command("git", commitArgs...)
+	commitCmd.Dir = repoDir
+	commitCmd.Env = indexEnv
+	if err := commitCmd.Run(); err != nil {
+		_ = logger.Log(map[string]any{"type": "state_flush_error", "error": err.Error()})
+		return
+	}
+	_ = logger.Log(map[string]any{"type": "state_flush"})
+}
+
 // buildCommitSubject constructs the first line of the commit message.
 // Format: "{prefix}: {title}" for success, "{prefix}: {title} (attempt N)" for failure.
 // When prefix is empty the leading colon is omitted. When title is empty,

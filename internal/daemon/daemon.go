@@ -672,6 +672,11 @@ execute:
 	// maintenance task to prune it.
 	d.checkKnowledgeBudget(navResult.NodeAddress)
 
+	// Flush any state changes that occurred after the in-iteration
+	// commit (replanning, spec review, knowledge budget, propagation).
+	// This ensures .wolfcastle/ state is never behind the last commit.
+	commitStateOnly(d.RepoDir, d.Logger, d.Config.Git)
+
 	return IterationDidWork, nil
 }
 
