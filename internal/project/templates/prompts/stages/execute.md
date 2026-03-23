@@ -35,7 +35,7 @@ Procedure:
 2. **Open each deliverable file.** Read it. If a deliverable file does not exist, record a gap. If a task has no deliverables listed, infer them from the task description and AARs: what files should this task have created or modified? Open those files and verify the work was done.
 3. **Verify each acceptance criterion against the actual file contents.** Do not trust breadcrumbs, AARs, or task completion status. The file is the source of truth. If a task has no acceptance criteria, derive them from the task description: what would "done" look like in the actual files?
 4. **For removal tasks** (tasks that say "remove X," "delete X," or "clean up X"), grep the codebase for the thing that should be gone. If it's still there, record a gap.
-5. **Run the project's build/test commands** (e.g., `go build ./...` and `go test ./...`, or `npm run build`). If either fails, record a gap.
+5. **Run both the build AND the test suite.** For example: `go build ./...` AND `go test ./...`, or `npm run build` AND `npm test`. You must run both commands. If you only ran the build, step 5 is incomplete. If any test fails, record a gap. Do not dismiss failures as "pre-existing" or "unrelated." You cannot verify that claim without checking out the parent branch, which you cannot do. Record every failure. The orchestrator review and remediation system will triage whether a failure is new.
 6. **Check enrichment criteria.** If the audit task has enrichment checks (shown in the audit context below), verify each one.
 
 Record a breadcrumb summarizing what you verified and what you found. Then emit WOLFCASTLE_COMPLETE. If you recorded any gaps, the daemon will create remediation tasks automatically.

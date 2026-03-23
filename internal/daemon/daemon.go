@@ -660,14 +660,9 @@ execute:
 		return IterationError, nil
 	}
 
-	// After task completion, check if any orchestrator needs re-planning.
-	// Re-read the index since the iteration may have changed node states.
-	if d.Config.Pipeline.Planning.Enabled {
-		freshIdx, readErr := d.Store.ReadIndex()
-		if readErr == nil {
-			d.checkReplanningTriggers(navResult.NodeAddress, navResult.TaskID, freshIdx)
-		}
-	}
+	// Replanning triggers are now checked inside runIteration, before
+	// propagation marks parent orchestrators complete. This ensures
+	// findPlanningTarget can still find the orchestrator on the next pass.
 
 	// If a spec task just completed, queue a review task so the spec
 	// gets audited before it drives implementation.
