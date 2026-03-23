@@ -374,4 +374,3 @@ func detectLineMarker(line string, result *Result) {
 func InvokeSimple(ctx context.Context, model config.ModelDef, prompt string, workDir string) (*Result, error) {
 	return NewProcessInvoker().Invoke(ctx, model, prompt, workDir, nil, nil)
 }
-
