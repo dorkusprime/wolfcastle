@@ -37,5 +37,23 @@ Returns absolute paths to all three tier directories in resolution order: base, 
 - Permission errors propagate, never silently ignored
 - `ResolveAll` treats missing subdirectories as empty (continues to next tier)
 
+## CachingResolver
+
+`CachingResolver` wraps a `Resolver` with TTL-based caching for `Resolve` and `ResolveAll` calls. Write operations pass through to the underlying resolver and invalidate relevant cache entries.
+
+```go
+func NewCachingResolver(inner Resolver, ttl time.Duration) *CachingResolver
+func (c *CachingResolver) Invalidate(relPath string)
+func (c *CachingResolver) InvalidateAll()
+```
+
+`CachingResolver` implements `Resolver`. Production repositories (`NewRepository`, `NewPromptRepository`) wrap `tierfs.FS` in a `CachingResolver` with a 30-second TTL. Cached entries are copied on read to prevent callers from mutating shared data. `WriteBase` automatically invalidates the written path and all `ResolveAll` caches.
+
+## Exported Constants and Variables
+
+- `TierNames = []string{"base", "custom", "local"}`: canonical tier name list.
+- `SystemPrefix = "system"`: the directory under the wolfcastle root containing tiers.
+- `SystemTierPaths() []string`: returns `["system/base", "system/custom", "system/local"]`.
+
 ## Thread Safety
-FS holds only an immutable root string. All operations are stateless filesystem reads/writes with no shared mutable state. Safe for concurrent use.
+FS holds only an immutable root string. All operations are stateless filesystem reads/writes with no shared mutable state. Safe for concurrent use. CachingResolver uses a `sync.RWMutex` to protect its cache maps; safe for concurrent use.

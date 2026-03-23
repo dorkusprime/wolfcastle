@@ -97,7 +97,7 @@ During re-planning, the orchestrator can:
 - Delete children it just created during the current planning pass (rollback of its own partial work).
 - It cannot modify children of child orchestrators. If a child orchestrator's subtree needs changes, the orchestrator marks the child orchestrator as `needs_planning` with amended scope, and the child orchestrator re-plans itself.
 
-The orchestrator has a re-planning budget that counts consecutive same-trigger passes without progress. If the orchestrator is re-invoked 3 times for the same trigger type (e.g., 3 consecutive `child_blocked` passes for the same child) without resolving the issue, it blocks itself and escalates. A different trigger type (e.g., `new_scope` after a `child_blocked`) resets the counter for the previous trigger. Completion review does not count against the remediation budget. The budget is configurable per orchestrator via `MaxReplans` (default 3).
+The orchestrator has a cumulative re-planning budget tracked by `TotalReplans`. Each planning pass that fails to produce a recognized terminal marker increments `TotalReplans`. If `TotalReplans` reaches `MaxReplans` (default 3, configurable per orchestrator or globally via `pipeline.planning.max_replans`), the orchestrator blocks itself and escalates. The budget is global across all trigger types, not per-trigger. The original `ReplanCount` (per-trigger map) is deprecated in favor of the simpler cumulative counter.
 
 **Completion Review.** When all children are complete (or blocked/skipped), if the orchestrator has `SuccessCriteria` defined, it receives a final invocation with the `plan-review.md` prompt. It reviews:
 - Whether its success criteria are met.
@@ -434,8 +434,9 @@ type NodeState struct {
     PlanningModel      string         // Model override for this orchestrator's planning
     NeedsPlanning      bool           // Daemon checks this to trigger planning
     PlanningTrigger    string         // "initial", "new_scope", "child_blocked", "completion_review"
-    ReplanCount        map[string]int // Consecutive same-trigger re-plans (trigger → count)
-    MaxReplans         int            // Budget per trigger type (default 3, configurable)
+    ReplanCount        map[string]int // deprecated: use TotalReplans
+    TotalReplans       int            // cumulative replan count across all triggers
+    MaxReplans         int            // Budget (default 3, configurable per orchestrator)
     PlanningHistory    []PlanningPass // Record of each planning invocation (last 5 kept)
     AuditEnrichment    []string       // Additional criteria injected into leaf audits
 }
@@ -443,9 +444,7 @@ type NodeState struct {
 type PlanningPass struct {
     Timestamp   time.Time
     Trigger     string    // "initial", "new_scope", "child_blocked", "completion_review"
-    Summary     string    // What the planning model decided
-    Created     []string  // Children/tasks created
-    Modified    []string  // Tasks modified
+    Summary     string    // What the planning model decided (e.g., "marker=WOLFCASTLE_COMPLETE")
 }
 ```
 

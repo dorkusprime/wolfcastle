@@ -320,40 +320,51 @@ Emit before `WOLFCASTLE_COMPLETE`.
 
 ### `wolfcastle init`
 
-Writes all prompt files to `base/prompts/`:
+Writes all template files to `base/`:
 
 ```
-.wolfcastle/system/base/prompts/
+.wolfcastle/system/base/
 ├── audits/
 │   ├── comments.md
 │   ├── decomposition.md
 │   ├── dry.md
 │   └── modularity.md
-├── context-headers.md
-├── decomposition.md
-├── doctor.md
-├── expand-context.md
-├── expand.md
-├── file-context.md
-├── file.md
-├── script-reference.md
-├── spec-review.md
-├── stages/
-│   ├── execute.md
-│   ├── intake-planning.md
-│   ├── intake.md
-│   ├── plan-amend.md
-│   ├── plan-initial.md
-│   ├── plan-remediate.md
-│   └── plan-review.md
-├── summary-required.md
-├── summary.md
-└── unblock.md
+├── prompts/
+│   ├── audits/
+│   │   └── audit.md
+│   ├── classes/
+│   │   ├── universal.md
+│   │   ├── coding/
+│   │   │   └── (language-specific .md files)
+│   │   └── (other class .md files)
+│   ├── context-headers.md
+│   ├── decomposition.md
+│   ├── doctor.md
+│   ├── expand-context.md
+│   ├── expand.md
+│   ├── file-context.md
+│   ├── file.md
+│   ├── script-reference.md
+│   ├── spec-review.md
+│   ├── stages/
+│   │   ├── execute.md
+│   │   ├── intake-planning.md
+│   │   ├── intake.md
+│   │   ├── plan-amend.md
+│   │   ├── plan-initial.md
+│   │   ├── plan-remediate.md
+│   │   └── plan-review.md
+│   ├── summary-required.md
+│   ├── summary.md
+│   └── unblock.md
+└── rules/
+    ├── git-conventions.md
+    └── adr-policy.md
 ```
 
 ### `wolfcastle update`
 
-Regenerates `base/prompts/` (including new files) without touching `custom/` or `local/`.
+Regenerates `base/` (including new prompt and audit files) without touching `custom/` or `local/`.
 
 ### Embedded Templates
 

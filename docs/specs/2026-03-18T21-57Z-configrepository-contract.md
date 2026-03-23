@@ -19,7 +19,7 @@ The `tiers` field provides file resolution across base, custom, and local tiers.
 
 ### NewRepository(wolfcastleRoot string) *Repository
 
-Production constructor. Builds a `tierfs.FS` rooted at `filepath.Join(wolfcastleRoot, "system")` and stores it alongside the root path. This is the only place `tierfs.New` is called for config resolution.
+Production constructor. Builds a `tierfs.FS` rooted at `filepath.Join(wolfcastleRoot, "system")`, wraps it in a `tierfs.CachingResolver` with `DefaultConfigCacheTTL` (30 seconds), and stores it alongside the root path. This is the only place `tierfs.New` is called for config resolution.
 
 ### NewRepositoryWithTiers(tiers tierfs.Resolver, root string) *Repository
 
@@ -56,6 +56,22 @@ This writes a partial overlay, not a complete config. Only the keys present in `
 Marshals the partial overlay map to indented JSON and writes it to the local tier's `config.json`. The target path is derived from `tiers.TierDirs()[2]` (the local tier directory). Creates parent directories as needed.
 
 Same partial-overlay semantics as `WriteCustom`, but targeting the highest-priority tier.
+
+### Root() string
+
+Returns the wolfcastle root directory path (the `.wolfcastle` directory).
+
+### ReadTier(tier string) (map[string]any, error)
+
+Reads and parses a single tier's `config.json` overlay. Returns an empty map if the file does not exist. Accepts `"custom"` or `"local"`; rejects `"base"` because the base tier is written only via `WriteBase` with a full Config.
+
+### WriteTier(tier string, overlay map[string]any) error
+
+Writes an overlay to the specified tier. Dispatches to `WriteCustom` or `WriteLocal` based on tier name. Rejects `"base"`.
+
+### ApplyMutation(tier string, mutate func(overlay map[string]any) error) error
+
+Performs a read-modify-write-validate cycle on a tier overlay. Reads the current overlay, snapshots the original file contents, calls `mutate` to modify the overlay in-place, writes it back, then runs `Load()` to validate the merged result. If validation fails, the original tier file contents are restored and the validation error is returned. This provides atomic config changes with rollback on validation failure.
 
 ## Error Behavior
 

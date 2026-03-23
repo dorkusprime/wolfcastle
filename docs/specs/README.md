@@ -2,7 +2,7 @@
 
 Living system specifications for Wolfcastle. These describe the current design and are the implementation reference.
 
-## Currency Audit (2026-03-21)
+## Currency Audit (2026-03-23)
 
 Each spec was verified against current code. Status meanings:
 
@@ -45,6 +45,10 @@ Each spec was verified against current code. Status meanings:
 | Config Write Commands | Current | |
 | Dict-Format Pipeline Stages | Current | Implemented; `StageOrder` field and dict-format stages in source |
 | Log Command Design | Current | |
+| Config Docs Overhaul | Current | Planning spec for documentation restructuring; all four target pages exist |
+| Deterministic Git | Needs update | Updated: config field names corrected (`skip_hooks_on_auto_commit`, `commit_prefix`), staging area section rewritten to reflect `commitDirect` implementation (GIT_INDEX_FILE reversed), commit message format updated with prefix/title/body support, `commitStateFlush` documented |
+| Codebase Knowledge | Current | `internal/knowledge` package implements described file layout, read/append/budget mechanics |
+| Template File Generation | Current | Design spec for future refactor; `TemplateRepository` and tier resolution exist in pipeline, scaffold files still use string builders |
 
 ## Specs
 
@@ -84,6 +88,10 @@ Each spec was verified against current code. Status meanings:
 | [Auto-Archive Service Contract](2026-03-21T12-27Z-auto-archive-service-contract.md) | Archive state model, file layout, move/restore/delete operations, daemon timer integration |
 | [Config Write Commands](2026-03-21T14-23Z-config-write-commands.md) | CLI spec for `config set`, `unset`, `append`, `remove` with dot-notation paths and rollback |
 | [Log Command Design](2026-03-21T18-00Z-log-command-design.md) | `wolfcastle log` display modes, session reconstruction, verbosity flags |
+| [Config Docs Overhaul](2026-03-22T06-00Z-config-docs-overhaul.md) | Four-page configuration documentation restructure: quickstart, guide, reference, task classes |
+| [Deterministic Git](2026-03-22T07-00Z-deterministic-git.md) | Daemon-owned git commits after every iteration, configurable via `git.*` fields, agent never touches git |
+| [Codebase Knowledge](2026-03-22T08-00Z-codebase-knowledge.md) | Per-namespace markdown knowledge files accumulating codebase observations across tasks |
+| [Template File Generation](2026-03-22T09-00Z-template-file-generation.md) | Move generated file content from string builders to overridable templates via three-tier resolution |
 
 ## Drafts
 
