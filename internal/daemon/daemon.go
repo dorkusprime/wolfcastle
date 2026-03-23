@@ -140,7 +140,7 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 
 // errNoChange is a sentinel used by selfHeal to signal that MutateNode
 // should skip writing when no tasks were actually modified.
-var errNoChange = fmt.Errorf("no change")
+var errNoChange = errors.New("no change")
 
 // selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
 func (d *Daemon) selfHeal() error {
