@@ -9,12 +9,12 @@
     {
       "id": "spec-update",
       "address": "non-daemon-foreground-output-flags/spec-update",
-      "state": "in_progress"
+      "state": "complete"
     },
     {
       "id": "foreground-renderer-flags",
       "address": "non-daemon-foreground-output-flags/foreground-renderer-flags",
-      "state": "not_started"
+      "state": "in_progress"
     }
   ],
   "tasks": [

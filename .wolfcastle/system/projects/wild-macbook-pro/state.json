@@ -607,7 +607,7 @@
     "non-daemon-foreground-output-flags/foreground-renderer-flags": {
       "name": "Foreground Renderer Flags",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "non-daemon-foreground-output-flags/foreground-renderer-flags",
       "decomposition_depth": 0,
       "parent": "non-daemon-foreground-output-flags"
@@ -615,7 +615,7 @@
     "non-daemon-foreground-output-flags/spec-update": {
       "name": "Spec Update",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "non-daemon-foreground-output-flags/spec-update",
       "decomposition_depth": 0,
       "parent": "non-daemon-foreground-output-flags"

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,7 +20,9 @@ import (
 )
 
 func newStartCmd(app *cmdutil.App) *cobra.Command {
-	return &cobra.Command{
+	mode := modeSummary
+
+	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start the daemon",
 		Long: `Starts the execution loop. Wolfcastle picks up tasks, calls models,
@@ -151,17 +154,35 @@ Examples:
 			ctx, cancel := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer cancel()
 
-			// Start the interleaved renderer goroutine. It tails the
-			// log directory for new NDJSON files and renders them to
-			// stdout, identical to "wolfcastle log -i -f".
+			// Start the renderer goroutine. It tails the log directory
+			// for new NDJSON files and renders them to stdout using
+			// whichever output mode was selected (default: summary).
 			logDir := filepath.Join(app.Config.Root(), "system", "logs")
 			reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
 			records := reader.Records(ctx)
 			renderDone := make(chan struct{})
 			go func() {
 				defer close(renderDone)
-				ir := logrender.NewInterleavedRenderer(os.Stdout)
-				ir.Render(ctx, records)
+				switch mode {
+				case modeSummary:
+					sr := logrender.NewSummaryRenderer(os.Stdout)
+					sr.Follow(ctx, records)
+				case modeThoughts:
+					tr := logrender.NewThoughtsRenderer(os.Stdout)
+					tr.Render(ctx, records)
+				case modeInterleaved:
+					ir := logrender.NewInterleavedRenderer(os.Stdout)
+					ir.Render(ctx, records)
+				case modeJSON:
+					for rec := range records {
+						raw, err := json.Marshal(rec.Raw)
+						if err != nil {
+							continue
+						}
+						_, _ = os.Stdout.Write(raw)
+						_, _ = os.Stdout.Write([]byte{'\n'})
+					}
+				}
 			}()
 
 			runErr := d.RunWithSupervisor(ctx)
@@ -171,6 +192,10 @@ Examples:
 			return runErr
 		},
 	}
+
+	registerModeFlags(cmd, &mode)
+
+	return cmd
 }
 
 // startBackground launches the daemon as a detached background process.
