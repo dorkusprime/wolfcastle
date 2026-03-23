@@ -55,7 +55,7 @@ The config merge system (`DeepMerge`) handles nested structs correctly via JSON 
 
 `.wolfcastle/system/projects/{namespace}/scope-locks.json`, alongside the existing `state.json` (root index) and `.lock` file. This placement puts the scope lock table inside the namespace directory, where it is protected by the existing namespace file lock.
 
-The file is ephemeral, deleted on clean daemon shutdown. It exists only while the daemon is running. Since `.wolfcastle/.gitignore` uses a deny-all-then-whitelist pattern and `system/projects/**/` is whitelisted, `scope-locks.json` would be tracked by default. Add an explicit ignore rule for it: add `scope-locks.json` to `.wolfcastle/.gitignore` alongside the existing `*.lock` rule for runtime artifacts.
+The file is ephemeral, deleted on clean daemon shutdown. It exists only while the daemon is running. The `.wolfcastle/.gitignore` uses explicit excludes (not a deny-all pattern), so files under `system/projects/` are tracked by default. Add `scope-locks.json` to `.wolfcastle/.gitignore` alongside the existing runtime artifact rules (`system/wolfcastle.pid`, `system/stop`, `*.lock`) to prevent it from being committed.
 
 ### Schema
 
