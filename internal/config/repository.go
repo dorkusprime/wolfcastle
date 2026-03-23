@@ -129,8 +129,37 @@ func (r *Repository) writeTier(index int, overlay map[string]any, label string) 
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("config: creating %s directory: %w", label, err)
 	}
-	if err := os.WriteFile(path, raw, 0o644); err != nil {
+	if err := atomicWriteFile(path, raw); err != nil {
 		return fmt.Errorf("config: writing %s config: %w", label, err)
+	}
+	return nil
+}
+
+// atomicWriteFile writes data to path atomically via temp file + rename.
+func atomicWriteFile(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".wolfcastle-tmp-*")
+	if err != nil {
+		return fmt.Errorf("creating temp file: %w", err)
+	}
+	tmpName := tmp.Name()
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("writing temp file: %w", err)
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("syncing temp file: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("closing temp file: %w", err)
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("renaming temp file: %w", err)
 	}
 	return nil
 }
@@ -227,7 +256,7 @@ func (r *Repository) ApplyMutation(tier string, mutate func(overlay map[string]a
 	if _, err := r.Load(); err != nil {
 		// Rollback: restore original file contents.
 		if existed {
-			_ = os.WriteFile(path, original, 0o644)
+			_ = atomicWriteFile(path, original)
 		} else {
 			_ = os.Remove(path)
 		}
