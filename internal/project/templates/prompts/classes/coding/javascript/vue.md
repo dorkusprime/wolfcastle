@@ -16,6 +16,8 @@ Prefer object-syntax prop declarations with type constructors: `defineProps({ ti
 
 Prefer the `validator` option for props with domain constraints: `{ status: { type: String, validator: v => ['active', 'inactive'].includes(v) } }`. Validators run in development mode and produce console warnings on mismatch.
 
+Prefer `defineModel()` (stable since Vue 3.4) for two-way binding props. `const title = defineModel('title')` creates a ref that syncs with the parent's `v-model:title` binding, eliminating the `defineProps` + `defineEmits` + `update:` boilerplate. Use `defineModel('name', { type: String, default: '' })` for runtime validation and defaults.
+
 Prefer array-syntax emit declarations for simple events: `defineEmits(['update', 'delete'])`. For events with payload validation, use object syntax: `defineEmits({ update: (value) => typeof value === 'string' })`. The validator function receives the emitted arguments and returns a boolean.
 
 ## Templates and Rendering
