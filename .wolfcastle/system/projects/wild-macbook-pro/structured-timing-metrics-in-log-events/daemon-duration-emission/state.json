@@ -102,6 +102,11 @@
         "timestamp": "2026-03-23T00:05:50.272551Z",
         "task": "structured-timing-metrics-in-log-events/daemon-duration-emission",
         "text": "Added duration_ms to intake stage_complete log records in stages.go. Per-item timing via time.Now() before invokeWithRetry and time.Since() in the log map."
+      },
+      {
+        "timestamp": "2026-03-23T00:07:08.645343Z",
+        "task": "structured-timing-metrics-in-log-events/daemon-duration-emission",
+        "text": "Added duration_ms to planning_complete log records in planning.go. Captures time.Now() before planning_start, computes elapsed via time.Since after invocation completes."
       }
     ],
     "gaps": [],
@@ -138,6 +143,21 @@
       ],
       "action_items": [
         "Remaining stage_complete sites (renderer, other stages) still need duration_ms"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-23T00:07:07.433531Z",
+      "objective": "Add duration_ms to planning_complete log records in planning.go",
+      "what_happened": "Added planStartTime := time.Now() before the planning_start log call, then added duration_ms: time.Since(planStartTime).Milliseconds() to the planning_complete log map. Also added time import.",
+      "went_well": [
+        "Three-line change, mirrors the pattern from task-0001 and task-0002"
+      ],
+      "improvements": [
+        "None; straightforward addition"
+      ],
+      "action_items": [
+        "Remaining completion log sites (renderer, other stages) still need duration_ms"
       ]
     }
   }
