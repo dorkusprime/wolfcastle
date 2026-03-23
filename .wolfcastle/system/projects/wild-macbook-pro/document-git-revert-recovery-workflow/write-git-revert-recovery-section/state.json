@@ -3,7 +3,7 @@
   "id": "write-git-revert-recovery-section",
   "name": "Write Git Revert Recovery Section",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -32,7 +32,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Write Git Revert Recovery Section is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -60,8 +60,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-23T03:32:32.144598Z",
+    "completed_at": "2026-03-23T03:35:05.525718Z",
     "result_summary": "Added a Git Revert Recovery section to docs/humans/failure-and-recovery.md documenting how users can undo bad task output using git history. The section covers atomic commit structure, commit log format conventions, single and multi-commit revert workflows using both git revert and git reset, and daemon restart after revert. Includes a realistic git log example grounded in the wolfcastle commit message format. Cross-references Partial Work Preservation, Self-Healing, and git configuration. Audit verified build, tests, config field references, and document structure."
   },
   "aars": {

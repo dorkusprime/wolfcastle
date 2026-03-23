@@ -294,7 +294,7 @@
     "document-git-revert-recovery-workflow": {
       "name": "Document Git Revert Recovery Workflow",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "document-git-revert-recovery-workflow",
       "decomposition_depth": 0,
       "children": [
@@ -304,7 +304,7 @@
     "document-git-revert-recovery-workflow/write-git-revert-recovery-section": {
       "name": "Write Git Revert Recovery Section",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "document-git-revert-recovery-workflow/write-git-revert-recovery-section",
       "decomposition_depth": 0,
       "parent": "document-git-revert-recovery-workflow"

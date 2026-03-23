@@ -3,13 +3,13 @@
   "id": "document-git-revert-recovery-workflow",
   "name": "Document Git Revert Recovery Workflow",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
       "id": "write-git-revert-recovery-section",
       "address": "document-git-revert-recovery-workflow/write-git-revert-recovery-section",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -26,6 +26,8 @@
   "success_criteria": [
     "docs/humans/failure-and-recovery.md contains a section documenting git revert recovery with a concrete example"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-23T03:32:32.061723Z",
