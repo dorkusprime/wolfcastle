@@ -69,7 +69,7 @@ Examples:
 			return fmt.Errorf("task %s not found in %s", taskID, nodeAddr)
 		}
 		if blockedTask.State != state.StatusBlocked {
-			return fmt.Errorf("task %s is %s, not blocked", taskID, blockedTask.State)
+			return fmt.Errorf("task %s is %s, not blocked. Use 'wolfcastle status --detail' to find blocked tasks", taskID, blockedTask.State)
 		}
 
 		// Build diagnostic context

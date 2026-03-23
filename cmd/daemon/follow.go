@@ -83,7 +83,7 @@ Examples:
 			// (project not initialized) or contains no sessions.
 			session, err := logrender.ResolveSession(logDir, sessionIdx)
 			if err != nil {
-				return fmt.Errorf("no log files found")
+				return fmt.Errorf("no log files found. Has the daemon run yet? Start it with 'wolfcastle start'")
 			}
 
 			// Implicit follow when daemon is running and session 0.
