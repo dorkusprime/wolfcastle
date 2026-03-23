@@ -3,7 +3,7 @@
   "id": "config-validate-implementation",
   "name": "Config Validate Implementation",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -72,7 +72,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Config Validate Implementation is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -112,8 +112,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-22T23:50:53.109576Z",
+    "completed_at": "2026-03-23T00:00:50.224236Z",
     "result_summary": "Implemented wolfcastle config validate as a new subcommand under config. The command loads and validates the resolved configuration, reporting structural issues by default and full cross-reference and identity checks with --full. Output supports both human-readable (severity/category/description per line with summary counts) and JSON (structured envelope with issues array) modes. Exit code 1 on errors, 0 on warnings-only or clean. Registered in cmd/config/register.go alongside show, set, unset, append, remove. Test suite covers 23 scenarios at 100% function coverage including edge cases (malformed JSON, missing tiers, unreadable files, mixed warnings and errors). CLI documentation maps every structural and full-mode check to the underlying validation functions."
   },
   "aars": {

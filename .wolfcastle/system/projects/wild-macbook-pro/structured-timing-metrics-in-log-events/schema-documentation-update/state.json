@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "id": "schema-documentation-update",
+  "name": "Schema Documentation Update",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update log command design spec with duration_ms field",
+      "description": "Update log command design spec with duration_ms field",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ],
+      "body": "In .wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md: (1) Add duration_ms to the NDJSON Records Used table for stage_complete and planning_complete rows, noting it contains pre-computed elapsed milliseconds as an integer. (2) In the Data Source section, revise the statement that no computation happens in the daemon hot path. The daemon now pre-computes duration_ms for structured consumers; renderers still own display formatting and can prefer the pre-computed value or fall back to timestamp diffs.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "NDJSON Records Used table documents the duration_ms field",
+        "Data Source section accurately reflects that the daemon emits duration_ms"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Schema Documentation Update is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify the spec revision is accurate and internally consistent with the implementation"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

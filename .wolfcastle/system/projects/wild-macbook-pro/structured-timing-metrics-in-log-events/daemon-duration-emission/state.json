@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "id": "daemon-duration-emission",
+  "name": "Daemon Duration Emission",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add duration_ms to execute stage_complete records",
+      "description": "Add duration_ms to execute stage_complete records",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration.go"
+      ],
+      "body": "In internal/daemon/iteration.go, record time.Now() immediately before the stage_start log call (~line 102). After the invocation completes, compute elapsed := time.Since(startTime) and add \"duration_ms\": elapsed.Milliseconds() to the stage_complete log map (~line 126). The field must be an integer (int64), not a float. Preserve all existing fields in the map.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "stage_complete records in iteration.go include a duration_ms integer field",
+        "Existing stage_complete fields (type",
+        " stage",
+        " exit_code",
+        " output_len) are unchanged"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Add duration_ms to intake stage_complete records",
+      "description": "Add duration_ms to intake stage_complete records",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/stages.go"
+      ],
+      "body": "In internal/daemon/stages.go, record time.Now() immediately before each intake invocation's stage_start log call (~line 179). After invocation, compute elapsed := time.Since(startTime) and add \"duration_ms\": elapsed.Milliseconds() to the stage_complete log map (~line 233). The timing should be per-item (each inbox item gets its own duration), not total batch time.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "stage_complete records for intake include a duration_ms integer field",
+        "duration_ms reflects per-item invocation time",
+        " not batch total"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Add duration_ms to planning_complete records",
+      "description": "Add duration_ms to planning_complete records",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/planning.go"
+      ],
+      "body": "In internal/daemon/planning.go, record time.Now() immediately before the planning_start log call (~line 199). After invocation, compute elapsed := time.Since(startTime) and add \"duration_ms\": elapsed.Milliseconds() to the planning_complete log map (~line 214). The field name is duration_ms (not planning_duration_ms) for consistency across all completion record types.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "planning_complete records include a duration_ms integer field",
+        "Field name is duration_ms",
+        " consistent with stage_complete records"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Add unit tests for duration_ms emission",
+      "description": "Add unit tests for duration_ms emission",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration_test.go"
+      ],
+      "body": "Write or extend tests to verify that stage_complete and planning_complete log records contain a duration_ms field with a non-negative integer value. The tests should verify: (1) duration_ms is present in stage_complete records from iteration.go, (2) duration_ms is present in stage_complete records from stages.go, (3) duration_ms is present in planning_complete records. Use the existing test patterns in the daemon package. If a test logger or mock logger captures log records, assert the field exists and is \u003e= 0.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Tests verify duration_ms is present and non-negative in stage_complete records",
+        "Tests verify duration_ms is present and non-negative in planning_complete records",
+        "All tests pass"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Daemon Duration Emission is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify duration_ms appears in all three emission sites (iteration.go, stages.go, planning.go) and is computed as elapsed.Milliseconds() from a time.Now() captured before the invocation"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-23T00:04:46.858652Z",
+        "task": "structured-timing-metrics-in-log-events/daemon-duration-emission",
+        "text": "Added duration_ms (int64) field to stage_complete log records in iteration.go. Captures time.Now() before stage_start, computes elapsed via time.Since after invocation completes."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-23T00:03:48.967647Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-23T00:04:50.554722Z",
+      "objective": "Add duration_ms integer field to stage_complete log records in iteration.go",
+      "what_happened": "Added stageStartTime := time.Now() before the stage_start log call at line 102, then computed stageDuration := time.Since(stageStartTime) after invocation and added duration_ms: stageDuration.Milliseconds() to the stage_complete map. All existing fields preserved.",
+      "went_well": [
+        "Minimal two-line change, no new imports needed since time was already imported"
+      ],
+      "improvements": [
+        "None; the change is straightforward"
+      ],
+      "action_items": [
+        "Downstream tasks should add similar timing to renderer and other log sites"
+      ]
+    }
+  }
+}

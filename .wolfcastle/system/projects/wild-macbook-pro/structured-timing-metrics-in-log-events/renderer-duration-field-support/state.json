@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "id": "renderer-duration-field-support",
+  "name": "Renderer Duration Field Support",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add DurationMS field to Record struct",
+      "description": "Add DurationMS field to Record struct",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/record.go"
+      ],
+      "body": "In internal/logrender/record.go, add a DurationMS *int64 field to the Record struct with json tag duration_ms. Use a pointer so zero-value (absent field) is distinguishable from an explicit 0. Place the field near the other timing-related fields (after ExitCode is a natural spot).",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Record struct has a DurationMS pointer-to-int64 field with json duration_ms tag",
+        "ParseRecord correctly populates DurationMS from JSON input containing duration_ms"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update renderers to prefer pre-computed duration",
+      "description": "Update renderers to prefer pre-computed duration",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/summary.go",
+        "internal/logrender/interleaved.go"
+      ],
+      "body": "In internal/logrender/summary.go and internal/logrender/interleaved.go, modify the stage_complete and planning_complete handlers: if the record DurationMS is non-nil, convert it to time.Duration and use that instead of computing r.Timestamp.Sub(startTime). If DurationMS is nil, fall back to the existing timestamp-diff logic. This ensures backward compatibility with older log files that lack the field. Apply the same pattern in both Replay and Follow code paths.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Renderers use DurationMS when present in the record",
+        "Renderers fall back to timestamp diff when DurationMS is nil",
+        "Both Replay and Follow code paths are updated"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Add renderer tests for duration_ms consumption",
+      "description": "Add renderer tests for duration_ms consumption",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/summary_test.go",
+        "internal/logrender/record_test.go"
+      ],
+      "body": "Write or extend tests for the summary and interleaved renderers to verify: (1) when a stage_complete record contains duration_ms, the rendered duration matches the pre-computed value (not the timestamp diff), (2) when a stage_complete record lacks duration_ms, the rendered duration is computed from timestamps as before, (3) ParseRecord correctly round-trips a duration_ms field. Use the existing test patterns in internal/logrender/.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Test verifies pre-computed duration_ms is used when present",
+        "Test verifies timestamp fallback when duration_ms is absent",
+        "All tests pass"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Renderer Duration Field Support is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify backward compatibility: renderers must still produce correct output from old log files without duration_ms"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

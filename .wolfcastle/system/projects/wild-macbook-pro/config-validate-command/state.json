@@ -3,13 +3,13 @@
   "id": "config-validate-command",
   "name": "Config Validate Command",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
       "id": "config-validate-implementation",
       "address": "config-validate-command/config-validate-implementation",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -29,6 +29,8 @@
     "'wolfcastle config validate --json' produces structured output suitable for CI consumption",
     "Test coverage on new code exceeds 90%"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-22T23:50:53.008615Z",

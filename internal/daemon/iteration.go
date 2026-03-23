@@ -99,6 +99,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
 		}
 
+		stageStartTime := time.Now()
 		_ = d.Logger.Log(map[string]any{
 			"type":  "stage_start",
 			"stage": stageName,
@@ -123,11 +124,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			return err
 		}
 
+		stageDuration := time.Since(stageStartTime)
 		_ = d.Logger.Log(map[string]any{
-			"type":       "stage_complete",
-			"stage":      stageName,
-			"exit_code":  result.ExitCode,
-			"output_len": len(result.Stdout),
+			"type":        "stage_complete",
+			"stage":       stageName,
+			"exit_code":   result.ExitCode,
+			"output_len":  len(result.Stdout),
+			"duration_ms": stageDuration.Milliseconds(),
 		})
 
 		// Reload state from disk — CLI commands invoked by the model may
