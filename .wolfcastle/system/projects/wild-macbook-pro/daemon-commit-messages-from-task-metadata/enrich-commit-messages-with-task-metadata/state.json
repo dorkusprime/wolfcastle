@@ -3,14 +3,14 @@
   "id": "enrich-commit-messages-with-task-metadata",
   "name": "Enrich Commit Messages with Task Metadata",
   "type": "leaf",
-  "state": "not_started",
+  "state": "in_progress",
   "decomposition_depth": 0,
   "tasks": [
     {
       "id": "task-0001",
       "title": "Refactor commitAfterIteration to accept and use task metadata",
       "description": "Refactor commitAfterIteration to accept and use task metadata",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration.go"
@@ -68,6 +68,7 @@
     "breadcrumbs": [],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "in_progress",
+    "started_at": "2026-03-23T03:06:17.184782Z"
   }
 }

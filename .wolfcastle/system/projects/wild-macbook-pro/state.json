@@ -206,7 +206,7 @@
     "daemon-commit-messages-from-task-metadata/add-commit-prefix-config": {
       "name": "Add Commit Prefix Config",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "daemon-commit-messages-from-task-metadata/add-commit-prefix-config",
       "decomposition_depth": 0,
       "parent": "daemon-commit-messages-from-task-metadata"
@@ -214,7 +214,7 @@
     "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata": {
       "name": "Enrich Commit Messages with Task Metadata",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
       "decomposition_depth": 0,
       "parent": "daemon-commit-messages-from-task-metadata"

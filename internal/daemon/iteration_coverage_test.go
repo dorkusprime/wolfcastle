@@ -519,7 +519,7 @@ func TestCommitAfterIteration_NoChanges(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 
 	out := iterCovGitLog(t, repoDir)
 	if strings.Count(out, "\n") > 1 {
@@ -555,7 +555,7 @@ func TestCommitAfterIteration_CommitsTrackedChanges(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 
 	out := iterCovGitLog(t, repoDir)
 	if !strings.Contains(out, "partial (attempt") {
@@ -600,7 +600,7 @@ func TestCommitAfterIteration_MultipleTrackedFiles(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0002", "failure", 1, testGitCfg())
+	commitAfterIteration(repoDir, logger, "task-0002", "failure", 1, testGitCfg(), taskCommitMeta{})
 
 	// Verify the commit was created and contains all three files.
 	// The separate-index approach leaves the default index untouched,
@@ -628,7 +628,7 @@ func TestCommitAfterIteration_NotAGitRepo(t *testing.T) {
 	defer logger.Close()
 
 	// Should not panic
-	commitAfterIteration(dir, logger, "task-0001", "failure", 1, testGitCfg())
+	commitAfterIteration(dir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 }
 
 func TestCommitAfterIteration_GitAddFails(t *testing.T) {
@@ -645,7 +645,7 @@ func TestCommitAfterIteration_GitAddFails(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 }
 
 func TestCommitAfterIteration_UntrackedFilesNotStaged(t *testing.T) {
@@ -682,7 +682,7 @@ func TestCommitAfterIteration_UntrackedFilesNotStaged(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 
 	// Verify .env and credentials.json are NOT in the commit
 	showCmd := exec.Command("git", "show", "--name-only", "--format=")
@@ -746,7 +746,7 @@ func TestCommitAfterIteration_SkipHooksFalse(t *testing.T) {
 	// With SkipHooksOnAutoCommit=false, the commit should still succeed (no hooks installed)
 	cfg := testGitCfg()
 	cfg.SkipHooksOnAutoCommit = false
-	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, cfg)
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, cfg, taskCommitMeta{})
 
 	out := iterCovGitLog(t, repoDir)
 	if !strings.Contains(out, "partial (attempt") {
@@ -811,7 +811,7 @@ func TestCommitAfterIteration_PreservesUserStagedChanges(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg())
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{})
 
 	// Verify daemon.go was committed
 	showCmd := exec.Command("git", "show", "--name-only", "--format=")
@@ -878,7 +878,7 @@ func TestCommitAfterIteration_PreservesUserUnstagedChanges(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg())
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 
 	// Both files were modified tracked files, so git add -u in the temp
 	// index will stage both. The daemon commit should include both.
@@ -903,7 +903,7 @@ func TestCommitAfterIteration_CleanTreeNoCommit(t *testing.T) {
 	beforeLog := iterCovGitLog(t, repoDir)
 	beforeCount := strings.Count(beforeLog, "\n")
 
-	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg())
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{})
 
 	afterLog := iterCovGitLog(t, repoDir)
 	afterCount := strings.Count(afterLog, "\n")
@@ -940,7 +940,7 @@ func TestCommitWithSeparateIndex_TempFileCleanedUp(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg())
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{})
 
 	// Verify no temp index files remain
 	entries, _ := filepath.Glob(filepath.Join(repoDir, ".git-daemon-index-*"))

@@ -378,7 +378,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 
 			// Commit after successful completion.
-			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git)
+			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID))
 
 			return nil
 		}
@@ -399,7 +399,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				break
 			}
 		}
-		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", attemptNum, d.Config.Git)
+		failMeta := extractTaskCommitMeta(ns, nav.TaskID)
+		failMeta.FailureType = failureType
+		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", attemptNum, d.Config.Git, failMeta)
 
 		_ = d.Logger.Log(map[string]any{
 			"type":  failureType,
@@ -561,13 +563,23 @@ func extractAssistantText(line string) string {
 	return ""
 }
 
+// taskCommitMeta holds task metadata used to build enriched commit messages.
+type taskCommitMeta struct {
+	Title           string
+	Class           string
+	Deliverables    []string
+	LatestBreadcrumb string
+	FailureType     string
+}
+
 // commitAfterIteration commits changes after a task iteration completes or
 // fails. It respects the git config flags: auto_commit (master switch),
 // commit_on_success, commit_on_failure, and commit_state.
 //
 // kind is "success" or "failure". attemptNum is used in failure commit
-// messages to indicate which attempt just finished.
-func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string, kind string, attemptNum int, gitCfg config.GitConfig) {
+// messages to indicate which attempt just finished. meta provides task
+// metadata for enriched commit messages.
+func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string, kind string, attemptNum int, gitCfg config.GitConfig, meta taskCommitMeta) {
 	if !gitCfg.AutoCommit {
 		_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "auto_commit disabled"})
 		return
@@ -600,16 +612,16 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 		return // no changes or git unavailable
 	}
 
-	// Build commit message per spec.
-	var msg string
-	switch kind {
-	case "success":
-		msg = fmt.Sprintf("wolfcastle: %s complete", taskID)
-	case "failure":
-		msg = fmt.Sprintf("wolfcastle: %s partial (attempt %d)", taskID, attemptNum)
+	// Build subject line from prefix and title (or taskID as fallback).
+	subject := buildCommitSubject(gitCfg.CommitPrefix, meta.Title, taskID, kind, attemptNum)
+
+	commitArgs := []string{"commit", "-m", subject}
+
+	// Build body with task metadata when available.
+	if body := buildCommitBody(taskID, meta, kind); body != "" {
+		commitArgs = append(commitArgs, "-m", body)
 	}
 
-	commitArgs := []string{"commit", "-m", msg}
 	if gitCfg.SkipHooksOnAutoCommit {
 		commitArgs = append(commitArgs, "--no-verify")
 	}
@@ -623,6 +635,92 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 	}
 
 	_ = logger.Log(map[string]any{"type": "auto_commit", "task": taskID, "kind": kind})
+}
+
+// buildCommitSubject constructs the first line of the commit message.
+// Format: "{prefix}: {title}" for success, "{prefix}: {title} (attempt N)" for failure.
+// When prefix is empty the leading colon is omitted. When title is empty,
+// the taskID is used as a fallback.
+func buildCommitSubject(prefix, title, taskID, kind string, attemptNum int) string {
+	label := title
+	if label == "" {
+		label = taskID
+		// Fallback: use the old format for backward compatibility.
+		if prefix == "" {
+			if kind == "failure" {
+				return fmt.Sprintf("%s partial (attempt %d)", taskID, attemptNum)
+			}
+			return fmt.Sprintf("%s complete", taskID)
+		}
+		if kind == "failure" {
+			return fmt.Sprintf("%s: %s partial (attempt %d)", prefix, taskID, attemptNum)
+		}
+		return fmt.Sprintf("%s: %s complete", prefix, taskID)
+	}
+
+	var subject string
+	if prefix != "" {
+		subject = fmt.Sprintf("%s: %s", prefix, label)
+	} else {
+		subject = label
+	}
+
+	if kind == "failure" {
+		subject = fmt.Sprintf("%s (attempt %d)", subject, attemptNum)
+	}
+	return subject
+}
+
+// buildCommitBody constructs the commit body with task metadata.
+// Returns an empty string when no metadata is available to include.
+func buildCommitBody(taskID string, meta taskCommitMeta, kind string) string {
+	if meta.Title == "" && meta.Class == "" && len(meta.Deliverables) == 0 && meta.LatestBreadcrumb == "" {
+		return ""
+	}
+
+	var parts []string
+
+	// Task line with class.
+	if meta.Class != "" {
+		parts = append(parts, fmt.Sprintf("Task: %s [%s]", taskID, meta.Class))
+	} else {
+		parts = append(parts, fmt.Sprintf("Task: %s", taskID))
+	}
+
+	// Deliverables.
+	if len(meta.Deliverables) > 0 {
+		parts = append(parts, fmt.Sprintf("Deliverables: %s", strings.Join(meta.Deliverables, ", ")))
+	}
+
+	// Failure type.
+	if kind == "failure" && meta.FailureType != "" {
+		parts = append(parts, fmt.Sprintf("Failure: %s", meta.FailureType))
+	}
+
+	// Breadcrumb gets a blank line separator.
+	if meta.LatestBreadcrumb != "" {
+		parts = append(parts, "")
+		parts = append(parts, meta.LatestBreadcrumb)
+	}
+
+	return strings.Join(parts, "\n")
+}
+
+// extractTaskCommitMeta pulls commit metadata from the node state for a given task.
+func extractTaskCommitMeta(ns *state.NodeState, taskID string) taskCommitMeta {
+	var meta taskCommitMeta
+	for _, t := range ns.Tasks {
+		if t.ID == taskID {
+			meta.Title = t.Title
+			meta.Class = t.Class
+			meta.Deliverables = t.Deliverables
+			break
+		}
+	}
+	if len(ns.Audit.Breadcrumbs) > 0 {
+		meta.LatestBreadcrumb = ns.Audit.Breadcrumbs[len(ns.Audit.Breadcrumbs)-1].Text
+	}
+	return meta
 }
 
 // autoCompleteDecomposedParents checks if any blocked task in the node was
