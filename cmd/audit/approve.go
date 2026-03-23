@@ -104,7 +104,13 @@ Examples:
 					output.PrintHuman("  Error creating directory for %s: %v", f.Title, mkdirErr)
 					continue
 				}
-				if saveErr := state.SaveNodeState(filepath.Join(nodeDir, "state.json"), ns); saveErr != nil {
+				nodePath, pathErr := app.State.NodePath(addr)
+				if pathErr != nil {
+					delete(idx.Nodes, addr)
+					output.PrintHuman("  Error resolving path for %s: %v", f.Title, pathErr)
+					continue
+				}
+				if saveErr := state.SaveNodeState(nodePath, ns); saveErr != nil {
 					delete(idx.Nodes, addr)
 					output.PrintHuman("  Error saving state for %s: %v", f.Title, saveErr)
 					continue
@@ -149,7 +155,7 @@ Examples:
 			}
 
 			// Save updated root index (new projects created above)
-			if err := state.SaveRootIndex(filepath.Join(app.State.Dir(), "state.json"), idx); err != nil {
+			if err := state.SaveRootIndex(app.State.IndexPath(), idx); err != nil {
 				return err
 			}
 

@@ -114,7 +114,7 @@ func (f *FS) ResolveAll(subdir string) (map[string][]byte, error) {
 
 // WriteBase writes data into the base tier, creating directories as needed.
 func (f *FS) WriteBase(relPath string, data []byte) error {
-	path := filepath.Join(f.root, "base", relPath)
+	path := filepath.Join(f.root, TierNames[0], relPath)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("tierfs: write-base mkdir %s: %w", relPath, err)
 	}
@@ -155,7 +155,7 @@ func atomicWriteFile(path string, data []byte) error {
 
 // BasePath returns the absolute path to subdir within the base tier.
 func (f *FS) BasePath(subdir string) string {
-	return filepath.Join(f.root, "base", subdir)
+	return filepath.Join(f.root, TierNames[0], subdir)
 }
 
 // TierDirs returns absolute paths in resolution order: base, custom, local.

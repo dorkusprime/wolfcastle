@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
@@ -236,7 +237,7 @@ func TestRunPlanningPass_ModelNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing model")
 	}
-	if got := err.Error(); got != `planning model "nonexistent" not found` {
+	if got := err.Error(); !strings.Contains(got, `planning model "nonexistent" not found`) {
 		t.Errorf("unexpected error: %s", got)
 	}
 }

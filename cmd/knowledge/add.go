@@ -17,7 +17,7 @@ func newAddCmd(app *cmdutil.App) *cobra.Command {
 		Long: `Adds a knowledge entry to the current namespace's knowledge file.
 The entry is checked against the configured token budget before writing.
 If the entry would push the file over budget, the command fails with
-a clear error — nothing is silently truncated.
+a clear error. Nothing is silently truncated.
 
 Examples:
   wolfcastle knowledge add "the integration tests require docker compose up before running"

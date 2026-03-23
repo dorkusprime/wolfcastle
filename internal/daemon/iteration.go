@@ -89,7 +89,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		model, ok := d.Config.Models[stage.Model]
 		if !ok {
-			return werrors.Config(fmt.Errorf("model %q not found for stage %s", stage.Model, stageName))
+			return werrors.Config(fmt.Errorf("model %q not found for stage %s. Add it to the models section of your config", stage.Model, stageName))
 		}
 
 		invokeCtx := ctx

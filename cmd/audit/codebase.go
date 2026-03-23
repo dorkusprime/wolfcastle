@@ -206,7 +206,7 @@ func runCodebaseAudit(ctx context.Context, app *cmdutil.App, scopes []auditScope
 
 	model, ok := cfg.Models[cfg.Audit.Model]
 	if !ok {
-		return fmt.Errorf("audit model %q not found", cfg.Audit.Model)
+		return fmt.Errorf("audit model %q not found in config. Add it to the models section or set audit.model to an existing model name (see 'wolfcastle config show models')", cfg.Audit.Model)
 	}
 
 	// Build combined prompt from selected scopes

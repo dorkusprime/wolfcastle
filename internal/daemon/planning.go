@@ -184,7 +184,7 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	model, ok := d.Config.Models[modelName]
 	if !ok {
 		d.Logger.Close()
-		return fmt.Errorf("planning model %q not found", modelName)
+		return fmt.Errorf("planning model %q not found in config. Add it to the models section or set pipeline.planning.model to an existing model name", modelName)
 	}
 
 	// Assemble the prompt

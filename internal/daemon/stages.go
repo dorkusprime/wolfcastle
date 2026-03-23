@@ -173,7 +173,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 
 	model, ok := d.Config.Models[intakeStage.Model]
 	if !ok {
-		return werrors.Config(fmt.Errorf("model %q not found", intakeStage.Model))
+		return werrors.Config(fmt.Errorf("model %q not found for intake stage. Add it to the models section of your config", intakeStage.Model))
 	}
 
 	_ = d.InboxLogger.Log(map[string]any{"type": "stage_start", "stage": "intake", "new_items": len(newItems)})

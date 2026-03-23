@@ -124,7 +124,7 @@ Examples:
 				nodeLoader := validate.DefaultNodeLoader(app.State.Dir())
 				healFixes, _, healErr := validate.FixWithVerification(
 					app.State.Dir(),
-					filepath.Join(app.State.Dir(), "state.json"),
+					app.State.IndexPath(),
 					nodeLoader,
 				)
 				if healErr != nil {
