@@ -395,7 +395,7 @@ func TestRunIteration_SuccessCommit_CreatesCommit(t *testing.T) {
 
 	d.Config.Models["writer"] = config.ModelDef{
 		Command: "sh",
-		Args: []string{"-c", "echo '// generated' >> " + codeFile + " && echo WOLFCASTLE_COMPLETE"},
+		Args:    []string{"-c", "echo '// generated' >> " + codeFile + " && echo WOLFCASTLE_COMPLETE"},
 	}
 	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
 		"execute": {Model: "writer", PromptFile: "stages/execute.md"},
@@ -449,7 +449,7 @@ func TestRunIteration_SuccessCommit_SkippedWhenDisabled(t *testing.T) {
 
 	d.Config.Models["writer"] = config.ModelDef{
 		Command: "sh",
-		Args: []string{"-c", "echo '// generated' >> " + codeFile + " && echo WOLFCASTLE_COMPLETE"},
+		Args:    []string{"-c", "echo '// generated' >> " + codeFile + " && echo WOLFCASTLE_COMPLETE"},
 	}
 	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
 		"execute": {Model: "writer", PromptFile: "stages/execute.md"},
@@ -497,7 +497,7 @@ func TestRunIteration_SuccessCommit_SkippedWhenAutoCommitDisabled(t *testing.T) 
 
 	d.Config.Models["writer"] = config.ModelDef{
 		Command: "sh",
-		Args: []string{"-c", "echo '// generated' >> " + codeFile + " && echo WOLFCASTLE_COMPLETE"},
+		Args:    []string{"-c", "echo '// generated' >> " + codeFile + " && echo WOLFCASTLE_COMPLETE"},
 	}
 	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
 		"execute": {Model: "writer", PromptFile: "stages/execute.md"},
@@ -547,7 +547,7 @@ func TestRunIteration_FailureCommit_CreatesCommit(t *testing.T) {
 
 	d.Config.Models["partial"] = config.ModelDef{
 		Command: "sh",
-		Args: []string{"-c", "echo '// partial work' >> " + codeFile + " && echo 'no marker here'"},
+		Args:    []string{"-c", "echo '// partial work' >> " + codeFile + " && echo 'no marker here'"},
 	}
 	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
 		"execute": {Model: "partial", PromptFile: "stages/execute.md"},
@@ -591,7 +591,7 @@ func TestRunIteration_FailureCommit_SkippedWhenDisabled(t *testing.T) {
 
 	d.Config.Models["partial"] = config.ModelDef{
 		Command: "sh",
-		Args: []string{"-c", "echo '// partial' >> " + codeFile + " && echo 'no marker'"},
+		Args:    []string{"-c", "echo '// partial' >> " + codeFile + " && echo 'no marker'"},
 	}
 	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
 		"execute": {Model: "partial", PromptFile: "stages/execute.md"},

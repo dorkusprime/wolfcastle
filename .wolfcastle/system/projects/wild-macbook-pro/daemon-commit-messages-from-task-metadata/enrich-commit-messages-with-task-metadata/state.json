@@ -34,7 +34,7 @@
       "id": "task-0002",
       "title": "Update tests for enriched commit messages",
       "description": "Update tests for enriched commit messages",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration_test.go"
@@ -51,9 +51,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Enrich Commit Messages with Task Metadata is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [

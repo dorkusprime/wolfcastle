@@ -565,11 +565,11 @@ func extractAssistantText(line string) string {
 
 // taskCommitMeta holds task metadata used to build enriched commit messages.
 type taskCommitMeta struct {
-	Title           string
-	Class           string
-	Deliverables    []string
+	Title            string
+	Class            string
+	Deliverables     []string
 	LatestBreadcrumb string
-	FailureType     string
+	FailureType      string
 }
 
 // commitAfterIteration commits changes after a task iteration completes or
