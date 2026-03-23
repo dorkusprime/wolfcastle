@@ -229,6 +229,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}); err != nil {
 				_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
 			}
+			// Check replanning triggers before propagation (see COMPLETE path).
+			d.checkReplanningTriggers(nav.NodeAddress, nav.TaskID, idx)
 			// Propagate blocked state so parent orchestrators can detect
 			// the block and trigger remediation planning.
 			if err := d.propagateState(nav.NodeAddress, state.StatusBlocked, idx); err != nil {
@@ -246,6 +248,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			if !d.Config.Pipeline.Planning.Enabled {
 				d.autoCompleteDecomposedParents(nav.NodeAddress)
 			}
+			// Check replanning triggers before propagation (see COMPLETE path).
+			d.checkReplanningTriggers(nav.NodeAddress, nav.TaskID, idx)
 			// Propagate completion up through parent orchestrators so their
 			// persisted state derives from children. MutateNode propagates
 			// internally, but re-propagating here updates the in-memory idx
@@ -371,6 +375,12 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			if !d.Config.Pipeline.Planning.Enabled {
 				d.autoCompleteDecomposedParents(nav.NodeAddress)
 			}
+			// Check replanning triggers BEFORE propagation. Propagation may
+			// mark the parent orchestrator complete, after which the planning
+			// DFS skips it. The trigger must be set while the parent is still
+			// in_progress so findPlanningTarget can find it.
+			d.checkReplanningTriggers(nav.NodeAddress, nav.TaskID, idx)
+
 			// Propagate completion up through parent orchestrators so their
 			// persisted state derives from children. MutateNode propagates
 			// internally, but re-propagating here updates the in-memory idx
