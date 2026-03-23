@@ -45,6 +45,7 @@ Each spec was verified against current code. Status meanings:
 | Config Write Commands | Current | |
 | Dict-Format Pipeline Stages | Current | Implemented; `StageOrder` field and dict-format stages in source |
 | Log Command Design | Current | |
+| Task Classes | Current | Spec updated 2026-03-23: pipeline implemented, behavioral prompt files not yet authored, model override dispatch and intake classification pending |
 
 ## Specs
 
@@ -84,6 +85,7 @@ Each spec was verified against current code. Status meanings:
 | [Auto-Archive Service Contract](2026-03-21T12-27Z-auto-archive-service-contract.md) | Archive state model, file layout, move/restore/delete operations, daemon timer integration |
 | [Config Write Commands](2026-03-21T14-23Z-config-write-commands.md) | CLI spec for `config set`, `unset`, `append`, `remove` with dot-notation paths and rollback |
 | [Log Command Design](2026-03-21T18-00Z-log-command-design.md) | `wolfcastle log` display modes, session reconstruction, verbosity flags |
+| [Task Classes](2026-03-15T00-04Z-task-classes.md) | Classification system for tasks routing each to a behavioral prompt |
 
 ## Drafts
 
@@ -93,7 +95,6 @@ Specs that explore potential directions without proposing adoption. Implementati
 |------|-------------|-----------------------|
 | [TUI](2026-03-15T00-02Z-tui.md) | Bubbletea-based terminal UI for observing and commanding the daemon | Not started. No bubbletea dependency or TUI code exists |
 | [Worktree by Default](2026-03-15T00-03Z-worktree-by-default.md) | Running all daemon work in isolated git worktrees by default | Not started. The opt-in `--worktree` flag exists (spec Section 1 status quo) but none of the default-worktree behavior, auto-merge, or config gates have been built |
-| [Task Classes](2026-03-15T00-04Z-task-classes.md) | Classification system for tasks routing each to a behavioral prompt | Pipeline implemented: class resolution, prompt injection, CLI validation, daemon startup validation, audit auto-assign, planning-time assignment, 54 config entries. Remaining: author 55 behavioral prompt `.md` files, model override dispatch, intake-level classification |
 
 ## Superseded
 
