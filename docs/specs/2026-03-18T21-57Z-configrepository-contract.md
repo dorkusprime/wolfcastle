@@ -2,12 +2,12 @@
 
 ## Overview
 
-`ConfigRepository` in `internal/config` owns three-tier configuration resolution. Callers receive a fully merged `*Config`; they never construct paths or read tier files themselves. The repository replaces the current `Load(wolfcastleDir)` function with a struct-based design backed by `tierfs.Resolver`, making tier resolution injectable for testing.
+`Repository` (formerly `ConfigRepository`) in `internal/config` owns three-tier configuration resolution. Callers receive a fully merged `*Config`; they never construct paths or read tier files themselves. The repository replaces the current `Load(wolfcastleDir)` function with a struct-based design backed by `tierfs.Resolver`, making tier resolution injectable for testing.
 
 ## Type
 
 ```go
-type ConfigRepository struct {
+type Repository struct {
     tiers tierfs.Resolver
     root  string
 }
@@ -17,11 +17,11 @@ The `tiers` field provides file resolution across base, custom, and local tiers.
 
 ## Constructors
 
-### NewConfigRepository(wolfcastleRoot string) *ConfigRepository
+### NewRepository(wolfcastleRoot string) *Repository
 
 Production constructor. Builds a `tierfs.FS` rooted at `filepath.Join(wolfcastleRoot, "system")` and stores it alongside the root path. This is the only place `tierfs.New` is called for config resolution.
 
-### NewConfigRepositoryWithTiers(tiers tierfs.Resolver, root string) *ConfigRepository
+### NewRepositoryWithTiers(tiers tierfs.Resolver, root string) *Repository
 
 Testing constructor. Accepts an injected `tierfs.Resolver`, allowing tests to supply an in-memory or fixture-backed implementation without touching the filesystem. The `root` field is stored as given.
 

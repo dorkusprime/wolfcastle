@@ -10,12 +10,12 @@
 
 ```go
 type MigrationService struct {
-    config *config.ConfigRepository
+    config *config.Repository
     root   string // path to .wolfcastle/
 }
 ```
 
-The `config` field provides access to `ConfigRepository` for tier-aware config writes during `MigrateOldConfig`. The `root` field is the path to the `.wolfcastle/` directory, from which all source and destination paths are derived.
+The `config` field provides access to `config.Repository` for tier-aware config writes during `MigrateOldConfig`. The `root` field is the path to the `.wolfcastle/` directory, from which all source and destination paths are derived.
 
 `MigrationService` is not constructed via a public constructor. `ScaffoldService.Reinit()` builds it inline as a short-lived value:
 
