@@ -6,6 +6,8 @@ When the codebase you're working in has established conventions that differ from
 
 Prefer Jetpack Compose for new UI work over the View system. Build screens as composable functions that take state down and emit events up (unidirectional data flow). Prefer `ViewModel` with `StateFlow` for screen state, exposed via `stateIn(SharingStarted.WhileSubscribed(5000))` so collectors survive configuration changes without leaking upstream work. Use `SharedFlow` for one-shot events (navigation triggers, snackbar messages) rather than stuffing transient signals into the UI state object. Collect flows in composables with `collectAsStateWithLifecycle()` from the lifecycle-runtime-compose artifact; it respects the lifecycle and stops collection when the UI is offscreen.
 
+Prefer Material 3 components and theming for new projects. Use dynamic color on Android 12+ to derive color schemes from the user's wallpaper. Prefer M3 adaptive components (`NavigationSuiteScaffold`, `ListDetailPaneScaffold`) for layouts that respond to different screen sizes rather than building separate phone and tablet layouts. Material 3 Expressive (released alongside Android 16) extends M3 with updated motion, typography, and component styles; adopt it when targeting Android 16+.
+
 Prefer the single-Activity architecture with Jetpack Navigation (or Navigation Compose) for screen routing. Define destinations as routes with type-safe arguments. Avoid deep Activity back stacks; multiple activities make state restoration, deep linking, and predictive back gesture support harder to reason about.
 
 ## Dependency Injection
@@ -26,11 +28,11 @@ Prefer Retrofit with a `kotlinx.serialization` converter for REST networking. Mo
 
 ## Gradle Configuration
 
-Prefer the Kotlin DSL (`build.gradle.kts`) with a version catalog (`libs.versions.toml`) for dependency management. Use `buildFeatures { compose = true }` and set the Compose compiler version to match the Kotlin version via the Compose compiler Gradle plugin. Prefer convention plugins in `build-logic/` for shared configuration across modules rather than duplicating blocks in each module's build file. Enable `android.nonTransitiveRClass = true` to keep R class references scoped to their defining module.
+Prefer the Kotlin DSL (`build.gradle.kts`) with a version catalog (`libs.versions.toml`) for dependency management. The version catalog lives in `gradle/libs.versions.toml` and provides type-safe accessors (e.g., `libs.plugins.android.library`, `libs.androidx.core.ktx`). Use `buildFeatures { compose = true }` and apply the Compose compiler Gradle plugin to set the Compose compiler version matching the Kotlin version. Prefer convention plugins in `build-logic/` for shared configuration across modules rather than duplicating blocks in each module's build file. Enable `android.nonTransitiveRClass = true` to keep R class references scoped to their defining module.
 
 ## Testing
 
-Prefer JUnit 4 with the AndroidX test libraries for unit tests; Android's testing ecosystem still centers on JUnit 4 runners. Use Robolectric for tests that touch Android framework classes (Context, SharedPreferences, Resources) without requiring a device. Prefer Compose testing APIs (`createComposeRule`, `onNodeWithText`, `performClick`) for UI component tests; they run on the JVM with Robolectric or on a device with the same assertions. Use Espresso only for instrumented end-to-end tests that must run on a real device or emulator.
+Prefer JUnit 4 with the AndroidX test libraries for unit tests; Android's testing ecosystem still centers on JUnit 4 runners. JUnit 5 is available for local JVM tests through the android-junit-framework community plugin, but instrumented tests still require JUnit 4. Use Robolectric for tests that touch Android framework classes (Context, SharedPreferences, Resources) without requiring a device. Prefer Compose testing APIs (`createComposeRule`, `onNodeWithText`, `performClick`) for UI component tests; they run on the JVM with Robolectric or on a device with the same assertions. Use Espresso only for instrumented end-to-end tests that must run on a real device or emulator.
 
 Prefer Turbine for testing `Flow` emissions from ViewModels and repositories. Inject `TestDispatcher` via Hilt test modules so coroutine timing is deterministic. Use `StandardTestDispatcher` for explicit advancement and `UnconfinedTestDispatcher` when execution order doesn't matter.
 
