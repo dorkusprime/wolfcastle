@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -75,6 +76,27 @@ Examples:
 					cleanupWorktree(originalRepoDir, wtDir)
 				}
 			}()
+
+			// Check for uncommitted changes before the daemon touches anything.
+			// Direct commits will sweep in whatever is in the working tree,
+			// so the user needs to know before we start.
+			if cfg.Git.AutoCommit {
+				if dirty, reason := checkDirtyTree(repoDir); dirty {
+					output.PrintHuman("The working tree has uncommitted changes:\n%s", reason)
+					output.PrintHuman("")
+					output.PrintHuman("The daemon commits code and state together after each task.")
+					output.PrintHuman("These changes will be included in the first commit.")
+					output.PrintHuman("")
+					output.PrintHuman("Options:")
+					output.PrintHuman("  1. Commit or stash your changes, then restart")
+					output.PrintHuman("  2. Disable auto-commit: wolfcastle config set git.auto_commit false")
+					output.PrintHuman("  3. Continue anyway (your changes will be committed with the first task)")
+					output.PrintHuman("")
+					if !confirmContinue() {
+						return fmt.Errorf("aborted: commit or stash changes first")
+					}
+				}
+			}
 
 			// Recover stale daemon state
 			recoverStaleDaemonState(app.Config.Root())
@@ -296,4 +318,60 @@ func recoverStaleDaemonState(wolfcastleDir string) {
 	_ = repo.RemovePID()
 	_ = os.Remove(filepath.Join(wolfcastleDir, "system", "daemon.meta.json"))
 	_ = repo.RemoveStopFile()
+}
+
+// checkDirtyTree returns true if the git working tree has uncommitted
+// changes (staged, unstaged, or untracked non-ignored files).
+func checkDirtyTree(repoDir string) (bool, string) {
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = repoDir
+	out, err := cmd.Output()
+	if err != nil {
+		return false, "" // can't check, proceed
+	}
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return false, ""
+	}
+	// Summarize: count staged, modified, untracked
+	lines := strings.Split(trimmed, "\n")
+	staged, modified, untracked := 0, 0, 0
+	for _, line := range lines {
+		if len(line) < 2 {
+			continue
+		}
+		if line[0:2] == "??" {
+			untracked++
+		} else if line[0] != ' ' {
+			staged++
+		} else {
+			modified++
+		}
+	}
+	var parts []string
+	if staged > 0 {
+		parts = append(parts, fmt.Sprintf("  %d staged", staged))
+	}
+	if modified > 0 {
+		parts = append(parts, fmt.Sprintf("  %d modified", modified))
+	}
+	if untracked > 0 {
+		parts = append(parts, fmt.Sprintf("  %d untracked", untracked))
+	}
+	return true, strings.Join(parts, "\n")
+}
+
+// confirmContinue prompts the user for y/n confirmation on stdin.
+// Returns true if the user types "y" or "yes". Returns false on
+// anything else, EOF, or if stdin is not a terminal.
+func confirmContinue() bool {
+	if !output.IsTerminal() {
+		return false
+	}
+	fmt.Print("Continue? [y/N] ")
+	var response string
+	if _, err := fmt.Scanln(&response); err != nil {
+		return false
+	}
+	return response == "y" || response == "Y" || response == "yes"
 }
