@@ -107,6 +107,11 @@
         "timestamp": "2026-03-23T00:07:08.645343Z",
         "task": "structured-timing-metrics-in-log-events/daemon-duration-emission",
         "text": "Added duration_ms to planning_complete log records in planning.go. Captures time.Now() before planning_start, computes elapsed via time.Since after invocation completes."
+      },
+      {
+        "timestamp": "2026-03-23T00:11:11.299649Z",
+        "task": "structured-timing-metrics-in-log-events/daemon-duration-emission",
+        "text": "Added three unit tests verifying duration_ms field in stage_complete (execute and intake) and planning_complete log records. Includes NDJSON log parsing helpers readLogRecords and filterRecords."
       }
     ],
     "gaps": [],
@@ -158,6 +163,22 @@
       ],
       "action_items": [
         "Remaining completion log sites (renderer, other stages) still need duration_ms"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-23T00:11:08.082262Z",
+      "objective": "Add unit tests verifying duration_ms is emitted in stage_complete and planning_complete log records",
+      "what_happened": "Added three tests to iteration_test.go: TestRunIteration_StageComplete_HasDurationMs (execute stage), TestRunIntakeStage_StageComplete_HasDurationMs (intake stage), TestRunPlanningPass_PlanningComplete_HasDurationMs (planning). Also added readLogRecords and filterRecords helpers to parse NDJSON log files from the test logger directory and filter by record type.",
+      "went_well": [
+        "All three tests pass and verify the field exists as a non-negative number",
+        "readLogRecords helper is reusable for any future log assertion tests"
+      ],
+      "improvements": [
+        "The InboxLogger and Logger share the same logDir in testDaemon, so readLogRecords picks up records from both; this works but could cause false positives if tests aren't careful about which logger they start"
+      ],
+      "action_items": [
+        "Consider extracting readLogRecords into a shared test helper if other test files need log assertions"
       ]
     }
   }
