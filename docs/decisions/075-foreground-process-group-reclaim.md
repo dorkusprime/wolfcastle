@@ -1,7 +1,16 @@
 # ADR-075: Foreground Process Group Reclaim
 
 ## Status
-Accepted
+Superseded by ADR-076
+
+## Amendment (2026-03-23)
+
+The `TIOCSPGRP` ioctl described here was never implemented. The problem it addresses (Ctrl+C stops working after model invocations) is solved by a different mechanism in ADR-076:
+
+1. Child processes are placed in their own process group via `Setpgid: true` in `internal/invoke/procattr_unix.go`, preventing them from inheriting the daemon's foreground group in the first place.
+2. `RestoreTerminal()` in `internal/invoke/terminal_unix.go` forces the terminal back to cooked mode (ISIG, ICANON, ECHO) after every `cmd.Wait()`, restoring signal delivery regardless of what the child did to terminal settings.
+
+This combination is simpler and more portable than the `TIOCSPGRP` approach. It doesn't require opening `/dev/tty` or issuing ioctls, and it handles the broader class of terminal corruption (not just foreground group issues).
 
 ## Date
 2026-03-16

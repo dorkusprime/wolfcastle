@@ -1,7 +1,13 @@
 # ADR-054: Callback-Based Marker Parsing
 
 ## Status
-Accepted
+Accepted (not implemented)
+
+## Amendment (2026-03-23)
+
+The callback-based `MarkerCallbacks` struct and `ParseMarkers` function described here were never created. Marker parsing remained inline in `internal/daemon/iteration.go` (via `scanTerminalMarker`) and `internal/invoke/invoker.go` (via `detectLineMarker`). The `markers.go` file from ADR-045 was never split out either.
+
+The testability goal is partially achieved through other means: the `Invoker` interface and `MockInvoker` allow integration tests to simulate marker output, and `scanTerminalMarker` accepts a `validMarkers` parameter for namespace isolation between execution and planning passes. The specific callback struct pattern described below was not needed to reach adequate test coverage.
 
 ## Date
 2026-03-14

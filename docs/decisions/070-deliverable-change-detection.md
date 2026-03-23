@@ -1,7 +1,13 @@
 # ADR-070: Deliverable Change Detection
 
 ## Status
-Accepted
+Accepted (mechanism changed)
+
+## Amendment (2026-03-23)
+
+The SHA-256 baseline hashing described here was never implemented. Change detection uses git commit comparison instead: the daemon records the HEAD commit SHA before task execution and calls `git.HasProgress(beforeHEAD)` after the model signals completion. If HEAD has not advanced (no new commits), the completion is rejected.
+
+This achieves the same goal (models cannot complete by doing nothing) with less machinery. Git tracks changes at the commit level rather than per-file hashing, which is coarser but sufficient: the daemon commits after every iteration, so any real work produces a new commit. Deliverable existence checking from ADR-069 still runs independently as an advisory warning, but missing deliverables are not a hard gate; git progress is.
 
 ## Date
 2026-03-16

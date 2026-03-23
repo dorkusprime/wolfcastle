@@ -55,7 +55,7 @@
 | 051 | [Multi-Pass Doctor with Fix Verification](051-multi-pass-doctor.md) | Accepted | 2026-03-14 |
 | 052 | [Time Injection for Deterministic Testing](052-time-injection.md) | Accepted | 2026-03-14 |
 | 053 | [Centralized Configuration Defaults](053-centralized-config-defaults.md) | Accepted | 2026-03-14 |
-| 054 | [Callback-Based Marker Parsing](054-callback-marker-parsing.md) | Accepted | 2026-03-14 |
+| 054 | [Callback-Based Marker Parsing](054-callback-marker-parsing.md) | Accepted (not implemented) | 2026-03-14 |
 | 055 | [Property-Based Propagation Tests](055-property-based-propagation-tests.md) | Accepted | 2026-03-14 |
 | 056 | [Cobra Dependency Evaluation](056-cobra-evaluation.md) | Accepted | 2026-03-14 |
 | 057 | [All Prompts Externalized to Overridable Markdown Files](057-externalized-prompts.md) | Accepted | 2026-03-14 |
@@ -71,12 +71,12 @@
 | 067 | [Terminal Markers Only; Audit Mutations via CLI](067-terminal-markers-only-cli-audit.md) | Accepted | 2026-03-15 |
 | 068 | [Unified Store for File-Backed State](068-unified-state-store.md) | Accepted | 2026-03-15 |
 | 069 | [Task Deliverables](069-task-deliverables.md) | Accepted | 2026-03-15 |
-| 070 | [Deliverable Change Detection](070-deliverable-change-detection.md) | Accepted | 2026-03-16 |
+| 070 | [Deliverable Change Detection](070-deliverable-change-detection.md) | Accepted (mechanism changed) | 2026-03-16 |
 | 071 | [Discovery-First Intake Pipeline](071-discovery-first-intake.md) | Accepted | 2026-03-16 |
 | 072 | [Pre-blocking Not-Started Tasks](072-pre-blocking-not-started-tasks.md) | Accepted | 2026-03-16 |
 | 073 | [Follow-to-Log Rename](073-follow-to-log-rename.md) | Accepted | 2026-03-16 |
 | 074 | [Status Tree View](074-status-tree-view.md) | Accepted | 2026-03-16 |
-| 075 | [Foreground Process Group Reclaim](075-foreground-process-group-reclaim.md) | Accepted | 2026-03-16 |
+| 075 | [Foreground Process Group Reclaim](075-foreground-process-group-reclaim.md) | Superseded by ADR-076 | 2026-03-16 |
 | 076 | [Signal Handling and Terminal Restoration After Model Invocation](076-signal-handling-and-terminal-restoration.md) | Accepted | 2026-03-16 |
 | 077 | [System Directory Restructure](077-system-directory-restructure.md) | Accepted | 2026-03-16 |
 | 078 | [Task.RenderContext Parameterless Refactoring](078-task-rendercontext-parameterless.md) | Accepted | 2026-03-18 |
