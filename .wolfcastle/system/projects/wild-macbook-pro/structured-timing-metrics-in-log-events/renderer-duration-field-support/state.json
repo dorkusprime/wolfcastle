@@ -79,6 +79,11 @@
         "timestamp": "2026-03-23T00:14:49.363272Z",
         "task": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
         "text": "Added DurationMS *int64 field to Record struct with json:duration_ms tag; added tests for present, zero, and absent cases"
+      },
+      {
+        "timestamp": "2026-03-23T00:18:30.855443Z",
+        "task": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
+        "text": "Wired resolveDuration into all six stage_complete/planning_complete handlers across summary.go and interleaved.go; renderers now prefer DurationMS when present, fall back to timestamp diff when nil"
       }
     ],
     "gaps": [],
@@ -100,6 +105,22 @@
       ],
       "action_items": [
         "Downstream tasks should wire DurationMS into renderers that display timing information"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-23T00:18:26.141665Z",
+      "objective": "Update renderers to prefer pre-computed DurationMS over timestamp subtraction",
+      "what_happened": "Added resolveDuration helper in duration.go that checks DurationMS first, falls back to Timestamp.Sub(startTime). Rewired all six completion handlers: stage_complete and planning_complete in summary Replay, summary Follow (handleFollowRecord), and interleaved Render (handleRecord). Also cleaned up the local variable pattern, extracting start-time lookup into t/ok variables before passing to resolveDuration.",
+      "went_well": [
+        "The helper centralizes the duration logic cleanly; six call sites collapsed to one-liners",
+        "Table-driven tests for resolveDuration cover all edge cases: DurationMS present, zero, nil with/without start time"
+      ],
+      "improvements": [
+        "None significant; the change was straightforward"
+      ],
+      "action_items": [
+        "If new record types with duration semantics are added, they should also call resolveDuration rather than computing timestamps inline"
       ]
     }
   }
