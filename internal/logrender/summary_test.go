@@ -451,3 +451,68 @@ func TestFollow_FullSession(t *testing.T) {
 		t.Error("missing failed execute line")
 	}
 }
+
+// --- DurationMS preference tests ---
+
+func TestSummaryRenderer_DurationMS_Replay(t *testing.T) {
+	// DurationMS says 5 seconds; timestamps are 82 seconds apart.
+	// The renderer should use the pre-computed value.
+	recs := []Record{
+		{Type: "stage_start", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "stage_complete", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:01:22Z"), ExitCode: intPtr(0), DurationMS: int64Ptr(5000)},
+	}
+
+	var buf bytes.Buffer
+	NewSummaryRenderer(&buf).Replay(feedRecords(recs))
+
+	expected := "✓ [execute] proj/task-0001 (5s)\n"
+	if buf.String() != expected {
+		t.Errorf("got:\n%s\nwant:\n%s", buf.String(), expected)
+	}
+}
+
+func TestSummaryRenderer_DurationMS_Follow(t *testing.T) {
+	recs := []Record{
+		{Type: "stage_start", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "stage_complete", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:01:22Z"), ExitCode: intPtr(0), DurationMS: int64Ptr(5000)},
+	}
+
+	var buf bytes.Buffer
+	NewSummaryRenderer(&buf).Follow(context.Background(), feedRecords(recs))
+
+	expected := "▶ [execute] proj/task-0001\n✓ [execute] proj/task-0001 (5s)\n"
+	if buf.String() != expected {
+		t.Errorf("got:\n%s\nwant:\n%s", buf.String(), expected)
+	}
+}
+
+func TestSummaryRenderer_PlanningDurationMS_Replay(t *testing.T) {
+	recs := []Record{
+		{Type: "planning_start", Node: "proj", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "planning_complete", Node: "proj", Timestamp: makeTime("2026-03-21T10:00:45Z"), ExitCode: intPtr(0), DurationMS: int64Ptr(12000)},
+	}
+
+	var buf bytes.Buffer
+	NewSummaryRenderer(&buf).Replay(feedRecords(recs))
+
+	expected := "✓ [plan] proj (12s)\n"
+	if buf.String() != expected {
+		t.Errorf("got:\n%s\nwant:\n%s", buf.String(), expected)
+	}
+}
+
+func TestSummaryRenderer_NilDurationMS_FallsBack(t *testing.T) {
+	// No DurationMS: should use timestamp diff (82 seconds).
+	recs := []Record{
+		{Type: "stage_start", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "stage_complete", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:01:22Z"), ExitCode: intPtr(0)},
+	}
+
+	var buf bytes.Buffer
+	NewSummaryRenderer(&buf).Replay(feedRecords(recs))
+
+	expected := "✓ [execute] proj/task-0001 (1m22s)\n"
+	if buf.String() != expected {
+		t.Errorf("got:\n%s\nwant:\n%s", buf.String(), expected)
+	}
+}

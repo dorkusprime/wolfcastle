@@ -386,3 +386,66 @@ func TestScaffoldService_Reinit_HandlesMissingLocalConfig(t *testing.T) {
 		t.Error("created local/config.json should contain identity")
 	}
 }
+
+// --- Scaffold file snapshot tests ---
+
+// TestScaffoldService_Init_SnapshotScaffoldFiles verifies that Init produces
+// byte-for-byte identical output to the embedded templates for every scaffold
+// file: the .gitignore and all five READMEs.
+func TestScaffoldService_Init_SnapshotScaffoldFiles(t *testing.T) {
+	t.Parallel()
+	svc, _, root := newScaffoldService(t)
+
+	if err := svc.Init(testIdentity()); err != nil {
+		t.Fatal(err)
+	}
+
+	for tmpl, dest := range scaffoldFiles {
+		t.Run(dest, func(t *testing.T) {
+			want, err := Templates.ReadFile(tmpl)
+			if err != nil {
+				t.Fatalf("reading embedded template %s: %v", tmpl, err)
+			}
+			got, err := os.ReadFile(filepath.Join(root, dest))
+			if err != nil {
+				t.Fatalf("scaffold file %s missing after Init: %v", dest, err)
+			}
+			if string(got) != string(want) {
+				t.Errorf("snapshot mismatch for %s:\ngot %d bytes, want %d bytes\ngot:\n%s\nwant:\n%s",
+					dest, len(got), len(want), string(got), string(want))
+			}
+		})
+	}
+}
+
+// TestScaffoldService_Reinit_SnapshotScaffoldFiles verifies that Reinit
+// preserves all scaffold files (.gitignore and READMEs) byte-for-byte,
+// including the base-prompts README that lives inside the wiped base tier.
+func TestScaffoldService_Reinit_SnapshotScaffoldFiles(t *testing.T) {
+	t.Parallel()
+	svc, _, root := newScaffoldService(t)
+
+	if err := svc.Init(testIdentity()); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Reinit(); err != nil {
+		t.Fatal(err)
+	}
+
+	for tmpl, dest := range scaffoldFiles {
+		t.Run(dest, func(t *testing.T) {
+			want, err := Templates.ReadFile(tmpl)
+			if err != nil {
+				t.Fatalf("reading embedded template %s: %v", tmpl, err)
+			}
+			got, err := os.ReadFile(filepath.Join(root, dest))
+			if err != nil {
+				t.Fatalf("scaffold file %s missing after Reinit: %v", dest, err)
+			}
+			if string(got) != string(want) {
+				t.Errorf("snapshot mismatch for %s after Reinit:\ngot %d bytes, want %d bytes\ngot:\n%s\nwant:\n%s",
+					dest, len(got), len(want), string(got), string(want))
+			}
+		})
+	}
+}

@@ -703,6 +703,55 @@ func TestValidateStructure_PassesOnDefaults(t *testing.T) {
 	}
 }
 
+func TestDefaults_KnowledgeMaxTokens(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	if cfg.Knowledge.MaxTokens != 2000 {
+		t.Errorf("expected knowledge.max_tokens=2000, got %d", cfg.Knowledge.MaxTokens)
+	}
+}
+
+func TestLoad_KnowledgeThreeTierMerge(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	_ = os.MkdirAll(filepath.Join(dir, "system", "base"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "custom"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "system", "local"), 0755)
+
+	// base sets max_tokens to 1000
+	_ = os.WriteFile(filepath.Join(dir, "system", "base", "config.json"),
+		[]byte(`{"knowledge": {"max_tokens": 1000}}`), 0644)
+	// custom overrides to 3000
+	_ = os.WriteFile(filepath.Join(dir, "system", "custom", "config.json"),
+		[]byte(`{"knowledge": {"max_tokens": 3000}}`), 0644)
+	// local overrides to 5000
+	_ = os.WriteFile(filepath.Join(dir, "system", "local", "config.json"),
+		[]byte(`{"knowledge": {"max_tokens": 5000}}`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Knowledge.MaxTokens != 5000 {
+		t.Errorf("expected local to win: knowledge.max_tokens=5000, got %d", cfg.Knowledge.MaxTokens)
+	}
+}
+
+func TestValidateStructure_CatchesZeroKnowledgeMaxTokens(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Knowledge.MaxTokens = 0
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for zero knowledge.max_tokens")
+	}
+	if !strings.Contains(err.Error(), "knowledge.max_tokens") {
+		t.Errorf("expected mention of knowledge.max_tokens, got: %v", err)
+	}
+}
+
 func TestValidateStructure_CatchesUnknownStageModel(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()

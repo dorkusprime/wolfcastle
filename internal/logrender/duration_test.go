@@ -5,6 +5,65 @@ import (
 	"time"
 )
 
+func int64Ptr(n int64) *int64 { return &n }
+
+func TestResolveDuration(t *testing.T) {
+	base := time.Date(2026, 3, 21, 10, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name      string
+		record    Record
+		startTime time.Time
+		haveStart bool
+		want      time.Duration
+	}{
+		{
+			name:      "prefers DurationMS when present",
+			record:    Record{DurationMS: int64Ptr(5000), Timestamp: base.Add(10 * time.Second)},
+			startTime: base,
+			haveStart: true,
+			want:      5 * time.Second,
+		},
+		{
+			name:      "DurationMS zero value",
+			record:    Record{DurationMS: int64Ptr(0), Timestamp: base.Add(10 * time.Second)},
+			startTime: base,
+			haveStart: true,
+			want:      0,
+		},
+		{
+			name:      "falls back to timestamp diff when DurationMS nil",
+			record:    Record{Timestamp: base.Add(82 * time.Second)},
+			startTime: base,
+			haveStart: true,
+			want:      82 * time.Second,
+		},
+		{
+			name:      "zero when nil DurationMS and no start",
+			record:    Record{Timestamp: base.Add(10 * time.Second)},
+			startTime: time.Time{},
+			haveStart: false,
+			want:      0,
+		},
+		{
+			name:      "DurationMS wins even without start",
+			record:    Record{DurationMS: int64Ptr(3000)},
+			startTime: time.Time{},
+			haveStart: false,
+			want:      3 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resolveDuration(tt.record, tt.startTime, tt.haveStart)
+			if got != tt.want {
+				t.Errorf("resolveDuration() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFormatDuration(t *testing.T) {
 	tests := []struct {
 		name string

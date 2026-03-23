@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"io/fs"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
+	"github.com/dorkusprime/wolfcastle/internal/project"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
 )
@@ -23,6 +25,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 
 	env := testutil.NewEnvironment(t)
+	seedArtifactTemplates(t, env)
 	af := env.ToAppFields()
 
 	testApp := &cmdutil.App{
@@ -62,4 +65,28 @@ func (e *testEnv) loadNodeState(t *testing.T, addr string) *state.NodeState {
 		t.Fatalf("loading node state for %s: %v", addr, err)
 	}
 	return ns
+}
+
+// seedArtifactTemplates writes embedded artifact templates (adr, spec, task)
+// into the test environment's tier FS so that RenderToFile calls succeed.
+func seedArtifactTemplates(t *testing.T, env *testutil.Environment) {
+	t.Helper()
+	sub, err := fs.Sub(project.Templates, "templates")
+	if err != nil {
+		t.Fatalf("extracting templates sub-FS: %v", err)
+	}
+	entries, err := fs.ReadDir(sub, "artifacts")
+	if err != nil {
+		t.Fatalf("reading artifacts dir: %v", err)
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		data, err := fs.ReadFile(sub, "artifacts/"+e.Name())
+		if err != nil {
+			t.Fatalf("reading artifact template %s: %v", e.Name(), err)
+		}
+		env.WithTemplate("artifacts/"+e.Name(), string(data))
+	}
 }

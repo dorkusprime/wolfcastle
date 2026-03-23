@@ -79,6 +79,16 @@ func (d *Daemon) repo() *DaemonRepository {
 	return NewDaemonRepository(d.WolfcastleDir)
 }
 
+// namespace derives the engineer namespace from the daemon's config identity.
+// Returns "" when identity is not configured.
+func (d *Daemon) namespace() string {
+	id, err := config.IdentityFromConfig(d.Config)
+	if err != nil {
+		return ""
+	}
+	return id.Namespace
+}
+
 // New creates a new daemon.
 func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode string, repoDir string) (*Daemon, error) {
 	logDir := filepath.Join(wolfcastleDir, "system", "logs")
@@ -87,10 +97,6 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 		return nil, err
 	}
 
-	// Apply the configured console log level (ADR-046).
-	if lvl, ok := logging.ParseLevel(cfg.Daemon.LogLevel); ok {
-		logger.ConsoleLevel = lvl
-	}
 	// Resume iteration numbering from existing log files.
 	logger.Iteration = logging.IterationFromDir(logDir)
 
@@ -99,9 +105,6 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 	inboxLogger, err := logging.NewLogger(logDir)
 	if err != nil {
 		return nil, err
-	}
-	if lvl, ok := logging.ParseLevel(cfg.Daemon.LogLevel); ok {
-		inboxLogger.ConsoleLevel = lvl
 	}
 	// Offset inbox iterations by 10000 to avoid filename collisions
 	// with the execute loop. Both write to the same directory but
@@ -117,7 +120,7 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 	if missing := classes.Validate(); len(missing) > 0 {
 		output.PrintHuman("Warning: task classes with missing prompt files: %v", missing)
 	}
-	ctxBuilder := pipeline.NewContextBuilder(prompts, classes)
+	ctxBuilder := pipeline.NewContextBuilder(prompts, classes, wolfcastleDir)
 
 	return &Daemon{
 		Config:         cfg,
@@ -604,7 +607,12 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		return IterationDidWork, nil
 	}
 
-	// Step 4: Nothing to execute, nothing to plan, nothing to archive. Report why.
+	// Step 4: Nothing to execute, nothing to plan, nothing to archive.
+	// Commit any lingering state changes (from reconciliation, archiving
+	// on a prior tick, or propagation) so the tree is clean at idle.
+	commitStateFlush(d.RepoDir, d.Logger, d.Config.Git)
+
+	// Report why we're idle.
 	{
 		var msg string
 		switch navResult.Reason {
@@ -664,6 +672,10 @@ execute:
 	// If a spec task just completed, queue a review task so the spec
 	// gets audited before it drives implementation.
 	d.checkSpecReviewNeeded(navResult.NodeAddress, navResult.TaskID)
+
+	// If the knowledge file exceeds its token budget, queue a
+	// maintenance task to prune it.
+	d.checkKnowledgeBudget(navResult.NodeAddress)
 
 	return IterationDidWork, nil
 }

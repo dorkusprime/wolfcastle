@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "id": "extract-pid-checker-interface",
+  "name": "Extract PID Checker Interface",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Define PIDChecker interface and remove daemon import from validate",
+      "description": "Define PIDChecker interface and remove daemon import from validate",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/validate/engine.go",
+        "internal/validate/fix.go"
+      ],
+      "body": "Create a PIDChecker interface in validate (likely in a new file pid_checker.go or at the top of engine.go) with the five methods that validate actually uses from daemon.DaemonRepository: IsAlive() bool, PIDFileExists() bool, StopFileExists() bool, RemovePID() error, RemoveStopFile() error. Replace the *daemon.DaemonRepository field in Engine struct and all function parameters in fix.go with PIDChecker. Remove the daemon import from both engine.go and fix.go. Update the constructors NewEngine, NewEngineWithRepo, FixWithVerificationRepo, and ApplyDeterministicFixesRepo to accept PIDChecker instead of the concrete type. Update all callers in cmd/ that pass a *daemon.DaemonRepository to these functions (the concrete type satisfies the interface implicitly, so callers just need their type annotations adjusted if any). Verify go build ./... and go vet ./... pass cleanly. Run existing tests to confirm nothing regresses.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "validate package has zero imports of github.com/dorkusprime/wolfcastle/internal/daemon",
+        "go build ./... succeeds",
+        "go test ./internal/validate/... passes",
+        "PIDChecker interface is defined in the validate package with exactly the five methods: IsAlive",
+        " PIDFileExists",
+        " StopFileExists",
+        " RemovePID",
+        " RemoveStopFile"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Add compile-time interface satisfaction check",
+      "description": "Add compile-time interface satisfaction check",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/repository.go"
+      ],
+      "body": "Add a compile-time assertion in the daemon package (in repository.go or a dedicated file) that confirms *DaemonRepository satisfies validate.PIDChecker. Use the standard Go pattern: var _ validate.PIDChecker = (*DaemonRepository)(nil). This ensures future changes to either the interface or the struct produce a compile error rather than a silent runtime failure. Note: this import direction (daemon importing validate) is acceptable because validate is the interface owner and daemon is the implementor. If this creates an import cycle, place the assertion in an internal test file (repository_test.go) or a dedicated integration test instead.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "A compile-time assertion exists that *daemon.DaemonRepository satisfies validate.PIDChecker",
+        "go build ./... succeeds with the assertion in place"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Extract PID Checker Interface is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0,
+      "class": "audit"
+    }
+  ],
+  "audit_enrichment": [
+    "grep internal/validate/*.go for any remaining import of daemon package",
+    "verify PIDChecker interface has exactly five methods matching the scope description",
+    "check that cmd/ callers still compile when passing *daemon.DaemonRepository where PIDChecker is expected"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:42:10.389477Z",
+        "task": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
+        "text": "Extracted PIDChecker interface into pid_checker.go; replaced daemon.DaemonRepository with PIDChecker across engine.go and fix.go; validate production code has zero daemon imports"
+      },
+      {
+        "timestamp": "2026-03-22T23:44:16.595997Z",
+        "task": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
+        "text": "Added compile-time interface satisfaction check var _ validate.PIDChecker = (*daemon.DaemonRepository)(nil) in repository_test.go; placed in external test package to avoid import cycle"
+      },
+      {
+        "timestamp": "2026-03-22T23:46:28.104175Z",
+        "task": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
+        "text": "AUDIT PASS. Reviewed 3 production files (pid_checker.go 12 lines, engine.go 755 lines, fix.go 537 lines) and 2 call sites (doctor.go, start.go), plus repository_test.go compile-time check. Findings: (1) No daemon imports in validate production code, confirmed via grep. (2) PIDChecker interface matches DaemonRepository methods exactly; compile-time assertion in repository_test.go:13 guards against drift. (3) Pre-existing test failures in cmd/ (TestInitCmd_AlreadyInitialized) are unrelated to this node. (4) Validate test files use internal package (package validate) creating a test-time dependency on daemon; documented in task-0002 AAR as acceptable tradeoff. Build, vet, and all validate/daemon tests pass clean."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T23:37:01.658781Z",
+    "completed_at": "2026-03-22T23:46:39.468916Z",
+    "result_summary": "Extracted a five-method PIDChecker interface into internal/validate/pid_checker.go, replacing the concrete daemon.DaemonRepository dependency in Engine, NewEngine, NewEngineWithRepo, FixWithVerification, FixWithVerificationRepo, ApplyDeterministicFixes, and ApplyDeterministicFixesRepo. Call sites in cmd/doctor.go and cmd/daemon/start.go construct the concrete type and pass it through the interface. A compile-time satisfaction check (var _ validate.PIDChecker = (*daemon.DaemonRepository)(nil)) in internal/daemon/repository_test.go guards against method drift. The validate package now has zero production imports of daemon. Build, vet, and all relevant tests pass."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T23:42:09.348853Z",
+      "objective": "Define PIDChecker interface in validate to break the import dependency on daemon",
+      "what_happened": "Created internal/validate/pid_checker.go with the five-method PIDChecker interface. Replaced *daemon.DaemonRepository with PIDChecker in Engine struct, NewEngine, NewEngineWithRepo, FixWithVerification, FixWithVerificationRepo, ApplyDeterministicFixes, and ApplyDeterministicFixesRepo. Updated cmd/doctor.go and cmd/daemon/start.go to construct DaemonRepository and pass it as PIDChecker. Updated five test files to import daemon and wrap path strings.",
+      "went_well": [
+        "The concrete type satisfies the interface implicitly, so no adapter code was needed",
+        "All 1.4s of validate tests pass, go build and go vet clean"
+      ],
+      "improvements": [
+        "The variadic PIDChecker pattern on convenience functions mirrors the old variadic string pattern; a separate constructor might be cleaner but would be a larger API change"
+      ],
+      "action_items": [
+        "The audit task should verify no daemon import leaks back into validate production code"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T23:44:12.910602Z",
+      "objective": "Add compile-time assertion that *DaemonRepository satisfies validate.PIDChecker",
+      "what_happened": "Attempted to place var _ validate.PIDChecker = (*DaemonRepository)(nil) directly in repository.go, but this created an import cycle: validate's coverage_test.go imports daemon, and the new import of validate from daemon closed the loop. Moved the assertion to repository_test.go (external test package daemon_test), which can import both packages without creating a production-code cycle.",
+      "went_well": [
+        "Caught the cycle immediately via go test and resolved it cleanly"
+      ],
+      "improvements": [
+        "If validate's test dependency on daemon is ever removed, the assertion could move to production code in repository.go for stronger guarantees"
+      ],
+      "action_items": [
+        "Audit should verify the assertion compiles and that no import cycle exists"
+      ]
+    }
+  }
+}

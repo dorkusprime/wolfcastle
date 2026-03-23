@@ -1,0 +1,29 @@
+# prompts
+
+Prompt templates that drive Wolfcastle's pipeline stages. Each file here is a
+Markdown template injected into model calls during task execution.
+
+Organized into subdirectories by purpose:
+
+- **stages/** -- Pipeline stage prompts (intake, execute, planning variants).
+- **classes/** -- Task class prompts. Empty in the base tier; add your own
+  under system/custom/prompts/classes/ to guide execution by task type.
+- **audits/** -- Audit command prompts.
+
+Shared support templates (script-reference, context-headers, etc.) remain at
+this level.
+
+These are the base tier copies. Wolfcastle regenerates them on every
+`wolfcastle init --force`. Do not edit these files directly.
+
+## How to override
+
+Create the same filename under **system/custom/prompts/** (team-wide) or
+**system/local/prompts/** (this machine only). The higher tier wins. Wolfcastle
+loads prompts using the same three-tier resolution as config: local beats
+custom beats base.
+
+If you want to tweak the execution prompt for your team, copy
+`system/base/prompts/stages/execute.md` to `system/custom/prompts/stages/execute.md`
+and edit the copy. The base version stays intact and gets refreshed on upgrades.
+Your custom version stays yours.

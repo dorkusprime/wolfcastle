@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -773,7 +774,7 @@ func TestFix_StalePIDFile(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, wolfcastleDir)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewDaemonRepository(wolfcastleDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -825,7 +826,7 @@ func TestFix_StaleStopFile(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, wolfcastleDir)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewDaemonRepository(wolfcastleDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -893,7 +894,7 @@ func TestDetect_StalePIDFile(t *testing.T) {
 	pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
 	_ = os.WriteFile(pidPath, []byte("99999999"), 0644)
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), wolfcastleDir)
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfcastleDir))
 	report := engine.ValidateAll(idx)
 
 	found := false
@@ -914,7 +915,7 @@ func TestDetect_StalePIDFile_NoPIDFile(t *testing.T) {
 	idx := state.NewRootIndex()
 
 	// No PID file — should not report
-	engine := NewEngine(dir, DefaultNodeLoader(dir), wolfcastleDir)
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfcastleDir))
 	report := engine.ValidateAll(idx)
 
 	for _, issue := range report.Issues {
@@ -936,7 +937,7 @@ func TestDetect_StaleStopFile(t *testing.T) {
 	stopPath := filepath.Join(wolfcastleDir, "system", "stop")
 	_ = os.WriteFile(stopPath, []byte(""), 0644)
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), wolfcastleDir)
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfcastleDir))
 	report := engine.ValidateAll(idx)
 
 	found := false
@@ -964,7 +965,7 @@ func TestIsDaemonAlive_NoWolfcastleDir(t *testing.T) {
 func TestIsDaemonAlive_NoPIDFile(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
+	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
 	if engine.isDaemonAlive() {
 		t.Error("expected false when PID file does not exist")
 	}
@@ -975,7 +976,7 @@ func TestIsDaemonAlive_EmptyPIDFile(t *testing.T) {
 	wolfcastleDir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte(""), 0644)
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
+	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
 	if engine.isDaemonAlive() {
 		t.Error("expected false for empty PID file")
 	}
@@ -986,7 +987,7 @@ func TestIsDaemonAlive_NonNumericPID(t *testing.T) {
 	wolfcastleDir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte("not-a-number"), 0644)
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
+	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
 	if engine.isDaemonAlive() {
 		t.Error("expected false for non-numeric PID")
 	}
@@ -998,7 +999,7 @@ func TestIsDaemonAlive_DeadProcess(t *testing.T) {
 	// Use a very large PID unlikely to be alive
 	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
+	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
 	if engine.isDaemonAlive() {
 		t.Error("expected false for dead process")
 	}
@@ -1012,7 +1013,7 @@ func TestIsDaemonAlive_LiveProcess(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"),
 		[]byte(fmt.Sprintf("%d", os.Getpid())), 0644)
 
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), wolfcastleDir)
+	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
 	if !engine.isDaemonAlive() {
 		t.Error("expected true for our own PID (we are alive)")
 	}
@@ -1216,7 +1217,7 @@ func TestDetect_StaleInProgress(t *testing.T) {
 		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "leaf",
 	}
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), wolfcastleDir)
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfcastleDir))
 	report := engine.ValidateAll(idx)
 
 	found := false

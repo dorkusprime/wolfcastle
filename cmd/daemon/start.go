@@ -2,20 +2,28 @@ package daemon
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/dorkusprime/wolfcastle/internal/validate"
 	"github.com/spf13/cobra"
 )
 
 func newStartCmd(app *cmdutil.App) *cobra.Command {
-	return &cobra.Command{
+	mode := modeSummary
+
+	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start the daemon",
 		Long: `Starts the execution loop. Wolfcastle picks up tasks, calls models,
@@ -69,6 +77,27 @@ Examples:
 				}
 			}()
 
+			// Check for uncommitted changes before the daemon touches anything.
+			// Direct commits will sweep in whatever is in the working tree,
+			// so the user needs to know before we start.
+			if cfg.Git.AutoCommit {
+				if dirty, reason := checkDirtyTree(repoDir); dirty {
+					output.PrintHuman("The working tree has uncommitted changes:\n%s", reason)
+					output.PrintHuman("")
+					output.PrintHuman("The daemon commits code and state together after each task.")
+					output.PrintHuman("These changes will be included in the first commit.")
+					output.PrintHuman("")
+					output.PrintHuman("Options:")
+					output.PrintHuman("  1. Commit or stash your changes, then restart")
+					output.PrintHuman("  2. Disable auto-commit: wolfcastle config set git.auto_commit false")
+					output.PrintHuman("  3. Continue anyway (your changes will be committed with the first task)")
+					output.PrintHuman("")
+					if !confirmContinue() {
+						return fmt.Errorf("aborted: commit or stash changes first")
+					}
+				}
+			}
+
 			// Recover stale daemon state
 			recoverStaleDaemonState(app.Config.Root())
 
@@ -112,7 +141,7 @@ Examples:
 
 			// Startup validation gate — block on error-severity issues
 			if idxErr == nil {
-				engine := validate.NewEngine(app.State.Dir(), validate.DefaultNodeLoader(app.State.Dir()), app.Config.Root())
+				engine := validate.NewEngine(app.State.Dir(), validate.DefaultNodeLoader(app.State.Dir()), dmn.NewDaemonRepository(app.Config.Root()))
 				report := engine.ValidateStartup(idx)
 				if report.HasErrors() {
 					output.PrintHuman("Startup blocked. %d error(s):", report.Errors)
@@ -144,9 +173,51 @@ Examples:
 			}
 			defer func() { _ = app.Daemon.RemovePID() }()
 
-			return d.RunWithSupervisor(context.Background())
+			ctx, cancel := signal.NotifyContext(context.Background(), signals.Shutdown...)
+			defer cancel()
+
+			// Start the renderer goroutine. It tails the log directory
+			// for new NDJSON files and renders them to stdout using
+			// whichever output mode was selected (default: summary).
+			logDir := filepath.Join(app.Config.Root(), "system", "logs")
+			reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
+			records := reader.Records(ctx)
+			renderDone := make(chan struct{})
+			go func() {
+				defer close(renderDone)
+				switch mode {
+				case modeSummary:
+					sr := logrender.NewSummaryRenderer(os.Stdout)
+					sr.Follow(ctx, records)
+				case modeThoughts:
+					tr := logrender.NewThoughtsRenderer(os.Stdout)
+					tr.Render(ctx, records)
+				case modeInterleaved:
+					ir := logrender.NewInterleavedRenderer(os.Stdout)
+					ir.Render(ctx, records)
+				case modeJSON:
+					for rec := range records {
+						raw, err := json.Marshal(rec.Raw)
+						if err != nil {
+							continue
+						}
+						_, _ = os.Stdout.Write(raw)
+						_, _ = os.Stdout.Write([]byte{'\n'})
+					}
+				}
+			}()
+
+			runErr := d.RunWithSupervisor(ctx)
+			cancel()
+			<-renderDone
+
+			return runErr
 		},
 	}
+
+	registerModeFlags(cmd, &mode)
+
+	return cmd
 }
 
 // startBackground launches the daemon as a detached background process.
@@ -247,4 +318,60 @@ func recoverStaleDaemonState(wolfcastleDir string) {
 	_ = repo.RemovePID()
 	_ = os.Remove(filepath.Join(wolfcastleDir, "system", "daemon.meta.json"))
 	_ = repo.RemoveStopFile()
+}
+
+// checkDirtyTree returns true if the git working tree has uncommitted
+// changes (staged, unstaged, or untracked non-ignored files).
+func checkDirtyTree(repoDir string) (bool, string) {
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = repoDir
+	out, err := cmd.Output()
+	if err != nil {
+		return false, "" // can't check, proceed
+	}
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return false, ""
+	}
+	// Summarize: count staged, modified, untracked
+	lines := strings.Split(trimmed, "\n")
+	staged, modified, untracked := 0, 0, 0
+	for _, line := range lines {
+		if len(line) < 2 {
+			continue
+		}
+		if line[0:2] == "??" {
+			untracked++
+		} else if line[0] != ' ' {
+			staged++
+		} else {
+			modified++
+		}
+	}
+	var parts []string
+	if staged > 0 {
+		parts = append(parts, fmt.Sprintf("  %d staged", staged))
+	}
+	if modified > 0 {
+		parts = append(parts, fmt.Sprintf("  %d modified", modified))
+	}
+	if untracked > 0 {
+		parts = append(parts, fmt.Sprintf("  %d untracked", untracked))
+	}
+	return true, strings.Join(parts, "\n")
+}
+
+// confirmContinue prompts the user for y/n confirmation on stdin.
+// Returns true if the user types "y" or "yes". Returns false on
+// anything else, EOF, or if stdin is not a terminal.
+func confirmContinue() bool {
+	if !output.IsTerminal() {
+		return false
+	}
+	fmt.Print("Continue? [y/N] ")
+	var response string
+	if _, err := fmt.Scanln(&response); err != nil {
+		return false
+	}
+	return response == "y" || response == "Y" || response == "yes"
 }

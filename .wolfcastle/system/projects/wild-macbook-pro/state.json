@@ -4,9 +4,19 @@
   "root_name": "Domain Repository Architecture",
   "root_state": "complete",
   "root": [
-    "task-classes-implementation",
-    "fix-stale-class-flag-help-text",
-    "fix-writing-class-voice-md-unreachable"
+    "configuration-docs-overhaul",
+    "deterministic-git-activity",
+    "codebase-knowledge-files",
+    "template-based-file-generation",
+    "consolidate-atomic-write-helpers",
+    "document-pid-recycling-edge-case-in-filelock",
+    "update-cli-commands-spec",
+    "decouple-validate-from-daemon-package",
+    "config-validate-command",
+    "structured-timing-metrics-in-log-events",
+    "daemon-commit-messages-from-task-metadata",
+    "non-daemon-foreground-output-flags",
+    "document-git-revert-recovery-workflow"
   ],
   "archived_root": [
     "domain-repository-architecture",
@@ -29,9 +39,294 @@
     "log-command-redesign",
     "fix-replayjson-streaming-bug",
     "fix-log-follow-hang-with-stopped-daemon",
-    "logrender-post-merge-cleanups"
+    "logrender-post-merge-cleanups",
+    "task-classes-implementation",
+    "fix-stale-class-flag-help-text",
+    "fix-writing-class-voice-md-unreachable",
+    "fix-log-thoughts-and-interleaved-renderers"
   ],
   "nodes": {
+    "codebase-knowledge-files": {
+      "name": "Codebase Knowledge Files",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "codebase-knowledge-files",
+      "decomposition_depth": 0,
+      "children": [
+        "codebase-knowledge-files/knowledge-config-and-storage",
+        "codebase-knowledge-files/knowledge-cli-commands",
+        "codebase-knowledge-files/pipeline-integration",
+        "codebase-knowledge-files/documentation"
+      ]
+    },
+    "codebase-knowledge-files/documentation": {
+      "name": "Documentation",
+      "type": "leaf",
+      "state": "complete",
+      "address": "codebase-knowledge-files/documentation",
+      "decomposition_depth": 0,
+      "parent": "codebase-knowledge-files"
+    },
+    "codebase-knowledge-files/knowledge-cli-commands": {
+      "name": "Knowledge CLI Commands",
+      "type": "leaf",
+      "state": "complete",
+      "address": "codebase-knowledge-files/knowledge-cli-commands",
+      "decomposition_depth": 0,
+      "parent": "codebase-knowledge-files"
+    },
+    "codebase-knowledge-files/knowledge-config-and-storage": {
+      "name": "Knowledge Config and Storage",
+      "type": "leaf",
+      "state": "complete",
+      "address": "codebase-knowledge-files/knowledge-config-and-storage",
+      "decomposition_depth": 0,
+      "parent": "codebase-knowledge-files"
+    },
+    "codebase-knowledge-files/pipeline-integration": {
+      "name": "Pipeline Integration",
+      "type": "leaf",
+      "state": "complete",
+      "address": "codebase-knowledge-files/pipeline-integration",
+      "decomposition_depth": 0,
+      "parent": "codebase-knowledge-files"
+    },
+    "config-validate-command": {
+      "name": "Config Validate Command",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "config-validate-command",
+      "decomposition_depth": 0,
+      "children": [
+        "config-validate-command/config-validate-implementation"
+      ]
+    },
+    "config-validate-command/config-validate-implementation": {
+      "name": "Config Validate Implementation",
+      "type": "leaf",
+      "state": "complete",
+      "address": "config-validate-command/config-validate-implementation",
+      "decomposition_depth": 0,
+      "parent": "config-validate-command"
+    },
+    "configuration-docs-overhaul": {
+      "name": "Configuration Docs Overhaul",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "configuration-docs-overhaul",
+      "decomposition_depth": 0,
+      "children": [
+        "configuration-docs-overhaul/write-config-pages",
+        "configuration-docs-overhaul/deep-linking-pass"
+      ]
+    },
+    "configuration-docs-overhaul/deep-linking-pass": {
+      "name": "Deep-Linking Pass",
+      "type": "leaf",
+      "state": "complete",
+      "address": "configuration-docs-overhaul/deep-linking-pass",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul"
+    },
+    "configuration-docs-overhaul/write-config-pages": {
+      "name": "Write Config Pages",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "configuration-docs-overhaul/write-config-pages",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul",
+      "children": [
+        "configuration-docs-overhaul/write-config-pages/config-reference",
+        "configuration-docs-overhaul/write-config-pages/task-classes",
+        "configuration-docs-overhaul/write-config-pages/configuration-guide",
+        "configuration-docs-overhaul/write-config-pages/config-quickstart"
+      ]
+    },
+    "configuration-docs-overhaul/write-config-pages/config-quickstart": {
+      "name": "Config Quickstart",
+      "type": "leaf",
+      "state": "complete",
+      "address": "configuration-docs-overhaul/write-config-pages/config-quickstart",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul/write-config-pages"
+    },
+    "configuration-docs-overhaul/write-config-pages/config-reference": {
+      "name": "Config Reference",
+      "type": "leaf",
+      "state": "complete",
+      "address": "configuration-docs-overhaul/write-config-pages/config-reference",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul/write-config-pages"
+    },
+    "configuration-docs-overhaul/write-config-pages/configuration-guide": {
+      "name": "Configuration Guide",
+      "type": "leaf",
+      "state": "complete",
+      "address": "configuration-docs-overhaul/write-config-pages/configuration-guide",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul/write-config-pages"
+    },
+    "configuration-docs-overhaul/write-config-pages/task-classes": {
+      "name": "Task Classes",
+      "type": "leaf",
+      "state": "complete",
+      "address": "configuration-docs-overhaul/write-config-pages/task-classes",
+      "decomposition_depth": 0,
+      "parent": "configuration-docs-overhaul/write-config-pages"
+    },
+    "consolidate-atomic-write-helpers": {
+      "name": "Consolidate Atomic Write Helpers",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "consolidate-atomic-write-helpers",
+      "decomposition_depth": 0,
+      "children": [
+        "consolidate-atomic-write-helpers/refactor-and-update-tests"
+      ]
+    },
+    "consolidate-atomic-write-helpers/refactor-and-update-tests": {
+      "name": "Refactor and Update Tests",
+      "type": "leaf",
+      "state": "complete",
+      "address": "consolidate-atomic-write-helpers/refactor-and-update-tests",
+      "decomposition_depth": 0,
+      "parent": "consolidate-atomic-write-helpers"
+    },
+    "daemon-commit-messages-from-task-metadata": {
+      "name": "Daemon Commit Messages from Task Metadata",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "daemon-commit-messages-from-task-metadata",
+      "decomposition_depth": 0,
+      "children": [
+        "daemon-commit-messages-from-task-metadata/add-commit-prefix-config",
+        "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata"
+      ]
+    },
+    "daemon-commit-messages-from-task-metadata/add-commit-prefix-config": {
+      "name": "Add Commit Prefix Config",
+      "type": "leaf",
+      "state": "complete",
+      "address": "daemon-commit-messages-from-task-metadata/add-commit-prefix-config",
+      "decomposition_depth": 0,
+      "parent": "daemon-commit-messages-from-task-metadata"
+    },
+    "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata": {
+      "name": "Enrich Commit Messages with Task Metadata",
+      "type": "leaf",
+      "state": "complete",
+      "address": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
+      "decomposition_depth": 0,
+      "parent": "daemon-commit-messages-from-task-metadata"
+    },
+    "decouple-validate-from-daemon-package": {
+      "name": "Decouple Validate from Daemon Package",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "decouple-validate-from-daemon-package",
+      "decomposition_depth": 0,
+      "children": [
+        "decouple-validate-from-daemon-package/extract-pid-checker-interface",
+        "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary"
+      ]
+    },
+    "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary": {
+      "name": "ADR: Interface for Validate-Daemon Boundary",
+      "type": "leaf",
+      "state": "complete",
+      "address": "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary",
+      "decomposition_depth": 0,
+      "parent": "decouple-validate-from-daemon-package"
+    },
+    "decouple-validate-from-daemon-package/extract-pid-checker-interface": {
+      "name": "Extract PID Checker Interface",
+      "type": "leaf",
+      "state": "complete",
+      "address": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
+      "decomposition_depth": 0,
+      "parent": "decouple-validate-from-daemon-package"
+    },
+    "deterministic-git-activity": {
+      "name": "Deterministic Git Activity",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "deterministic-git-activity",
+      "decomposition_depth": 0,
+      "children": [
+        "deterministic-git-activity/git-config-fields",
+        "deterministic-git-activity/daemon-commit-logic",
+        "deterministic-git-activity/prompt-cleanup",
+        "deterministic-git-activity/documentation-update"
+      ]
+    },
+    "deterministic-git-activity/daemon-commit-logic": {
+      "name": "Daemon Commit Logic",
+      "type": "leaf",
+      "state": "complete",
+      "address": "deterministic-git-activity/daemon-commit-logic",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity"
+    },
+    "deterministic-git-activity/documentation-update": {
+      "name": "Documentation Update",
+      "type": "leaf",
+      "state": "complete",
+      "address": "deterministic-git-activity/documentation-update",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity"
+    },
+    "deterministic-git-activity/git-config-fields": {
+      "name": "Git Config Fields",
+      "type": "leaf",
+      "state": "complete",
+      "address": "deterministic-git-activity/git-config-fields",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity"
+    },
+    "deterministic-git-activity/prompt-cleanup": {
+      "name": "Prompt Cleanup",
+      "type": "leaf",
+      "state": "complete",
+      "address": "deterministic-git-activity/prompt-cleanup",
+      "decomposition_depth": 0,
+      "parent": "deterministic-git-activity"
+    },
+    "document-git-revert-recovery-workflow": {
+      "name": "Document Git Revert Recovery Workflow",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "document-git-revert-recovery-workflow",
+      "decomposition_depth": 0,
+      "children": [
+        "document-git-revert-recovery-workflow/write-git-revert-recovery-section"
+      ]
+    },
+    "document-git-revert-recovery-workflow/write-git-revert-recovery-section": {
+      "name": "Write Git Revert Recovery Section",
+      "type": "leaf",
+      "state": "complete",
+      "address": "document-git-revert-recovery-workflow/write-git-revert-recovery-section",
+      "decomposition_depth": 0,
+      "parent": "document-git-revert-recovery-workflow"
+    },
+    "document-pid-recycling-edge-case-in-filelock": {
+      "name": "Document PID recycling edge case in filelock",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "document-pid-recycling-edge-case-in-filelock",
+      "decomposition_depth": 0,
+      "children": [
+        "document-pid-recycling-edge-case-in-filelock/add-comment"
+      ]
+    },
+    "document-pid-recycling-edge-case-in-filelock/add-comment": {
+      "name": "add-comment",
+      "type": "leaf",
+      "state": "complete",
+      "address": "document-pid-recycling-edge-case-in-filelock/add-comment",
+      "decomposition_depth": 0,
+      "parent": "document-pid-recycling-edge-case-in-filelock"
+    },
     "fix-log-follow-hang-with-stopped-daemon": {
       "name": "Fix log --follow hang with stopped daemon",
       "type": "orchestrator",
@@ -64,6 +359,39 @@
       "parent": "fix-log-follow-hang-with-stopped-daemon",
       "archived": true,
       "archived_at": "2026-03-22T06:01:48.503822Z"
+    },
+    "fix-log-thoughts-and-interleaved-renderers": {
+      "name": "Fix log --thoughts and --interleaved renderers",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "fix-log-thoughts-and-interleaved-renderers",
+      "decomposition_depth": 0,
+      "children": [
+        "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output"
+      ],
+      "archived": true,
+      "archived_at": "2026-03-23T03:01:12.266893Z"
+    },
+    "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output": {
+      "name": "Consolidate Daemon Foreground Output",
+      "type": "leaf",
+      "state": "complete",
+      "address": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+      "decomposition_depth": 0,
+      "parent": "fix-log-thoughts-and-interleaved-renderers",
+      "archived": true,
+      "archived_at": "2026-03-23T03:01:12.266893Z"
+    },
+    "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output": {
+      "name": "Fix Renderer Output",
+      "type": "leaf",
+      "state": "complete",
+      "address": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+      "decomposition_depth": 0,
+      "parent": "fix-log-thoughts-and-interleaved-renderers",
+      "archived": true,
+      "archived_at": "2026-03-23T03:01:12.266893Z"
     },
     "fix-replayjson-streaming-bug": {
       "name": "Fix replayJSON streaming bug",
@@ -106,7 +434,9 @@
       "decomposition_depth": 0,
       "children": [
         "fix-stale-class-flag-help-text/update-help-text"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.268465Z"
     },
     "fix-stale-class-flag-help-text/update-help-text": {
       "name": "update-help-text",
@@ -114,7 +444,9 @@
       "state": "complete",
       "address": "fix-stale-class-flag-help-text/update-help-text",
       "decomposition_depth": 0,
-      "parent": "fix-stale-class-flag-help-text"
+      "parent": "fix-stale-class-flag-help-text",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.268465Z"
     },
     "fix-writing-class-voice-md-unreachable": {
       "name": "Fix writing class voice.md unreachable",
@@ -125,7 +457,9 @@
       "children": [
         "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
         "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.339001Z"
     },
     "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup": {
       "name": "Prompt and Spec Cleanup",
@@ -133,7 +467,9 @@
       "state": "complete",
       "address": "fix-writing-class-voice-md-unreachable/prompt-and-spec-cleanup",
       "decomposition_depth": 0,
-      "parent": "fix-writing-class-voice-md-unreachable"
+      "parent": "fix-writing-class-voice-md-unreachable",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.339001Z"
     },
     "fix-writing-class-voice-md-unreachable/subdirectory-assembly": {
       "name": "Subdirectory Assembly",
@@ -141,7 +477,9 @@
       "state": "complete",
       "address": "fix-writing-class-voice-md-unreachable/subdirectory-assembly",
       "decomposition_depth": 0,
-      "parent": "fix-writing-class-voice-md-unreachable"
+      "parent": "fix-writing-class-voice-md-unreachable",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.339001Z"
     },
     "log-command-redesign": {
       "name": "Log Command Redesign",
@@ -266,6 +604,69 @@
       "archived": true,
       "archived_at": "2026-03-22T06:01:48.565239Z"
     },
+    "non-daemon-foreground-output-flags": {
+      "name": "Non-Daemon Foreground Output Flags",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "non-daemon-foreground-output-flags",
+      "decomposition_depth": 0,
+      "children": [
+        "non-daemon-foreground-output-flags/spec-update",
+        "non-daemon-foreground-output-flags/foreground-renderer-flags"
+      ]
+    },
+    "non-daemon-foreground-output-flags/foreground-renderer-flags": {
+      "name": "Foreground Renderer Flags",
+      "type": "leaf",
+      "state": "complete",
+      "address": "non-daemon-foreground-output-flags/foreground-renderer-flags",
+      "decomposition_depth": 0,
+      "parent": "non-daemon-foreground-output-flags"
+    },
+    "non-daemon-foreground-output-flags/spec-update": {
+      "name": "Spec Update",
+      "type": "leaf",
+      "state": "complete",
+      "address": "non-daemon-foreground-output-flags/spec-update",
+      "decomposition_depth": 0,
+      "parent": "non-daemon-foreground-output-flags"
+    },
+    "structured-timing-metrics-in-log-events": {
+      "name": "Structured Timing Metrics in Log Events",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "structured-timing-metrics-in-log-events",
+      "decomposition_depth": 0,
+      "children": [
+        "structured-timing-metrics-in-log-events/daemon-duration-emission",
+        "structured-timing-metrics-in-log-events/renderer-duration-field-support",
+        "structured-timing-metrics-in-log-events/schema-documentation-update"
+      ]
+    },
+    "structured-timing-metrics-in-log-events/daemon-duration-emission": {
+      "name": "Daemon Duration Emission",
+      "type": "leaf",
+      "state": "complete",
+      "address": "structured-timing-metrics-in-log-events/daemon-duration-emission",
+      "decomposition_depth": 0,
+      "parent": "structured-timing-metrics-in-log-events"
+    },
+    "structured-timing-metrics-in-log-events/renderer-duration-field-support": {
+      "name": "Renderer Duration Field Support",
+      "type": "leaf",
+      "state": "complete",
+      "address": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
+      "decomposition_depth": 0,
+      "parent": "structured-timing-metrics-in-log-events"
+    },
+    "structured-timing-metrics-in-log-events/schema-documentation-update": {
+      "name": "Schema Documentation Update",
+      "type": "leaf",
+      "state": "complete",
+      "address": "structured-timing-metrics-in-log-events/schema-documentation-update",
+      "decomposition_depth": 0,
+      "parent": "structured-timing-metrics-in-log-events"
+    },
     "task-classes-implementation": {
       "name": "Task Classes Implementation",
       "type": "orchestrator",
@@ -276,7 +677,9 @@
         "task-classes-implementation/context-wiring",
         "task-classes-implementation/class-prompt-authoring",
         "task-classes-implementation/config-and-validation-wiring"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring": {
       "name": "Class Prompt Authoring",
@@ -289,7 +692,9 @@
         "task-classes-implementation/class-prompt-authoring/language-prompts",
         "task-classes-implementation/class-prompt-authoring/framework-prompts",
         "task-classes-implementation/class-prompt-authoring/non-language-prompts"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/framework-prompts": {
       "name": "Framework Prompts",
@@ -303,7 +708,9 @@
         "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
         "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
         "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks": {
       "name": "Backend Scripting Frameworks",
@@ -311,7 +718,9 @@
       "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/backend-scripting-frameworks",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks": {
       "name": "Enterprise Frameworks",
@@ -319,7 +728,9 @@
       "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/enterprise-frameworks",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks": {
       "name": "Frontend Frameworks",
@@ -327,7 +738,9 @@
       "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/frontend-frameworks",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks": {
       "name": "Mobile and Systems Frameworks",
@@ -335,7 +748,9 @@
       "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/framework-prompts/mobile-and-systems-frameworks",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts"
+      "parent": "task-classes-implementation/class-prompt-authoring/framework-prompts",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/language-prompts": {
       "name": "Language Prompts",
@@ -349,7 +764,9 @@
         "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
         "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
         "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net": {
       "name": "JVM and .NET",
@@ -357,7 +774,9 @@
       "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/jvm-and-net",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages": {
       "name": "Specialized Languages",
@@ -365,7 +784,9 @@
       "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/specialized-languages",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages": {
       "name": "Systems Languages",
@@ -373,7 +794,9 @@
       "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/systems-languages",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting": {
       "name": "Web and Scripting",
@@ -381,7 +804,9 @@
       "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/language-prompts/web-and-scripting",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts"
+      "parent": "task-classes-implementation/class-prompt-authoring/language-prompts",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/class-prompt-authoring/non-language-prompts": {
       "name": "Non-Language Prompts",
@@ -389,7 +814,9 @@
       "state": "complete",
       "address": "task-classes-implementation/class-prompt-authoring/non-language-prompts",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation/class-prompt-authoring"
+      "parent": "task-classes-implementation/class-prompt-authoring",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/config-and-validation-wiring": {
       "name": "Config and Validation Wiring",
@@ -397,7 +824,9 @@
       "state": "complete",
       "address": "task-classes-implementation/config-and-validation-wiring",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation"
+      "parent": "task-classes-implementation",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
     },
     "task-classes-implementation/context-wiring": {
       "name": "Context Wiring",
@@ -405,7 +834,92 @@
       "state": "complete",
       "address": "task-classes-implementation/context-wiring",
       "decomposition_depth": 0,
-      "parent": "task-classes-implementation"
+      "parent": "task-classes-implementation",
+      "archived": true,
+      "archived_at": "2026-03-22T18:10:14.196899Z"
+    },
+    "template-based-file-generation": {
+      "name": "Template-Based File Generation",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "template-based-file-generation",
+      "decomposition_depth": 0,
+      "children": [
+        "template-based-file-generation/template-repository-infrastructure",
+        "template-based-file-generation/call-site-migration",
+        "template-based-file-generation/template-documentation"
+      ]
+    },
+    "template-based-file-generation/call-site-migration": {
+      "name": "Call-Site Migration",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "template-based-file-generation/call-site-migration",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation",
+      "children": [
+        "template-based-file-generation/call-site-migration/scaffold-templates",
+        "template-based-file-generation/call-site-migration/artifact-templates"
+      ]
+    },
+    "template-based-file-generation/call-site-migration/artifact-templates": {
+      "name": "Artifact Templates",
+      "type": "leaf",
+      "state": "complete",
+      "address": "template-based-file-generation/call-site-migration/artifact-templates",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation/call-site-migration"
+    },
+    "template-based-file-generation/call-site-migration/scaffold-templates": {
+      "name": "Scaffold Templates",
+      "type": "leaf",
+      "state": "complete",
+      "address": "template-based-file-generation/call-site-migration/scaffold-templates",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation/call-site-migration"
+    },
+    "template-based-file-generation/template-documentation": {
+      "name": "Template Documentation",
+      "type": "leaf",
+      "state": "complete",
+      "address": "template-based-file-generation/template-documentation",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation"
+    },
+    "template-based-file-generation/template-repository-infrastructure": {
+      "name": "Template Repository Infrastructure",
+      "type": "leaf",
+      "state": "complete",
+      "address": "template-based-file-generation/template-repository-infrastructure",
+      "decomposition_depth": 0,
+      "parent": "template-based-file-generation"
+    },
+    "update-cli-commands-spec": {
+      "name": "Update CLI Commands Spec",
+      "type": "orchestrator",
+      "state": "complete",
+      "address": "update-cli-commands-spec",
+      "decomposition_depth": 0,
+      "children": [
+        "update-cli-commands-spec/add-missing-command-sections",
+        "update-cli-commands-spec/finalize-spec-metadata"
+      ]
+    },
+    "update-cli-commands-spec/add-missing-command-sections": {
+      "name": "Add Missing Command Sections",
+      "type": "leaf",
+      "state": "complete",
+      "address": "update-cli-commands-spec/add-missing-command-sections",
+      "decomposition_depth": 0,
+      "parent": "update-cli-commands-spec"
+    },
+    "update-cli-commands-spec/finalize-spec-metadata": {
+      "name": "Finalize Spec Metadata",
+      "type": "leaf",
+      "state": "complete",
+      "address": "update-cli-commands-spec/finalize-spec-metadata",
+      "decomposition_depth": 0,
+      "parent": "update-cli-commands-spec"
     }
   }
 }

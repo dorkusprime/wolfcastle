@@ -18,7 +18,7 @@ Does the code do what it claims to do?
 - [ ] Marker parsing: every WOLFCASTLE\_\* marker is handled. No marker is silently dropped.
 - [ ] Config merge semantics: deep merge for objects, full replacement for arrays, null deletion. Verify with edge cases.
 - [ ] Navigation: depth-first traversal visits nodes in the correct order. Self-healing picks up interrupted tasks.
-- [ ] Branch verification: the daemon refuses to commit if the branch changed underneath it.
+- [ ] Branch verification: the daemon refuses to proceed if the branch changed underneath it.
 
 ## 2. Go Best Practices
 
@@ -192,5 +192,4 @@ Each agent should read the relevant source files, check every item, and fix issu
 
 1. **Fix everything you find.** An audit that reports issues without fixing them is half an audit. If you can fix it, fix it. If you can't (needs a design decision, needs user input, truly blocked), say why.
 2. **No "noted for later."** There is no later. The audit is the time to fix things.
-3. **Verify after fixing.** Run `go build ./...`, `go test ./...`, and `golangci-lint run ./...` after every change. Don't commit broken code.
-4. **Commit as you go.** Don't batch everything into one giant commit. Each logical fix gets its own commit with a clear message.
+3. **Verify after fixing.** Run `go build ./...`, `go test ./...`, and `golangci-lint run ./...` after every change. Don't leave broken code for the daemon to commit.

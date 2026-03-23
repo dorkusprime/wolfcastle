@@ -10,18 +10,19 @@ import (
 // compatibility; unrecognized Type values parse without error so renderers
 // can skip them cleanly.
 type Record struct {
-	Type      string    `json:"type"`
-	Timestamp time.Time `json:"timestamp"`
-	Level     string    `json:"level"`
-	Trace     string    `json:"trace"`
-	Stage     string    `json:"stage"`
-	Node      string    `json:"node"`
-	Task      string    `json:"task"`
-	ExitCode  *int      `json:"exit_code"`
-	Text      string    `json:"text"`
-	Path      string    `json:"path"`
-	Marker    string    `json:"marker"`
-	Error     string    `json:"error"`
+	Type       string    `json:"type"`
+	Timestamp  time.Time `json:"timestamp"`
+	Level      string    `json:"level"`
+	Trace      string    `json:"trace"`
+	Stage      string    `json:"stage"`
+	Node       string    `json:"node"`
+	Task       string    `json:"task"`
+	ExitCode   *int      `json:"exit_code"`
+	DurationMS *int64    `json:"duration_ms"`
+	Text       string    `json:"text"`
+	Path       string    `json:"path"`
+	Marker     string    `json:"marker"`
+	Error      string    `json:"error"`
 
 	// Raw preserves every field from the original JSON line, including
 	// fields not mapped to typed struct members.

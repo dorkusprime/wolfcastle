@@ -136,6 +136,11 @@ func ValidateStructure(cfg *Config) error {
 		errs = append(errs, fmt.Sprintf("overlap_advisory.threshold (%.2f) must be between 0 and 1", cfg.OverlapAdvisory.Threshold))
 	}
 
+	// Knowledge token budget
+	if cfg.Knowledge.MaxTokens < 1 {
+		errs = append(errs, fmt.Sprintf("knowledge.max_tokens (%d) must be >= 1", cfg.Knowledge.MaxTokens))
+	}
+
 	// Model definitions must have a command
 	for name, model := range cfg.Models {
 		if model.Command == "" {

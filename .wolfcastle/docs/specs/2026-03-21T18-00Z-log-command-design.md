@@ -103,7 +103,7 @@ Agent thoughts are indented to visually separate them from stage headers.
 
 ## Data Source
 
-All formatting, duration math, and display logic lives in the `wolfcastle log` command. The daemon writes raw NDJSON records with timestamps and moves on. No computation happens in the daemon's hot path for human display purposes.
+Display formatting and layout logic lives in the `wolfcastle log` command. The daemon writes NDJSON records with timestamps and pre-computes `duration_ms` (elapsed milliseconds as an integer) on `stage_complete` and `planning_complete` records for structured consumers. Renderers own display formatting: they may prefer the pre-computed `duration_ms` value or fall back to computing durations from timestamp diffs.
 
 All output is reconstructed from the NDJSON log files in `.wolfcastle/system/logs/`. The command never reads the daemon's stdout directly. This means:
 
@@ -119,18 +119,20 @@ The log command reads these record types from the log files:
 |--------------|----------|
 | `iteration_start` | Stage header (node address, stage type) |
 | `stage_start` | Stage start timestamp, stage type |
-| `stage_complete` | Stage end timestamp (for duration), exit code (for `✓`/`✗`) |
+| `stage_complete` | Stage end timestamp (for duration), exit code (for `✓`/`✗`). Contains `duration_ms` (integer): pre-computed elapsed milliseconds for the stage. |
 | `assistant` | Agent thoughts (debug level) |
 | `audit_report_written` | Audit report path |
-| `planning_start` / `planning_complete` | Planning stage boundaries |
+| `planning_start` / `planning_complete` | Planning stage boundaries. `planning_complete` contains `duration_ms` (integer): pre-computed elapsed milliseconds for the planning phase. |
 
 Records missing from the current NDJSON schema should be added to the logging package. The log command should degrade gracefully if a record type is absent (skip that detail, don't crash).
 
 ## Non-Daemon Mode
 
-When wolfcastle runs in non-daemon mode (e.g., `wolfcastle execute`, `wolfcastle intake`), the output to stdout should match the interleaved format: stage headers with timestamps, glyphs, and agent output indented below, streaming in real time.
+When wolfcastle runs in non-daemon (foreground) mode (e.g., `wolfcastle execute`, `wolfcastle intake`), the default renderer is summary: one line per completed stage, matching the format described in the Summary section above. This keeps foreground output compact by default, showing progress without flooding the terminal with agent thoughts.
 
-The daemon itself doesn't format this output. It writes NDJSON to the log file as usual, and a goroutine tails that file and renders the interleaved view to stdout. The rendering logic is shared with `wolfcastle log --interleaved`, so the display code exists in one place.
+Foreground mode accepts the same output-mode flags as `wolfcastle log`: `--thoughts`, `--interleaved`, and `--json`. These flags follow the same last-wins semantics described in the Flags section. If no output-mode flag is passed, summary is the default.
+
+The daemon itself does not format this output. It writes NDJSON to the log file as usual, and a goroutine tails that file and renders the selected view to stdout. The rendering logic is shared with `wolfcastle log`, so the display code for each mode exists in one place.
 
 ## What This Does Not Cover
 

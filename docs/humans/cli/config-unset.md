@@ -40,4 +40,5 @@ wolfcastle config unset --tier custom pipeline.stages.summary
 
 - [`wolfcastle config set`](config-set.md) to write a value.
 - [`wolfcastle config show`](config-show.md) to inspect the result.
-- [Configuration](../configuration.md) for the tier merging model.
+- [Merge Semantics: Null Deletes](../configuration.md#rule-3-null-deletes) for how removing a key in a higher tier affects the merged result.
+- [Config Reference](../config-reference.md) for every field, its type, and default value.

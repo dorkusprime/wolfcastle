@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "id": "deterministic-git-activity",
+  "name": "Deterministic Git Activity",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "git-config-fields",
+      "address": "deterministic-git-activity/git-config-fields",
+      "state": "complete"
+    },
+    {
+      "id": "daemon-commit-logic",
+      "address": "deterministic-git-activity/daemon-commit-logic",
+      "state": "complete"
+    },
+    {
+      "id": "prompt-cleanup",
+      "address": "deterministic-git-activity/prompt-cleanup",
+      "state": "complete"
+    },
+    {
+      "id": "documentation-update",
+      "address": "deterministic-git-activity/documentation-update",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Deterministic Git Activity is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Deterministic git activity per spec .wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md\n\nMove all git operations into the daemon. The agent never runs git add, git commit, or any other git command. The daemon commits deterministically after every task iteration (success and failure).\n\nKey work:\n- Remove Phase H (Commit) from execute.md; remove all git instruction from execute prompt\n- Add commit logic to success path in iteration.go (alongside existing failure path in autoCommitPartialWork)\n- New config fields: git.auto_commit, git.commit_on_success, git.commit_on_failure, git.commit_state (git.skip_hooks already exists)\n- Staging area preservation: save/restore user index state around daemon commits\n- Documentation pass: how-it-works.md, configuration.md, collaboration.md, failure-and-recovery.md, AGENTS.md, docs/agents/, execute.md, README",
+  "success_criteria": [
+    "The agent execute prompt contains zero references to git add, git commit, or Phase H",
+    "The daemon commits on both success and failure paths, controlled by git config fields",
+    "User staging area is preserved across daemon commits (verified by test)",
+    "All human-facing docs accurately describe the new git behavior"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T20:24:40.981954Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T20:24:27.284923Z",
+        "task": "deterministic-git-activity",
+        "text": "Created 4 children: git-config-fields, daemon-commit-logic, prompt-cleanup, documentation-update. Ordering: config fields first (daemon logic depends on them), daemon commit logic second (core implementation), prompt cleanup third (removes agent-side git), documentation last (must reflect final state). All are leaves with concrete tasks. Relevant spec: .wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md. Relevant ADR: shell-out-to-git-binary (2026-03-18). Decision point noted: staging preservation approach (stash vs GIT_INDEX_FILE) left to daemon-commit-logic implementer."
+      }
+    ],
+    "gaps": [],
+    "escalations": [
+      {
+        "id": "escalation-prompt-cleanup-1",
+        "timestamp": "2026-03-22T20:55:49.528065Z",
+        "description": "gofmt violations in internal/daemon/coverage_test.go and internal/daemon/iteration_test.go (pre-existing, not introduced by this node)",
+        "source_node": "deterministic-git-activity/prompt-cleanup",
+        "status": "open"
+      },
+      {
+        "id": "escalation-documentation-update-2",
+        "timestamp": "2026-03-22T20:59:29.458534Z",
+        "description": "config-reference.md git.auto_commit description says 'the agent must commit manually' when auto_commit is false. This is stale under the new deterministic commit model. The git-config-fields leaf should update this.",
+        "source_node": "deterministic-git-activity/documentation-update",
+        "status": "open"
+      },
+      {
+        "id": "escalation-documentation-update-3",
+        "timestamp": "2026-03-22T21:00:36.395668Z",
+        "description": "config-reference.md line 399: git.auto_commit description says 'the agent must commit manually' when auto_commit is false. This language is stale under the daemon-side commit model. Belongs to the git-config-fields leaf, not documentation-update.",
+        "source_node": "deterministic-git-activity/documentation-update",
+        "status": "open"
+      }
+    ],
+    "status": "passed",
+    "completed_at": "2026-03-22T21:53:35.729006Z"
+  }
+}

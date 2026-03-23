@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -207,7 +208,7 @@ func TestValidateAll_DetectsStalePIDFile(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(wDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(wDir, "system", "wolfcastle.pid"), []byte("99999999\n"), 0644)
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), wDir)
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wDir))
 	report := engine.ValidateAll(idx)
 
 	found := false
@@ -230,7 +231,7 @@ func TestValidateAll_DetectsStaleStopFile(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(wDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(wDir, "system", "stop"), []byte(""), 0644)
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), wDir)
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wDir))
 	report := engine.ValidateAll(idx)
 
 	found := false
@@ -345,7 +346,7 @@ func TestApplyDeterministicFixes_StalePIDFile(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, wDir)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewDaemonRepository(wDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,7 +377,7 @@ func TestApplyDeterministicFixes_StaleStopFile(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, wDir)
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewDaemonRepository(wDir))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,7 +4,7 @@
 
 Tasks fail. Wolfcastle does not take it personally. It takes it systematically.
 
-Each task tracks a failure counter. All thresholds are [configurable](configuration.md):
+Each task tracks a failure counter. All thresholds are [configurable](config-reference.md#failure):
 
 | Failures | Depth OK | Action |
 |----------|----------|--------|
@@ -33,7 +33,7 @@ Decomposition can recurse. A decomposed task's children can themselves decompose
 
 ## API Failure Handling
 
-Model API failures (timeouts, rate limits, server errors) get exponential backoff:
+Model API failures (timeouts, rate limits, server errors) get exponential backoff (see [retries reference](config-reference.md#retries)):
 
 ```json
 {
@@ -49,11 +49,69 @@ Model API failures (timeouts, rate limits, server errors) get exponential backof
 
 ## Stall Detection
 
-Model processes sometimes hang: the API stops responding, the subprocess deadlocks, output just stops flowing. The stall detector watches for this. When a model invocation produces no stdout output for a configurable timeout period, Wolfcastle kills the entire process group and returns `ErrStallTimeout`. Any output at all (a single line, a partial token) resets the timer, so a slow but active model is left alone. Only truly silent processes get killed. The stall timeout is configured per-invocation; a zero value disables detection entirely.
+Model processes sometimes hang: the API stops responding, the subprocess deadlocks, output just stops flowing. The stall detector watches for this. When a model invocation produces no stdout output for a [configurable timeout](config-reference.md#daemon) period, Wolfcastle kills the entire process group and returns `ErrStallTimeout`. Any output at all (a single line, a partial token) resets the timer, so a slow but active model is left alone. Only truly silent processes get killed. The stall timeout is configured per-invocation; a zero value disables detection entirely.
+
+## Partial Work Preservation
+
+When a task fails or yields, the daemon commits whatever work the agent produced, provided `commit_on_failure` is enabled (it is by default). The commit message includes the attempt number: `wolfcastle: <task-id> partial (attempt N)`. This means partial progress is never lost to a retry, and the full timeline of attempts is visible in the git log. Combined with [stall detection](#stall-detection), even a hung model invocation results in a committed snapshot of the work completed before the stall.
+
+See [`git` configuration](config-reference.md#git) for the `auto_commit`, `commit_on_failure`, and related fields.
+
+## Git Revert Recovery
+
+Every daemon commit is atomic: code changes and `.wolfcastle/` state land together in a single commit. One commit, one complete snapshot of the project at that point in time. This is what makes git-based recovery possible. If a task produces bad output, you don't need to untangle which files belong to the task and which don't. The commit boundary already drew that line for you.
+
+### Reading the commit log
+
+The daemon writes commit messages in a predictable format. Successful tasks produce `wolfcastle: <task-id> complete`. Failed or yielded tasks produce `wolfcastle: <task-id> partial (attempt N)`. A typical stretch of history looks like this:
+
+```
+$ git log --oneline -6
+f4a2c1e wolfcastle: api-gateway/auth/task-0003 complete
+b8d91a7 wolfcastle: api-gateway/auth/task-0002 complete
+3e0f5c4 wolfcastle: api-gateway/auth/task-0001 partial (attempt 2)
+a1c7b30 wolfcastle: api-gateway/auth/task-0001 partial (attempt 1)
+91d4e82 wolfcastle: api-gateway/rate-limit/task-0002 complete
+c5f0a19 wolfcastle: api-gateway/rate-limit/task-0001 complete
+```
+
+The task IDs and attempt numbers tell the story. Here, `task-0001` under `auth` took two attempts before succeeding (the `partial` commits preserve its intermediate work, as described in [Partial Work Preservation](#partial-work-preservation)). Tasks `task-0002` and `task-0003` each completed on their first try.
+
+### Reverting a bad task
+
+Suppose `task-0003` introduced a regression. You want to undo its work and let the daemon try again from a clean state. The commit you want to revert is `f4a2c1e`:
+
+```
+$ git revert f4a2c1e
+```
+
+This creates a new commit that inverts the changes from `task-0003`, including both the code and the `.wolfcastle/` state updates. The task's state reverts to whatever it was before that commit, which means the daemon will see it as incomplete on its next iteration.
+
+If the bad outcome spans multiple commits (say the task failed once and then completed, producing two commits), revert them in reverse chronological order:
+
+```
+$ git revert f4a2c1e b8d91a7
+```
+
+For cases where you'd rather erase the commits entirely instead of adding revert commits, `git reset` works too:
+
+```
+$ git reset --hard b8d91a7
+```
+
+This moves HEAD back to just before the bad commit. Use this only on branches where rewriting history is safe (feature branches, worktrees). On shared branches, prefer `git revert` so the history stays linear.
+
+### Restarting the daemon
+
+After the revert, restart the daemon. It reads task state from the `.wolfcastle/` files on disk, so the reverted state is the state it sees. The task that produced the bad output will be back in its pre-completion state, and the daemon will pick it up in the next iteration. If the task's state was `in_progress`, [self-healing](#self-healing) applies: the daemon hands the situation to the model, which decides whether to resume, roll back, or block.
+
+No manual state editing required. The atomic commit structure means reverting the git history is sufficient to rewind the project state.
+
+See [`git` configuration](config-reference.md#git) for the `auto_commit`, `commit_on_success`, `commit_on_failure`, and `commit_state` fields that control how the daemon writes these commits.
 
 ## Self-Healing
 
-If [the daemon](how-it-works.md#the-daemon) crashes mid-task (power failure, OOM, act of god), it recovers on restart. It finds the task left `in_progress`, hands the situation to the model, and lets it decide: resume, roll back, or block. Stale PID files are detected and ignored.
+If [the daemon](how-it-works.md#the-daemon) crashes mid-task (power failure, OOM, act of god), it recovers on restart. It finds the task left `in_progress`, hands the situation to the model, and lets it decide: resume, roll back, or block. Stale PID files are detected and ignored. Because the daemon [commits after every iteration](collaboration.md#daemon-side-commits), the last iteration's output is already in the history, giving the recovering model a clean baseline to work from.
 
 Self-healing also handles two structural problems that a crash can leave behind:
 

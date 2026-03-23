@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
@@ -75,7 +76,8 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 
 		// Execute stage (and any other custom stages)
 		nodeDir := filepath.Join(d.Store.Dir(), filepath.Join(addr.Parts...))
-		iterCtx, err := d.ContextBuilder.Build(nav.NodeAddress, nodeDir, ns, nav.TaskID, d.Config)
+		namespace := d.namespace()
+		iterCtx, err := d.ContextBuilder.Build(nav.NodeAddress, nodeDir, ns, nav.TaskID, namespace, d.Config)
 		if err != nil {
 			return werrors.Config(fmt.Errorf("building context for node %s task %s: %w", nav.NodeAddress, nav.TaskID, err))
 		}
@@ -96,6 +98,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			invokeCtx, cancel = context.WithTimeout(ctx, time.Duration(d.Config.Daemon.InvocationTimeoutSeconds)*time.Second)
 		}
 
+		stageStartTime := time.Now()
 		_ = d.Logger.Log(map[string]any{
 			"type":  "stage_start",
 			"stage": stageName,
@@ -120,11 +123,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			return err
 		}
 
+		stageDuration := time.Since(stageStartTime)
 		_ = d.Logger.Log(map[string]any{
-			"type":       "stage_complete",
-			"stage":      stageName,
-			"exit_code":  result.ExitCode,
-			"output_len": len(result.Stdout),
+			"type":        "stage_complete",
+			"stage":       stageName,
+			"exit_code":   result.ExitCode,
+			"output_len":  len(result.Stdout),
+			"duration_ms": stageDuration.Milliseconds(),
 		})
 
 		// Reload state from disk — CLI commands invoked by the model may
@@ -350,6 +355,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 							})
 							output.PrintHuman("  Audit blocked: open gaps remain.")
 						}
+						// Commit the decomposition: audit gaps, remediation
+						// subtasks, and reverted audit state. This gives a
+						// clean revert point before remediation work starts.
+						auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
+						commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta)
 						return nil
 					}
 				}
@@ -370,6 +380,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 				}
 			}
+
+			// Commit after successful completion.
+			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID))
+
 			return nil
 		}
 
@@ -379,9 +393,6 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			// A marker was found but cleared by deliverable or progress check
 			failureType = "no_progress"
 		}
-
-		// Auto-commit partial work, then increment failure count
-		autoCommitPartialWork(d.RepoDir, d.Logger, nav.TaskID, d.Config.Git.SkipHooksOnAutoCommit)
 
 		_ = d.Logger.Log(map[string]any{
 			"type":  failureType,
@@ -431,6 +442,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		} else {
 			_ = d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
 		}
+
+		// Commit code + state after all failure mutations are applied.
+		failMeta := extractTaskCommitMeta(ns, nav.TaskID)
+		failMeta.FailureType = failureType
+		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta)
 	}
 
 	return nil
@@ -543,13 +559,44 @@ func extractAssistantText(line string) string {
 	return ""
 }
 
-// autoCommitPartialWork commits any uncommitted changes in the repo when a
-// task fails without a terminal marker. This preserves partial work that the
-// model did before failing, preventing it from being lost on the next iteration.
-func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string, skipHooks bool) {
+// taskCommitMeta holds task metadata used to build enriched commit messages.
+type taskCommitMeta struct {
+	Title            string
+	Class            string
+	Deliverables     []string
+	LatestBreadcrumb string
+	FailureType      string
+}
+
+// commitAfterIteration commits changes after a task iteration completes or
+// fails. It respects the git config flags: auto_commit (master switch),
+// commit_on_success, commit_on_failure, and commit_state.
+//
+// kind is "success" or "failure". attemptNum is used in failure commit
+// messages to indicate which attempt just finished. meta provides task
+// metadata for enriched commit messages.
+func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string, kind string, attemptNum int, gitCfg config.GitConfig, meta taskCommitMeta) {
+	if !gitCfg.AutoCommit {
+		_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "auto_commit disabled"})
+		return
+	}
+
+	switch kind {
+	case "success":
+		if !gitCfg.CommitOnSuccess {
+			_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "commit_on_success disabled"})
+			return
+		}
+	case "failure":
+		if !gitCfg.CommitOnFailure {
+			_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "commit_on_failure disabled"})
+			return
+		}
+	}
+
 	// Validate task ID format before embedding in a commit message.
 	if !validTaskIDPattern.MatchString(taskID) {
-		_ = logger.Log(map[string]any{"type": "auto_commit_skip", "task": taskID, "reason": "invalid task ID format"})
+		_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "invalid task ID format"})
 		return
 	}
 
@@ -561,41 +608,170 @@ func autoCommitPartialWork(repoDir string, logger *logging.Logger, taskID string
 		return // no changes or git unavailable
 	}
 
-	// Stage tracked files (git add -u) plus .wolfcastle/ state.
-	// git add -u stages modified tracked files without picking up
-	// untracked files like .env. The separate git add .wolfcastle/
-	// stages project state alongside code changes; the .wolfcastle/
-	// .gitignore controls what's trackable (projects, docs, custom
-	// config, archive) vs. what stays out (base config, local config,
-	// logs, locks, PID files).
-	addCmd := exec.Command("git", "add", "-u")
-	addCmd.Dir = repoDir
-	if err := addCmd.Run(); err != nil {
-		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
-		return
-	}
-	addStateCmd := exec.Command("git", "add", ".wolfcastle/")
-	addStateCmd.Dir = repoDir
-	_ = addStateCmd.Run() // best-effort; .wolfcastle/ may not exist
+	// Build subject line from prefix and title (or taskID as fallback).
+	subject := buildCommitSubject(gitCfg.CommitPrefix, meta.Title, taskID, kind, attemptNum)
 
-	msg := fmt.Sprintf("wolfcastle: auto-commit partial work [%s]", taskID)
-	commitArgs := []string{"commit", "-m", msg}
-	if skipHooks {
+	commitArgs := []string{"commit", "-m", subject}
+
+	// Build body with task metadata when available.
+	if body := buildCommitBody(taskID, meta, kind); body != "" {
+		commitArgs = append(commitArgs, "-m", body)
+	}
+
+	if gitCfg.SkipHooksOnAutoCommit {
 		commitArgs = append(commitArgs, "--no-verify")
 	}
-	commitCmd := exec.Command("git", commitArgs...)
-	commitCmd.Dir = repoDir
-	if err := commitCmd.Run(); err != nil {
-		_ = logger.Log(map[string]any{"type": "auto_commit_error", "task": taskID, "error": err.Error()})
+
+	if err := commitDirect(repoDir, gitCfg, commitArgs); err != nil {
+		_ = logger.Log(map[string]any{"type": "commit_error", "task": taskID, "error": err.Error()})
 		return
 	}
 
-	_ = logger.Log(map[string]any{"type": "auto_commit", "task": taskID})
+	_ = logger.Log(map[string]any{"type": "auto_commit", "task": taskID, "kind": kind})
+}
+
+// commitStateFlush commits any uncommitted .wolfcastle/ state changes.
+// Called when the daemon goes idle (no tasks, no planning, no archiving)
+// to ensure state from reconciliation or the prior iteration's
+// post-processing is persisted. Does nothing if there are no changes
+// or if auto_commit/commit_state is disabled.
+func commitStateFlush(repoDir string, logger *logging.Logger, gitCfg config.GitConfig) {
+	if !gitCfg.AutoCommit || !gitCfg.CommitState {
+		return
+	}
+
+	// Check for uncommitted .wolfcastle/ changes.
+	statusCmd := exec.Command("git", "status", "--porcelain", ".wolfcastle/")
+	statusCmd.Dir = repoDir
+	out, err := statusCmd.Output()
+	if err != nil || len(strings.TrimSpace(string(out))) == 0 {
+		return
+	}
+
+	commitArgs := []string{"commit", "-m", "wolfcastle: update project state"}
+	if gitCfg.SkipHooksOnAutoCommit {
+		commitArgs = append(commitArgs, "--no-verify")
+	}
+	if err := commitDirect(repoDir, gitCfg, commitArgs); err != nil {
+		_ = logger.Log(map[string]any{"type": "state_flush_error", "error": err.Error()})
+	}
+}
+
+// buildCommitSubject constructs the first line of the commit message.
+// Format: "{prefix}: {title}" for success, "{prefix}: {title} (attempt N)" for failure.
+// When prefix is empty the leading colon is omitted. When title is empty,
+// the taskID is used as a fallback.
+func buildCommitSubject(prefix, title, taskID, kind string, attemptNum int) string {
+	label := title
+	if label == "" {
+		label = taskID
+	}
+	if title == "" {
+		// No title available: use task ID with status suffix.
+		if prefix == "" {
+			if kind == "failure" {
+				return fmt.Sprintf("%s partial (attempt %d)", taskID, attemptNum)
+			}
+			return fmt.Sprintf("%s complete", taskID)
+		}
+		if kind == "failure" {
+			return fmt.Sprintf("%s: %s partial (attempt %d)", prefix, taskID, attemptNum)
+		}
+		return fmt.Sprintf("%s: %s complete", prefix, taskID)
+	}
+
+	var subject string
+	if prefix != "" {
+		subject = fmt.Sprintf("%s: %s", prefix, label)
+	} else {
+		subject = label
+	}
+
+	if kind == "failure" {
+		subject = fmt.Sprintf("%s (attempt %d)", subject, attemptNum)
+	}
+	return subject
+}
+
+// buildCommitBody constructs the commit body with task metadata.
+// Returns an empty string when no metadata is available to include.
+func buildCommitBody(taskID string, meta taskCommitMeta, kind string) string {
+	if meta.Title == "" && meta.Class == "" && len(meta.Deliverables) == 0 && meta.LatestBreadcrumb == "" {
+		return ""
+	}
+
+	var parts []string
+
+	// Task line with class.
+	if meta.Class != "" {
+		parts = append(parts, fmt.Sprintf("Task: %s [%s]", taskID, meta.Class))
+	} else {
+		parts = append(parts, fmt.Sprintf("Task: %s", taskID))
+	}
+
+	// Deliverables.
+	if len(meta.Deliverables) > 0 {
+		parts = append(parts, fmt.Sprintf("Deliverables: %s", strings.Join(meta.Deliverables, ", ")))
+	}
+
+	// Failure type.
+	if kind == "failure" && meta.FailureType != "" {
+		parts = append(parts, fmt.Sprintf("Failure: %s", meta.FailureType))
+	}
+
+	// Breadcrumb gets a blank line separator.
+	if meta.LatestBreadcrumb != "" {
+		parts = append(parts, "")
+		parts = append(parts, meta.LatestBreadcrumb)
+	}
+
+	return strings.Join(parts, "\n")
+}
+
+// extractTaskCommitMeta pulls commit metadata from the node state for a given task.
+func extractTaskCommitMeta(ns *state.NodeState, taskID string) taskCommitMeta {
+	var meta taskCommitMeta
+	for _, t := range ns.Tasks {
+		if t.ID == taskID {
+			meta.Title = t.Title
+			meta.Class = t.Class
+			meta.Deliverables = t.Deliverables
+			break
+		}
+	}
+	if len(ns.Audit.Breadcrumbs) > 0 {
+		meta.LatestBreadcrumb = ns.Audit.Breadcrumbs[len(ns.Audit.Breadcrumbs)-1].Text
+	}
+	return meta
 }
 
 // autoCompleteDecomposedParents checks if any blocked task in the node was
 // decomposed into subtasks and all those subtasks are now complete. If so,
 // the parent is auto-completed.
+// commitDirect performs git add/commit using the default index.
+func commitDirect(repoDir string, gitCfg config.GitConfig, commitArgs []string) error {
+	// Use "git add ." instead of "git add -u" so new files created by
+	// the agent are included. .gitignore protects sensitive files.
+	addCmd := exec.Command("git", "add", ".")
+	addCmd.Dir = repoDir
+	if err := addCmd.Run(); err != nil {
+		return fmt.Errorf("git add .: %w", err)
+	}
+	// When commit_state is disabled, unstage .wolfcastle/ so state
+	// files are excluded from the commit.
+	if !gitCfg.CommitState {
+		resetCmd := exec.Command("git", "reset", "HEAD", "--", ".wolfcastle/")
+		resetCmd.Dir = repoDir
+		_ = resetCmd.Run()
+	}
+	commitCmd := exec.Command("git", commitArgs...)
+	commitCmd.Dir = repoDir
+	if err := commitCmd.Run(); err != nil {
+		return fmt.Errorf("git commit: %w", err)
+	}
+	return nil
+}
+
 func (d *Daemon) autoCompleteDecomposedParents(nodeAddr string) {
 	ns, err := d.Store.ReadNode(nodeAddr)
 	if err != nil {

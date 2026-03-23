@@ -1,8 +1,10 @@
 package pipeline_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -67,6 +69,267 @@ func TestPromptRepository_Resolve_InvalidTemplateErrors(t *testing.T) {
 	}
 	if !strings.HasPrefix(err.Error(), "prompts:") {
 		t.Errorf("expected error prefixed with 'prompts:', got: %v", err)
+	}
+}
+
+func TestPromptRepository_ResolveTemplate(t *testing.T) {
+	t.Parallel()
+
+	type adrData struct {
+		Title string
+		Date  string
+	}
+
+	tests := []struct {
+		name      string
+		tmplFile  string // filename to register with WithTemplate
+		tmplBody  string // content of the template file
+		resolve   string // name passed to ResolveTemplate
+		ctx       any
+		want      string
+		wantErr   bool
+		errPrefix string
+		errTarget error // checked with errors.Is when non-nil
+	}{
+		{
+			name:     "base tier resolution with nil ctx returns raw",
+			tmplFile: "artifacts/adr.md.tmpl",
+			tmplBody: "# ADR: static content",
+			resolve:  "artifacts/adr.md",
+			ctx:      nil,
+			want:     "# ADR: static content",
+		},
+		{
+			name:     "template execution with typed context",
+			tmplFile: "artifacts/adr.md.tmpl",
+			tmplBody: "# {{.Title}}\nDate: {{.Date}}",
+			resolve:  "artifacts/adr.md",
+			ctx:      adrData{Title: "Use PostgreSQL", Date: "2026-03-22"},
+			want:     "# Use PostgreSQL\nDate: 2026-03-22",
+		},
+		{
+			name:      "missing template returns wrapped os.ErrNotExist",
+			resolve:   "nonexistent",
+			ctx:       nil,
+			wantErr:   true,
+			errPrefix: "templates:",
+			errTarget: os.ErrNotExist,
+		},
+		{
+			name:      "malformed template returns parse error",
+			tmplFile:  "broken.tmpl",
+			tmplBody:  "Hello, {{.Name",
+			resolve:   "broken",
+			ctx:       map[string]string{"Name": "Alice"},
+			wantErr:   true,
+			errPrefix: "templates:",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			env := testutil.NewEnvironment(t)
+			if tt.tmplFile != "" {
+				env = env.WithTemplate(tt.tmplFile, tt.tmplBody)
+			}
+
+			repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+			got, err := repo.ResolveTemplate(tt.resolve, tt.ctx)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.errPrefix != "" && !strings.HasPrefix(err.Error(), tt.errPrefix) {
+					t.Errorf("expected error prefixed with %q, got: %v", tt.errPrefix, err)
+				}
+				if tt.errTarget != nil && !errors.Is(err, tt.errTarget) {
+					t.Errorf("expected errors.Is(%v), got: %v", tt.errTarget, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ResolveTemplate() unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPromptRepository_ResolveTemplate_TierOverride(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithTemplate("artifacts/spec.md.tmpl", "base: {{.Title}}")
+
+	// Write custom tier override.
+	tierDirs := env.Tiers.TierDirs()
+	customDir := filepath.Join(tierDirs[1], "artifacts")
+	if err := os.MkdirAll(customDir, 0o755); err != nil {
+		t.Fatalf("creating custom dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(customDir, "spec.md.tmpl"), []byte("custom: {{.Title}}"), 0o644); err != nil {
+		t.Fatalf("writing custom template: %v", err)
+	}
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	got, err := repo.ResolveTemplate("artifacts/spec.md", struct{ Title string }{"My Spec"})
+	if err != nil {
+		t.Fatalf("ResolveTemplate() error: %v", err)
+	}
+	if got != "custom: My Spec" {
+		t.Errorf("expected custom to override base, got %q", got)
+	}
+}
+
+func TestPromptRepository_RenderToFile(t *testing.T) {
+	t.Parallel()
+
+	type specData struct {
+		Title string
+		Body  string
+	}
+
+	tests := []struct {
+		name       string
+		tmplFile   string
+		tmplBody   string
+		resolve    string
+		ctx        any
+		destSuffix string // appended to t.TempDir()
+		want       string
+		wantErr    bool
+		errPrefix  string
+	}{
+		{
+			name:       "writes executed template to new path",
+			tmplFile:   "artifacts/spec.md.tmpl",
+			tmplBody:   "# {{.Title}}\n\n{{.Body}}",
+			resolve:    "artifacts/spec.md",
+			ctx:        specData{Title: "Auth Flow", Body: "Details here."},
+			destSuffix: "output/spec.md",
+			want:       "# Auth Flow\n\nDetails here.",
+		},
+		{
+			name:       "creates nested parent directories",
+			tmplFile:   "simple.tmpl",
+			tmplBody:   "hello",
+			resolve:    "simple",
+			ctx:        nil,
+			destSuffix: "a/b/c/out.txt",
+			want:       "hello",
+		},
+		{
+			name:       "nil ctx writes raw content without parsing",
+			tmplFile:   "static.tmpl",
+			tmplBody:   "raw content with {{ braces }}",
+			resolve:    "static",
+			ctx:        nil,
+			destSuffix: "out.txt",
+			want:       "raw content with {{ braces }}",
+		},
+		{
+			name:       "missing template error propagates",
+			resolve:    "nonexistent",
+			ctx:        nil,
+			destSuffix: "out.txt",
+			wantErr:    true,
+			errPrefix:  "templates:",
+		},
+		{
+			name:       "template execution error propagates",
+			tmplFile:   "bad-exec.tmpl",
+			tmplBody:   "{{.MissingMethod}}",
+			resolve:    "bad-exec",
+			ctx:        struct{}{},
+			destSuffix: "out.txt",
+			wantErr:    true,
+			errPrefix:  "templates:",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			env := testutil.NewEnvironment(t)
+			if tt.tmplFile != "" {
+				env = env.WithTemplate(tt.tmplFile, tt.tmplBody)
+			}
+
+			repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+			dest := filepath.Join(t.TempDir(), tt.destSuffix)
+			err := repo.RenderToFile(tt.resolve, tt.ctx, dest)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.errPrefix != "" && !strings.HasPrefix(err.Error(), tt.errPrefix) {
+					t.Errorf("expected error prefixed with %q, got: %v", tt.errPrefix, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("RenderToFile() unexpected error: %v", err)
+			}
+
+			got, err := os.ReadFile(dest)
+			if err != nil {
+				t.Fatalf("reading output: %v", err)
+			}
+			if string(got) != tt.want {
+				t.Errorf("got %q, want %q", string(got), tt.want)
+			}
+		})
+	}
+}
+
+func TestPromptRepository_RenderToFile_FilePermissions(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithTemplate("perm.tmpl", "check permissions")
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+	dest := filepath.Join(t.TempDir(), "perm-check.txt")
+	if err := repo.RenderToFile("perm", nil, dest); err != nil {
+		t.Fatalf("RenderToFile() error: %v", err)
+	}
+
+	info, err := os.Stat(dest)
+	if err != nil {
+		t.Fatalf("stat output: %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o644 {
+		t.Errorf("expected permissions 0644, got %04o", perm)
+	}
+}
+
+func TestPromptRepository_RenderToFile_WritePermissionError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission test not reliable on Windows")
+	}
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithTemplate("writable.tmpl", "content")
+
+	repo := pipeline.NewPromptRepositoryWithTiers(env.Tiers)
+
+	// Create a read-only directory so WriteFile fails.
+	readonlyDir := filepath.Join(t.TempDir(), "readonly")
+	if err := os.MkdirAll(readonlyDir, 0o555); err != nil {
+		t.Fatalf("creating readonly dir: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(readonlyDir, 0o755) })
+
+	dest := filepath.Join(readonlyDir, "out.txt")
+	err := repo.RenderToFile("writable", nil, dest)
+	if err == nil {
+		t.Fatal("expected write permission error, got nil")
+	}
+	if !errors.Is(err, os.ErrPermission) {
+		t.Errorf("expected errors.Is(os.ErrPermission), got: %v", err)
 	}
 }
 

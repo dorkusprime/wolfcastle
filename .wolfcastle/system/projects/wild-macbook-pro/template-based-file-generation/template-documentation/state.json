@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "template-documentation",
+  "name": "Template Documentation",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Document template override mechanism in configuration.md",
+      "description": "Document template override mechanism in configuration.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/configuration.md"
+      ],
+      "body": "Add a section to docs/humans/configuration.md explaining how users can override generated file templates. Cover: where default templates live (internal/project/templates/), how to override by placing .tmpl files in system/custom/templates/ or system/local/templates/, the three-tier resolution order (base \u003c custom \u003c local), available templates and their variables (ADR, spec, scaffold READMEs, gitignore, task markdown). Include an example showing how to customize the ADR format by adding a Supersedes section.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Template override mechanism is documented with examples",
+        "All overridable templates are listed with their variables",
+        "Three-tier resolution order is explained"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update CLI docs and CONTRIBUTING.md",
+      "description": "Update CLI docs and CONTRIBUTING.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "CONTRIBUTING.md"
+      ],
+      "body": "Update docs/humans/cli/adr-create.md (if it exists, or the relevant CLI doc) to mention that the ADR output format is customizable via templates. Update spec-create docs similarly. Update CONTRIBUTING.md to add guidance in the 'Adding a CLI Command' section (or equivalent) about using templates for commands that generate files: use RenderToFile, create a .tmpl file under templates/, define a typed context struct, and add a snapshot test.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "CONTRIBUTING.md mentions templates for file-generating commands",
+        "CLI docs mention template customization where applicable"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Template Documentation is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0,
+      "class": "audit"
+    }
+  ],
+  "audit_enrichment": [
+    "Verify docs include concrete examples of template override, not just abstract descriptions"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:01:17.29199Z",
+        "task": "template-based-file-generation/template-documentation",
+        "text": "Added Template Overrides section to docs/humans/configuration.md. Covers artifact templates (ADR, spec, task, audit-task) with their tier paths and template variables, scaffold templates and why they aren't overridable, three-tier resolution order, and a worked example showing ADR customization with a Supersedes section."
+      },
+      {
+        "timestamp": "2026-03-22T23:04:00.09321Z",
+        "task": "template-based-file-generation/template-documentation",
+        "text": "Updated adr-create.md, spec-create.md, and CONTRIBUTING.md. CLI docs now have a Template Customization section linking to configuration.md. CONTRIBUTING.md explains the template workflow (tmpl file, context struct, RenderToFile, snapshot test) for file-generating commands."
+      },
+      {
+        "timestamp": "2026-03-22T23:06:36.284248Z",
+        "task": "template-based-file-generation/template-documentation",
+        "text": "Audit reviewed 4 files: docs/humans/configuration.md (Template Overrides section, lines 314-398), docs/humans/cli/adr-create.md (Template Customization section), docs/humans/cli/spec-create.md (Template Customization section), CONTRIBUTING.md (file-generating command guidance). PASS. Verified all template variable inventories against internal/pipeline/template_data.go structs — exact match for ADR, Spec, Task, and audit-task types. Verified PromptRepository.ResolveTemplate and RenderToFile references against repository.go signatures. All cross-references between CLI docs and configuration.md resolve correctly. One accepted finding: AuditTaskData struct has a NodeName field but docs say 'None (static content)' — accurate because the template is rendered with nil data (project_create.go:44). cmd test failure and gofmt violations are pre-existing, unrelated to this node's documentation-only changes."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T22:57:41.825491Z",
+    "completed_at": "2026-03-22T23:06:49.476683Z",
+    "result_summary": "Documented the template override mechanism across four files. configuration.md gained a Template Overrides subsection covering artifact templates (ADR, spec, task, audit-task) with their tier paths, Go template variables, resolution semantics, scaffold template limitations, and a worked ADR customization example. adr-create.md and spec-create.md each gained a Template Customization section linking back to the authoritative reference in configuration.md. CONTRIBUTING.md's 'Adding a CLI Command' section was extended with a four-step workflow for file-generating commands: create a .tmpl, define a typed context struct, render via RenderToFile, add a snapshot test. All variable inventories verified against source (template_data.go), all API references verified against implementation (repository.go), all cross-references resolve correctly."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T23:01:27.65545Z",
+      "objective": "Document the template override mechanism in configuration.md so users know how to customize generated artifacts.",
+      "what_happened": "Added a Template Overrides subsection under Common Customizations in docs/humans/configuration.md. Covers artifact templates (ADR, spec, task, audit-task) with exact tier paths and Go template variables, explains scaffold templates and why they are not overridable through tiers, and includes a worked example adding a Supersedes section to the ADR template. Verified all variable names against internal/pipeline/template_data.go and the actual .tmpl files.",
+      "went_well": [
+        "Template variable inventory is accurate against source code, not guessed from task description",
+        "Distinguished artifact templates (overridable at runtime) from scaffold templates (one-time init, not tier-resolved) to prevent user confusion"
+      ],
+      "improvements": [
+        "The task description mentioned system/custom/templates/ as the override path, but actual tier paths have no templates/ subdirectory. Documented the real paths."
+      ],
+      "action_items": [
+        "If a template list command is added later (wolfcastle template list), link to it from this section"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T23:03:59.010364Z",
+      "objective": "Update CLI docs and CONTRIBUTING.md to document template customization for file-generating commands",
+      "what_happened": "Added a Template Customization section to both adr-create.md and spec-create.md CLI docs, each linking back to the Template Overrides section in configuration.md. Extended CONTRIBUTING.md's Adding a CLI Command section with four-step guidance for commands that generate files: create a .tmpl, define a typed context struct, render via RenderToFile, add a snapshot test.",
+      "went_well": [
+        "Cross-referenced configuration.md rather than duplicating template variable tables, keeping a single source of truth",
+        "Verified template_data.go exists and RenderToFile signature before referencing them in docs"
+      ],
+      "improvements": [
+        "Could have also updated task-add.md since task add also uses the template system, but the task description only called out adr-create and spec-create"
+      ],
+      "action_items": [
+        "If task-add CLI docs are updated later, add a similar Template Customization section pointing to configuration.md"
+      ]
+    }
+  }
+}

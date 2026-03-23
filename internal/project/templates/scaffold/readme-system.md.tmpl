@@ -1,0 +1,26 @@
+# system
+
+Configuration and state, organized into three tiers.
+
+## The three tiers
+
+**base/** -- Defaults. Wolfcastle writes these. You don't edit them. Every
+`wolfcastle init --force` regenerates this tier from scratch. Prompt
+templates, default config, audit definitions. All machine-generated, all
+disposable.
+
+**custom/** -- Team overrides. Checked into version control. This is where your
+team sets model preferences, pipeline stages, and any config that should travel
+with the repo. Custom overrides base.
+
+**local/** -- Your machine. Gitignored. Identity, local model endpoints,
+anything specific to this workstation. Local overrides everything.
+
+A field set in local beats custom. Custom beats base. Set a field to `null` in
+a higher tier to delete it entirely.
+
+## Other directories
+
+- **projects/** -- Active project trees. Each namespace (user+machine) gets its
+  own directory with a state.json index.
+- **logs/** -- Daemon execution logs. Gitignored.

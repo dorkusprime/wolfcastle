@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "id": "consolidate-daemon-foreground-output",
+  "name": "Consolidate Daemon Foreground Output",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Wire wolfcastle start foreground to InterleavedRenderer",
+      "description": "Wire wolfcastle start foreground to InterleavedRenderer",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/daemon/start.go"
+      ],
+      "body": "When wolfcastle start runs in foreground mode (no -d flag), it currently relies on Logger.writeConsole() to produce human-readable output on stderr. Instead, adopt the same pattern used by cmd/execute.go and cmd/intake.go:\n\n1. Set Logger.Console to io.Discard (disable writeConsole)\n2. Spawn a FollowReader goroutine that tails the log directory\n3. Feed records through NewInterleavedRenderer(os.Stdout)\n4. Cancel the renderer context when the daemon loop exits\n\nReference: cmd/execute.go lines 62-86 shows the pattern. The start command is in cmd/daemon/start.go around line 147 (foreground path).\n\nThis ensures the same rendering code path is used by wolfcastle start, wolfcastle execute, wolfcastle intake, and wolfcastle log --interleaved."
+    },
+    {
+      "id": "task-0002",
+      "title": "Remove duplicate console formatting from Logger",
+      "description": "Remove duplicate console formatting from Logger",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logging/logger.go",
+        "internal/daemon/daemon.go"
+      ],
+      "body": "With all foreground modes now using InterleavedRenderer, the Logger's writeConsole() method, consoleMessages map, and consoleSuppress map are dead code. Remove them:\n\n- internal/logging/logger.go: Delete writeConsole() (lines 199-244), consoleMessages (lines 189-194), consoleSuppress (lines 180-185)\n- internal/logging/logger.go: Remove the console-mirroring block from Log() (lines 170-173) if Console is always io.Discard in foreground mode. If Logger.Console is still used for background daemon log file output, keep the Log() path but remove the human formatting.\n- internal/daemon/daemon.go: Remove PrintHuman calls that duplicate renderer output (line 118 warning about missing class prompts, lines 144-149 self-heal messages). If these messages carry information the renderer wouldn't show (they aren't stage events), consider whether they should become proper NDJSON records that the interleaved renderer can display, or whether they should remain as one-off PrintHuman calls. Use judgment: PrintHuman is acceptable for one-time startup diagnostics that happen before the renderer goroutine is running.\n- internal/daemon/iteration.go: Evaluate the PrintHuman at line 196 (superseded block message). Same judgment call.\n\nBe careful not to remove output that serves a purpose the renderer can't fulfill (e.g., early startup messages before log files exist)."
+    },
+    {
+      "id": "task-0003",
+      "title": "Verify consolidated foreground output",
+      "description": "Verify consolidated foreground output",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logging/logger.go"
+      ],
+      "body": "Run the full test suite to confirm nothing is broken by the consolidation:\n\ngo test ./internal/logging/... -v\ngo test ./internal/daemon/... -v  \ngo test ./cmd/... -v\n\nIf Logger tests assert writeConsole behavior that was removed, update or delete those tests. Confirm that wolfcastle start (foreground), wolfcastle execute, and wolfcastle intake all produce consistent interleaved output through the shared renderer path."
+    },
+    {
+      "id": "audit.0001",
+      "description": "Fix: Logger.Console and Logger.ConsoleLevel fields are now dead: set by cmd/ code but never read within Logger. Should be removed along with io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go, and NewLogger defaults.\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output gap-consolidate-daemon-foreground-output-1",
+      "state": "complete",
+      "failure_count": 0
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Consolidate Daemon Foreground Output is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify Logger.writeConsole is removed or disabled, and no foreground codepath calls it",
+    "Verify cmd/daemon/start.go foreground path spawns InterleavedRenderer goroutine matching the pattern in cmd/execute.go"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T18:31:07.75956Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "text": "Wired foreground start to InterleavedRenderer: silenced console loggers, added FollowReader+renderer goroutine, added signal.NotifyContext for clean shutdown"
+      },
+      {
+        "timestamp": "2026-03-22T18:37:25.756294Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "text": "Removed dead console formatting: writeConsole(), consoleMessages, consoleSuppress, and Log() mirroring block. Deleted logger_writeconsole_test.go, pruned 8 console-output tests across 2 files. PrintHuman calls in daemon.go/iteration.go kept as startup diagnostics."
+      },
+      {
+        "timestamp": "2026-03-22T18:39:23.272695Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "text": "Verified full test suite (29 packages, 0 failures). Confirmed start/execute/intake all use identical FollowReader+InterleavedRenderer pipeline. Dead console code fully removed. Coverage 93.4%."
+      },
+      {
+        "timestamp": "2026-03-22T18:41:14.074854Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "text": "Audit reviewed 4 changed files (cmd/daemon/start.go, internal/logging/logger.go, logger_test.go, logger_deep_coverage_test.go) plus deleted logger_writeconsole_test.go. PASS. Five findings: (1) Dead Logger.Console and ConsoleLevel fields left on struct — accepted, all three AARs documented this as deliberate to avoid breaking callers, follow-up tracked. (2) Stale package doc comment in logger.go still referenced console output filtering — fixed directly and committed. (3) 14 logger.Console=nil lines in tests now suppress nothing — pre-existing pattern, harmless. (4) daemon.go sets ConsoleLevel from config but field is never read — consequence of accepted dead-field decision. (5) Renderer setup duplicated across start.go/execute.go/intake.go — documented design choice, three instances is acceptable. Quality: clean, minimal work that achieves the consolidation goal. The signal handling and goroutine lifecycle in start.go are correct. Test suite passes fully."
+      },
+      {
+        "timestamp": "2026-03-22T18:44:52.230964Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "text": "Removed dead Logger.Console and Logger.ConsoleLevel fields from struct, NewLogger defaults, io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go, ConsoleLevel assignments in daemon.go, and logger.Console=nil lines across 4 test files. All 29 packages pass, logging coverage 93.4%."
+      },
+      {
+        "timestamp": "2026-03-22T18:46:24.668127Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "text": "Final audit of completed node. Reviewed logger.go (408 lines), start.go (275 lines), plus execute.go and intake.go renderer patterns. PASS. All dead console code fully excised: no Console, ConsoleLevel, writeConsole, consoleMessages, or consoleSuppress references in Go source. All three foreground commands use identical FollowReader+InterleavedRenderer pattern. One formatting fix: stray blank lines in logger_coverage_test.go and logger_test.go from prior field-removal edits, committed. Build clean, go vet clean, all 29 packages pass. No open gaps, no open escalations. Quality: clean, well-executed consolidation across five tasks with thorough self-documentation in AARs."
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-consolidate-daemon-foreground-output-1",
+        "timestamp": "2026-03-22T18:37:30.353508Z",
+        "description": "Logger.Console and Logger.ConsoleLevel fields are now dead: set by cmd/ code but never read within Logger. Should be removed along with io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go, and NewLogger defaults.",
+        "source": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "status": "fixed",
+        "fixed_by": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
+        "fixed_at": "2026-03-22T18:44:50.133559Z"
+      }
+    ],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T18:29:24.117608Z",
+    "completed_at": "2026-03-22T18:46:45.752452Z",
+    "result_summary": "Consolidated all daemon foreground output through a single InterleavedRenderer pipeline. The wolfcastle start foreground path now uses FollowReader+InterleavedRenderer to tail NDJSON logs and render to stdout, matching the pattern already used by execute and intake commands. All dead console formatting code was removed from the logging package (writeConsole, consoleMessages, consoleSuppress, the Log() mirroring block), along with the now-unused Logger.Console and Logger.ConsoleLevel struct fields and their io.Discard assignments across cmd/. The stale package doc comment was updated to reflect the new architecture. Full test suite passes across all 29 packages with logging coverage at 93.4%."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T18:46:32.130953Z",
+      "objective": "Verify all work in Consolidate Daemon Foreground Output is complete and correct",
+      "what_happened": "Read all modified files (logger.go, start.go, execute.go, intake.go, test files). Searched for residual dead code references. Ran build, vet, full test suite. Found and fixed stray blank lines in two test files left by the field-removal commit. Confirmed Console/ConsoleLevel fields fully excised, renderer pattern consistent across all three foreground commands.",
+      "went_well": [
+        "Prior tasks and audit left the codebase very clean; only formatting nits remained",
+        "All five AARs consistently flagged the same follow-up (dead fields), showing good cross-task awareness"
+      ],
+      "improvements": [
+        "The formatting nits should have been caught by gofmt before the prior commits"
+      ],
+      "action_items": [
+        "No further action needed for this node"
+      ]
+    },
+    "audit.0001": {
+      "task_id": "audit.0001",
+      "timestamp": "2026-03-22T18:45:02.492108Z",
+      "objective": "Remove dead Logger.Console and Logger.ConsoleLevel fields plus all code that sets them",
+      "what_happened": "Removed Console (io.Writer) and ConsoleLevel (Level) from the Logger struct and NewLogger defaults in logger.go. Removed io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go. Removed ConsoleLevel assignments in internal/daemon/daemon.go. Removed TestNew_LogLevelFromConfig from coverage_test.go (tested the now-deleted field). Removed 17 logger.Console=nil lines across 4 test files.",
+      "went_well": [
+        "Straightforward mechanical removal with zero collateral damage; build and all 29 packages pass on first try",
+        "Coverage holds steady at 93.4% despite removing the LogLevelFromConfig test, since that test only exercised dead field assignment"
+      ],
+      "improvements": [
+        "Could have been done in the same commit as the console formatting removal (task-0002) rather than leaving the fields alive for a follow-up"
+      ],
+      "action_items": [
+        "No further action needed for Console/ConsoleLevel; the fields are fully excised"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T18:31:02.035157Z",
+      "objective": "Wire wolfcastle start foreground mode to the InterleavedRenderer pipeline so all foreground commands share a single rendering code path",
+      "what_happened": "Modified cmd/daemon/start.go: silenced Logger.Console and InboxLogger.Console with io.Discard, added signal.NotifyContext for clean Ctrl-C handling, spawned a FollowReader+InterleavedRenderer goroutine that tails the log directory and streams formatted output to stdout. The pattern mirrors cmd/execute.go and cmd/intake.go exactly.",
+      "went_well": [
+        "The change was minimal (one file, ~25 lines added) and required no new types or interfaces",
+        "All existing daemon tests pass without modification, confirming the Logger.Console swap doesn't break anything"
+      ],
+      "improvements": [
+        "The three commands (start, execute, intake) now have near-identical renderer setup blocks; a shared helper could reduce duplication, but that's a separate concern"
+      ],
+      "action_items": [
+        "Consider extracting a startRendererGoroutine helper if a fourth command needs the same pattern"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T18:37:21.208951Z",
+      "objective": "Remove dead console formatting code from Logger now that all foreground modes use InterleavedRenderer",
+      "what_happened": "Removed writeConsole(), consoleMessages map, consoleSuppress map, and the console-mirroring block from Log() in logger.go. Deleted logger_writeconsole_test.go entirely. Removed console-output tests from logger_test.go (5 tests) and logger_deep_coverage_test.go (3 tests). Updated TestFullLifecycle to drop console buffer assertions. Evaluated PrintHuman calls in daemon.go and iteration.go: all are startup diagnostics or rare one-offs that happen before or independently of the renderer, so they remain.",
+      "went_well": [
+        "Clean removal with no collateral damage; all 29 packages pass, logging coverage stays at 93.4%",
+        "The Console and ConsoleLevel fields survive on Logger struct so external code that sets them (cmd/daemon/start.go, cmd/execute.go, cmd/intake.go, tests) doesn't break"
+      ],
+      "improvements": [
+        "The Console and ConsoleLevel fields are now dead on Logger: set externally but never read. A follow-up should remove them and the io.Discard assignments in cmd/"
+      ],
+      "action_items": [
+        "Remove Logger.Console and Logger.ConsoleLevel fields, plus the io.Discard assignments in cmd/daemon/start.go, cmd/execute.go, cmd/intake.go"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T18:39:21.201278Z",
+      "objective": "Verify the consolidated foreground output works correctly across the full test suite",
+      "what_happened": "Ran go test ./... across all 29 packages: zero failures. Confirmed all three foreground commands (start, execute, intake) use identical FollowReader+InterleavedRenderer pattern writing to os.Stdout. Verified writeConsole/consoleMessages/consoleSuppress are fully removed from logging package. Coverage holds at 93.4%.",
+      "went_well": [
+        "No test breakage from the consolidation; the prior two tasks left the suite clean",
+        "The three foreground commands share an identical rendering pattern, confirming consistent output"
+      ],
+      "improvements": [
+        "The duplicated renderer setup blocks across start.go, execute.go, and intake.go could be extracted into a shared helper"
+      ],
+      "action_items": [
+        "Remove dead Logger.Console and Logger.ConsoleLevel fields plus io.Discard assignments in cmd/"
+      ]
+    }
+  }
+}

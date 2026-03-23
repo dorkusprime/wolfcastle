@@ -104,6 +104,12 @@ If the review task blocks, `handleSpecReviewBlocked()` feeds the blocked reason 
 
 Each completed task records an AAR on its parent node's state (`NodeState.AARs`, keyed by task ID). The AAR struct captures objective, what happened, what went well, improvements, and action items. AARs replace terse breadcrumbs as the primary audit input for gap detection, giving auditors a structured narrative of what each task accomplished and what doubts remain. The `AddAAR` mutation in `internal/state/mutations.go` handles storage.
 
+## Codebase Knowledge Injection
+
+The `ContextBuilder` reads the codebase knowledge file for the current engineer namespace (`.wolfcastle/docs/knowledge/<namespace>.md`) and injects it into the iteration context under a `## Codebase Knowledge` heading. It appears after class guidance and before AARs. The file is read fresh every iteration (not cached), so entries added by one task are immediately visible to the next.
+
+Knowledge files accumulate informal codebase observations that don't belong in ADRs (design decisions) or specs (contracts): build environment quirks, undocumented conventions, intentional-looking oddities, and cross-module dependencies that aren't obvious from the code. If no knowledge file exists for the namespace, the section is omitted from the context. See the `knowledge` commands in `cmd/knowledge/` and the `internal/knowledge/` package for the implementation.
+
 ## Terminal Markers (ADR-067)
 
 The model signals iteration completion via stdout markers. These are the only markers the daemon parses:

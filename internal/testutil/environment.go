@@ -372,6 +372,17 @@ func (e *Environment) WithPrompt(relPath string, content string) *Environment {
 	return e
 }
 
+// WithTemplate writes a template file to system/base/<relPath> and
+// returns the Environment for chaining. The relPath should include the
+// full tier-relative path (e.g. "artifacts/adr.md.tmpl").
+func (e *Environment) WithTemplate(relPath string, content string) *Environment {
+	e.t.Helper()
+	if err := e.Tiers.WriteBase(relPath, []byte(content)); err != nil {
+		e.t.Fatalf("writing template %s: %v", relPath, err)
+	}
+	return e
+}
+
 // WithRule writes a rule fragment to system/base/rules/<name> and returns
 // the Environment for chaining.
 func (e *Environment) WithRule(name string, content string) *Environment {

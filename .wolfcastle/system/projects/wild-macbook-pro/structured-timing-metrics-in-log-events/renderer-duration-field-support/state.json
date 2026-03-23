@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "id": "renderer-duration-field-support",
+  "name": "Renderer Duration Field Support",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add DurationMS field to Record struct",
+      "description": "Add DurationMS field to Record struct",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/record.go"
+      ],
+      "body": "In internal/logrender/record.go, add a DurationMS *int64 field to the Record struct with json tag duration_ms. Use a pointer so zero-value (absent field) is distinguishable from an explicit 0. Place the field near the other timing-related fields (after ExitCode is a natural spot).",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Record struct has a DurationMS pointer-to-int64 field with json duration_ms tag",
+        "ParseRecord correctly populates DurationMS from JSON input containing duration_ms"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update renderers to prefer pre-computed duration",
+      "description": "Update renderers to prefer pre-computed duration",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/summary.go",
+        "internal/logrender/interleaved.go"
+      ],
+      "body": "In internal/logrender/summary.go and internal/logrender/interleaved.go, modify the stage_complete and planning_complete handlers: if the record DurationMS is non-nil, convert it to time.Duration and use that instead of computing r.Timestamp.Sub(startTime). If DurationMS is nil, fall back to the existing timestamp-diff logic. This ensures backward compatibility with older log files that lack the field. Apply the same pattern in both Replay and Follow code paths.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Renderers use DurationMS when present in the record",
+        "Renderers fall back to timestamp diff when DurationMS is nil",
+        "Both Replay and Follow code paths are updated"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Add renderer tests for duration_ms consumption",
+      "description": "Add renderer tests for duration_ms consumption",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/summary_test.go",
+        "internal/logrender/record_test.go"
+      ],
+      "body": "Write or extend tests for the summary and interleaved renderers to verify: (1) when a stage_complete record contains duration_ms, the rendered duration matches the pre-computed value (not the timestamp diff), (2) when a stage_complete record lacks duration_ms, the rendered duration is computed from timestamps as before, (3) ParseRecord correctly round-trips a duration_ms field. Use the existing test patterns in internal/logrender/.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Test verifies pre-computed duration_ms is used when present",
+        "Test verifies timestamp fallback when duration_ms is absent",
+        "All tests pass"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Renderer Duration Field Support is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0,
+      "class": "audit"
+    }
+  ],
+  "audit_enrichment": [
+    "Verify backward compatibility: renderers must still produce correct output from old log files without duration_ms"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-23T00:14:49.363272Z",
+        "task": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
+        "text": "Added DurationMS *int64 field to Record struct with json:duration_ms tag; added tests for present, zero, and absent cases"
+      },
+      {
+        "timestamp": "2026-03-23T00:18:30.855443Z",
+        "task": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
+        "text": "Wired resolveDuration into all six stage_complete/planning_complete handlers across summary.go and interleaved.go; renderers now prefer DurationMS when present, fall back to timestamp diff when nil"
+      },
+      {
+        "timestamp": "2026-03-23T00:19:56.934116Z",
+        "task": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
+        "text": "task-0003: Verified all DurationMS renderer tests already exist from prior tasks; 11 tests across 4 files cover preference, fallback, and round-trip scenarios; all pass"
+      },
+      {
+        "timestamp": "2026-03-23T00:22:30.119886Z",
+        "task": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
+        "text": "Audit reviewed 8 files (~620 lines of production and test code). PASS. One finding remediated: gofmt alignment violation in record.go introduced when DurationMS field was added to the Record struct (task-0001); fixed during audit. Two findings accepted: (1) no ADR for the DurationMS-over-timestamp preference decision, accepted because the logic is a 7-line unexported helper with clear doc comments and the choice is self-evident; (2) no spec for resolveDuration, accepted for the same reason. No correctness, concurrency, or security issues. Test coverage is thorough: 11 DurationMS-specific tests across 4 files cover preference, fallback, zero-value, and absent scenarios. The resolveDuration helper centralizes duration logic cleanly across 6 call sites in summary.go and interleaved.go. Race detector passed. Build clean. Vet clean."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-23T00:12:55.826991Z",
+    "completed_at": "2026-03-23T00:22:48.054538Z",
+    "result_summary": "Added DurationMS *int64 field to the logrender Record struct for structured timing data, created a resolveDuration helper that prefers pre-computed DurationMS over timestamp subtraction, and wired it into all six completion handlers across summary.go (Replay, Follow) and interleaved.go (Render) for both stage_complete and planning_complete record types. Comprehensive test coverage spans 11 DurationMS-specific tests across duration_test.go, record_test.go, summary_test.go, and interleaved_test.go, verifying preference, fallback, zero-value, and absent-field behavior. Audit found and fixed one gofmt alignment violation; no correctness or concurrency issues."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-23T00:22:43.932206Z",
+      "objective": "Verify all work in the renderer-duration-field-support node is complete and correct",
+      "what_happened": "Reviewed 8 files (~620 lines). Found one gofmt violation in record.go where struct field alignment broke when DurationMS was inserted between pointer and value types. Fixed it during audit. Verified all 6 resolveDuration call sites, all 11 DurationMS tests, build, vet, race detector. Two minor findings (missing ADR and spec for resolveDuration) accepted as the code is self-documenting.",
+      "went_well": [
+        "Prior tasks produced clean, well-factored code with thorough test coverage",
+        "The resolveDuration abstraction is exactly right: simple, tested, used consistently"
+      ],
+      "improvements": [
+        "Task-0001 should have run gofmt after modifying the struct; the alignment drift was a mechanical oversight"
+      ],
+      "action_items": [
+        "None; all work is complete and correct"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-23T00:14:46.398964Z",
+      "objective": "Add a DurationMS *int64 field to the Record struct for duration_ms JSON deserialization",
+      "what_happened": "Added DurationMS *int64 with json:\"duration_ms\" tag to Record in internal/logrender/record.go, placed after ExitCode. Added three test cases in record_test.go covering present, zero-value, and absent duration_ms.",
+      "went_well": [
+        "Pointer semantics naturally distinguish absent from zero, and ParseRecord's two-pass unmarshal handles the new field with no code changes needed"
+      ],
+      "improvements": [
+        "None; this was a minimal struct addition"
+      ],
+      "action_items": [
+        "Downstream tasks should wire DurationMS into renderers that display timing information"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-23T00:18:26.141665Z",
+      "objective": "Update renderers to prefer pre-computed DurationMS over timestamp subtraction",
+      "what_happened": "Added resolveDuration helper in duration.go that checks DurationMS first, falls back to Timestamp.Sub(startTime). Rewired all six completion handlers: stage_complete and planning_complete in summary Replay, summary Follow (handleFollowRecord), and interleaved Render (handleRecord). Also cleaned up the local variable pattern, extracting start-time lookup into t/ok variables before passing to resolveDuration.",
+      "went_well": [
+        "The helper centralizes the duration logic cleanly; six call sites collapsed to one-liners",
+        "Table-driven tests for resolveDuration cover all edge cases: DurationMS present, zero, nil with/without start time"
+      ],
+      "improvements": [
+        "None significant; the change was straightforward"
+      ],
+      "action_items": [
+        "If new record types with duration semantics are added, they should also call resolveDuration rather than computing timestamps inline"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-23T00:19:54.837317Z",
+      "objective": "Add renderer tests verifying duration_ms consumption behavior",
+      "what_happened": "Found that all required tests were already written by task-0001 and task-0002. record_test.go has TestParseRecord_DurationMS covering present/zero/absent round-trip. summary_test.go has four DurationMS tests (Replay, Follow, PlanningDurationMS, NilFallsBack). interleaved_test.go has three DurationMS tests (Stage, Planning, NilFallsBack). duration_test.go has TestResolveDuration with five cases. All 11 DurationMS-related tests pass.",
+      "went_well": [
+        "Prior tasks produced thorough test coverage as part of implementation, leaving nothing for this dedicated test task to add"
+      ],
+      "improvements": [
+        "None; coverage is complete"
+      ],
+      "action_items": [
+        "None; all acceptance criteria are satisfied by existing tests"
+      ]
+    }
+  }
+}

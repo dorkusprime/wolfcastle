@@ -27,6 +27,18 @@ Consult these topic-specific files before making changes in their domain:
 | [Testing](docs/agents/testing.md) | Writing or debugging daemon integration tests, mock model configuration |
 | [Audit](docs/agents/AUDIT.md) | Running a full codebase audit (correctness, style, security, docs, coverage, usability) |
 
+## Codebase Knowledge Files
+
+Each iteration, the daemon injects a codebase knowledge file into your context (after class guidance, before AARs). These are accumulated observations about the codebase: build quirks, undocumented conventions, things that look wrong but are intentional, hidden dependencies between modules. They live in `.wolfcastle/docs/knowledge/` as markdown files, one per engineer namespace.
+
+When you discover something non-obvious about the codebase that isn't captured in the README, specs, or ADRs, record it:
+
+```
+wolfcastle knowledge add "the integration tests require docker compose up before running"
+```
+
+Entries should be concrete, durable, and non-obvious. "The config loader silently drops null values" is a good entry. "I'm working on the auth module" is not. The knowledge file has a token budget (`knowledge.max_tokens`); if the file exceeds it, `knowledge add` will fail and prompt you to prune.
+
 ## Design References
 
 - [Architecture Decision Records](docs/decisions/INDEX.md) (89 ADRs) document every major design choice. Consult these before making architectural decisions.
@@ -40,7 +52,7 @@ Consult these topic-specific files before making changes in their domain:
 3. **Explicit error handling.** Never ignore `os.Remove()` or other cleanup errors. Use `_ = os.Remove()` to mark intentional ignores.
 4. **gofmt before committing.** Run `gofmt -w .`. The CI will reject unformatted code.
 5. **Specs track implementation, not aspirations.** If you change behavior, update the corresponding spec. ADRs override specs when there's a conflict.
-6. **Never rebase main.** Use `git pull` (merge), not `git pull --rebase`. Rebasing rewrites commit SHAs, which breaks Codecov and any other service that tracks by commit hash.
+6. **Do not run git commands.** The daemon handles all git operations (add, commit, push). Agents must never run git commands directly.
 7. **`.wolfcastle/system/` is off-limits (ADR-077).** Never write directly to `.wolfcastle/system/`. That directory contains config, state, logs, and prompts managed by the scaffold and daemon. Write model outputs to `.wolfcastle/docs/` (specs, ADRs) and `.wolfcastle/artifacts/` (research) only. Configuration is Go code (`internal/config/`), not JSON files.
 8. **Planning is lazy, archive is lazier.** The daemon executes first (Step 1), plans only when no task is found (Step 2), checks for auto-archive-eligible nodes only when both execute and plan find nothing (Step 3), and idles only when all three fail (Step 4). Orchestrators get planned right before their subtree needs work, not before.
 9. **selfHeal derives parents.** On startup, `selfHeal` resets stale in_progress tasks and derives parent task status from children for any parent whose state disagrees with what its children say.

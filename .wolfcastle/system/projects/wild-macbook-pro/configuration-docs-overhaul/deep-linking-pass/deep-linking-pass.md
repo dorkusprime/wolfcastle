@@ -1,0 +1,3 @@
+# Deep-Linking Pass
+
+Review every page in docs/humans/ and the README for configuration references that should now link to specific sections in the new config pages. Update how-it-works.md (models, stages, pipeline links), audits.md (audit scope config links), failure-and-recovery.md (configurable thresholds links), collaboration.md (git config links), CLI pages in docs/humans/cli/ (config-show, config-set, config-unset, config-append, config-remove, task-add), and the README Configuration section. Any mention of three tiers, base/custom/local, config.json, or specific config field names should link to the appropriate new page and section.

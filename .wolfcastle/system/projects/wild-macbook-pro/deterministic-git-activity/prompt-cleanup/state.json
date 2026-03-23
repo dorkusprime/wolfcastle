@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "prompt-cleanup",
+  "name": "Prompt Cleanup",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Remove Phase H and git instructions from execute.md",
+      "description": "Remove Phase H and git instructions from execute.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        ".wolfcastle/system/base/prompts/stages/execute.md"
+      ],
+      "body": "Edit .wolfcastle/system/base/prompts/stages/execute.md to:\n\n1. Remove Phase H (Commit) entirely (lines 151-158). This section instructs the agent to run git add -u, git add .wolfcastle/, and git commit.\n2. Search for and remove any other git-related instructions in the file (e.g., the git add .wolfcastle/ instruction added in PR #137).\n3. Renumber remaining phases if Phase H was between other lettered phases.\n4. Verify the terminal markers (WOLFCASTLE_COMPLETE, etc.) remain intact. The agent still signals completion; it just doesn't commit.\n\nAfter editing, grep the file for 'git add', 'git commit', 'Phase H' to verify nothing remains.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Zero occurrences of git add",
+        " git commit",
+        " or Phase H in the file",
+        "Terminal markers still present and documented"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Remove git instructions from agent-facing docs",
+      "description": "Remove git instructions from agent-facing docs",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "AGENTS.md",
+        "docs/agents/daemon.md",
+        "docs/agents/AUDIT.md",
+        "docs/agents/code-standards.md"
+      ],
+      "body": "Review and update all agent-facing documentation to remove any guidance telling agents to run git commands:\n\nFiles to review:\n- AGENTS.md (repository root)\n- docs/agents/README.md\n- docs/agents/daemon.md\n- docs/agents/commands.md\n- docs/agents/code-standards.md\n- docs/agents/architecture.md\n- docs/agents/state-and-types.md\n- All other files in docs/agents/\n\nFor each file:\n1. Remove any instructions telling agents to run git add, git commit, or other git commands\n2. Add a brief note where appropriate that agents should NOT run git commands (the daemon handles all git operations)\n3. Do not over-add warnings; one clear statement per file that mentions git is sufficient\n\nGrep all files in docs/agents/ and AGENTS.md for 'git add', 'git commit', 'git push', 'git checkout' to find all references.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "No agent-facing doc instructs agents to run git commands",
+        "At least one clear statement exists that agents should not run git commands"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Prompt Cleanup is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0,
+      "class": "audit"
+    }
+  ],
+  "audit_enrichment": [
+    "Grep execute.md for git add, git commit, Phase H and confirm zero matches",
+    "Grep docs/agents/ and AGENTS.md for instructions to run git commands"
+  ],
+  "audit": {
+    "scope": {
+      "description": "Verify removal of git instructions from agent-facing prompts and documentation",
+      "files": [
+        "execute.md",
+        "AGENTS.md",
+        "AUDIT.md",
+        "code-standards.md"
+      ],
+      "criteria": [
+        "No instructional git references in agent docs",
+        "Build passes",
+        "Tests pass",
+        "Phase lettering contiguous"
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T20:52:28.764462Z",
+        "task": "deterministic-git-activity/prompt-cleanup",
+        "text": "Removed Phase H (Commit), all git add/commit instructions, and rewrote Boundaries to prohibit agent git usage. Renumbered phases G-I. Updated rules and WOLFCASTLE_COMPLETE docs."
+      },
+      {
+        "timestamp": "2026-03-22T20:53:55.61333Z",
+        "task": "deterministic-git-activity/prompt-cleanup",
+        "text": "Removed git instructions from AGENTS.md, AUDIT.md, and code-standards.md. Replaced with daemon-owns-git guidance. All agent docs now clean of git command instructions."
+      },
+      {
+        "timestamp": "2026-03-22T20:55:57.624699Z",
+        "task": "deterministic-git-activity/prompt-cleanup",
+        "text": "Audit reviewed 4 files (~250 lines of changes across execute.md, AGENTS.md, AUDIT.md, code-standards.md). PASS. Phase lettering in execute.md is contiguous A-I with no gaps. All instructional git references removed from agent docs; only prohibitive references remain (Do NOT lists). Descriptive git references (package names, daemon architecture) correctly preserved. Build clean, all tests pass. One escalation: pre-existing gofmt violations in daemon test files outside this node's scope. Quality: clean, surgical edits. Both tasks identified the correct boundary between instructional and descriptive git references and acted accordingly."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T20:50:54.703178Z",
+    "completed_at": "2026-03-22T20:56:15.737537Z",
+    "result_summary": "Removed all instructional git references from agent-facing prompts and documentation, establishing the daemon as the sole owner of git operations. Task 1 rewrote execute.md: removed the Commit phase, renumbered phases A-I for contiguity, rewrote Boundaries to prohibit agent git usage, and updated rules and terminal marker docs. Task 2 updated AGENTS.md, AUDIT.md, and code-standards.md to replace git command instructions with daemon-owns-git guidance while preserving descriptive references to git packages and daemon architecture. Audit confirmed all changes are correct, build and tests pass, and no instructional git references remain in agent-facing docs."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T20:56:12.170926Z",
+      "objective": "Verify all work in the prompt-cleanup node is complete and correct",
+      "what_happened": "Read all four modified files (execute.md, AGENTS.md, AUDIT.md, code-standards.md). Grepped for remaining instructional git references, finding none outside of prohibitive Do NOT lists. Verified phase lettering A-I is contiguous. Ran build, tests (all pass), and lint (gofmt issue in daemon test files is pre-existing).",
+      "went_well": [
+        "Both tasks correctly distinguished instructional from descriptive git references",
+        "Phase renumbering in execute.md is clean with no gaps or orphaned references"
+      ],
+      "improvements": [
+        "None identified; the edits were surgical and well-scoped"
+      ],
+      "action_items": [
+        "docs/humans/ files still reference the old agent-commits model per task-0002 AAR; tracked as separate work outside this node"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T20:52:23.095645Z",
+      "objective": "Remove git instructions from execute.md so the daemon owns all git operations",
+      "what_happened": "Edited .wolfcastle/system/base/prompts/stages/execute.md: removed Phase H (Commit) entirely, renumbered phases F→G→H→I for contiguity, rewrote Boundaries section to prohibit git commands instead of directing where to commit, removed 'Git progress is the hard gate' line, updated WOLFCASTLE_COMPLETE description to reference daemon committing, replaced 'Commit before signaling completion' rule with 'Never run git commands' rule.",
+      "went_well": [
+        "The only remaining git add/commit mention is in the Do NOT list, which is correct",
+        "Phase lettering is now contiguous A through I with no gaps"
+      ],
+      "improvements": [
+        "The Boundaries section still mentions worktrees; once the daemon fully owns branch management, that guidance may need a second pass"
+      ],
+      "action_items": [
+        "Downstream docs (AGENTS.md, how-it-works.md) still reference agent commits and need updating per the spec"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T20:53:54.272628Z",
+      "objective": "Remove git instructions from agent-facing documentation",
+      "what_happened": "Edited four files: AGENTS.md rule 6 replaced git pull/rebase instruction with a blanket 'do not run git commands' rule. AUDIT.md line 21 changed 'refuses to commit' to 'refuses to proceed'. AUDIT.md rules 3-4 collapsed into one rule removing 'commit as you go' instruction. code-standards.md changed 'before every commit' to 'before signaling completion'. Left descriptive git references intact (architecture package names, test config helpers, documentation.md commit-message context).",
+      "went_well": [
+        "Grep confirmed zero instructional git references remain in agent docs",
+        "Descriptive references to the git package and daemon git config were correctly preserved"
+      ],
+      "improvements": [
+        "The daemon.md file didn't need changes since it already described git as a daemon responsibility, not an agent one"
+      ],
+      "action_items": [
+        "docs/humans/ files still reference the old agent-commits model and need updating per the spec (separate task)"
+      ]
+    }
+  }
+}

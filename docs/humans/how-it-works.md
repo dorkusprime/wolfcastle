@@ -91,7 +91,7 @@ At the start of each daemon iteration, the daemon reconciles every orchestrator'
 
 ## Auto-Archive
 
-When a root-level project completes, the daemon can automatically archive it. Auto-archive runs inline in the main daemon loop ([Architecture Decision Record](../decisions/INDEX.md) ADR-064), after the execute and planning stages find nothing to do. The daemon polls for eligible nodes at a configurable interval, and each completed project must sit idle for a configurable delay (default 24 hours) before archival triggers. One node is archived per poll cycle, generating an archive rollup entry and moving the project tree to archived state. Archived nodes can be restored or permanently deleted via the CLI. The feature is disabled by default; enable it in [configuration](configuration.md):
+When a root-level project completes, the daemon can automatically archive it. Auto-archive runs inline in the main daemon loop ([Architecture Decision Record](../decisions/INDEX.md) ADR-064), after the execute and planning stages find nothing to do. The daemon polls for eligible nodes at a configurable interval, and each completed project must sit idle for a configurable delay (default 24 hours) before archival triggers. One node is archived per poll cycle, generating an archive rollup entry and moving the project tree to archived state. Archived nodes can be restored or permanently deleted via the CLI. The feature is disabled by default; enable it in [configuration](config-reference.md#archive):
 
 ```json
 {
@@ -114,7 +114,7 @@ wolfcastle start --node backend/auth      # scoped to a subtree
 wolfcastle start --worktree feature/auth  # isolated git worktree
 ```
 
-Each iteration walks the [configured pipeline stages](configuration.md#pipelines), invokes [models](configuration.md#models), and advances the tree. Between iterations, it checks for stop signals. On SIGTERM or SIGINT, it finishes the current stage, cleans up child processes, and shuts down. It does not leave a mess.
+Each iteration walks the [configured pipeline stages](configuration.md#pipeline-stages), invokes [models](configuration.md#model-configuration), and advances the tree. Between iterations, it checks for stop signals. On SIGTERM or SIGINT, it finishes the current stage, cleans up child processes, and shuts down. It does not leave a mess.
 
 ### The Pipeline
 
@@ -133,7 +133,7 @@ Stages do not pass output to each other. They read the current state of the worl
 
 ### Execution Protocol
 
-When the execute stage claims a task, the model follows a ten-phase protocol:
+When the execute stage claims a task, the model follows a nine-phase protocol:
 
 1. **Claim** the task.
 2. **Study** the project description, [specs](collaboration.md#specs), [breadcrumbs](audits.md#breadcrumbs), and linked context.
@@ -141,12 +141,31 @@ When the execute stage claims a task, the model follows a ten-phase protocol:
 4. **Validate** by running configured checks (tests, lints, builds).
 5. **Record** [breadcrumbs](audits.md#breadcrumbs) describing what was done and why.
 6. **Document** decisions (ADRs) and contracts (specs).
-7. **Commit** the changes.
-8. **Signal** the outcome: COMPLETE, YIELD (needs another iteration), or BLOCKED.
-9. **Pre-block** downstream tasks that cannot succeed, when applicable.
-10. **Create follow-up tasks** based on findings, when applicable.
+7. **Signal** the outcome: COMPLETE, YIELD (needs another iteration), or BLOCKED.
+8. **Pre-block** downstream tasks that cannot succeed, when applicable.
+9. **Create follow-up tasks** based on findings, when applicable.
 
 The model communicates through [script calls](cli.md): `wolfcastle task claim`, `wolfcastle audit breadcrumb`, `wolfcastle task complete`. Every side effect goes through a deterministic command that validates inputs and enforces invariants. The model cannot corrupt the tree. It can only ask the scripts to make valid changes.
+
+#### Daemon Commits
+
+The agent never runs git commands. After each iteration, the daemon commits the changes on the agent's behalf. This happens on both success and failure: a completed task produces a commit with the message `wolfcastle: <task-id> complete`, while a failed or yielded task produces `wolfcastle: <task-id> partial (attempt N)`. Every iteration leaves a commit in the history, so progress is never lost and the timeline of work is fully recoverable.
+
+Four [configuration fields](config-reference.md#git) control this behavior. `auto_commit` is the master switch; when `false`, the daemon writes no commits at all. `commit_on_success` and `commit_on_failure` toggle commits for their respective outcomes independently. `commit_state` controls whether `.wolfcastle/` state files are included in the commit or left out so that only code changes land.
+
+The daemon commits through a temporary index file (`GIT_INDEX_FILE`), seeded from HEAD with `git read-tree`. All staging and committing happen against this temporary index, so anything the user has staged in `.git/index` remains untouched. If the temporary index cannot be created, the daemon falls back to a direct commit rather than lose work.
+
+## Codebase Knowledge Files
+
+ADRs record why a decision was made. Specs record what a component does. AARs record what happened during a single task. None of these serve as a living document of the things developers learn by working in a codebase: build quirks, undocumented conventions, things that look wrong but are intentional, test patterns that work, dependencies between modules that the code alone doesn't make obvious.
+
+Codebase knowledge files fill that gap. They're Markdown documents that accumulate codebase-specific knowledge across tasks, stored at `.wolfcastle/docs/knowledge/<namespace>.md` (one per engineer namespace). The `ContextBuilder` injects the knowledge file into every task's execution context, right alongside specs, ADRs, and AARs. The file is read fresh every iteration, so knowledge recorded by one task is immediately available to the next.
+
+The lifecycle is simple. An agent works on a task and discovers something non-obvious ("the integration tests require a running Redis," "the config loader silently drops null values," "`daemon.RunOnce` has an intentional goto"). It records the discovery with `wolfcastle knowledge add "<entry>"`, which appends a bullet to the namespace's knowledge file. Future agents read it automatically as part of their context and benefit from the accumulated wisdom.
+
+Entries should be concrete ("the `make test` target runs with `-short` by default"), durable (true next week, not just today), and non-obvious (not already in the README or derivable from the code). The file is free-form Markdown with no rigid schema.
+
+Because the entire knowledge file is injected into every task's context, size matters. A configurable token budget (`knowledge.max_tokens`, default 2000) caps how large the file can grow. When an entry would push the file over budget, the CLI rejects it and asks the engineer (or daemon) to prune. Pruning is an auditable operation: the daemon creates a maintenance task that reviews the file, removes stale entries, consolidates related ones, and brings it under budget. Git history preserves anything removed, so nothing is lost permanently.
 
 ## Distributed State
 

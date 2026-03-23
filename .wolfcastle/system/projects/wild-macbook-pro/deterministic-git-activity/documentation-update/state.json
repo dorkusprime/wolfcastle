@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "id": "documentation-update",
+  "name": "Documentation Update",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Update how-it-works.md with daemon commit behavior",
+      "description": "Update how-it-works.md with daemon commit behavior",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/how-it-works.md"
+      ],
+      "body": "Update docs/humans/how-it-works.md to explain the daemon's deterministic commit behavior:\n\n- The daemon commits after every task iteration (both success and failure)\n- Commit messages follow a predictable format (wolfcastle: \u003ctask-id\u003e complete / partial)\n- The agent never runs git commands\n- Commits are controlled by git config fields (auto_commit master switch, commit_on_success, commit_on_failure, commit_state)\n- The user's staging area is preserved across daemon commits\n\nAdd this to the appropriate section of the execution protocol description. Keep it concise and integrated with the existing flow description rather than a standalone section.",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Daemon commit behavior is accurately described",
+        "No references to agent-side commits remain"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update collaboration.md and failure-and-recovery.md",
+      "description": "Update collaboration.md and failure-and-recovery.md",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/collaboration.md",
+        "docs/humans/failure-and-recovery.md"
+      ],
+      "body": "Update two human-facing docs to reflect the new git behavior:\n\ndocs/humans/collaboration.md (Git Integration section, lines 31-45):\n- Update to explain that the daemon handles all commits, not the agent\n- Describe the auto-commit behavior and how to disable it via git.auto_commit\n- Mention staging area preservation for users who manually stage changes\n- Keep worktree isolation pattern description intact\n\ndocs/humans/failure-and-recovery.md:\n- Update the partial work preservation description to explain daemon commit-on-failure\n- Clarify that partial work is always committed (when commit_on_failure is true) with a clear commit message indicating the attempt number\n- Connect this to the self-healing and stall detection descriptions already present",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Git integration section in collaboration.md reflects daemon-side commits",
+        "Failure recovery docs describe commit-on-failure behavior"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Update README with new commit behavior",
+      "description": "Update README with new commit behavior",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "README.md"
+      ],
+      "body": "Review README.md for any references to how commits work and update them to reflect the new behavior:\n\n- If the README describes the daemon workflow, ensure it mentions deterministic commits\n- If the README has any instructions suggesting users or agents should commit, remove or update them\n- Keep changes minimal; the README is a quick-start guide, not the full documentation\n\nAlso do a final sweep of docs/humans/configuration.md to ensure the git config section is consistent with the new fields documented in config-reference.md (done in the git-config-fields leaf).",
+      "class": "writing",
+      "acceptance_criteria": [
+        "README accurately reflects daemon commit behavior",
+        "No stale references to agent-side commits in README or configuration.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Documentation Update is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0,
+      "class": "audit"
+    }
+  ],
+  "audit_enrichment": [
+    "Verify how-it-works.md describes daemon commit behavior, not agent commits",
+    "Verify config-reference.md documents all three new git fields"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T20:57:13.404676Z",
+        "task": "deterministic-git-activity/documentation-update",
+        "text": "Updated how-it-works.md: removed agent-side commit step from execution protocol, added Daemon Commits subsection covering commit behavior, config fields, message format, and staging area preservation"
+      },
+      {
+        "timestamp": "2026-03-22T20:58:15.727262Z",
+        "task": "deterministic-git-activity/documentation-update",
+        "text": "Updated collaboration.md: replaced monolithic Git Integration section with Daemon-Side Commits, Branch Safety, Staging Area Preservation, and Worktree Isolation subsections. Updated failure-and-recovery.md: added Partial Work Preservation section describing commit-on-failure behavior, extended Self-Healing to reference daemon commits as recovery baseline."
+      },
+      {
+        "timestamp": "2026-03-22T20:59:26.244524Z",
+        "task": "deterministic-git-activity/documentation-update",
+        "text": "Updated README.md Collaboration section: replaced generic commit language with daemon-side deterministic commits, linked to collaboration.md#daemon-side-commits, noted partial work preservation on failure. No changes needed to configuration.md (no git config section to reconcile)."
+      },
+      {
+        "timestamp": "2026-03-22T21:00:46.028009Z",
+        "task": "deterministic-git-activity/documentation-update",
+        "text": "Audit reviewed 4 files: how-it-works.md, collaboration.md, failure-and-recovery.md, README.md. PASS with one inline fix. Finding 1 (remediated inline): how-it-works.md line 136 said 'ten-phase protocol' but task-0001 removed the commit step, leaving 9 phases. Fixed to 'nine-phase.' Finding 2 (escalated): config-reference.md line 399 still says 'the agent must commit manually' when auto_commit is false, stale under daemon-side commits. Belongs to git-config-fields leaf, escalated to parent. All cross-references verified: config-reference.md#git resolves, collaboration.md#daemon-side-commits resolves from both failure-and-recovery.md and README.md. Content is accurate against source code behavior. Documentation is well-structured: collaboration.md's split into four focused subsections is clean, failure-and-recovery.md's Partial Work Preservation placement after Stall Detection reads naturally, README changes are appropriately minimal."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T20:56:15.849945Z",
+    "completed_at": "2026-03-22T21:01:03.27071Z",
+    "result_summary": "Updated four human-facing documentation files to reflect daemon-side deterministic git commit behavior. how-it-works.md gained a Daemon Commits subsection under the execution protocol describing commit-on-success/failure, config fields, message formats, and staging area preservation via temporary GIT_INDEX_FILE. collaboration.md's monolithic Git Integration section was restructured into four focused subsections (Daemon-Side Commits, Branch Safety, Staging Area Preservation, Worktree Isolation). failure-and-recovery.md gained a Partial Work Preservation section and Self-Healing was extended to reference daemon commits as a recovery baseline. README.md's Collaboration paragraph was updated with daemon commit language and a link to collaboration.md#daemon-side-commits. Audit found and fixed one step-count mismatch (ten vs nine phases) in how-it-works.md, and escalated a stale auto_commit description in config-reference.md to the parent orchestrator for the git-config-fields leaf to address."
+  },
+  "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-22T21:00:53.13773Z",
+      "objective": "Verify all documentation updates for daemon-side deterministic commit behavior are complete and correct",
+      "what_happened": "Read all four files touched by this node (how-it-works.md, collaboration.md, failure-and-recovery.md, README.md). Verified cross-references resolve. Found one introduced defect: step count mismatch in how-it-works.md (said ten-phase, listed nine). Fixed inline. Found one pre-existing issue in config-reference.md (stale auto_commit description), escalated to parent.",
+      "went_well": [
+        "Cross-references are all valid and consistent",
+        "The restructuring of collaboration.md into four subsections is well-organized and independently linkable",
+        "Partial Work Preservation in failure-and-recovery.md is placed in a natural reading flow after Stall Detection"
+      ],
+      "improvements": [
+        "Could have caught the ten-to-nine step count during the original task-0001 implementation"
+      ],
+      "action_items": [
+        "Parent orchestrator should ensure git-config-fields leaf updates the stale auto_commit description in config-reference.md line 399"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T20:57:10.350858Z",
+      "objective": "Update how-it-works.md to explain deterministic daemon commit behavior",
+      "what_happened": "Edited docs/humans/how-it-works.md. Removed the old step 7 ('Commit the changes') from the execution protocol numbered list since the agent does not commit. Added a 'Daemon Commits' subsection under the execution protocol that covers: commit-on-success and commit-on-failure with their message formats, the four git config fields (auto_commit, commit_on_success, commit_on_failure, commit_state), and the staging area preservation via temporary GIT_INDEX_FILE. Renumbered steps 8-10 to 7-9.",
+      "went_well": [
+        "Cross-referenced the actual source code (iteration.go) and config-reference.md to ensure accuracy of commit message formats and config field names"
+      ],
+      "improvements": [
+        "Could have linked to the ADR for staging area preservation if one exists"
+      ],
+      "action_items": [
+        "Verify config-reference.md anchor #git matches the link used in the new text"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T20:58:11.348263Z",
+      "objective": "Update collaboration.md and failure-and-recovery.md to reflect daemon-side git commit behavior",
+      "what_happened": "Rewrote the Git Integration section in collaboration.md: replaced the single 'Default Behavior' subsection with four focused subsections (Daemon-Side Commits, Branch Safety, Staging Area Preservation, Worktree Isolation). Worktree Isolation content was preserved unchanged. In failure-and-recovery.md, added a new 'Partial Work Preservation' section between Stall Detection and Self-Healing, and extended the Self-Healing paragraph to reference daemon commits as the recovery baseline. Cross-referenced config-reference.md#git, how-it-works.md#the-daemon, and the new collaboration.md#daemon-side-commits anchor.",
+      "went_well": [
+        "Splitting the old monolithic 'Default Behavior' heading into separate concerns (commits, branch safety, staging preservation) makes each topic independently linkable",
+        "Placed Partial Work Preservation right after Stall Detection in failure-and-recovery.md, which creates a natural reading flow: detection then preservation"
+      ],
+      "improvements": [
+        "Could have added a short example showing the git log output of partial commits to make the commit message format more concrete"
+      ],
+      "action_items": [
+        "Verify that collaboration.md#daemon-side-commits anchor resolves correctly from the new cross-reference in failure-and-recovery.md"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T20:59:22.270602Z",
+      "objective": "Update README.md to reflect daemon-side deterministic commit behavior",
+      "what_happened": "Updated the Collaboration section of README.md to describe daemon-side deterministic commits instead of the generic 'commits to your current branch.' Changed the link target from collaboration.md#git-integration to collaboration.md#daemon-side-commits to match the restructured heading from task-0002. Added mention of partial work preservation on failure. Stated explicitly that agents never touch git. Swept docs/humans/configuration.md for git config consistency: the file has no git config section, so no changes were needed.",
+      "went_well": [
+        "README changes are minimal as directed: one paragraph rewritten, no structural changes"
+      ],
+      "improvements": [
+        "The config-reference.md git.auto_commit description still says 'the agent must commit manually' when auto_commit is false, which is stale under the new model. That file belongs to the git-config-fields leaf, not this one."
+      ],
+      "action_items": [
+        "Verify git-config-fields leaf updates the stale 'agent must commit manually' language in config-reference.md#git.auto_commit"
+      ]
+    }
+  }
+}

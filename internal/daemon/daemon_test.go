@@ -167,7 +167,7 @@ func testDaemon(t *testing.T) *Daemon {
 
 	prompts := pipeline.NewPromptRepository(wolfDir)
 	classes := pipeline.NewClassRepository(prompts)
-	ctxBuilder := pipeline.NewContextBuilder(prompts, classes)
+	ctxBuilder := pipeline.NewContextBuilder(prompts, classes, wolfDir)
 
 	return &Daemon{
 		Config:         testConfig(),

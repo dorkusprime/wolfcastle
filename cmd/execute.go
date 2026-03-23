@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -55,12 +54,6 @@ Examples:
 		if err != nil {
 			return err
 		}
-
-		// Suppress the logger's console mirror: the interleaved renderer
-		// handles all display, so mirroring records to stderr would be
-		// redundant noise.
-		d.Logger.Console = io.Discard
-		d.InboxLogger.Console = io.Discard
 
 		output.PrintHuman("wolfcastle %s", app.Version)
 

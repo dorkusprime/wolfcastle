@@ -6,7 +6,11 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
+	"github.com/dorkusprime/wolfcastle/internal/validate"
 )
+
+// Compile-time check: *DaemonRepository must satisfy validate.PIDChecker.
+var _ validate.PIDChecker = (*daemon.DaemonRepository)(nil)
 
 func TestDaemonRepository_PIDLifecycle(t *testing.T) {
 	t.Parallel()

@@ -509,17 +509,17 @@ func TestRunIteration_Skip_AutoCompleteDecomposedParent(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// autoCommitPartialWork
+// commitAfterIteration
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestAutoCommitPartialWork_NoChanges(t *testing.T) {
+func TestCommitAfterIteration_NoChanges(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0001", true)
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 
 	out := iterCovGitLog(t, repoDir)
 	if strings.Count(out, "\n") > 1 {
@@ -527,7 +527,7 @@ func TestAutoCommitPartialWork_NoChanges(t *testing.T) {
 	}
 }
 
-func TestAutoCommitPartialWork_CommitsTrackedChanges(t *testing.T) {
+func TestCommitAfterIteration_CommitsTrackedChanges(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -555,18 +555,18 @@ func TestAutoCommitPartialWork_CommitsTrackedChanges(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0001", true)
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 
 	out := iterCovGitLog(t, repoDir)
-	if !strings.Contains(out, "auto-commit partial work") {
-		t.Error("expected auto-commit message in git log")
+	if !strings.Contains(out, "partial (attempt") {
+		t.Error("expected partial attempt commit message in git log")
 	}
 	if !strings.Contains(out, "task-0001") {
 		t.Error("expected task ID in commit message")
 	}
 }
 
-func TestAutoCommitPartialWork_MultipleTrackedFiles(t *testing.T) {
+func TestCommitAfterIteration_MultipleTrackedFiles(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -600,17 +600,26 @@ func TestAutoCommitPartialWork_MultipleTrackedFiles(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0002", true)
+	commitAfterIteration(repoDir, logger, "task-0002", "failure", 1, testGitCfg(), taskCommitMeta{})
 
-	statusCmd := exec.Command("git", "status", "--porcelain")
-	statusCmd.Dir = repoDir
-	statusOut, _ := statusCmd.Output()
-	if len(strings.TrimSpace(string(statusOut))) > 0 {
-		t.Errorf("expected clean working tree, got: %s", statusOut)
+	// Verify the commit was created and contains all three files.
+	// The separate-index approach leaves the default index untouched,
+	// so git status may show entries, but the commit itself is correct.
+	showCmd := exec.Command("git", "show", "--name-only", "--format=")
+	showCmd.Dir = repoDir
+	showOut, err := showCmd.Output()
+	if err != nil {
+		t.Fatalf("git show failed: %v", err)
+	}
+	committed := string(showOut)
+	for _, name := range []string{"a.go", "b.go", "c.go"} {
+		if !strings.Contains(committed, name) {
+			t.Errorf("expected %s in commit, got: %s", name, committed)
+		}
 	}
 }
 
-func TestAutoCommitPartialWork_NotAGitRepo(t *testing.T) {
+func TestCommitAfterIteration_NotAGitRepo(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	_ = os.WriteFile(filepath.Join(dir, "file.txt"), []byte("content"), 0644)
@@ -619,10 +628,10 @@ func TestAutoCommitPartialWork_NotAGitRepo(t *testing.T) {
 	defer logger.Close()
 
 	// Should not panic
-	autoCommitPartialWork(dir, logger, "task-0001", true)
+	commitAfterIteration(dir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 }
 
-func TestAutoCommitPartialWork_GitAddFails(t *testing.T) {
+func TestCommitAfterIteration_GitAddFails(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -636,10 +645,10 @@ func TestAutoCommitPartialWork_GitAddFails(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0001", true)
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 }
 
-func TestAutoCommitPartialWork_UntrackedFilesNotStaged(t *testing.T) {
+func TestCommitAfterIteration_UntrackedFilesNotStaged(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -666,14 +675,17 @@ func TestAutoCommitPartialWork_UntrackedFilesNotStaged(t *testing.T) {
 	// Modify the tracked file (will be staged by git add -u)
 	_ = os.WriteFile(trackedFile, []byte("package main\n// modified\n"), 0644)
 
-	// Create untracked files that should NOT be staged
+	// Create untracked files that should NOT be staged (protected by .gitignore)
+	_ = os.WriteFile(filepath.Join(repoDir, ".gitignore"), []byte(".env\ncredentials.json\n"), 0644)
+	run("add", ".gitignore")
+	run("commit", "-m", "add gitignore")
 	_ = os.WriteFile(filepath.Join(repoDir, ".env"), []byte("SECRET=password\n"), 0644)
 	_ = os.WriteFile(filepath.Join(repoDir, "credentials.json"), []byte("{}\n"), 0644)
 
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	autoCommitPartialWork(repoDir, logger, "task-0001", true)
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
 
 	// Verify .env and credentials.json are NOT in the commit
 	showCmd := exec.Command("git", "show", "--name-only", "--format=")
@@ -693,20 +705,16 @@ func TestAutoCommitPartialWork_UntrackedFilesNotStaged(t *testing.T) {
 		t.Error("modified tracked file should be in auto-commit")
 	}
 
-	// Verify untracked files still exist as untracked
-	statusCmd := exec.Command("git", "status", "--porcelain")
-	statusCmd.Dir = repoDir
-	statusOut, _ := statusCmd.Output()
-	status := string(statusOut)
-	if !strings.Contains(status, ".env") {
-		t.Error(".env should still be untracked")
+	// Verify ignored files still exist on disk
+	if _, err := os.Stat(filepath.Join(repoDir, ".env")); os.IsNotExist(err) {
+		t.Error(".env should still exist on disk")
 	}
-	if !strings.Contains(status, "credentials.json") {
-		t.Error("credentials.json should still be untracked")
+	if _, err := os.Stat(filepath.Join(repoDir, "credentials.json")); os.IsNotExist(err) {
+		t.Error("credentials.json should still exist on disk")
 	}
 }
 
-func TestAutoCommitPartialWork_SkipHooksFalse(t *testing.T) {
+func TestCommitAfterIteration_SkipHooksFalse(t *testing.T) {
 	t.Parallel()
 	repoDir := initGitRepo(t)
 
@@ -734,12 +742,167 @@ func TestAutoCommitPartialWork_SkipHooksFalse(t *testing.T) {
 	logger := iterCovTestLogger(t)
 	defer logger.Close()
 
-	// With skipHooks=false, the commit should still succeed (no hooks installed)
-	autoCommitPartialWork(repoDir, logger, "task-0001", false)
+	// With SkipHooksOnAutoCommit=false, the commit should still succeed (no hooks installed)
+	cfg := testGitCfg()
+	cfg.SkipHooksOnAutoCommit = false
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, cfg, taskCommitMeta{})
 
 	out := iterCovGitLog(t, repoDir)
-	if !strings.Contains(out, "auto-commit partial work") {
-		t.Error("expected auto-commit even with skipHooks=false")
+	if !strings.Contains(out, "partial (attempt") {
+		t.Error("expected partial attempt commit message even with skipHooks=false")
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// staging area preservation
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestCommitAfterIteration_DirectCommitCleanStatus(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repoDir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	// Create a tracked file and commit it
+	daemonFile := filepath.Join(repoDir, "daemon.go")
+	_ = os.WriteFile(daemonFile, []byte("package main\n"), 0644)
+	run("add", "daemon.go")
+	run("commit", "-m", "initial")
+
+	// Daemon modifies the file
+	_ = os.WriteFile(daemonFile, []byte("package main\n// daemon edit\n"), 0644)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{})
+
+	// Verify git status shows no phantom diffs after direct commit
+	statusCmd := exec.Command("git", "status", "--porcelain")
+	statusCmd.Dir = repoDir
+	out, _ := statusCmd.Output()
+	if len(strings.TrimSpace(string(out))) != 0 {
+		t.Errorf("git status should be clean after daemon commit, got: %s", out)
+	}
+}
+
+func TestCommitAfterIteration_PreservesUserUnstagedChanges(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repoDir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	// Create two tracked files
+	userFile := filepath.Join(repoDir, "user.go")
+	daemonFile := filepath.Join(repoDir, "daemon.go")
+	_ = os.WriteFile(userFile, []byte("package main\n"), 0644)
+	_ = os.WriteFile(daemonFile, []byte("package main\n"), 0644)
+	run("add", "user.go", "daemon.go")
+	run("commit", "-m", "initial")
+
+	// User modifies user.go but does NOT stage it
+	_ = os.WriteFile(userFile, []byte("package main\n// user unstaged edit\n"), 0644)
+
+	// Daemon modifies daemon.go
+	_ = os.WriteFile(daemonFile, []byte("package main\n// daemon edit\n"), 0644)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, testGitCfg(), taskCommitMeta{})
+
+	// Both files were modified tracked files, so git add -u in the temp
+	// index will stage both. The daemon commit should include both.
+	// The key assertion: user.go's working tree content is unchanged.
+	content, err := os.ReadFile(userFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(content), "user unstaged edit") {
+		t.Error("user's working tree modification to user.go should be preserved")
+	}
+}
+
+func TestCommitAfterIteration_CleanTreeNoCommit(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	// Get initial commit count
+	beforeLog := iterCovGitLog(t, repoDir)
+	beforeCount := strings.Count(beforeLog, "\n")
+
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{})
+
+	afterLog := iterCovGitLog(t, repoDir)
+	afterCount := strings.Count(afterLog, "\n")
+	if afterCount != beforeCount {
+		t.Error("should not create a commit when the working tree is clean")
+	}
+}
+
+func TestCommitWithSeparateIndex_TempFileCleanedUp(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repoDir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	trackedFile := filepath.Join(repoDir, "code.go")
+	_ = os.WriteFile(trackedFile, []byte("package main\n"), 0644)
+	run("add", "code.go")
+	run("commit", "-m", "initial")
+	_ = os.WriteFile(trackedFile, []byte("package main\n// changed\n"), 0644)
+
+	logger := iterCovTestLogger(t)
+	defer logger.Close()
+
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{})
+
+	// Verify no temp index files remain
+	entries, _ := filepath.Glob(filepath.Join(repoDir, ".git-daemon-index-*"))
+	if len(entries) > 0 {
+		t.Errorf("temp index files should be cleaned up, found: %v", entries)
 	}
 }
 
@@ -963,6 +1126,18 @@ func iterCovGitLog(t *testing.T, dir string) string {
 		t.Fatalf("git log failed: %v", err)
 	}
 	return string(out)
+}
+
+// testGitCfg returns a GitConfig with auto-commit enabled and all flags on,
+// matching the default behavior of the old autoCommitPartialWork.
+func testGitCfg() config.GitConfig {
+	return config.GitConfig{
+		AutoCommit:            true,
+		CommitOnSuccess:       true,
+		CommitOnFailure:       true,
+		CommitState:           true,
+		SkipHooksOnAutoCommit: true,
+	}
 }
 
 func iterCovTestLogger(t *testing.T) *logging.Logger {

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "id": "document-git-revert-recovery-workflow",
+  "name": "Document Git Revert Recovery Workflow",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "write-git-revert-recovery-section",
+      "address": "document-git-revert-recovery-workflow/write-git-revert-recovery-section",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Document Git Revert Recovery Workflow is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Document the git revert workflow in docs/humans/failure-and-recovery.md. Now that the daemon commits code and state together after every iteration, users can recover from bad task outcomes by reverting to the commit before the failed task. Add a section explaining: all state files and code are committed together, git log shows wolfcastle commits with task titles, to retry a failed task revert to the commit before it and restart the daemon. Include a concrete example with git log and git revert commands.",
+  "success_criteria": [
+    "docs/humans/failure-and-recovery.md contains a section documenting git revert recovery with a concrete example"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "planning_history": [
+    {
+      "timestamp": "2026-03-23T03:32:32.061723Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-23T03:32:27.713623Z",
+        "task": "document-git-revert-recovery-workflow",
+        "text": "Created 1 child: write-git-revert-recovery-section. Single leaf with one documentation task. No specs needed since the deterministic-git spec already defines the commit format. No ordering constraints (single child)."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

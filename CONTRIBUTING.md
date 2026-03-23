@@ -37,6 +37,13 @@ The `cmd/` directory mirrors the CLI surface: `cmd/daemon/` (start, stop, log, s
 6. Write a doc page in `docs/humans/cli/`
 7. Write tests in the same package
 
+If the command generates a file (like `adr create` or `spec create`), use the template system rather than building content with string concatenation or `fmt.Sprintf`:
+
+1. Create a `.tmpl` file under `internal/project/templates/artifacts/` using Go `text/template` syntax
+2. Define a typed context struct for the template variables (e.g., `ADRContext`, `SpecContext`) in `internal/pipeline/template_data.go`
+3. Render via `PromptRepository.RenderToFile(tmplName, data, destPath)`, which resolves the template through the three-tier system so users can override the format
+4. Add a snapshot test that renders the template with representative data and compares against a golden file
+
 ## Adding a Validation Check
 
 1. Add a category constant in `internal/validate/types.go`

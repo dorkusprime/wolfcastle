@@ -17,7 +17,7 @@ Each engineer reads and writes only their own namespace. Everyone can see everyo
 
 ### Overlap Advisory
 
-When you create a new project, Wolfcastle optionally scans other engineers' active projects and alerts you if scope overlaps. Read-only. Informational. No blocking, no state changes.
+When you create a new project, Wolfcastle optionally scans other engineers' active projects and alerts you if scope overlaps. Read-only. Informational. No blocking, no state changes. See [`overlap_advisory` reference](config-reference.md#overlap_advisory) for all fields.
 
 ```json
 {
@@ -30,9 +30,19 @@ When you create a new project, Wolfcastle optionally scans other engineers' acti
 
 ## Git Integration
 
-### Default Behavior
+### Daemon-Side Commits
 
-Wolfcastle commits to your current branch. No branch creation. No branch management. At the start of each iteration and before every commit, Wolfcastle verifies the current branch matches the branch recorded at startup. If someone switched branches underneath it, [the daemon](how-it-works.md#the-daemon) blocks immediately. It does not commit to the wrong branch.
+The agent never runs git commands. [The daemon](how-it-works.md#the-daemon) handles all commits after each iteration, on both success and failure. A completed task produces a commit with the message `wolfcastle: <task-id> complete`; a failed or yielded task produces `wolfcastle: <task-id> partial (attempt N)`. Every iteration leaves a commit in the history, so progress is never lost.
+
+The `auto_commit` [configuration field](config-reference.md#git) is the master switch. Set it to `false` to disable all daemon commits. When `auto_commit` is enabled, `commit_on_success` and `commit_on_failure` toggle commits for their respective outcomes independently. `commit_state` controls whether `.wolfcastle/` state files are included or left out so that only code changes land.
+
+### Branch Safety
+
+At the start of each iteration and before every commit, Wolfcastle verifies the current branch matches the branch recorded at startup. If someone switched branches underneath it, the daemon blocks immediately. It does not commit to the wrong branch.
+
+### Staging Area Preservation
+
+If you have files staged in your working directory, the daemon will not disturb them. Daemon commits operate through a temporary index file (`GIT_INDEX_FILE`) seeded from HEAD, so anything you have staged in `.git/index` remains untouched.
 
 ### Worktree Isolation
 
@@ -73,7 +83,7 @@ Logs are NDJSON, one self-contained JSON record per line. Each daemon iteration 
 .wolfcastle/system/logs/0002-20260312T18-47Z.jsonl
 ```
 
-`wolfcastle log` finds the latest file and tails it, watching for new files as iterations advance. (`follow` still works as an alias.)
+`wolfcastle log` finds the latest file and tails it, watching for new files as iterations advance. (`follow` still works as an alias.) See [`logs` reference](config-reference.md#logs) for retention and compression settings.
 
 ```json
 {

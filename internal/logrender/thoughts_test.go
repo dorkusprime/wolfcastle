@@ -110,6 +110,50 @@ func TestThoughtsRenderer_ContextCancellation(t *testing.T) {
 	}
 }
 
+func TestThoughtsRenderer_ClaudeAPIEnvelope(t *testing.T) {
+	recs := []Record{
+		{Type: "assistant", Text: `{"type":"system","subtype":"init"}`},
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"text","text":"Hello from the model"}]}}`},
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"internal reasoning"}]}}`},
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls -la"}}]}}`},
+		{Type: "assistant", Text: `{"type":"result","result":"Task completed"}`},
+	}
+
+	var buf bytes.Buffer
+	NewThoughtsRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	// Only text content blocks from assistant envelopes should appear.
+	if !bytes.Contains([]byte(got), []byte("Hello from the model")) {
+		t.Errorf("expected extracted text content, got:\n%s", got)
+	}
+	// System init, thinking, tool use, and result envelopes are not thoughts.
+	for _, unwanted := range []string{"[session started]", "internal reasoning", "Bash", "[result]"} {
+		if bytes.Contains([]byte(got), []byte(unwanted)) {
+			t.Errorf("thoughts output should not contain %q, got:\n%s", unwanted, got)
+		}
+	}
+	// Exact output: one line of text.
+	expected := "Hello from the model\n"
+	if got != expected {
+		t.Errorf("got:\n%q\nwant:\n%q", got, expected)
+	}
+}
+
+func TestThoughtsRenderer_MultipleTextBlocks(t *testing.T) {
+	recs := []Record{
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"text","text":"First block"},{"type":"tool_use","name":"Read","input":{}},{"type":"text","text":"Second block"}]}}`},
+	}
+
+	var buf bytes.Buffer
+	NewThoughtsRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	expected := "First block\nSecond block\n"
+	if buf.String() != expected {
+		t.Errorf("got:\n%q\nwant:\n%q", buf.String(), expected)
+	}
+}
+
 func TestThoughtsRenderer_AllEmptyAssistant(t *testing.T) {
 	recs := []Record{
 		{Type: "assistant", Text: ""},

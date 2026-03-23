@@ -63,7 +63,7 @@ Strictly read-only. The model reads your code, analyzes it against the requested
 
 ### Scopes
 
-Scopes are enum-like IDs backed by prompt fragments. Base scopes ship with Wolfcastle (`dry`, `modularity`, `decomposition`, `comments`, etc.). Add custom scopes in `custom/audits/` or personal scopes in `local/audits/`. All [three tiers](configuration.md#three-tiers) are discovered at runtime.
+Scopes are enum-like IDs backed by prompt fragments. Base scopes ship with Wolfcastle (`dry`, `modularity`, `decomposition`, `comments`, etc.). See [`audit` configuration](config-reference.md#audit) for model and prompt settings. Add custom scopes in `custom/audits/` or personal scopes in `local/audits/`. All [three tiers](configuration.md#three-tier-directory-structure) are discovered at runtime.
 
 ### The Approval Gate
 
@@ -86,7 +86,7 @@ Interactive validation and repair:
 wolfcastle doctor
 ```
 
-Scans the tree. Reports findings with locations and severity. You choose: fix all, fix selected, or abort. Deterministic fixes are applied by Go code. Ambiguous fixes are reasoned by a [model you configure](configuration.md#models):
+Scans the tree. Reports findings with locations and severity. You choose: fix all, fix selected, or abort. Deterministic fixes are applied by Go code. Ambiguous fixes are reasoned by a [model you configure](configuration.md#model-configuration) (see [`doctor` fields](config-reference.md#doctor)):
 
 ```json
 {

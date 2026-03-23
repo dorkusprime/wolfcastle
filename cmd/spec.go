@@ -13,6 +13,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// SpecData holds the template context for rendering spec.md.tmpl.
+type SpecData struct {
+	Title string
+	Body  string
+}
+
 // specCmd is the parent command for spec create, link, and list.
 var specCmd = &cobra.Command{
 	Use:   "spec",
@@ -67,24 +73,20 @@ Examples:
 		filename := fmt.Sprintf("%s-%s.md", timestamp, slug)
 
 		docsDir := filepath.Join(app.Config.Root(), cfg.Docs.Directory, "specs")
-		if err := os.MkdirAll(docsDir, 0755); err != nil {
-			return fmt.Errorf("creating specs directory: %w", err)
-		}
 		specPath := filepath.Join(docsDir, filename)
 
-		var content string
+		specBody := body
 		if useStdin {
 			data, readErr := io.ReadAll(os.Stdin)
 			if readErr != nil {
 				return fmt.Errorf("reading stdin: %w", readErr)
 			}
-			content = fmt.Sprintf("# %s\n\n%s\n", title, strings.TrimSpace(string(data)))
-		} else if body != "" {
-			content = fmt.Sprintf("# %s\n\n%s\n", title, body)
-		} else {
-			content = fmt.Sprintf("# %s\n\n[Spec content goes here.]\n", title)
+			specBody = strings.TrimSpace(string(data))
 		}
-		if err := os.WriteFile(specPath, []byte(content), 0644); err != nil {
+		if err := app.Prompts.RenderToFile("artifacts/spec.md", SpecData{
+			Title: title,
+			Body:  specBody,
+		}, specPath); err != nil {
 			return fmt.Errorf("writing spec file: %w", err)
 		}
 

@@ -1,6 +1,6 @@
 # CLI Command Specification
 
-This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 43 leaf commands organized into 6 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `install`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
+This is the primary implementation reference for every Wolfcastle CLI command. The CLI has 60 leaf commands organized into 7 groups (Lifecycle, Work Management, Auditing, Documentation, Diagnostics, Integration, Additional Commands). All top-level commands are registered directly on the root; subcommand groups (`audit`, `task`, `project`, `orchestrator`, `inbox`, `spec`, `adr`, `archive`, `config`, `install`, `knowledge`) hold their children. There are no daemon-namespaced subcommands: `start`, `stop`, `status`, and `log` are top-level commands in the Lifecycle group.
 
 ## Conventions
 
@@ -240,6 +240,146 @@ wolfcastle start --node attunement-tree
 | Invalid node | `fatal: node 'foo/bar' not found in tree` | 3 |
 | Branch changed | `WOLFCASTLE_BLOCKED: branch changed from 'main' to 'feature/x' during execution` | 4 |
 | Worktree failure | `fatal: could not create worktree for branch 'feature/fire': {git error}` | 5 |
+
+---
+
+## wolfcastle execute
+
+### Synopsis
+
+```
+wolfcastle execute [--node <path>]
+```
+
+### Description
+
+Runs the daemon execution loop in the foreground, streaming interleaved output to stdout. A background goroutine tails the NDJSON log files as they are written and renders them through the same interleaved renderer used by `wolfcastle log --interleaved --follow`.
+
+This is the non-daemon counterpart to `wolfcastle start`: same execution loop, but with formatted output directly on the terminal instead of requiring a separate `wolfcastle log` session. Where `wolfcastle start` can fork into the background, `execute` always runs in the foreground and always streams rendered output.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | No | (none, full tree) | Scope execution to a specific subtree. The path is a tree address (ADR-008) |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity from `local/config.json`. Fail if not configured.
+3. Load and merge configuration: `base/config.json` → `custom/config.json` → `local/config.json`.
+4. **Daemon check**: If a daemon process is already alive, exit with an error. `execute` and `start` are mutually exclusive; only one execution loop may run at a time.
+5. **Node scoping** (if `--node` is specified):
+   a. Validate that the node path exists in the tree.
+   b. Record the scope root. Navigation will only traverse within this subtree.
+6. **Renderer startup**: Launch a background goroutine that tails the NDJSON log directory (polling at 200ms intervals) and pipes records through the interleaved renderer to stdout. This produces the same output as `wolfcastle log -i -f`.
+7. **Execution loop**: Run the same loop as `wolfcastle start` (navigate → invoke pipeline → commit → repeat) until all work is complete or the process receives a shutdown signal (SIGINT, SIGTERM).
+8. **Shutdown**: When the execution loop returns (completion, signal, or error), cancel the renderer context and wait for it to drain remaining records before exiting.
+
+### Output
+
+```
+wolfcastle v0.x.x
+```
+
+Followed by interleaved, color-coded log output from all active nodes as execution proceeds. Output format matches `wolfcastle log --interleaved --follow`.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | All work complete, or graceful stop via signal |
+| 1 | `.wolfcastle/` not found, identity not configured, or daemon construction failed |
+| 1 | Another wolfcastle instance is already running |
+
+### Examples
+
+```bash
+# Run the full tree with live output
+wolfcastle execute
+
+# Run scoped to a subtree
+wolfcastle execute --node auth-module
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Already running | `daemon is already running. Use 'wolfcastle stop' first, or use 'wolfcastle log -i -f' to watch it` | 1 |
+| Invalid node | `fatal: node 'foo/bar' not found in tree` | 1 |
+
+---
+
+## wolfcastle intake
+
+### Synopsis
+
+```
+wolfcastle intake [--node <path>]
+```
+
+### Description
+
+Processes pending inbox items in the foreground, streaming interleaved output to stdout. The intake loop watches `inbox.json` for new items and runs the intake stage for each one, just as the daemon would in the background.
+
+Like `wolfcastle execute`, a background goroutine tails the NDJSON log files and renders them through the interleaved renderer. The difference is scope: `execute` runs the full execution loop (navigate, invoke pipeline, commit), while `intake` only processes inbox items.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | No | (none, full tree) | Scope intake to a specific subtree. The path is a tree address (ADR-008) |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Fail if not found.
+2. Resolve engineer identity from `local/config.json`. Fail if not configured.
+3. Load and merge configuration: `base/config.json` → `custom/config.json` → `local/config.json`.
+4. **Daemon check**: If a daemon process is already alive, exit with an error. Only one instance may run at a time.
+5. **Node scoping** (if `--node` is specified):
+   a. Validate that the node path exists in the tree.
+   b. Record the scope root.
+6. **Renderer startup**: Launch a background goroutine that tails the NDJSON log directory (polling at 200ms intervals) and pipes records through the interleaved renderer to stdout.
+7. **Inbox loop**: Watch `inbox.json` for pending items. For each item, run the intake stage. The loop blocks until the context is cancelled by a shutdown signal.
+8. **Shutdown**: On signal (SIGINT, SIGTERM), cancel the renderer context and wait for it to drain before exiting.
+
+### Output
+
+```
+wolfcastle intake v0.x.x
+```
+
+Followed by interleaved, color-coded log output as inbox items are processed. Output format matches `wolfcastle log --interleaved --follow`.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Graceful stop via signal, or no inbox items remaining |
+| 1 | `.wolfcastle/` not found, identity not configured, or daemon construction failed |
+| 1 | Another wolfcastle instance is already running |
+
+### Examples
+
+```bash
+# Process all pending inbox items with live output
+wolfcastle intake
+
+# Process inbox items scoped to a subtree
+wolfcastle intake --node auth-module
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
+| No identity | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Already running | `daemon is already running. Use 'wolfcastle stop' first, or use 'wolfcastle log -i -f' to watch it` | 1 |
+| Invalid node | `fatal: node 'foo/bar' not found in tree` | 1 |
 
 ---
 
@@ -551,89 +691,122 @@ wolfcastle status --node attunement-tree/fire-impl --expand
 
 ## wolfcastle log
 
+Aliases: `wolfcastle follow`
+
 ### Synopsis
 
 ```
-wolfcastle log [--follow [-f]] [--lines <n>] [--level <level>]
+wolfcastle log [--follow [-f]] [--thoughts [-t]] [--interleaved [-i]] [--json] [--session [-s] <n>]
 ```
 
 ### Description
 
-Reads the daemon's log output. Without `--follow`, prints recent log lines and exits (like reading a file). With `--follow` (or `-f`), streams output in real time and tracks new iterations automatically, similar to `tail -f`. Works in both foreground and background modes by reading from NDJSON log files (ADR-012).
+Displays daemon activity reconstructed from NDJSON log files. The default output is a groomed, human-readable summary of what the daemon did (or is doing). Flags control verbosity from summary-only to full agent output.
+
+When the daemon is running, output streams in real time (implicit `--follow`). When the daemon is stopped, the last session's output is displayed and the command exits.
+
+All output is reconstructed from NDJSON log files in `.wolfcastle/system/logs/`. The command never reads the daemon's stdout directly, so it works whether the daemon is running or stopped, and historical sessions are replayable.
 
 ### Arguments and Flags
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `-f`, `--follow` | boolean | No | `false` | Stream output in real time (like tail -f) |
-| `--lines <n>` | integer | No | `20` | Number of lines to show |
-| `-l`, `--level <level>` | string | No | (none) | Minimum log level filter (debug, info, warn, error) |
+| `-f`, `--follow` | boolean | No | `false` (implicit `true` when daemon is running) | Follow live output. No-op when daemon is stopped. |
+| `-t`, `--thoughts` | boolean | No | `false` | Raw agent output only. No stage headers or durations. |
+| `-i`, `--interleaved` | boolean | No | `false` | Stage headers and agent output together with timestamps. |
+| `--json` | boolean | No | `false` | Raw NDJSON output, no formatting. Pipe to `jq`. |
+| `-s`, `--session` | integer | No | `0` | Session index. 0 = latest (current or most recent), 1 = previous, etc. |
+
+`--thoughts`, `--interleaved`, and `--json` are mutually exclusive. If more than one is passed, the last one wins.
+
+### Output Modes
+
+Three modes control what the output looks like. The default is summary.
+
+**Summary (default):** One line per completed stage showing stage type, node address, and duration.
+
+```
+[intake]  donut-stand-website                              (12s)
+[plan]    donut-stand-website                              (45s)
+[execute] donut-stand-website/site-specification/task-0001 (1m22s)
+[execute] donut-stand-website/site-specification/task-0002 (58s)
+[audit]   donut-stand-website/site-specification           (34s)
+  report: .wolfcastle/system/projects/.../audit-2026-03-21T18-08.md
+[execute] donut-stand-website/project-foundation/task-0001 (2m5s)
+```
+
+In follow mode, each stage prints a start line and a completion line using glyphs: `▶` for start, `✓` for completion, `✗` for failure or block.
+
+```
+▶ [execute] donut-stand-website/site-specification/task-0001
+✓ [execute] donut-stand-website/site-specification/task-0001 (1m22s)
+▶ [execute] donut-stand-website/site-specification/task-0002
+✗ [execute] donut-stand-website/site-specification/task-0002 (3m41s)
+```
+
+When replaying a completed session (no `--follow`), only the completion lines are shown with `✓`/`✗` glyphs and durations.
+
+**Thoughts (`--thoughts`):** Raw agent output only. No stage headers, no durations, no timestamps, no glyphs. Just what the model said, as it said it.
+
+```
+I'll start by creating the site specification document...
+Reading the project requirements from the inbox item...
+The inbox item asks for a donut stand website, so I'll need...
+```
+
+In follow mode, this tails the active log file and extracts agent assistant records in real time. For historical sessions, all agent output from every iteration in the session is shown.
+
+**Interleaved (`--interleaved`):** Stage headers and agent thoughts together, chronologically, with wall-clock timestamps and glyphs.
+
+```
+18:01:34 ▶ [execute] donut-stand-website/site-specification/task-0001
+18:01:35     I'll start by creating the site specification document...
+18:01:36     Reading the project requirements from the inbox item...
+18:02:56 ✓ [execute] donut-stand-website/site-specification/task-0001 (1m22s)
+18:02:57 ▶ [execute] donut-stand-website/site-specification/task-0002
+18:02:58     Now I need to write the HTML structure...
+```
+
+Agent thoughts are indented to visually separate them from stage headers. Timestamps are `HH:MM:SS` in local time.
 
 ### Behavior
 
 1. Locate `.wolfcastle/` directory. Fail if not found.
-2. Find the highest-numbered log file in `.wolfcastle/system/logs/`.
-   - If no log files exist and `--follow` is not set, report no logs and exit.
-   - If no log files exist and `--follow` is set, wait for one to appear (with a timeout message after 5 seconds).
-3. Print the last `n` lines of the current log file (parsed from NDJSON, formatted for human readability). If `--level` is specified, only lines at or above that severity are shown.
-4. **Without `--follow`**: exit 0.
-5. **With `--follow`**: tail the file, printing new lines as they are appended.
-6. Watch for new iteration files. When a new, higher-numbered file appears, switch to tailing it and print a separator:
-   ```
-   --- iteration 0042 started ---
-   ```
-7. Continue until the user presses Ctrl+C, or the daemon exits (detected by checking the PID file / process status periodically).
-8. When the daemon exits, print a final message and exit.
+2. Identify the target session from `--session`. Session boundaries are detected by finding the iteration-1 log file or by timestamp discontinuity.
+3. Read NDJSON log files for the target session from `.wolfcastle/system/logs/`.
+4. Render output according to the selected mode (summary, thoughts, interleaved, or raw JSON).
+5. **Without `--follow`**: display the session's output and exit 0.
+6. **With `--follow`**: stream new records as they are written, rendering each according to the selected mode.
+7. Continue until the user presses Ctrl+C or the daemon exits.
 
-### Output
+### Formatting Rules
 
-Recent log output (without `--follow`):
-
-```
-[18:45:03] Navigating to attunement-tree/fire-impl/task-3
-[18:45:04] Executing pipeline stage: execute (heavy)
-[18:45:05] Model: Analyzing the fire implementation stamina cost...
-[18:45:12] Script call: wolfcastle task claim --node attunement-tree/fire-impl/task-3
-[18:45:12] Task claimed: attunement-tree/fire-impl/task-3
-```
-
-Streaming output (with `--follow`):
-
-```
-[18:45:03] Navigating to attunement-tree/fire-impl/task-3
-[18:45:04] Executing pipeline stage: execute (heavy)
-[18:45:05] Model: Analyzing the fire implementation stamina cost...
-[18:45:12] Script call: wolfcastle task claim --node attunement-tree/fire-impl/task-3
-[18:45:12] Task claimed: attunement-tree/fire-impl/task-3
-...
---- iteration 0042 started ---
-[18:47:01] Navigating to attunement-tree/fire-impl/task-4
-```
+Stage labels: `[intake]`, `[plan]`, `[execute]`, `[audit]`, `[remediate]`, `[spec-review]`. Duration uses compact human shorthand with no spaces: `34s`, `1m22s`, `12m5s`, `1h3m`. Terminal markers (`WOLFCASTLE_COMPLETE`, etc.) and log levels (`[INFO]`) are never shown in output. Audit report paths appear indented below the audit completion line when a report was generated.
 
 ### Exit Codes
 
 | Code | Condition |
 |------|-----------|
-| 0 | Log output displayed, or user interrupted (Ctrl+C), or daemon exited |
-| 1 | `.wolfcastle/` not found |
+| 0 | Success, or follow mode interrupted by Ctrl+C |
+| 1 | No log files found, or not initialized |
 
 ### Examples
 
 ```bash
-# Show the last 20 log lines and exit
+# Summary of the current/last session (streams if daemon is running)
 wolfcastle log
 
-# Show the last 100 lines
-wolfcastle log --lines 100
+# Raw agent thoughts, streamed live
+wolfcastle log --thoughts
 
-# Stream logs in real time
-wolfcastle log -f
+# Interleaved stage headers and thoughts with timestamps
+wolfcastle log -i -f
 
-# Stream only warnings and errors
-wolfcastle log -f --level warn
+# View the previous session
+wolfcastle log --session 1
 
-# Show recent errors only
-wolfcastle log --level error
+# Raw NDJSON piped to jq
+wolfcastle log --json | jq '.type'
 ```
 
 ### Error Cases
@@ -641,7 +814,7 @@ wolfcastle log --level error
 | Error | Message | Code |
 |-------|---------|------|
 | Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
-| No logs, no daemon | `No log files found and no daemon running. Start wolfcastle first.` | 1 |
+| No logs found | `No log files found. Start wolfcastle first.` | 1 |
 
 ---
 
@@ -2141,6 +2314,342 @@ wolfcastle spec list --json
 |-------|---------|------|
 | Not initialized | `fatal: not a wolfcastle project (no .wolfcastle/ found)` | 1 |
 | Node not found | `fatal: node 'foo/bar' not found in tree` | 1 |
+
+---
+
+## wolfcastle knowledge add
+
+### Synopsis
+
+```
+wolfcastle knowledge add "<entry>"
+```
+
+### Description
+
+Appends a knowledge entry to the current namespace's knowledge file at `.wolfcastle/docs/knowledge/<namespace>.md`. Knowledge files accumulate codebase-specific insights across tasks: build quirks, undocumented conventions, architecture gotchas, test patterns. The entire file is injected into every task's execution context, so entries should be concrete, durable, and non-obvious.
+
+The entry is checked against the configured token budget (`knowledge.max_tokens`, default 2000) before writing. If the new entry would push the file over budget, the command fails without writing anything. No entry is silently lost to truncation.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `"<entry>"` | string (positional) | Yes | -- | The knowledge entry to append |
+| `--json` | boolean | No | `false` | Output as structured JSON |
+
+### Behavior
+
+1. Validate that the entry argument is present. Fail if missing.
+2. Resolve engineer identity. Fail if not configured.
+3. Validate the entry is not blank after trimming whitespace.
+4. Load configuration to read `knowledge.max_tokens`.
+5. Check the token budget: estimate the token count of the existing file plus the new entry. If the total would exceed `max_tokens`, fail with an error directing the user to run `wolfcastle knowledge prune`.
+6. Append the entry to the namespace's knowledge file. The `knowledge.Append` function handles formatting (adds `- ` prefix if missing, appends a newline). Creates the file and parent directories if they do not exist.
+7. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Knowledge: the integration tests require docker compose up before running
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "knowledge_add",
+  "data": {
+    "entry": "the integration tests require docker compose up before running",
+    "namespace": "wild-macbook-pro",
+    "path": ".wolfcastle/docs/knowledge/wild-macbook-pro.md"
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Entry appended successfully |
+| 1 | `.wolfcastle/` not found, identity not configured, or config load failure |
+
+### Examples
+
+```bash
+# Add a build quirk
+wolfcastle knowledge add "the integration tests require docker compose up before running"
+
+# Add an architecture note
+wolfcastle knowledge add "state.Store serializes mutations through a file lock"
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Missing argument | `missing required argument: <entry>` | 1 |
+| Empty entry | `empty entry. Knowledge worth recording shouldn't be blank` | 1 |
+| Over budget | `Knowledge file exceeds budget (N/M tokens). Run 'wolfcastle knowledge prune' to review and consolidate.` | 1 |
+
+---
+
+## wolfcastle knowledge edit
+
+### Synopsis
+
+```
+wolfcastle knowledge edit
+```
+
+### Description
+
+Opens the current namespace's knowledge file in `$EDITOR` for free-form editing. If the file does not exist, creates it with an empty template (`# Codebase Knowledge\n\n`) before opening. Falls back to `vi` when `$EDITOR` is not set.
+
+In JSON mode, the command reports the file path and editor name without launching the editor. This allows programmatic callers to handle editing themselves.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Report path and editor as JSON instead of opening the editor |
+
+### Behavior
+
+1. Resolve engineer identity. Fail if not configured.
+2. Determine the knowledge file path for the current namespace.
+3. If the file does not exist, create it with an empty template. Create parent directories as needed.
+4. Read `$EDITOR` from the environment. Fall back to `vi` if unset.
+5. If `--json`: output the path and editor name, then return without launching the editor.
+6. Otherwise, launch the editor with the knowledge file. Connect stdin, stdout, and stderr to the terminal.
+7. If the editor exits with a non-zero status, propagate the error.
+
+### Output
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "knowledge_edit",
+  "data": {
+    "path": ".wolfcastle/docs/knowledge/wild-macbook-pro.md",
+    "editor": "vim"
+  }
+}
+```
+
+In interactive mode, the editor takes over the terminal. No command output is printed.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Editor exited successfully |
+| 1 | `.wolfcastle/` not found, identity not configured, directory creation failure, or editor error |
+
+### Examples
+
+```bash
+# Open in default editor
+wolfcastle knowledge edit
+
+# Open in a specific editor
+EDITOR=nano wolfcastle knowledge edit
+
+# Get file path without opening (for programmatic use)
+wolfcastle knowledge edit --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Identity not configured | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Directory creation failure | `creating knowledge directory: <os error>` | 1 |
+| Editor failure | `editor exited with error: <exit status>` | 1 |
+
+---
+
+## wolfcastle knowledge prune
+
+### Synopsis
+
+```
+wolfcastle knowledge prune
+```
+
+### Description
+
+Opens the knowledge file in `$EDITOR` for manual pruning: removing stale entries, consolidating related ones, and bringing the file under its token budget. After the editor closes, reports the new token count relative to the configured budget. Falls back to `vi` when `$EDITOR` is not set.
+
+In JSON mode (used by the daemon's maintenance task), the command skips the editor entirely and reports the current token count and budget status. This allows non-interactive callers to check whether pruning is needed.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Report token count and budget status without opening the editor |
+
+### Behavior
+
+1. Resolve engineer identity. Fail if not configured.
+2. Load configuration to read `knowledge.max_tokens`.
+3. Determine the knowledge file path for the current namespace.
+4. If `--json`:
+   a. Read the knowledge file content.
+   b. Count tokens and compare against the budget.
+   c. Output the status as JSON. Return without opening the editor.
+5. Otherwise (interactive mode):
+   a. If the file does not exist, create it with an empty template.
+   b. Read `$EDITOR` from the environment. Fall back to `vi` if unset.
+   c. Launch the editor. Connect stdin, stdout, and stderr to the terminal.
+   d. If the editor exits with an error, propagate it.
+   e. After the editor closes, re-read the file and count tokens.
+   f. Print the token count relative to the budget. If still over budget, indicate so.
+
+### Output
+
+Interactive (under budget after editing):
+
+```
+Token count: 1200/2000
+```
+
+Interactive (still over budget):
+
+```
+Token count: 2300/2000 (still over budget)
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "knowledge_prune",
+  "data": {
+    "namespace": "wild-macbook-pro",
+    "path": ".wolfcastle/docs/knowledge/wild-macbook-pro.md",
+    "token_count": 1847,
+    "max_tokens": 2000,
+    "over_budget": false
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Prune completed (or status reported in JSON mode) |
+| 1 | `.wolfcastle/` not found, identity not configured, config load failure, or editor error |
+
+### Examples
+
+```bash
+# Open for manual pruning
+wolfcastle knowledge prune
+
+# Check budget status without editing (daemon use)
+wolfcastle knowledge prune --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Identity not configured | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
+| Config load failure | `loading config: <error>` | 1 |
+| Editor failure | `editor exited with error: <exit status>` | 1 |
+
+---
+
+## wolfcastle knowledge show
+
+### Synopsis
+
+```
+wolfcastle knowledge show
+```
+
+### Description
+
+Reads and prints the current namespace's knowledge file. If no knowledge has been recorded yet (the file does not exist or is empty), reports that clearly rather than printing nothing. In JSON mode, includes the token count alongside the content for budget awareness.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--json` | boolean | No | `false` | Output as structured JSON with token count |
+
+### Behavior
+
+1. Resolve engineer identity. Fail if not configured.
+2. Determine the knowledge file path for the current namespace.
+3. Read the knowledge file via `knowledge.Read`. If the file does not exist, returns empty content (not an error).
+4. If `--json`: output the content, namespace, path, and token count as structured JSON.
+5. If not `--json`:
+   - If content is empty, print a message indicating no knowledge has been recorded.
+   - Otherwise, print the raw file content.
+
+### Output
+
+Human-readable (knowledge exists):
+
+```
+## Build and Environment
+
+- The `make test` target runs with `-short` by default.
+- Go 1.26 changed the loop variable semantics.
+```
+
+Human-readable (no knowledge):
+
+```
+No codebase knowledge recorded yet for wild-macbook-pro.
+```
+
+JSON (`--json`):
+
+```json
+{
+  "ok": true,
+  "action": "knowledge_show",
+  "data": {
+    "namespace": "wild-macbook-pro",
+    "content": "## Build and Environment\n\n- The `make test` target ...",
+    "path": ".wolfcastle/docs/knowledge/wild-macbook-pro.md",
+    "token_count": 342
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success (including when no knowledge file exists) |
+| 1 | `.wolfcastle/` not found or identity not configured |
+
+### Examples
+
+```bash
+# Display knowledge
+wolfcastle knowledge show
+
+# Get as JSON with token count
+wolfcastle knowledge show --json
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Identity not configured | `fatal: identity not configured. Run 'wolfcastle init' first.` | 1 |
 
 ---
 
@@ -3767,6 +4276,173 @@ wolfcastle archive add --node attunement-tree
 
 ---
 
+## wolfcastle archive delete
+
+### Synopsis
+
+```
+wolfcastle archive delete --node <path> --confirm
+```
+
+### Description
+
+Permanently removes an archived node and its entire subtree from the index and the archive store. This operation is irreversible: once deleted, the node's state directories and index entries cannot be recovered. The `--confirm` flag is mandatory as a safeguard against accidental deletion.
+
+Only root-level archived nodes (those present in `archived_root`) can be deleted. To delete a child of an archived subtree, you would need to restore the parent first, then manage it through normal project commands.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the archived node to delete |
+| `--confirm` | bool | Yes | `false` | Confirm permanent deletion. Command refuses to run without this flag |
+
+### Behavior
+
+1. Require identity. Fail if not configured.
+2. Validate `--confirm` is set. If not, exit with an error explaining the flag is required.
+3. Validate `--node` is provided.
+4. Load the root index.
+5. Verify the node exists in the index and has `archived: true`.
+6. Verify the node is in `archived_root` (root-level archived entry).
+7. Collect the full subtree: the target node and all its descendants via `Children` links.
+8. Remove the archived state directory tree at `{store}/.archive/{node-path}/` using recursive deletion.
+9. Atomically update the root index:
+   - Remove the node from `archived_root`.
+   - Delete all subtree entries from the `Nodes` map.
+10. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Permanently deleted archived node my-project
+```
+
+With `--json`:
+
+```json
+{
+  "ok": true,
+  "action": "archive_delete",
+  "node": "my-project"
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Node permanently deleted |
+| 1 | `.wolfcastle/` not found, identity not configured, or `--confirm` not set |
+| 2 | Node not found in index |
+| 3 | Node is not archived or not a root-level archived node |
+
+### Examples
+
+```bash
+# Permanently delete an archived project
+wolfcastle archive delete --node my-project --confirm
+
+# Attempting without --confirm fails with an explanatory error
+wolfcastle archive delete --node my-project
+# Error: --confirm is required: this permanently deletes the archived node and cannot be undone
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| No --confirm | `--confirm is required: this permanently deletes the archived node and cannot be undone` | 1 |
+| Node not found | `node "foo" not found in index` | 2 |
+| Not archived | `node "foo" is not archived` | 3 |
+| Not root-level | `node "foo" is not a root-level archived node` | 3 |
+
+---
+
+## wolfcastle archive restore
+
+### Synopsis
+
+```
+wolfcastle archive restore --node <path>
+```
+
+### Description
+
+Restores a previously archived node and its entire subtree back to active state. The node must be a root-level archived entry (present in `archived_root`). After restoration, the node appears in the active `root` list and all subtree entries have their `archived` flag cleared.
+
+State directories are moved from `.archive/` back to their active locations. The node resumes its pre-archive state; tasks, audit records, and breadcrumbs are preserved.
+
+### Arguments and Flags
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--node <path>` | string | Yes | -- | Tree address of the archived node to restore |
+
+### Behavior
+
+1. Require identity. Fail if not configured.
+2. Validate `--node` is provided.
+3. Load the root index.
+4. Verify the node exists in the index and has `archived: true`.
+5. Verify the node is in `archived_root` (root-level archived entry).
+6. Collect the full subtree: the target node and all its descendants via `Children` links.
+7. For each node in the subtree, move its state directory from `{store}/.archive/{node-path}/` to `{store}/{node-path}/`. Skip entries whose archive directory does not exist. Create parent directories as needed.
+8. Atomically update the root index:
+   - Remove the node from `archived_root`.
+   - Add the node to `root`.
+   - For all subtree entries, set `archived: false` and clear `archived_at`.
+9. Output the result.
+
+### Output
+
+Human-readable:
+
+```
+Restored my-project from archive
+```
+
+With `--json`:
+
+```json
+{
+  "ok": true,
+  "action": "archive_restore",
+  "node": "my-project"
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Node restored to active state |
+| 1 | `.wolfcastle/` not found or identity not configured |
+| 2 | Node not found in index |
+| 3 | Node is not archived or not a root-level archived node |
+
+### Examples
+
+```bash
+# Restore an archived project
+wolfcastle archive restore --node my-project
+
+# Verify it's back in the active tree
+wolfcastle status --node my-project
+```
+
+### Error Cases
+
+| Error | Message | Code |
+|-------|---------|------|
+| Node not found | `node "foo" not found in index` | 2 |
+| Not archived | `node "foo" is not archived` | 3 |
+| Not root-level | `node "foo" is not a root-level archived node` | 3 |
+
+---
+
 ## wolfcastle inbox add
 
 ### Synopsis
@@ -4144,6 +4820,460 @@ fi
 
 ---
 
+## wolfcastle config show
+
+### Synopsis
+
+```
+wolfcastle config show [section] [--tier <base|custom|local>] [--raw] [--json]
+```
+
+### Description
+
+Prints the Wolfcastle configuration to stdout as indented JSON. By default, the output reflects the fully resolved config: hardcoded defaults merged with base, custom, and local tiers (the same object returned by `config.Load()`). The structure matches the `Config` type in `internal/config/types.go`.
+
+An optional positional `section` argument filters the output to a single top-level key. If the section does not exist, the command exits with an error listing valid section names. The section filter applies after mode resolution, so it composes freely with `--tier`, `--raw`, and `--json`.
+
+Two flags modify what is shown:
+
+- `--tier` restricts output to a single tier file's raw JSON content, before merge.
+- `--raw` suppresses the hardcoded defaults layer, showing only what the tier files contain.
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `section` | positional | No | (none) | Filter output to a single top-level key (e.g. `pipeline`, `models`). Unknown keys exit 1 with valid section list |
+| `--tier` | string | No | (none) | Display a single tier's raw JSON. Accepted: `base`, `custom`, `local` |
+| `--raw` | boolean | No | `false` | Suppress hardcoded defaults layer. Merges only tier files. No-op when combined with `--tier` |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Resolve config based on mode:
+   - **Default** (no flags): call `config.Load()` for fully merged config.
+   - **`--tier`**: read the single tier file (`.wolfcastle/system/{tier}/config.json`). Missing files produce `{}`.
+   - **`--raw`** (without `--tier`): deep-merge the three tier files without seeding from `Defaults()`.
+   - **`--raw` with `--tier`**: identical to `--tier` alone.
+3. If a `section` argument is given, extract that top-level key from the result. Exit 1 if the key does not exist.
+4. Marshal to indented JSON (two-space indent, HTML escaping disabled).
+5. If `--json`, wrap in the standard envelope with action `"config_show"`.
+
+### Output
+
+Default (merged config):
+
+```
+$ wolfcastle config show
+{
+  "version": 1,
+  "models": { ... },
+  "pipeline": { ... },
+  ...
+}
+```
+
+Filtered by section:
+
+```
+$ wolfcastle config show pipeline
+{
+  "stages": [ ... ],
+  "planning": { "enabled": true, ... }
+}
+```
+
+JSON envelope:
+
+```json
+{
+  "ok": true,
+  "action": "config_show",
+  "data": { "version": 1, "models": { ... } }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success |
+| 1 | No `.wolfcastle/` directory, malformed tier file, invalid `--tier` value, or unknown section name |
+
+### Examples
+
+```bash
+# Show fully merged config
+wolfcastle config show
+
+# Show only the pipeline section
+wolfcastle config show pipeline
+
+# Show what the local tier overrides
+wolfcastle config show --tier local
+
+# Show merged tier files without defaults
+wolfcastle config show --raw
+
+# JSON envelope for a specific section from a specific tier
+wolfcastle config show models --tier base --json
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be one of: base, custom, local` |
+| Tier file missing | Print `{}` (not an error) |
+| Tier file is malformed JSON | Exit 1: `error: {tier}/config.json is not valid JSON: {parse error}` |
+| Unknown section argument | Exit 1: `error: unknown section "X"; valid sections: a, b, c` (alphabetical) |
+
+---
+
+## wolfcastle config set
+
+### Synopsis
+
+```
+wolfcastle config set <key> <value> [--tier local|custom] [--json]
+```
+
+### Description
+
+Sets a configuration key to a value in a tier overlay file. Uses dot-notation paths to address nested keys (e.g. `daemon.poll_interval_seconds`). Intermediate maps are created if they do not exist. If the key already exists, its value is replaced.
+
+The value argument is parsed as JSON first (numbers, booleans, null, objects, arrays). If JSON parsing fails, the raw string is stored as a JSON string value. This means `wolfcastle config set logs.max_files 5` stores an integer, while `wolfcastle config set identity.user alice` stores a string, without quoting gymnastics.
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `key` | positional | Yes | -- | Dot-notation config path |
+| `value` | positional | Yes | -- | Value to set. Parsed as JSON first; bare strings become JSON strings |
+| `--tier` | string | No | `local` | Target tier: `local` or `custom`. Writing to `base` is rejected |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Validate the key (reject empty segments, trailing dots, array indexing syntax).
+3. Parse the value argument (JSON first, then bare string fallback).
+4. Read the current tier overlay file. If absent, start with `{}`.
+5. Walk the dot-notation path, creating intermediate maps as needed, and assign the value at the leaf.
+6. Write the modified overlay back to the tier file.
+7. Validate: call `config.Load()` to produce the merged config. If validation fails, restore the original tier file and report the error.
+8. Output confirmation.
+
+### Output
+
+Human mode:
+
+```
+Set daemon.poll_interval_seconds = 10 in local/config.json
+```
+
+JSON mode:
+
+```json
+{
+  "ok": true,
+  "action": "config_set",
+  "data": { "key": "daemon.poll_interval_seconds", "value": 10, "tier": "local" }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success |
+| 1 | No `.wolfcastle/` directory, invalid tier, malformed key, or validation failure |
+
+### Examples
+
+```bash
+# Set a numeric value
+wolfcastle config set logs.max_files 5
+
+# Set a string value
+wolfcastle config set identity.user alice
+
+# Set a boolean
+wolfcastle config set pipeline.enabled true
+
+# Set a complex value
+wolfcastle config set identity.tags '["a","b"]'
+
+# Write to custom tier instead of local
+wolfcastle config set logs.level warn --tier custom
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| `--tier base` | Exit 1: `error: cannot write to base tier (base is managed by the system)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be "local" or "custom"` |
+| Malformed key (empty segment) | Exit 1: `error: invalid key "daemon..poll": empty path segment` |
+| Malformed key (trailing dot) | Exit 1: `error: invalid key "daemon.": trailing dot` |
+| Malformed key (array indexing) | Exit 1: `error: invalid key "commands[0]": array indexing is not supported` |
+| Validation failure after write | Exit 1: `error: validation failed, rolled back: {validation error}` |
+
+---
+
+## wolfcastle config append
+
+### Synopsis
+
+```
+wolfcastle config append <key> <value> [--tier local|custom] [--json]
+```
+
+### Description
+
+Appends a value to an array at the given config key. If the key does not exist, a new single-element array is created. If the key exists but is not an array, the command returns an error. The value is parsed with the same JSON-then-string rules as `config set`.
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `key` | positional | Yes | -- | Dot-notation config path to an array |
+| `value` | positional | Yes | -- | Value to append. Parsed as JSON first; bare strings become JSON strings |
+| `--tier` | string | No | `local` | Target tier: `local` or `custom` |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Validate the key.
+3. Parse the value argument.
+4. Read the current tier overlay file. If absent, start with `{}`.
+5. Walk the dot-notation path to the leaf:
+   - If the leaf is an array, append the parsed value.
+   - If the leaf does not exist, create a single-element array.
+   - If the leaf exists but is not an array, return an error.
+6. Write the modified overlay back to the tier file.
+7. Validate via `config.Load()`. Roll back on failure.
+8. Output confirmation.
+
+### Output
+
+Human mode:
+
+```
+Appended "review" to pipeline.stage_order in custom/config.json
+```
+
+JSON mode:
+
+```json
+{
+  "ok": true,
+  "action": "config_append",
+  "data": { "key": "pipeline.stage_order", "value": "review", "tier": "custom" }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success |
+| 1 | No `.wolfcastle/` directory, invalid tier, malformed key, non-array target, or validation failure |
+
+### Examples
+
+```bash
+# Append a string to an array
+wolfcastle config append identity.tags foo
+
+# Append an object
+wolfcastle config append pipeline.steps '{"name":"lint"}'
+
+# Append to custom tier
+wolfcastle config append identity.tags bar --tier custom
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| `--tier base` | Exit 1: `error: cannot write to base tier (base is managed by the system)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be "local" or "custom"` |
+| Existing value is not an array | Exit 1: `error: cannot append to "logs.max_files": existing value is not an array` |
+| Validation failure after write | Exit 1: `error: validation failed, rolled back: {validation error}` |
+
+---
+
+## wolfcastle config remove
+
+### Synopsis
+
+```
+wolfcastle config remove <key> <value> [--tier local|custom] [--json]
+```
+
+### Description
+
+Removes the first matching value from an array at the given config key. Equality is determined by JSON serialization: both the candidate and each array element are marshaled to JSON and the resulting strings are compared. If the value is not found, the command exits with an error. If removal leaves an empty array, the empty array is written (use `config unset` to delete the key entirely).
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `key` | positional | Yes | -- | Dot-notation config path to an array |
+| `value` | positional | Yes | -- | Value to remove. Parsed as JSON first; bare strings become JSON strings |
+| `--tier` | string | No | `local` | Target tier: `local` or `custom` |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Validate the key.
+3. Parse the value argument.
+4. Read the current tier overlay file. If absent, start with `{}`.
+5. Walk the dot-notation path to the leaf:
+   - If the leaf is not an array, return an error.
+   - Search for the value by JSON-string equality and remove the first match.
+   - If the value is not found, return an error.
+6. Write the modified overlay back to the tier file.
+7. Validate via `config.Load()`. Roll back on failure.
+8. Output confirmation.
+
+### Output
+
+Human mode:
+
+```
+Removed "review" from pipeline.stage_order in custom/config.json
+```
+
+JSON mode:
+
+```json
+{
+  "ok": true,
+  "action": "config_remove",
+  "data": { "key": "pipeline.stage_order", "value": "review", "tier": "custom" }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success |
+| 1 | No `.wolfcastle/` directory, invalid tier, malformed key, non-array target, value not found, or validation failure |
+
+### Examples
+
+```bash
+# Remove a string from an array
+wolfcastle config remove identity.tags foo
+
+# Remove a numeric value
+wolfcastle config remove identity.tags 42
+
+# Remove an object
+wolfcastle config remove pipeline.steps '{"name":"lint"}'
+
+# Remove from custom tier
+wolfcastle config remove identity.tags bar --tier custom
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| `--tier base` | Exit 1: `error: cannot write to base tier (base is managed by the system)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be "local" or "custom"` |
+| Existing value is not an array | Exit 1: `error: cannot remove from "logs.max_files": existing value is not an array` |
+| Value not found in array | Exit 1: `error: value not found in array at "pipeline.stage_order"` |
+| Validation failure after write | Exit 1: `error: validation failed, rolled back: {validation error}` |
+
+---
+
+## wolfcastle config unset
+
+### Synopsis
+
+```
+wolfcastle config unset <key> [--tier local|custom] [--json]
+```
+
+### Description
+
+Removes a key from a tier overlay file. The key and any nested structure beneath it are deleted from the target tier's `config.json`. On the next `config.Load()`, the value reverts to whatever lower tiers or hardcoded defaults provide. If no lower tier sets the key, it disappears from the resolved config entirely. If the key does not exist in the tier file, the command succeeds silently.
+
+### Arguments and Flags
+
+| Argument / Flag | Type | Required | Default | Description |
+|-----------------|------|----------|---------|-------------|
+| `key` | positional | Yes | -- | Dot-notation config path to remove |
+| `--tier` | string | No | `local` | Target tier: `local` or `custom` |
+| `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
+
+### Behavior
+
+1. Locate `.wolfcastle/` directory. Exit 1 if not found.
+2. Validate the key.
+3. Read the current tier overlay file. If absent, start with `{}`.
+4. Walk the dot-notation path and delete the key at the leaf. If the key does not exist, succeed silently.
+5. Write the modified overlay back to the tier file.
+6. Validate via `config.Load()`. Roll back on failure.
+7. Output confirmation.
+
+### Output
+
+Human mode:
+
+```
+Unset pipeline.stages.audit.enabled from local/config.json
+```
+
+JSON mode:
+
+```json
+{
+  "ok": true,
+  "action": "config_unset",
+  "data": { "key": "pipeline.stages.audit.enabled", "tier": "local" }
+}
+```
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Success (including when the key did not exist) |
+| 1 | No `.wolfcastle/` directory, invalid tier, malformed key, or validation failure |
+
+### Examples
+
+```bash
+# Unset a key from local tier
+wolfcastle config unset logs.level
+
+# Unset from custom tier
+wolfcastle config unset pipeline.timeout --tier custom
+```
+
+### Error Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `.wolfcastle/` not found | Exit 1: `fatal: not a wolfcastle project (no .wolfcastle/ found)` |
+| `--tier base` | Exit 1: `error: cannot write to base tier (base is managed by the system)` |
+| Invalid `--tier` value | Exit 1: `error: --tier must be "local" or "custom"` |
+| Validation failure after write | Exit 1: `error: validation failed, rolled back: {validation error}` |
+
+---
+
 ## wolfcastle doctor
 
 ### Synopsis
@@ -4444,6 +5574,112 @@ ls -la .claude/wolfcastle/
 ### Extensibility
 
 The `install` subcommand is designed to accept additional targets in the future (e.g., git hooks, editor plugins). Each target follows the same pattern: source files live in `.wolfcastle/system/base/`, and `install` places them outside `.wolfcastle/` with the user's explicit consent.
+
+---
+
+## wolfcastle completion
+
+### Synopsis
+
+```
+wolfcastle completion <shell>
+```
+
+### Description
+
+Generates shell completion scripts for wolfcastle. This is Cobra's built-in completion generator, providing tab-completion for commands, subcommands, and flags. Each shell has its own subcommand that outputs the appropriate script format.
+
+### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `bash` | Generate the autocompletion script for bash |
+| `fish` | Generate the autocompletion script for fish |
+| `powershell` | Generate the autocompletion script for powershell |
+| `zsh` | Generate the autocompletion script for zsh |
+
+### Behavior
+
+1. The specified shell subcommand writes a completion script to stdout.
+2. The user sources or installs this script according to their shell's completion mechanism.
+3. No `.wolfcastle/` directory or identity is required. This command works anywhere.
+
+### Output
+
+A shell-specific completion script written to stdout. The exact format varies by shell. Each subcommand's `--help` output includes installation instructions for that shell.
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Completion script generated |
+| 1 | Invalid shell or generation error |
+
+### Examples
+
+```bash
+# Generate and source bash completions
+source <(wolfcastle completion bash)
+
+# Generate zsh completions and install them
+wolfcastle completion zsh > "${fpath[1]}/_wolfcastle"
+
+# Generate fish completions
+wolfcastle completion fish | source
+
+# Generate powershell completions
+wolfcastle completion powershell | Out-String | Invoke-Expression
+```
+
+---
+
+## wolfcastle help
+
+### Synopsis
+
+```
+wolfcastle help [command]
+```
+
+### Description
+
+Displays help information for any wolfcastle command. This is Cobra's built-in help command. When called without arguments, it shows the top-level help (equivalent to `wolfcastle --help`). When given a command path, it shows help for that specific command.
+
+### Arguments and Flags
+
+| Flag/Arg | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `[command]` | string (positional) | No | -- | Command path to get help for (e.g., `task add`, `audit breadcrumb`) |
+
+### Behavior
+
+1. If no command argument is given, display the root help text listing all available commands and groups.
+2. If a command path is given, resolve it through the command tree and display that command's help text (long description, usage, flags, and examples).
+3. No `.wolfcastle/` directory or identity is required. This command works anywhere.
+
+### Output
+
+Human-readable help text written to stdout, including the command's description, usage pattern, available flags, and subcommands (if any).
+
+### Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| 0 | Help displayed |
+| 1 | Unknown command |
+
+### Examples
+
+```bash
+# Show top-level help
+wolfcastle help
+
+# Show help for a specific command
+wolfcastle help task add
+
+# Show help for a command group
+wolfcastle help audit
+```
 
 ---
 

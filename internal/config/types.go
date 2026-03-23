@@ -21,6 +21,7 @@ type Config struct {
 	Unblock         UnblockConfig       `json:"unblock"`
 	Audit           AuditCommandConfig  `json:"audit"`
 	Archive         ArchiveConfig       `json:"archive"`
+	Knowledge       KnowledgeConfig     `json:"knowledge"`
 	TaskClasses     map[string]ClassDef `json:"task_classes,omitempty"`
 
 	// Warnings collects non-fatal diagnostic messages from config loading,
@@ -149,6 +150,10 @@ type DaemonConfig struct {
 // GitConfig controls automatic commit behavior and branch verification.
 type GitConfig struct {
 	AutoCommit            bool   `json:"auto_commit"`
+	CommitOnSuccess       bool   `json:"commit_on_success"`
+	CommitOnFailure       bool   `json:"commit_on_failure"`
+	CommitState           bool   `json:"commit_state"`
+	CommitPrefix          string `json:"commit_prefix"`
 	CommitMessageFormat   string `json:"commit_message_format"`
 	VerifyBranch          bool   `json:"verify_branch"`
 	SkipHooksOnAutoCommit bool   `json:"skip_hooks_on_auto_commit"`
@@ -184,6 +189,11 @@ type ArchiveConfig struct {
 	AutoArchiveEnabled    bool `json:"auto_archive_enabled"`
 	AutoArchiveDelayHours int  `json:"auto_archive_delay_hours"`
 	PollIntervalSeconds   int  `json:"archive_poll_interval_seconds"`
+}
+
+// KnowledgeConfig controls codebase knowledge file settings.
+type KnowledgeConfig struct {
+	MaxTokens int `json:"max_tokens"`
 }
 
 // ClassDef defines a single task class entry in the config. Classes are

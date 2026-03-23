@@ -41,4 +41,5 @@ wolfcastle config remove --tier custom pipeline.stage_order "custom-stage"
 
 - [`wolfcastle config append`](config-append.md) to add a value to an array.
 - [`wolfcastle config show`](config-show.md) to inspect the result.
-- [Configuration](../configuration.md) for the tier merging model.
+- [Merge Semantics: Arrays Replace Entirely](../configuration.md#rule-2-arrays-replace-entirely) for how array values compose across tiers.
+- [Config Reference](../config-reference.md) for every field, its type, and default value.

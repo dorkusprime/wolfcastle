@@ -40,6 +40,10 @@ wolfcastle adr create --file rationale.md "Use NDJSON for daemon logs"
 | 3 | File not found (with `--file`). |
 | 4 | Both `--stdin` and `--file` specified. |
 
+## Template Customization
+
+The output format is rendered from a Go `text/template` at `artifacts/adr.md.tmpl`, resolved through the three-tier system (base < custom < local). To customize the ADR format for your team, place an override at `.wolfcastle/system/custom/artifacts/adr.md.tmpl`. Personal overrides go in `local/`. See the [Template Overrides](../configuration.md#template-overrides) section of the configuration guide for details and available template variables.
+
 ## Consequences
 
 - Creates a new Markdown file in `.wolfcastle/docs/decisions/`.

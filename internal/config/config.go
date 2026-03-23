@@ -97,6 +97,10 @@ func Defaults() *Config {
 		},
 		Git: GitConfig{
 			AutoCommit:            true,
+			CommitOnSuccess:       true,
+			CommitOnFailure:       true,
+			CommitState:           true,
+			CommitPrefix:          "wolfcastle",
 			CommitMessageFormat:   "wolfcastle: {action} [{node}]",
 			VerifyBranch:          true,
 			SkipHooksOnAutoCommit: true,
@@ -117,6 +121,9 @@ func Defaults() *Config {
 		Audit: AuditCommandConfig{
 			Model:      "heavy",
 			PromptFile: "audits/audit.md",
+		},
+		Knowledge: KnowledgeConfig{
+			MaxTokens: 2000,
 		},
 		Archive: ArchiveConfig{
 			AutoArchiveEnabled:    true,

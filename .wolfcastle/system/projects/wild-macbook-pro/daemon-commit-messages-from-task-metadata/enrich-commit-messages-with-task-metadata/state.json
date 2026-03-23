@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "id": "enrich-commit-messages-with-task-metadata",
+  "name": "Enrich Commit Messages with Task Metadata",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Refactor commitAfterIteration to accept and use task metadata",
+      "description": "Refactor commitAfterIteration to accept and use task metadata",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration.go"
+      ],
+      "body": "Change commitAfterIteration's signature to accept task metadata: title (string), class (string), deliverables ([]string), latestBreadcrumb (string), and failureType (string, only relevant for failures). Use the CommitPrefix from gitCfg to build the subject line.\n\nSubject line format:\n- Success: '{prefix}: {title}' (or '{title}' if prefix is empty)\n- Failure: '{prefix}: {title} (attempt N)' (or '{title} (attempt N)' if prefix is empty)\n\nBody format (multi-line, use git commit -m for subject and a second -m for body):\n  Task: {taskID} [{class}]\n  Deliverables: {comma-separated deliverables}\n\n  {latest breadcrumb text}\n\nFor failures, add a line: Failure: {failureType}\n\nIf title is empty, fall back to the current behavior (using taskID in the subject).\n\nUpdate both call sites in runIteration (lines ~381 and ~402). At both sites, the NodeState (ns) is in scope. Extract the task's Title, Class, Deliverables from ns.Tasks by matching nav.TaskID. Extract the latest breadcrumb from ns.Audit.Breadcrumbs (the last entry, or empty string if none). At the failure site, pass the failureType variable that's already computed.\n\nReference: internal/state/types.go for Task and Breadcrumb struct definitions.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "commitAfterIteration uses task title in the subject line instead of bare task ID",
+        "Commit body includes task ID with class",
+        " deliverables",
+        " and latest breadcrumb",
+        "Failure commits include (attempt N) in subject and failure type in body",
+        "Empty prefix produces subject without leading colon",
+        "Empty title falls back to task ID in subject"
+      ],
+      "references": [
+        "internal/state/types.go"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update tests for enriched commit messages",
+      "description": "Update tests for enriched commit messages",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration_test.go"
+      ],
+      "body": "Update existing tests in internal/daemon/iteration_test.go that exercise commitAfterIteration to match the new signature and verify the enriched commit message format. Add test cases for:\n1. Success commit with prefix, title, class, deliverables, and breadcrumb\n2. Failure commit with attempt number and failure type in body\n3. Empty prefix produces subject without leading separator\n4. Empty title falls back to task ID\n5. No breadcrumbs produces a body without the breadcrumb section\n6. Multiple deliverables are comma-separated in the body\n\nEnsure all existing test scenarios still pass with the updated function signature.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Tests cover success and failure commit message formats with metadata",
+        "Tests verify empty-prefix and empty-title fallback behaviors",
+        "All tests pass"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Enrich Commit Messages with Task Metadata is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0,
+      "class": "audit"
+    }
+  ],
+  "audit_enrichment": [
+    "Verify commit subject uses title instead of task ID, and body contains structured metadata",
+    "Verify both call sites in runIteration pass task metadata from the in-scope NodeState",
+    "Verify empty prefix and empty title edge cases are handled correctly"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-23T03:11:30.111858Z",
+        "task": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
+        "text": "Refactored commitAfterIteration to accept taskCommitMeta struct. Added buildCommitSubject, buildCommitBody, and extractTaskCommitMeta helpers. Subject uses CommitPrefix + task title with fallback to taskID. Body includes task class, deliverables, failure type, and latest breadcrumb. Updated both call sites in runIteration to extract metadata from NodeState. All 21 existing tests updated and passing."
+      },
+      {
+        "timestamp": "2026-03-23T03:13:40.752733Z",
+        "task": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
+        "text": "Added TestCommitAfterIteration_EnrichedMessages with 6 table-driven sub-cases: success with full metadata, failure with attempt/failure-type, empty prefix, empty title fallback, no breadcrumbs, and multiple comma-separated deliverables. All pass alongside existing tests."
+      },
+      {
+        "timestamp": "2026-03-23T03:16:13.902789Z",
+        "task": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
+        "text": "Audit reviewed 3 files (iteration.go, iteration_test.go, iteration_coverage_test.go) covering ~200 lines of new/modified code. PASS. One finding: gofmt alignment violations in taskCommitMeta struct and test struct literals, fixed and committed. Code quality is high: clean helper extraction (buildCommitSubject, buildCommitBody, extractTaskCommitMeta), proper backward-compatible fallback for empty titles, good test coverage with 6 table-driven sub-cases plus 21 updated existing call sites. No nil safety, concurrency, or error handling issues. All tests pass with race detector."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-23T03:06:17.184782Z",
+    "completed_at": "2026-03-23T03:16:25.357384Z",
+    "result_summary": "This node enriched daemon commit messages with task metadata. Task-0001 introduced a taskCommitMeta struct and three helper functions (buildCommitSubject, buildCommitBody, extractTaskCommitMeta) that construct structured commit messages from task title, class, deliverables, breadcrumbs, and failure type. The refactor preserves full backward compatibility via empty-title fallback paths. Task-0002 added 6 table-driven integration tests covering all formatting scenarios plus a fullCommitMessage helper. Audit found and fixed minor gofmt alignment issues; no correctness, safety, or architectural concerns."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-23T03:11:41.773582Z",
+      "objective": "Refactor commitAfterIteration to build enriched commit messages from task metadata",
+      "what_happened": "Introduced a taskCommitMeta struct to carry title, class, deliverables, latest breadcrumb, and failure type. Extracted three helper functions: buildCommitSubject (handles prefix/title/fallback logic), buildCommitBody (assembles structured body with task ID, class, deliverables, failure type, breadcrumb), and extractTaskCommitMeta (pulls metadata from NodeState). Updated both call sites in runIteration: the success path extracts meta directly, the failure path also sets FailureType from the already-computed variable. Updated all 21 test call sites across iteration_test.go and iteration_coverage_test.go to pass empty taskCommitMeta{}.",
+      "went_well": [
+        "Clean separation between subject and body construction",
+        "Empty-title fallback preserves exact backward compatibility with existing tests",
+        "The struct approach keeps the function signature manageable vs 5 extra string params"
+      ],
+      "improvements": [
+        "No new tests for the enriched path (with title/class/deliverables populated). A follow-up test with non-empty taskCommitMeta would verify the body formatting."
+      ],
+      "action_items": [
+        "Add tests that verify enriched commit messages with populated taskCommitMeta fields",
+        "Consider whether buildCommitSubject and buildCommitBody warrant their own unit tests for edge cases"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-23T03:13:38.853674Z",
+      "objective": "Add tests verifying enriched commit message formatting from taskCommitMeta",
+      "what_happened": "Added a table-driven test TestCommitAfterIteration_EnrichedMessages with six sub-cases covering all scenarios from the task description. Added a fullCommitMessage helper to retrieve the complete subject+body from HEAD (gitLog only returned oneline). All six new tests and all existing tests pass.",
+      "went_well": [
+        "Table-driven structure keeps the six cases concise and parallel-safe",
+        "fullCommitMessage helper reuses the same git env pattern as gitLog"
+      ],
+      "improvements": [
+        "Could add unit tests for buildCommitSubject and buildCommitBody directly, bypassing git entirely for faster execution"
+      ],
+      "action_items": [
+        "Consider pure-unit tests for buildCommitSubject/buildCommitBody if test suite time grows"
+      ]
+    }
+  }
+}

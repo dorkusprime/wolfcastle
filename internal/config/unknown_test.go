@@ -112,6 +112,29 @@ func TestCheckUnknownFields_TaskClassesAcceptArbitraryKeys(t *testing.T) {
 	}
 }
 
+func TestCheckUnknownFields_KnowledgeSectionClean(t *testing.T) {
+	t.Parallel()
+	raw := []byte(`{"knowledge": {"max_tokens": 3000}}`)
+	warnings := checkUnknownFields(raw, "custom/config.json")
+
+	if len(warnings) != 0 {
+		t.Errorf("expected 0 warnings for clean knowledge section, got %d: %v", len(warnings), warnings)
+	}
+}
+
+func TestCheckUnknownFields_KnowledgeSectionTypo(t *testing.T) {
+	t.Parallel()
+	raw := []byte(`{"knowledge": {"max_tokns": 3000}}`)
+	warnings := checkUnknownFields(raw, "local/config.json")
+
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning for typo in knowledge section, got %d: %v", len(warnings), warnings)
+	}
+	if !strings.Contains(warnings[0], "knowledge.max_tokns") {
+		t.Errorf("expected path 'knowledge.max_tokns', got: %s", warnings[0])
+	}
+}
+
 func TestDiffKeys_Empty(t *testing.T) {
 	t.Parallel()
 	var warnings []string

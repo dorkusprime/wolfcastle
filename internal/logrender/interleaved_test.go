@@ -287,6 +287,68 @@ func TestInterleavedRenderer_FullSession(t *testing.T) {
 	}
 }
 
+func TestInterleavedRenderer_ClaudeAPIEnvelope(t *testing.T) {
+	recs := []Record{
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"text","text":"Hello from the model"}]}}`, Timestamp: makeTime("2026-03-21T18:01:35Z")},
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"internal reasoning"}]}}`, Timestamp: makeTime("2026-03-21T18:01:36Z")},
+		{Type: "assistant", Text: `{"type":"system","subtype":"init"}`, Timestamp: makeTime("2026-03-21T18:01:37Z")},
+		{Type: "assistant", Text: `{"type":"result","result":"task completed"}`, Timestamp: makeTime("2026-03-21T18:01:38Z")},
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]}}`, Timestamp: makeTime("2026-03-21T18:01:39Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s     Hello from the model", localTS("2026-03-21T18:01:35Z")); !strings.Contains(got, want) {
+		t.Errorf("expected extracted text content\nwant: %s\ngot:\n%s", want, got)
+	}
+	if strings.Contains(got, "internal reasoning") {
+		t.Errorf("thinking blocks should be filtered, got:\n%s", got)
+	}
+	if strings.Contains(got, "session started") {
+		t.Errorf("system init should not appear in interleaved output, got:\n%s", got)
+	}
+	if strings.Contains(got, "result") {
+		t.Errorf("result records should not appear in interleaved output, got:\n%s", got)
+	}
+	if strings.Contains(got, "Bash") {
+		t.Errorf("tool_use records should not appear in interleaved output, got:\n%s", got)
+	}
+	// Only the text content block should produce output (1 line).
+	lineCount := strings.Count(got, "\n")
+	if lineCount != 1 {
+		t.Errorf("expected 1 line (text only), got %d:\n%s", lineCount, got)
+	}
+	if strings.Contains(got, `"type"`) {
+		t.Errorf("raw JSON should not appear in output, got:\n%s", got)
+	}
+}
+
+func TestInterleavedRenderer_MultilineAssistant(t *testing.T) {
+	// A single assistant record with two text content blocks produces two indented lines,
+	// each with the same timestamp.
+	recs := []Record{
+		{Type: "assistant", Text: `{"type":"assistant","message":{"content":[{"type":"text","text":"First paragraph"},{"type":"text","text":"Second paragraph"}]}}`, Timestamp: makeTime("2026-03-21T18:01:35Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	ts := localTS("2026-03-21T18:01:35Z")
+	if want := fmt.Sprintf("%s     First paragraph", ts); !strings.Contains(got, want) {
+		t.Errorf("expected first block\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s     Second paragraph", ts); !strings.Contains(got, want) {
+		t.Errorf("expected second block\nwant: %s\ngot:\n%s", want, got)
+	}
+	lineCount := strings.Count(got, "\n")
+	if lineCount != 2 {
+		t.Errorf("expected 2 lines, got %d:\n%s", lineCount, got)
+	}
+}
+
 func TestInterleavedRenderer_NodeOnlyAddress(t *testing.T) {
 	recs := []Record{
 		{Type: "stage_start", Stage: "audit", Node: "my-project/sub-module", Timestamp: makeTime("2026-03-21T10:00:00Z")},
@@ -301,6 +363,54 @@ func TestInterleavedRenderer_NodeOnlyAddress(t *testing.T) {
 		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
 	}
 	if want := fmt.Sprintf("%s ✓ [audit] my-project/sub-module (34s)", localTS("2026-03-21T10:00:34Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+// --- DurationMS preference tests ---
+
+func TestInterleavedRenderer_DurationMS_Stage(t *testing.T) {
+	// DurationMS says 5 seconds; timestamps are 82 seconds apart.
+	recs := []Record{
+		{Type: "stage_start", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "stage_complete", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:01:22Z"), ExitCode: intPtr(0), DurationMS: int64Ptr(5000)},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s ✓ [execute] proj/task-0001 (5s)", localTS("2026-03-21T10:01:22Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_DurationMS_Planning(t *testing.T) {
+	recs := []Record{
+		{Type: "planning_start", Node: "proj", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "planning_complete", Node: "proj", Timestamp: makeTime("2026-03-21T10:00:45Z"), ExitCode: intPtr(0), DurationMS: int64Ptr(12000)},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s ✓ [plan] proj (12s)", localTS("2026-03-21T10:00:45Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_NilDurationMS_FallsBack(t *testing.T) {
+	recs := []Record{
+		{Type: "stage_start", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+		{Type: "stage_complete", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:01:22Z"), ExitCode: intPtr(0)},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s ✓ [execute] proj/task-0001 (1m22s)", localTS("2026-03-21T10:01:22Z")); !strings.Contains(got, want) {
 		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
 	}
 }

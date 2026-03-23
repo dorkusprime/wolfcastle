@@ -3,6 +3,7 @@ package daemon
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
@@ -196,6 +197,7 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 		return fmt.Errorf("assembling planning prompt: %w", err)
 	}
 
+	planStartTime := time.Now()
 	_ = d.Logger.Log(map[string]any{
 		"type":    "planning_start",
 		"node":    nodeAddr,
@@ -212,9 +214,10 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	}
 
 	_ = d.Logger.Log(map[string]any{
-		"type":      "planning_complete",
-		"node":      nodeAddr,
-		"exit_code": result.ExitCode,
+		"type":        "planning_complete",
+		"node":        nodeAddr,
+		"exit_code":   result.ExitCode,
+		"duration_ms": time.Since(planStartTime).Milliseconds(),
 	})
 
 	// Handle the terminal marker

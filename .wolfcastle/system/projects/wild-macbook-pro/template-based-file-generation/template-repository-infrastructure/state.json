@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "id": "template-repository-infrastructure",
+  "name": "Template Repository Infrastructure",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Extend PromptRepository with template resolution method",
+      "description": "Extend PromptRepository with template resolution method",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/repository.go"
+      ],
+      "body": "Add a ResolveTemplate(name string, ctx any) (string, error) method to PromptRepository that resolves templates from the templates/ prefix (mirroring how Resolve uses prompts/). The name is relative to templates/ and uses .tmpl extension. If ctx is non-nil, parse and execute as text/template. This reuses the existing tierfs.Resolver and three-tier resolution, not a parallel system. The method should wrap errors consistently with the existing Resolve method's pattern.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "ResolveTemplate resolves files from templates/ prefix via tierfs",
+        "Template execution with typed context structs works correctly",
+        "Error wrapping is consistent with existing Resolve method"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T09-00Z-template-file-generation.md",
+        ".wolfcastle/docs/specs/2026-03-18T20-23Z-tierfs-resolver-contract.md"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Add RenderToFile convenience method",
+      "description": "Add RenderToFile convenience method",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/repository.go"
+      ],
+      "body": "Add RenderToFile(tmplName string, data any, destPath string) error to PromptRepository. This method calls ResolveTemplate to resolve and execute the template, then writes the result atomically to destPath (using os.WriteFile with 0644 permissions, creating parent directories as needed). This consolidates the resolve-execute-write pattern into a single call that every call site will use.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "RenderToFile resolves template",
+        " executes with data",
+        " writes to destPath",
+        "Parent directories are created if missing",
+        "File permissions are 0644"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T09-00Z-template-file-generation.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Define typed context structs for all template variables",
+      "description": "Define typed context structs for all template variables",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/template_data.go"
+      ],
+      "body": "Create typed structs for each template's variables in a dedicated file (e.g., internal/pipeline/template_data.go or similar). Structs needed per the spec inventory: ADRData{Title, Date, Body string}, SpecData{Title, Body string}, TaskData{ID, Title, Description, Body, Type, Class string; Deliverables, Constraints, References, AcceptanceCriteria []string}, AuditTaskData{NodeName string}. Scaffold templates (gitignore, READMEs) are static and need no struct. These structs keep template variables discoverable and type-safe.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Each struct has exported fields matching the template variables from the spec",
+        "No map[string]any used for template contexts"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T09-00Z-template-file-generation.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Unit tests for ResolveTemplate and RenderToFile",
+      "description": "Unit tests for ResolveTemplate and RenderToFile",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/pipeline/repository_test.go"
+      ],
+      "body": "Write table-driven tests for ResolveTemplate covering: resolution from base tier, override from custom/local tier, template execution with typed context, nil context returns raw content, missing template returns wrapped os.ErrNotExist, malformed template returns parse error. Write tests for RenderToFile covering: successful write to new path, parent directory creation, template execution errors propagate, write permission errors propagate. Use the existing test patterns in repository_test.go (injected tierfs.Resolver).",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Tests cover tier resolution",
+        " template execution",
+        " error cases",
+        "Tests use injected resolver",
+        " not real filesystem",
+        "All tests pass"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Template Repository Infrastructure is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0,
+      "class": "audit"
+    }
+  ],
+  "audit_enrichment": [
+    "Verify ResolveTemplate uses templates/ prefix and .tmpl extension, distinct from Resolve which uses prompts/ and .md"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T22:00:36.94288Z",
+        "task": "template-based-file-generation/template-repository-infrastructure",
+        "text": "Added ResolveTemplate method to PromptRepository (repository.go) with five tests and WithTemplate testutil helper"
+      },
+      {
+        "timestamp": "2026-03-22T22:01:56.172671Z",
+        "task": "template-based-file-generation/template-repository-infrastructure",
+        "text": "Added RenderToFile to PromptRepository (repository.go): resolves template via ResolveTemplate, creates parent dirs, writes 0644. Four tests in repository_test.go."
+      },
+      {
+        "timestamp": "2026-03-22T22:03:16.290568Z",
+        "task": "template-based-file-generation/template-repository-infrastructure",
+        "text": "Added template_data.go with ADRData, SpecData, TaskData, AuditTaskData structs. Fields match spec inventory and existing call-site data."
+      },
+      {
+        "timestamp": "2026-03-22T22:05:40.048488Z",
+        "task": "template-based-file-generation/template-repository-infrastructure",
+        "text": "Refactored ResolveTemplate and RenderToFile tests to table-driven format. Added errors.Is(os.ErrNotExist) check, template execution error propagation, and write permission error test. ResolveTemplate 100%, RenderToFile 87.5%, package 97.3%."
+      },
+      {
+        "timestamp": "2026-03-22T22:07:34.69342Z",
+        "task": "template-based-file-generation/template-repository-infrastructure",
+        "text": "Audit reviewed 3 files: repository.go (new methods at lines 73-109), template_data.go (38 lines, 4 structs), environment.go (WithTemplate helper at lines 377-383). Also reviewed repository_test.go (14 new test cases across 2 table-driven suites plus 3 standalone tests). Build clean, all tests pass with race detector, vet clean, package coverage 97.3%. ResolveTemplate 100%, RenderToFile 87.5% (uncovered MkdirAll error branch is acceptable; error is properly wrapped, testing requires contrived broken path). No nil safety issues, no concurrency issues, no dead code, no security concerns. Duplication between Resolve and ResolveTemplate is a conscious namespace separation, acceptable at two copies. PASS with no findings requiring remediation."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T21:58:22.193355Z",
+    "completed_at": "2026-03-22T22:07:45.440703Z",
+    "result_summary": "Template Repository Infrastructure added three capabilities to PromptRepository: ResolveTemplate for three-tier template file resolution with text/template execution, RenderToFile for consolidated resolve-execute-write in a single call, and four typed context structs (ADRData, SpecData, TaskData, AuditTaskData) for type-safe template variable passing. The WithTemplate testutil helper enables clean test fixture setup. All methods follow established PromptRepository patterns, compose cleanly (RenderToFile delegates to ResolveTemplate), and wrap errors with contextual prefixes. Test coverage is thorough: 14 table-driven cases plus 3 standalone tests covering happy paths, error propagation, tier overrides, file permissions, and write errors. Package coverage holds at 97.3%."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T22:00:36.191357Z",
+      "objective": "Add ResolveTemplate method to PromptRepository for resolving templates from the templates/ prefix",
+      "what_happened": "Added ResolveTemplate(name string, ctx any) (string, error) to PromptRepository in repository.go. The method mirrors the existing Resolve method exactly: it constructs a path with templates/ prefix and .tmpl extension, resolves via tierfs, and optionally parses/executes as text/template. Error wrapping uses 'templates:' prefix matching the 'prompts:' convention. Added WithTemplate helper to testutil.Environment for test fixture setup. Wrote five tests covering raw return, template execution with typed struct, missing template error, invalid template error, and tier override.",
+      "went_well": [
+        "The implementation is a clean mirror of Resolve with no structural changes needed to the repository",
+        "All five tests pass, coverage at 97.3% for the pipeline package, ResolveTemplate itself at 92.9%"
+      ],
+      "improvements": [
+        "The execute-error branch in ResolveTemplate is untested (same as in Resolve), but triggering it requires a template that parses successfully but fails on execution, which is awkward to construct in tests"
+      ],
+      "action_items": [
+        "Call-site migration tasks should use ResolveTemplate with typed context structs, not map[string]any"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T22:01:52.493179Z",
+      "objective": "Add RenderToFile convenience method that consolidates resolve-execute-write into a single call",
+      "what_happened": "Added RenderToFile(tmplName string, data any, destPath string) error to PromptRepository in repository.go. The method calls ResolveTemplate, creates parent directories with os.MkdirAll, and writes the result with os.WriteFile at 0644. Four tests cover: template execution with typed struct and permission verification, nested parent directory creation, missing template error propagation, and nil-ctx raw passthrough.",
+      "went_well": [
+        "Clean composition: RenderToFile delegates to ResolveTemplate, so all tier-resolution and template-execution behavior is inherited without duplication",
+        "All four new tests pass; package coverage holds at 96.9%"
+      ],
+      "improvements": [
+        "The MkdirAll and WriteFile error branches in RenderToFile are untested (75% method coverage). Triggering those would require filesystem permission manipulation in tests, which felt like over-engineering for error wrapping."
+      ],
+      "action_items": [
+        "Call-site migration tasks should replace strings.Builder/fmt.Sprintf/os.WriteFile chains with a single RenderToFile call, passing typed context structs"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T22:03:15.577493Z",
+      "objective": "Define typed context structs for all template variables so call-site migrations use discoverable, type-safe data instead of map[string]any",
+      "what_happened": "Created internal/pipeline/template_data.go with four exported structs: ADRData (Title, Date, Body), SpecData (Title, Body), TaskData (ID, Title, Description, Body, Type, Class, Deliverables, Constraints, References, AcceptanceCriteria), AuditTaskData (NodeName). Field names and types were cross-referenced against cmd/adr_create.go, cmd/spec.go, cmd/task/add.go, internal/project/project_create.go, and state.Task to ensure they match both the spec inventory and the actual call-site data.",
+      "went_well": [
+        "Straightforward struct definitions; no behavioral changes, no test churn, coverage holds at 96.9%"
+      ],
+      "improvements": [
+        "TaskData.Description mirrors state.Task.Description which is currently synonymous with Title at the add site; the template will need to decide which field carries the H1 header vs body preamble"
+      ],
+      "action_items": [
+        "Call-site migration tasks should import these structs and pass them to RenderToFile/ResolveTemplate rather than constructing inline data"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T22:05:36.62857Z",
+      "objective": "Convert ResolveTemplate and RenderToFile tests to table-driven format and add missing coverage",
+      "what_happened": "Refactored the five individual ResolveTemplate tests into a single table-driven test with four cases (base tier resolution, typed context execution, missing template with errors.Is(os.ErrNotExist), malformed template parse error) plus a separate tier-override test. Refactored four individual RenderToFile tests into a table-driven test with five cases (write to new path, parent dir creation, nil ctx raw passthrough, missing template propagation, template execution error propagation) plus separate tests for file permissions (0644) and write permission errors via read-only directory. Added errors and runtime imports.",
+      "went_well": [
+        "Table-driven structure makes it trivial to add new cases",
+        "ResolveTemplate coverage hit 100%; RenderToFile rose from 75% to 87.5% by covering the WriteFile permission error branch",
+        "The write-permission test correctly skips on Windows and cleans up the read-only dir"
+      ],
+      "improvements": [
+        "The MkdirAll error branch in RenderToFile remains uncovered (the last 12.5%); triggering it reliably would require a broken parent path, which felt contrived"
+      ],
+      "action_items": [
+        "None; test coverage for these methods is now thorough enough for the audit"
+      ]
+    }
+  }
+}

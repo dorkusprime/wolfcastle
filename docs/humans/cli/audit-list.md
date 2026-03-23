@@ -4,7 +4,7 @@ Lists available audit scopes. Equivalent to `wolfcastle audit run --list`.
 
 ## What It Does
 
-Discovers scopes from `base/audits/`, `custom/audits/`, and `local/audits/` (all [three tiers](../configuration.md#three-tiers)). Prints each scope's ID and description.
+Discovers scopes from `base/audits/`, `custom/audits/`, and `local/audits/` (all [three tiers](../configuration.md#three-tier-directory-structure)). Prints each scope's ID and description.
 
 ## Usage
 

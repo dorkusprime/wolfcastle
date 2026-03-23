@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "id": "fix-renderer-output",
+  "name": "Fix Renderer Output",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Reproduce and diagnose raw NDJSON output",
+      "description": "Reproduce and diagnose raw NDJSON output",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/thoughts.go",
+        "internal/logrender/interleaved.go"
+      ],
+      "body": "Run wolfcastle log --thoughts and wolfcastle log --interleaved against an existing session and confirm both dump raw NDJSON instead of formatted text. Then trace the pipeline to find where formatting is lost. Key files to investigate:\n\n- cmd/daemon/follow.go: runLog() dispatches to renderers at lines 136-163. Verify the correct renderer is instantiated and Render() is called.\n- internal/logrender/reader.go: ReplayReader.Records() and FollowReader.Records() parse NDJSON and emit Record structs. Verify records are being parsed (not passed as raw strings).\n- internal/logrender/thoughts.go: ThoughtsRenderer.Render() filters for type==assistant and prints r.Text. Verify this path executes.\n- internal/logrender/interleaved.go: InterleavedRenderer.Render() handles stage_start, stage_complete, assistant, etc. Verify this path executes.\n\nPossible failure modes: (a) renderer is constructed but never receives records from the channel, (b) records arrive but fail the type checks, (c) a fallback path dumps raw JSON, (d) the wrong output mode is selected, (e) the reader silently fails to parse and some other codepath writes stdout."
+    },
+    {
+      "id": "task-0002",
+      "title": "Fix thoughts renderer to match spec",
+      "description": "Fix thoughts renderer to match spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/thoughts.go",
+        "internal/logrender/thoughts_test.go"
+      ],
+      "body": "After diagnosing the root cause, fix the thoughts renderer so that wolfcastle log --thoughts produces spec-compliant output: plain text extracted from assistant-type NDJSON records, one thought per line, no stage headers, no timestamps, no JSON. The spec example:\n\nI'll start by creating the site specification document...\nReading the project requirements from the inbox item...\nThe inbox item asks for a donut stand website, so I'll need...\n\nBoth replay mode (historical session) and follow mode (tailing live daemon) must work. Update thoughts_test.go if the fix requires test changes.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Fix interleaved renderer to match spec",
+      "description": "Fix interleaved renderer to match spec",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/interleaved.go",
+        "internal/logrender/interleaved_test.go"
+      ],
+      "body": "After diagnosing the root cause, fix the interleaved renderer so that wolfcastle log --interleaved produces spec-compliant output: stage headers with wall-clock timestamps and glyphs, agent text indented below. The spec example:\n\n18:01:34 ▶ [execute] donut-stand-website/site-specification/task-0001\n18:01:35     I'll start by creating the site specification document...\n18:01:36     Reading the project requirements from the inbox item...\n18:02:56 ✓ [execute] donut-stand-website/site-specification/task-0001 (1m22s)\n\nKey formatting rules:\n- Wall-clock timestamps in HH:MM:SS local time\n- ▶ for stage starts, ✓ for success, ✗ for failure\n- Agent thoughts indented 5 spaces after timestamp\n- audit_report_written paths indented below audit completion line\n- No sequence numbers, no log levels, no terminal markers\n\nBoth replay and follow modes must work. Update interleaved_test.go if the fix requires test changes.",
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
+      ]
+    },
+    {
+      "id": "task-0004",
+      "title": "Verify renderer fixes with tests",
+      "description": "Verify renderer fixes with tests",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/logrender/thoughts_test.go",
+        "internal/logrender/interleaved_test.go"
+      ],
+      "body": "Run the full test suite for the logrender package and the parity tests in cmd/execute_test.go. All existing tests must pass. If the fix changed behavior that existing tests assert against, those tests should have been updated in the previous tasks. Run:\n\ngo test ./internal/logrender/... -v\ngo test ./cmd/... -v -run TestRenderParity\n\nConfirm that thoughts output contains only plain text (no JSON), and interleaved output contains timestamped stage headers with glyphed agent text (no raw JSON lines)."
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Fix Renderer Output is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Confirm thoughts output contains zero JSON braces or colons from record structure, only plain text lines",
+    "Confirm interleaved output has HH:MM:SS timestamps, glyph characters, and indented agent text on every relevant line"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T18:20:19.787229Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "text": "Fixed thoughts and interleaved renderers: both now call invoke.FormatAssistantText to extract human-readable content from Claude API JSON envelopes stored in Record.Text. Added regression tests with real envelope formats."
+      },
+      {
+        "timestamp": "2026-03-22T18:23:27.944802Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "text": "Replaced invoke.FormatAssistantText with dedicated extractThoughtText in thoughts renderer. Now only text content blocks from assistant envelopes appear in --thoughts output. System init, result, and tool_use envelopes are dropped per spec."
+      },
+      {
+        "timestamp": "2026-03-22T18:26:47.511195Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "text": "Interleaved renderer now uses extractThoughtText instead of invoke.FormatAssistantText. Only text content blocks from assistant envelopes appear; system init, result, and tool_use are dropped per spec. Multiline text blocks each get their own timestamp and indent."
+      },
+      {
+        "timestamp": "2026-03-22T18:27:42.524197Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "text": "Verified all renderer tests pass: 91 logrender tests and 5 render parity tests green. Confirmed thoughts output produces only plain text (no JSON) and interleaved output produces timestamped glyphed lines (no raw JSON)."
+      },
+      {
+        "timestamp": "2026-03-22T18:29:10.622059Z",
+        "task": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
+        "text": "Audit reviewed 4 files (thoughts.go 76 lines, interleaved.go 109 lines, thoughts_test.go 169 lines, interleaved_test.go 369 lines). PASS. Build clean, go vet clean, all 91 logrender tests and 5 render parity tests pass. Seven findings, all accepted: (1) extractThoughtText in thoughts.go used by interleaved.go is mildly awkward placement but fine for same-package code. (2) 200-char truncation on non-JSON text is defensive and unlikely to trigger on real data. (3) Discarded fmt write errors are standard for terminal renderers. (4) No race conditions, channel consumption is single-goroutine. (5) Test coverage is thorough across envelope types, edge cases, and cancellation. (6) FormatAssistantText cleanly removed from logrender package. (7) No pre-existing issues surfaced. Quality: clean, surgical implementation. The extractThoughtText function is well-designed, handling both JSON envelopes and plain text gracefully. Tests are precise and assert both presence of expected output and absence of unwanted types."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T18:12:55.460906Z",
+    "completed_at": "2026-03-22T18:29:24.022529Z",
+    "result_summary": "Fixed the thoughts and interleaved log renderers that were dumping raw Claude API NDJSON envelopes instead of human-readable text. Introduced extractThoughtText to parse JSON envelopes and extract only text content blocks from assistant messages, dropping system init markers, tool_use summaries, thinking blocks, and result records. Both renderers now produce spec-compliant output: thoughts mode emits bare text lines, interleaved mode emits timestamped and indented text with stage headers. All 96 tests pass including new regression tests for envelope extraction, multi-block handling, and non-text content filtering."
+  },
+  "aars": {
+    "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output/task-0002": {
+      "task_id": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output/task-0002",
+      "timestamp": "2026-03-22T18:23:23.835116Z",
+      "objective": "Make the thoughts renderer produce spec-compliant output: only plain text from assistant content blocks",
+      "what_happened": "Replaced invoke.FormatAssistantText call with a dedicated extractThoughtText function in thoughts.go. FormatAssistantText formats all envelope types (system init as [session started], results as [result], tool uses as summaries), but the spec says thoughts mode shows only what the model said. The new function parses the inner JSON envelope and returns only text-type content blocks from assistant-type messages. Updated TestThoughtsRenderer_ClaudeAPIEnvelope to assert that system, result, and tool_use envelopes produce no output. Added TestThoughtsRenderer_MultipleTextBlocks for multi-block assistant messages.",
+      "went_well": [
+        "The extraction logic is simple and self-contained, no new dependencies needed",
+        "All 9 thoughts tests pass, including the updated envelope test and new multi-block test",
+        "Full test suite green, no regressions"
+      ],
+      "improvements": [
+        "The interleaved renderer still uses FormatAssistantText, which is correct for that mode but means the two renderers diverge in how they handle envelopes. A shared type for the parsed envelope could reduce duplication."
+      ],
+      "action_items": [
+        "Verify interleaved renderer behavior separately in its own task (system/result/tool_use summaries are appropriate there per spec)"
+      ]
+    },
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T18:20:12.915478Z",
+      "objective": "Diagnose and fix raw NDJSON output from wolfcastle log --thoughts and --interleaved",
+      "what_happened": "Traced the pipeline from cmd/daemon/follow.go through logrender readers to renderers. The renderers correctly consumed Record structs and checked r.Type == assistant, but r.Text contained the raw Claude API JSON envelope (escaped as a string) rather than plain text. The daemon's assistantLogWriter captures Claude Code's stdout verbatim, which emits NDJSON with nested JSON envelopes. The existing invoke.FormatAssistantText function already knew how to parse these envelopes. Applied it in both ThoughtsRenderer and InterleavedRenderer.",
+      "went_well": [
+        "invoke.FormatAssistantText already existed with full test coverage, so the fix was surgical: two import additions and two call sites",
+        "All existing tests continued passing because FormatAssistantText passes plain text through unchanged"
+      ],
+      "improvements": [
+        "The assistantLogWriter could extract text at write-time to avoid the double-encoding entirely, but that would change the log format contract"
+      ],
+      "action_items": [
+        "Consider whether the log format should store pre-extracted text vs raw envelopes as a deliberate design decision (ADR-worthy)"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T18:26:43.006722Z",
+      "objective": "Make the interleaved renderer extract only text content blocks from assistant envelopes, matching the spec's definition of agent thoughts",
+      "what_happened": "Replaced invoke.FormatAssistantText with extractThoughtText (shared with thoughts renderer, same package). FormatAssistantText was producing tool_use summaries, system init markers, and result markers that the spec does not include in interleaved output. Also added multiline handling: when extractThoughtText returns multiple text blocks joined by newlines, each line now gets its own timestamp and 5-space indent.",
+      "went_well": [
+        "Reusing extractThoughtText from the thoughts renderer kept the change minimal and ensured both renderers agree on what counts as an agent thought",
+        "The multiline test catches the edge case where a single assistant record contains multiple text content blocks"
+      ],
+      "improvements": [
+        "extractThoughtText lives in thoughts.go which is a bit awkward for the interleaved renderer to depend on. A shared extraction file might be cleaner."
+      ],
+      "action_items": [
+        "Consider moving extractThoughtText to a shared file if more renderers need it"
+      ]
+    },
+    "task-0004": {
+      "task_id": "task-0004",
+      "timestamp": "2026-03-22T18:27:41.030875Z",
+      "objective": "Verify renderer fixes pass all tests and produce spec-compliant output",
+      "what_happened": "Ran go test ./internal/logrender/... -v (91 tests, all pass) and go test ./cmd/... -v -run TestRenderParity (5 tests, all pass). Reviewed thoughts_test.go and interleaved_test.go to confirm they assert the right behavior: thoughts output contains only plain text from assistant text content blocks (no JSON envelopes), interleaved output contains timestamped stage headers with glyphed agent text (no raw JSON lines). Both deliverable files exist and contain comprehensive test coverage including envelope extraction, multi-block handling, and filtering of non-text content types.",
+      "went_well": [
+        "All 96 tests pass with no regressions",
+        "Prior tasks updated existing tests and added new ones that correctly assert spec-compliant behavior"
+      ],
+      "improvements": [
+        "None identified; the test coverage is thorough for the changes made"
+      ],
+      "action_items": [
+        "None; verification is complete"
+      ]
+    }
+  }
+}

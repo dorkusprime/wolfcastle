@@ -138,6 +138,47 @@ func TestParseRecord_ExitCodeNonZero(t *testing.T) {
 	}
 }
 
+func TestParseRecord_DurationMS(t *testing.T) {
+	t.Run("present", func(t *testing.T) {
+		line := `{"type":"planning_complete","timestamp":"2026-03-21T18:10:00Z","duration_ms":4200}`
+		r, err := ParseRecord(line)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if r.DurationMS == nil {
+			t.Fatal("DurationMS should not be nil")
+		}
+		if *r.DurationMS != 4200 {
+			t.Errorf("DurationMS = %d, want 4200", *r.DurationMS)
+		}
+	})
+
+	t.Run("zero value", func(t *testing.T) {
+		line := `{"type":"stage_complete","timestamp":"2026-03-21T18:10:00Z","duration_ms":0}`
+		r, err := ParseRecord(line)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if r.DurationMS == nil {
+			t.Fatal("DurationMS should not be nil when explicitly 0")
+		}
+		if *r.DurationMS != 0 {
+			t.Errorf("DurationMS = %d, want 0", *r.DurationMS)
+		}
+	})
+
+	t.Run("absent", func(t *testing.T) {
+		line := `{"type":"assistant","timestamp":"2026-03-21T18:10:00Z","text":"hello"}`
+		r, err := ParseRecord(line)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if r.DurationMS != nil {
+			t.Errorf("DurationMS = %v, want nil when absent", *r.DurationMS)
+		}
+	})
+}
+
 func TestStageLabel(t *testing.T) {
 	cases := []struct {
 		stage string

@@ -1,0 +1,16 @@
+# Use PostgreSQL
+
+## Status
+Accepted
+
+## Date
+2026-03-22
+
+## Context
+We need a relational database.
+
+## Decision
+PostgreSQL.
+
+## Consequences
+Requires DBA support.

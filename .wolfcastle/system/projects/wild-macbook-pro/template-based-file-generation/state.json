@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "template-based-file-generation",
+  "name": "Template-Based File Generation",
+  "type": "orchestrator",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "template-repository-infrastructure",
+      "address": "template-based-file-generation/template-repository-infrastructure",
+      "state": "complete"
+    },
+    {
+      "id": "call-site-migration",
+      "address": "template-based-file-generation/call-site-migration",
+      "state": "complete"
+    },
+    {
+      "id": "template-documentation",
+      "address": "template-based-file-generation/template-documentation",
+      "state": "complete"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Template-Based File Generation is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Template-based file generation per spec .wolfcastle/docs/specs/2026-03-22T09-00Z-template-file-generation.md\n\nMove all generated file content (scaffold, ADRs, specs, task markdown) from Go string literals into template files under internal/project/templates/. Extend the existing PromptRepository/tierfs infrastructure to support a templates/ prefix alongside prompts/ -- do NOT create a parallel system. Add a shared RenderToFile convenience method. Replace all strings.Builder / fmt.Sprintf / os.WriteFile chains at each call site with RenderToFile. Verify with snapshot tests: output must be byte-for-byte identical before and after. After implementation, document the template override mechanism in docs/humans/configuration.md and update relevant CLI docs and CONTRIBUTING.md.",
+  "success_criteria": [
+    "All file-generation call sites (scaffold_service.go, cmd/adr_create.go, cmd/spec.go, project_create.go, cmd/task/add.go) use RenderToFile instead of inline string construction",
+    "Snapshot tests verify byte-for-byte identical output before and after migration",
+    "Template override mechanism works through the existing three-tier system (base \u003c custom \u003c local)",
+    "No parallel template loading system created; PromptRepository extended, not duplicated",
+    "Documentation covers template customization in configuration.md, CLI docs, and CONTRIBUTING.md"
+  ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
+  "total_replans": 2,
+  "planning_history": [
+    {
+      "timestamp": "2026-03-22T21:50:02.131798Z",
+      "trigger": "initial",
+      "summary": "marker="
+    },
+    {
+      "timestamp": "2026-03-22T21:53:42.784126Z",
+      "trigger": "initial",
+      "summary": "marker="
+    },
+    {
+      "timestamp": "2026-03-22T21:58:22.111429Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T21:58:20.355616Z",
+        "task": "template-based-file-generation",
+        "text": "Created 3 children: template-repository-infrastructure (leaf, 4 tasks), call-site-migration (orchestrator with 2 leaf children: scaffold-templates 3 tasks, artifact-templates 4 tasks), template-documentation (leaf, 2 tasks). Ordering: infrastructure first (foundation for all migration work), then call-site migration (depends on ResolveTemplate and RenderToFile), then documentation (describes what was built). Found relevant specs: tierfs-resolver-contract, scaffoldservice-contract, and the primary template-file-generation spec. Referenced all three in tasks."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "completed_at": "2026-03-23T03:01:21.874482Z"
+  }
+}

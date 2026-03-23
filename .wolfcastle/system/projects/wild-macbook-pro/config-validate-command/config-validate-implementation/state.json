@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "id": "config-validate-implementation",
+  "name": "Config Validate Implementation",
+  "type": "leaf",
+  "state": "complete",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Implement config validate command",
+      "description": "Implement config validate command",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/validate.go"
+      ],
+      "body": "Create cmd/config/validate.go with a newValidateCmd(app) function following the existing command pattern (see show.go, set.go for reference). The command should:\n\n1. Load the three-tier config via app's ConfigRepository.Load()\n2. Run config.ValidateStructure(cfg) to check structural constraints\n3. Optionally run config.Validate(cfg) for full validation (with a --full flag)\n4. Collect errors and warnings into a structured report\n5. Human output: print each issue with severity, category, and description. Print a summary line (e.g., '2 errors, 1 warning'). Use output.PrintHuman for normal output, output.PrintError for errors\n6. JSON output: emit a structured envelope via output.Print(output.Ok(...)) containing the issues list, error count, and warning count\n7. Exit code: return nil (exit 0) when no errors found, return an error (non-zero) when errors exist. Warnings alone should not cause non-zero exit\n8. Register the command in cmd/config/register.go's Register() function\n\nReference the existing command pattern in cmd/config/show.go and the validation functions in internal/config/validate.go.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Command is registered and appears in 'wolfcastle config --help'",
+        "Loading a valid config and running 'wolfcastle config validate' exits 0 with clean output",
+        "Loading a config with structural errors exits non-zero and reports each error",
+        "The --json flag produces structured JSON output with issues array and counts"
+      ],
+      "references": [
+        "cmd/config/show.go",
+        "internal/config/validate.go"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Write tests for config validate command",
+      "description": "Write tests for config validate command",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "cmd/config/validate_test.go"
+      ],
+      "body": "Create cmd/config/validate_test.go with comprehensive tests following the test pattern in cmd/config/show_test.go. Use testutil.NewEnvironment to set up a temporary .wolfcastle directory. Tests should cover:\n\n1. Valid config: command exits 0, human output shows 'no issues' or similar clean message, JSON output has empty issues array and zero counts\n2. Config with structural errors (e.g., empty pipeline, invalid stage references): command exits non-zero, human output lists each error, JSON output contains the errors\n3. Config with warnings but no errors: command exits 0 (warnings are non-fatal)\n4. The --full flag runs full validation including identity checks\n5. Missing or unreadable config: command returns an appropriate error\n6. Both human and JSON output modes for each scenario\n\nMaintain \u003e90% coverage on the new validate.go file.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "All tests pass with 'go test ./cmd/config/ -run TestValidate'",
+        "Coverage on cmd/config/validate.go exceeds 90%"
+      ],
+      "references": [
+        "cmd/config/show_test.go"
+      ]
+    },
+    {
+      "id": "task-0003",
+      "title": "Write CLI documentation for config validate",
+      "description": "Write CLI documentation for config validate",
+      "state": "complete",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/cli/config-validate.md"
+      ],
+      "body": "Create docs/humans/cli/config-validate.md documenting the new command. Follow the format and style of existing CLI docs (see docs/humans/cli/config-show.md for reference). Include:\n\n1. Command synopsis and description\n2. Flag documentation (--full for full validation, --json for structured output)\n3. Exit code semantics (0 = clean, non-zero = errors found)\n4. Example usage for CI pipelines and pre-commit hooks\n5. Description of what ValidateStructure checks vs full Validate",
+      "class": "writing",
+      "acceptance_criteria": [
+        "Document exists and covers command usage",
+        " flags",
+        " exit codes",
+        " and examples"
+      ],
+      "references": [
+        "docs/humans/cli/config-show.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Config Validate Implementation is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0,
+      "class": "audit"
+    }
+  ],
+  "audit_enrichment": [
+    "Verify the command is registered in cmd/config/register.go and appears in help output",
+    "Verify exit code behavior: 0 for clean, non-zero for errors, 0 for warnings-only",
+    "Verify JSON output envelope matches the project's output.Ok() pattern",
+    "Verify test coverage exceeds 90% on cmd/config/validate.go"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-22T23:53:13.630594Z",
+        "task": "config-validate-command/config-validate-implementation",
+        "text": "Implemented config validate command in cmd/config/validate.go. Registered in register.go. Supports --full flag and --json output. Parses ValidateStructure/Validate errors into structured issues. Build and tests pass."
+      },
+      {
+        "timestamp": "2026-03-22T23:57:30.786328Z",
+        "task": "config-validate-command/config-validate-implementation",
+        "text": "Added cmd/config/validate_test.go with 23 tests. 100% coverage on validate.go. All tests pass."
+      },
+      {
+        "timestamp": "2026-03-22T23:58:21.99397Z",
+        "task": "config-validate-command/config-validate-implementation",
+        "text": "Created docs/humans/cli/config-validate.md with full CLI documentation: command synopsis, flags (--full, --json), exit codes, output format for both human and JSON modes, structural vs full validation breakdown, CI/pre-commit examples, and See Also links."
+      },
+      {
+        "timestamp": "2026-03-23T00:00:35.912546Z",
+        "task": "config-validate-command/config-validate-implementation",
+        "text": "Audit reviewed 3 deliverables: cmd/config/validate.go (153 lines), cmd/config/validate_test.go (701 lines, 23 tests), docs/humans/cli/config-validate.md (115 lines). PASS. Build clean, all tests pass, 100% coverage on validate.go, race detector clean, vet clean. Two accepted findings: (1) JSON envelope uses output.Ok even for error cases, making ok=true when errors exist; error state conveyed via error_count and exit code. Tests explicitly verify this behavior. Documented quirk, not a defect. (2) splitValidationError string parsing is coupled to the format string in internal/config/validate.go; a future refactor to return structured errors would decouple them, but the current approach works correctly and is well-tested. No gaps recorded."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "passed",
+    "started_at": "2026-03-22T23:50:53.109576Z",
+    "completed_at": "2026-03-23T00:00:50.224236Z",
+    "result_summary": "Implemented wolfcastle config validate as a new subcommand under config. The command loads and validates the resolved configuration, reporting structural issues by default and full cross-reference and identity checks with --full. Output supports both human-readable (severity/category/description per line with summary counts) and JSON (structured envelope with issues array) modes. Exit code 1 on errors, 0 on warnings-only or clean. Registered in cmd/config/register.go alongside show, set, unset, append, remove. Test suite covers 23 scenarios at 100% function coverage including edge cases (malformed JSON, missing tiers, unreadable files, mixed warnings and errors). CLI documentation maps every structural and full-mode check to the underlying validation functions."
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-22T23:53:09.040759Z",
+      "objective": "Implement the config validate CLI command",
+      "what_happened": "Created cmd/config/validate.go with newValidateCmd following the show.go/set.go pattern. Registered it in register.go. The command loads config via app.Config.Load(), collects cfg.Warnings as warning-severity issues, runs ValidateStructure or (with --full) Validate, and parses the concatenated error string into individual issues. Output supports both human (severity/category/description per line plus summary) and JSON (structured envelope with issues array and counts) modes.",
+      "went_well": [
+        "Kept the implementation simple by leveraging the existing validation functions rather than duplicating logic",
+        "The splitValidationError parser handles the known output format cleanly"
+      ],
+      "improvements": [
+        "The error string parsing in splitValidationError is coupled to the format in validate.go's Join. If that format changes, this breaks silently. A future refactor could have ValidateStructure return structured errors directly"
+      ],
+      "action_items": [
+        "Write tests for the validate command (task-0002)",
+        "Write the CLI documentation at docs/humans/cli/config-validate.md (task-0003)"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-22T23:57:27.022208Z",
+      "objective": "Write comprehensive tests for the config validate command",
+      "what_happened": "Created cmd/config/validate_test.go with 23 tests covering: unit tests for splitValidationError and parseValidationErrors, valid config in both human and JSON modes, structural errors caught by Load (empty pipeline, invalid stage refs), warnings from unknown fields (exit 0, human and JSON), --full flag with valid config and missing identity (human and JSON), malformed JSON, unreadable config (directory-in-place-of-file trick), missing all tiers, subcommand registration, --full flag registration, mixed warnings+errors in JSON, structural recheck finding nothing, and JSON envelope action field.",
+      "went_well": [
+        "100% coverage on validate.go across all three exported/unexported functions",
+        "Tests properly handle the stdout/stderr pipe capture pattern established in show_test.go"
+      ],
+      "improvements": [
+        "The JSON envelope always reports ok=true even with errors (error state is in error_count and cobra return). A future improvement could use output.Err for error cases."
+      ],
+      "action_items": [
+        "Write CLI documentation at docs/humans/cli/config-validate.md (task-0003)"
+      ]
+    },
+    "task-0003": {
+      "task_id": "task-0003",
+      "timestamp": "2026-03-22T23:58:32.431516Z",
+      "objective": "Write CLI documentation for the config validate command",
+      "what_happened": "Created docs/humans/cli/config-validate.md following the structure and style of config-show.md. Read validate.go and internal/config/validate.go to document the exact checks performed by ValidateStructure and Validate. Documented both flags, exit codes, human and JSON output formats, the full list of structural checks, the additional full-mode checks, and usage examples for CI and scripting.",
+      "went_well": [
+        "Derived the structural vs full validation breakdown directly from source, so the docs match the implementation precisely",
+        "JSON envelope example matches the actual output structure from the command"
+      ],
+      "improvements": [
+        "If ValidateStructure gains new checks in the future, this doc will need updating to stay in sync. A generated-from-source approach would prevent drift"
+      ],
+      "action_items": [
+        "Keep the structural checks list in this doc synchronized when internal/config/validate.go changes"
+      ]
+    }
+  }
+}

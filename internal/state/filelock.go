@@ -103,6 +103,10 @@ func (fl *FileLock) tryCleanStaleLock(f *os.File) bool {
 		return false
 	}
 
+	// PID recycling edge case: if the lock holder dies and a new process
+	// reuses its PID within the polling window, signalProcess returns nil
+	// (alive), so we'll treat the lock as held and time out. This causes a
+	// delayed acquisition, not corruption: flock still serializes access.
 	err = signalProcess(pid)
 	if err == nil {
 		return false

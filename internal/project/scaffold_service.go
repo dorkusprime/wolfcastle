@@ -19,112 +19,16 @@ type promptWriter interface {
 	WriteAllBase(templates fs.FS) error
 }
 
-// scaffoldREADMEs maps relative paths (under .wolfcastle/) to README content
-// that Init writes during scaffold. These orient humans who browse the
-// directory structure after running wolfcastle init.
-var scaffoldREADMEs = map[string]string{
-	"README.md": `# .wolfcastle
-
-This directory is Wolfcastle's workspace. Everything it needs to plan, execute,
-and track work lives here.
-
-## What's inside
-
-- **system/** -- Configuration and runtime state. Three tiers of config (base,
-  custom, local), project trees, and logs.
-- **docs/** -- ADRs and specs generated during project work. Decisions get
-  recorded. Specs get written. Nothing disappears.
-- **archive/** -- Completed projects land here. Finished work moves out of the
-  active tree and into cold storage.
-- **artifacts/** -- Build outputs, generated files, anything produced as a side
-  effect of task execution.
-`,
-
-	"system/README.md": `# system
-
-Configuration and state, organized into three tiers.
-
-## The three tiers
-
-**base/** -- Defaults. Wolfcastle writes these. You don't edit them. Every
-` + "`wolfcastle init --force`" + ` regenerates this tier from scratch. Prompt
-templates, default config, audit definitions. All machine-generated, all
-disposable.
-
-**custom/** -- Team overrides. Checked into version control. This is where your
-team sets model preferences, pipeline stages, and any config that should travel
-with the repo. Custom overrides base.
-
-**local/** -- Your machine. Gitignored. Identity, local model endpoints,
-anything specific to this workstation. Local overrides everything.
-
-A field set in local beats custom. Custom beats base. Set a field to ` + "`null`" + ` in
-a higher tier to delete it entirely.
-
-## Other directories
-
-- **projects/** -- Active project trees. Each namespace (user+machine) gets its
-  own directory with a state.json index.
-- **logs/** -- Daemon execution logs. Gitignored.
-`,
-
-	"system/base/prompts/README.md": `# prompts
-
-Prompt templates that drive Wolfcastle's pipeline stages. Each file here is a
-Markdown template injected into model calls during task execution.
-
-Organized into subdirectories by purpose:
-
-- **stages/** -- Pipeline stage prompts (intake, execute, planning variants).
-- **classes/** -- Task class prompts. Empty in the base tier; add your own
-  under system/custom/prompts/classes/ to guide execution by task type.
-- **audits/** -- Audit command prompts.
-
-Shared support templates (script-reference, context-headers, etc.) remain at
-this level.
-
-These are the base tier copies. Wolfcastle regenerates them on every
-` + "`wolfcastle init --force`" + `. Do not edit these files directly.
-
-## How to override
-
-Create the same filename under **system/custom/prompts/** (team-wide) or
-**system/local/prompts/** (this machine only). The higher tier wins. Wolfcastle
-loads prompts using the same three-tier resolution as config: local beats
-custom beats base.
-
-If you want to tweak the execution prompt for your team, copy
-` + "`system/base/prompts/stages/execute.md`" + ` to ` + "`system/custom/prompts/stages/execute.md`" + `
-and edit the copy. The base version stays intact and gets refreshed on upgrades.
-Your custom version stays yours.
-`,
-
-	"docs/README.md": `# docs
-
-Generated documentation from project work. Wolfcastle writes here during
-planning and execution.
-
-## What goes here
-
-- **decisions/** -- Architecture Decision Records. When Wolfcastle makes a
-  design choice worth recording, the ADR lands here.
-- **specs/** -- Technical specifications. Produced during project planning,
-  referenced during execution.
-
-These files are tracked in git. They survive project completion and serve as
-the written record of why things were built the way they were.
-`,
-
-	"archive/README.md": `# archive
-
-Completed projects. When a project finishes, its state tree moves here.
-
-Active work lives in system/projects/. Once every task is done and the final
-audit passes, the project gets archived. The work is preserved. The active
-tree stays clean.
-
-Archived projects are tracked in git. They are the permanent record.
-`,
+// scaffoldFiles maps embedded template paths (under templates/scaffold/) to
+// their output paths relative to the .wolfcastle/ root. These files orient
+// humans who browse the directory structure after running wolfcastle init.
+var scaffoldFiles = map[string]string{
+	"templates/scaffold/gitignore.tmpl":              ".gitignore",
+	"templates/scaffold/readme-root.md.tmpl":         "README.md",
+	"templates/scaffold/readme-system.md.tmpl":       "system/README.md",
+	"templates/scaffold/readme-base-prompts.md.tmpl": "system/base/prompts/README.md",
+	"templates/scaffold/readme-docs.md.tmpl":         "docs/README.md",
+	"templates/scaffold/readme-archive.md.tmpl":      "archive/README.md",
 }
 
 // ScaffoldService owns creation and regeneration of the .wolfcastle/ directory
@@ -185,29 +89,9 @@ func (s *ScaffoldService) Init(identity *config.Identity) error {
 		}
 	}
 
-	// Write .gitignore listing what to EXCLUDE. Everything else is tracked.
-	// This approach works with plain 'git add .wolfcastle/' (no --force).
-	gitignore := `# Base tier (regenerated by wolfcastle init)
-system/base/
-
-# Local tier (personal overrides, not shared)
-system/local/
-
-# Runtime artifacts
-system/logs/
-system/wolfcastle.pid
-system/stop
-*.lock
-`
-	if err := os.WriteFile(filepath.Join(s.root, ".gitignore"), []byte(gitignore), 0644); err != nil {
-		return fmt.Errorf("scaffold: writing .gitignore: %w", err)
-	}
-
-	// Write README files into key directories.
-	for path, content := range scaffoldREADMEs {
-		if err := os.WriteFile(filepath.Join(s.root, path), []byte(content), 0644); err != nil {
-			return fmt.Errorf("scaffold: writing %s: %w", path, err)
-		}
+	// Write scaffold files (.gitignore, READMEs) from embedded templates.
+	if err := s.writeScaffoldFiles(); err != nil {
+		return err
 	}
 
 	// Write base config from defaults (identity belongs only in local tier)
@@ -297,6 +181,17 @@ func (s *ScaffoldService) Reinit() error {
 		}
 	}
 
+	// Ensure scaffold directories exist (Init creates them, but they may
+	// be missing if the .wolfcastle/ tree was created minimally).
+	for _, d := range []string{"docs", "archive"} {
+		_ = os.MkdirAll(filepath.Join(s.root, d), 0755)
+	}
+
+	// Restore scaffold files destroyed by the base-tier teardown.
+	if err := s.writeScaffoldFiles(); err != nil {
+		return err
+	}
+
 	// Regenerate base config
 	defaults := config.Defaults()
 	defaults.Identity = nil
@@ -335,6 +230,21 @@ func (s *ScaffoldService) Reinit() error {
 		return fmt.Errorf("scaffold: %w", err)
 	}
 
+	return nil
+}
+
+// writeScaffoldFiles reads each scaffold template from the embedded FS and
+// writes it to the corresponding output path under .wolfcastle/.
+func (s *ScaffoldService) writeScaffoldFiles() error {
+	for tmpl, dest := range scaffoldFiles {
+		content, err := Templates.ReadFile(tmpl)
+		if err != nil {
+			return fmt.Errorf("scaffold: reading template %s: %w", tmpl, err)
+		}
+		if err := os.WriteFile(filepath.Join(s.root, dest), content, 0644); err != nil {
+			return fmt.Errorf("scaffold: writing %s: %w", dest, err)
+		}
+	}
 	return nil
 }
 

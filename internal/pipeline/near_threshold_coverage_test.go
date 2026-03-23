@@ -206,8 +206,8 @@ func TestBuild_InjectsPerTaskMDContent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj/node", nodeDir, ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj/node", nodeDir, ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,8 +235,8 @@ func TestBuild_SkipsMissingPerTaskMD(t *testing.T) {
 	// nodeDir exists but has no .md file for the task.
 	nodeDir := t.TempDir()
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj/node", nodeDir, ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj/node", nodeDir, ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,8 +265,8 @@ func TestBuild_EmptyPerTaskMDIgnored(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes)
-	got, err := cb.Build("proj/node", nodeDir, ns, "task-0001", nil)
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj/node", nodeDir, ns, "task-0001", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -52,11 +51,6 @@ Examples:
 		if err != nil {
 			return err
 		}
-
-		// Suppress console mirrors: the interleaved renderer handles
-		// all display, so mirroring to stderr would be redundant.
-		d.Logger.Console = io.Discard
-		d.InboxLogger.Console = io.Discard
 
 		output.PrintHuman("wolfcastle intake %s", app.Version)
 
