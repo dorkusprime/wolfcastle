@@ -8,7 +8,7 @@
 
 Wolfcastle has no CI/CD pipeline. Code quality is enforced manually
 (developer runs `go vet`, `gofmt`, `go test`). This is acceptable for a
-single developer but fragile — a single missed `gofmt` or a broken test can
+single developer but fragile: a single missed `gofmt` or a broken test can
 merge unnoticed. As the project approaches production, automated quality
 gates become non-negotiable.
 
@@ -23,11 +23,11 @@ repository:
    cross-compile verification.
 3. **Go version matrix.** Test against the minimum supported version
    (from `go.mod`) and latest stable.
-4. **Test stage.** Runs `go test -race -coverprofile ./...` — race detector
+4. **Test stage.** Runs `go test -race -coverprofile ./...`: race detector
    on, coverage collected.
-5. **Coverage.** Reported but not gated (no minimum threshold yet — see
+5. **Coverage.** Reported but not gated (no minimum threshold yet: see
    ADR-044 for the plan).
-6. **gofmt check.** Hard gate — any unformatted file fails the pipeline.
+6. **gofmt check.** Hard gate: any unformatted file fails the pipeline.
 7. **Cross-compilation check.** Build `linux/amd64`, `linux/arm64`,
    `darwin/amd64`, `darwin/arm64` to catch platform-specific compilation
    errors.

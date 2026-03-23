@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -346,6 +347,9 @@ func TestInstallSkillCmd_JSONOutput(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCopyDir_UnreadableFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission-based test not supported on Windows")
+	}
 	src := filepath.Join(t.TempDir(), "src")
 	dst := filepath.Join(t.TempDir(), "dst")
 	_ = os.MkdirAll(src, 0755)

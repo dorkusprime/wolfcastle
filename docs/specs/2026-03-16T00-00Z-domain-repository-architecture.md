@@ -20,7 +20,7 @@ Repositories live in their domain packages, not in a single `internal/repository
 
 ```
 internal/tierfs/         ← shared three-tier resolution (base < custom < local)
-internal/config/         ← ConfigRepository, Identity
+internal/config/         ← Repository, Identity
 internal/pipeline/       ← PromptRepository, ClassRepository, ContextBuilder
 internal/daemon/         ← DaemonRepository
 internal/state/          ← Store (already exists, unchanged)
@@ -31,7 +31,7 @@ internal/testutil/       ← Environment, NodeSpec builders
 
 ## Shared Tier Resolution (internal/tierfs)
 
-The three-tier file resolution pattern is used by ConfigRepository, PromptRepository, and ClassRepository. A shared package provides the primitive.
+The three-tier file resolution pattern is used by config.Repository, PromptRepository, and ClassRepository. A shared package provides the primitive.
 
 ```go
 package tierfs
@@ -61,43 +61,43 @@ The `tiers` field is not configurable. The three-tier system is a fixed architec
 
 ## Repositories
 
-### ConfigRepository
+### Repository (formerly ConfigRepository)
 
 Owns the three-tier config merge. Callers get a `*Config`, never see tier files.
 
 ```go
-type ConfigRepository struct {
+type Repository struct {
     tiers tierfs.Resolver
     root  string
 }
 
-// NewConfigRepository creates a repository backed by the filesystem.
+// NewRepository creates a repository backed by the filesystem.
 // Constructs a tierfs.FS internally from wolfcastleRoot + "/system".
-func NewConfigRepository(wolfcastleRoot string) *ConfigRepository
+func NewRepository(wolfcastleRoot string) *Repository
 
-// NewConfigRepositoryWithTiers creates a repository with an injected
+// NewRepositoryWithTiers creates a repository with an injected
 // tierfs.Resolver (for testing with in-memory tier resolution).
-func NewConfigRepositoryWithTiers(tiers tierfs.Resolver, root string) *ConfigRepository
+func NewRepositoryWithTiers(tiers tierfs.Resolver, root string) *Repository
 
 // Load reads and merges config across all tiers. Starts with Defaults(),
 // then deep-merges each tier file that exists. Missing tier files are
 // skipped (not errors). This means Load() succeeds even before scaffold
 // has run, returning pure defaults.
-func (r *ConfigRepository) Load() (*Config, error)
+func (r *Repository) Load() (*Config, error)
 
 // WriteBase writes the full default config (minus identity) to the base
 // tier. Accepts *Config because the base tier is a complete config
 // snapshot, not a partial overlay.
-func (r *ConfigRepository) WriteBase(cfg *Config) error
+func (r *Repository) WriteBase(cfg *Config) error
 
 // WriteCustom writes team overrides to the custom tier. Accepts
 // map[string]any because custom is a partial overlay that gets
 // deep-merged on top of base. Only the keys present are overridden.
-func (r *ConfigRepository) WriteCustom(data map[string]any) error
+func (r *Repository) WriteCustom(data map[string]any) error
 
 // WriteLocal writes personal overrides to the local tier. Same
 // partial-overlay semantics as WriteCustom.
-func (r *ConfigRepository) WriteLocal(data map[string]any) error
+func (r *Repository) WriteLocal(data map[string]any) error
 ```
 
 The asymmetry between `WriteBase(*Config)` and `WriteCustom/WriteLocal(map[string]any)` reflects intent: base is a complete snapshot regenerated from code; custom/local are partial overlays that preserve keys not present in the map.
@@ -106,7 +106,7 @@ Replaces: `config.Load()`, `configTiers`, all `filepath.Join` calls to tier conf
 
 ### Identity
 
-Namespace derivation, identity detection, and projects directory mapping form a coherent concept extracted from `ConfigRepository`. This keeps `ConfigRepository` focused on config merging.
+Namespace derivation, identity detection, and projects directory mapping form a coherent concept extracted from `Repository`. This keeps `Repository` focused on config merging.
 
 ```go
 type Identity struct {
@@ -261,7 +261,7 @@ Creates the repositories' backing storage. Takes repositories as dependencies.
 
 ```go
 type ScaffoldService struct {
-    config  *config.ConfigRepository
+    config  *config.Repository
     prompts *pipeline.PromptRepository
     daemon  *daemon.DaemonRepository
     root    string  // .wolfcastle/ root, for creating docs/artifacts/archive
@@ -288,7 +288,7 @@ Handles layout and config migrations separately from scaffold. Split from `Scaff
 
 ```go
 type MigrationService struct {
-    config *config.ConfigRepository
+    config *config.Repository
     root   string
 }
 
@@ -299,7 +299,7 @@ func (m *MigrationService) MigrateDirectoryLayout() error
 
 // MigrateOldConfig moves pre-ADR-063 config files (root config.json
 // to system/custom/config.json, config.local.json to system/local/config.json).
-// Delegates to ConfigRepository for the actual file operations.
+// Delegates to config.Repository for the actual file operations.
 func (m *MigrationService) MigrateOldConfig() error
 ```
 
@@ -353,15 +353,15 @@ Replaces: `daemon.currentBranch`, `daemon.gitHEAD`, `daemon.checkGitProgress`.
 ```
 .wolfcastle/
   system/                          ← tierfs root for Config/Prompt repos
-    base/config.json               ← ConfigRepository.WriteBase
+    base/config.json               ← config.Repository.WriteBase
     base/prompts/*.md              ← PromptRepository.WriteBase
     base/prompts/classes/*.md      ← ClassRepository (via PromptRepository)
     base/rules/*.md                ← PromptRepository.WriteBase
     base/audits/*.md               ← PromptRepository.WriteBase
-    custom/config.json             ← ConfigRepository.WriteCustom
+    custom/config.json             ← config.Repository.WriteCustom
     custom/prompts/*.md            ← user overrides (PromptRepository reads)
     custom/prompts/classes/*.md    ← user class overrides (ClassRepository reads)
-    local/config.json              ← ConfigRepository.WriteLocal
+    local/config.json              ← config.Repository.WriteLocal
     local/prompts/*.md             ← user overrides (PromptRepository reads)
     projects/<namespace>/          ← Store (created by ScaffoldService.Init)
     logs/                          ← DaemonRepository.LogDir (escape hatch)
@@ -386,7 +386,7 @@ return fmt.Errorf("daemon: reading PID file: %w", err)
 ```
 
 Default behavior for missing data:
-- `ConfigRepository.Load()`: missing tier files skipped; returns `Defaults()` merged with whatever exists.
+- `config.Repository.Load()`: missing tier files skipped; returns `Defaults()` merged with whatever exists.
 - `PromptRepository.Resolve/ResolveRaw`: missing file returns a wrapped `os.ErrNotExist`.
 - `ClassRepository.Resolve`: missing class prompt returns an error naming the key and tier directories searched.
 - `DaemonRepository.ReadPID`: missing PID file returns a wrapped `os.ErrNotExist`.
@@ -480,7 +480,7 @@ After:
 
 ```go
 type App struct {
-    Config   *config.ConfigRepository
+    Config   *config.Repository
     Identity *config.Identity          // nil if identity not configured
     Prompts  *pipeline.PromptRepository
     Classes  *pipeline.ClassRepository
@@ -500,7 +500,7 @@ func (a *App) Init() error {
     if err != nil {
         return err
     }
-    a.Config = config.NewConfigRepository(root)
+    a.Config = config.NewRepository(root)
     a.Prompts = pipeline.NewPromptRepository(root)
     a.Daemon = daemon.NewDaemonRepository(root)
     a.Git = git.NewService(filepath.Dir(root))
@@ -561,7 +561,7 @@ func Orchestrator(name string, children ...NodeSpec) NodeSpec {
 // The App holds the same repository instances as the Environment fields.
 type Environment struct {
     Root     string
-    Config   *config.ConfigRepository
+    Config   *config.Repository
     Prompts  *pipeline.PromptRepository
     Classes  *pipeline.ClassRepository
     Daemon   *daemon.DaemonRepository
@@ -592,7 +592,7 @@ func (e *Environment) WithPrompt(relPath string, content string) *Environment
 func (e *Environment) WithRule(name string, content string) *Environment
 ```
 
-`NewEnvironment` builds repos first, then `App` from them. Both `env.Config` and `env.App.Config` point to the same `ConfigRepository` instance.
+`NewEnvironment` builds repos first, then `App` from them. Both `env.Config` and `env.App.Config` point to the same `config.Repository` instance.
 
 ### Migration for test helpers
 
@@ -624,7 +624,7 @@ Ordered by value: test infrastructure first so every subsequent step is easier t
 3. **`internal/daemon/DaemonRepository`**: smallest repository. Validates the pattern against the test infra. No dependency on `tierfs` (constructs paths from `systemDir` directly).
 4. **`internal/git/Service`** + `Provider` interface: no dependencies. Parallel with (3).
 5. **`internal/config/Identity`** extraction: standalone type, no dependencies beyond existing `config` package. Parallel with (3, 4).
-6. **`internal/config/ConfigRepository`**: depends on (1) for tier resolution. Uses `Environment` for tests.
+6. **`internal/config/Repository`**: depends on (1) for tier resolution. Uses `Environment` for tests.
 7. **`internal/pipeline/PromptRepository`**: depends on (1). Uses `Environment` for tests.
 8. **`internal/pipeline/ClassRepository`**: depends on (7). Needed for task-classes feature.
 9. **Context render methods** on `NodeState`, `Task`, `AuditState` in `internal/state/`: no repository dependencies. Parallel with (3-8).

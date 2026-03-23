@@ -7,7 +7,7 @@ Accepted
 2026-03-14
 
 ## Context
-Config defaults are scattered across multiple locations: `config.Load()` initializes some fields, `config.Validate()` applies some defaults during validation, embedded template files contain others, and the daemon fills in remaining gaps at runtime. This makes it difficult to answer "what is the default value of X?" without tracing through multiple code paths. Scattered defaults also invite inconsistency — the same field may receive different default values depending on which code path initializes it first.
+Config defaults are scattered across multiple locations: `config.Load()` initializes some fields, `config.Validate()` applies some defaults during validation, embedded template files contain others, and the daemon fills in remaining gaps at runtime. This makes it difficult to answer "what is the default value of X?" without tracing through multiple code paths. Scattered defaults also invite inconsistency: the same field may receive different default values depending on which code path initializes it first.
 
 Consolidating all defaults into a single function provides a clear, auditable source of truth and simplifies the config loading pipeline.
 
@@ -76,6 +76,6 @@ A separate `DefaultLocalConfig()` function handles identity defaults (reading ho
 ## Consequences
 - "What is the default for X?" is answered by reading one function
 - No more scattered default initialization across Load/Validate/daemon
-- User config files only need to contain overrides — empty `config.json` produces a fully valid config
+- User config files only need to contain overrides: empty `config.json` produces a fully valid config
 - The embedded template for `config.json` written by `wolfcastle init` can be a minimal override file rather than a full config dump
 - Test code can call `DefaultConfig()` to get a valid config without building one field by field

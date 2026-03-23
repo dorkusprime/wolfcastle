@@ -12,6 +12,7 @@ wolfcastle/
 │   ├── config/              # Config subcommands (show, set, unset, append, remove)
 │   ├── daemon/              # start, stop, status, log
 │   ├── inbox/               # add, list, clear
+│   ├── knowledge/           # add, show, edit, prune
 │   ├── project/             # create
 │   ├── orchestrator/        # criteria (planning pipeline support)
 │   └── task/                # add, amend, claim, complete, block, unblock, deliverable
@@ -23,6 +24,7 @@ wolfcastle/
 │   ├── errors/              # Typed error categories (ADR-065)
 │   ├── git/                 # Git operations behind Provider interface
 │   ├── invoke/              # Model CLI invocation (buffered + streaming)
+│   ├── knowledge/           # Per-namespace codebase knowledge files
 │   ├── logging/             # Per-iteration NDJSON logging
 │   ├── logrender/           # Log record rendering (summaries, thoughts, session views)
 │   ├── output/              # Structured JSON envelopes + human-readable printing

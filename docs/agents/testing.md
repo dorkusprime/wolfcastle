@@ -269,7 +269,7 @@ app := cmdutil.App{
 
 ### When to Use Environment vs SetupWolfcastle
 
-Use `NewEnvironment(t)` when your test needs repository objects (ConfigRepository, Store, PromptRepository). Use `SetupWolfcastle(t)` or `SetupTree(t)` when you only need raw directory paths and are constructing state files yourself.
+Use `NewEnvironment(t)` when your test needs repository objects (config.Repository, Store, PromptRepository). Use `SetupWolfcastle(t)` or `SetupTree(t)` when you only need raw directory paths and are constructing state files yourself.
 
 ## Common Patterns and Gotchas
 

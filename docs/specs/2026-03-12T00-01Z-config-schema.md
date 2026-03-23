@@ -445,7 +445,7 @@ Maps (objects) are deep-merged recursively. `pipeline.stages` is a map keyed by 
 
     "overlap_advisory": {
       "type": "object",
-      "description": "Cross-engineer overlap detection at project creation time. Uses bigram Jaccard similarity to compare a new project's scope against other engineers' active projects and prints an advisory. Algorithmic — no model invocation required. Read-only and informational only. (ADR-027, ADR-041)",
+      "description": "Cross-engineer overlap detection at project creation time. Uses bigram Jaccard similarity to compare a new project's scope against other engineers' active projects and prints an advisory. Algorithmic: no model invocation required. Read-only and informational only. (ADR-027, ADR-041)",
       "additionalProperties": false,
       "properties": {
         "enabled": {

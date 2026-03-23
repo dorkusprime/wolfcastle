@@ -47,13 +47,13 @@ Tests run on `ubuntu-latest` only. Cross-compilation to darwin and windows is ve
 
 Steps in order:
 
-1. **Checkout** — `actions/checkout@v4`
-2. **Setup Go** — `actions/setup-go@v5` with the matrix Go version
-3. **Build** — `go build -trimpath ./...`
-4. **Vet** — `go vet ./...`
-5. **Format check** — fails if any file is unformatted
-6. **Unit tests** — `go test -race -coverprofile=coverage.out ./...`
-7. **Upload coverage** — artifact upload for coverage.out (stable Go version only)
+1. **Checkout**: `actions/checkout@v4`
+2. **Setup Go**: `actions/setup-go@v5` with the matrix Go version
+3. **Build**: `go build -trimpath ./...`
+4. **Vet**: `go vet ./...`
+5. **Format check**: fails if any file is unformatted
+6. **Unit tests**: `go test -race -coverprofile=coverage.out ./...`
+7. **Upload coverage**: artifact upload for coverage.out (stable Go version only)
 
 ### Job: `cross-compile`
 
@@ -81,7 +81,7 @@ Runs in parallel with `build-and-test`:
 
 1. **Checkout**
 2. **Setup Go**
-3. **golangci-lint** — `golangci/golangci-lint-action@v6` with version pinned in the workflow
+3. **golangci-lint**: `golangci/golangci-lint-action@v6` with version pinned in the workflow
 
 ### Quality Gates
 
@@ -100,7 +100,7 @@ All of the following must pass for a PR to be mergeable:
 
 ### Performance Target
 
-The full CI pipeline should complete in under 3 minutes for a typical change. If it exceeds 5 minutes, investigate — slow tests, unnecessary rebuilds, or cache misses.
+The full CI pipeline should complete in under 3 minutes for a typical change. If it exceeds 5 minutes, investigate: slow tests, unnecessary rebuilds, or cache misses.
 
 ---
 
@@ -116,9 +116,9 @@ on:
 
 ### Steps
 
-1. **Checkout** — with `fetch-depth: 0` (GoReleaser needs full history for changelog)
+1. **Checkout**: with `fetch-depth: 0` (GoReleaser needs full history for changelog)
 2. **Setup Go**
-3. **GoReleaser** — `goreleaser/goreleaser-action@v6` with `args: release --clean`
+3. **GoReleaser**: `goreleaser/goreleaser-action@v6` with `args: release --clean`
 
 ### GoReleaser Configuration (`.goreleaser.yml`)
 
@@ -211,4 +211,4 @@ Wolfcastle follows semantic versioning (semver):
 
 Pre-release versions use suffixes: `v0.1.0-alpha.1`, `v0.1.0-beta.1`, `v0.1.0-rc.1`.
 
-The project starts at `v0.1.0` — major version 0 signals that the API is not yet stable.
+The project starts at `v0.1.0`: major version 0 signals that the API is not yet stable.

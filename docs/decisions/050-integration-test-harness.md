@@ -7,9 +7,9 @@ Accepted
 2026-03-14
 
 ## Context
-The project has strong unit test coverage in `internal/` but zero tests for the `cmd/` layer (~5,100 lines). Unit tests verify individual packages in isolation but cannot catch integration failures — wrong flag names, missing `RequireResolver()` calls, JSON envelope mismatches, or state propagation errors that only manifest when commands execute in sequence. This gap makes the `cmd/` layer the project's most significant testing blind spot.
+The project has strong unit test coverage in `internal/` but zero tests for the `cmd/` layer (~5,100 lines). Unit tests verify individual packages in isolation but cannot catch integration failures: wrong flag names, missing `RequireResolver()` calls, JSON envelope mismatches, or state propagation errors that only manifest when commands execute in sequence. This gap makes the `cmd/` layer the project's most significant testing blind spot.
 
-An integration test pattern built around CLI dispatch — exercising complete workflows through the actual command entry point, with temp-directory isolation and injectable I/O — catches the wiring bugs that unit tests structurally cannot reach.
+An integration test pattern built around CLI dispatch: exercising complete workflows through the actual command entry point, with temp-directory isolation and injectable I/O: catches the wiring bugs that unit tests structurally cannot reach.
 
 ## Decision
 
@@ -19,12 +19,12 @@ Adopt an integration test pattern built around Cobra's `Execute()` entry point:
 
 A `test/integration/helpers_test.go` file provides reusable test infrastructure:
 
-- **`testApp(t *testing.T) (*cmdutil.App, string)`** — Creates a temp directory, initializes `.wolfcastle/` with a valid config, and returns an `App` context pointing at it. Cleans up on test completion.
-- **`run(t *testing.T, dir string, args ...string) string`** — Executes wolfcastle as a subprocess (or via `rootCmd.Execute()` with reset) in the given directory, captures stdout, fails the test on non-zero exit.
-- **`runExpectError(t *testing.T, dir string, args ...string) string`** — Same but expects failure; fails the test on exit 0.
-- **`runJSON(t *testing.T, dir string, args ...string) output.Response`** — Runs with `--json`, unmarshals the JSON envelope.
-- **`loadRootIndex(t *testing.T, dir string) *state.RootIndex`** — Reads root index from disk for assertions.
-- **`loadNode(t *testing.T, dir, addr string) *state.NodeState`** — Reads node state from disk.
+- **`testApp(t *testing.T) (*cmdutil.App, string)`**. Creates a temp directory, initializes `.wolfcastle/` with a valid config, and returns an `App` context pointing at it. Cleans up on test completion.
+- **`run(t *testing.T, dir string, args ...string) string`**. Executes wolfcastle as a subprocess (or via `rootCmd.Execute()` with reset) in the given directory, captures stdout, fails the test on non-zero exit.
+- **`runExpectError(t *testing.T, dir string, args ...string) string`**. Same but expects failure; fails the test on exit 0.
+- **`runJSON(t *testing.T, dir string, args ...string) output.Response`**. Runs with `--json`, unmarshals the JSON envelope.
+- **`loadRootIndex(t *testing.T, dir string) *state.RootIndex`**. Reads root index from disk for assertions.
+- **`loadNode(t *testing.T, dir, addr string) *state.NodeState`**. Reads node state from disk.
 
 ### Test Pattern
 

@@ -20,7 +20,7 @@ This applies to both `docs/decisions/` and `docs/specs/`.
 
 ## Consequences
 - Files sort chronologically by default in any file listing
-- Conflicts require two engineers to create a doc in the same UTC minute — vanishingly rare
+- Conflicts require two engineers to create a doc in the same UTC minute: vanishingly rare
 - Referenceable in conversation: "see ADR 2026-03-12T18-45Z"
 - No renumbering needed when docs are added concurrently
 - Consistent pattern across ADRs and specs

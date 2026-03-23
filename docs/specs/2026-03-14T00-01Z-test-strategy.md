@@ -4,7 +4,7 @@ This spec defines the three-tier test strategy for Wolfcastle, covering unit tes
 
 ## Governing ADRs
 
-- ADR-044: Test Strategy — Unit, Integration, and Smoke
+- ADR-044: Test Strategy. Unit, Integration, and Smoke
 - ADR-032: Go Project Structure and Cobra CLI Framework
 - ADR-043: CI/CD Pipeline and Quality Gates
 - ADR-062: Realistic Model Mocks for Integration Testing
@@ -77,18 +77,18 @@ func TestMain(m *testing.M) {
 
 #### `cmd/cmdutil` (Priority: Medium)
 
-- `App.FindWolfcastleDir()` — test upward directory walk, missing .wolfcastle/
-- `App.LoadConfig()` — test with valid config, missing config, resolver failure
-- `CompleteNodeAddresses()` — test completion against a seeded root index
-- Overlap detection functions — `tokenize`, `bigrams`, `jaccardSimilarity` (pure functions, easy to test)
+- `App.FindWolfcastleDir()`: test upward directory walk, missing .wolfcastle/
+- `App.LoadConfig()`: test with valid config, missing config, resolver failure
+- `CompleteNodeAddresses()`: test completion against a seeded root index
+- Overlap detection functions: `tokenize`, `bigrams`, `jaccardSimilarity` (pure functions, easy to test)
 
 #### `internal/daemon` (Priority: Medium)
 
 The daemon has a test file but only tests helper functions. Add:
 
 - `RunOnce()` with a mock invoker (test the iteration lifecycle without actual subprocess execution)
-- `applyModelMarkers()` — parse various marker combinations, verify state mutations
-- `parseExpandedSections()` — test section splitting
+- `applyModelMarkers()`: parse various marker combinations, verify state mutations
+- `parseExpandedSections()`: test section splitting
 
 ### Shared Test Helpers (`internal/testutil`)
 
@@ -325,5 +325,5 @@ The mock model system spans Tier 1 and Tier 2:
 - **`t.TempDir()`** for all filesystem tests (auto-cleanup)
 - **`t.Parallel()`** where tests are independent (most unit tests)
 - **Descriptive subtest names** via `t.Run("description", func(t *testing.T) {...})`
-- **No `testify`** — use standard library `testing` package. Helper functions return errors; test functions call `t.Fatal`/`t.Error`.
+- **No `testify`**: use standard library `testing` package. Helper functions return errors; test functions call `t.Fatal`/`t.Error`.
 - **Test file naming:** `foo_test.go` tests `foo.go`. Additional test files use `foo_extra_test.go` or `foo_{aspect}_test.go` (e.g., `navigation_dfs_test.go`).

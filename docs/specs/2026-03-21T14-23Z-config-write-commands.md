@@ -38,8 +38,8 @@ Removes a value from an array at the given key. The current value must be an arr
 
 | Argument / Flag | Type | Required | Default | Description |
 |-----------------|------|----------|---------|-------------|
-| `key` | positional | Yes | — | Dot-notation config path (e.g. `daemon.poll_interval_seconds`, `pipeline.stages.audit.enabled`) |
-| `value` | positional | Yes (except `unset`) | — | The value to set, append, or remove. Parsed as JSON first; bare strings become JSON strings |
+| `key` | positional | Yes |: | Dot-notation config path (e.g. `daemon.poll_interval_seconds`, `pipeline.stages.audit.enabled`) |
+| `value` | positional | Yes (except `unset`) |: | The value to set, append, or remove. Parsed as JSON first; bare strings become JSON strings |
 | `--tier` | string | No | `local` | Target tier: `local` or `custom`. Writing to `base` is not allowed |
 | `--json` | boolean | No | `false` | Wrap output in the standard `{ok, action, data}` envelope |
 

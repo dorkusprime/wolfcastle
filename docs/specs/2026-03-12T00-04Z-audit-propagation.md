@@ -8,12 +8,12 @@ This spec defines the audit state schema, breadcrumb format, escalation mechanic
 
 ### Governing ADRs
 
-- **ADR-002** — All state is JSON, mutated only by deterministic scripts
-- **ADR-003** — Models call scripts; scripts enforce invariants
-- **ADR-007** — Audit concept preserved from Ralph, mechanics via scripts/JSON
-- **ADR-008** — Tree-addressed operations
-- **ADR-016** — Archive rollup includes audit results
-- **ADR-021** — CLI commands: `wolfcastle audit breadcrumb`, `wolfcastle audit escalate`
+- **ADR-002**. All state is JSON, mutated only by deterministic scripts
+- **ADR-003**. Models call scripts; scripts enforce invariants
+- **ADR-007**. Audit concept preserved from Ralph, mechanics via scripts/JSON
+- **ADR-008**. Tree-addressed operations
+- **ADR-016**. Archive rollup includes audit results
+- **ADR-021**. CLI commands: `wolfcastle audit breadcrumb`, `wolfcastle audit escalate`
 
 ---
 
@@ -27,56 +27,56 @@ Each node in the work tree contains an `audit` object in its JSON state. This is
 {
   "audit": {
     "scope": {
-      "description": "string — what this audit must verify",
-      "files": ["string — file paths or globs touched by this node"],
-      "systems": ["string — subsystems, modules, or integration points"],
-      "criteria": ["string — specific verification conditions that must pass"]
+      "description": "string: what this audit must verify",
+      "files": ["string: file paths or globs touched by this node"],
+      "systems": ["string: subsystems, modules, or integration points"],
+      "criteria": ["string: specific verification conditions that must pass"]
     },
     "breadcrumbs": [
       {
-        "timestamp": "time.Time — Go time.Time serialized as ISO 8601 (precision determined by clock implementation; typically nanosecond in Go's JSON marshaler)",
-        "task": "string — tree address of the task that wrote this breadcrumb",
-        "text": "string — what changed, what was done, what to verify"
+        "timestamp": "time.Time. Go time.Time serialized as ISO 8601 (precision determined by clock implementation; typically nanosecond in Go's JSON marshaler)",
+        "task": "string: tree address of the task that wrote this breadcrumb",
+        "text": "string: what changed, what was done, what to verify"
       }
     ],
     "gaps": [
       {
-        "id": "string — deterministic ID: gap-{node-internal-id}-{sequential-int}, where node-internal-id is the node's `id` field (e.g. gap-fire-impl-1)",
-        "timestamp": "string — ISO 8601",
-        "description": "string — what is missing or broken",
-        "source": "string — tree address of the task or audit that found the gap",
-        "status": "string — open | fixed",
-        "fixed_by": "string | null — tree address of the task that resolved this gap",
-        "fixed_at": "string | null — ISO 8601 timestamp of resolution"
+        "id": "string: deterministic ID: gap-{node-internal-id}-{sequential-int}, where node-internal-id is the node's `id` field (e.g. gap-fire-impl-1)",
+        "timestamp": "string. ISO 8601",
+        "description": "string: what is missing or broken",
+        "source": "string: tree address of the task or audit that found the gap",
+        "status": "string: open | fixed",
+        "fixed_by": "string | null: tree address of the task that resolved this gap",
+        "fixed_at": "string | null. ISO 8601 timestamp of resolution"
       }
     ],
     "escalations": [
       {
-        "id": "string — escalation-{node-slug}-{sequential-int}",
-        "timestamp": "string — ISO 8601",
-        "description": "string — what needs attention at the parent level",
-        "source_node": "string — tree address of the child that escalated",
-        "source_gap_id": "string | null — ID of the originating gap, if this came from a gap",
-        "status": "string — open | resolved",
-        "resolved_by": "string | null — tree address of the task that resolved this",
-        "resolved_at": "string | null — ISO 8601"
+        "id": "string: escalation-{node-slug}-{sequential-int}",
+        "timestamp": "string. ISO 8601",
+        "description": "string: what needs attention at the parent level",
+        "source_node": "string: tree address of the child that escalated",
+        "source_gap_id": "string | null. ID of the originating gap, if this came from a gap",
+        "status": "string: open | resolved",
+        "resolved_by": "string | null: tree address of the task that resolved this",
+        "resolved_at": "string | null. ISO 8601"
       }
     ],
-    "status": "string — pending | in_progress | passed | failed",
-    "started_at": "string | null — ISO 8601",
-    "completed_at": "string | null — ISO 8601",
-    "result_summary": "string | null — brief model-written summary of audit outcome"
+    "status": "string: pending | in_progress | passed | failed",
+    "started_at": "string | null. ISO 8601",
+    "completed_at": "string | null. ISO 8601",
+    "result_summary": "string | null: brief model-written summary of audit outcome"
   }
 }
 ```
 
 ### Field Semantics
 
-- **scope** — Defined when the node is created or during the discovery/expansion phase. Describes what the audit must check. This is the contract: the audit task reads the scope and verifies every item.
-- **breadcrumbs** — Append-only log of changes made by tasks in this node. Written during task execution via `wolfcastle audit breadcrumb`. The audit task reads these to understand what happened.
-- **gaps** — Issues found during the audit. A gap is something that should have been done but was not, or something that was done incorrectly. Gaps can be fixed by the audit task itself (status transitions to `fixed`) or escalated to the parent.
-- **escalations** — Gaps that could not be resolved at this level and were pushed to the parent node's audit. These appear in the *parent's* `escalations` array, not this node's. The child calls `wolfcastle audit escalate`, which writes to the parent.
-- **status** — Lifecycle of the audit itself: `pending` (not started), `in_progress` (audit task is executing), `passed` (all scope verified, no open gaps), `failed` (open gaps remain after audit task completed — triggers escalation).
+- **scope**. Defined when the node is created or during the discovery/expansion phase. Describes what the audit must check. This is the contract: the audit task reads the scope and verifies every item.
+- **breadcrumbs**. Append-only log of changes made by tasks in this node. Written during task execution via `wolfcastle audit breadcrumb`. The audit task reads these to understand what happened.
+- **gaps**. Issues found during the audit. A gap is something that should have been done but was not, or something that was done incorrectly. Gaps can be fixed by the audit task itself (status transitions to `fixed`) or escalated to the parent.
+- **escalations**. Gaps that could not be resolved at this level and were pushed to the parent node's audit. These appear in the *parent's* `escalations` array, not this node's. The child calls `wolfcastle audit escalate`, which writes to the parent.
+- **status**. Lifecycle of the audit itself: `pending` (not started), `in_progress` (audit task is executing), `passed` (all scope verified, no open gaps), `failed` (open gaps remain after audit task completed: triggers escalation).
 
 ### Initial State
 
@@ -113,9 +113,9 @@ Breadcrumbs are the primary communication channel between executing tasks and th
 ### What Gets Recorded
 
 A breadcrumb captures:
-- **What changed** — files modified, functions added, dependencies introduced
-- **Why it changed** — the intent behind the change
-- **What to verify** — what the audit should check as a consequence
+- **What changed**: files modified, functions added, dependencies introduced
+- **Why it changed**: the intent behind the change
+- **What to verify**: what the audit should check as a consequence
 
 ### Who Writes Breadcrumbs
 
@@ -124,7 +124,7 @@ The executing model writes breadcrumbs by calling `wolfcastle audit breadcrumb` 
 ### When Breadcrumbs Are Written
 
 - After completing a logically coherent unit of work within a task (not after every line change)
-- Before marking a task as complete — the final breadcrumb should summarize the task's outcome
+- Before marking a task as complete: the final breadcrumb should summarize the task's outcome
 - When encountering something unexpected that the audit should know about
 
 ### Breadcrumb Quality
@@ -145,7 +145,7 @@ Breadcrumbs feed directly into the archive (ADR-016). Terse or cryptic breadcrum
 {
   "timestamp": "2026-03-12T18:47:15Z",
   "task": "skill-system/fire-impl/wire-stamina-cost",
-  "text": "Found that SkillBase.validateCost() was not called in the execute path — added the call. This affects all skills, not just fire. The audit for skill-system should verify that other skill implementations also pass through validateCost()."
+  "text": "Found that SkillBase.validateCost() was not called in the execute path: added the call. This affects all skills, not just fire. The audit for skill-system should verify that other skill implementations also pass through validateCost()."
 }
 ```
 
@@ -161,13 +161,13 @@ AARs are a structured retrospective format that complements breadcrumbs. While b
 
 ```json
 {
-  "task_id": "string — ID of the task this AAR covers",
-  "timestamp": "time.Time — when the AAR was recorded",
-  "objective": "string — what the task set out to do",
-  "what_happened": "string — what actually happened",
-  "went_well": ["string — things that went well (repeatable)"],
-  "improvements": ["string — things that could be improved (repeatable)"],
-  "action_items": ["string — follow-up items for subsequent tasks (repeatable)"]
+  "task_id": "string. ID of the task this AAR covers",
+  "timestamp": "time.Time: when the AAR was recorded",
+  "objective": "string: what the task set out to do",
+  "what_happened": "string: what actually happened",
+  "went_well": ["string: things that went well (repeatable)"],
+  "improvements": ["string: things that could be improved (repeatable)"],
+  "action_items": ["string: follow-up items for subsequent tasks (repeatable)"]
 }
 ```
 
@@ -201,9 +201,9 @@ A gap escalates when:
 Leaf Node (fire-impl)
   1. Audit task runs, finds gap: "validateCost() not called in ice-impl"
   2. Gap is local to fire-impl but resolution is in ice-impl (a sibling)
-  3. Model calls: wolfcastle audit escalate --node skill-system/fire-impl "validateCost() not called in ice-impl — needs fix in sibling"
+  3. Model calls: wolfcastle audit escalate --node skill-system/fire-impl "validateCost() not called in ice-impl: needs fix in sibling"
   4. Script writes an escalation to the PARENT node (skill-system)'s audit.escalations array
-  5. fire-impl's audit can still pass (it verified its own scope) — the escalation is recorded at the parent level
+  5. fire-impl's audit can still pass (it verified its own scope): the escalation is recorded at the parent level
 
 Parent Node (skill-system)
   6. When skill-system's audit task runs, it sees the escalation in its escalations array
@@ -227,7 +227,7 @@ If the parent's audit also cannot resolve an escalated issue (because it require
 
 ### Escalation vs. Blocking
 
-Escalation is not the same as task blocking (ADR-019). A blocked task cannot proceed due to an external dependency. An escalation is an audit finding — the work may be complete, but verification identified something that needs attention at a higher level. A node can complete its audit (status: `passed`) while still having outbound escalations, because the escalations are written to the parent, not to the node itself.
+Escalation is not the same as task blocking (ADR-019). A blocked task cannot proceed due to an external dependency. An escalation is an audit finding: the work may be complete, but verification identified something that needs attention at a higher level. A node can complete its audit (status: `passed`) while still having outbound escalations, because the escalations are written to the parent, not to the node itself.
 
 ---
 
@@ -251,24 +251,24 @@ Every node in the work tree has an audit task as its **last** task. This is a st
 | Movable | Yes (within pre-audit range) | No |
 | Purpose | Produce work | Verify work |
 | Scope | Defined by task description | Defined by `audit.scope` + breadcrumbs + escalations |
-| Can fix code | Yes | Yes — audit tasks fix issues, not just report them |
-| Can add tasks | Via decomposition | No — audit runs after all tasks are done |
-| Can escalate | No (tasks do work, not verification) | Yes — `wolfcastle audit escalate` |
+| Can fix code | Yes | Yes: audit tasks fix issues, not just report them |
+| Can add tasks | Via decomposition | No: audit runs after all tasks are done |
+| Can escalate | No (tasks do work, not verification) | Yes: `wolfcastle audit escalate` |
 
 ### What the Audit Task Does
 
 When the audit task is claimed and executed:
 
-1. **Reads the audit scope** — understands what must be verified
-2. **Reads all breadcrumbs** — understands what was done by preceding tasks
-3. **Reads inbound escalations** (for orchestrator nodes) — understands what children flagged
-4. **Verifies each scope criterion** — checks files, runs tests, inspects integration points
-5. **Fixes issues it can fix** — the audit task has full code modification capability. If a test is failing due to a trivial bug, the audit task fixes it rather than reporting it. This is a key distinction from a passive audit.
-6. **Records gaps** — issues found are recorded as gaps in the node's `audit.gaps` array via script calls
-7. **Fixes gaps where possible** — transitions gap status from `open` to `fixed`
-8. **Escalates unresolvable gaps** — calls `wolfcastle audit escalate` for issues outside its scope
-9. **Writes result summary** — a brief description of what was verified, what was fixed, what was escalated
-10. **Completes** — if all scope criteria are met and no open gaps remain, audit status is `passed`. If open gaps remain that could not be fixed or escalated, status is `failed`.
+1. **Reads the audit scope**: understands what must be verified
+2. **Reads all breadcrumbs**: understands what was done by preceding tasks
+3. **Reads inbound escalations** (for orchestrator nodes): understands what children flagged
+4. **Verifies each scope criterion**: checks files, runs tests, inspects integration points
+5. **Fixes issues it can fix**: the audit task has full code modification capability. If a test is failing due to a trivial bug, the audit task fixes it rather than reporting it. This is a key distinction from a passive audit.
+6. **Records gaps**: issues found are recorded as gaps in the node's `audit.gaps` array via script calls
+7. **Fixes gaps where possible**: transitions gap status from `open` to `fixed`
+8. **Escalates unresolvable gaps**: calls `wolfcastle audit escalate` for issues outside its scope
+9. **Writes result summary**: a brief description of what was verified, what was fixed, what was escalated
+10. **Completes**: if all scope criteria are met and no open gaps remain, audit status is `passed`. If open gaps remain that could not be fixed or escalated, status is `failed`.
 
 ### Audit Task Lifecycle
 
@@ -277,7 +277,7 @@ pending → in_progress → passed
                       → failed
 ```
 
-A `failed` audit prevents the node from being marked complete. The orchestrator (or user) must decide how to proceed — either unblock and retry, or address the underlying issues.
+A `failed` audit prevents the node from being marked complete. The orchestrator (or user) must decide how to proceed: either unblock and retry, or address the underlying issues.
 
 ---
 
@@ -291,21 +291,21 @@ Audit scope is part of the node's audit state (the `audit.scope` object). It is 
 
 Scope can be populated in two ways:
 
-1. **During expansion** — The expansion pipeline stage (or the model during discovery tasks) calls a script to set the audit scope when creating or elaborating a node. This is the typical path for automatically decomposed work.
+1. **During expansion**. The expansion pipeline stage (or the model during discovery tasks) calls a script to set the audit scope when creating or elaborating a node. This is the typical path for automatically decomposed work.
 
-2. **Via task description** — For nodes created manually or with minimal expansion, the node's task description Markdown may include audit scope hints. The audit task reads the task description and interprets scope from context. This is a fallback, not the primary mechanism.
+2. **Via task description**. For nodes created manually or with minimal expansion, the node's task description Markdown may include audit scope hints. The audit task reads the task description and interprets scope from context. This is a fallback, not the primary mechanism.
 
 ### Scope Fields
 
-- **description** — Plain-language statement of what the audit covers. Example: "Verify that all fire skill implementations correctly deduct stamina, apply damage, and respect cooldowns."
-- **files** — File paths or globs that this node's work should touch. The audit verifies these were modified appropriately. Example: `["src/skills/fire.ts", "src/skills/fire.test.ts"]`
-- **systems** — Subsystems or modules involved. Broader than files — captures architectural boundaries. Example: `["skill-system", "stamina-system"]`
-- **criteria** — Specific, verifiable conditions. These are the audit's checklist. Example: `["All fire skill tests pass", "Stamina is deducted before damage application", "Cost cannot exceed current stamina"]`
+- **description**. Plain-language statement of what the audit covers. Example: "Verify that all fire skill implementations correctly deduct stamina, apply damage, and respect cooldowns."
+- **files**. File paths or globs that this node's work should touch. The audit verifies these were modified appropriately. Example: `["src/skills/fire.ts", "src/skills/fire.test.ts"]`
+- **systems**. Subsystems or modules involved. Broader than files: captures architectural boundaries. Example: `["skill-system", "stamina-system"]`
+- **criteria**. Specific, verifiable conditions. These are the audit's checklist. Example: `["All fire skill tests pass", "Stamina is deducted before damage application", "Cost cannot exceed current stamina"]`
 
 ### Scope for Orchestrator vs. Leaf Nodes
 
-- **Leaf nodes** — Scope focuses on the specific work: files modified, tests passing, implementation matching specification.
-- **Orchestrator nodes** — Scope focuses on integration: do children compose correctly, are interfaces consistent across children, do cross-cutting concerns hold. Orchestrator scope should NOT duplicate children's scope — it covers what falls between children.
+- **Leaf nodes**. Scope focuses on the specific work: files modified, tests passing, implementation matching specification.
+- **Orchestrator nodes**. Scope focuses on integration: do children compose correctly, are interfaces consistent across children, do cross-cutting concerns hold. Orchestrator scope should NOT duplicate children's scope: it covers what falls between children.
 
 ---
 
@@ -333,7 +333,7 @@ An orchestrator node's audit verifies integration across its children:
 
 The orchestrator audit runs **after all children have completed** (including their own audits). It has access to:
 - Its own `audit.scope` (integration-focused)
-- Its own `audit.breadcrumbs` (if any — orchestrators may have their own tasks beyond managing children)
+- Its own `audit.breadcrumbs` (if any: orchestrators may have their own tasks beyond managing children)
 - Its `audit.escalations` array (populated by children's `wolfcastle audit escalate` calls)
 - The completed state of all child nodes (their audit results, breadcrumbs, and resolved gaps)
 
@@ -362,7 +362,7 @@ If failed: orchestrator node is blocked until issues are resolved
 
 - Re-verify work that a child audit already verified (avoid duplication)
 - Modify code within a child's scope unless fixing an integration issue that spans children
-- Ignore escalations — every escalation must be explicitly resolved or re-escalated
+- Ignore escalations: every escalation must be explicitly resolved or re-escalated
 
 ---
 
@@ -374,13 +374,13 @@ When a node completes and is archived (ADR-016), the archive rollup includes aud
 
 The archive entry's **Audit results** section includes:
 
-1. **Scope summary** — the `audit.scope.description` field
-2. **Verification status** — `passed` or `failed`
-3. **Criteria checked** — the `audit.scope.criteria` list with pass/fail per item
-4. **Gaps found and fixed** — each gap from `audit.gaps` with its description, status, and resolution
-5. **Escalations sent** — escalations this node sent to its parent (from the parent's `audit.escalations` where `source_node` matches this node)
-6. **Escalations received and resolved** (orchestrator nodes only) — escalations from children and their resolution
-7. **Result summary** — the model-written `audit.result_summary`
+1. **Scope summary**: the `audit.scope.description` field
+2. **Verification status**: `passed` or `failed`
+3. **Criteria checked**: the `audit.scope.criteria` list with pass/fail per item
+4. **Gaps found and fixed**: each gap from `audit.gaps` with its description, status, and resolution
+5. **Escalations sent**: escalations this node sent to its parent (from the parent's `audit.escalations` where `source_node` matches this node)
+6. **Escalations received and resolved** (orchestrator nodes only): escalations from children and their resolution
+7. **Result summary**: the model-written `audit.result_summary`
 
 ### Archive Entry Structure (Audit Section)
 
@@ -399,7 +399,7 @@ The archive entry's **Audit results** section includes:
 1. **gap-fire-impl-1** (fixed): `validateCost()` was not called in the execute path. Fixed by adding the call in `src/skills/fire.ts:42`.
 
 ### Escalations Sent
-1. **escalation-fire-impl-1**: `validateCost()` not called in ice-impl — needs fix in sibling. Sent to `skill-system` audit.
+1. **escalation-fire-impl-1**: `validateCost()` not called in ice-impl: needs fix in sibling. Sent to `skill-system` audit.
 
 ### Summary
 All fire skill implementations verified. Stamina deduction logic is correct. One gap found and fixed locally (missing validateCost call). One cross-cutting concern escalated to parent regarding ice-impl.
@@ -409,8 +409,8 @@ All fire skill implementations verified. Stamina deduction logic is correct. One
 
 When an orchestrator node is archived, its audit section additionally includes:
 
-- **Escalations received** — with source child and resolution status
-- **Integration verification** — what was checked across children
+- **Escalations received**: with source child and resolution status
+- **Integration verification**: what was checked across children
 
 This provides a complete audit trail in the permanent record: what was verified, what broke, how it was fixed, and what got pushed upward.
 
@@ -428,8 +428,8 @@ wolfcastle audit breadcrumb --node <path> "text"
 ```
 
 **Input:**
-- `--node <path>` — Tree address of the node to append the breadcrumb to (required)
-- `"text"` — The breadcrumb content (required, positional argument)
+- `--node <path>`. Tree address of the node to append the breadcrumb to (required)
+- `"text"`. The breadcrumb content (required, positional argument)
 
 **Behavior:**
 1. Validates that `<path>` exists in the work tree
@@ -475,8 +475,8 @@ wolfcastle audit escalate --node <path> "description"
 ```
 
 **Input:**
-- `--node <path>` — Tree address of the **child** node that is escalating (required). The escalation is written to this node's parent.
-- `"description"` — What needs attention at the parent level (required, positional argument)
+- `--node <path>`. Tree address of the **child** node that is escalating (required). The escalation is written to this node's parent.
+- `"description"`. What needs attention at the parent level (required, positional argument)
 
 **Behavior:**
 1. Validates that `<path>` exists in the work tree
@@ -526,11 +526,11 @@ wolfcastle audit escalate --node <path> "description"
 
 Gaps are recorded during audit task execution. Explicit CLI commands now exist for gap management:
 
-- `wolfcastle audit gap --node <path> "description"` — records a gap
-- `wolfcastle audit fix-gap --node <path> --gap <gap-id>` — marks a gap as fixed
-- `wolfcastle audit scope --node <path>` — sets or displays audit scope
-- `wolfcastle audit resolve --node <path> --escalation <id>` — resolves an escalation
-- `wolfcastle audit show --node <path>` — displays audit state
+- `wolfcastle audit gap --node <path> "description"`: records a gap
+- `wolfcastle audit fix-gap --node <path> --gap <gap-id>`: marks a gap as fixed
+- `wolfcastle audit scope --node <path>`: sets or displays audit scope
+- `wolfcastle audit resolve --node <path> --escalation <id>`: resolves an escalation
+- `wolfcastle audit show --node <path>`: displays audit state
 
 The model uses these commands during audit task execution. The daemon's marker protocol (`WOLFCASTLE_GAP:`, `WOLFCASTLE_FIX_GAP:`, `WOLFCASTLE_SCOPE:`) provides a parallel path for inline gap management during non-audit task execution.
 

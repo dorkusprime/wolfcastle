@@ -42,7 +42,7 @@ Examples:
 		}
 		entry, ok := idx.Nodes[nodeAddr]
 		if !ok {
-			return fmt.Errorf("node %q does not exist", nodeAddr)
+			return fmt.Errorf("node %q does not exist. Check available nodes with 'wolfcastle status'", nodeAddr)
 		}
 
 		ns, err := app.State.ReadNode(nodeAddr)

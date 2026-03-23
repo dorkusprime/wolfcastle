@@ -12,9 +12,9 @@ Accepted
 
 When a task's failure count reaches the decomposition threshold and the node's decomposition depth is below the maximum, the system needs to break the failing leaf into smaller subtasks. Three approaches were considered:
 
-1. **Code-driven decomposition** — The daemon invokes a separate model call to generate a decomposition plan, then programmatically restructures the tree.
-2. **Marker-driven decomposition** — The model emits a custom `WOLFCASTLE_DECOMPOSE` marker with subtask definitions that the daemon parses and executes.
-3. **CLI-driven decomposition** — The model uses existing `wolfcastle project create` and `wolfcastle task add` CLI commands directly.
+1. **Code-driven decomposition**. The daemon invokes a separate model call to generate a decomposition plan, then programmatically restructures the tree.
+2. **Marker-driven decomposition**. The model emits a custom `WOLFCASTLE_DECOMPOSE` marker with subtask definitions that the daemon parses and executes.
+3. **CLI-driven decomposition**. The model uses existing `wolfcastle project create` and `wolfcastle task add` CLI commands directly.
 
 ## Decision
 
@@ -26,7 +26,7 @@ The `project create` command auto-promotes a leaf parent to an orchestrator when
 
 ## Consequences
 
-- **No new markers or parsers needed** — decomposition uses the same CLI infrastructure as manual operations.
-- **Model makes all judgment calls** — only the model understands the domain context well enough to decide subtask boundaries.
-- **Daemon remains mechanical** — it flags `NeedsDecomposition` and includes prompt guidance; the model executes.
-- **CLI must handle leaf→orchestrator promotion** — `project create` now auto-converts a leaf parent when creating children under it.
+- **No new markers or parsers needed**: decomposition uses the same CLI infrastructure as manual operations.
+- **Model makes all judgment calls**: only the model understands the domain context well enough to decide subtask boundaries.
+- **Daemon remains mechanical**: it flags `NeedsDecomposition` and includes prompt guidance; the model executes.
+- **CLI must handle leaf→orchestrator promotion**: `project create` now auto-converts a leaf parent when creating children under it.

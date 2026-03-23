@@ -44,9 +44,9 @@ Each engineer maintains their own independent tree in their namespace. There is 
 When engineer A creates a project and commits the definition files (Markdown), engineer B gets them on pull but they don't automatically appear in B's state. Projects appear in an engineer's state when they start working on them, or `wolfcastle doctor` can detect orphaned definitions and offer to register them.
 
 ## Consequences
-- Everything about a node is in one directory — state, description, task docs
+- Everything about a node is in one directory: state, description, task docs
 - Root index enables fast navigation without filesystem walks
 - Task working documents give humans visibility and models a native writing surface
-- Context budget is controlled — only active task's Markdown is loaded
+- Context budget is controlled: only active task's Markdown is loaded
 - Independent engineer trees eliminate all shared-state concerns
 - Runtime aggregation for `--all` is slightly more work but avoids conflict entirely

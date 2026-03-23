@@ -18,7 +18,7 @@ integrates with GitHub Actions):
 
 1. **Release trigger.** Pushing a semver git tag (e.g., `v0.1.0`).
 2. **Artifacts per release.** Compiled binaries for linux/amd64,
-   linux/arm64, darwin/amd64, darwin/arm64, windows/amd64 — each as a
+   linux/arm64, darwin/amd64, darwin/arm64, windows/amd64: each as a
    compressed tarball (tar.gz for Unix, zip for Windows).
 3. **LDFLAGS.** Inject version, commit SHA, and build date into the binary
    (the `version` command already reads these).
@@ -39,10 +39,10 @@ integrates with GitHub Actions):
 
 ## Consequences
 
-- Releases are one `git tag` + `git push` away — no manual build steps.
+- Releases are one `git tag` + `git push` away: no manual build steps.
 - Every release artifact has a verifiable checksum.
 - Users can download platform-appropriate binaries from GitHub Releases.
-- Changelog is generated automatically — no separate CHANGELOG.md to
+- Changelog is generated automatically: no separate CHANGELOG.md to
   maintain.
-- GoReleaser is well-maintained and widely used — minimal maintenance
+- GoReleaser is well-maintained and widely used: minimal maintenance
   burden.

@@ -10,13 +10,13 @@ import (
 // Returns the normalized value and true if a mapping was found.
 func NormalizeStateValue(s string) (state.NodeStatus, bool) {
 	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "complete", "completed", "done":
+	case string(state.StatusComplete), "completed", "done":
 		return state.StatusComplete, true
-	case "not_started", "not-started", "pending", "todo":
+	case string(state.StatusNotStarted), "not-started", "pending", "todo":
 		return state.StatusNotStarted, true
-	case "in_progress", "in-progress", "started", "doing":
+	case string(state.StatusInProgress), "in-progress", "started", "doing":
 		return state.StatusInProgress, true
-	case "blocked", "stuck":
+	case string(state.StatusBlocked), "stuck":
 		return state.StatusBlocked, true
 	default:
 		return "", false

@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -21,7 +22,7 @@ import (
 
 // ErrStallTimeout is returned when the model process produces no output
 // for longer than the configured stall timeout.
-var ErrStallTimeout = fmt.Errorf("model output stalled: no output received within stall timeout")
+var ErrStallTimeout = errors.New("model output stalled: no output received within stall timeout")
 
 // Marker represents a detected WOLFCASTLE_* marker in model output.
 type Marker int

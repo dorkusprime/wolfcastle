@@ -1,4 +1,4 @@
-# ADR-030: Comprehensive Help at Every CLI Level
+# ADR-030: Help at Every CLI Level
 
 ## Status
 Accepted

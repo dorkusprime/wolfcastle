@@ -3,6 +3,7 @@ package knowledge
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -50,6 +51,9 @@ func TestRead_ExistingFile(t *testing.T) {
 }
 
 func TestRead_PermissionError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission-based test not supported on Windows")
+	}
 	t.Parallel()
 	dir := t.TempDir()
 	p := FilePath(dir, "test")

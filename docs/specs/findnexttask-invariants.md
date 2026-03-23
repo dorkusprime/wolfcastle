@@ -1,1 +1,0 @@
-../../.wolfcastle/docs/specs/2026-03-20T15-22Z-findnexttask-navigation-invariants.md

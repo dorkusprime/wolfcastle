@@ -23,29 +23,29 @@
 | 019 | [Failure Handling, Decomposition, and Retry Thresholds](019-failure-decomposition-and-retry.md) | Accepted | 2026-03-12 |
 | 020 | [Daemon Lifecycle and Process Management](020-daemon-lifecycle.md) | Accepted | 2026-03-12 |
 | 021 | [CLI Command Surface](021-cli-command-surface.md) | Accepted | 2026-03-12 |
-| 022 | [Security Model — User-Configured, Wolfcastle-Transparent](022-security-model.md) | Accepted | 2026-03-12 |
+| 022 | [Security Model. User-Configured, Wolfcastle-Transparent](022-security-model.md) | Accepted | 2026-03-12 |
 | 023 | [Decisions Emerging from Spec Phase](023-decisions-from-speccing.md) | Accepted | 2026-03-12 |
 | 024 | [Distributed State Files, Task Working Documents, and Runtime Aggregation](024-distributed-state-and-task-docs.md) | Accepted | 2026-03-13 |
-| 025 | [Wolfcastle Doctor — Structural Validation and Repair](025-doctor-command.md) | Accepted | 2026-03-13 |
+| 025 | [Wolfcastle Doctor. Structural Validation and Repair](025-doctor-command.md) | Accepted | 2026-03-13 |
 | 026 | [wolfcastle install Command and Claude Code Skill](026-install-command-and-skills.md) | Accepted | 2026-03-13 |
 | 027 | [Cross-Engineer Overlap Advisory](027-overlap-advisory.md) | Accepted | 2026-03-13 |
 | 028 | [Three-Tier Unblock Workflow](028-unblock-workflow.md) | Accepted | 2026-03-13 |
 | 029 | [Codebase Audit Command with Discoverable Scopes](029-codebase-audit-command.md) | Accepted | 2026-03-13 |
-| 030 | [Comprehensive Help at Every CLI Level](030-comprehensive-help.md) | Accepted | 2026-03-13 |
+| 030 | [Help at Every CLI Level](030-comprehensive-help.md) | Accepted | 2026-03-13 |
 | 031 | [In-Flight Specs with State-Based Linkage](031-in-flight-specs.md) | Accepted | 2026-03-13 |
 | 032 | [Go Project Structure and Cobra CLI Framework](032-go-project-structure.md) | Accepted | 2026-03-13 |
 | 033 | [Embedded Templates via go:embed](033-embedded-templates.md) | Accepted | 2026-03-13 |
 | 034 | [Inbox Format and Lifecycle](034-inbox-format.md) | Accepted | 2026-03-13 |
 | 035 | [Model-Driven Decomposition via CLI](035-decomposition-via-cli.md) | Accepted | 2026-03-13 |
 | 036 | [Summaries via Inline Marker, Not Separate Stage](036-summary-via-inline-marker.md) | Accepted | 2026-03-13 |
-| 037 | [Daemon Dual Output — Console + NDJSON](037-daemon-logging-dual-output.md) | Accepted | 2026-03-13 |
+| 037 | [Daemon Dual Output. Console + NDJSON](037-daemon-logging-dual-output.md) | Accepted | 2026-03-13 |
 | 038 | [Staged Audit Review Workflow](038-staged-audit-review.md) | Accepted | 2026-03-14 |
 | 039 | [Clean Daemon Iteration Boundary](039-daemon-iteration-boundary.md) | Accepted | 2026-03-14 |
 | 040 | [Daemon Artifact Cleanup in Doctor](040-daemon-artifact-cleanup.md) | Accepted | 2026-03-14 |
 | 041 | [Algorithmic Overlap Detection](041-algorithmic-overlap-detection.md) | Accepted | 2026-03-14 |
 | 042 | [State File Locking](042-state-file-locking.md) | Accepted | 2026-03-14 |
 | 043 | [CI/CD Pipeline and Quality Gates](043-ci-cd-pipeline.md) | Accepted | 2026-03-14 |
-| 044 | [Test Strategy — Unit, Integration, and Smoke](044-test-strategy.md) | Accepted | 2026-03-14 |
+| 044 | [Test Strategy. Unit, Integration, and Smoke](044-test-strategy.md) | Accepted | 2026-03-14 |
 | 045 | [Daemon Package Decomposition](045-daemon-package-decomposition.md) | Accepted | 2026-03-14 |
 | 046 | [Structured Log Levels](046-structured-log-levels.md) | Accepted | 2026-03-14 |
 | 047 | [Release Automation via GoReleaser](047-release-automation.md) | Accepted | 2026-03-14 |

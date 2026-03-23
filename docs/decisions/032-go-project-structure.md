@@ -52,7 +52,7 @@ Only one external dependency: `github.com/spf13/cobra` (which brings `pflag`). E
 
 ## Consequences
 - Clear separation: `cmd/` is thin (flag parsing, output formatting), `internal/` has all logic
-- Adding a command is one file in `cmd/` — cobra handles registration and help
+- Adding a command is one file in `cmd/`: cobra handles registration and help
 - `internal/` packages can't be imported by external code, enforcing encapsulation
 - Shell completions work out of the box for node addresses via the root index
 - Single external dependency minimizes supply chain risk
@@ -61,6 +61,6 @@ Only one external dependency: `github.com/spf13/cobra` (which brings `pflag`). E
 
 **ADR-048** added `github.com/chzyer/readline` as a second external dependency for the interactive unblock session.
 
-**ADR-058** merged `internal/inbox` and `internal/review` into `internal/state`. The project layout section above reflects the original design; the current package list is: archive, clock, config, daemon, errors, git, invoke, logging, logrender, output, pipeline, project, selfupdate, signals, state, testutil, tierfs, tree, validate.
+**ADR-058** merged `internal/inbox` and `internal/review` into `internal/state`. The project layout section above reflects the original design; the current package list is: archive, clock, config, daemon, errors, git, invoke, knowledge, logging, logrender, output, pipeline, project, selfupdate, signals, state, testutil, tierfs, tree, validate.
 
 **ADR-065** added `internal/errors` for typed error categories used by the daemon.

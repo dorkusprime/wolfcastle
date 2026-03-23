@@ -7,9 +7,9 @@ Accepted
 2026-03-14
 
 ## Context
-The current `ApplyDeterministicFixes` runs a single pass: validate, fix, done. But some fixes create new issues — a cascading effect that a single pass cannot resolve. For example, relinking an orphaned node may create a propagation mismatch that requires recomputation. Or adding a missing audit task may trigger an audit-status-mismatch that needs syncing. A single pass misses these cascading effects, forcing users to run `doctor --fix` multiple times to reach a clean state.
+The current `ApplyDeterministicFixes` runs a single pass: validate, fix, done. But some fixes create new issues: a cascading effect that a single pass cannot resolve. For example, relinking an orphaned node may create a propagation mismatch that requires recomputation. Or adding a missing audit task may trigger an audit-status-mismatch that needs syncing. A single pass misses these cascading effects, forcing users to run `doctor --fix` multiple times to reach a clean state.
 
-A multi-pass approach — running validation and fixing in a loop until the tree stabilizes — handles these cascading repairs automatically while a pass cap prevents runaway loops.
+A multi-pass approach: running validation and fixing in a loop until the tree stabilizes: handles these cascading repairs automatically while a pass cap prevents runaway loops.
 
 ## Decision
 
@@ -29,13 +29,13 @@ func (e *Engine) FixWithVerification(idx *state.RootIndex, categories []Category
 
         report := e.Validate(idx, categories)
         if !report.HasAutoFixable() {
-            return report, nil // Nothing to fix — done
+            return report, nil // Nothing to fix: done
         }
 
         fixes := e.ApplyDeterministicFixes(idx, report)
         lastReport = report
         if len(fixes) == 0 {
-            break // Applied no fixes — further passes won't help
+            break // Applied no fixes: further passes won't help
         }
     }
 
@@ -67,7 +67,7 @@ Each pass appends its fixes to a cumulative list. The final report includes:
 - Residual issues from the final validation-only pass
 
 ## Consequences
-- Cascading fixes are handled automatically — no manual re-run needed
+- Cascading fixes are handled automatically: no manual re-run needed
 - The 5-pass cap prevents infinite loops from fix cycles
 - Early exit keeps performance comparable to single-pass for clean trees
 - The final validation-only pass provides confidence that fixes were effective

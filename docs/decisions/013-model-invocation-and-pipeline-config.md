@@ -12,7 +12,7 @@ Wolfcastle is model-agnostic (ADR-004) and needs to invoke different models at d
 ## Decision
 
 ### Model Invocation
-Wolfcastle invokes models by shelling out to a CLI command. It does not make direct API calls. This keeps Wolfcastle provider-agnostic — any CLI that accepts a prompt and produces output works.
+Wolfcastle invokes models by shelling out to a CLI command. It does not make direct API calls. This keeps Wolfcastle provider-agnostic: any CLI that accepts a prompt and produces output works.
 
 ### Model Definitions
 Models are defined in a `models` dictionary in `config.json`. Each model has a key (used as a reference), a command, and args (including permission flags, output format, and any other CLI-specific settings):
@@ -52,11 +52,11 @@ Pipeline stages reference models by key and specify a prompt file:
 ```
 
 ### Override via Local Config
-Individual engineers can override model definitions in `local/config.json` — e.g. swapping "heavy" to a cheaper model during development. The three-tier merge (ADR-009, ADR-063) handles resolution: `base/config.json` → `custom/config.json` → `local/config.json`.
+Individual engineers can override model definitions in `local/config.json`: e.g. swapping "heavy" to a cheaper model during development. The three-tier merge (ADR-009, ADR-063) handles resolution: `base/config.json` → `custom/config.json` → `local/config.json`.
 
 ## Consequences
-- Wolfcastle has zero provider-specific code — no API clients, no auth handling
+- Wolfcastle has zero provider-specific code: no API clients, no auth handling
 - Adding a new provider means pointing `command` at a different CLI
 - Permission flags (e.g. `--dangerously-skip-permissions`) are explicitly configured per model, visible in config
-- Pipeline stages are decoupled from model details — renaming or swapping a model tier doesn't require updating every stage
+- Pipeline stages are decoupled from model details: renaming or swapping a model tier doesn't require updating every stage
 - Engineers can experiment with different models locally without affecting the team

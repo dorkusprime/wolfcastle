@@ -1,4 +1,4 @@
-# ADR-044: Test Strategy — Unit, Integration, and Smoke
+# ADR-044: Test Strategy: Unit, Integration, and Smoke
 
 **Status:** Accepted
 
@@ -11,7 +11,7 @@ The `internal/` packages have strong unit test coverage (`state`, `tree`,
 layer (~5,100 lines across 8 packages) has zero tests, and `internal/invoke`
 has no tests despite handling subprocess execution. The current test suite
 validates correctness of individual components but cannot detect integration
-failures — wrong flag names, missing `RequireResolver()` calls, JSON envelope
+failures: wrong flag names, missing `RequireResolver()` calls, JSON envelope
 mismatches, or subprocess behavior on different platforms.
 
 ## Decision
@@ -51,7 +51,7 @@ Three test tiers, each with distinct scope and execution characteristics:
   `version`, and `init` in a temp dir.
 - Validates that the binary compiles, runs, and produces expected output.
 - Lives in `test/smoke/`.
-- Runs on every CI push (fast — under 10 seconds).
+- Runs on every CI push (fast: under 10 seconds).
 
 **Coverage targets** (aspirational, not gated):
 
@@ -67,5 +67,5 @@ Three test tiers, each with distinct scope and execution characteristics:
 - Build tag separation means `go test ./...` stays fast for local
   development.
 - Shared test helpers reduce duplication as the test suite grows.
-- Coverage targets are aspirational guideposts, not hard gates — prevents
+- Coverage targets are aspirational guideposts, not hard gates: prevents
   gaming.

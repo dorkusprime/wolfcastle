@@ -52,12 +52,12 @@ new → expanded → filed
 Inbox types and I/O live in `internal/state/` (moved from `internal/inbox/` per ADR-058) so they're accessible from both `cmd/` (CLI commands) and `internal/daemon/` (pipeline stages).
 
 ### CLI Commands
-- `wolfcastle inbox add "idea"` — creates a new item with status `new`
-- `wolfcastle inbox list` — shows all items with status and timestamp
-- `wolfcastle inbox clear` — removes `filed` and `expanded` items (keeps `new`); `--all` removes everything
+- `wolfcastle inbox add "idea"`: creates a new item with status `new`
+- `wolfcastle inbox list`: shows all items with status and timestamp
+- `wolfcastle inbox clear`: removes `filed` and `expanded` items (keeps `new`); `--all` removes everything
 
 ## Consequences
-- Simple, flat JSON file — no complex data structures
+- Simple, flat JSON file: no complex data structures
 - Status lifecycle enables the daemon to process items incrementally
 - `expanded` field preserves the model's structured output for the file stage
 - CLI commands give users full visibility and control over the inbox

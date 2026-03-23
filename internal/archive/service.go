@@ -42,7 +42,7 @@ func (s *Service) Archive(addr string, cfg *config.Config, branch string) error 
 		return fmt.Errorf("creating archive markdown dir: %w", err)
 	}
 	rollupPath := filepath.Join(archiveMarkdownDir, entry.Filename)
-	if err := os.WriteFile(rollupPath, []byte(entry.Content), 0o644); err != nil {
+	if err := state.AtomicWriteFile(rollupPath, []byte(entry.Content)); err != nil {
 		return fmt.Errorf("writing archive rollup: %w", err)
 	}
 

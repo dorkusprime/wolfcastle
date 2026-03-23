@@ -10,7 +10,7 @@
 
 ```go
 type MigrationService struct {
-    config *config.ConfigRepository
+    config *config.Repository
     root   string // path to .wolfcastle/
 }
 ```

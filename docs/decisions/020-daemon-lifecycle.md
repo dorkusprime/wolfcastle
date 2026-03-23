@@ -12,25 +12,25 @@ Ralph ran as a foreground bash process with a stop file pattern for graceful shu
 ## Decision
 
 ### Foreground and Background Modes
-- `wolfcastle start` — foreground (default). Good for watching, debugging, Ctrl+C.
-- `wolfcastle start -d` — background daemon. Forks, returns control to the terminal, writes a PID file.
+- `wolfcastle start`: foreground (default). Good for watching, debugging, Ctrl+C.
+- `wolfcastle start -d`: background daemon. Forks, returns control to the terminal, writes a PID file.
 
 ### Process Management in Go
 The Go daemon owns the child process (Claude CLI invocation) lifecycle:
 - Child processes are spawned in their own process group
 - The daemon intercepts signals (SIGTERM, SIGINT) and propagates them to the child
 - Context cancellation coordinates graceful shutdown internally
-- No signal swallowing — Go handles signals first, then manages the child
+- No signal swallowing. Go handles signals first, then manages the child
 
 ### PID File
-When running in background mode (`-d`), Wolfcastle writes `.wolfcastle/wolfcastle.pid`. This is used by `wolfcastle stop` to locate the daemon. Not written in foreground mode (not needed — the process is right there).
+When running in background mode (`-d`), Wolfcastle writes `.wolfcastle/wolfcastle.pid`. This is used by `wolfcastle stop` to locate the daemon. Not written in foreground mode (not needed: the process is right there).
 
 ### Stop Modes
-- `wolfcastle stop` — graceful. Signals the daemon, which finishes the current iteration and exits cleanly.
-- `wolfcastle stop --force` — hard kill via PID. For when the daemon or its child is unresponsive.
+- `wolfcastle stop`: graceful. Signals the daemon, which finishes the current iteration and exits cleanly.
+- `wolfcastle stop --force`: hard kill via PID. For when the daemon or its child is unresponsive.
 
 ### Self-Healing on Restart
-If Wolfcastle starts and finds a task in `In Progress` state (from a previous crash or hard kill), it navigates to that task and lets the model decide what to do with any uncommitted changes in the working directory. No special recovery logic — the commit-together strategy (state committed alongside code) ensures consistent state.
+If Wolfcastle starts and finds a task in `In Progress` state (from a previous crash or hard kill), it navigates to that task and lets the model decide what to do with any uncommitted changes in the working directory. No special recovery logic: the commit-together strategy (state committed alongside code) ensures consistent state.
 
 ### Stale PID Detection
 On start, if a PID file exists, Wolfcastle checks whether the process is actually running. If the PID is stale (process died without cleanup), the PID file is removed and startup proceeds normally.

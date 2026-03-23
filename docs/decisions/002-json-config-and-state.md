@@ -12,8 +12,8 @@ Ralph used Markdown files (STATUS.md, PROMPT.md) for both configuration and runt
 ## Decision
 Wolfcastle uses JSON for both configuration and state, split into two categories:
 
-1. **Configuration (JSON)** — User-owned. Wolfcastle reads but never writes. Covers model selection, validation commands, branch conventions, project rules, pipeline definitions, etc.
-2. **State (JSON)** — Wolfcastle-owned. Modified only through deterministic scripts, never by the model directly and never by the user (though they can inspect it).
+1. **Configuration (JSON)**. User-owned. Wolfcastle reads but never writes. Covers model selection, validation commands, branch conventions, project rules, pipeline definitions, etc.
+2. **State (JSON)**. Wolfcastle-owned. Modified only through deterministic scripts, never by the model directly and never by the user (though they can inspect it).
 
 YAML was explicitly rejected. No YAML anywhere in Wolfcastle.
 

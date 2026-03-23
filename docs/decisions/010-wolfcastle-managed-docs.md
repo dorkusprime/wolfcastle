@@ -7,7 +7,7 @@ Accepted
 2026-03-12
 
 ## Context
-Ralph's ADR integration was a key strength — agents checked existing decisions before acting and filed new ones when making architectural choices. Wolfcastle needs this as a first-class feature, not just for its own development but for projects that use it. Additionally, specs (living system documentation) should also be maintained by Wolfcastle as it works.
+Ralph's ADR integration was a key strength: agents checked existing decisions before acting and filed new ones when making architectural choices. Wolfcastle needs this as a first-class feature, not just for its own development but for projects that use it. Additionally, specs (living system documentation) should also be maintained by Wolfcastle as it works.
 
 ## Decision
 
@@ -17,8 +17,8 @@ Wolfcastle manages a `docs/` subtree within `.wolfcastle/`:
 ```
 .wolfcastle/
   docs/
-    decisions/       # ADRs — created via deterministic script
-    specs/           # System specs — model writes Markdown directly
+    decisions/       # ADRs: created via deterministic script
+    specs/           # System specs: model writes Markdown directly
 ```
 
 The user can override the docs directory location via `config.json`.
@@ -31,12 +31,12 @@ The user can override the docs directory location via `config.json`.
 ### Specs
 - Written and updated by the model as direct Markdown
 - Living documents that the model keeps in sync as the system evolves
-- No script intermediary — specs are prose-heavy and context-dependent
+- No script intermediary: specs are prose-heavy and context-dependent
 
 ### Two Categories of Model Output
 This refines ADR-003 (deterministic scripts):
-- **State** — Always through deterministic scripts (JSON). No exceptions.
-- **Documentation** (ADRs, specs) — Model writes Markdown directly. ADR creation is script-assisted (for filename/template), but content is model-written.
+- **State**. Always through deterministic scripts (JSON). No exceptions.
+- **Documentation** (ADRs, specs). Model writes Markdown directly. ADR creation is script-assisted (for filename/template), but content is model-written.
 
 ## Consequences
 - Wolfcastle agents check existing ADRs before acting and file new ones when making decisions

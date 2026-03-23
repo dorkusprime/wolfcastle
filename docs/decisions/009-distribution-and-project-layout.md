@@ -45,9 +45,9 @@ See ADR-024 for the internal structure within each engineer's namespace director
 ### Three-Tier Merge
 Prompts, rules, and configuration resolve in a predictable merge order:
 
-1. **`base/`** — Wolfcastle-managed. Regenerated from the installed version on `wolfcastle init` or `wolfcastle update`. Never edited by users, never committed. Provides sensible defaults.
-2. **`custom/`** — Team-owned. Committed to git. Overrides or extends base. Shared across all engineers on the project.
-3. **`local/`** — Engineer-owned. Gitignored. Overrides custom and base for personal preferences. Never shared.
+1. **`base/`**. Wolfcastle-managed. Regenerated from the installed version on `wolfcastle init` or `wolfcastle update`. Never edited by users, never committed. Provides sensible defaults.
+2. **`custom/`**. Team-owned. Committed to git. Overrides or extends base. Shared across all engineers on the project.
+3. **`local/`**. Engineer-owned. Gitignored. Overrides custom and base for personal preferences. Never shared.
 
 A same-named file in a more specific tier replaces the more general tier (`local/` overrides `custom/`, which overrides `base/`). This mirrors the Mise/Lefthook config layering pattern.
 
@@ -63,7 +63,7 @@ A same-named file in a more specific tier replaces the more general tier (`local
 }
 ```
 
-Values are derived from `whoami` and `hostname` at init time. The user can override them. At runtime, Wolfcastle concatenates `user-machine` to resolve the engineer's project directory (e.g. `projects/wild-macbook/`). This is transparent — the engineer just runs `wolfcastle start`.
+Values are derived from `whoami` and `hostname` at init time. The user can override them. At runtime, Wolfcastle concatenates `user-machine` to resolve the engineer's project directory (e.g. `projects/wild-macbook/`). This is transparent: the engineer just runs `wolfcastle start`.
 
 Because each engineer only writes to their own namespace within `projects/`, there are no merge conflicts on state files. Everyone can see what everyone else is working on. When a project completes, a summary graduates to `archive/` and the engineer's subtree can be cleaned up.
 
@@ -88,7 +88,7 @@ This means:
 - **Gitignored**: `base/`, `local/`, everything else
 
 ### Archive (Merge-Conflict-Proof History)
-Completed work produces Markdown summaries in `archive/` with unique filenames (date + hash + slug). This is append-only — two engineers completing different work produce different files that coexist without conflicts. The archive serves as searchable, human-readable history without needing to spelunk git log.
+Completed work produces Markdown summaries in `archive/` with unique filenames (date + hash + slug). This is append-only: two engineers completing different work produce different files that coexist without conflicts. The archive serves as searchable, human-readable history without needing to spelunk git log.
 
 ### New Engineer Experience
 1. Clone the repo (gets `custom/`, `archive/`, `docs/`)
@@ -97,10 +97,10 @@ Completed work produces Markdown summaries in `archive/` with unique filenames (
 4. `wolfcastle start` (begins work)
 
 ## Consequences
-- `base/` is never vendored in git — reduces noise in diffs when Wolfcastle updates
+- `base/` is never vendored in git: reduces noise in diffs when Wolfcastle updates
 - Teams share config and rules via `custom/` without manual coordination
 - Personal preferences in `local/` (including `local/config.json`) never leak to teammates
-- Project state in `projects/` is committed but namespaced per engineer — no merge conflicts, no lost state
+- Project state in `projects/` is committed but namespaced per engineer: no merge conflicts, no lost state
 - Everyone can see what everyone else is working on by inspecting `projects/`
 - Archive provides conflict-free, append-only history of completed work
 - Engineers must install Wolfcastle to use it, but they'd need to anyway
