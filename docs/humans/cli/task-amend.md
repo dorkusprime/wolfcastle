@@ -11,14 +11,17 @@ This is useful when planning reveals a task needs a different description, addit
 ## Usage
 
 ```
-wolfcastle task amend --node <path/task-id> [flags]
+wolfcastle task amend <task-address> [flags]
+wolfcastle task amend --node <task-address> [flags]
 ```
+
+The task address can be given as a positional argument or via `--node`. Both forms are equivalent. Providing both is an error.
 
 ## Flags
 
 | Flag | Description |
 |------|-------------|
-| `--node <path>` | **(Required)** Task address: `node-path/task-id`. |
+| `--node <path>` | Task address: `node-path/task-id`. Alias for the positional argument. |
 | `--body <text>` | Replace the task body/description. |
 | `--type <type>` | Set task type: `discovery`, `spec`, `adr`, `implementation`, `integration`, `cleanup`. |
 | `--integration <text>` | Describe how this task connects to other work. |
@@ -31,9 +34,9 @@ wolfcastle task amend --node <path/task-id> [flags]
 ## Examples
 
 ```
-wolfcastle task amend --node my-project/task-0001 --body "updated description"
-wolfcastle task amend --node my-project/task-0001 --add-deliverable "docs/api.md"
-wolfcastle task amend --node my-project/task-0001 --type implementation --integration "feeds into auth module"
+wolfcastle task amend my-project/task-0001 --body "updated description"
+wolfcastle task amend my-project/task-0001 --add-deliverable "docs/api.md"
+wolfcastle task amend my-project/task-0001 --type implementation --integration "feeds into auth module"
 ```
 
 ## Exit Codes

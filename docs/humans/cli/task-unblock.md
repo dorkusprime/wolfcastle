@@ -11,14 +11,17 @@ The task goes back to `not_started`, not `in_progress`. It will be re-evaluated 
 ## Usage
 
 ```
-wolfcastle task unblock --node <path>
+wolfcastle task unblock <task-address>
+wolfcastle task unblock --node <task-address>
 ```
+
+The task address can be given as a positional argument or via `--node`. Both forms are equivalent. Providing both is an error.
 
 ## Flags
 
 | Flag | Description |
 |------|-------------|
-| `--node <path>` | **(Required)** Tree address of the blocked task. |
+| `--node <path>` | Tree address of the blocked task. Alias for the positional argument. |
 | `--json` | Output as structured JSON. |
 
 ## Exit Codes

@@ -11,14 +11,17 @@ This is typically called by the daemon during the execute stage, not by humans d
 ## Usage
 
 ```
-wolfcastle task claim --node <path>
+wolfcastle task claim <task-address>
+wolfcastle task claim --node <task-address>
 ```
+
+The task address can be given as a positional argument or via `--node`. Both forms are equivalent. Providing both is an error.
 
 ## Flags
 
 | Flag | Description |
 |------|-------------|
-| `--node <path>` | **(Required)** Tree address of the task to claim. |
+| `--node <path>` | Tree address of the task to claim. Alias for the positional argument. |
 | `--json` | Output as structured JSON. |
 
 ## Exit Codes

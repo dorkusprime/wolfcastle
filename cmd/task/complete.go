@@ -15,26 +15,28 @@ import (
 
 func newCompleteCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "complete",
+		Use:   "complete [task-address]",
 		Short: "Mark a task as destroyed",
 		Long: `Transitions a task from in_progress to complete. Validation commands
 run first if configured. When every task in a leaf is done, the
 node falls and the victory propagates upward.
 
 Examples:
+  wolfcastle task complete my-project/task-1
   wolfcastle task complete --node my-project/task-1`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}
-			nodeFlag, _ := cmd.Flags().GetString("node")
-			if nodeFlag == "" {
-				return fmt.Errorf("--node is required: specify the task address (e.g. my-project/task-1)")
+			nodeFlag, err := resolveNode(cmd, args, 0)
+			if err != nil {
+				return err
 			}
 
 			nodeAddr, taskID, err := tree.SplitTaskAddress(nodeFlag)
 			if err != nil {
-				return fmt.Errorf("--node must be a task address: %w", err)
+				return fmt.Errorf("task address must be node-path/task-id: %w", err)
 			}
 
 			var finalNodeState state.NodeStatus
@@ -87,7 +89,6 @@ Examples:
 		},
 	}
 
-	cmd.Flags().String("node", "", "Task address: node-path/task-id (required)")
-	_ = cmd.MarkFlagRequired("node")
+	cmd.Flags().String("node", "", "Task address: node-path/task-id (alias for positional argument)")
 	return cmd
 }
