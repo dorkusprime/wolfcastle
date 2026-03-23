@@ -53,7 +53,15 @@
       }
     ],
     "gaps": [],
-    "escalations": [],
+    "escalations": [
+      {
+        "id": "escalation-spec-update-1",
+        "timestamp": "2026-03-23T03:22:53.650661Z",
+        "description": "docs/specs/2026-03-21T18-00Z-log-command-design.md is out of sync with .wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md. The divergence predates this node (introduced at commit a15c2ab which updated .wolfcastle/ copy but not docs/ copy). The docs/specs/ copy still references interleaved as the non-daemon default and lacks the duration_ms field documentation.",
+        "source_node": "non-daemon-foreground-output-flags/spec-update",
+        "status": "open"
+      }
+    ],
     "status": "pending"
   }
 }

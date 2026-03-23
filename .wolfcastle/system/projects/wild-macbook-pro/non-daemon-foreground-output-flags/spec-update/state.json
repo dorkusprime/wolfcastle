@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Update Non-Daemon Mode section in log-command-design spec",
       "description": "Update Non-Daemon Mode section in log-command-design spec",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         ".wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md"
@@ -30,9 +30,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Spec Update is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -48,12 +49,18 @@
         "timestamp": "2026-03-23T03:20:31.640387Z",
         "task": "non-daemon-foreground-output-flags/spec-update",
         "text": "Updated Non-Daemon Mode section in log-command-design spec: changed default renderer from interleaved to summary, documented --thoughts/--interleaved/--json flag support with last-wins semantics, preserved goroutine-tailing architecture point"
+      },
+      {
+        "timestamp": "2026-03-23T03:23:00.864119Z",
+        "task": "non-daemon-foreground-output-flags/spec-update",
+        "text": "Audit reviewed 1 file (.wolfcastle/docs/specs/2026-03-21T18-00Z-log-command-design.md, 149 lines). PASS. All four task requirements verified against spec content: (1) summary stated as default renderer at line 131, (2) flag support with last-wins semantics documented at line 133, (3) goroutine-tailing architecture preserved at line 135, (4) no remnant mentions of interleaved-as-default confirmed by grep. One escalation: docs/specs/ copy is out of sync with .wolfcastle/docs/specs/ copy, predating this node (commit a15c2ab). Build passes; two flaky test failures in cmd package (TestInitCmd_AlreadyInitialized) are pre-existing and unrelated. Quality: clean, well-structured edit. The three replacement paragraphs are specific and self-consistent with the rest of the spec."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-23T03:19:59.416679Z"
+    "started_at": "2026-03-23T03:19:59.416679Z",
+    "result_summary": "Updated the Non-Daemon Mode section of the log-command-design spec to reflect the new foreground output defaults. The single paragraph claiming interleaved was the default was replaced with three paragraphs documenting: summary as the default renderer, flag support (--thoughts, --interleaved, --json) with last-wins semantics, and the shared goroutine-tailing architecture. Audit verified all four requirements met, no regressions introduced. One pre-existing issue escalated: the docs/specs/ copy of this spec is out of sync with the .wolfcastle/docs/specs/ canonical copy."
   },
   "aars": {
     "task-0001": {
