@@ -321,7 +321,7 @@ func TestPromptRepository_RenderToFile_WritePermissionError(t *testing.T) {
 	if err := os.MkdirAll(readonlyDir, 0o555); err != nil {
 		t.Fatalf("creating readonly dir: %v", err)
 	}
-	t.Cleanup(func() { os.Chmod(readonlyDir, 0o755) })
+	t.Cleanup(func() { _ = os.Chmod(readonlyDir, 0o755) })
 
 	dest := filepath.Join(readonlyDir, "out.txt")
 	err := repo.RenderToFile("writable", nil, dest)

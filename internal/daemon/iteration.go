@@ -665,7 +665,9 @@ func buildCommitSubject(prefix, title, taskID, kind string, attemptNum int) stri
 	label := title
 	if label == "" {
 		label = taskID
-		// Fallback: use the old format for backward compatibility.
+	}
+	if title == "" {
+		// No title available: use task ID with status suffix.
 		if prefix == "" {
 			if kind == "failure" {
 				return fmt.Sprintf("%s partial (attempt %d)", taskID, attemptNum)

@@ -750,7 +750,7 @@ func readLogRecords(t *testing.T, logDir string) []map[string]any {
 			}
 			records = append(records, rec)
 		}
-		f.Close()
+		_ = f.Close()
 	}
 	return records
 }

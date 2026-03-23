@@ -33,7 +33,6 @@ func TestNew_LogDirCreationFails(t *testing.T) {
 	}
 }
 
-
 func TestNew_ResumesIteration(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir()

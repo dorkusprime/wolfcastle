@@ -163,10 +163,10 @@ func TestTokenCount_Words(t *testing.T) {
 		input string
 		want  int
 	}{
-		{name: "one word", input: "hello", want: 2},          // ceil(1/0.75) = 2
+		{name: "one word", input: "hello", want: 2},            // ceil(1/0.75) = 2
 		{name: "three words", input: "one two three", want: 4}, // ceil(3/0.75) = 4
-		{name: "four words", input: "a b c d", want: 6},       // ceil(4/0.75) = 6
-		{name: "six words", input: "a b c d e f", want: 8},    // ceil(6/0.75) = 8
+		{name: "four words", input: "a b c d", want: 6},        // ceil(4/0.75) = 6
+		{name: "six words", input: "a b c d e f", want: 8},     // ceil(6/0.75) = 8
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

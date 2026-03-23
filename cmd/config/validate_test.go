@@ -93,7 +93,7 @@ func TestValidate_ValidConfig_HumanOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -102,7 +102,7 @@ func TestValidate_ValidConfig_HumanOutput(t *testing.T) {
 
 	var buf [4096]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	_ = r.Close()
 
 	out := string(buf[:n])
 	if !strings.Contains(out, "0 errors") {
@@ -123,7 +123,7 @@ func TestValidate_ValidConfig_JSON(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate", "--json"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -132,10 +132,10 @@ func TestValidate_ValidConfig_JSON(t *testing.T) {
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	_ = r.Close()
 
 	var envelope struct {
-		OK   bool   `json:"ok"`
+		OK   bool `json:"ok"`
 		Data struct {
 			Issues       []validationIssue `json:"issues"`
 			ErrorCount   int               `json:"error_count"`
@@ -238,7 +238,7 @@ func TestValidate_WarningsOnly_HumanOutput(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -247,7 +247,7 @@ func TestValidate_WarningsOnly_HumanOutput(t *testing.T) {
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	_ = r.Close()
 
 	out := string(buf[:n])
 	if !strings.Contains(out, "warning") {
@@ -273,7 +273,7 @@ func TestValidate_WarningsOnly_JSON(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate", "--json"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -282,10 +282,10 @@ func TestValidate_WarningsOnly_JSON(t *testing.T) {
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	_ = r.Close()
 
 	var envelope struct {
-		OK   bool   `json:"ok"`
+		OK   bool `json:"ok"`
 		Data struct {
 			Issues       []validationIssue `json:"issues"`
 			ErrorCount   int               `json:"error_count"`
@@ -345,8 +345,8 @@ func TestValidate_Full_MissingIdentity_Human(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate", "--full"})
 	execErr := env.RootCmd.Execute()
 
-	wOut.Close()
-	wErr.Close()
+	_ = wOut.Close()
+	_ = wErr.Close()
 	os.Stdout = oldOut
 	os.Stderr = oldErr
 
@@ -359,8 +359,8 @@ func TestValidate_Full_MissingIdentity_Human(t *testing.T) {
 
 	var buf [8192]byte
 	n, _ := rErr.Read(buf[:])
-	rErr.Close()
-	rOut.Close()
+	_ = rErr.Close()
+	_ = rOut.Close()
 
 	stderr := string(buf[:n])
 	if !strings.Contains(stderr, "error") || !strings.Contains(stderr, "identity") {
@@ -380,7 +380,7 @@ func TestValidate_Full_MissingIdentity_JSON(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate", "--full", "--json"})
 	execErr := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if execErr == nil {
@@ -389,10 +389,10 @@ func TestValidate_Full_MissingIdentity_JSON(t *testing.T) {
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	_ = r.Close()
 
 	var envelope struct {
-		OK   bool   `json:"ok"`
+		OK   bool `json:"ok"`
 		Data struct {
 			Issues       []validationIssue `json:"issues"`
 			ErrorCount   int               `json:"error_count"`
@@ -434,12 +434,12 @@ func TestValidate_Full_CategoryIsValidation(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate", "--full", "--json"})
 	_ = env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	_ = r.Close()
 
 	var envelope struct {
 		Data struct {
@@ -483,7 +483,7 @@ func TestValidate_UnreadableConfig(t *testing.T) {
 
 	// Replace config.json with a directory to force a read error.
 	path := filepath.Join(env.WolfcastleDir, "system", "local", "config.json")
-	os.Remove(path)
+	_ = os.Remove(path)
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		t.Fatalf("creating directory in place of config: %v", err)
 	}
@@ -589,15 +589,15 @@ func TestValidate_Full_WarningsAndErrors_JSON(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate", "--full", "--json"})
 	_ = env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	_ = r.Close()
 
 	var envelope struct {
-		OK   bool   `json:"ok"`
+		OK   bool `json:"ok"`
 		Data struct {
 			Issues       []validationIssue `json:"issues"`
 			ErrorCount   int               `json:"error_count"`
@@ -636,7 +636,7 @@ func TestValidate_NoFull_StructureCategory(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate", "--json"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -645,7 +645,7 @@ func TestValidate_NoFull_StructureCategory(t *testing.T) {
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	_ = r.Close()
 
 	var envelope struct {
 		Data struct {
@@ -677,7 +677,7 @@ func TestValidate_JSON_ActionField(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"config", "validate", "--json"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -686,7 +686,7 @@ func TestValidate_JSON_ActionField(t *testing.T) {
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
-	r.Close()
+	_ = r.Close()
 
 	var envelope struct {
 		Action string `json:"action"`

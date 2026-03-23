@@ -48,7 +48,7 @@ func Append(wolfcastleDir, namespace, entry string) error {
 	if err != nil {
 		return fmt.Errorf("opening knowledge file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if _, err := f.WriteString(line); err != nil {
 		return fmt.Errorf("writing knowledge entry: %w", err)
