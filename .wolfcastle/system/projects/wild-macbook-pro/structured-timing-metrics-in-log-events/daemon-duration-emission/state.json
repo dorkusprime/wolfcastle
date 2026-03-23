@@ -63,7 +63,7 @@
       "id": "task-0004",
       "title": "Add unit tests for duration_ms emission",
       "description": "Add unit tests for duration_ms emission",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration_test.go"
@@ -80,9 +80,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Daemon Duration Emission is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -112,12 +113,18 @@
         "timestamp": "2026-03-23T00:11:11.299649Z",
         "task": "structured-timing-metrics-in-log-events/daemon-duration-emission",
         "text": "Added three unit tests verifying duration_ms field in stage_complete (execute and intake) and planning_complete log records. Includes NDJSON log parsing helpers readLogRecords and filterRecords."
+      },
+      {
+        "timestamp": "2026-03-23T00:12:44.105069Z",
+        "task": "structured-timing-metrics-in-log-events/daemon-duration-emission",
+        "text": "Audit reviewed 4 files: iteration.go (2-line change at L102/L127-133), stages.go (2-line change at L225/L234-241), planning.go (3-line change at L200/L216-221), iteration_test.go (3 new tests + 2 helpers, ~160 lines). PASS. Build clean, all tests pass including race detector. Zero findings. The timing pattern is consistent across all three sites: time.Now() before invocation, time.Since().Milliseconds() in the log map. Tests verify field presence, numeric type, and non-negative value. No new error paths, no concurrency concerns, no dead code. readLogRecords/filterRecords helpers are well-structured and reusable. No ADR needed; adding a field to existing log records is not an architectural decision."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-23T00:03:48.967647Z"
+    "started_at": "2026-03-23T00:03:48.967647Z",
+    "result_summary": "Added duration_ms (int64, milliseconds) to three log record types: stage_complete in the execute pipeline (iteration.go), stage_complete in the intake pipeline (stages.go), and planning_complete (planning.go). Each site captures time.Now() before the model invocation and computes elapsed time via time.Since().Milliseconds() in the log map. Three unit tests in iteration_test.go verify the field is emitted as a non-negative number, with reusable NDJSON parsing helpers (readLogRecords, filterRecords). All changes are minimal two-to-three-line additions with no new dependencies or architectural changes."
   },
   "aars": {
     "task-0001": {
