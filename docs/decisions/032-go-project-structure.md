@@ -52,7 +52,7 @@ Only one external dependency: `github.com/spf13/cobra` (which brings `pflag`). E
 
 ## Consequences
 - Clear separation: `cmd/` is thin (flag parsing, output formatting), `internal/` has all logic
-- Adding a command is one file in `cmd/` — cobra handles registration and help
+- Adding a command is one file in `cmd/`: cobra handles registration and help
 - `internal/` packages can't be imported by external code, enforcing encapsulation
 - Shell completions work out of the box for node addresses via the root index
 - Single external dependency minimizes supply chain risk

@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-The spec requires node summaries — a recap of what was accomplished — stored in `Audit.ResultSummary`. The original design included a `runSummaryStage` that makes a separate model call using a cheaper/faster model to generate the summary from breadcrumbs and audit state.
+The spec requires node summaries: a recap of what was accomplished: stored in `Audit.ResultSummary`. The original design included a `runSummaryStage` that makes a separate model call using a cheaper/faster model to generate the summary from breadcrumbs and audit state.
 
 All three implementations struggled with when to trigger this separate stage.
 
@@ -24,7 +24,7 @@ The separate `runSummaryStage` approach was discarded entirely. If backfilling s
 
 ## Consequences
 
-- **No extra model call** — zero additional latency and cost.
-- **Better context** — the model that did the work has richer context than a separate model working from breadcrumbs alone.
-- **Simpler trigger logic** — no need to decide when to invoke a separate stage.
-- **Trade-off** — if the model fails to emit the marker, the node completes without a summary. This is acceptable since summaries are informational, not structural.
+- **No extra model call**: zero additional latency and cost.
+- **Better context**: the model that did the work has richer context than a separate model working from breadcrumbs alone.
+- **Simpler trigger logic**: no need to decide when to invoke a separate stage.
+- **Trade-off**: if the model fails to emit the marker, the node completes without a summary. This is acceptable since summaries are informational, not structural.

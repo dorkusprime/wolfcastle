@@ -10,7 +10,7 @@ Accepted
 Ralph was hardcoded to Claude models (Haiku for expansion, Sonnet for filing, Opus for execution). Wolfcastle aims to be a general-purpose orchestration system.
 
 ## Decision
-Wolfcastle is model-agnostic. The JSON config specifies which model and provider to use per pipeline role. Authentication is handled externally — secrets live in `.env` files or are managed by model-specific CLI auth mechanisms (e.g. `claude` CLI login, `OPENAI_API_KEY`, etc.).
+Wolfcastle is model-agnostic. The JSON config specifies which model and provider to use per pipeline role. Authentication is handled externally: secrets live in `.env` files or are managed by model-specific CLI auth mechanisms (e.g. `claude` CLI login, `OPENAI_API_KEY`, etc.).
 
 Wolfcastle itself never stores or manages API keys.
 

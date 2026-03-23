@@ -7,7 +7,7 @@ Accepted
 2026-03-13
 
 ## Context
-Wolfcastle's node-level audit tasks verify that each project's work is correct. But there's no mechanism for a comprehensive codebase-level audit — identifying DRY violations, modularity issues, decomposition opportunities, code quality problems, etc. These findings naturally feed into new Wolfcastle projects.
+Wolfcastle's node-level audit tasks verify that each project's work is correct. But there's no mechanism for a full codebase-level audit: identifying DRY violations, modularity issues, decomposition opportunities, code quality problems, etc. These findings naturally feed into new Wolfcastle projects.
 
 ## Decision
 
@@ -15,19 +15,19 @@ Wolfcastle's node-level audit tasks verify that each project's work is correct. 
 A standalone command that runs a model-driven codebase audit and generates repair projects from findings.
 
 ### Flow
-1. `wolfcastle audit [--scope <id>,<id>,...]` — run specified scopes (or all if omitted)
+1. `wolfcastle audit [--scope <id>,<id>,...]`: run specified scopes (or all if omitted)
 2. Model audits the codebase against each scope's prompt
 3. Generates prioritized findings
-4. Presents findings to the user for approval — the gate between "here's what I found" and "here's what I'll fix"
+4. Presents findings to the user for approval: the gate between "here's what I found" and "here's what I'll fix"
 5. Approved findings become projects/tasks in the tree automatically
 
 ### Discoverable Scopes
 Audit scopes are identified by enum-like IDs, not free text. Each scope is backed by a prompt fragment:
 
-- `base/audits/dry.md` — DRY violations
-- `base/audits/modularity.md` — module boundary issues
-- `base/audits/decomposition.md` — overly complex code needing breakdown
-- `base/audits/comments.md` — documentation and commenting gaps
+- `base/audits/dry.md`. DRY violations
+- `base/audits/modularity.md`: module boundary issues
+- `base/audits/decomposition.md`: overly complex code needing breakdown
+- `base/audits/comments.md`: documentation and commenting gaps
 - etc.
 
 Users add custom scopes in `custom/audits/` and `local/audits/`. The Go code discovers all available scopes by scanning the three tiers.
@@ -71,5 +71,5 @@ This is the gate that prevents runaway project creation from an overzealous audi
 - Scopes are composable and extensible via the three-tier system
 - Custom scopes let teams audit domain-specific concerns (e.g., "security", "accessibility")
 - The approval step keeps the user in control
-- Token cost is managed by scoping — run only what you need
+- Token cost is managed by scoping: run only what you need
 - `--list` and `-h` are always current because they discover scopes at runtime

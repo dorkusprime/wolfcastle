@@ -42,7 +42,7 @@ wolfcastle start --worktree feature/fire --node attunement-tree/fire-impl
 This runs only the specified subtree, in an isolated worktree, on a dedicated branch.
 
 ## Consequences
-- Default behavior is simple — no git magic, commits go where the user expects
+- Default behavior is simple: no git magic, commits go where the user expects
 - Branch verification prevents silent corruption from mid-run branch switches
 - `--worktree` gives users safe isolation without Wolfcastle managing parallel execution
 - Worktree cleanup is Wolfcastle's responsibility since it created it

@@ -6,7 +6,7 @@
 
 ## Context
 
-The daemon currently logs everything at the same level — stage starts, stage
+The daemon currently logs everything at the same level: stage starts, stage
 completions, errors, retries, breadcrumbs, and debug output all go into the
 same NDJSON stream with no severity distinction (ADR-012, ADR-037). The
 human-readable console output (via output.PrintHuman) similarly has no level
@@ -25,7 +25,7 @@ Add a `level` field to all NDJSON log records with four severity tiers:
    level.
 2. **Default console level.** `info` (suppresses debug-level output like
    stage skip reasons).
-3. **Config.** `"daemon": { "log_level": "info" }` — accepts debug, info,
+3. **Config.** `"daemon": { "log_level": "info" }`: accepts debug, info,
    warn, error.
 4. **Verbose flag.** `--verbose` / `-v` on `wolfcastle start` overrides
    log_level to `debug`.
@@ -40,7 +40,7 @@ Add a `level` field to all NDJSON log records with four severity tiers:
      state corruption.
 6. **Logger.Log() signature.** Gains an optional level parameter (backward
    compatible: if missing, defaults to info).
-7. **AssistantWriter.** Model output streaming logs at debug level — model
+7. **AssistantWriter.** Model output streaming logs at debug level: model
    output is always available in the NDJSON file but only shown on console
    with `-v`.
 8. **wolfcastle follow.** Always shows all levels (it tails the NDJSON file,
@@ -50,10 +50,10 @@ Add a `level` field to all NDJSON log records with four severity tiers:
 
 - Operators can run the daemon at info level for clean output and drop to
   debug when investigating.
-- NDJSON files remain the complete, unfiltered record — log level only
+- NDJSON files remain the complete, unfiltered record: log level only
   affects console.
 - `--verbose` is the quick escape hatch for "show me everything."
 - Log records are now machine-parseable by level for monitoring/alerting
   tools.
-- Backward compatible — existing log records without a level field are
+- Backward compatible: existing log records without a level field are
   treated as info.

@@ -162,7 +162,7 @@ Emit the summary on its own line using this marker:
 Emit the summary line before `WOLFCASTLE_COMPLETE`.
 ```
 
-**Template variables:** None — this is static text.
+**Template variables:** None: this is static text.
 
 ### 2.4 `expand-context.md`
 
@@ -177,7 +177,7 @@ The following inbox items need to be broken down into concrete projects and task
 - What audit scopes should be defined
 ```
 
-**Template variables:** None — item details are appended after this preamble.
+**Template variables:** None: item details are appended after this preamble.
 
 ### 2.5 `file-context.md`
 
@@ -193,7 +193,7 @@ The following items have been expanded and need to be filed into the project tre
 - Ensure tasks are properly ordered with audit tasks last
 ```
 
-**Template variables:** None — item details are appended after this preamble.
+**Template variables:** None: item details are appended after this preamble.
 
 ---
 
@@ -254,7 +254,7 @@ Existing prompts (execute.md, expand.md, etc.) contain no `{{` template syntax a
 
 ### Custom Doctor Prompt
 
-A team wants the doctor model to be more conservative — always choosing `not_started`:
+A team wants the doctor model to be more conservative: always choosing `not_started`:
 
 ```
 .wolfcastle/system/custom/prompts/doctor.md
@@ -267,7 +267,7 @@ Node {{.Node}} has a state conflict: {{.Description}}
 
 Always resolve ambiguous state conflicts to `not_started`. It is safer to re-execute work than to skip it.
 
-Output: {"resolution": "not_started", "reason": "conservative policy — re-execute rather than skip"}
+Output: {"resolution": "not_started", "reason": "conservative policy: re-execute rather than skip"}
 ```
 
 ### Custom Decomposition Guidance
@@ -376,6 +376,6 @@ All new prompt files are added to `internal/project/templates/prompts/` and embe
 
 ### Iteration Context Headers
 
-The metadata headers in `context.go` (`**Node:**`, `**Task:**`, etc.) are data formatting, not instructional text. These remain in Go code — they are structural, not behavioral, and overriding them would break the daemon's parsing expectations.
+The metadata headers in `context.go` (`**Node:**`, `**Task:**`, etc.) are data formatting, not instructional text. These remain in Go code: they are structural, not behavioral, and overriding them would break the daemon's parsing expectations.
 
 The boundary: **instructional text** (tells the model what to do) goes to `.md` files. **Structural formatting** (formats data for the model to read) stays in Go code.

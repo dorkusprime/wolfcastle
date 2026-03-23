@@ -41,7 +41,7 @@ Estimated ~700-1000 lines of hand-rolled CLI infrastructure, plus ongoing mainte
 
 ### Decision
 
-The features Cobra provides (auto-help, completions, persistent flags, subcommand trees, fuzzy matching) are genuinely valuable for a CLI with 47+ commands. Replacing it would trade ~3 well-audited dependencies for ~800 lines of hand-maintained infrastructure. The CVE risk is theoretical — Cobra has had no security issues in over a decade.
+The features Cobra provides (auto-help, completions, persistent flags, subcommand trees, fuzzy matching) are genuinely valuable for a CLI with 47+ commands. Replacing it would trade ~3 well-audited dependencies for ~800 lines of hand-maintained infrastructure. The CVE risk is theoretical. Cobra has had no security issues in over a decade.
 
 ### Review Trigger
 
@@ -52,7 +52,7 @@ Re-evaluate if any of these conditions become true:
 - Wolfcastle is deployed in an environment where any external dependency is prohibited by policy
 
 ## Consequences
-- Cobra remains the CLI framework — no migration effort
+- Cobra remains the CLI framework: no migration effort
 - The dependency is explicitly justified, not just inherited
 - A review trigger prevents the decision from becoming stale
 - Contributors understand why the dependency exists and when to reconsider

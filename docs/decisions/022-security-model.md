@@ -1,4 +1,4 @@
-# ADR-022: Security Model — User-Configured, Wolfcastle-Transparent
+# ADR-022: Security Model: User-Configured, Wolfcastle-Transparent
 
 ## Status
 Accepted
@@ -7,7 +7,7 @@ Accepted
 2026-03-12
 
 ## Context
-Wolfcastle shells out to AI CLI tools that can read/write files, execute commands, and interact with the filesystem. Ralph used `--dangerously-skip-permissions` for full autonomy. Different users and environments have different security requirements — a developer on a personal machine may want full autonomy, while a CI environment may need strict sandboxing.
+Wolfcastle shells out to AI CLI tools that can read/write files, execute commands, and interact with the filesystem. Ralph used `--dangerously-skip-permissions` for full autonomy. Different users and environments have different security requirements: a developer on a personal machine may want full autonomy, while a CI environment may need strict sandboxing.
 
 ## Decision
 
@@ -28,7 +28,7 @@ Permission flags are configured in `custom/config.json` as part of the model arg
 }
 ```
 
-There are no hidden defaults — what's in the config is what the model gets. Teams can review and enforce permission levels through their normal config review process.
+There are no hidden defaults: what's in the config is what the model gets. Teams can review and enforce permission levels through their normal config review process.
 
 ### No Wolfcastle-Level Sandboxing
 Wolfcastle does not restrict what the model can do beyond what the CLI tool enforces. It does not filter commands, block file paths, or intercept model actions. Adding a Wolfcastle-specific security layer would create a false sense of safety and duplicate work better handled by the CLI tools themselves.
@@ -39,4 +39,4 @@ Wolfcastle does not restrict what the model can do beyond what the CLI tool enfo
 - Teams can enforce stricter permissions by committing tighter args in shared config
 - Individual engineers can loosen permissions in `local/config.json` (gitignored) at their own risk
 - Documentation should clearly explain the implications of different permission levels
-- Wolfcastle stays simple — no auth, no sandboxing, no permission logic
+- Wolfcastle stays simple: no auth, no sandboxing, no permission logic

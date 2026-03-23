@@ -91,5 +91,5 @@ Wolfcastle needs a complete, consistent set of CLI commands that serve three aud
 - Model interacts with state exclusively through these commands (per ADR-003)
 - The command reference is auto-generated into the system prompt (per ADR-017)
 - All state-mutating commands are deterministic and testable
-- The surface is intentionally minimal — new commands can be added as needs arise during implementation
+- The surface is intentionally minimal: new commands can be added as needs arise during implementation
 - Additional commands added in later ADRs: `wolfcastle doctor` (ADR-025), `wolfcastle install <target>` (ADR-026), `wolfcastle unblock` (ADR-028), `wolfcastle spec create/link/list` (ADR-031). See the CLI commands spec for the complete reference.

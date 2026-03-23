@@ -20,10 +20,10 @@ git config core.hooksPath .githooks
 
 The hook runs four checks in order, failing fast on the first error:
 
-1. **gofmt** — formatting check (instant)
-2. **go vet** — static analysis (1-2 seconds)
-3. **go build** — compilation check (2-3 seconds)
-4. **golangci-lint** — full lint suite (5-10 seconds, skipped if not installed)
+1. **gofmt**: formatting check (instant)
+2. **go vet**: static analysis (1-2 seconds)
+3. **go build**: compilation check (2-3 seconds)
+4. **golangci-lint**: full lint suite (5-10 seconds, skipped if not installed)
 
 golangci-lint is optional because it requires a separate install. The first three checks use only the Go toolchain, which every developer already has.
 

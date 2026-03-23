@@ -12,22 +12,22 @@ During the spec-writing phase, several implementation-level decisions were made 
 ## Decisions
 
 ### 1. Single state.json per engineer namespace
-The tree addressing spec chose a single `state.json` file per engineer namespace (`.wolfcastle/system/projects/wild-macbook/state.json`) rather than one file per node. This keeps the state atomic — one file to read, one file to write, no partial-update risks.
+The tree addressing spec chose a single `state.json` file per engineer namespace (`.wolfcastle/system/projects/wild-macbook/state.json`) rather than one file per node. This keeps the state atomic: one file to read, one file to write, no partial-update risks.
 
-**Status: Resolved by ADR-024** — state is now distributed as one state.json per node.
+**Status: Resolved by ADR-024**: state is now distributed as one state.json per node.
 
 ### 2. Task descriptions inline in state.json
 The tree addressing spec put task descriptions as `description` fields inside the state JSON rather than as separate Markdown files. This contradicts the earlier discussion where we agreed task descriptions should be Markdown files.
 
-**Status: Resolved by ADR-024** — hybrid approach: brief description in state.json, optional Markdown working document per task.
+**Status: Resolved by ADR-024**: hybrid approach: brief description in state.json, optional Markdown working document per task.
 
 ### 3. Project definition files as sibling Markdown
 Project/sub-project descriptions are stored as Markdown files alongside the state, mirroring the tree path: `.wolfcastle/system/projects/wild-macbook/attunement-tree/fire-impl.md`. These are model-written documentation, not state.
 
 ### 4. Pipeline stage `enabled` and `skip_prompt_assembly` fields
 The pipeline spec added two optional fields to stage definitions:
-- `enabled` (boolean, default true) — static opt-out of a stage
-- `skip_prompt_assembly` (boolean, default false) — lightweight stages skip the full system prompt
+- `enabled` (boolean, default true): static opt-out of a stage
+- `skip_prompt_assembly` (boolean, default false): lightweight stages skip the full system prompt
 
 ### 5. Arrays replace entirely in config merge
 The config spec formalized that arrays in a higher tier completely replace arrays from lower tiers. No element-level merging. This applies to `pipeline.stages`, model `args`, `prompts.fragments`, etc.

@@ -378,7 +378,7 @@ The default pipeline has three stages (ADR-006, ADR-013): expand, file, execute.
 
 ### 6.4 Summary (inline, per ADR-036)
 
-> **Note:** The original design described the summary as a separate pipeline stage. ADR-036 superseded this — summaries are now generated inline by the executing model.
+> **Note:** The original design described the summary as a separate pipeline stage. ADR-036 superseded this: summaries are now generated inline by the executing model.
 
 **Purpose:** Write a plain-language summary of what a completed node accomplished, used as the top section of the archive entry.
 

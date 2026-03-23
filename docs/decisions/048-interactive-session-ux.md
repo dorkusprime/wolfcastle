@@ -22,7 +22,7 @@ Replace the raw scanner loop with the `github.com/chzyer/readline` library
    line (not the session), Ctrl+D exits the session.
 2. **Prompt.** `wolfcastle> ` (clear, branded, no ambiguity about what's
    accepting input).
-3. **History.** In-memory only (not persisted across sessions — unblock
+3. **History.** In-memory only (not persisted across sessions: unblock
    sessions are short-lived).
 4. **Multi-line input.** Not supported (each Enter submits). If users need
    multi-line, they can pipe input or use the agent tier (Tier 3).
@@ -37,7 +37,7 @@ Replace the raw scanner loop with the `github.com/chzyer/readline` library
    - The alternative (implementing readline from scratch) is not worth the
      effort.
    - readline is a stable, mature library with no transitive dependencies.
-   - It's only imported by cmd/unblock.go — not pulled into the core
+   - It's only imported by cmd/unblock.go: not pulled into the core
      library.
 
 ### Dependency Risk
@@ -45,7 +45,7 @@ Replace the raw scanner loop with the `github.com/chzyer/readline` library
 ADR-056 deliberately evaluated and retained Cobra as the sole external
 dependency, concluding that its features justify the cost for a 47+ command
 CLI. Adding readline makes it the second external dependency for an
-autonomous tool — a threshold worth acknowledging explicitly.
+autonomous tool: a threshold worth acknowledging explicitly.
 
 Mitigating factors:
 
@@ -55,7 +55,7 @@ Mitigating factors:
   would not include readline at all.
 - readline has no transitive dependencies (pure Go, no CGO), so it adds
   exactly one entry to `go.sum`, not a dependency tree.
-- The interactive unblock session is an optional feature — the agent tier
+- The interactive unblock session is an optional feature: the agent tier
   (Tier 3, `--agent` flag) provides the same diagnostic context without
   readline.
 

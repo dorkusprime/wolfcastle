@@ -11,15 +11,15 @@ Wolfcastle's three-tier file layering system (ADR-009, ADR-018) allows prompts i
 
 However, several pieces of model-facing text remain hardcoded in Go source:
 
-1. **Doctor model-assisted fix prompt** (`internal/validate/model_fix.go:28-40`) — A system prompt for the "Wolfcastle Doctor" repair agent. Hardcoded with `fmt.Sprintf`, not overridable.
+1. **Doctor model-assisted fix prompt** (`internal/validate/model_fix.go:28-40`). A system prompt for the "Wolfcastle Doctor" repair agent. Hardcoded with `fmt.Sprintf`, not overridable.
 
-2. **Unblock session preamble** (`cmd/unblock.go:156-159`) — Inline instructions appended to the diagnostic context. The `unblock.md` template exists but the code constructs its own preamble instead of using it.
+2. **Unblock session preamble** (`cmd/unblock.go:156-159`). Inline instructions appended to the diagnostic context. The `unblock.md` template exists but the code constructs its own preamble instead of using it.
 
-3. **Iteration context instructional text** (`internal/pipeline/context.go`) — Markdown headers, decomposition guidance ("Break this leaf into smaller sub-tasks..."), and summary instructions ("This is the last incomplete task...") are hardcoded in the context builder.
+3. **Iteration context instructional text** (`internal/pipeline/context.go`). Markdown headers, decomposition guidance ("Break this leaf into smaller sub-tasks..."), and summary instructions ("This is the last incomplete task...") are hardcoded in the context builder.
 
-4. **Inbox stage context headers** (`internal/daemon/daemon.go:489, 594`) — "# Inbox Items to Expand" and "# Expanded Inbox Items to File" are hardcoded.
+4. **Inbox stage context headers** (`internal/daemon/daemon.go:489, 594`): "# Inbox Items to Expand" and "# Expanded Inbox Items to File" are hardcoded.
 
-This means teams cannot customize model behavior for these scenarios without modifying Go source — violating the principle that all model-facing text should be overridable through the tier system.
+This means teams cannot customize model behavior for these scenarios without modifying Go source: violating the principle that all model-facing text should be overridable through the tier system.
 
 ## Decision
 
@@ -53,11 +53,11 @@ type PromptContext struct {
 }
 ```
 
-Simple prompts with no dynamic content (e.g., the expand-context preamble) are loaded as plain strings — no template execution needed.
+Simple prompts with no dynamic content (e.g., the expand-context preamble) are loaded as plain strings: no template execution needed.
 
 ### Existing Prompts (Already Externalized)
 
-These remain unchanged — they already follow the pattern:
+These remain unchanged: they already follow the pattern:
 
 | File | Stage | Purpose |
 |------|-------|---------|
@@ -109,10 +109,10 @@ A team wants to customize the decomposition instructions to reference their own 
 This file completely replaces `base/prompts/decomposition.md` (per ADR-018's file-level replacement semantics), and the model sees the team's custom decomposition guidance instead of the default.
 
 ## Consequences
-- All model-facing text is overridable through the three-tier system — no Go source changes needed to customize model behavior
+- All model-facing text is overridable through the three-tier system: no Go source changes needed to customize model behavior
 - `wolfcastle init` and `wolfcastle update` regenerate `base/prompts/` with defaults, but never touch `custom/` or `local/`
 - Template variables enable dynamic content while keeping the prose in Markdown
 - Teams can tune model personality, instructions, and output format per stage without forking
 - The doctor prompt, decomposition guidance, and summary instructions become first-class configurable surfaces
-- Existing prompts (execute.md, expand.md, etc.) are unchanged — this is purely additive
+- Existing prompts (execute.md, expand.md, etc.) are unchanged: this is purely additive
 

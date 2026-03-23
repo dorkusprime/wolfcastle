@@ -167,7 +167,7 @@ For stages with `skip_prompt_assembly: false` (the default):
 4. Iteration context (current node state, task details, tree position)
 ```
 
-This is the same 4-layer model defined in the orchestrator prompt spec. The stage prompt (e.g., `execute.md`) contains the stage-specific instructions including the model's role within Wolfcastle. There is no separate "orchestrator prompt" layer — the stage prompt serves this purpose.
+This is the same 4-layer model defined in the orchestrator prompt spec. The stage prompt (e.g., `execute.md`) contains the stage-specific instructions including the model's role within Wolfcastle. There is no separate "orchestrator prompt" layer: the stage prompt serves this purpose.
 
 Each section is concatenated with clear delimiters so the model can distinguish them.
 
@@ -265,7 +265,7 @@ The model's **meaningful output** is not its stdout text but its **side effects*
 |-------|---------------------|----------------------|
 | `intake` | Inbox has items with status "new" | Reads inbox items, calls `wolfcastle project create` and `wolfcastle task add` directly to create projects and tasks in the tree. Runs in a parallel goroutine (ADR-064). |
 | `execute` | A navigable task exists in `not_started` or `in_progress` state | Claims a task, does the work (writes code, runs tests, etc.), writes breadcrumbs, marks tasks complete or blocked. May create subtasks. When a task with `task_type: "spec"` completes, the daemon auto-creates a sibling `spec-review` task (see Spec Review Auto-Trigger below). |
-| (summary) | N/A — inline | Per ADR-036, summaries are emitted inline by the executing model via `WOLFCASTLE_SUMMARY:` marker, not as a separate stage invocation. |
+| (summary) | N/A: inline | Per ADR-036, summaries are emitted inline by the executing model via `WOLFCASTLE_SUMMARY:` marker, not as a separate stage invocation. |
 
 ---
 
@@ -291,7 +291,7 @@ Stages can be conditional in two ways:
 |-------|---------------|------------|
 | `intake` | Always skipped in main loop (runs in parallel goroutine). In the goroutine, skipped when no inbox items have status `"new"`. | N/A |
 | `execute` (and other custom stages) | No actionable task found by navigation. | N/A |
-| (summary) | N/A — summary is generated inline by the executing model per ADR-036, not as a separate stage. | N/A |
+| (summary) | N/A: summary is generated inline by the executing model per ADR-036, not as a separate stage. | N/A |
 
 When a stage is skipped, Wolfcastle emits a `stage_skip` log record with the stage name and reason, then proceeds to the next stage.
 
@@ -311,7 +311,7 @@ The default pipeline ships with Wolfcastle and is written into `config.json` by 
 
 ### Full Default Configuration
 
-The default `pipeline.stages` map contains two stages (ADR-064). The summary stage is controlled separately via the `summary` config key (see Section 7) and is not a pipeline stage — it runs conditionally based on `summary.enabled` after a node completes its audit.
+The default `pipeline.stages` map contains two stages (ADR-064). The summary stage is controlled separately via the `summary` config key (see Section 7) and is not a pipeline stage: it runs conditionally based on `summary.enabled` after a node completes its audit.
 
 ```json
 {
@@ -375,7 +375,7 @@ The default `pipeline.stages` map contains two stages (ADR-064). The summary sta
 
 ## 7. Summary Generation (Inline via ADR-036)
 
-> **Note:** The original design described the summary as a separate pipeline stage with its own model invocation. ADR-036 superseded this approach — summaries are now generated inline by the executing model, eliminating an extra model call.
+> **Note:** The original design described the summary as a separate pipeline stage with its own model invocation. ADR-036 superseded this approach: summaries are now generated inline by the executing model, eliminating an extra model call.
 
 ### How It Works
 
@@ -395,7 +395,7 @@ No separate model invocation occurs for summarization. The executing model gener
 
 Setting `"enabled": false` disables summary generation entirely. When disabled:
 - The "Summary Required" section is not appended to the prompt.
-- Archive entries are still generated but without a model-written summary section — they contain breadcrumbs, audit results, and metadata only.
+- Archive entries are still generated but without a model-written summary section: they contain breadcrumbs, audit results, and metadata only.
 - This saves token cost for users who do not need narrative summaries.
 
 ### Output

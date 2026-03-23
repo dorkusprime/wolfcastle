@@ -7,9 +7,9 @@
 ## Context
 
 ADR-020 established the daemon lifecycle with `Run()` as the main loop and
-`runIteration()` for pipeline execution. The loop body — shutdown checks,
+`runIteration()` for pipeline execution. The loop body: shutdown checks,
 stop file detection, iteration cap, branch verification, navigation, and
-sleep timing — lived inline within `Run()`, interleaved with one-time setup
+sleep timing: lived inline within `Run()`, interleaved with one-time setup
 (signal handling, self-healing, branch recording).
 
 While `runIteration()` provided a reasonable boundary for the pipeline logic,
@@ -51,7 +51,7 @@ the Daemon struct, since `RunOnce()` needs to read and increment it.
 
 ## Consequences
 
-- **Testability.** `RunOnce()` can be called in isolation — pass a context,
+- **Testability.** `RunOnce()` can be called in isolation: pass a context,
   get a result. Loop control, shutdown, and navigation are testable without
   running the full daemon lifecycle.
 - **Clarity.** The boundary between "should I keep going?" (`Run`) and "do

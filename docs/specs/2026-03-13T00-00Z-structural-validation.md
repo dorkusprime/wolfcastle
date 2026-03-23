@@ -347,7 +347,7 @@ Some issues are unfixable by the engine and require manual intervention.
 | `MULTIPLE_AUDIT_TASKS` | **Model-assisted** | Ambiguous: which audit task is the "real" one? The model examines the descriptions, states, and breadcrumbs of each audit task to determine which to keep and which to merge or remove. |
 | `INVALID_STATE_VALUE` | **Model-assisted** | The model examines the invalid value, the node's context (children states, task states, breadcrumbs), and infers the intended valid state. Common typos (e.g., `"completed"` -> `"complete"`, `"pending"` -> `"not_started"`) may be resolved deterministically as a fast path before falling through to model assistance. |
 | `INVALID_TRANSITION_COMPLETE_WITH_INCOMPLETE` | **Model-assisted** | Ambiguous: is the node actually complete (and the child/task state is stale), or is the node not actually complete (and the node state is wrong)? The model examines breadcrumbs, task history, and audit results to determine which direction to correct. |
-| `INVALID_TRANSITION_BLOCKED_WITHOUT_REASON` | **Deterministic** | Set `block_reason` to `"Blocked reason missing — added by wolfcastle doctor"`. This preserves the blocked state while making the invariant hold. The user can edit the reason later. |
+| `INVALID_TRANSITION_BLOCKED_WITHOUT_REASON` | **Deterministic** | Set `block_reason` to `"Blocked reason missing: added by wolfcastle doctor"`. This preserves the blocked state while making the invariant hold. The user can edit the reason later. |
 | `STALE_IN_PROGRESS` | **No fix** | The daemon's self-healing mechanism handles this on startup (state machine spec, Section 9). Doctor reports it for awareness but does not change the state, because the model needs to inspect the working directory and decide how to proceed. |
 | `MULTIPLE_IN_PROGRESS` | **Model-assisted** | The model examines the timestamps, breadcrumbs, and task positions of all `in_progress` tasks to determine which one was the genuinely active task. All others are reset to their previous valid state (typically `not_started` if no breadcrumbs exist, or left as `in_progress` for the one legitimate task). |
 | `DEPTH_MISMATCH` | **Deterministic** | Set the child's `decomposition_depth` to `max(child.decomposition_depth, parent.decomposition_depth)`. The depth can only increase through decomposition, so the parent's depth is the lower bound. |
@@ -553,7 +553,7 @@ func StartupChecks() *Runner
 
 // Run executes all registered checks against the given tree state.
 // Checks run sequentially in registration order.
-// If a check returns an error (not issues — an operational error like I/O failure),
+// If a check returns an error (not issues: an operational error like I/O failure),
 // the runner logs the error and continues with the remaining checks.
 func (r *Runner) Run(ctx context.Context, tree TreeState) (*Report, error)
 ```
@@ -642,7 +642,7 @@ func (d *Daemon) startup(ctx context.Context) error {
                 d.log.Error("structural issue", "id", issue.ID, "path", issue.NodePath, "msg", issue.Message)
             }
         }
-        return fmt.Errorf("found %d structural errors — run 'wolfcastle doctor' to fix", report.Counts()[validate.SeverityError])
+        return fmt.Errorf("found %d structural errors: run 'wolfcastle doctor' to fix", report.Counts()[validate.SeverityError])
     }
 
     // Log warnings but proceed
@@ -667,7 +667,7 @@ The validation engine produces reports in two formats: human-readable (default f
 ### 6.1 Human-Readable Format
 
 ```
-Wolfcastle Doctor — Structural Validation Report
+Wolfcastle Doctor. Structural Validation Report
 =================================================
 
 Engineer: wild-macbook
@@ -784,8 +784,8 @@ Fixes are applied atomically to prevent partial repairs that leave the tree in a
 ### 7.1 Fix Pipeline
 
 ```
-1. Validate report          — Ensure the report is current (re-run checks on the specific files)
-2. Group by file            — Collect all fixes that target the same state.json
+1. Validate report         . Ensure the report is current (re-run checks on the specific files)
+2. Group by file           . Collect all fixes that target the same state.json
 3. Apply per-file atomically:
    a. Read the current file contents
    b. Re-validate that the issues still exist (stale report guard)
@@ -831,7 +831,7 @@ func (tx *FixTransaction) Commit()
 After all fixes are applied (and before committing the transaction), the runner re-executes the relevant checks against the modified state. If new issues are detected that were not present before the fix, the entire transaction is rolled back and the user is informed:
 
 ```
-Fix application introduced new issues — rolling back all changes.
+Fix application introduced new issues: rolling back all changes.
 New issue: INVALID_TRANSITION_COMPLETE_WITH_INCOMPLETE at attunement-tree
 Run 'wolfcastle doctor' again after investigating.
 ```
@@ -881,7 +881,7 @@ The model key references the `models` dictionary. The prompt file is resolved th
 The doctor prompt is assembled by Go code and sent to the model as a single invocation. It contains:
 
 ```markdown
-# Wolfcastle Doctor — Structural Repair
+# Wolfcastle Doctor. Structural Repair
 
 You are assisting with structural repair of a Wolfcastle project tree.
 You will be given one or more structural issues that require judgment to resolve.
@@ -914,7 +914,7 @@ For each issue, you must propose a specific fix as a JSON patch.
 
 ### Context
 
-{Additional context depending on issue type — see Section 8.3}
+{Additional context depending on issue type: see Section 8.3}
 
 ## Fix Format
 
@@ -965,7 +965,7 @@ The model's proposed fix is validated by Go code before application. The followi
 3. **No creation**: The model cannot create new nodes, tasks, or files through the fix. Fixes repair existing state; they do not extend the tree.
 4. **No deletion of work**: The model cannot delete nodes that have breadcrumbs or completed tasks. Completed work is preserved.
 5. **Invariant preservation**: After applying the proposed fix, the validation engine re-checks the affected nodes. If the fix introduces new issues, it is rejected.
-6. **Single invocation**: The model gets one shot per issue batch. If the proposed fix is rejected, the issue is reported as "unfixable by model — manual intervention required" and the doctor moves on.
+6. **Single invocation**: The model gets one shot per issue batch. If the proposed fix is rejected, the issue is reported as "unfixable by model: manual intervention required" and the doctor moves on.
 
 ### 8.5 Deterministic Fast Paths
 
@@ -993,9 +993,9 @@ This section describes how the validation engine integrates with the `wolfcastle
 wolfcastle doctor [--fix] [--fix-all] [--json] [--check <id>]
 ```
 
-1. **Load state tree** — Read the engineer namespace, parse all state files.
-2. **Run validation** — Execute `AllChecks()` runner (or a specific check if `--check` is provided).
-3. **Display report** — Render in human-readable or JSON format.
+1. **Load state tree**. Read the engineer namespace, parse all state files.
+2. **Run validation**. Execute `AllChecks()` runner (or a specific check if `--check` is provided).
+3. **Display report**. Render in human-readable or JSON format.
 4. **If `--fix` is specified**:
    a. Display issues with proposed fixes.
    b. Prompt the user: "Fix all deterministic issues? [y/N]"
@@ -1056,7 +1056,7 @@ Additionally, the validation engine checks structural integrity issues (root ind
 - ADR-019: Failure Handling, Decomposition, and Retry Thresholds
 - ADR-020: Daemon Lifecycle and Process Management
 - ADR-024: Distributed State Files, Task Working Documents, and Runtime Aggregation
-- ADR-025: Wolfcastle Doctor — Structural Validation and Repair
+- ADR-025: Wolfcastle Doctor. Structural Validation and Repair
 - Spec: State Machine for Nodes and Tasks (state machine spec)
 - Spec: Tree Addressing Scheme
 - Spec: Config Schema

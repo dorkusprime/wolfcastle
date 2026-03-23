@@ -7,7 +7,7 @@ Accepted
 2026-03-13
 
 ## Context
-Wolfcastle ships default prompts, rule fragments, and audit scopes in `base/` (ADR-009). These files are regenerated from the installed version on `wolfcastle init` and `wolfcastle update`. The templates need to travel with the binary — they can't be downloaded at runtime or require a separate data directory.
+Wolfcastle ships default prompts, rule fragments, and audit scopes in `base/` (ADR-009). These files are regenerated from the installed version on `wolfcastle init` and `wolfcastle update`. The templates need to travel with the binary: they can't be downloaded at runtime or require a separate data directory.
 
 ## Decision
 
@@ -51,12 +51,12 @@ fs.WalkDir(Templates, "templates", func(path string, d fs.DirEntry, err error) e
 This runs during `wolfcastle init` (first setup) and `wolfcastle update` (refresh base).
 
 ### Why Not Runtime Embedding
-The three-tier merge (ADR-009, ADR-018) requires files on disk — `base/`, `custom/`, `local/` are resolved at the filesystem level. Embedding them in the binary but never extracting would break the merge mechanism. The extraction step bridges embedded distribution with filesystem-based merging.
+The three-tier merge (ADR-009, ADR-018) requires files on disk: `base/`, `custom/`, `local/` are resolved at the filesystem level. Embedding them in the binary but never extracting would break the merge mechanism. The extraction step bridges embedded distribution with filesystem-based merging.
 
 ## Consequences
-- Single binary distribution — no external data files needed
+- Single binary distribution: no external data files needed
 - Templates are maintainable as real Markdown files, not string literals in Go
 - `wolfcastle update` always has the latest templates regardless of what's on disk
 - Adding a new template is: create the file, rebuild the binary
 - Template content is visible in the source tree for review
-- Binary size increases slightly (~20KB for current templates) — negligible
+- Binary size increases slightly (~20KB for current templates): negligible

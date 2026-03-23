@@ -16,8 +16,8 @@ When a new project is created, Wolfcastle optionally runs a lightweight model ch
 
 ### Behavior
 - Runs at **project creation time** only, not on every start
-- **Read-only** — scans other engineers' `.wolfcastle/system/projects/*/` directories for project description Markdown files
-- **Informational only** — prints an advisory to the console. No errors, no blocking, no state changes
+- **Read-only**: scans other engineers' `.wolfcastle/system/projects/*/` directories for project description Markdown files
+- **Informational only**: prints an advisory to the console. No errors, no blocking, no state changes
 - The engineer can ignore it entirely
 
 ### Implementation
@@ -39,7 +39,7 @@ Disabled by setting `overlap_advisory.enabled` to `false` in config. Disabled by
 
 ## Consequences
 - Engineers get early awareness of potentially overlapping work
-- No enforcement, no blocking — purely advisory
+- No enforcement, no blocking: purely advisory
 - Model cost is minimal (one cheap model call at project creation, reading only descriptions)
 - Fully opt-out for cost-sensitive or solo engineers
 - Could prevent significant wasted effort and merge pain on teams

@@ -1086,7 +1086,7 @@ wolfcastle task add --node attunement-tree/balance-pass/pvp "Adjust fire spell d
 | Error | Output (JSON) | Code |
 |-------|---------------|------|
 | Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
-| Node is not a leaf | `{"ok": false, "error": "cannot add tasks to orchestrator node 'foo/bar' — use wolfcastle project create for child nodes", "code": "INVALID_NODE_TYPE"}` | 3 |
+| Node is not a leaf | `{"ok": false, "error": "cannot add tasks to orchestrator node 'foo/bar': use wolfcastle project create for child nodes", "code": "INVALID_NODE_TYPE"}` | 3 |
 | Empty title | `{"ok": false, "error": "task title cannot be empty. Name the target", "code": "EMPTY_TITLE"}` | 4 |
 | Invalid task type | `{"ok": false, "error": "invalid task type \"foo\": must be one of discovery, spec, adr, implementation, integration, cleanup", "code": "INVALID_TASK_TYPE"}` | 5 |
 
@@ -1418,7 +1418,7 @@ Marks a task as `blocked` with an explanation of why it cannot proceed. The task
 wolfcastle task block --node attunement-tree/water-impl/task-1 "Missing upstream API dependency"
 
 # Block a task that the model can't fix
-wolfcastle task block --node attunement-tree/earth-impl/task-5 "Flaky test infrastructure — needs human intervention"
+wolfcastle task block --node attunement-tree/earth-impl/task-5 "Flaky test infrastructure: needs human intervention"
 ```
 
 ### Error Cases
@@ -2683,7 +2683,7 @@ Appends a breadcrumb entry to a node's audit trail. Breadcrumbs are chronologica
    ```json
    {
      "timestamp": "2026-03-12T18:45:03Z",
-     "task": "<resolved from daemon execution context — full tree address of the active task>",
+     "task": "<resolved from daemon execution context: full tree address of the active task>",
      "text": "the breadcrumb text"
    }
    ```
@@ -2858,7 +2858,7 @@ Escalates an audit gap to the parent node's audit trail. When the model audits a
   "action": "gap_escalated",
   "source_node": "attunement-tree/fire-impl/task-3",
   "parent_node": "attunement-tree/fire-impl",
-  "gap": "Integration between fire and stamina modules not verified — needs cross-module test"
+  "gap": "Integration between fire and stamina modules not verified: needs cross-module test"
 }
 ```
 
@@ -2877,7 +2877,7 @@ Escalates an audit gap to the parent node's audit trail. When the model audits a
 ```bash
 # Escalate a gap found during audit
 wolfcastle audit escalate --node attunement-tree/fire-impl/task-3 \
-  "Integration between fire and stamina modules not verified — needs cross-module test"
+  "Integration between fire and stamina modules not verified: needs cross-module test"
 
 # Escalate a gap at the sub-project level to the project level
 wolfcastle audit escalate --node attunement-tree/fire-impl \
@@ -2889,7 +2889,7 @@ wolfcastle audit escalate --node attunement-tree/fire-impl \
 | Error | Output (JSON) | Code |
 |-------|---------------|------|
 | Node not found | `{"ok": false, "error": "node 'foo/bar' not found in tree", "code": "NODE_NOT_FOUND"}` | 2 |
-| Root node | `{"ok": false, "error": "cannot escalate from root node — no parent to escalate to", "code": "NO_PARENT"}` | 3 |
+| Root node | `{"ok": false, "error": "cannot escalate from root node: no parent to escalate to", "code": "NO_PARENT"}` | 3 |
 | Empty gap | `{"ok": false, "error": "gap description must not be empty", "code": "EMPTY_GAP"}` | 4 |
 
 ---
@@ -4512,7 +4512,7 @@ With `--json`:
 wolfcastle inbox add "Add caching layer for database queries"
 
 # Add a more detailed idea
-wolfcastle inbox add "Refactor the auth middleware to support OAuth2 — currently only supports basic auth and API keys"
+wolfcastle inbox add "Refactor the auth middleware to support OAuth2: currently only supports basic auth and API keys"
 ```
 
 ### Error Cases

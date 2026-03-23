@@ -394,16 +394,16 @@ No special rollback mechanism is needed. The orchestrator's re-invocation sees t
 
 | Event | Sets `NeedsPlanning` | Sets `PlanningTrigger` | Clears `NeedsPlanning` |
 |-------|---------------------|----------------------|----------------------|
-| Intake creates orchestrator | yes | `initial` | — |
-| Parent orchestrator creates child orchestrator | yes | `initial` | — |
-| Intake delivers buffered pending scope | yes | `new_scope` | — |
-| Child blocks or audit fails | yes | `child_blocked` | — |
-| All children complete (orchestrator has SuccessCriteria) | yes | `completion_review` | — |
-| All children complete (orchestrator has no SuccessCriteria) | — | — | — (auto-completes instead) |
-| Planning pass emits WOLFCASTLE_COMPLETE | — | — | yes |
-| Planning pass emits WOLFCASTLE_BLOCKED | — | — | yes (orchestrator blocks itself) |
-| Planning pass emits WOLFCASTLE_CONTINUE | — | — | yes (but new triggers may re-set it on next iteration) |
-| Planning pass crashes/times out | remains set | unchanged | — (re-invoked on next iteration) |
+| Intake creates orchestrator | yes | `initial` |: |
+| Parent orchestrator creates child orchestrator | yes | `initial` |: |
+| Intake delivers buffered pending scope | yes | `new_scope` |: |
+| Child blocks or audit fails | yes | `child_blocked` |: |
+| All children complete (orchestrator has SuccessCriteria) | yes | `completion_review` |: |
+| All children complete (orchestrator has no SuccessCriteria) |: |: |: (auto-completes instead) |
+| Planning pass emits WOLFCASTLE_COMPLETE |: |: | yes |
+| Planning pass emits WOLFCASTLE_BLOCKED |: |: | yes (orchestrator blocks itself) |
+| Planning pass emits WOLFCASTLE_CONTINUE |: |: | yes (but new triggers may re-set it on next iteration) |
+| Planning pass crashes/times out | remains set | unchanged |: (re-invoked on next iteration) |
 
 `NeedsPlanning` and `NodeStatus` interact as follows:
 - An orchestrator can have `NeedsPlanning=true` while its `State` is `in_progress` (normal: active orchestrator receiving new work or handling a blocked child).
@@ -622,13 +622,13 @@ When this spec is implemented, the following documents need updating:
 
 These backlog items are addressed by this spec and should be moved to Done when implemented:
 
-- "Hierarchical task IDs for decomposition" — addressed by Hierarchical Task IDs section.
-- "Decomposed tasks show as blocked" — addressed by derived parent status (no decomposed status needed).
-- "Navigation doesn't prioritize subtasks of a decomposed parent" — superseded by hierarchical IDs.
-- "Decomposition should scope by concern, not by directory" — addressed by orchestrator planning (orchestrator inventories concerns during planning pass).
-- "Deletion tasks should auto-decompose on block" — addressed by orchestrator-as-unblocker (orchestrator re-plans when a child blocks).
-- "Task descriptions need more detail" — addressed by Task Definition Structure.
-- "Intake decomposition should reference spec granularity" — addressed by orchestrator planning (orchestrator reads the spec and creates tasks at the right granularity).
+- "Hierarchical task IDs for decomposition": addressed by Hierarchical Task IDs section.
+- "Decomposed tasks show as blocked": addressed by derived parent status (no decomposed status needed).
+- "Navigation doesn't prioritize subtasks of a decomposed parent": superseded by hierarchical IDs.
+- "Decomposition should scope by concern, not by directory": addressed by orchestrator planning (orchestrator inventories concerns during planning pass).
+- "Deletion tasks should auto-decompose on block": addressed by orchestrator-as-unblocker (orchestrator re-plans when a child blocks).
+- "Task descriptions need more detail": addressed by Task Definition Structure.
+- "Intake decomposition should reference spec granularity": addressed by orchestrator planning (orchestrator reads the spec and creates tasks at the right granularity).
 
 ## Design Decisions
 

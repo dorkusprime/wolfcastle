@@ -45,7 +45,7 @@ using **bigram Jaccard similarity**:
 
 The `overlap_advisory` config gains a `threshold` field (float, 0–1,
 default 0.3). The `model` field is retained but no longer required or
-validated — it exists for potential future hybrid detection where
+validated: it exists for potential future hybrid detection where
 borderline algorithmic matches are confirmed by a model.
 
 ## Consequences
@@ -57,7 +57,7 @@ borderline algorithmic matches are confirmed by a model.
 - **Scalable.** Bigram comparison is O(n) per pair, with no prompt size
   limits.
 - **Structured.** Each match includes engineer, project, score, and
-  shared terms — ready for `--json` output.
+  shared terms: ready for `--json` output.
 - **Trade-off.** Bigrams cannot detect semantic overlap ("auth-migration"
   vs "login-system-rewrite" share no terms but are related). This is
   acceptable for an advisory feature; false negatives are preferable to

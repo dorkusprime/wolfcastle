@@ -43,7 +43,7 @@ acquire lock
 release lock
 ```
 
-The lock is held for the duration of the iteration. Between iterations (during sleep), the lock is released — allowing CLI commands to execute.
+The lock is held for the duration of the iteration. Between iterations (during sleep), the lock is released: allowing CLI commands to execute.
 
 #### CLI Commands (mutating)
 
@@ -58,13 +58,13 @@ release lock
 If the lock cannot be acquired within the timeout, the command fails:
 
 ```
-Error: could not acquire state lock — the daemon may be processing.
+Error: could not acquire state lock: the daemon may be processing.
 Try again in a few seconds, or check 'wolfcastle status'.
 ```
 
 #### CLI Commands (read-only)
 
-No lock acquired. Read-only commands (`status`, `pending`, `spec list`, `follow`) read state files directly. They may see a slightly stale view during a daemon iteration — this is acceptable because:
+No lock acquired. Read-only commands (`status`, `pending`, `spec list`, `follow`) read state files directly. They may see a slightly stale view during a daemon iteration: this is acceptable because:
 - Status is advisory, not transactional
 - The daemon will finish its iteration within seconds
 - No mutations means no conflict risk
@@ -73,22 +73,22 @@ No lock acquired. Read-only commands (`status`, `pending`, `spec list`, `follow`
 
 | Command | Mutates state |
 |---------|--------------|
-| `task add` | Yes — adds task to node state |
-| `task claim` | Yes — transitions task state |
-| `task complete` | Yes — transitions task + propagates |
-| `task block` | Yes — transitions task state |
-| `task unblock` | Yes — transitions task state |
-| `project create` | Yes — creates node + updates index |
-| `audit approve` | Yes — creates project + updates index |
-| `audit reject` | Yes — updates batch |
-| `audit gap` | Yes — adds gap to node state |
-| `audit fix-gap` | Yes — updates gap status |
-| `audit escalate` | Yes — adds escalation |
-| `audit resolve` | Yes — updates escalation status |
-| `audit breadcrumb` | Yes — adds breadcrumb |
-| `audit scope` | Yes — updates audit scope |
-| `doctor --fix` | Yes — repairs state |
-| `archive add` | No — reads state only |
+| `task add` | Yes: adds task to node state |
+| `task claim` | Yes: transitions task state |
+| `task complete` | Yes: transitions task + propagates |
+| `task block` | Yes: transitions task state |
+| `task unblock` | Yes: transitions task state |
+| `project create` | Yes: creates node + updates index |
+| `audit approve` | Yes: creates project + updates index |
+| `audit reject` | Yes: updates batch |
+| `audit gap` | Yes: adds gap to node state |
+| `audit fix-gap` | Yes: updates gap status |
+| `audit escalate` | Yes: adds escalation |
+| `audit resolve` | Yes: updates escalation status |
+| `audit breadcrumb` | Yes: adds breadcrumb |
+| `audit scope` | Yes: updates audit scope |
+| `doctor --fix` | Yes: repairs state |
+| `archive add` | No: reads state only |
 | `status` | No |
 | `pending` | No |
 | `history` | No |
@@ -167,7 +167,7 @@ func (l *Logger) Log(record map[string]any) error
 func (l *Logger) LogAt(level string, record map[string]any) error
 ```
 
-Existing `Log()` calls continue to work without modification — they default to `info`.
+Existing `Log()` calls continue to work without modification: they default to `info`.
 
 ### Console Output Filtering
 
@@ -209,11 +209,11 @@ wolfcastle stop --force
   → output "Wolfcastle force-stopped (PID {pid})"
 ```
 
-Force stop uses the process group (negative PID) to kill both the daemon and any child process (model CLI). This is necessary because SIGKILL cannot be caught — the daemon can't propagate it to the child.
+Force stop uses the process group (negative PID) to kill both the daemon and any child process (model CLI). This is necessary because SIGKILL cannot be caught: the daemon can't propagate it to the child.
 
 ### Safety
 
-Force stop is destructive — the model's in-flight work is lost, and uncommitted changes remain in the working directory. The command warns:
+Force stop is destructive: the model's in-flight work is lost, and uncommitted changes remain in the working directory. The command warns:
 
 ```
 Force-stopping Wolfcastle (PID 12345)...
@@ -229,11 +229,11 @@ Wolfcastle force-stopped.
 
 All error messages follow these conventions:
 
-- **Lowercase start** — `"loading config: file not found"` not `"Loading config: ..."`
-- **No trailing period** — `"invalid node address"` not `"invalid node address."`
-- **Context chain with colons** — `"task complete: loading node state: read /path: permission denied"`
-- **Actionable when possible** — include what the user can do: `"identity not configured — run 'wolfcastle init' first"`
-- **No stack traces** — error wrapping provides the chain; stack traces are for panics only
+- **Lowercase start**: `"loading config: file not found"` not `"Loading config: ..."`
+- **No trailing period**: `"invalid node address"` not `"invalid node address."`
+- **Context chain with colons**: `"task complete: loading node state: read /path: permission denied"`
+- **Actionable when possible**: include what the user can do: `"identity not configured: run 'wolfcastle init' first"`
+- **No stack traces**: error wrapping provides the chain; stack traces are for panics only
 
 ### Required Context
 
@@ -241,16 +241,16 @@ Every error message should answer: *what failed, and what can the user do about 
 
 | Bad | Good |
 |-----|------|
-| `"error"` | `"loading config: .wolfcastle/system/base/config.json not found — run 'wolfcastle init'"` |
+| `"error"` | `"loading config: .wolfcastle/system/base/config.json not found: run 'wolfcastle init'"` |
 | `"invalid input"` | `"--node must be a task address (e.g. my-project/task-1)"` |
-| `"not found"` | `"task task-3 not found in my-project — use 'wolfcastle status --node my-project' to list tasks"` |
+| `"not found"` | `"task task-3 not found in my-project: use 'wolfcastle status --node my-project' to list tasks"` |
 
 ### Flag Validation
 
 Required flags that are empty produce errors in this format:
 
 ```
---node is required — specify the task address (e.g. my-project/task-1)
+--node is required: specify the task address (e.g. my-project/task-1)
 ```
 
 Not:
@@ -298,7 +298,7 @@ for {
 
 ### History
 
-In-memory only. Not persisted across sessions. Unblock sessions are short-lived — persistent history adds complexity without value.
+In-memory only. Not persisted across sessions. Unblock sessions are short-lived: persistent history adds complexity without value.
 
 ### Prompt
 
@@ -314,11 +314,11 @@ Consistent, branded, no ambiguity about what's accepting input.
 
 A `CONTRIBUTING.md` at the project root covering:
 
-1. **Development setup** — Go version, `make build`, `make test`
-2. **Code standards** — link to `docs/agents/code-standards.md`
-3. **Testing** — how to run each test tier, how to write new tests
-4. **Pull request process** — branch naming, commit messages, CI expectations
-5. **ADR process** — when to write one, format, numbering
-6. **Issue reporting** — what to include, labels
+1. **Development setup**. Go version, `make build`, `make test`
+2. **Code standards**: link to `docs/agents/code-standards.md`
+3. **Testing**: how to run each test tier, how to write new tests
+4. **Pull request process**: branch naming, commit messages, CI expectations
+5. **ADR process**: when to write one, format, numbering
+6. **Issue reporting**: what to include, labels
 
-This is a living document — it grows as the contributor community grows.
+This is a living document: it grows as the contributor community grows.

@@ -14,7 +14,7 @@ Users of Claude Code should be able to interact with Wolfcastle natively from th
 ### wolfcastle install <target>
 An extensible installation command for integrations. Currently supports one target:
 
-- `wolfcastle install skill` — installs a Claude Code skill for interacting with Wolfcastle
+- `wolfcastle install skill`: installs a Claude Code skill for interacting with Wolfcastle
 
 ### Claude Code Skill Installation
 `wolfcastle install skill`:

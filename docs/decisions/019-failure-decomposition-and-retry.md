@@ -7,7 +7,7 @@ Accepted
 2026-03-12
 
 ## Context
-Autonomous execution needs guardrails against infinite loops where the model repeatedly fails at a task, but also enough room for the model to iterate on genuine fixes. Ralph used a simple "3 failures = blocked" rule which was too aggressive. Wolfcastle needs a more nuanced escalation path that uses the model's ability to restructure work when direct fixing isn't working.
+Autonomous execution needs guardrails against infinite loops where the model repeatedly fails at a task, but also enough room for the model to iterate on genuine fixes. Ralph used a simple "3 failures = blocked" rule which was too aggressive. Wolfcastle needs a graduated escalation path that uses the model's ability to restructure work when direct fixing isn't working.
 
 ## Decision
 
@@ -25,10 +25,10 @@ Exponential backoff with a configurable maximum backoff delay. No retry cap by d
 ```
 
 ### Task-Level Failures (validation fails, tests don't pass)
-The model uses its judgment — keep fixing if the issue is fixable, block if it's environmental (broken dependency, infrastructure issue, etc.). Three escalation thresholds govern the behavior:
+The model uses its judgment: keep fixing if the issue is fixable, block if it's environmental (broken dependency, infrastructure issue, etc.). Three escalation thresholds govern the behavior:
 
 1. **0 to N failures (default N=10)**: Keep fixing. The model iterates on the problem.
-2. **N failures (default 10)**: Prompted to decompose. The model is told to consider breaking the task into smaller pieces. This is a prompt, not a mandate — the model can choose to decompose or to block if decomposition doesn't make sense.
+2. **N failures (default 10)**: Prompted to decompose. The model is told to consider breaking the task into smaller pieces. This is a prompt, not a mandate: the model can choose to decompose or to block if decomposition doesn't make sense.
 3. **Hard cap failures (default 50)**: Forced block regardless of depth or model judgment. Safety net against unbounded iteration.
 
 ### Decomposition Depth
@@ -70,8 +70,8 @@ All thresholds are configurable in `config.json`:
 
 ## Consequences
 - The model gets real room to iterate (10 attempts before escalation, 50 hard cap)
-- Decomposition is a prompted option, not a forced action — model judgment is preserved
+- Decomposition is a prompted option, not a forced action: model judgment is preserved
 - Depth tracking prevents infinite decomposition chains
 - The hard cap catches edge cases where decomposition produces tasks that each fail just under the threshold
-- Users can tune thresholds per project — tighter for CI, looser for exploratory work
+- Users can tune thresholds per project: tighter for CI, looser for exploratory work
 - `task unblock` gives users a clean way to intervene without restarting the daemon

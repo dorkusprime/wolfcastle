@@ -14,7 +14,7 @@ ADR-009 establishes a three-tier layering system (base → custom → local) but
 ### Config: Deep Merge
 Config files across all three tiers (`base/config.json`, `custom/config.json`, `local/config.json`) are merged via recursive deep merge (ADR-063). Keys in higher tiers override the same keys in lower tiers at the deepest level. Unspecified keys inherit from the tier below.
 
-Example — if `base/config.json` defines:
+Example: if `base/config.json` defines:
 ```json
 {
   "models": {
@@ -48,11 +48,11 @@ Prompt fragments and rule files in `base/`, `custom/`, and `local/` merge at the
 - `custom/rules/git-conventions.md` also exists → completely replaces base version
 - `local/rules/git-conventions.md` also exists → completely replaces custom version
 
-Files with no same-named override in a higher tier pass through unchanged. Files that exist only in a higher tier are added (not just replacements — new fragments compose too).
+Files with no same-named override in a higher tier pass through unchanged. Files that exist only in a higher tier are added (not just replacements: new fragments compose too).
 
 ## Consequences
-- Config overrides are surgical — change one key without affecting siblings
-- Prompt/rule overrides are atomic — no risk of partial Markdown merging producing incoherent content
+- Config overrides are surgical: change one key without affecting siblings
+- Prompt/rule overrides are atomic: no risk of partial Markdown merging producing incoherent content
 - Two distinct, well-defined merge strategies rather than one ambiguous one
 - Deep merge implementation is straightforward in Go (recursive map merge)
 - Developers can reason about resolved config by mentally layering keys, and resolved prompts by checking which tier has the file

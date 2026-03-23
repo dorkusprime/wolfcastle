@@ -7,7 +7,7 @@ Accepted
 2026-03-14
 
 ## Context
-The codebase calls `time.Now()` directly in state mutation functions (`AddBreadcrumb`, `AddEscalation`, `TaskBlock`), daemon lifecycle methods, and archive rollup. This makes time-dependent behavior non-deterministic in tests — assertions on timestamps require fuzzy matching or ignoring the field entirely, and tests that depend on time ordering become fragile and difficult to reason about.
+The codebase calls `time.Now()` directly in state mutation functions (`AddBreadcrumb`, `AddEscalation`, `TaskBlock`), daemon lifecycle methods, and archive rollup. This makes time-dependent behavior non-deterministic in tests: assertions on timestamps require fuzzy matching or ignoring the field entirely, and tests that depend on time ordering become fragile and difficult to reason about.
 
 Injecting time through an interface allows test code to supply a fixed or controllable clock, enabling deterministic assertions on `CompletedAt`, `StartedAt`, breadcrumb timestamps, and escalation timestamps without sacrificing production behavior.
 
@@ -58,11 +58,11 @@ func TestBreadcrumbTimestamp(t *testing.T) {
 
 ### Scope
 
-This is an incremental change — each function is updated individually as its tests are written or improved. The `Clock` field on `App` defaults to `realClock{}`, so production behavior is unchanged without any caller modifications.
+This is an incremental change: each function is updated individually as its tests are written or improved. The `Clock` field on `App` defaults to `realClock{}`, so production behavior is unchanged without any caller modifications.
 
 ## Consequences
-- All time-dependent tests become deterministic — no more fuzzy timestamp matching
+- All time-dependent tests become deterministic: no more fuzzy timestamp matching
 - The `Clock` interface is minimal (one method) with no over-abstraction
-- Production code is unchanged — `realClock{}` is the default
+- Production code is unchanged: `realClock{}` is the default
 - Test code can advance time, freeze time, or inject specific timestamps
 - Uses Go interfaces for clean dependency injection while keeping the surface area small
