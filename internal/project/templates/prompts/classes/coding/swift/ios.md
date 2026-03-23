@@ -26,7 +26,7 @@ Prefer Swift Package Manager for dependency management. Declare dependencies in 
 
 ## Testing
 
-Prefer XCTest for iOS projects. Use `ViewInspector` to unit-test SwiftUI view hierarchies without launching a host application; it lets you inspect `@State` bindings and trigger actions on buttons and text fields. Prefer mock protocols over concrete subclass mocking for dependencies (network clients, repositories, services); Swift's lack of runtime reflection makes protocol-based test doubles the cleanest approach. Test async view model methods with `async` test functions and assert state changes after `await`. Use `XCUIApplication` for end-to-end UI tests that exercise real navigation, accessibility identifiers, and OS-level interactions. Prefer Swift Testing's `@Test` with `#expect` when the project targets Swift 6.0+ and Xcode 16+.
+Prefer XCTest for iOS projects. Use `ViewInspector` to unit-test SwiftUI view hierarchies without launching a host application; it lets you inspect `@State` bindings and trigger actions on buttons and text fields. Prefer mock protocols over concrete subclass mocking for dependencies (network clients, repositories, services); Swift's lack of runtime reflection makes protocol-based test doubles the cleanest approach. Test async view model methods with `async` test functions and assert state changes after `await`. Use `XCUIApplication` for end-to-end UI tests that exercise real navigation, accessibility identifiers, and OS-level interactions. Prefer Swift Testing's `@Test` with `#expect` for new test targets.
 
 ## Common Pitfalls
 

@@ -46,7 +46,7 @@ Prefer splitting large structs that trigger borrow checker conflicts. If a metho
 
 Prefer the async runtime the project already uses (tokio, async-std, smol). Do not introduce a second runtime. When starting a new project, prefer tokio unless the project has specific constraints favoring another runtime.
 
-Prefer `async fn` over manually constructing `Future` implementations. Use `Pin<Box<dyn Future>>` only at trait boundaries where `async fn` in traits is not available or practical.
+Prefer `async fn` over manually constructing `Future` implementations. `async fn` in traits is stable since Rust 1.75. Use `Pin<Box<dyn Future>>` at trait boundaries only when dynamic dispatch or object safety requires it.
 
 Prefer `tokio::spawn` (or equivalent) with structured error handling over detached tasks. Every spawned task should have a join handle that something monitors.
 

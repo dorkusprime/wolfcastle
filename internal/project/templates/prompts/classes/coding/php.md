@@ -8,9 +8,9 @@ Prefer `declare(strict_types=1)` at the top of every file. Without it, PHP silen
 
 Prefer type declarations on all function parameters, return types, and property types. Use union types (`string|int`), intersection types (`Countable&Iterator`), nullable (`?string`), and `mixed` when genuinely polymorphic. Return `void` explicitly on functions that produce no value. Use `never` for functions that always throw or exit.
 
-Prefer readonly properties (PHP 8.1+) for value objects and DTOs. `public readonly string $name` communicates immutability without writing a getter. For entire value objects, prefer `readonly class` (PHP 8.2+) when every property should be immutable.
+Prefer readonly properties for value objects and DTOs. `public readonly string $name` communicates immutability without writing a getter. For entire value objects, prefer `readonly class` when every property should be immutable.
 
-Prefer enums (PHP 8.1+) over class constants for fixed sets of values. Backed enums (`enum Status: string`) serialize cleanly and can implement interfaces. Avoid stringly-typed status fields when an enum fits.
+Prefer enums over class constants for fixed sets of values. Backed enums (`enum Status: string`) serialize cleanly and can implement interfaces. Avoid stringly-typed status fields when an enum fits.
 
 Prefer `match` expressions over `switch` when returning a value or mapping input to output. `match` uses strict comparison, has no fall-through, and throws `UnhandledMatchError` on missing cases, catching bugs that `switch` silently passes.
 

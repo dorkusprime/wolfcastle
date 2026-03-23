@@ -75,6 +75,6 @@ A `defer f.Close()` inside a loop defers every close until the function returns,
 
 Variable shadowing with `:=` in nested scopes can silently create a new variable instead of assigning to the outer one. When `err` is declared in an outer scope, `result, err := someFunc()` in an `if` block creates a new `err` that shadows the outer. Use `=` or restructure the code to avoid this.
 
-Goroutine closures that capture loop variables see the variable's final value, not the value at the time the goroutine was created. Pass the variable as a parameter to the goroutine function, or use the Go 1.22+ loop variable semantics where each iteration gets its own copy.
+Goroutine closures that capture loop variables see the variable's final value, not the value at the time the goroutine was created. Since Go 1.22, each loop iteration gets its own copy of the variable, fixing this for `for` loops with a `go.mod` targeting 1.22 or later. In older module versions, pass the variable as a parameter to the goroutine function.
 
 Prefer `errors.Is` and `errors.As` over direct comparison or type assertions for error checking. Wrapped errors break equality checks but work with the `errors` package unwrapping functions.

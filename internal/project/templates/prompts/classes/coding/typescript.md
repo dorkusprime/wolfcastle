@@ -26,7 +26,7 @@ Prefer `tsc --noEmit` for type checking as a separate step from bundling. Most m
 
 Prefer `tsx` or `ts-node` for running TypeScript scripts directly. Check which the project uses before introducing the other.
 
-Prefer ESLint with `typescript-eslint` for linting. Look for `eslint.config.*` (flat config) or `.eslintrc.*` (legacy). The `@typescript-eslint/recommended-type-checked` ruleset catches type-aware issues that plain ESLint misses.
+Prefer ESLint with `typescript-eslint` for linting. Look for `eslint.config.*` (flat config, the only supported format since ESLint v10). The `@typescript-eslint/recommended-type-checked` ruleset catches type-aware issues that plain ESLint misses. Biome is a fast alternative that combines linting and formatting; when the project uses it, follow that.
 
 Prefer Prettier for formatting. Check for `.prettierrc`, `prettier.config.*`, or a `"prettier"` key in `package.json`. When the project uses ESLint's formatting rules instead, follow that approach.
 

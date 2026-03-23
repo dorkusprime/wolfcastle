@@ -24,7 +24,7 @@ Prefer `===` and `!==` over `==` and `!=`. Strict equality avoids the abstract e
 
 Prefer the project's existing package manager. Look for `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), or `yarn.lock` (yarn). Do not introduce a different lockfile into a project that already has one.
 
-Prefer ESLint for linting. Check for `eslint.config.js` (flat config, current default) or `.eslintrc.*` (legacy format). When both exist, the flat config takes precedence. Run the linter before committing; most projects include a `lint` script in `package.json`.
+Prefer ESLint for linting. Check for `eslint.config.js` (flat config, the only supported format since ESLint v10). Legacy `.eslintrc.*` files are no longer recognized. Biome is a fast alternative that combines linting and formatting in a single tool; when the project uses it, follow that. Run the linter before committing; most projects include a `lint` script in `package.json`.
 
 Prefer Prettier for formatting. Check for `.prettierrc`, `prettier.config.js`, or a `"prettier"` key in `package.json`. When the project uses ESLint's formatting rules instead of Prettier, follow that approach.
 

@@ -18,7 +18,7 @@ Prefer `auto` for local variables when the type is obvious from the right-hand s
 
 Prefer `std::string_view` over `const std::string&` for function parameters that only read the string. It accepts both `std::string` and string literals without allocation.
 
-Prefer the C++ Standard Library algorithms (`std::find`, `std::transform`, `std::sort`) and ranges (C++20) over hand-written loops when they express the intent more clearly.
+Prefer the C++ Standard Library algorithms (`std::find`, `std::transform`, `std::sort`) and ranges (C++20/C++23) over hand-written loops when they express the intent more clearly. C++23 adds `std::views::zip`, `std::views::enumerate`, `std::views::chunk`, and other range adaptors that eliminate common manual patterns.
 
 ## Build and Test
 

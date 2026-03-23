@@ -4,7 +4,7 @@ When the codebase you're working in has established conventions that differ from
 
 ## Application Structure
 
-Prefer ASP.NET Core on .NET 8+. Use minimal APIs (`app.MapGet`, `app.MapPost`) for small services and microservices where controller ceremony adds no value. Use controller-based APIs (`[ApiController]`) when the project needs model validation, filters, or conventional routing across many endpoints. Register services through `IServiceCollection` in `Program.cs` or via extension methods grouped by feature (`services.AddBillingServices()`). Prefer the `WebApplication.CreateBuilder()` pattern over the older `Startup` class.
+Prefer ASP.NET Core on .NET 10+. Use minimal APIs (`app.MapGet`, `app.MapPost`) for small services and microservices where controller ceremony adds no value. Use controller-based APIs (`[ApiController]`) when the project needs model validation, filters, or conventional routing across many endpoints. Register services through `IServiceCollection` in `Program.cs` or via extension methods grouped by feature (`services.AddBillingServices()`). Prefer the `WebApplication.CreateBuilder()` pattern over the older `Startup` class.
 
 ## Dependency Injection
 
@@ -16,7 +16,7 @@ Prefer ordering middleware deliberately: exception handling and HSTS first, then
 
 ## Entity Framework Core
 
-Prefer a single `DbContext` per bounded context, registered as scoped. Define entity configuration in `IEntityTypeConfiguration<T>` classes rather than overloading `OnModelCreating`. Use migrations (`dotnet ef migrations add`, `dotnet ef database update`) to evolve the schema. Prefer explicit loading or `Include()`/`ThenInclude()` over lazy loading; lazy loading triggers N+1 queries silently when iterating navigation properties in loops. Prefer `AsNoTracking()` for read-only queries to avoid change-tracking overhead. Use `ExecuteUpdateAsync()`/`ExecuteDeleteAsync()` (.NET 7+) for bulk operations instead of loading entities into memory.
+Prefer a single `DbContext` per bounded context, registered as scoped. Define entity configuration in `IEntityTypeConfiguration<T>` classes rather than overloading `OnModelCreating`. Use migrations (`dotnet ef migrations add`, `dotnet ef database update`) to evolve the schema. Prefer explicit loading or `Include()`/`ThenInclude()` over lazy loading; lazy loading triggers N+1 queries silently when iterating navigation properties in loops. Prefer `AsNoTracking()` for read-only queries to avoid change-tracking overhead. Use `ExecuteUpdateAsync()`/`ExecuteDeleteAsync()` for bulk operations instead of loading entities into memory.
 
 ## Authentication and Authorization
 

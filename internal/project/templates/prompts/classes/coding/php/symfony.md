@@ -4,11 +4,11 @@ When the codebase you're working in has established conventions that differ from
 
 ## Application Structure
 
-Prefer Symfony 7.x with Flex recipes for bundle installation and auto-configuration. Organize code by domain under `src/` with subdirectories per bounded context rather than a flat `Controller/`, `Entity/`, `Repository/` layout once the application grows beyond a handful of entities. Prefer autowiring with `services.yaml` defaults (`_defaults: autowire: true, autoconfigure: true`) and let the container resolve dependencies by type. Register services explicitly only when autowiring is ambiguous (multiple implementations of one interface). Use compiler passes for container manipulation that cannot be expressed through configuration; avoid them when a tagged service or `#[AutoconfigureTag]` attribute suffices.
+Prefer Symfony 8.x with Flex recipes for bundle installation and auto-configuration. Organize code by domain under `src/` with subdirectories per bounded context rather than a flat `Controller/`, `Entity/`, `Repository/` layout once the application grows beyond a handful of entities. Prefer autowiring with `services.yaml` defaults (`_defaults: autowire: true, autoconfigure: true`) and let the container resolve dependencies by type. Register services explicitly only when autowiring is ambiguous (multiple implementations of one interface). Use compiler passes for container manipulation that cannot be expressed through configuration; avoid them when a tagged service or `#[AutoconfigureTag]` attribute suffices.
 
 ## Routing
 
-Prefer PHP attributes (`#[Route('/users/{id}', methods: ['GET'])]`) on controller methods over YAML or XML routing files. Group related routes with a class-level `#[Route('/api/users')]` prefix. Use `#[MapQueryString]` and `#[MapRequestPayload]` (Symfony 6.3+) for automatic request deserialization and validation rather than manually reading from the `Request` object. Prefer invokable controllers (`__invoke`) for single-action endpoints.
+Prefer PHP attributes (`#[Route('/users/{id}', methods: ['GET'])]`) on controller methods over YAML or XML routing files. Group related routes with a class-level `#[Route('/api/users')]` prefix. Use `#[MapQueryString]` and `#[MapRequestPayload]` for automatic request deserialization and validation rather than manually reading from the `Request` object. Prefer invokable controllers (`__invoke`) for single-action endpoints.
 
 ## Doctrine ORM
 
@@ -34,7 +34,7 @@ Prefer `KernelTestCase` for service-layer tests that need the container: call `s
 
 Service autowiring ambiguity surfaces when two classes implement the same interface and autowiring cannot choose between them. Symfony throws a clear error at container compilation. Resolve with an alias in `services.yaml` (`App\Contract\Mailer: '@App\Infrastructure\SmtpMailer'`) or use `#[AsAlias]` on the preferred implementation. Do not suppress the error by making one service non-autoconfigured.
 
-Doctrine's identity map caches entities for the lifetime of the `EntityManager`. In long-running processes (Messenger workers, daemon commands), stale data accumulates because the map never refreshes. Call `$entityManager->clear()` between message handling cycles, or configure the Messenger `doctrine_clear_entity_manager` middleware (enabled by default in Symfony 6.2+).
+Doctrine's identity map caches entities for the lifetime of the `EntityManager`. In long-running processes (Messenger workers, daemon commands), stale data accumulates because the map never refreshes. Call `$entityManager->clear()` between message handling cycles, or configure the Messenger `doctrine_clear_entity_manager` middleware (enabled by default).
 
 Form type inheritance complexity grows when extending form types through `getParent()` chains. Each layer can override options, transformers, and events in non-obvious ways. Prefer composition (embedding one form type inside another via `add()`) over deep inheritance. Reserve `getParent()` for genuine specialization of a built-in type.
 

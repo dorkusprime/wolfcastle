@@ -8,7 +8,7 @@ Prefer Rails conventions for file placement: models in `app/models/`, controller
 
 ## ActiveRecord
 
-Prefer scopes over class methods for reusable query fragments; scopes are chainable and return relations even when the condition is falsy. Use `has_many :through` over `has_and_belongs_to_many` when the join needs attributes or validations. Prefer `includes()` for eager loading associations accessed in views or serializers; use `strict_loading!` or `config.active_record.strict_loading_by_default` (Rails 6.1+) to surface N+1 queries as exceptions during development. Prefer `find_each` over `each` when iterating large result sets to batch queries and avoid loading everything into memory. Use `validates` at the model layer for data integrity constraints, and mirror critical constraints (uniqueness, NOT NULL) in migrations so the database enforces them independently.
+Prefer scopes over class methods for reusable query fragments; scopes are chainable and return relations even when the condition is falsy. Use `has_many :through` over `has_and_belongs_to_many` when the join needs attributes or validations. Prefer `includes()` for eager loading associations accessed in views or serializers; use `strict_loading!` or `config.active_record.strict_loading_by_default` to surface N+1 queries as exceptions during development. Prefer `find_each` over `each` when iterating large result sets to batch queries and avoid loading everything into memory. Use `validates` at the model layer for data integrity constraints, and mirror critical constraints (uniqueness, NOT NULL) in migrations so the database enforces them independently.
 
 Prefer callbacks (`before_validation`, `after_create_commit`) only for side effects tightly bound to persistence lifecycle. When callback chains grow beyond two or three hooks, or when callbacks trigger further saves on the same model, extract the orchestration into a service object. Callbacks that send emails, enqueue jobs, or touch external systems make models difficult to test in isolation.
 
@@ -22,7 +22,7 @@ Prefer `resources` and `resource` declarations over hand-written routes. Nest re
 
 ## Background Jobs
 
-Prefer ActiveJob as the interface layer, backed by Sidekiq, GoodJob, or Solid Queue depending on the project's infrastructure. Keep job arguments serializable (primitives, GlobalID references); passing full ActiveRecord objects risks stale state between enqueue and execution. Prefer `perform_later` over `perform_now` in request cycles to keep response times short. Use `retry_on` and `discard_on` for error handling within the job rather than wrapping the entire `perform` body in a rescue.
+Prefer ActiveJob as the interface layer. Solid Queue is the default backend in Rails 8+. Sidekiq and GoodJob remain common in existing projects. Keep job arguments serializable (primitives, GlobalID references); passing full ActiveRecord objects risks stale state between enqueue and execution. Prefer `perform_later` over `perform_now` in request cycles to keep response times short. Use `retry_on` and `discard_on` for error handling within the job rather than wrapping the entire `perform` body in a rescue.
 
 ## Hotwire and Turbo
 
@@ -42,4 +42,4 @@ Callback hell in models emerges when `after_save`, `after_commit`, and `before_d
 
 Mass assignment vulnerabilities arise from permitting parameters too broadly. Never whitelist `:role`, `:admin`, or other privilege-escalating attributes without explicit authorization checks. Audit `permit` calls during code review.
 
-Migration gotchas with zero-downtime deploys: adding a column with a default rewrites the entire table in PostgreSQL < 11; prefer `add_column` followed by `change_column_default` in separate migrations. Renaming a column breaks running instances that reference the old name; prefer adding the new column, backfilling, then removing the old one across multiple deploys. Use `strong_migrations` gem to catch unsafe operations automatically.
+Migration gotchas with zero-downtime deploys: adding a column with a default is safe on modern PostgreSQL (11+), but renaming a column breaks running instances that reference the old name. Prefer adding the new column, backfilling, then removing the old one across multiple deploys. Use `strong_migrations` gem to catch unsafe operations automatically.

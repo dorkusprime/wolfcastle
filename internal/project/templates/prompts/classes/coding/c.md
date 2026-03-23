@@ -68,4 +68,4 @@ Missing include guards cause duplicate definition errors and subtle ODR violatio
 
 POSIX portability varies across platforms. Prefer POSIX.1-2008 interfaces when possible, check `_POSIX_C_SOURCE` feature test macros, and avoid platform-specific extensions (GNU, BSD) unless the project explicitly targets a single platform.
 
-Implicit function declarations (calling a function without a visible prototype) were removed in C99 but some compilers still allow them by default. Prefer compiling with `-std=c11` or later and `-Wpedantic` to catch these. A missing prototype means the compiler assumes the function returns `int` and accepts any arguments, which can silently corrupt the stack.
+Implicit function declarations (calling a function without a visible prototype) were removed in C99 but some compilers still allow them by default. Prefer compiling with `-std=c17` or later and `-Wpedantic` to catch these. C23 is the current standard; adopt it when compiler support in the project's toolchain is sufficient. A missing prototype means the compiler assumes the function returns `int` and accepts any arguments, which can silently corrupt the stack.
