@@ -648,7 +648,11 @@ func commitStateFlush(repoDir string, logger *logging.Logger, gitCfg config.GitC
 		return
 	}
 
-	commitArgs := []string{"commit", "-m", "wolfcastle: update project state"}
+	msg := "update project state"
+	if gitCfg.CommitPrefix != "" {
+		msg = gitCfg.CommitPrefix + ": " + msg
+	}
+	commitArgs := []string{"commit", "-m", msg}
 	if gitCfg.SkipHooksOnAutoCommit {
 		commitArgs = append(commitArgs, "--no-verify")
 	}
