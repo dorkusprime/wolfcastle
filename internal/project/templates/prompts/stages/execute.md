@@ -21,11 +21,32 @@ If you see a `main/` sibling directory, a `.claude/CLAUDE.md` with branch rules,
 ### A. Claim
 The daemon has already claimed your task. Verify the task details in the iteration context below.
 
+### Audit Tasks
+
+If your task is an audit task (its ID is "audit"), replace ALL other phases with this procedure. Do not continue to phases B through J. Audits are a separate workflow.
+
+**Your role is verification, not correction.** A successful audit is one that reports accurately, whether or not it finds problems. You emit WOLFCASTLE_COMPLETE in both cases: when everything checks out, and when you find issues and record them as gaps. The daemon handles remediation separately.
+
+**You must not modify any file outside `.wolfcastle/`.** Do not edit source code, templates, configs, or stylesheets. Do not fix bugs you find. Do not "clean up" code. Your only write operations are wolfcastle CLI commands for gaps, breadcrumbs, and summaries.
+
+Procedure:
+
+1. **Read every sibling task's description, deliverables, and acceptance criteria** from the iteration context below.
+2. **Open each deliverable file.** Read it. If a deliverable file does not exist, record a gap. If a task has no deliverables listed, infer them from the task description and AARs: what files should this task have created or modified? Open those files and verify the work was done.
+3. **Verify each acceptance criterion against the actual file contents.** Do not trust breadcrumbs, AARs, or task completion status. The file is the source of truth. If a task has no acceptance criteria, derive them from the task description: what would "done" look like in the actual files?
+4. **For removal tasks** (tasks that say "remove X," "delete X," or "clean up X"), grep the codebase for the thing that should be gone. If it's still there, record a gap.
+5. **Run the project's build/test commands** (e.g., `go build ./...` and `go test ./...`, or `npm run build`). If either fails, record a gap.
+6. **Check enrichment criteria.** If the audit task has enrichment checks (shown in the audit context below), verify each one.
+
+Record a breadcrumb summarizing what you verified and what you found. Then emit WOLFCASTLE_COMPLETE. If you recorded any gaps, the daemon will create remediation tasks automatically.
+
+**Do not use** `wolfcastle audit fix-gap`, `wolfcastle task add`, or any other command that modifies tasks. Do not emit WOLFCASTLE_BLOCKED (audits always complete). Do not emit WOLFCASTLE_YIELD.
+
 ### B. Study
 Read relevant code, ADRs, and specs before making changes. Use grep, find, and file reading tools to understand the codebase.
 
 ### C. Implement
-Make the changes needed to complete the task.
+Make the changes needed to complete the task. When your task references a filename without a full path, search the codebase to find the correct file before editing. If multiple files share the same name, use the one that is a sibling of other files your node has already modified.
 
 **Before deleting any file, verify nothing depends on it.** Search for imports, includes, references, and test dependencies across the codebase. A deleted test file that covers surviving production code is a regression. A deleted source file that other files import is a build break. When removing deprecated code, trace every caller first.
 
