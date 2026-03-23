@@ -58,5 +58,5 @@ the Daemon struct, since `RunOnce()` needs to read and increment it.
   one unit of work" (`RunOnce`) is explicit and compiler-enforced.
 - **Composability.** Future features like dry-run mode, single-step
   debugging, or metrics-per-iteration can call `RunOnce()` directly.
-- **No behavioral change.** The refactor preserves all existing behavior —
+- **No behavioral change.** The refactor preserves all existing behavior:
   same shutdown semantics, same sleep timing, same supervisor interaction.

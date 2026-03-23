@@ -60,7 +60,7 @@ Mitigating factors:
   readline.
 
 **Fallback alternative:** If the dependency budget is exceeded, fall back
-to `bufio.Scanner` with basic line editing via raw terminal mode —
+to `bufio.Scanner` with basic line editing via raw terminal mode:
 approximately 150 lines of hand-rolled code using `golang.org/x/term`
 (which is a golang.org/x module, not a third-party dependency). This
 provides backspace handling and basic line editing without full readline

@@ -44,7 +44,7 @@ responsibility, not by abstraction.
 
 - Each file has a clear, single responsibility.
 - Navigation is easier: "where's the marker parsing?" → `markers.go`.
-- New stage handlers go in `stages.go`, new markers go in `markers.go` —
+- New stage handlers go in `stages.go`, new markers go in `markers.go`:
   clear homes for new code.
 - No import changes anywhere: this is internal to the package.
 - Git blame is affected but the commit message will note the
