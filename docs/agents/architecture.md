@@ -38,7 +38,7 @@ wolfcastle/
 │   ├── tree/                # Tree addressing, slug generation, resolver
 │   └── validate/            # Structural validation engine and auto-fix
 ├── docs/
-│   ├── decisions/           # ADRs (001-089)
+│   ├── decisions/           # ADRs (001-094)
 │   ├── specs/               # Implementation specs (timestamped)
 │   └── agents/              # This directory (agent guidance)
 └── Makefile
