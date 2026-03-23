@@ -12,6 +12,84 @@ import (
 )
 
 // ---------------------------------------------------------------------------
+// start command - output mode flag wiring
+// ---------------------------------------------------------------------------
+
+// TestStartCmd_ModeFlagsRegistered verifies that newStartCmd wires mode flags
+// onto the cobra command via registerModeFlags. This is a wiring test: it
+// proves the flags exist with the right configuration, which means
+// registerModeFlags was called during command construction.
+func TestStartCmd_ModeFlagsRegistered(t *testing.T) {
+	t.Parallel()
+	env := newTestEnv(t)
+
+	startCmd, _, err := env.RootCmd.Find([]string{"start"})
+	if err != nil {
+		t.Fatalf("finding start command: %v", err)
+	}
+
+	tests := []struct {
+		name      string
+		shorthand string
+	}{
+		{name: "thoughts", shorthand: "t"},
+		{name: "interleaved", shorthand: "i"},
+		{name: "json", shorthand: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			flag := startCmd.Flags().Lookup(tt.name)
+			if flag == nil {
+				t.Fatalf("flag --%s not registered on start command", tt.name)
+			}
+			if tt.shorthand != "" && flag.Shorthand != tt.shorthand {
+				t.Errorf("shorthand: want %q, got %q", tt.shorthand, flag.Shorthand)
+			}
+			// Mode flags use NoOptDefVal="true" so they behave as booleans.
+			if flag.NoOptDefVal != "true" {
+				t.Errorf("NoOptDefVal: want %q, got %q", "true", flag.NoOptDefVal)
+			}
+		})
+	}
+}
+
+// TestStartCmd_ModeResolution exercises the mode flag parsing that
+// registerModeFlags provides. Because mode is a local variable inside
+// newStartCmd, we verify resolution indirectly through parseMode (defined
+// in follow_test.go), which tests the same registerModeFlags function.
+func TestStartCmd_ModeResolution(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want outputMode
+	}{
+		{name: "no flags defaults to summary", args: nil, want: modeSummary},
+		{name: "--thoughts sets modeThoughts", args: []string{"--thoughts"}, want: modeThoughts},
+		{name: "--interleaved sets modeInterleaved", args: []string{"--interleaved"}, want: modeInterleaved},
+		{name: "--json sets modeJSON", args: []string{"--json"}, want: modeJSON},
+		{name: "-t shorthand sets modeThoughts", args: []string{"-t"}, want: modeThoughts},
+		{name: "-i shorthand sets modeInterleaved", args: []string{"-i"}, want: modeInterleaved},
+		{name: "--thoughts --interleaved last wins", args: []string{"--thoughts", "--interleaved"}, want: modeInterleaved},
+		{name: "--interleaved --thoughts last wins", args: []string{"--interleaved", "--thoughts"}, want: modeThoughts},
+		{name: "--json --thoughts last wins", args: []string{"--json", "--thoughts"}, want: modeThoughts},
+		{name: "--thoughts --json last wins", args: []string{"--thoughts", "--json"}, want: modeJSON},
+		{name: "all three last wins", args: []string{"--thoughts", "--json", "--interleaved"}, want: modeInterleaved},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := parseMode(t, tt.args); got != tt.want {
+				t.Errorf("parseMode(%v) = %d, want %d", tt.args, got, tt.want)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
 // start command - validation gate
 // ---------------------------------------------------------------------------
 
