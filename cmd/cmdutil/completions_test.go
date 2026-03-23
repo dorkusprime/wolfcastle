@@ -125,7 +125,7 @@ func TestCheckOverlap_ShortText(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.OverlapAdvisory.Enabled = true
 	cfg.OverlapAdvisory.Threshold = 0.1
-	cfgRepo := config.NewConfigRepository(wcDir)
+	cfgRepo := config.NewRepository(wcDir)
 	_ = cfgRepo.WriteBase(cfg)
 
 	a := &App{
@@ -220,7 +220,7 @@ func TestCheckOverlap_NonexistentProjectsDir(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.OverlapAdvisory.Enabled = true
 	cfg.OverlapAdvisory.Threshold = 0.1
-	cfgRepo := config.NewConfigRepository(wcDir)
+	cfgRepo := config.NewRepository(wcDir)
 	_ = cfgRepo.WriteBase(cfg)
 
 	a := &App{
@@ -251,7 +251,7 @@ func TestCheckOverlap_NoMatchesBelowThreshold(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.OverlapAdvisory.Enabled = true
 	cfg.OverlapAdvisory.Threshold = 0.9
-	cfgRepo := config.NewConfigRepository(wcDir)
+	cfgRepo := config.NewRepository(wcDir)
 	_ = cfgRepo.WriteBase(cfg)
 
 	a := &App{

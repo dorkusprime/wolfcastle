@@ -14,7 +14,7 @@ import (
 // from older wolfcastle directory structures. Both methods are idempotent:
 // running them against an already-migrated directory is a no-op.
 type MigrationService struct {
-	config *config.ConfigRepository
+	config *config.Repository
 	root   string // path to .wolfcastle/
 }
 

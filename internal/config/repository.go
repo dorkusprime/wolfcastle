@@ -10,10 +10,10 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
-// ConfigRepository provides three-tier configuration resolution backed by
+// Repository provides three-tier configuration resolution backed by
 // a tierfs.Resolver. Each Load reads fresh from disk, merging defaults with
 // base, custom, and local overlays in ascending priority.
-type ConfigRepository struct {
+type Repository struct {
 	tiers tierfs.Resolver
 	root  string
 }
@@ -22,32 +22,32 @@ type ConfigRepository struct {
 // tier resolution in production config repositories.
 const DefaultConfigCacheTTL = 30 * time.Second
 
-// NewConfigRepository creates a ConfigRepository rooted at wolfcastleRoot.
+// NewRepository creates a Repository rooted at wolfcastleRoot.
 // The tierfs.FS is constructed over the "system" subdirectory and wrapped
 // with a CachingResolver for TTL-based read caching.
-func NewConfigRepository(wolfcastleRoot string) *ConfigRepository {
+func NewRepository(wolfcastleRoot string) *Repository {
 	fs := tierfs.New(filepath.Join(wolfcastleRoot, "system"))
-	return NewConfigRepositoryWithTiers(
+	return NewRepositoryWithTiers(
 		tierfs.NewCachingResolver(fs, DefaultConfigCacheTTL),
 		wolfcastleRoot,
 	)
 }
 
-// NewConfigRepositoryWithTiers creates a ConfigRepository with an injected
+// NewRepositoryWithTiers creates a Repository with an injected
 // resolver, allowing tests to supply fixture-backed implementations.
-func NewConfigRepositoryWithTiers(tiers tierfs.Resolver, root string) *ConfigRepository {
-	return &ConfigRepository{tiers: tiers, root: root}
+func NewRepositoryWithTiers(tiers tierfs.Resolver, root string) *Repository {
+	return &Repository{tiers: tiers, root: root}
 }
 
 // Root returns the wolfcastle root directory path (the .wolfcastle directory).
-func (r *ConfigRepository) Root() string {
+func (r *Repository) Root() string {
 	return r.root
 }
 
 // Load resolves the merged configuration across all tiers. Missing tier
 // files are silently skipped; permission and parse errors propagate.
 // Unknown fields in tier files are collected as warnings on Config.Warnings.
-func (r *ConfigRepository) Load() (*Config, error) {
+func (r *Repository) Load() (*Config, error) {
 	result, err := structToMap(Defaults())
 	if err != nil {
 		return nil, fmt.Errorf("config: marshaling defaults: %w", err)
@@ -96,7 +96,7 @@ func (r *ConfigRepository) Load() (*Config, error) {
 
 // WriteBase marshals the full Config to indented JSON and writes it to
 // the base tier via tiers.WriteBase.
-func (r *ConfigRepository) WriteBase(cfg *Config) error {
+func (r *Repository) WriteBase(cfg *Config) error {
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return fmt.Errorf("config: marshaling base config: %w", err)
@@ -109,18 +109,18 @@ func (r *ConfigRepository) WriteBase(cfg *Config) error {
 
 // WriteCustom marshals a partial overlay to indented JSON and writes it
 // to the custom tier's config.json, creating parent directories as needed.
-func (r *ConfigRepository) WriteCustom(data map[string]any) error {
+func (r *Repository) WriteCustom(data map[string]any) error {
 	return r.writeTier(1, data, "custom")
 }
 
 // WriteLocal marshals a partial overlay to indented JSON and writes it
 // to the local tier's config.json, creating parent directories as needed.
-func (r *ConfigRepository) WriteLocal(data map[string]any) error {
+func (r *Repository) WriteLocal(data map[string]any) error {
 	return r.writeTier(2, data, "local")
 }
 
 // writeTier handles the shared logic for WriteCustom and WriteLocal.
-func (r *ConfigRepository) writeTier(index int, overlay map[string]any, label string) error {
+func (r *Repository) writeTier(index int, overlay map[string]any, label string) error {
 	raw, err := json.MarshalIndent(overlay, "", "  ")
 	if err != nil {
 		return fmt.Errorf("config: marshaling %s config: %w", label, err)
@@ -153,7 +153,7 @@ func tierIndex(tier string) (int, error) {
 // ReadTier reads and parses a single tier's config.json overlay. Returns an
 // empty map if the file does not exist. Accepts "custom" or "local"; rejects
 // "base" because the base tier is written only via WriteBase with a full Config.
-func (r *ConfigRepository) ReadTier(tier string) (map[string]any, error) {
+func (r *Repository) ReadTier(tier string) (map[string]any, error) {
 	idx, err := tierIndex(tier)
 	if err != nil {
 		return nil, err
@@ -175,7 +175,7 @@ func (r *ConfigRepository) ReadTier(tier string) (map[string]any, error) {
 
 // WriteTier writes an overlay to the specified tier. Dispatches to WriteCustom
 // or WriteLocal based on tier name. Rejects "base".
-func (r *ConfigRepository) WriteTier(tier string, overlay map[string]any) error {
+func (r *Repository) WriteTier(tier string, overlay map[string]any) error {
 	switch tier {
 	case "custom":
 		return r.WriteCustom(overlay)
@@ -192,7 +192,7 @@ func (r *ConfigRepository) WriteTier(tier string, overlay map[string]any) error 
 // It reads the current overlay, calls mutate to modify it in-place, writes it
 // back, then runs Load() to validate the merged result. If validation fails,
 // the original tier file contents are restored and the validation error is returned.
-func (r *ConfigRepository) ApplyMutation(tier string, mutate func(overlay map[string]any) error) error {
+func (r *Repository) ApplyMutation(tier string, mutate func(overlay map[string]any) error) error {
 	// Validate the tier name before doing anything.
 	idx, err := tierIndex(tier)
 	if err != nil {

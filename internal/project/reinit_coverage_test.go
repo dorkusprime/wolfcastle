@@ -88,7 +88,7 @@ func TestReinit_WriteBaseConfigFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	tiers := tierfs.New(badTiersRoot)
-	cfg := config.NewConfigRepositoryWithTiers(tiers, root)
+	cfg := config.NewRepositoryWithTiers(tiers, root)
 	pw := &stubPromptWriter{}
 	svc := NewScaffoldService(cfg, pw, nil, root)
 

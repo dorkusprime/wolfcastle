@@ -45,7 +45,7 @@ func Orchestrator(name string, children ...NodeSpec) NodeSpec {
 // Since testutil (internal/) cannot import cmdutil (cmd/), this struct carries
 // the fields that callers can spread into an App literal themselves.
 type AppFields struct {
-	Config   *config.ConfigRepository
+	Config   *config.Repository
 	Identity *config.Identity
 	Prompts  *pipeline.PromptRepository
 	Classes  *pipeline.ClassRepository
@@ -68,7 +68,7 @@ type Environment struct {
 	State *state.Store
 
 	// Config provides three-tier configuration resolution.
-	Config *config.ConfigRepository
+	Config *config.Repository
 
 	// Prompts provides three-tier prompt file resolution.
 	Prompts *pipeline.PromptRepository
@@ -172,7 +172,7 @@ func NewEnvironment(t *testing.T) *Environment {
 
 	prompts := pipeline.NewPromptRepositoryWithTiers(tiers)
 
-	cfgRepo := config.NewConfigRepositoryWithTiers(tiers, wolfcastleDir)
+	cfgRepo := config.NewRepositoryWithTiers(tiers, wolfcastleDir)
 
 	// Load merged config and extract identity so tests can construct App
 	// without repeating the load-and-extract dance.

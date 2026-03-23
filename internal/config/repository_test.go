@@ -13,10 +13,10 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
 )
 
-func TestConfigRepository_Load_ReturnsMergedDefaults(t *testing.T) {
+func TestRepository_Load_ReturnsMergedDefaults(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	cfg, err := repo.Load()
 	if err != nil {
@@ -36,13 +36,13 @@ func TestConfigRepository_Load_ReturnsMergedDefaults(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_Load_CustomOverlayMerges(t *testing.T) {
+func TestRepository_Load_CustomOverlayMerges(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t).
 		WithConfig(map[string]any{
 			"failure": map[string]any{"hard_cap": 100},
 		})
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	cfg, err := repo.Load()
 	if err != nil {
@@ -58,7 +58,7 @@ func TestConfigRepository_Load_CustomOverlayMerges(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_Load_LocalTakesPriority(t *testing.T) {
+func TestRepository_Load_LocalTakesPriority(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t).
 		WithConfig(map[string]any{
@@ -76,7 +76,7 @@ func TestConfigRepository_Load_LocalTakesPriority(t *testing.T) {
 		t.Fatalf("writing local config: %v", err)
 	}
 
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 	cfg, err := repo.Load()
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
@@ -87,10 +87,10 @@ func TestConfigRepository_Load_LocalTakesPriority(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_WriteBase_PersistsAndLoads(t *testing.T) {
+func TestRepository_WriteBase_PersistsAndLoads(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	// Modify defaults and write to base
 	cfg := config.Defaults()
@@ -108,10 +108,10 @@ func TestConfigRepository_WriteBase_PersistsAndLoads(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_WriteCustom_MergesOnLoad(t *testing.T) {
+func TestRepository_WriteCustom_MergesOnLoad(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	overlay := map[string]any{
 		"failure": map[string]any{"hard_cap": 77},
@@ -133,10 +133,10 @@ func TestConfigRepository_WriteCustom_MergesOnLoad(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_WriteLocal_MergesOnLoad(t *testing.T) {
+func TestRepository_WriteLocal_MergesOnLoad(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	overlay := map[string]any{
 		"failure":  map[string]any{"hard_cap": 42},
@@ -155,7 +155,7 @@ func TestConfigRepository_WriteLocal_MergesOnLoad(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_Load_MalformedJSON_ReturnsError(t *testing.T) {
+func TestRepository_Load_MalformedJSON_ReturnsError(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
 
@@ -165,7 +165,7 @@ func TestConfigRepository_Load_MalformedJSON_ReturnsError(t *testing.T) {
 		t.Fatalf("writing corrupt config: %v", err)
 	}
 
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 	_, err := repo.Load()
 	if err == nil {
 		t.Fatal("expected error for malformed JSON")
@@ -175,7 +175,7 @@ func TestConfigRepository_Load_MalformedJSON_ReturnsError(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_Load_PermissionError_Propagates(t *testing.T) {
+func TestRepository_Load_PermissionError_Propagates(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("chmod restrictions have no effect on Windows")
@@ -195,7 +195,7 @@ func TestConfigRepository_Load_PermissionError_Propagates(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(configPath, 0o644) })
 
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 	_, err := repo.Load()
 	if err == nil {
 		t.Fatal("expected error for permission-denied config file")
@@ -205,12 +205,12 @@ func TestConfigRepository_Load_PermissionError_Propagates(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_NewConfigRepository_Production(t *testing.T) {
+func TestRepository_NewRepository_Production(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
 
-	// NewConfigRepository constructs its own tierfs.FS from the root
-	repo := config.NewConfigRepository(env.Root)
+	// NewRepository constructs its own tierfs.FS from the root
+	repo := config.NewRepository(env.Root)
 	cfg, err := repo.Load()
 	if err != nil {
 		t.Fatalf("Load() via production constructor error: %v", err)
@@ -222,7 +222,7 @@ func TestConfigRepository_NewConfigRepository_Production(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_NewConfigRepository_UsesCaching(t *testing.T) {
+func TestRepository_NewRepository_UsesCaching(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
 
@@ -233,7 +233,7 @@ func TestConfigRepository_NewConfigRepository_UsesCaching(t *testing.T) {
 	data, _ := json.Marshal(overlay)
 	_ = os.WriteFile(filepath.Join(customDir, "config.json"), data, 0o644)
 
-	repo := config.NewConfigRepository(env.Root)
+	repo := config.NewRepository(env.Root)
 
 	// First load picks up the overlay.
 	cfg1, err := repo.Load()
@@ -250,7 +250,7 @@ func TestConfigRepository_NewConfigRepository_UsesCaching(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(customDir, "config.json"), data2, 0o644)
 
 	// Second load should still return the cached value (TTL not expired).
-	// Note: ConfigRepository.Load reads TierDirs directly from disk,
+	// Note: Repository.Load reads TierDirs directly from disk,
 	// but the underlying resolver's Resolve/ResolveAll are cached. Since
 	// Load calls TierDirs (passthrough) and reads config.json directly
 	// via os.ReadFile (not through the resolver), config caching operates
@@ -273,10 +273,10 @@ func TestConfigRepository_NewConfigRepository_UsesCaching(t *testing.T) {
 
 // --- ReadTier tests ---
 
-func TestConfigRepository_ReadTier_ReturnsEmptyMapWhenMissing(t *testing.T) {
+func TestRepository_ReadTier_ReturnsEmptyMapWhenMissing(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	m, err := repo.ReadTier("custom")
 	if err != nil {
@@ -287,10 +287,10 @@ func TestConfigRepository_ReadTier_ReturnsEmptyMapWhenMissing(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_ReadTier_ParsesExistingOverlay(t *testing.T) {
+func TestRepository_ReadTier_ParsesExistingOverlay(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	overlay := map[string]any{"failure": map[string]any{"hard_cap": float64(55)}}
 	if err := repo.WriteCustom(overlay); err != nil {
@@ -310,10 +310,10 @@ func TestConfigRepository_ReadTier_ParsesExistingOverlay(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_ReadTier_RejectsBase(t *testing.T) {
+func TestRepository_ReadTier_RejectsBase(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	_, err := repo.ReadTier("base")
 	if err == nil {
@@ -324,10 +324,10 @@ func TestConfigRepository_ReadTier_RejectsBase(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_ReadTier_RejectsUnknown(t *testing.T) {
+func TestRepository_ReadTier_RejectsUnknown(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	_, err := repo.ReadTier("bogus")
 	if err == nil {
@@ -338,10 +338,10 @@ func TestConfigRepository_ReadTier_RejectsUnknown(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_ReadTier_MalformedJSON(t *testing.T) {
+func TestRepository_ReadTier_MalformedJSON(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	tierDirs := env.Tiers.TierDirs()
 	if err := os.WriteFile(filepath.Join(tierDirs[1], "config.json"), []byte("{bad"), 0o644); err != nil {
@@ -357,7 +357,7 @@ func TestConfigRepository_ReadTier_MalformedJSON(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_ReadTier_PermissionError(t *testing.T) {
+func TestRepository_ReadTier_PermissionError(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("chmod restrictions have no effect on Windows")
@@ -367,7 +367,7 @@ func TestConfigRepository_ReadTier_PermissionError(t *testing.T) {
 	}
 
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	tierDirs := env.Tiers.TierDirs()
 	path := filepath.Join(tierDirs[1], "config.json")
@@ -385,10 +385,10 @@ func TestConfigRepository_ReadTier_PermissionError(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_ReadTier_Local(t *testing.T) {
+func TestRepository_ReadTier_Local(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	overlay := map[string]any{
 		"failure":  map[string]any{"hard_cap": float64(88)},
@@ -413,10 +413,10 @@ func TestConfigRepository_ReadTier_Local(t *testing.T) {
 
 // --- WriteTier tests ---
 
-func TestConfigRepository_WriteTier_Custom(t *testing.T) {
+func TestRepository_WriteTier_Custom(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	overlay := map[string]any{"failure": map[string]any{"hard_cap": float64(33)}}
 	if err := repo.WriteTier("custom", overlay); err != nil {
@@ -433,10 +433,10 @@ func TestConfigRepository_WriteTier_Custom(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_WriteTier_Local(t *testing.T) {
+func TestRepository_WriteTier_Local(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	overlay := map[string]any{
 		"failure":  map[string]any{"hard_cap": float64(44)},
@@ -455,10 +455,10 @@ func TestConfigRepository_WriteTier_Local(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_WriteTier_RejectsBase(t *testing.T) {
+func TestRepository_WriteTier_RejectsBase(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	err := repo.WriteTier("base", map[string]any{})
 	if err == nil {
@@ -469,10 +469,10 @@ func TestConfigRepository_WriteTier_RejectsBase(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_WriteTier_RejectsUnknown(t *testing.T) {
+func TestRepository_WriteTier_RejectsUnknown(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	err := repo.WriteTier("bogus", map[string]any{})
 	if err == nil {
@@ -485,10 +485,10 @@ func TestConfigRepository_WriteTier_RejectsUnknown(t *testing.T) {
 
 // --- ApplyMutation tests ---
 
-func TestConfigRepository_ApplyMutation_SuccessfulMutation(t *testing.T) {
+func TestRepository_ApplyMutation_SuccessfulMutation(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	err := repo.ApplyMutation("custom", func(overlay map[string]any) error {
 		overlay["failure"] = map[string]any{"hard_cap": float64(77)}
@@ -507,10 +507,10 @@ func TestConfigRepository_ApplyMutation_SuccessfulMutation(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_ApplyMutation_MutationErrorDoesNotWrite(t *testing.T) {
+func TestRepository_ApplyMutation_MutationErrorDoesNotWrite(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	err := repo.ApplyMutation("custom", func(overlay map[string]any) error {
 		return fmt.Errorf("deliberate failure")
@@ -532,10 +532,10 @@ func TestConfigRepository_ApplyMutation_MutationErrorDoesNotWrite(t *testing.T) 
 	}
 }
 
-func TestConfigRepository_ApplyMutation_RollsBackOnValidationFailure(t *testing.T) {
+func TestRepository_ApplyMutation_RollsBackOnValidationFailure(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	// Seed the custom tier with a valid overlay.
 	if err := repo.WriteCustom(map[string]any{"failure": map[string]any{"hard_cap": float64(10)}}); err != nil {
@@ -573,10 +573,10 @@ func TestConfigRepository_ApplyMutation_RollsBackOnValidationFailure(t *testing.
 	}
 }
 
-func TestConfigRepository_ApplyMutation_RollsBackToAbsence(t *testing.T) {
+func TestRepository_ApplyMutation_RollsBackToAbsence(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	// No custom tier file exists. Apply a mutation that breaks validation.
 	err := repo.ApplyMutation("custom", func(overlay map[string]any) error {
@@ -597,10 +597,10 @@ func TestConfigRepository_ApplyMutation_RollsBackToAbsence(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_ApplyMutation_RejectsBase(t *testing.T) {
+func TestRepository_ApplyMutation_RejectsBase(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	err := repo.ApplyMutation("base", func(overlay map[string]any) error {
 		return nil
@@ -613,10 +613,10 @@ func TestConfigRepository_ApplyMutation_RejectsBase(t *testing.T) {
 	}
 }
 
-func TestConfigRepository_ApplyMutation_Local(t *testing.T) {
+func TestRepository_ApplyMutation_Local(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := config.NewConfigRepositoryWithTiers(env.Tiers, env.Root)
+	repo := config.NewRepositoryWithTiers(env.Tiers, env.Root)
 
 	err := repo.ApplyMutation("local", func(overlay map[string]any) error {
 		overlay["failure"] = map[string]any{"hard_cap": float64(99)}
