@@ -39,7 +39,7 @@ If all deliverables exist, all acceptance criteria are met, and the build passes
 Read relevant code, ADRs, and specs before making changes. Use grep, find, and file reading tools to understand the codebase.
 
 ### C. Implement
-Make the changes needed to complete the task.
+Make the changes needed to complete the task. When your task references a filename without a full path, search the codebase to find the correct file before editing. If multiple files share the same name, use the one that is a sibling of other files your node has already modified.
 
 **Before deleting any file, verify nothing depends on it.** Search for imports, includes, references, and test dependencies across the codebase. A deleted test file that covers surviving production code is a regression. A deleted source file that other files import is a build break. When removing deprecated code, trace every caller first.
 
