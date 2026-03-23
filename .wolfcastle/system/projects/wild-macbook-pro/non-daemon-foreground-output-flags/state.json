@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "non-daemon-foreground-output-flags",
+  "name": "Non-Daemon Foreground Output Flags",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Non-Daemon Foreground Output Flags is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Non-daemon stdout flags: wolfcastle start --foreground should not use --interleaved by default. It should accept the same flags as wolfcastle log (--thoughts, --interleaved, --json, default summary) and use the same default renderer (summary). The foreground output path lives in internal/daemon/start.go or cmd/daemon/start.go. See Item 2 from 2026-03-23T03:00:43Z inbox.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

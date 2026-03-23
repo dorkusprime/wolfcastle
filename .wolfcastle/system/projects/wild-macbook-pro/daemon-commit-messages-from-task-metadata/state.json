@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "daemon-commit-messages-from-task-metadata",
+  "name": "Daemon Commit Messages from Task Metadata",
+  "type": "orchestrator",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "children": [
+    {
+      "id": "add-commit-prefix-config",
+      "address": "daemon-commit-messages-from-task-metadata/add-commit-prefix-config",
+      "state": "in_progress"
+    },
+    {
+      "id": "enrich-commit-messages-with-task-metadata",
+      "address": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
+      "state": "not_started"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Daemon Commit Messages from Task Metadata is complete and correct",
+      "state": "complete",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Daemon commit messages should use task metadata instead of opaque task IDs. Use the task title as the commit subject line, with task ID, class, deliverables, and the latest breadcrumb text in the body. For failures, append (attempt N) to the subject and include the failure type. Add git.commit_prefix to GitConfig (default 'wolfcastle') so users can customize or remove the prefix. Format: '{prefix}: {title}' as subject, then 'Task: {id} [{class}]\\nDeliverables: {files}\\n\\n{latest breadcrumb}' as body. Implementation is in commitAfterIteration in internal/daemon/iteration.go. The daemon already reads node state before committing; pass the task title, class, deliverables, and latest breadcrumb into the commit message builder. The commit_prefix field goes in GitConfig with a default in Defaults().",
+  "success_criteria": [
+    "Daemon commits use task title as subject line, with task ID, class, deliverables, and latest breadcrumb in the body",
+    "GitConfig has a commit_prefix field defaulting to wolfcastle",
+    "Failure commits include (attempt N) in subject and failure type in body",
+    "All existing tests pass and new tests cover the enriched message format"
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-03-23T03:04:17.309872Z",
+      "trigger": "initial",
+      "summary": "marker=WOLFCASTLE_COMPLETE"
+    }
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-23T03:04:09.361905Z",
+        "task": "daemon-commit-messages-from-task-metadata",
+        "text": "Created 2 children: add-commit-prefix-config (leaf), enrich-commit-messages-with-task-metadata (leaf). Ordering: config field first because the message builder reads CommitPrefix from GitConfig. Found relevant specs: deterministic-git spec defines current message format, separate-git-index ADR governs commit mechanics. Existing unused CommitMessageFormat field noted but left untouched per scope."
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

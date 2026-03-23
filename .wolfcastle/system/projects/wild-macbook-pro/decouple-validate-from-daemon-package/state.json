@@ -57,6 +57,7 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "pending"
+    "status": "passed",
+    "completed_at": "2026-03-23T03:01:21.874402Z"
   }
 }

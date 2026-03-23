@@ -100,6 +100,7 @@ func Defaults() *Config {
 			CommitOnSuccess:       true,
 			CommitOnFailure:       true,
 			CommitState:           true,
+			CommitPrefix:          "wolfcastle",
 			CommitMessageFormat:   "wolfcastle: {action} [{node}]",
 			VerifyBranch:          true,
 			SkipHooksOnAutoCommit: true,

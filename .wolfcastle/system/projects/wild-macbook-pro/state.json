@@ -4,7 +4,6 @@
   "root_name": "Domain Repository Architecture",
   "root_state": "complete",
   "root": [
-    "fix-log-thoughts-and-interleaved-renderers",
     "configuration-docs-overhaul",
     "deterministic-git-activity",
     "codebase-knowledge-files",
@@ -14,7 +13,10 @@
     "update-cli-commands-spec",
     "decouple-validate-from-daemon-package",
     "config-validate-command",
-    "structured-timing-metrics-in-log-events"
+    "structured-timing-metrics-in-log-events",
+    "daemon-commit-messages-from-task-metadata",
+    "non-daemon-foreground-output-flags",
+    "document-git-revert-recovery-workflow"
   ],
   "archived_root": [
     "domain-repository-architecture",
@@ -40,7 +42,8 @@
     "logrender-post-merge-cleanups",
     "task-classes-implementation",
     "fix-stale-class-flag-help-text",
-    "fix-writing-class-voice-md-unreachable"
+    "fix-writing-class-voice-md-unreachable",
+    "fix-log-thoughts-and-interleaved-renderers"
   ],
   "nodes": {
     "codebase-knowledge-files": {
@@ -189,6 +192,33 @@
       "decomposition_depth": 0,
       "parent": "consolidate-atomic-write-helpers"
     },
+    "daemon-commit-messages-from-task-metadata": {
+      "name": "Daemon Commit Messages from Task Metadata",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "daemon-commit-messages-from-task-metadata",
+      "decomposition_depth": 0,
+      "children": [
+        "daemon-commit-messages-from-task-metadata/add-commit-prefix-config",
+        "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata"
+      ]
+    },
+    "daemon-commit-messages-from-task-metadata/add-commit-prefix-config": {
+      "name": "Add Commit Prefix Config",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "daemon-commit-messages-from-task-metadata/add-commit-prefix-config",
+      "decomposition_depth": 0,
+      "parent": "daemon-commit-messages-from-task-metadata"
+    },
+    "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata": {
+      "name": "Enrich Commit Messages with Task Metadata",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
+      "decomposition_depth": 0,
+      "parent": "daemon-commit-messages-from-task-metadata"
+    },
     "decouple-validate-from-daemon-package": {
       "name": "Decouple Validate from Daemon Package",
       "type": "orchestrator",
@@ -261,6 +291,13 @@
       "decomposition_depth": 0,
       "parent": "deterministic-git-activity"
     },
+    "document-git-revert-recovery-workflow": {
+      "name": "Document Git Revert Recovery Workflow",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "document-git-revert-recovery-workflow",
+      "decomposition_depth": 0
+    },
     "document-pid-recycling-edge-case-in-filelock": {
       "name": "Document PID recycling edge case in filelock",
       "type": "orchestrator",
@@ -321,7 +358,9 @@
       "children": [
         "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
         "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-23T03:01:12.266893Z"
     },
     "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output": {
       "name": "Consolidate Daemon Foreground Output",
@@ -329,7 +368,9 @@
       "state": "complete",
       "address": "fix-log-thoughts-and-interleaved-renderers/consolidate-daemon-foreground-output",
       "decomposition_depth": 0,
-      "parent": "fix-log-thoughts-and-interleaved-renderers"
+      "parent": "fix-log-thoughts-and-interleaved-renderers",
+      "archived": true,
+      "archived_at": "2026-03-23T03:01:12.266893Z"
     },
     "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output": {
       "name": "Fix Renderer Output",
@@ -337,7 +378,9 @@
       "state": "complete",
       "address": "fix-log-thoughts-and-interleaved-renderers/fix-renderer-output",
       "decomposition_depth": 0,
-      "parent": "fix-log-thoughts-and-interleaved-renderers"
+      "parent": "fix-log-thoughts-and-interleaved-renderers",
+      "archived": true,
+      "archived_at": "2026-03-23T03:01:12.266893Z"
     },
     "fix-replayjson-streaming-bug": {
       "name": "Fix replayJSON streaming bug",
@@ -549,6 +592,13 @@
       "parent": "logrender-post-merge-cleanups",
       "archived": true,
       "archived_at": "2026-03-22T06:01:48.565239Z"
+    },
+    "non-daemon-foreground-output-flags": {
+      "name": "Non-Daemon Foreground Output Flags",
+      "type": "orchestrator",
+      "state": "not_started",
+      "address": "non-daemon-foreground-output-flags",
+      "decomposition_depth": 0
     },
     "structured-timing-metrics-in-log-events": {
       "name": "Structured Timing Metrics in Log Events",

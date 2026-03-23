@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "document-git-revert-recovery-workflow",
+  "name": "Document Git Revert Recovery Workflow",
+  "type": "orchestrator",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Document Git Revert Recovery Workflow is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "scope": "Document the git revert workflow in docs/humans/failure-and-recovery.md. Now that the daemon commits code and state together after every iteration, users can recover from bad task outcomes by reverting to the commit before the failed task. Add a section explaining: all state files and code are committed together, git log shows wolfcastle commits with task titles, to retry a failed task revert to the commit before it and restart the daemon. Include a concrete example with git log and git revert commands.",
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

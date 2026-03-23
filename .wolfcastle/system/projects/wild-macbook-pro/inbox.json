@@ -289,6 +289,21 @@
       "timestamp": "2026-03-22T18:33:17Z",
       "text": "Add structured timing metrics to daemon NDJSON log events. Include a duration_ms field on stage_complete records so consumers don't have to compute deltas from stage_start timestamps. The log command renderers already compute duration for display; this puts it in the structured data too.",
       "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-23T03:00:37Z",
+      "text": "Daemon commit messages should use task metadata instead of opaque task IDs. Use the task title as the commit subject line, with task ID, class, deliverables, and the latest breadcrumb text in the body. For failures, append (attempt N) to the subject and include the failure type. Add git.commit_prefix to GitConfig (default \"wolfcastle\") so users can customize or remove the prefix. Format: \"{prefix}: {title}\" as subject, then \"Task: {id} [{class}]\\nDeliverables: {files}\\n\\n{latest breadcrumb}\" as body. Implementation is in commitAfterIteration in internal/daemon/iteration.go. The daemon already reads node state before committing; pass the task title, class, deliverables, and latest breadcrumb into the commit message builder. The commit_prefix field goes in GitConfig with a default in Defaults().",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-23T03:00:43Z",
+      "text": "Non-daemon stdout flags. STDOUT in non-daemon mode (wolfcastle start --foreground) should not use --interleaved by default. It should accept the same flags as wolfcastle log (--thoughts, --interleaved, --json, default summary) and use the same default renderer (summary). The foreground output path is in internal/daemon/start.go or cmd/daemon/start.go.",
+      "status": "filed"
+    },
+    {
+      "timestamp": "2026-03-23T03:00:51Z",
+      "text": "Document the git revert workflow in docs/humans/failure-and-recovery.md. Now that the daemon commits code and state together after every iteration, users can recover from bad task outcomes by reverting to the commit before the failed task. Add a section explaining: all state files and code are committed together, git log shows wolfcastle commits with task titles, to retry a failed task revert to the commit before it and restart the daemon. Include a concrete example with git log and git revert commands.",
+      "status": "filed"
     }
   ]
 }

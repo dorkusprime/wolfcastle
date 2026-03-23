@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "enrich-commit-messages-with-task-metadata",
+  "name": "Enrich Commit Messages with Task Metadata",
+  "type": "leaf",
+  "state": "not_started",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Refactor commitAfterIteration to accept and use task metadata",
+      "description": "Refactor commitAfterIteration to accept and use task metadata",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration.go"
+      ],
+      "body": "Change commitAfterIteration's signature to accept task metadata: title (string), class (string), deliverables ([]string), latestBreadcrumb (string), and failureType (string, only relevant for failures). Use the CommitPrefix from gitCfg to build the subject line.\n\nSubject line format:\n- Success: '{prefix}: {title}' (or '{title}' if prefix is empty)\n- Failure: '{prefix}: {title} (attempt N)' (or '{title} (attempt N)' if prefix is empty)\n\nBody format (multi-line, use git commit -m for subject and a second -m for body):\n  Task: {taskID} [{class}]\n  Deliverables: {comma-separated deliverables}\n\n  {latest breadcrumb text}\n\nFor failures, add a line: Failure: {failureType}\n\nIf title is empty, fall back to the current behavior (using taskID in the subject).\n\nUpdate both call sites in runIteration (lines ~381 and ~402). At both sites, the NodeState (ns) is in scope. Extract the task's Title, Class, Deliverables from ns.Tasks by matching nav.TaskID. Extract the latest breadcrumb from ns.Audit.Breadcrumbs (the last entry, or empty string if none). At the failure site, pass the failureType variable that's already computed.\n\nReference: internal/state/types.go for Task and Breadcrumb struct definitions.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "commitAfterIteration uses task title in the subject line instead of bare task ID",
+        "Commit body includes task ID with class",
+        " deliverables",
+        " and latest breadcrumb",
+        "Failure commits include (attempt N) in subject and failure type in body",
+        "Empty prefix produces subject without leading colon",
+        "Empty title falls back to task ID in subject"
+      ],
+      "references": [
+        "internal/state/types.go"
+      ]
+    },
+    {
+      "id": "task-0002",
+      "title": "Update tests for enriched commit messages",
+      "description": "Update tests for enriched commit messages",
+      "state": "not_started",
+      "failure_count": 0,
+      "deliverables": [
+        "internal/daemon/iteration_test.go"
+      ],
+      "body": "Update existing tests in internal/daemon/iteration_test.go that exercise commitAfterIteration to match the new signature and verify the enriched commit message format. Add test cases for:\n1. Success commit with prefix, title, class, deliverables, and breadcrumb\n2. Failure commit with attempt number and failure type in body\n3. Empty prefix produces subject without leading separator\n4. Empty title falls back to task ID\n5. No breadcrumbs produces a body without the breadcrumb section\n6. Multiple deliverables are comma-separated in the body\n\nEnsure all existing test scenarios still pass with the updated function signature.",
+      "class": "coding/go",
+      "acceptance_criteria": [
+        "Tests cover success and failure commit message formats with metadata",
+        "Tests verify empty-prefix and empty-title fallback behaviors",
+        "All tests pass"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Enrich Commit Messages with Task Metadata is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify commit subject uses title instead of task ID, and body contains structured metadata",
+    "Verify both call sites in runIteration pass task metadata from the in-scope NodeState",
+    "Verify empty prefix and empty title edge cases are handled correctly"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [],
+    "gaps": [],
+    "escalations": [],
+    "status": "pending"
+  }
+}

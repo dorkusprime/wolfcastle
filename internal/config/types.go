@@ -153,6 +153,7 @@ type GitConfig struct {
 	CommitOnSuccess       bool   `json:"commit_on_success"`
 	CommitOnFailure       bool   `json:"commit_on_failure"`
 	CommitState           bool   `json:"commit_state"`
+	CommitPrefix          string `json:"commit_prefix"`
 	CommitMessageFormat   string `json:"commit_message_format"`
 	VerifyBranch          bool   `json:"verify_branch"`
 	SkipHooksOnAutoCommit bool   `json:"skip_hooks_on_auto_commit"`
