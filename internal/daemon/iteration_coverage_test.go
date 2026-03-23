@@ -675,7 +675,10 @@ func TestCommitAfterIteration_UntrackedFilesNotStaged(t *testing.T) {
 	// Modify the tracked file (will be staged by git add -u)
 	_ = os.WriteFile(trackedFile, []byte("package main\n// modified\n"), 0644)
 
-	// Create untracked files that should NOT be staged
+	// Create untracked files that should NOT be staged (protected by .gitignore)
+	_ = os.WriteFile(filepath.Join(repoDir, ".gitignore"), []byte(".env\ncredentials.json\n"), 0644)
+	run("add", ".gitignore")
+	run("commit", "-m", "add gitignore")
 	_ = os.WriteFile(filepath.Join(repoDir, ".env"), []byte("SECRET=password\n"), 0644)
 	_ = os.WriteFile(filepath.Join(repoDir, "credentials.json"), []byte("{}\n"), 0644)
 
@@ -702,16 +705,12 @@ func TestCommitAfterIteration_UntrackedFilesNotStaged(t *testing.T) {
 		t.Error("modified tracked file should be in auto-commit")
 	}
 
-	// Verify untracked files still exist as untracked
-	statusCmd := exec.Command("git", "status", "--porcelain")
-	statusCmd.Dir = repoDir
-	statusOut, _ := statusCmd.Output()
-	status := string(statusOut)
-	if !strings.Contains(status, ".env") {
-		t.Error(".env should still be untracked")
+	// Verify ignored files still exist on disk
+	if _, err := os.Stat(filepath.Join(repoDir, ".env")); os.IsNotExist(err) {
+		t.Error(".env should still exist on disk")
 	}
-	if !strings.Contains(status, "credentials.json") {
-		t.Error("credentials.json should still be untracked")
+	if _, err := os.Stat(filepath.Join(repoDir, "credentials.json")); os.IsNotExist(err) {
+		t.Error("credentials.json should still exist on disk")
 	}
 }
 

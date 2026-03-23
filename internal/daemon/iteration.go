@@ -748,15 +748,19 @@ func extractTaskCommitMeta(ns *state.NodeState, taskID string) taskCommitMeta {
 // the parent is auto-completed.
 // commitDirect performs git add/commit using the default index.
 func commitDirect(repoDir string, gitCfg config.GitConfig, commitArgs []string) error {
-	addCmd := exec.Command("git", "add", "-u")
+	// Use "git add ." instead of "git add -u" so new files created by
+	// the agent are included. .gitignore protects sensitive files.
+	addCmd := exec.Command("git", "add", ".")
 	addCmd.Dir = repoDir
 	if err := addCmd.Run(); err != nil {
-		return fmt.Errorf("git add -u: %w", err)
+		return fmt.Errorf("git add .: %w", err)
 	}
-	if gitCfg.CommitState {
-		addState := exec.Command("git", "add", ".wolfcastle/")
-		addState.Dir = repoDir
-		_ = addState.Run()
+	// When commit_state is disabled, unstage .wolfcastle/ so state
+	// files are excluded from the commit.
+	if !gitCfg.CommitState {
+		resetCmd := exec.Command("git", "reset", "HEAD", "--", ".wolfcastle/")
+		resetCmd.Dir = repoDir
+		_ = resetCmd.Run()
 	}
 	commitCmd := exec.Command("git", commitArgs...)
 	commitCmd.Dir = repoDir
