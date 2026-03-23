@@ -96,3 +96,4 @@
 | 092 | [Result.Unavailable Field over Sentinel Error](092-result-unavailable-field.md) | Accepted | 2026-03-20 |
 | 093 | [Separate GIT_INDEX_FILE for Daemon Commits](093-separate-git-index-file.md) | Superseded | 2026-03-22 |
 | 094 | [PIDChecker Interface Decouples Validate from Daemon](094-pidchecker-interface.md) | Accepted (supersedes ADR-088) | 2026-03-22 |
+| 095 | [Parallel Sibling Execution](095-parallel-sibling-execution.md) | Accepted | 2026-03-23 |
