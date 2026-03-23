@@ -1,7 +1,9 @@
 package daemon
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -555,4 +557,203 @@ func iterTestLogger(t *testing.T) *logging.Logger {
 	}
 	_ = l.StartIteration()
 	return l
+}
+
+// readLogRecords reads all .jsonl files in logDir and returns parsed records.
+func readLogRecords(t *testing.T, logDir string) []map[string]any {
+	t.Helper()
+	entries, err := os.ReadDir(logDir)
+	if err != nil {
+		t.Fatalf("reading log dir: %v", err)
+	}
+	var records []map[string]any
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".jsonl") {
+			continue
+		}
+		f, err := os.Open(filepath.Join(logDir, e.Name()))
+		if err != nil {
+			t.Fatalf("opening log file %s: %v", e.Name(), err)
+		}
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			var rec map[string]any
+			if err := json.Unmarshal(scanner.Bytes(), &rec); err != nil {
+				continue
+			}
+			records = append(records, rec)
+		}
+		f.Close()
+	}
+	return records
+}
+
+// filterRecords returns records matching the given type value.
+func filterRecords(records []map[string]any, recordType string) []map[string]any {
+	var out []map[string]any
+	for _, r := range records {
+		if t, ok := r["type"].(string); ok && t == recordType {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// duration_ms emission in log records
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIteration_StageComplete_HasDurationMs(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+
+	logDir := d.Logger.LogDir
+	_ = d.Logger.StartIteration()
+
+	repoDir := initGitRepo(t)
+	d.RepoDir = repoDir
+	d.Git = git.NewService(repoDir)
+	d.Config.Git = testGitCfg()
+	d.Config.Failure.DecompositionThreshold = 0
+	d.Config.Failure.HardCap = 0
+
+	setupLeafNode(t, d, "duration-test", []state.Task{
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
+	})
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
+
+	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_COMPLETE"}}
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "echo", PromptFile: "stages/execute.md"},
+	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "duration-test", TaskID: "task-0001", Found: true}
+	_ = d.runIteration(context.Background(), nav, idx)
+	d.Logger.Close()
+
+	records := readLogRecords(t, logDir)
+	stageCompletes := filterRecords(records, "stage_complete")
+	if len(stageCompletes) == 0 {
+		t.Fatal("expected at least one stage_complete log record")
+	}
+
+	for _, rec := range stageCompletes {
+		raw, ok := rec["duration_ms"]
+		if !ok {
+			t.Error("stage_complete record missing duration_ms field")
+			continue
+		}
+		// JSON numbers decode as float64
+		ms, ok := raw.(float64)
+		if !ok {
+			t.Errorf("duration_ms is not a number: %T", raw)
+			continue
+		}
+		if ms < 0 {
+			t.Errorf("duration_ms should be non-negative, got %v", ms)
+		}
+	}
+}
+
+func TestRunIntakeStage_StageComplete_HasDurationMs(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+
+	logDir := d.InboxLogger.LogDir
+	_ = d.InboxLogger.StartIterationWithPrefix("intake")
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
+
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
+		{Status: "new", Text: "test item", Timestamp: "2026-01-01T00:00:00Z"},
+	}})
+
+	stage := config.PipelineStage{Model: "echo", PromptFile: "stages/intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("intake stage error: %v", err)
+	}
+	d.InboxLogger.Close()
+
+	records := readLogRecords(t, logDir)
+	stageCompletes := filterRecords(records, "stage_complete")
+	if len(stageCompletes) == 0 {
+		t.Fatal("expected at least one stage_complete record from intake")
+	}
+
+	for _, rec := range stageCompletes {
+		raw, ok := rec["duration_ms"]
+		if !ok {
+			t.Error("intake stage_complete record missing duration_ms field")
+			continue
+		}
+		ms, ok := raw.(float64)
+		if !ok {
+			t.Errorf("duration_ms is not a number: %T", raw)
+			continue
+		}
+		if ms < 0 {
+			t.Errorf("duration_ms should be non-negative, got %v", ms)
+		}
+	}
+}
+
+func TestRunPlanningPass_PlanningComplete_HasDurationMs(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Pipeline.Planning.Enabled = true
+	d.Config.Pipeline.Planning.Model = "echo"
+	d.Config.Models["echo"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_COMPLETE"}}
+
+	logDir := d.Logger.LogDir
+
+	projDir := d.Store.Dir()
+	idx := state.NewRootIndex()
+	idx.Root = []string{"orch-dur"}
+	idx.Nodes["orch-dur"] = state.IndexEntry{
+		Name: "Orch", Type: state.NodeOrchestrator, State: state.StatusInProgress, Address: "orch-dur",
+	}
+	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
+
+	ns := state.NewNodeState("orch-dur", "Orch", state.NodeOrchestrator)
+	ns.NeedsPlanning = true
+	ns.State = state.StatusInProgress
+	ns.Scope = "test scope"
+	writeJSON(t, filepath.Join(projDir, "orch-dur", "state.json"), ns)
+
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-initial.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-amend.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-remediate.md")
+	writePromptFile(t, d.WolfcastleDir, "stages/plan-review.md")
+
+	_ = d.Logger.StartIteration()
+
+	err := d.runPlanningPass(context.Background(), "orch-dur", ns, idx)
+	if err != nil {
+		t.Fatalf("runPlanningPass error: %v", err)
+	}
+
+	// runPlanningPass closes the logger internally, so just read logs
+	records := readLogRecords(t, logDir)
+	planCompletes := filterRecords(records, "planning_complete")
+	if len(planCompletes) == 0 {
+		t.Fatal("expected at least one planning_complete log record")
+	}
+
+	for _, rec := range planCompletes {
+		raw, ok := rec["duration_ms"]
+		if !ok {
+			t.Error("planning_complete record missing duration_ms field")
+			continue
+		}
+		ms, ok := raw.(float64)
+		if !ok {
+			t.Errorf("duration_ms is not a number: %T", raw)
+			continue
+		}
+		if ms < 0 {
+			t.Errorf("duration_ms should be non-negative, got %v", ms)
+		}
+	}
 }

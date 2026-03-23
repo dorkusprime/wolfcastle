@@ -46,7 +46,7 @@
       "id": "task-0003",
       "title": "Add duration_ms to planning_complete records",
       "description": "Add duration_ms to planning_complete records",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/planning.go"
@@ -63,7 +63,7 @@
       "id": "task-0004",
       "title": "Add unit tests for duration_ms emission",
       "description": "Add unit tests for duration_ms emission",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration_test.go"
