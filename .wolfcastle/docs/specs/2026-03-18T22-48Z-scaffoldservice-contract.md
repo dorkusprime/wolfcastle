@@ -10,7 +10,7 @@
 
 ```go
 type ScaffoldService struct {
-    config  *config.ConfigRepository
+    config  *config.Repository
     prompts *pipeline.PromptRepository
     daemon  *daemon.DaemonRepository
     root    string // path to .wolfcastle/
@@ -21,7 +21,7 @@ The `config` field provides tier-aware config reads and writes. The `prompts` fi
 
 ## Constructor
 
-### NewScaffoldService(config \*config.ConfigRepository, prompts \*pipeline.PromptRepository, daemon \*daemon.DaemonRepository, root string) \*ScaffoldService
+### NewScaffoldService(config \*config.Repository, prompts \*pipeline.PromptRepository, daemon \*daemon.DaemonRepository, root string) \*ScaffoldService
 
 Stores the provided dependencies and returns the service. No filesystem work happens at construction time.
 
