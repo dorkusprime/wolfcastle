@@ -3,7 +3,7 @@
   "id": "foreground-renderer-flags",
   "name": "Foreground Renderer Flags",
   "type": "leaf",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "tasks": [
     {
@@ -54,7 +54,7 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Foreground Renderer Flags is complete and correct",
-      "state": "in_progress",
+      "state": "complete",
       "is_audit": true,
       "failure_count": 0,
       "class": "audit"
@@ -89,8 +89,9 @@
     ],
     "gaps": [],
     "escalations": [],
-    "status": "in_progress",
+    "status": "passed",
     "started_at": "2026-03-23T03:23:17.400609Z",
+    "completed_at": "2026-03-23T03:31:36.515319Z",
     "result_summary": "Wired output mode flags (--thoughts/-t, --interleaved/-i, --json) into the start command's foreground renderer, matching the existing pattern from the log command. The mode is declared as a local variable in newStartCmd, registerModeFlags attaches pflag.Value-based flags with last-wins semantics, and the renderer goroutine dispatches to SummaryRenderer (default), ThoughtsRenderer, InterleavedRenderer, or inline JSON marshaling. Background mode (-d) is unaffected since it returns before the renderer starts. Test coverage includes flag registration verification (3 subtests) and mode resolution (11 subtests covering defaults, shorthands, and last-wins combinations). All modified code at 100% coverage; audit found no issues requiring remediation."
   },
   "aars": {

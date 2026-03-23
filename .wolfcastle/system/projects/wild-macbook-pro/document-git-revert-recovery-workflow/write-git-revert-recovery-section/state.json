@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "write-git-revert-recovery-section",
+  "name": "Write Git Revert Recovery Section",
+  "type": "leaf",
+  "state": "in_progress",
+  "decomposition_depth": 0,
+  "tasks": [
+    {
+      "id": "task-0001",
+      "title": "Add git revert recovery section to failure-and-recovery.md",
+      "description": "Add git revert recovery section to failure-and-recovery.md",
+      "state": "in_progress",
+      "failure_count": 0,
+      "deliverables": [
+        "docs/humans/failure-and-recovery.md"
+      ],
+      "body": "Add a new section to docs/humans/failure-and-recovery.md titled 'Git Revert Recovery' (or similar). The section should explain:\n\n1. **Atomic commits**: The daemon commits code changes and .wolfcastle/ state together after every task iteration, so each commit is a complete snapshot of the project at that point.\n\n2. **Reading the commit log**: wolfcastle commits use the format 'wolfcastle: \u003ctask-id\u003e complete' or 'wolfcastle: \u003ctask-id\u003e partial (attempt N)'. Users can scan git log to find the commit before a bad task outcome.\n\n3. **Reverting**: To undo a bad task's work, revert to the commit before it using git revert or git reset. Then restart the daemon, which will re-evaluate the task from the clean state.\n\n4. **Concrete example**: Show a realistic git log output with wolfcastle-style commit messages, identify the bad commit, and demonstrate the git revert command sequence. Keep the example grounded in the commit message format defined in the deterministic-git spec.\n\nCross-reference the existing 'Partial Work Preservation' and 'Self-Healing' sections. Reference the git config section. Match the existing document's voice and structure (prose-forward, conversational, technically precise).",
+      "class": "writing",
+      "acceptance_criteria": [
+        "A 'Git Revert Recovery' section exists in failure-and-recovery.md",
+        "Section explains that daemon commits code and state atomically after every iteration",
+        "Section shows how to read wolfcastle commit messages in git log",
+        "Section includes a concrete example with git log output and git revert commands",
+        "Section explains restarting the daemon after revert to retry the task"
+      ],
+      "references": [
+        ".wolfcastle/docs/specs/2026-03-22T07-00Z-deterministic-git.md"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "Audit",
+      "description": "Verify all work in Write Git Revert Recovery Section is complete and correct",
+      "state": "not_started",
+      "is_audit": true,
+      "failure_count": 0
+    }
+  ],
+  "audit_enrichment": [
+    "Verify the example uses the correct wolfcastle commit message format from the deterministic-git spec",
+    "Verify cross-references to Partial Work Preservation and Self-Healing sections are present and correct"
+  ],
+  "audit": {
+    "scope": {
+      "description": ""
+    },
+    "breadcrumbs": [
+      {
+        "timestamp": "2026-03-23T03:33:36.824238Z",
+        "task": "document-git-revert-recovery-workflow/write-git-revert-recovery-section",
+        "text": "Added Git Revert Recovery section to docs/humans/failure-and-recovery.md covering atomic commits, commit log format, git revert/reset workflows, and daemon restart after revert"
+      }
+    ],
+    "gaps": [],
+    "escalations": [],
+    "status": "in_progress",
+    "started_at": "2026-03-23T03:32:32.144598Z"
+  },
+  "aars": {
+    "task-0001": {
+      "task_id": "task-0001",
+      "timestamp": "2026-03-23T03:33:33.552924Z",
+      "objective": "Add a git revert recovery section to failure-and-recovery.md documenting how users can undo bad task output using git history",
+      "what_happened": "Added a new 'Git Revert Recovery' section between Partial Work Preservation and Self-Healing. The section covers atomic commit structure, reading the commit log format, reverting single and multi-commit task outputs with both git revert and git reset, and restarting the daemon after revert. Included a concrete git log example using realistic wolfcastle commit messages.",
+      "went_well": [
+        "The section slots naturally between Partial Work Preservation (which it builds on) and Self-Healing (which it cross-references). The example git log output grounds the explanation in something scannable."
+      ],
+      "improvements": [
+        "The git revert example for multi-commit scenarios could show the --no-commit flag for batching reverts into a single commit, but that felt like over-documenting for the audience."
+      ],
+      "action_items": [
+        "None identified"
+      ]
+    }
+  }
+}

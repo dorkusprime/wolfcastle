@@ -294,9 +294,20 @@
     "document-git-revert-recovery-workflow": {
       "name": "Document Git Revert Recovery Workflow",
       "type": "orchestrator",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "document-git-revert-recovery-workflow",
-      "decomposition_depth": 0
+      "decomposition_depth": 0,
+      "children": [
+        "document-git-revert-recovery-workflow/write-git-revert-recovery-section"
+      ]
+    },
+    "document-git-revert-recovery-workflow/write-git-revert-recovery-section": {
+      "name": "Write Git Revert Recovery Section",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "document-git-revert-recovery-workflow/write-git-revert-recovery-section",
+      "decomposition_depth": 0,
+      "parent": "document-git-revert-recovery-workflow"
     },
     "document-pid-recycling-edge-case-in-filelock": {
       "name": "Document PID recycling edge case in filelock",
@@ -596,7 +607,7 @@
     "non-daemon-foreground-output-flags": {
       "name": "Non-Daemon Foreground Output Flags",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "non-daemon-foreground-output-flags",
       "decomposition_depth": 0,
       "children": [
@@ -607,7 +618,7 @@
     "non-daemon-foreground-output-flags/foreground-renderer-flags": {
       "name": "Foreground Renderer Flags",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "non-daemon-foreground-output-flags/foreground-renderer-flags",
       "decomposition_depth": 0,
       "parent": "non-daemon-foreground-output-flags"

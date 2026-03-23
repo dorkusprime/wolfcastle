@@ -3,7 +3,7 @@
   "id": "non-daemon-foreground-output-flags",
   "name": "Non-Daemon Foreground Output Flags",
   "type": "orchestrator",
-  "state": "in_progress",
+  "state": "complete",
   "decomposition_depth": 0,
   "children": [
     {
@@ -14,7 +14,7 @@
     {
       "id": "foreground-renderer-flags",
       "address": "non-daemon-foreground-output-flags/foreground-renderer-flags",
-      "state": "in_progress"
+      "state": "complete"
     }
   ],
   "tasks": [
@@ -34,6 +34,8 @@
     "Log command design spec is updated to reflect summary as the non-daemon default",
     "All modified code has \u003e90% test coverage"
   ],
+  "needs_planning": true,
+  "planning_trigger": "completion_review",
   "planning_history": [
     {
       "timestamp": "2026-03-23T03:19:59.315715Z",
