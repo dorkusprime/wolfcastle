@@ -10,7 +10,7 @@
       "id": "task-0001",
       "title": "Refactor commitAfterIteration to accept and use task metadata",
       "description": "Refactor commitAfterIteration to accept and use task metadata",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration.go"
@@ -34,7 +34,7 @@
       "id": "task-0002",
       "title": "Update tests for enriched commit messages",
       "description": "Update tests for enriched commit messages",
-      "state": "not_started",
+      "state": "in_progress",
       "failure_count": 0,
       "deliverables": [
         "internal/daemon/iteration_test.go"
@@ -70,6 +70,11 @@
         "timestamp": "2026-03-23T03:11:30.111858Z",
         "task": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
         "text": "Refactored commitAfterIteration to accept taskCommitMeta struct. Added buildCommitSubject, buildCommitBody, and extractTaskCommitMeta helpers. Subject uses CommitPrefix + task title with fallback to taskID. Body includes task class, deliverables, failure type, and latest breadcrumb. Updated both call sites in runIteration to extract metadata from NodeState. All 21 existing tests updated and passing."
+      },
+      {
+        "timestamp": "2026-03-23T03:13:40.752733Z",
+        "task": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
+        "text": "Added TestCommitAfterIteration_EnrichedMessages with 6 table-driven sub-cases: success with full metadata, failure with attempt/failure-type, empty prefix, empty title fallback, no breadcrumbs, and multiple comma-separated deliverables. All pass alongside existing tests."
       }
     ],
     "gaps": [],
@@ -94,6 +99,22 @@
       "action_items": [
         "Add tests that verify enriched commit messages with populated taskCommitMeta fields",
         "Consider whether buildCommitSubject and buildCommitBody warrant their own unit tests for edge cases"
+      ]
+    },
+    "task-0002": {
+      "task_id": "task-0002",
+      "timestamp": "2026-03-23T03:13:38.853674Z",
+      "objective": "Add tests verifying enriched commit message formatting from taskCommitMeta",
+      "what_happened": "Added a table-driven test TestCommitAfterIteration_EnrichedMessages with six sub-cases covering all scenarios from the task description. Added a fullCommitMessage helper to retrieve the complete subject+body from HEAD (gitLog only returned oneline). All six new tests and all existing tests pass.",
+      "went_well": [
+        "Table-driven structure keeps the six cases concise and parallel-safe",
+        "fullCommitMessage helper reuses the same git env pattern as gitLog"
+      ],
+      "improvements": [
+        "Could add unit tests for buildCommitSubject and buildCommitBody directly, bypassing git entirely for faster execution"
+      ],
+      "action_items": [
+        "Consider pure-unit tests for buildCommitSubject/buildCommitBody if test suite time grows"
       ]
     }
   }

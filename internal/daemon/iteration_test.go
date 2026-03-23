@@ -211,6 +211,161 @@ func TestCommitAfterIteration_InvalidTaskID_Skips(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// commitAfterIteration — enriched commit messages
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestCommitAfterIteration_EnrichedMessages(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		taskID     string
+		kind       string
+		attemptNum int
+		gitCfg     config.GitConfig
+		meta       taskCommitMeta
+		wantSubj   string
+		wantBody   []string // each entry must appear in the body
+		wantNoBody []string // each entry must NOT appear in the body
+	}{
+		{
+			name:   "success with prefix, title, class, deliverables, and breadcrumb",
+			taskID: "task-0001",
+			kind:   "success",
+			gitCfg: func() config.GitConfig {
+				cfg := testGitCfg()
+				cfg.CommitPrefix = "wolfcastle"
+				return cfg
+			}(),
+			meta: taskCommitMeta{
+				Title:            "Add caching layer",
+				Class:            "feature",
+				Deliverables:     []string{"internal/cache/cache.go"},
+				LatestBreadcrumb: "Implemented LRU cache with TTL",
+			},
+			wantSubj: "wolfcastle: Add caching layer",
+			wantBody: []string{
+				"Task: task-0001 [feature]",
+				"Deliverables: internal/cache/cache.go",
+				"Implemented LRU cache with TTL",
+			},
+		},
+		{
+			name:       "failure with attempt number and failure type",
+			taskID:     "task-0002",
+			kind:       "failure",
+			attemptNum: 3,
+			gitCfg: func() config.GitConfig {
+				cfg := testGitCfg()
+				cfg.CommitPrefix = "wolfcastle"
+				return cfg
+			}(),
+			meta: taskCommitMeta{
+				Title:       "Fix race condition",
+				Class:       "bugfix",
+				FailureType: "test_failure",
+			},
+			wantSubj: "wolfcastle: Fix race condition (attempt 3)",
+			wantBody: []string{
+				"Task: task-0002 [bugfix]",
+				"Failure: test_failure",
+			},
+		},
+		{
+			name:   "empty prefix produces subject without leading separator",
+			taskID: "task-0003",
+			kind:   "success",
+			gitCfg: testGitCfg(), // no CommitPrefix
+			meta: taskCommitMeta{
+				Title: "Refactor logging",
+			},
+			wantSubj: "Refactor logging",
+		},
+		{
+			name:   "empty title falls back to task ID",
+			taskID: "task-0004",
+			kind:   "success",
+			gitCfg: func() config.GitConfig {
+				cfg := testGitCfg()
+				cfg.CommitPrefix = "wc"
+				return cfg
+			}(),
+			meta:     taskCommitMeta{},
+			wantSubj: "wc: task-0004 complete",
+		},
+		{
+			name:   "no breadcrumbs produces body without breadcrumb section",
+			taskID: "task-0005",
+			kind:   "success",
+			gitCfg: testGitCfg(),
+			meta: taskCommitMeta{
+				Title: "Update docs",
+				Class: "docs",
+			},
+			wantBody: []string{
+				"Task: task-0005 [docs]",
+			},
+			wantNoBody: []string{
+				"Implemented", // no breadcrumb text should appear
+			},
+		},
+		{
+			name:   "multiple deliverables are comma-separated",
+			taskID: "task-0006",
+			kind:   "success",
+			gitCfg: testGitCfg(),
+			meta: taskCommitMeta{
+				Title:        "Add API endpoints",
+				Deliverables: []string{"api/handler.go", "api/routes.go", "api/middleware.go"},
+			},
+			wantBody: []string{
+				"Deliverables: api/handler.go, api/routes.go, api/middleware.go",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			repoDir := initGitRepo(t)
+			modifyTrackedFile(t, repoDir)
+
+			logger := iterTestLogger(t)
+			defer logger.Close()
+
+			commitAfterIteration(repoDir, logger, tt.taskID, tt.kind, tt.attemptNum, tt.gitCfg, tt.meta)
+
+			msg := fullCommitMessage(t, repoDir)
+
+			// First line is the subject.
+			lines := strings.SplitN(msg, "\n", 2)
+			subject := strings.TrimSpace(lines[0])
+
+			if tt.wantSubj != "" && subject != tt.wantSubj {
+				t.Errorf("subject = %q, want %q", subject, tt.wantSubj)
+			}
+
+			body := ""
+			if len(lines) > 1 {
+				body = lines[1]
+			}
+
+			for _, want := range tt.wantBody {
+				if !strings.Contains(body, want) {
+					t.Errorf("body missing %q\ngot: %s", want, body)
+				}
+			}
+
+			for _, unwanted := range tt.wantNoBody {
+				if strings.Contains(body, unwanted) {
+					t.Errorf("body should not contain %q\ngot: %s", unwanted, body)
+				}
+			}
+		})
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // runIteration — success-path commit integration
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -544,6 +699,18 @@ func gitLog(t *testing.T, dir string) string {
 		t.Fatalf("git log failed: %v", err)
 	}
 	return string(out)
+}
+
+// fullCommitMessage returns the full commit message (subject + body) of HEAD.
+func fullCommitMessage(t *testing.T, dir string) string {
+	t.Helper()
+	cmd := exec.Command("git", "log", "-1", "--format=%B")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git log failed: %v", err)
+	}
+	return strings.TrimRight(string(out), "\n")
 }
 
 // iterTestLogger creates a test logger with a started iteration.
