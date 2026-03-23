@@ -93,3 +93,7 @@ Wolfcastle needs a complete, consistent set of CLI commands that serve three aud
 - All state-mutating commands are deterministic and testable
 - The surface is intentionally minimal: new commands can be added as needs arise during implementation
 - Additional commands added in later ADRs: `wolfcastle doctor` (ADR-025), `wolfcastle install <target>` (ADR-026), `wolfcastle unblock` (ADR-028), `wolfcastle spec create/link/list` (ADR-031). See the CLI commands spec for the complete reference.
+
+## Amendment (2026-03-23)
+
+**ADR-073** renamed `wolfcastle follow` to `wolfcastle log`. The old name is preserved as a hidden alias. The lifecycle commands table above reflects the original design; the current command name is `wolfcastle log`.
