@@ -44,7 +44,7 @@
       "id": "task-0003",
       "title": "Add renderer tests for duration_ms consumption",
       "description": "Add renderer tests for duration_ms consumption",
-      "state": "in_progress",
+      "state": "complete",
       "failure_count": 0,
       "deliverables": [
         "internal/logrender/summary_test.go",
@@ -62,9 +62,10 @@
       "id": "audit",
       "title": "Audit",
       "description": "Verify all work in Renderer Duration Field Support is complete and correct",
-      "state": "not_started",
+      "state": "in_progress",
       "is_audit": true,
-      "failure_count": 0
+      "failure_count": 0,
+      "class": "audit"
     }
   ],
   "audit_enrichment": [
@@ -89,14 +90,36 @@
         "timestamp": "2026-03-23T00:19:56.934116Z",
         "task": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
         "text": "task-0003: Verified all DurationMS renderer tests already exist from prior tasks; 11 tests across 4 files cover preference, fallback, and round-trip scenarios; all pass"
+      },
+      {
+        "timestamp": "2026-03-23T00:22:30.119886Z",
+        "task": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
+        "text": "Audit reviewed 8 files (~620 lines of production and test code). PASS. One finding remediated: gofmt alignment violation in record.go introduced when DurationMS field was added to the Record struct (task-0001); fixed during audit. Two findings accepted: (1) no ADR for the DurationMS-over-timestamp preference decision, accepted because the logic is a 7-line unexported helper with clear doc comments and the choice is self-evident; (2) no spec for resolveDuration, accepted for the same reason. No correctness, concurrency, or security issues. Test coverage is thorough: 11 DurationMS-specific tests across 4 files cover preference, fallback, zero-value, and absent scenarios. The resolveDuration helper centralizes duration logic cleanly across 6 call sites in summary.go and interleaved.go. Race detector passed. Build clean. Vet clean."
       }
     ],
     "gaps": [],
     "escalations": [],
     "status": "in_progress",
-    "started_at": "2026-03-23T00:12:55.826991Z"
+    "started_at": "2026-03-23T00:12:55.826991Z",
+    "result_summary": "Added DurationMS *int64 field to the logrender Record struct for structured timing data, created a resolveDuration helper that prefers pre-computed DurationMS over timestamp subtraction, and wired it into all six completion handlers across summary.go (Replay, Follow) and interleaved.go (Render) for both stage_complete and planning_complete record types. Comprehensive test coverage spans 11 DurationMS-specific tests across duration_test.go, record_test.go, summary_test.go, and interleaved_test.go, verifying preference, fallback, zero-value, and absent-field behavior. Audit found and fixed one gofmt alignment violation; no correctness or concurrency issues."
   },
   "aars": {
+    "audit": {
+      "task_id": "audit",
+      "timestamp": "2026-03-23T00:22:43.932206Z",
+      "objective": "Verify all work in the renderer-duration-field-support node is complete and correct",
+      "what_happened": "Reviewed 8 files (~620 lines). Found one gofmt violation in record.go where struct field alignment broke when DurationMS was inserted between pointer and value types. Fixed it during audit. Verified all 6 resolveDuration call sites, all 11 DurationMS tests, build, vet, race detector. Two minor findings (missing ADR and spec for resolveDuration) accepted as the code is self-documenting.",
+      "went_well": [
+        "Prior tasks produced clean, well-factored code with thorough test coverage",
+        "The resolveDuration abstraction is exactly right: simple, tested, used consistently"
+      ],
+      "improvements": [
+        "Task-0001 should have run gofmt after modifying the struct; the alignment drift was a mechanical oversight"
+      ],
+      "action_items": [
+        "None; all work is complete and correct"
+      ]
+    },
     "task-0001": {
       "task_id": "task-0001",
       "timestamp": "2026-03-23T00:14:46.398964Z",
