@@ -14,6 +14,7 @@ type Provider interface {
 	CurrentBranch() (string, error)
 	HEAD() string
 	HasProgress(sinceCommit string) bool
+	HasProgressScoped(sinceCommit string, scopeFiles []string) bool
 	IsRepo() bool
 	IsDirty(excludePaths ...string) bool
 	CreateWorktree(path, branch string) error
@@ -119,6 +120,50 @@ func (s *Service) HasProgress(sinceCommit string) bool {
 		return true
 	}
 	return s.HEAD() != sinceCommit || s.IsDirty(".wolfcastle/")
+}
+
+// HasProgressScoped reports whether any of the given scopeFiles have been
+// modified, added, or left untracked in the working tree. Entries ending
+// with "/" are treated as directory prefixes (strings.HasPrefix match);
+// all others require an exact match. The sinceCommit parameter is accepted
+// for signature symmetry with HasProgress but is deliberately unused:
+// in parallel mode HEAD can move from sibling commits, making HEAD
+// comparison unreliable. If git is unavailable, returns true (conservative).
+func (s *Service) HasProgressScoped(_ string, scopeFiles []string) bool {
+	if !s.IsRepo() {
+		return true
+	}
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = s.repoDir
+	out, err := cmd.Output()
+	if err != nil {
+		return true
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		path := line
+		if len(path) > 3 {
+			path = path[3:]
+		}
+		if idx := strings.Index(path, " -> "); idx >= 0 {
+			path = path[idx+4:]
+		}
+		for _, scope := range scopeFiles {
+			if strings.HasSuffix(scope, "/") {
+				if strings.HasPrefix(path, scope) {
+					return true
+				}
+			} else {
+				if path == scope {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // CreateWorktree adds a new git worktree at path on a new branch.

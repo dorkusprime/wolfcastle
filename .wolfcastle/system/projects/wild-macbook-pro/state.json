@@ -2,7 +2,10 @@
   "version": 1,
   "root_id": "domain-repository-architecture",
   "root_name": "Domain Repository Architecture",
-  "root_state": "complete",
+  "root_state": "in_progress",
+  "root": [
+    "parallel-execution-phase-2-scope-aware-git"
+  ],
   "archived_root": [
     "domain-repository-architecture",
     "code-coverage",
@@ -698,6 +701,42 @@
       "parent": "non-daemon-foreground-output-flags",
       "archived": true,
       "archived_at": "2026-03-24T06:16:42.383Z"
+    },
+    "parallel-execution-phase-2-scope-aware-git": {
+      "name": "Parallel Execution Phase 2: Scope-Aware Git",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "parallel-execution-phase-2-scope-aware-git",
+      "decomposition_depth": 0,
+      "children": [
+        "parallel-execution-phase-2-scope-aware-git/hasprogressscoped-interface-extension",
+        "parallel-execution-phase-2-scope-aware-git/logger-child-factory",
+        "parallel-execution-phase-2-scope-aware-git/scoped-git-commit-operations"
+      ]
+    },
+    "parallel-execution-phase-2-scope-aware-git/hasprogressscoped-interface-extension": {
+      "name": "HasProgressScoped Interface Extension",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "parallel-execution-phase-2-scope-aware-git/hasprogressscoped-interface-extension",
+      "decomposition_depth": 0,
+      "parent": "parallel-execution-phase-2-scope-aware-git"
+    },
+    "parallel-execution-phase-2-scope-aware-git/logger-child-factory": {
+      "name": "Logger Child Factory",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "parallel-execution-phase-2-scope-aware-git/logger-child-factory",
+      "decomposition_depth": 0,
+      "parent": "parallel-execution-phase-2-scope-aware-git"
+    },
+    "parallel-execution-phase-2-scope-aware-git/scoped-git-commit-operations": {
+      "name": "Scoped Git Commit Operations",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "parallel-execution-phase-2-scope-aware-git/scoped-git-commit-operations",
+      "decomposition_depth": 0,
+      "parent": "parallel-execution-phase-2-scope-aware-git"
     },
     "parallel-sibling-execution-phase-1": {
       "name": "Parallel Sibling Execution Phase 1",
