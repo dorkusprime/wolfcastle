@@ -189,13 +189,27 @@ done:
 			pd.releaseScope(taskAddr)
 
 			// Reset the task to not_started so it is eligible for
-			// re-dispatch once the blocker completes.
+			// re-dispatch once the blocker completes. Also recalculate
+			// the node-level state so the index entry reflects the
+			// task reset (without this, the index stays in_progress
+			// and FindParallelTasks skips the node).
 			_ = d.Store.MutateNode(wr.Node, func(mns *state.NodeState) error {
 				for i, t := range mns.Tasks {
 					if t.ID == wr.Task {
 						mns.Tasks[i].State = state.StatusNotStarted
 						break
 					}
+				}
+				// Derive node state from tasks.
+				hasInProgress := false
+				for _, t := range mns.Tasks {
+					if t.State == state.StatusInProgress {
+						hasInProgress = true
+						break
+					}
+				}
+				if !hasInProgress {
+					mns.State = state.StatusNotStarted
 				}
 				return nil
 			})
