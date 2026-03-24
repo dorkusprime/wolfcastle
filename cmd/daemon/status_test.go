@@ -1298,3 +1298,86 @@ func TestTruncate(t *testing.T) {
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Scope lock display in status output
+// ---------------------------------------------------------------------------
+
+func TestStatus_ShowsScopeLines(t *testing.T) {
+	env := newStatusTestEnv(t)
+
+	// Set up a leaf node with an in_progress task.
+	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
+	ns := state.NewNodeState("my-project", "My Project", state.NodeLeaf)
+	ns.State = state.StatusInProgress
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Description: "Do the thing", State: state.StatusInProgress},
+	}
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+
+	// Update root index to reflect in_progress.
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	entry := idx.Nodes["my-project"]
+	entry.State = state.StatusInProgress
+	idx.Nodes["my-project"] = entry
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	// Write scope locks for that task.
+	table := state.NewScopeLockTable()
+	table.Locks["internal/api/handler.go"] = state.ScopeLock{
+		Task: "my-project/task-0001",
+		Node: "my-project",
+		PID:  os.Getpid(),
+	}
+	table.Locks["internal/api/router.go"] = state.ScopeLock{
+		Task: "my-project/task-0001",
+		Node: "my-project",
+		PID:  os.Getpid(),
+	}
+	if err := state.SaveScopeLocks(env.App.State.ScopeLocksPath(), table); err != nil {
+		t.Fatalf("saving scope locks: %v", err)
+	}
+
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
+	})
+
+	if !strings.Contains(out, "scope:") {
+		t.Errorf("expected scope: line in output, got:\n%s", out)
+	}
+	// Paths should be sorted alphabetically.
+	if !strings.Contains(out, "internal/api/handler.go, internal/api/router.go") {
+		t.Errorf("expected sorted scope paths, got:\n%s", out)
+	}
+}
+
+func TestStatus_NoScopeLines_WhenNoLocks(t *testing.T) {
+	env := newStatusTestEnv(t)
+
+	// Set up an in_progress task with no scope locks at all.
+	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
+	ns := state.NewNodeState("my-project", "My Project", state.NodeLeaf)
+	ns.State = state.StatusInProgress
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Description: "Do the thing", State: state.StatusInProgress},
+	}
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	entry := idx.Nodes["my-project"]
+	entry.State = state.StatusInProgress
+	idx.Nodes["my-project"] = entry
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
+	})
+
+	if strings.Contains(out, "scope:") {
+		t.Errorf("scope: line should not appear when no locks exist, got:\n%s", out)
+	}
+}

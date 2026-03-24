@@ -1532,3 +1532,84 @@ func TestCurrentBranch_BadDir(t *testing.T) {
 		t.Error("expected error for nonexistent dir")
 	}
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// cleanStaleScopeLocks (via selfHeal)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestSelfHeal_StaleScopeLocksRemoved(t *testing.T) {
+	d := testDaemon(t)
+
+	// Create a scope lock table with a dead PID. PID 0 is never a running
+	// user process, so IsProcessRunning will return false.
+	table := state.NewScopeLockTable()
+	table.Locks["cmd/api/handler.go"] = state.ScopeLock{
+		Task:       "my-node/task-0001",
+		Node:       "my-node",
+		AcquiredAt: time.Now(),
+		PID:        999999999, // extremely unlikely to be running
+	}
+	writeJSON(t, d.Store.ScopeLocksPath(), table)
+
+	// Set up a minimal leaf node so selfHeal can proceed.
+	setupLeafNode(t, d, "my-node", []state.Task{
+		{ID: "task-0001", State: state.StatusNotStarted},
+	})
+
+	if err := d.selfHeal(); err != nil {
+		t.Fatalf("selfHeal error: %v", err)
+	}
+
+	// The scope-locks.json file should be removed entirely because all
+	// locks belonged to a dead foreign process.
+	if _, err := os.Stat(d.Store.ScopeLocksPath()); !os.IsNotExist(err) {
+		t.Error("scope-locks.json should have been removed after stale lock cleanup")
+	}
+}
+
+func TestSelfHeal_LiveScopeLocksPreserved(t *testing.T) {
+	d := testDaemon(t)
+
+	// Lock held by the current process (live).
+	table := state.NewScopeLockTable()
+	table.Locks["internal/auth/auth.go"] = state.ScopeLock{
+		Task:       "my-node/task-0001",
+		Node:       "my-node",
+		AcquiredAt: time.Now(),
+		PID:        os.Getpid(),
+	}
+	writeJSON(t, d.Store.ScopeLocksPath(), table)
+
+	setupLeafNode(t, d, "my-node", []state.Task{
+		{ID: "task-0001", State: state.StatusNotStarted},
+	})
+
+	if err := d.selfHeal(); err != nil {
+		t.Fatalf("selfHeal error: %v", err)
+	}
+
+	// The file should still exist with the lock intact.
+	after, err := d.Store.ReadScopeLocks()
+	if err != nil {
+		t.Fatalf("reading scope locks after selfHeal: %v", err)
+	}
+	if len(after.Locks) != 1 {
+		t.Errorf("expected 1 lock preserved, got %d", len(after.Locks))
+	}
+	if _, ok := after.Locks["internal/auth/auth.go"]; !ok {
+		t.Error("live lock should still be present")
+	}
+}
+
+func TestSelfHeal_MissingScopeLockFile(t *testing.T) {
+	d := testDaemon(t)
+
+	// No scope-locks.json on disk at all.
+	setupLeafNode(t, d, "my-node", []state.Task{
+		{ID: "task-0001", State: state.StatusNotStarted},
+	})
+
+	if err := d.selfHeal(); err != nil {
+		t.Fatalf("selfHeal should succeed when no scope-locks.json exists: %v", err)
+	}
+}
