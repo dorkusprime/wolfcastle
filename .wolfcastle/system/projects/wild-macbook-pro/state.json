@@ -2,7 +2,10 @@
   "version": 1,
   "root_id": "domain-repository-architecture",
   "root_name": "Domain Repository Architecture",
-  "root_state": "complete",
+  "root_state": "in_progress",
+  "root": [
+    "parallel-sibling-execution-phase-1"
+  ],
   "archived_root": [
     "domain-repository-architecture",
     "code-coverage",
@@ -696,6 +699,51 @@
       "parent": "non-daemon-foreground-output-flags",
       "archived": true,
       "archived_at": "2026-03-24T06:16:42.383Z"
+    },
+    "parallel-sibling-execution-phase-1": {
+      "name": "Parallel Sibling Execution Phase 1",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "parallel-sibling-execution-phase-1",
+      "decomposition_depth": 0,
+      "children": [
+        "parallel-sibling-execution-phase-1/scope-lock-types-and-store",
+        "parallel-sibling-execution-phase-1/parallel-config",
+        "parallel-sibling-execution-phase-1/scope-cli-commands",
+        "parallel-sibling-execution-phase-1/daemon-and-status-integration"
+      ]
+    },
+    "parallel-sibling-execution-phase-1/daemon-and-status-integration": {
+      "name": "Daemon and Status Integration",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "parallel-sibling-execution-phase-1/daemon-and-status-integration",
+      "decomposition_depth": 0,
+      "parent": "parallel-sibling-execution-phase-1"
+    },
+    "parallel-sibling-execution-phase-1/parallel-config": {
+      "name": "Parallel Config",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "parallel-sibling-execution-phase-1/parallel-config",
+      "decomposition_depth": 0,
+      "parent": "parallel-sibling-execution-phase-1"
+    },
+    "parallel-sibling-execution-phase-1/scope-cli-commands": {
+      "name": "Scope CLI Commands",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "parallel-sibling-execution-phase-1/scope-cli-commands",
+      "decomposition_depth": 0,
+      "parent": "parallel-sibling-execution-phase-1"
+    },
+    "parallel-sibling-execution-phase-1/scope-lock-types-and-store": {
+      "name": "Scope Lock Types and Store",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "parallel-sibling-execution-phase-1/scope-lock-types-and-store",
+      "decomposition_depth": 0,
+      "parent": "parallel-sibling-execution-phase-1"
     },
     "structured-timing-metrics-in-log-events": {
       "name": "Structured Timing Metrics in Log Events",

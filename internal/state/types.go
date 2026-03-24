@@ -217,6 +217,21 @@ type AAR struct {
 	ActionItems  []string  `json:"action_items,omitempty"`
 }
 
+// ScopeLockTable is the top-level scope-locks.json structure. It tracks which
+// tasks hold exclusive access to sibling node scopes during parallel execution.
+type ScopeLockTable struct {
+	Version int                  `json:"version"`
+	Locks   map[string]ScopeLock `json:"locks"`
+}
+
+// ScopeLock records a single scope reservation held by a running task.
+type ScopeLock struct {
+	Task       string    `json:"task"`        // full task address (e.g., my-project/api-layer/task-0001)
+	Node       string    `json:"node"`        // node address
+	AcquiredAt time.Time `json:"acquired_at"` // when the lock was taken
+	PID        int       `json:"pid"`         // daemon PID for stale lock detection
+}
+
 // NewRootIndex creates an empty root index.
 func NewRootIndex() *RootIndex {
 	return &RootIndex{
