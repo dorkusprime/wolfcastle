@@ -87,6 +87,12 @@ func (s *Store) ReadInbox() (*InboxFile, error) {
 	return LoadInbox(s.inboxPath())
 }
 
+// ReadScopeLocks loads the scope lock table from disk. Returns an empty
+// table (Version:1, empty Locks) if the file does not exist.
+func (s *Store) ReadScopeLocks() (*ScopeLockTable, error) {
+	return LoadScopeLocks(s.scopeLocksPath())
+}
+
 // ── Mutation operations ─────────────────────────────────────────────────
 // Each acquires the namespace lock, reads the current value, calls the
 // callback, and writes the result back atomically.
@@ -164,6 +170,22 @@ func (s *Store) MutateIndex(fn func(*RootIndex) error) error {
 	})
 }
 
+// MutateScopeLocks locks the namespace, loads the scope lock table (or an
+// empty default), applies fn, and saves the result.
+func (s *Store) MutateScopeLocks(fn func(*ScopeLockTable) error) error {
+	lock := NewFileLock(s.dir, s.timeout)
+	return lock.WithLock(func() error {
+		t, err := LoadScopeLocks(s.scopeLocksPath())
+		if err != nil {
+			return err
+		}
+		if err := fn(t); err != nil {
+			return err
+		}
+		return SaveScopeLocks(s.scopeLocksPath(), t)
+	})
+}
+
 // MutateInbox locks the namespace, loads the inbox (or an empty default),
 // applies fn, and saves the result.
 func (s *Store) MutateInbox(fn func(*InboxFile) error) error {
@@ -208,6 +230,11 @@ func (s *Store) InboxPath() string {
 	return s.inboxPath()
 }
 
+// ScopeLocksPath returns the absolute path to the scope-locks.json file.
+func (s *Store) ScopeLocksPath() string {
+	return s.scopeLocksPath()
+}
+
 func (s *Store) nodePath(addr string) (string, error) {
 	if addr == "" {
 		return "", fmt.Errorf("node address cannot be empty")
@@ -227,4 +254,8 @@ func (s *Store) indexPath() string {
 
 func (s *Store) inboxPath() string {
 	return filepath.Join(s.dir, "inbox.json")
+}
+
+func (s *Store) scopeLocksPath() string {
+	return filepath.Join(s.dir, "scope-locks.json")
 }

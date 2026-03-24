@@ -232,6 +232,14 @@ type ScopeLock struct {
 	PID        int       `json:"pid"`         // daemon PID for stale lock detection
 }
 
+// NewScopeLockTable creates an empty scope lock table.
+func NewScopeLockTable() *ScopeLockTable {
+	return &ScopeLockTable{
+		Version: 1,
+		Locks:   make(map[string]ScopeLock),
+	}
+}
+
 // NewRootIndex creates an empty root index.
 func NewRootIndex() *RootIndex {
 	return &RootIndex{
