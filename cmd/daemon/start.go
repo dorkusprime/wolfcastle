@@ -189,17 +189,18 @@ Examples:
 			reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
 			records := reader.Records(ctx)
 			renderDone := make(chan struct{})
+			w := &output.SpinnerWriter{W: os.Stdout}
 			go func() {
 				defer close(renderDone)
 				switch mode {
 				case modeSummary:
-					sr := logrender.NewSummaryRenderer(os.Stdout)
+					sr := logrender.NewSummaryRenderer(w)
 					sr.Follow(ctx, records)
 				case modeThoughts:
-					tr := logrender.NewThoughtsRenderer(os.Stdout)
+					tr := logrender.NewThoughtsRenderer(w)
 					tr.Render(ctx, records)
 				case modeInterleaved:
-					ir := logrender.NewInterleavedRenderer(os.Stdout)
+					ir := logrender.NewInterleavedRenderer(w)
 					ir.Render(ctx, records)
 				case modeJSON:
 					for rec := range records {
@@ -207,8 +208,8 @@ Examples:
 						if err != nil {
 							continue
 						}
-						_, _ = os.Stdout.Write(raw)
-						_, _ = os.Stdout.Write([]byte{'\n'})
+						_, _ = w.Write(raw)
+						_, _ = w.Write([]byte{'\n'})
 					}
 				}
 			}()

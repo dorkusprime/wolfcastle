@@ -1,6 +1,7 @@
 package output
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 )
@@ -99,6 +100,36 @@ func TestPlural_PluralWhenMany(t *testing.T) {
 	got := Plural(5, "task", "tasks")
 	if got != "5 tasks" {
 		t.Errorf("expected %q, got %q", "5 tasks", got)
+	}
+}
+
+func TestSpinnerWriter_DelegatesToUnderlying(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	sw := &SpinnerWriter{W: &buf}
+
+	n, err := sw.Write([]byte("hello"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n != 5 {
+		t.Errorf("expected n=5, got %d", n)
+	}
+	if buf.String() != "hello" {
+		t.Errorf("expected %q, got %q", "hello", buf.String())
+	}
+}
+
+func TestSpinnerWriter_MultipleWrites(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	sw := &SpinnerWriter{W: &buf}
+
+	_, _ = sw.Write([]byte("one"))
+	_, _ = sw.Write([]byte("two"))
+
+	if buf.String() != "onetwo" {
+		t.Errorf("expected %q, got %q", "onetwo", buf.String())
 	}
 }
 

@@ -7,6 +7,7 @@ package output
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -50,6 +51,21 @@ func PrintHuman(format string, args ...any) {
 // PrintError writes an error message to stderr.
 func PrintError(format string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
+}
+
+// SpinnerWriter wraps an io.Writer with spinner pause/resume so that
+// output through the writer doesn't collide with spinner animation.
+// Pass this to renderers in production; pass a plain buffer in tests.
+type SpinnerWriter struct {
+	W io.Writer
+}
+
+// Write pauses the spinner, writes to the underlying writer, then resumes.
+func (sw *SpinnerWriter) Write(p []byte) (int, error) {
+	PauseSpinner()
+	n, err := sw.W.Write(p)
+	ResumeSpinner()
+	return n, err
 }
 
 // Plural returns singular when n == 1, plural otherwise.
