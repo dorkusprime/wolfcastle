@@ -626,16 +626,16 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 	} else {
 		hasMatch := false
 		for _, line := range strings.Split(string(out), "\n") {
-			line = strings.TrimSpace(line)
-			if line == "" {
+			if strings.TrimSpace(line) == "" {
 				continue
 			}
-			// git status --porcelain format: XY <path> or XY <path> -> <path>
-			// The path starts at column 3.
-			path := line
-			if len(path) > 3 {
-				path = path[3:]
+			// git status --porcelain format: XY <path> (path starts at column 3).
+			// Do not TrimSpace the full line; the leading space is part of the
+			// porcelain format (X column) and stripping it shifts the offset.
+			if len(line) < 4 {
+				continue
 			}
+			path := line[3:]
 			// Handle renames: "R  old -> new"
 			if idx := strings.Index(path, " -> "); idx >= 0 {
 				path = path[idx+4:]

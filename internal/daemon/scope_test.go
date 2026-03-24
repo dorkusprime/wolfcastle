@@ -92,6 +92,21 @@ func TestValidateScope(t *testing.T) {
 			taskScope:   []string{"internal/daemon"},
 			wantUnowned: []string{"internal/daemon/scope.go"},
 		},
+		{
+			name:        "empty task scope makes all non-wolfcastle files unowned",
+			status:      " M foo.go\n M bar.go\n",
+			taskScope:   nil,
+			otherScopes: nil,
+			wantUnowned: []string{"foo.go", "bar.go"},
+		},
+		{
+			name:        "overlapping scopes prefer task scope over other scopes",
+			status:      " M shared.go\n",
+			taskScope:   []string{"shared.go"},
+			otherScopes: [][]string{{"shared.go"}},
+			wantIn:      []string{"shared.go"},
+			wantUnowned: nil,
+		},
 	}
 
 	for _, tt := range tests {

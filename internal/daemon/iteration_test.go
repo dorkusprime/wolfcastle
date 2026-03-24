@@ -659,6 +659,274 @@ func TestRunIteration_SuccessCleanTree_NoEmptyCommit(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// commitDirect — scope-aware behavior
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestCommitDirect_NilScope_StagesEverything(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	// Create two files, commit them, then modify both.
+	for _, name := range []string{"a.go", "b.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n"), 0644)
+	}
+	gitRunEnv(t, repoDir, "add", ".")
+	gitRunEnv(t, repoDir, "commit", "-m", "track files")
+	for _, name := range []string{"a.go", "b.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n// v2\n"), 0644)
+	}
+
+	cfg := testGitCfg()
+	err := commitDirect(repoDir, cfg, []string{"commit", "-m", "nil-scope commit"}, nil)
+	if err != nil {
+		t.Fatalf("commitDirect error: %v", err)
+	}
+
+	committed := gitShowFiles(t, repoDir)
+	if !strings.Contains(committed, "a.go") || !strings.Contains(committed, "b.go") {
+		t.Errorf("nil scope should stage all files, committed: %s", committed)
+	}
+}
+
+func TestCommitDirect_NilScope_CommitStateDisabled_ResetsWolfcastle(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	// Track a code file and .wolfcastle state.
+	_ = os.WriteFile(filepath.Join(repoDir, "main.go"), []byte("package main\n"), 0644)
+	wcDir := filepath.Join(repoDir, ".wolfcastle")
+	_ = os.MkdirAll(wcDir, 0755)
+	_ = os.WriteFile(filepath.Join(wcDir, "state.json"), []byte(`{"v":1}`), 0644)
+	gitRunEnv(t, repoDir, "add", ".")
+	gitRunEnv(t, repoDir, "commit", "-m", "initial")
+
+	// Modify both.
+	_ = os.WriteFile(filepath.Join(repoDir, "main.go"), []byte("package main\n// v2\n"), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "state.json"), []byte(`{"v":2}`), 0644)
+
+	cfg := testGitCfg()
+	cfg.CommitState = false
+	err := commitDirect(repoDir, cfg, []string{"commit", "-m", "no-state commit"}, nil)
+	if err != nil {
+		t.Fatalf("commitDirect error: %v", err)
+	}
+
+	committed := gitShowFiles(t, repoDir)
+	if strings.Contains(committed, ".wolfcastle") {
+		t.Error("nil scope with CommitState=false should exclude .wolfcastle/")
+	}
+	if !strings.Contains(committed, "main.go") {
+		t.Error("main.go should still be committed")
+	}
+}
+
+func TestCommitDirect_NonNilScope_StagesOnlyScopedFiles(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	// Track two files, modify both.
+	for _, name := range []string{"scoped.go", "other.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n"), 0644)
+	}
+	gitRunEnv(t, repoDir, "add", ".")
+	gitRunEnv(t, repoDir, "commit", "-m", "track files")
+	for _, name := range []string{"scoped.go", "other.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n// v2\n"), 0644)
+	}
+
+	cfg := testGitCfg()
+	cfg.CommitState = false
+	err := commitDirect(repoDir, cfg, []string{"commit", "-m", "scoped commit"}, []string{"scoped.go"})
+	if err != nil {
+		t.Fatalf("commitDirect error: %v", err)
+	}
+
+	committed := gitShowFiles(t, repoDir)
+	if !strings.Contains(committed, "scoped.go") {
+		t.Error("scoped.go should be in the commit")
+	}
+	if strings.Contains(committed, "other.go") {
+		t.Error("other.go should NOT be in the commit when scope is set")
+	}
+}
+
+func TestCommitDirect_NonNilScope_CommitStateTrue_IncludesWolfcastle(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	// Track a code file and .wolfcastle state.
+	_ = os.WriteFile(filepath.Join(repoDir, "scoped.go"), []byte("package main\n"), 0644)
+	wcDir := filepath.Join(repoDir, ".wolfcastle")
+	_ = os.MkdirAll(wcDir, 0755)
+	_ = os.WriteFile(filepath.Join(wcDir, "state.json"), []byte(`{"v":1}`), 0644)
+	gitRunEnv(t, repoDir, "add", ".")
+	gitRunEnv(t, repoDir, "commit", "-m", "initial")
+
+	_ = os.WriteFile(filepath.Join(repoDir, "scoped.go"), []byte("package main\n// v2\n"), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "state.json"), []byte(`{"v":2}`), 0644)
+
+	cfg := testGitCfg()
+	cfg.CommitState = true
+	err := commitDirect(repoDir, cfg, []string{"commit", "-m", "scope+state commit"}, []string{"scoped.go"})
+	if err != nil {
+		t.Fatalf("commitDirect error: %v", err)
+	}
+
+	committed := gitShowFiles(t, repoDir)
+	if !strings.Contains(committed, "scoped.go") {
+		t.Error("scoped.go should be in the commit")
+	}
+	if !strings.Contains(committed, ".wolfcastle/state.json") {
+		t.Error(".wolfcastle/ should be included when CommitState is true with non-nil scope")
+	}
+}
+
+func TestCommitDirect_NonNilScope_CommitStateFalse_ExcludesWolfcastle(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	// Track code file and .wolfcastle state.
+	_ = os.WriteFile(filepath.Join(repoDir, "scoped.go"), []byte("package main\n"), 0644)
+	wcDir := filepath.Join(repoDir, ".wolfcastle")
+	_ = os.MkdirAll(wcDir, 0755)
+	_ = os.WriteFile(filepath.Join(wcDir, "state.json"), []byte(`{"v":1}`), 0644)
+	gitRunEnv(t, repoDir, "add", ".")
+	gitRunEnv(t, repoDir, "commit", "-m", "initial")
+
+	_ = os.WriteFile(filepath.Join(repoDir, "scoped.go"), []byte("package main\n// v2\n"), 0644)
+	_ = os.WriteFile(filepath.Join(wcDir, "state.json"), []byte(`{"v":2}`), 0644)
+
+	cfg := testGitCfg()
+	cfg.CommitState = false
+	err := commitDirect(repoDir, cfg, []string{"commit", "-m", "scope-no-state"}, []string{"scoped.go"})
+	if err != nil {
+		t.Fatalf("commitDirect error: %v", err)
+	}
+
+	committed := gitShowFiles(t, repoDir)
+	if !strings.Contains(committed, "scoped.go") {
+		t.Error("scoped.go should be in the commit")
+	}
+	if strings.Contains(committed, ".wolfcastle") {
+		t.Error(".wolfcastle/ should NOT be included when CommitState is false with non-nil scope")
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// commitAfterIteration — scope-aware behavior
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestCommitAfterIteration_NilScope_GlobalStatusCheck(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	// Create two dirty files. With nil scope, both should trigger a commit.
+	for _, name := range []string{"a.go", "b.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n"), 0644)
+	}
+	gitRunEnv(t, repoDir, "add", ".")
+	gitRunEnv(t, repoDir, "commit", "-m", "track files")
+	for _, name := range []string{"a.go", "b.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n// dirty\n"), 0644)
+	}
+
+	logger := iterTestLogger(t)
+	defer logger.Close()
+
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{}, nil)
+
+	committed := gitShowFiles(t, repoDir)
+	if !strings.Contains(committed, "a.go") || !strings.Contains(committed, "b.go") {
+		t.Errorf("nil scope should commit all dirty files, committed: %s", committed)
+	}
+}
+
+func TestCommitAfterIteration_NonNilScope_OnlyCommitsWhenScopedFilesDirty(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	// Track a scoped file and an out-of-scope file.
+	for _, name := range []string{"scoped.go", "other.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n"), 0644)
+	}
+	gitRunEnv(t, repoDir, "add", ".")
+	gitRunEnv(t, repoDir, "commit", "-m", "track")
+
+	// Only dirty the out-of-scope file.
+	_ = os.WriteFile(filepath.Join(repoDir, "other.go"), []byte("package main\n// dirty\n"), 0644)
+
+	logger := iterTestLogger(t)
+	defer logger.Close()
+
+	beforeLog := gitLog(t, repoDir)
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{}, []string{"scoped.go"})
+	afterLog := gitLog(t, repoDir)
+
+	if beforeLog != afterLog {
+		t.Error("should not commit when only out-of-scope files are dirty")
+	}
+}
+
+func TestCommitAfterIteration_NonNilScope_CommitsWhenScopedFileDirty(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	// Track both files.
+	for _, name := range []string{"scoped.go", "other.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n"), 0644)
+	}
+	gitRunEnv(t, repoDir, "add", ".")
+	gitRunEnv(t, repoDir, "commit", "-m", "track")
+
+	// Dirty both files.
+	for _, name := range []string{"scoped.go", "other.go"} {
+		_ = os.WriteFile(filepath.Join(repoDir, name), []byte("package main\n// dirty\n"), 0644)
+	}
+
+	logger := iterTestLogger(t)
+	defer logger.Close()
+
+	cfg := testGitCfg()
+	cfg.CommitState = false
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{}, []string{"scoped.go"})
+
+	committed := gitShowFiles(t, repoDir)
+	if !strings.Contains(committed, "scoped.go") {
+		t.Error("scoped.go should be in the commit")
+	}
+	if strings.Contains(committed, "other.go") {
+		t.Error("other.go should NOT be committed when scope limits to scoped.go")
+	}
+}
+
+func TestCommitAfterIteration_NonNilScope_DirectoryPrefixMatch(t *testing.T) {
+	t.Parallel()
+	repoDir := initGitRepo(t)
+
+	// Create a file under a scoped directory.
+	subDir := filepath.Join(repoDir, "internal", "daemon")
+	_ = os.MkdirAll(subDir, 0755)
+	_ = os.WriteFile(filepath.Join(subDir, "scope.go"), []byte("package daemon\n"), 0644)
+	gitRunEnv(t, repoDir, "add", ".")
+	gitRunEnv(t, repoDir, "commit", "-m", "track")
+
+	_ = os.WriteFile(filepath.Join(subDir, "scope.go"), []byte("package daemon\n// v2\n"), 0644)
+
+	logger := iterTestLogger(t)
+	defer logger.Close()
+
+	cfg := testGitCfg()
+	cfg.CommitState = false
+	// Scope uses directory prefix matching via the path check in commitAfterIteration.
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{}, []string{"internal/daemon/"})
+
+	log := gitLog(t, repoDir)
+	if !strings.Contains(log, "task-0001 complete") {
+		t.Errorf("directory-prefix scope should trigger commit, log: %s", log)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -697,6 +965,18 @@ func gitLog(t *testing.T, dir string) string {
 	out, err := cmd.Output()
 	if err != nil {
 		t.Fatalf("git log failed: %v", err)
+	}
+	return string(out)
+}
+
+// gitShowFiles returns the files changed in the HEAD commit.
+func gitShowFiles(t *testing.T, dir string) string {
+	t.Helper()
+	cmd := exec.Command("git", "show", "--name-only", "--format=")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git show failed: %v", err)
 	}
 	return string(out)
 }
