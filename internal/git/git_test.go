@@ -190,6 +190,29 @@ func TestService_IsDirty_NonRepo(t *testing.T) {
 	}
 }
 
+func TestService_IsDirty_UnstagedModification(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "file.go", "package main", "init")
+
+	svc := NewService(repoDir)
+
+	// Modify without staging: porcelain shows " M file.go" (leading space).
+	if err := os.WriteFile(filepath.Join(repoDir, "file.go"), []byte("package main\n// changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !svc.IsDirty() {
+		t.Error("expected dirty for unstaged modification")
+	}
+
+	// Excluding the file by prefix should hide it.
+	if svc.IsDirty("file.go") {
+		t.Error("expected clean when unstaged modified file is excluded")
+	}
+}
+
 func TestService_IsDirty_Rename(t *testing.T) {
 	t.Parallel()
 
@@ -331,6 +354,27 @@ func TestService_HasProgressScoped_Rename(t *testing.T) {
 	// Scope includes only the old name: no progress (parser extracts new path).
 	if svc.HasProgressScoped("", []string{"old.go"}) {
 		t.Error("expected no progress when only old rename path is in scope")
+	}
+}
+
+func TestService_HasProgressScoped_UnstagedModification(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "main.go", "package main", "init")
+
+	svc := NewService(repoDir)
+
+	// Modify without staging: porcelain shows " M main.go" (leading space).
+	if err := os.WriteFile(filepath.Join(repoDir, "main.go"), []byte("package main\n// changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !svc.HasProgressScoped("", []string{"main.go"}) {
+		t.Error("expected progress for unstaged modification of scoped file")
+	}
+	if svc.HasProgressScoped("", []string{"other.go"}) {
+		t.Error("expected no progress when unstaged modification is outside scope")
 	}
 }
 

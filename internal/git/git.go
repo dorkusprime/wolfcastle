@@ -91,7 +91,7 @@ func (s *Service) IsDirty(excludePaths ...string) bool {
 		return false
 	}
 	for _, line := range strings.Split(string(out), "\n") {
-		line = strings.TrimSpace(line)
+		line = strings.TrimRight(line, " \t\r\n")
 		if line == "" {
 			continue
 		}
@@ -140,7 +140,7 @@ func (s *Service) HasProgressScoped(_ string, scopeFiles []string) bool {
 		return true
 	}
 	for _, line := range strings.Split(string(out), "\n") {
-		line = strings.TrimSpace(line)
+		line = strings.TrimRight(line, " \t\r\n")
 		if line == "" {
 			continue
 		}
