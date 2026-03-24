@@ -81,12 +81,8 @@ Examples:
 
 			// Check for uncommitted changes before the daemon touches anything.
 			// Direct commits will sweep in whatever is in the working tree,
-			// so the user needs to know before we start. Skip when there is
-			// no TTY: the background re-exec runs `wolfcastle start` (without
-			// --daemon), so checking !background doesn't help. No TTY means
-			// either a background re-exec or piped input, both cases where
-			// the user already approved in the parent process.
-			if cfg.Git.AutoCommit && output.IsTerminal() {
+			// so the user needs to know before we start.
+			if cfg.Git.AutoCommit {
 				if dirty, reason := checkDirtyTree(repoDir); dirty {
 					output.PrintHuman("The working tree has uncommitted changes:\n%s", reason)
 					output.PrintHuman("")
@@ -166,7 +162,10 @@ Examples:
 			}
 
 			if background {
-				return startBackground(app.Config.Root(), nodeScope, worktreeBranch, exitWhenDone, "")
+				if worktreeBranch != "" {
+					return fmt.Errorf("--worktree and --daemon cannot be combined: the background process cannot create worktrees")
+				}
+				return startBackground(app.Config.Root(), nodeScope, exitWhenDone, verbose, "")
 			}
 
 			d, err := dmn.New(cfg, app.Config.Root(), app.State, nodeScope, repoDir)
@@ -192,17 +191,18 @@ Examples:
 			reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
 			records := reader.Records(ctx)
 			renderDone := make(chan struct{})
+			w := &output.SpinnerWriter{W: os.Stdout}
 			go func() {
 				defer close(renderDone)
 				switch mode {
 				case modeSummary:
-					sr := logrender.NewSummaryRenderer(os.Stdout)
+					sr := logrender.NewSummaryRenderer(w)
 					sr.Follow(ctx, records)
 				case modeThoughts:
-					tr := logrender.NewThoughtsRenderer(os.Stdout)
+					tr := logrender.NewThoughtsRenderer(w)
 					tr.Render(ctx, records)
 				case modeInterleaved:
-					ir := logrender.NewInterleavedRenderer(os.Stdout)
+					ir := logrender.NewInterleavedRenderer(w)
 					ir.Render(ctx, records)
 				case modeJSON:
 					for rec := range records {
@@ -210,8 +210,8 @@ Examples:
 						if err != nil {
 							continue
 						}
-						_, _ = os.Stdout.Write(raw)
-						_, _ = os.Stdout.Write([]byte{'\n'})
+						_, _ = w.Write(raw)
+						_, _ = w.Write([]byte{'\n'})
 					}
 				}
 			}()
@@ -230,8 +230,11 @@ Examples:
 }
 
 // startBackground launches the daemon as a detached background process.
+// The child re-execs into the hidden _daemon-run command, which skips
+// all interactive checks (dirty tree, validation prompts). The foreground
+// start command has already validated everything.
 // executablePath is the binary to re-exec; pass "" to use os.Executable().
-func startBackground(wolfcastleDir, nodeScope, worktreeBranch string, exitWhenDone bool, executablePath string) error {
+func startBackground(wolfcastleDir, nodeScope string, exitWhenDone bool, verbose bool, executablePath string) error {
 	if executablePath == "" {
 		var err error
 		executablePath, err = os.Executable()
@@ -240,15 +243,15 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch string, exitWhenDo
 		}
 	}
 
-	cmdArgs := []string{"start"}
+	cmdArgs := []string{"_daemon-run"}
 	if nodeScope != "" {
 		cmdArgs = append(cmdArgs, "--node", nodeScope)
 	}
-	if worktreeBranch != "" {
-		cmdArgs = append(cmdArgs, "--worktree", worktreeBranch)
-	}
 	if exitWhenDone {
 		cmdArgs = append(cmdArgs, "--exit-when-done")
+	}
+	if verbose {
+		cmdArgs = append(cmdArgs, "--verbose")
 	}
 
 	proc := exec.Command(executablePath, cmdArgs...)
@@ -270,17 +273,11 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch string, exitWhenDo
 		return fmt.Errorf("starting background process: %w", err)
 	}
 
-	// Write PID file
-	repo := dmn.NewDaemonRepository(wolfcastleDir)
-	if err := repo.WritePID(proc.Process.Pid); err != nil {
-		return fmt.Errorf("writing PID file: %w", err)
-	}
-
 	output.PrintHuman("Daemon deployed (PID %d)", proc.Process.Pid)
 	output.PrintHuman("  wolfcastle log -f    Watch the operation")
 	output.PrintHuman("  wolfcastle stop      Stand down")
 
-	// Detach
+	// Detach. The child process writes its own PID file.
 	_ = proc.Process.Release()
 	return nil
 }

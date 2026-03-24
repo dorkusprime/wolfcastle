@@ -40,8 +40,11 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	stopCmd.GroupID = "lifecycle"
 	logCmd.GroupID = "lifecycle"
 	statusCmd.GroupID = "lifecycle"
+	daemonRunCmd := newDaemonRunCmd(app)
+
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(logCmd)
 	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(daemonRunCmd)
 }
