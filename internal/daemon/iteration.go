@@ -522,6 +522,43 @@ func scanTerminalMarker(output string, validMarkers ...string) string {
 	return ""
 }
 
+// scanYieldSuffix inspects the same output that scanTerminalMarker scans,
+// looking specifically for a WOLFCASTLE_YIELD line that carries a suffix.
+// Currently the only recognized suffix is "scope_conflict <task-address>".
+//
+// Returns (kind, addr) where kind is "scope_conflict" and addr is the
+// conflicting task address, or ("", "") for a bare YIELD or if no YIELD
+// line is found at all.
+func scanYieldSuffix(output string) (kind string, addr string) {
+	for _, line := range strings.Split(output, "\n") {
+		trimmed := strings.TrimSpace(line)
+
+		text := extractAssistantText(trimmed)
+		if text == "" {
+			text = trimmed
+		}
+
+		for _, subline := range strings.Split(text, "\n") {
+			sub := strings.TrimSpace(subline)
+			sub = strings.Trim(sub, "*_`")
+			sub = strings.TrimSpace(sub)
+
+			if !strings.HasPrefix(sub, invoke.MarkerStringYield) {
+				continue
+			}
+			suffix := strings.TrimSpace(sub[len(invoke.MarkerStringYield):])
+			if suffix == "" {
+				continue
+			}
+			parts := strings.SplitN(suffix, " ", 2)
+			if len(parts) == 2 && parts[0] == "scope_conflict" {
+				return "scope_conflict", strings.TrimSpace(parts[1])
+			}
+		}
+	}
+	return "", ""
+}
+
 // extractAssistantText extracts the text content from a Claude Code
 // stream-json assistant message. Returns empty string if the line is
 // not a valid assistant JSON envelope.

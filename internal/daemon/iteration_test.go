@@ -1204,3 +1204,106 @@ func TestRunPlanningPass_PlanningComplete_HasDurationMs(t *testing.T) {
 		}
 	}
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// scanYieldSuffix
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestScanYieldSuffix(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    string
+		wantKind string
+		wantAddr string
+	}{
+		{
+			name:     "bare yield returns empty",
+			input:    "WOLFCASTLE_YIELD",
+			wantKind: "",
+			wantAddr: "",
+		},
+		{
+			name:     "scope_conflict with address",
+			input:    "WOLFCASTLE_YIELD scope_conflict my-project/api/task-0001",
+			wantKind: "scope_conflict",
+			wantAddr: "my-project/api/task-0001",
+		},
+		{
+			name:     "scope_conflict in JSON stream envelope",
+			input:    `{"type":"assistant","text":"WOLFCASTLE_YIELD scope_conflict my-project/api/task-0001"}`,
+			wantKind: "scope_conflict",
+			wantAddr: "my-project/api/task-0001",
+		},
+		{
+			name:     "scope_conflict in result envelope",
+			input:    `{"type":"result","result":"WOLFCASTLE_YIELD scope_conflict infra/deploy/task-0003"}`,
+			wantKind: "scope_conflict",
+			wantAddr: "infra/deploy/task-0003",
+		},
+		{
+			name:     "scope_conflict with markdown bold",
+			input:    "**WOLFCASTLE_YIELD scope_conflict my-project/api/task-0001**",
+			wantKind: "scope_conflict",
+			wantAddr: "my-project/api/task-0001",
+		},
+		{
+			name:     "scope_conflict with backticks",
+			input:    "`WOLFCASTLE_YIELD scope_conflict my-project/api/task-0001`",
+			wantKind: "scope_conflict",
+			wantAddr: "my-project/api/task-0001",
+		},
+		{
+			name:     "scope_conflict with italic",
+			input:    "*WOLFCASTLE_YIELD scope_conflict my-project/api/task-0001*",
+			wantKind: "scope_conflict",
+			wantAddr: "my-project/api/task-0001",
+		},
+		{
+			name:     "bare yield in JSON envelope returns empty",
+			input:    `{"type":"assistant","text":"WOLFCASTLE_YIELD"}`,
+			wantKind: "",
+			wantAddr: "",
+		},
+		{
+			name:     "multiline with scope_conflict on last line",
+			input:    "some output\nmore output\nWOLFCASTLE_YIELD scope_conflict auth/task-0002",
+			wantKind: "scope_conflict",
+			wantAddr: "auth/task-0002",
+		},
+		{
+			name:     "no yield at all",
+			input:    "WOLFCASTLE_COMPLETE",
+			wantKind: "",
+			wantAddr: "",
+		},
+		{
+			name:     "unknown suffix ignored",
+			input:    "WOLFCASTLE_YIELD something_else foo/bar",
+			wantKind: "",
+			wantAddr: "",
+		},
+		{
+			name:     "scope_conflict without address ignored",
+			input:    "WOLFCASTLE_YIELD scope_conflict",
+			wantKind: "",
+			wantAddr: "",
+		},
+		{
+			name:     "nested message content envelope",
+			input:    `{"type":"assistant","message":{"content":[{"type":"text","text":"WOLFCASTLE_YIELD scope_conflict deep/node/task-0005"}]}}`,
+			wantKind: "scope_conflict",
+			wantAddr: "deep/node/task-0005",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kind, addr := scanYieldSuffix(tt.input)
+			if kind != tt.wantKind || addr != tt.wantAddr {
+				t.Errorf("scanYieldSuffix(%q) = (%q, %q), want (%q, %q)",
+					tt.input, kind, addr, tt.wantKind, tt.wantAddr)
+			}
+		})
+	}
+}
