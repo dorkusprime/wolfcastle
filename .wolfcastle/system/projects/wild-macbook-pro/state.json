@@ -4,7 +4,8 @@
   "root_name": "Domain Repository Architecture",
   "root_state": "complete",
   "root": [
-    "parallel-sibling-execution-phase-1"
+    "parallel-sibling-execution-phase-1",
+    "parallel-sibling-execution-phase-1-code-review-fixes"
   ],
   "archived_root": [
     "domain-repository-architecture",
@@ -712,6 +713,33 @@
         "parallel-sibling-execution-phase-1/scope-cli-commands",
         "parallel-sibling-execution-phase-1/daemon-and-status-integration"
       ]
+    },
+    "parallel-sibling-execution-phase-1-code-review-fixes": {
+      "name": "Parallel Sibling Execution Phase 1 Code Review Fixes",
+      "type": "orchestrator",
+      "state": "in_progress",
+      "address": "parallel-sibling-execution-phase-1-code-review-fixes",
+      "decomposition_depth": 0,
+      "children": [
+        "parallel-sibling-execution-phase-1-code-review-fixes/scope-validation-and-all-or-nothing-test",
+        "parallel-sibling-execution-phase-1-code-review-fixes/scope-cli-command-fixes"
+      ]
+    },
+    "parallel-sibling-execution-phase-1-code-review-fixes/scope-cli-command-fixes": {
+      "name": "Scope CLI Command Fixes",
+      "type": "leaf",
+      "state": "not_started",
+      "address": "parallel-sibling-execution-phase-1-code-review-fixes/scope-cli-command-fixes",
+      "decomposition_depth": 0,
+      "parent": "parallel-sibling-execution-phase-1-code-review-fixes"
+    },
+    "parallel-sibling-execution-phase-1-code-review-fixes/scope-validation-and-all-or-nothing-test": {
+      "name": "Scope Validation and All-or-Nothing Test",
+      "type": "leaf",
+      "state": "in_progress",
+      "address": "parallel-sibling-execution-phase-1-code-review-fixes/scope-validation-and-all-or-nothing-test",
+      "decomposition_depth": 0,
+      "parent": "parallel-sibling-execution-phase-1-code-review-fixes"
     },
     "parallel-sibling-execution-phase-1/daemon-and-status-integration": {
       "name": "Daemon and Status Integration",

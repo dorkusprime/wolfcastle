@@ -26,12 +26,50 @@ func TestScopeConflicts(t *testing.T) {
 		{name: "partial name overlap not conflict", requested: "internal/daemontools/", existing: "internal/daemon/", want: false},
 		{name: "file without slash not dir", requested: "internal/daemon", existing: "internal/daemon/iteration.go", want: false},
 		{name: "file prefix not conflict", requested: "foo.go", existing: "foo.go.bak", want: false},
+
+		// Validation: invalid paths never conflict.
+		{name: "empty requested", requested: "", existing: "internal/daemon/", want: false},
+		{name: "empty existing", requested: "internal/daemon/", existing: "", want: false},
+		{name: "both empty", requested: "", existing: "", want: false},
+		{name: "dotdot in requested", requested: "../etc/passwd", existing: "internal/", want: false},
+		{name: "dotdot in existing", requested: "internal/", existing: "foo/../bar", want: false},
+		{name: "dotdot mid-path requested", requested: "internal/../daemon/", existing: "internal/daemon/", want: false},
+		{name: "absolute requested", requested: "/etc/passwd", existing: "internal/", want: false},
+		{name: "absolute existing", requested: "internal/", existing: "/etc/passwd", want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ScopeConflicts(tt.requested, tt.existing)
 			if got != tt.want {
 				t.Errorf("ScopeConflicts(%q, %q) = %v, want %v", tt.requested, tt.existing, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidateScopePath(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want bool
+	}{
+		{name: "simple file", path: "foo.go", want: true},
+		{name: "nested file", path: "internal/daemon/iteration.go", want: true},
+		{name: "directory", path: "internal/daemon/", want: true},
+		{name: "empty", path: "", want: false},
+		{name: "absolute path", path: "/etc/passwd", want: false},
+		{name: "dotdot at start", path: "../foo.go", want: false},
+		{name: "dotdot mid-path", path: "internal/../daemon/foo.go", want: false},
+		{name: "dotdot at end", path: "internal/..", want: false},
+		{name: "dotdot only", path: "..", want: false},
+		{name: "single dot is fine", path: "internal/./foo.go", want: true},
+		{name: "dotdot-like name is fine", path: "internal/...foo/bar.go", want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ValidateScopePath(tt.path)
+			if got != tt.want {
+				t.Errorf("ValidateScopePath(%q) = %v, want %v", tt.path, got, tt.want)
 			}
 		})
 	}
@@ -108,6 +146,19 @@ func TestFindConflicts(t *testing.T) {
 		conflicts := FindConflicts([]string{}, table, "proj/node-c/task-0003")
 		if len(conflicts) != 0 {
 			t.Errorf("expected no conflicts for empty request, got %d", len(conflicts))
+		}
+	})
+
+	t.Run("invalid paths skipped", func(t *testing.T) {
+		conflicts := FindConflicts(
+			[]string{"", "../etc/passwd", "/absolute/path", "internal/daemon/iteration.go"},
+			table, "proj/node-c/task-0003",
+		)
+		if len(conflicts) != 1 {
+			t.Fatalf("expected 1 conflict (only valid path), got %d", len(conflicts))
+		}
+		if conflicts[0].File != "internal/daemon/iteration.go" {
+			t.Errorf("conflict file = %q, want %q", conflicts[0].File, "internal/daemon/iteration.go")
 		}
 	})
 }

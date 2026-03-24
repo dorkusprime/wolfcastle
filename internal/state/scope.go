@@ -2,6 +2,24 @@ package state
 
 import "strings"
 
+// ValidateScopePath reports whether p is a well-formed scope path. It rejects
+// empty strings, paths containing ".." components, and absolute paths
+// starting with "/".
+func ValidateScopePath(p string) bool {
+	if p == "" {
+		return false
+	}
+	if strings.HasPrefix(p, "/") {
+		return false
+	}
+	for _, seg := range strings.Split(strings.TrimSuffix(p, "/"), "/") {
+		if seg == ".." {
+			return false
+		}
+	}
+	return true
+}
+
 // ScopeConflict describes a single conflict between a requested file and an
 // existing scope lock held by another task.
 type ScopeConflict struct {
@@ -13,8 +31,12 @@ type ScopeConflict struct {
 // ScopeConflicts reports whether two scope entries conflict. Two entries
 // conflict if either is a prefix of the other (bidirectional containment).
 // A trailing slash marks a directory scope; a path without one is a file.
-// Identical paths always conflict.
+// Identical paths always conflict. Returns false for invalid paths (empty,
+// containing "..", or absolute).
 func ScopeConflicts(requested, existing string) bool {
+	if !ValidateScopePath(requested) || !ValidateScopePath(existing) {
+		return false
+	}
 	if requested == existing {
 		return true
 	}
@@ -38,6 +60,9 @@ func ScopeConflicts(requested, existing string) bool {
 func FindConflicts(requested []string, table *ScopeLockTable, taskAddr string) []ScopeConflict {
 	var conflicts []ScopeConflict
 	for _, req := range requested {
+		if !ValidateScopePath(req) {
+			continue
+		}
 		for scope, lock := range table.Locks {
 			if lock.Task == taskAddr {
 				continue
