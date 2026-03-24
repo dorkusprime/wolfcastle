@@ -64,7 +64,7 @@ Examples:
 		renderDone := make(chan struct{})
 		go func() {
 			defer close(renderDone)
-			ir := logrender.NewInterleavedRenderer(os.Stdout)
+			ir := logrender.NewInterleavedRenderer(&output.SpinnerWriter{W: os.Stdout})
 			ir.Render(ctx, records)
 		}()
 
