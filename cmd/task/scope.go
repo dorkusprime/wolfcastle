@@ -20,6 +20,7 @@ func newScopeCmd(app *cmdutil.App) *cobra.Command {
 
 	cmd.AddCommand(newScopeAddCmd(app))
 	cmd.AddCommand(newScopeListCmd(app))
+	cmd.AddCommand(newScopeReleaseCmd(app))
 	return cmd
 }
 
@@ -174,5 +175,87 @@ Examples:
 
 	cmd.Flags().String("node", "", "Filter by node address")
 	cmd.Flags().String("task", "", "Filter by task address")
+	return cmd
+}
+
+func newScopeReleaseCmd(app *cmdutil.App) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "release [<file>...]",
+		Short: "Release scope locks held by a task",
+		Long: `Releases file scope locks held by a task. Without file arguments, releases
+all locks held by the specified task. With file arguments, releases only
+those specific files. Releasing a lock not held by the task is a no-op.
+
+If the lock table becomes empty after release, the scope-locks.json file
+is deleted.
+
+Examples:
+  wolfcastle task scope release --node my-project/api-layer --task task-0001
+  wolfcastle task scope release --node my-project/api-layer --task task-0001 file1.go file2.go`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			nodeAddr, _ := cmd.Flags().GetString("node")
+			taskID, _ := cmd.Flags().GetString("task")
+
+			taskAddr := nodeAddr + "/" + taskID
+
+			var released []string
+			var tableEmpty bool
+
+			if err := app.State.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+				if len(args) == 0 {
+					// Release all locks held by this task.
+					for file, lock := range table.Locks {
+						if lock.Task == taskAddr {
+							released = append(released, file)
+							delete(table.Locks, file)
+						}
+					}
+				} else {
+					// Release only the specified files if held by this task.
+					for _, file := range args {
+						lock, ok := table.Locks[file]
+						if ok && lock.Task == taskAddr {
+							released = append(released, file)
+							delete(table.Locks, file)
+						}
+					}
+				}
+				tableEmpty = len(table.Locks) == 0
+				return nil
+			}); err != nil {
+				return err
+			}
+
+			sort.Strings(released)
+
+			// If the table is now empty, remove the file entirely.
+			if tableEmpty {
+				path := app.State.ScopeLocksPath()
+				if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+					return fmt.Errorf("removing empty scope locks file: %w", err)
+				}
+			}
+
+			if app.JSON {
+				output.Print(output.Ok("task_scope_release", map[string]any{
+					"released": released,
+					"node":     nodeAddr,
+					"task":     taskID,
+				}))
+			} else {
+				if len(released) == 0 {
+					output.PrintHuman("No locks released.")
+				} else {
+					output.PrintHuman("Released scope locks: %v", released)
+				}
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().String("node", "", "Node address (required)")
+	cmd.Flags().String("task", "", "Task ID (required)")
+	_ = cmd.MarkFlagRequired("node")
+	_ = cmd.MarkFlagRequired("task")
 	return cmd
 }
