@@ -9,3 +9,4 @@ system/logs/
 system/wolfcastle.pid
 system/stop
 *.lock
+scope-locks.json
