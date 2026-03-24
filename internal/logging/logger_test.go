@@ -1291,6 +1291,153 @@ func requireFieldPresent(t *testing.T, rec map[string]any, key string) {
 	}
 }
 
+// ── Child Tests ──────────────────────────────────────────────────
+
+func TestChild_SharesLogDir(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	parent, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parent.Close()
+
+	child := parent.Child("worker")
+	if child.LogDir != parent.LogDir {
+		t.Errorf("child.LogDir = %q, want %q", child.LogDir, parent.LogDir)
+	}
+}
+
+func TestChild_IndependentIteration(t *testing.T) {
+	frozen := time.Date(2026, 3, 14, 12, 30, 0, 0, time.UTC)
+	withFrozenClock(t, frozen)
+	dir := t.TempDir()
+
+	parent, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parent.Close()
+
+	// Advance the parent a few iterations.
+	for i := 0; i < 3; i++ {
+		if err := parent.StartIteration(); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	child := parent.Child("worker")
+	defer child.Close()
+
+	if child.Iteration != 0 {
+		t.Errorf("child.Iteration = %d, want 0", child.Iteration)
+	}
+	if err := child.StartIteration(); err != nil {
+		t.Fatal(err)
+	}
+	if child.Iteration != 1 {
+		t.Errorf("after StartIteration, child.Iteration = %d, want 1", child.Iteration)
+	}
+	// Parent unchanged.
+	if parent.Iteration != 3 {
+		t.Errorf("parent.Iteration = %d, want 3", parent.Iteration)
+	}
+}
+
+func TestChild_IndependentFileHandle(t *testing.T) {
+	frozen := time.Date(2026, 3, 14, 12, 30, 0, 0, time.UTC)
+	withFrozenClock(t, frozen)
+	dir := t.TempDir()
+
+	parent, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parent.Close()
+
+	child := parent.Child("worker")
+	defer child.Close()
+
+	if child.file != nil {
+		t.Error("child.file should be nil before StartIteration")
+	}
+
+	if err := child.StartIteration(); err != nil {
+		t.Fatal(err)
+	}
+	if child.file == nil {
+		t.Error("child.file should be non-nil after StartIteration")
+	}
+	// Parent's file handle should still be nil (never started).
+	if parent.file != nil {
+		t.Error("parent.file should still be nil")
+	}
+}
+
+func TestChild_UsesDefaultPrefix(t *testing.T) {
+	frozen := time.Date(2026, 3, 14, 12, 30, 0, 0, time.UTC)
+	withFrozenClock(t, frozen)
+	dir := t.TempDir()
+
+	parent, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parent.Close()
+
+	child := parent.Child("worker")
+	defer child.Close()
+
+	if err := child.StartIteration(); err != nil {
+		t.Fatal(err)
+	}
+	if child.TraceID != "worker-0001" {
+		t.Errorf("child.TraceID = %q, want %q", child.TraceID, "worker-0001")
+	}
+}
+
+func TestChild_ParentUnmodified(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	parent, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parent.Close()
+
+	origIter := parent.Iteration
+	origTrace := parent.TraceID
+
+	_ = parent.Child("worker")
+
+	if parent.Iteration != origIter {
+		t.Errorf("parent.Iteration changed from %d to %d", origIter, parent.Iteration)
+	}
+	if parent.TraceID != origTrace {
+		t.Errorf("parent.TraceID changed from %q to %q", origTrace, parent.TraceID)
+	}
+}
+
+func TestStartIteration_UsesDefaultPrefix(t *testing.T) {
+	frozen := time.Date(2026, 3, 14, 12, 30, 0, 0, time.UTC)
+	withFrozenClock(t, frozen)
+	dir := t.TempDir()
+
+	logger, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger.Close()
+
+	// Default prefix for a plain Logger is "iter".
+	if err := logger.StartIteration(); err != nil {
+		t.Fatal(err)
+	}
+	if logger.TraceID != "iter-0001" {
+		t.Errorf("TraceID = %q, want %q", logger.TraceID, "iter-0001")
+	}
+}
+
 // ── Helper ────────────────────────────────────────────────────────
 
 func countLogFiles(dir string) int {

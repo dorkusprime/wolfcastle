@@ -77,7 +77,8 @@ type Logger struct {
 	Iteration int
 	TraceID   string // set by StartIterationWithPrefix, included in every log record
 
-	file *os.File
+	defaultPrefix string // if set, StartIteration uses this instead of "iter"
+	file          *os.File
 }
 
 // NewLogger creates a logger for the given log directory.
@@ -90,11 +91,26 @@ func NewLogger(logDir string) (*Logger, error) {
 	}, nil
 }
 
+// Child creates a new Logger that shares the parent's LogDir but owns
+// independent state: its Iteration counter starts at 0, its file handle
+// is nil (opened on the first StartIteration call), and the given prefix
+// is used as the default for trace IDs. The parent Logger is unmodified.
+func (l *Logger) Child(prefix string) *Logger {
+	return &Logger{
+		LogDir:        l.LogDir,
+		defaultPrefix: prefix,
+	}
+}
+
 // StartIteration creates a new log file for the current iteration.
-// Closes any previously open file before starting a new one. Sets
-// the trace ID to "iter-NNNN".
+// Closes any previously open file before starting a new one. Uses
+// the logger's default prefix for the trace ID, falling back to "iter".
 func (l *Logger) StartIteration() error {
-	return l.StartIterationWithPrefix("iter")
+	prefix := l.defaultPrefix
+	if prefix == "" {
+		prefix = "iter"
+	}
+	return l.StartIterationWithPrefix(prefix)
 }
 
 // StartIterationWithPrefix creates a new log file and sets the trace
