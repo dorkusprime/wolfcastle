@@ -443,7 +443,7 @@ func TestStartBackground_PIDWriteFailure(t *testing.T) {
 	// by pre-creating wolfcastle.pid as a directory.
 	_ = os.MkdirAll(filepath.Join(sysDir, "wolfcastle.pid"), 0755)
 
-	err := startBackground(wolfDir, "", "", "sleep")
+	err := startBackground(wolfDir, "", "", false, "sleep")
 	if err == nil {
 		t.Error("expected error when PID file cannot be written")
 	}

@@ -34,13 +34,15 @@ Examples:
   wolfcastle start
   wolfcastle start --node auth-system
   wolfcastle start -d
-  wolfcastle start --worktree feature-branch`,
+  wolfcastle start --worktree feature-branch
+  wolfcastle start --exit-when-done`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			output.PrintHuman("wolfcastle %s", app.Version)
 			nodeScope, _ := cmd.Flags().GetString("node")
 			background, _ := cmd.Flags().GetBool("daemon")
 			worktreeBranch, _ := cmd.Flags().GetString("worktree")
 			verbose, _ := cmd.Flags().GetBool("verbose")
+			exitWhenDone, _ := cmd.Flags().GetBool("exit-when-done")
 
 			cfg, err := app.Config.Load()
 			if err != nil {
@@ -158,13 +160,14 @@ Examples:
 			}
 
 			if background {
-				return startBackground(app.Config.Root(), nodeScope, worktreeBranch, "")
+				return startBackground(app.Config.Root(), nodeScope, worktreeBranch, exitWhenDone, "")
 			}
 
 			d, err := dmn.New(cfg, app.Config.Root(), app.State, nodeScope, repoDir)
 			if err != nil {
 				return err
 			}
+			d.ExitWhenDone = exitWhenDone
 
 			// Write PID file for foreground mode too, so `wolfcastle status`
 			// can detect a running daemon regardless of how it was started.
@@ -222,7 +225,7 @@ Examples:
 
 // startBackground launches the daemon as a detached background process.
 // executablePath is the binary to re-exec; pass "" to use os.Executable().
-func startBackground(wolfcastleDir, nodeScope, worktreeBranch, executablePath string) error {
+func startBackground(wolfcastleDir, nodeScope, worktreeBranch string, exitWhenDone bool, executablePath string) error {
 	if executablePath == "" {
 		var err error
 		executablePath, err = os.Executable()
@@ -237,6 +240,9 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch, executablePath st
 	}
 	if worktreeBranch != "" {
 		cmdArgs = append(cmdArgs, "--worktree", worktreeBranch)
+	}
+	if exitWhenDone {
+		cmdArgs = append(cmdArgs, "--exit-when-done")
 	}
 
 	proc := exec.Command(executablePath, cmdArgs...)
