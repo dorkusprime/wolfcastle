@@ -32,7 +32,7 @@ func TestCommitAfterIteration_AutoCommitDisabled(t *testing.T) {
 	cfg.AutoCommit = false
 
 	beforeLog := gitLog(t, repoDir)
-	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{})
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{}, nil)
 	afterLog := gitLog(t, repoDir)
 
 	if beforeLog != afterLog {
@@ -52,7 +52,7 @@ func TestCommitAfterIteration_CommitOnSuccessDisabled(t *testing.T) {
 	cfg.CommitOnSuccess = false
 
 	beforeLog := gitLog(t, repoDir)
-	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{})
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{}, nil)
 	afterLog := gitLog(t, repoDir)
 
 	if beforeLog != afterLog {
@@ -72,7 +72,7 @@ func TestCommitAfterIteration_CommitOnFailureDisabled(t *testing.T) {
 	cfg.CommitOnFailure = false
 
 	beforeLog := gitLog(t, repoDir)
-	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, cfg, taskCommitMeta{})
+	commitAfterIteration(repoDir, logger, "task-0001", "failure", 1, cfg, taskCommitMeta{}, nil)
 	afterLog := gitLog(t, repoDir)
 
 	if beforeLog != afterLog {
@@ -88,7 +88,7 @@ func TestCommitAfterIteration_CommitOnSuccessEnabled_Commits(t *testing.T) {
 	logger := iterTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{})
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, testGitCfg(), taskCommitMeta{}, nil)
 
 	log := gitLog(t, repoDir)
 	if !strings.Contains(log, "task-0001 complete") {
@@ -104,7 +104,7 @@ func TestCommitAfterIteration_FailureCommitMessageFormat(t *testing.T) {
 	logger := iterTestLogger(t)
 	defer logger.Close()
 
-	commitAfterIteration(repoDir, logger, "task-0003", "failure", 5, testGitCfg(), taskCommitMeta{})
+	commitAfterIteration(repoDir, logger, "task-0003", "failure", 5, testGitCfg(), taskCommitMeta{}, nil)
 
 	log := gitLog(t, repoDir)
 	if !strings.Contains(log, "task-0003 partial (attempt 5)") {
@@ -134,7 +134,7 @@ func TestCommitAfterIteration_CommitStateDisabled_SkipsWolfcastle(t *testing.T) 
 	cfg := testGitCfg()
 	cfg.CommitState = false
 
-	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{})
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{}, nil)
 
 	// Verify the commit exists and does NOT contain .wolfcastle/
 	showCmd := exec.Command("git", "show", "--name-only", "--format=")
@@ -176,7 +176,7 @@ func TestCommitAfterIteration_CommitStateEnabled_IncludesWolfcastle(t *testing.T
 	cfg := testGitCfg()
 	cfg.CommitState = true
 
-	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{})
+	commitAfterIteration(repoDir, logger, "task-0001", "success", 0, cfg, taskCommitMeta{}, nil)
 
 	showCmd := exec.Command("git", "show", "--name-only", "--format=")
 	showCmd.Dir = repoDir
@@ -202,7 +202,7 @@ func TestCommitAfterIteration_InvalidTaskID_Skips(t *testing.T) {
 	defer logger.Close()
 
 	beforeLog := gitLog(t, repoDir)
-	commitAfterIteration(repoDir, logger, "../../etc/passwd", "success", 0, testGitCfg(), taskCommitMeta{})
+	commitAfterIteration(repoDir, logger, "../../etc/passwd", "success", 0, testGitCfg(), taskCommitMeta{}, nil)
 	afterLog := gitLog(t, repoDir)
 
 	if beforeLog != afterLog {
@@ -333,7 +333,7 @@ func TestCommitAfterIteration_EnrichedMessages(t *testing.T) {
 			logger := iterTestLogger(t)
 			defer logger.Close()
 
-			commitAfterIteration(repoDir, logger, tt.taskID, tt.kind, tt.attemptNum, tt.gitCfg, tt.meta)
+			commitAfterIteration(repoDir, logger, tt.taskID, tt.kind, tt.attemptNum, tt.gitCfg, tt.meta, nil)
 
 			msg := fullCommitMessage(t, repoDir)
 

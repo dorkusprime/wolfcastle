@@ -363,7 +363,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 						// subtasks, and reverted audit state. This gives a
 						// clean revert point before remediation work starts.
 						auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
-						commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta)
+						commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta, nil)
 						return nil
 					}
 				}
@@ -392,7 +392,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			}
 
 			// Commit after successful completion.
-			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID))
+			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID), nil)
 
 			return nil
 		}
@@ -456,7 +456,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		// Commit code + state after all failure mutations are applied.
 		failMeta := extractTaskCommitMeta(ns, nav.TaskID)
 		failMeta.FailureType = failureType
-		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta)
+		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta, nil)
 	}
 
 	return nil
@@ -585,7 +585,7 @@ type taskCommitMeta struct {
 // kind is "success" or "failure". attemptNum is used in failure commit
 // messages to indicate which attempt just finished. meta provides task
 // metadata for enriched commit messages.
-func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string, kind string, attemptNum int, gitCfg config.GitConfig, meta taskCommitMeta) {
+func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string, kind string, attemptNum int, gitCfg config.GitConfig, meta taskCommitMeta, scope []string) {
 	if !gitCfg.AutoCommit {
 		_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "auto_commit disabled"})
 		return
@@ -610,12 +610,49 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 		return
 	}
 
-	// Check for uncommitted changes
+	// Check for uncommitted changes. When scope is non-nil, only consider
+	// files that match a scope entry so other workers' dirty files don't
+	// trigger a false-positive commit.
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = repoDir
 	out, err := statusCmd.Output()
-	if err != nil || len(strings.TrimSpace(string(out))) == 0 {
-		return // no changes or git unavailable
+	if err != nil {
+		return // git unavailable
+	}
+	if scope == nil {
+		if len(strings.TrimSpace(string(out))) == 0 {
+			return // no changes
+		}
+	} else {
+		hasMatch := false
+		for _, line := range strings.Split(string(out), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			// git status --porcelain format: XY <path> or XY <path> -> <path>
+			// The path starts at column 3.
+			path := line
+			if len(path) > 3 {
+				path = path[3:]
+			}
+			// Handle renames: "R  old -> new"
+			if idx := strings.Index(path, " -> "); idx >= 0 {
+				path = path[idx+4:]
+			}
+			for _, entry := range scope {
+				if strings.HasPrefix(path, entry) || strings.HasPrefix(entry, path) {
+					hasMatch = true
+					break
+				}
+			}
+			if hasMatch {
+				break
+			}
+		}
+		if !hasMatch {
+			return // no scoped changes
+		}
 	}
 
 	// Build subject line from prefix and title (or taskID as fallback).
@@ -632,7 +669,7 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 		commitArgs = append(commitArgs, "--no-verify")
 	}
 
-	if err := commitDirect(repoDir, gitCfg, commitArgs, nil); err != nil {
+	if err := commitDirect(repoDir, gitCfg, commitArgs, scope); err != nil {
 		_ = logger.Log(map[string]any{"type": "commit_error", "task": taskID, "error": err.Error()})
 		return
 	}
