@@ -61,8 +61,10 @@ type Daemon struct {
 	Clock          clock.Clock
 	Git            git.Provider
 	ContextBuilder *pipeline.ContextBuilder
+	ExitWhenDone   bool                // stop after all work is complete (--exit-when-done)
 	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
+	hasWorked        bool // tracks whether the daemon has done work this run
 	shutdown         chan struct{}
 	shutdownOnce     sync.Once
 	workAvailable    chan struct{}
@@ -412,6 +414,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	}()
 
 	d.iteration = 0
+	d.hasWorked = false
 	_ = d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
 	output.PrintHuman("=== Wolfcastle engaged (scope=%s) ===", d.scopeLabel())
 
@@ -470,6 +473,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 		case IterationStop:
 			return nil
 		case IterationNoWork:
+			if d.ExitWhenDone && d.hasWorked {
+				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "exit_when_done"})
+				output.PrintHuman("=== Work complete. Wolfcastle standing down. ===")
+				return nil
+			}
 			// Start spinner on first idle cycle; keep it running
 			// across poll timeouts to avoid a visible jitter every
 			// BlockedPollIntervalSeconds.
@@ -498,6 +506,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				return nil
 			}
 		case IterationDidWork:
+			d.hasWorked = true
 			retOpts := []logging.RetentionOption{}
 			if d.Config.Logs.Compress {
 				retOpts = append(retOpts, logging.WithCompression())
