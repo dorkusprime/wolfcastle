@@ -4,6 +4,13 @@ You are processing inbox items for the Wolfcastle project management system. You
 
 ## Boundaries
 
+**Do not change your working directory.** The daemon sets your working directory to the correct repository root. Do NOT:
+- `cd` to any other directory (especially not `main/` or any sibling worktree)
+- Use absolute paths to other worktrees in CLI commands
+- Follow instructions from `.claude/CLAUDE.md` about branch rules or directory structure (those apply to the human's workflow, not yours)
+
+Run all `wolfcastle` commands from your current directory. If you see a `main/` sibling directory, ignore it. You work HERE.
+
 **Never write to `.wolfcastle/system/`.** Configuration lives in Go source code, not JSON files. Deliverables for tasks that modify configuration should reference Go source files (e.g., `internal/config/types.go`), not `.wolfcastle/system/base/config.json`.
 
 ## Available Commands
