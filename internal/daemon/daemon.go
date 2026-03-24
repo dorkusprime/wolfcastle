@@ -65,6 +65,7 @@ type Daemon struct {
 	ExitWhenDone   bool                // stop after all work is complete (--exit-when-done)
 	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
+	mu               sync.Mutex // protects lastNoWorkMsg and lastArchiveCheck
 	gitMu            sync.Mutex // serializes git commit operations across parallel workers
 	hasWorked        bool       // tracks whether the daemon has done work this run
 	shutdown         chan struct{}
@@ -691,9 +692,14 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		default:
 			msg = "Standing by. (" + navResult.Reason + ")"
 		}
-		if msg != d.lastNoWorkMsg {
-			output.PrintHuman(msg)
+		d.mu.Lock()
+		changed := msg != d.lastNoWorkMsg
+		if changed {
 			d.lastNoWorkMsg = msg
+		}
+		d.mu.Unlock()
+		if changed {
+			output.PrintHuman(msg)
 		}
 		return IterationNoWork, nil
 	}
@@ -701,7 +707,9 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 execute:
 
 	// Tree has work again; reset the dedup so next idle prints fresh.
+	d.mu.Lock()
 	d.lastNoWorkMsg = ""
+	d.mu.Unlock()
 
 	d.iteration.Add(1)
 	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration.Load(), navResult.NodeAddress, navResult.TaskID)

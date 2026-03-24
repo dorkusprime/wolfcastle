@@ -92,10 +92,15 @@ func (d *Daemon) tryAutoArchive(idx *state.RootIndex) bool {
 	}
 
 	pollInterval := time.Duration(cfg.PollIntervalSeconds) * time.Second
-	if d.Clock.Now().Sub(d.lastArchiveCheck) < pollInterval {
+	d.mu.Lock()
+	elapsed := d.Clock.Now().Sub(d.lastArchiveCheck) >= pollInterval
+	if elapsed {
+		d.lastArchiveCheck = d.Clock.Now()
+	}
+	d.mu.Unlock()
+	if !elapsed {
 		return false
 	}
-	d.lastArchiveCheck = d.Clock.Now()
 
 	eligible := d.findArchiveEligible(idx)
 	if len(eligible) == 0 {
