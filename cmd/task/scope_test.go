@@ -171,6 +171,36 @@ func TestScopeAdd_MissingTask(t *testing.T) {
 	}
 }
 
+func TestScopeAdd_InvalidPath(t *testing.T) {
+	env := newTestEnv(t)
+
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "absolute path", path: "/etc/passwd"},
+		{name: "dotdot traversal", path: "../etc/passwd"},
+		{name: "dotdot mid-path", path: "internal/../daemon/foo.go"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env.RootCmd.SetArgs([]string{
+				"task", "scope", "add",
+				"--node", "my-project/api",
+				"--task", "task-0001",
+				tt.path,
+			})
+			err := env.RootCmd.Execute()
+			if err == nil {
+				t.Fatalf("expected error for invalid path %q", tt.path)
+			}
+			if !strings.Contains(err.Error(), "invalid scope path") {
+				t.Errorf("error should mention invalid scope path, got: %s", err.Error())
+			}
+		})
+	}
+}
+
 // Conflict detection and all-or-nothing semantics are tested at the state
 // layer because the CLI command calls os.Exit(1) on conflict, which would
 // terminate the test process. The FindConflicts function and MutateScopeLocks

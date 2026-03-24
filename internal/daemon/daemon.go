@@ -314,49 +314,54 @@ func (d *Daemon) selfHeal() error {
 // longer running. If every lock in the table belongs to a dead process,
 // the entire file is removed as a leftover from a crashed run.
 func (d *Daemon) cleanStaleScopeLocks() error {
-	table, err := d.Store.ReadScopeLocks()
-	if err != nil {
-		return nil // file doesn't exist or unreadable; nothing to clean
-	}
-	if len(table.Locks) == 0 {
-		return nil
-	}
-
-	myPID := os.Getpid()
-	allForeign := true // true if no lock belongs to the current daemon
-	var staleScopes []string
-
-	for scope, lock := range table.Locks {
-		if lock.PID == myPID {
-			allForeign = false
-			continue
+	// Use MutateScopeLocks so the staleness check and deletion happen
+	// atomically under the advisory file lock, avoiding a TOCTOU race
+	// where a new lock could be acquired between a lock-free read and
+	// the subsequent mutation.
+	var tableEmpty bool
+	err := d.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+		if len(table.Locks) == 0 {
+			return errNoChange
 		}
-		if IsProcessRunning(lock.PID) {
-			allForeign = false
-			continue
+
+		myPID := os.Getpid()
+		var staleScopes []string
+
+		for scope, lock := range table.Locks {
+			if lock.PID == myPID {
+				continue
+			}
+			if !IsProcessRunning(lock.PID) {
+				staleScopes = append(staleScopes, scope)
+			}
 		}
-		staleScopes = append(staleScopes, scope)
-	}
 
-	if len(staleScopes) == 0 {
-		return nil
-	}
+		if len(staleScopes) == 0 {
+			return errNoChange
+		}
 
-	// If every lock belongs to a dead, foreign process, the file is a
-	// leftover from a crashed daemon. Remove it outright.
-	if allForeign {
-		output.PrintHuman("  Removing stale scope lock file (all locks from dead processes)")
-		return os.Remove(d.Store.ScopeLocksPath())
-	}
-
-	// Otherwise, surgically remove only the stale entries.
-	return d.Store.MutateScopeLocks(func(t *state.ScopeLockTable) error {
 		for _, scope := range staleScopes {
-			output.PrintHuman("  Removed stale scope lock: %s (PID %d dead)", scope, t.Locks[scope].PID)
-			delete(t.Locks, scope)
+			output.PrintHuman("  Removed stale scope lock: %s (PID %d dead)", scope, table.Locks[scope].PID)
+			delete(table.Locks, scope)
 		}
+
+		tableEmpty = len(table.Locks) == 0
 		return nil
 	})
+	if err == errNoChange {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	// Clean up the file when all locks were stale.
+	if tableEmpty {
+		if rmErr := os.Remove(d.Store.ScopeLocksPath()); rmErr != nil && !os.IsNotExist(rmErr) {
+			return rmErr
+		}
+	}
+	return nil
 }
 
 // RunWithSupervisor wraps Run with crash recovery and configurable restarts.

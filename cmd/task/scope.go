@@ -16,7 +16,7 @@ import (
 func newScopeCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "scope",
-		Short: "Manage file scope locks for parallel execution",
+		Short: "Claim and release territory for parallel operations",
 	}
 
 	cmd.AddCommand(newScopeAddCmd(app))
@@ -28,11 +28,12 @@ func newScopeCmd(app *cmdutil.App) *cobra.Command {
 func newScopeAddCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add <file> [<file>...]",
-		Short: "Acquire scope locks on files",
-		Long: `Claims exclusive access to one or more files for the current task. If any
-requested file conflicts with a lock held by another task, the entire
-request is rejected (all-or-nothing). Locks already held by the same
-task are silently accepted.
+		Short: "Claim exclusive territory over files",
+		Long: `Claims exclusive territory over one or more files for the current task.
+Two tasks cannot hold the same ground. If any requested file conflicts
+with another task's claim, the entire request is rejected. No partial
+victories. Reclaiming territory you already hold is accepted without
+complaint.
 
 Examples:
   wolfcastle task scope add --node my-project/api-layer internal/daemon/iteration.go
@@ -47,14 +48,26 @@ Examples:
 				return fmt.Errorf("scope add requires --task when not running inside a daemon iteration")
 			}
 
+			// Validate all requested paths before touching the lock table.
+			var invalid []string
+			for _, p := range args {
+				if !state.ValidateScopePath(p) {
+					invalid = append(invalid, p)
+				}
+			}
+			if len(invalid) > 0 {
+				return fmt.Errorf("invalid scope path(s): %s (paths must be relative, non-empty, and contain no \"..\" segments)", strings.Join(invalid, ", "))
+			}
+
 			taskAddr := nodeAddr + "/" + taskID
 
 			var conflicts []state.ScopeConflict
 
-			if err := app.State.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+			errConflict := fmt.Errorf("scope conflict")
+			err := app.State.MutateScopeLocks(func(table *state.ScopeLockTable) error {
 				conflicts = state.FindConflicts(args, table, taskAddr)
 				if len(conflicts) > 0 {
-					return nil // don't write; we'll handle output below
+					return errConflict // abort the write entirely (all-or-nothing)
 				}
 
 				now := time.Now().UTC()
@@ -71,14 +84,15 @@ Examples:
 					}
 				}
 				return nil
-			}); err != nil {
+			})
+			if err != nil && err != errConflict {
 				return err
 			}
 
 			if len(conflicts) > 0 {
 				parts := make([]string, len(conflicts))
 				for i, c := range conflicts {
-					parts[i] = fmt.Sprintf("%s (held by %s)", c.File, c.HeldByTask)
+					parts[i] = fmt.Sprintf("%s (held by %s on node %s)", c.File, c.HeldByTask, c.HeldByNode)
 				}
 				errMsg := "scope conflict: " + strings.Join(parts, ", ")
 
@@ -103,7 +117,7 @@ Examples:
 					"task":     taskID,
 				}))
 			} else {
-				output.PrintHuman("Acquired scope locks: %v", args)
+				output.PrintHuman("Territory claimed: %v", args)
 			}
 			return nil
 		},
@@ -118,9 +132,9 @@ Examples:
 func newScopeListCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List current scope locks",
-		Long: `Lists file scope locks currently held by tasks. Without flags, shows all locks.
-Use --node or --task to filter results.
+		Short: "Show who holds what territory",
+		Long: `Shows all claimed territory. Without flags, the full map. With --node
+or --task, only that sector.
 
 Examples:
   wolfcastle task scope list
@@ -169,7 +183,7 @@ Examples:
 				}))
 			} else {
 				if len(filtered) == 0 {
-					output.PrintHuman("No scope locks found.")
+					output.PrintHuman("No territory claimed. The field is empty.")
 				} else {
 					output.PrintHuman("%-40s %-30s %-30s %s", "FILE", "TASK", "NODE", "ACQUIRED")
 					for _, e := range filtered {
@@ -191,13 +205,11 @@ Examples:
 func newScopeReleaseCmd(app *cmdutil.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "release [<file>...]",
-		Short: "Release scope locks held by a task",
-		Long: `Releases file scope locks held by a task. Without file arguments, releases
-all locks held by the specified task. With file arguments, releases only
-those specific files. Releasing a lock not held by the task is a no-op.
-
-If the lock table becomes empty after release, the scope-locks.json file
-is deleted.
+		Short: "Surrender claimed territory",
+		Long: `Gives up territory held by a task. Without file arguments, surrenders
+everything. With file arguments, only those positions. Releasing
+territory you never held is a no-op. When no claims remain, the lock
+file is removed entirely.
 
 Examples:
   wolfcastle task scope release --node my-project/api-layer --task task-0001
@@ -254,9 +266,9 @@ Examples:
 				}))
 			} else {
 				if len(released) == 0 {
-					output.PrintHuman("No locks released.")
+					output.PrintHuman("Nothing to surrender. Task held no territory.")
 				} else {
-					output.PrintHuman("Released scope locks: %v", released)
+					output.PrintHuman("Territory surrendered: %v", released)
 				}
 			}
 			return nil

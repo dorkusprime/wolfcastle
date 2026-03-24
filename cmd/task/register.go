@@ -57,6 +57,14 @@ Examples:
 	amendCmd.ValidArgsFunction = completeFn
 	blockCmd.ValidArgsFunction = completeFn
 
+	// Node address completions for scope subcommands.
+	completeNodeFn := cmdutil.CompleteNodeAddresses(app)
+	for _, sub := range scopeCmd.Commands() {
+		if f := sub.Flags().Lookup("node"); f != nil {
+			_ = sub.RegisterFlagCompletionFunc("node", completeNodeFn)
+		}
+	}
+
 	taskCmd.AddCommand(addCmd, claimCmd, completeCmd, blockCmd, unblockCmd, deliverableCmd, amendCmd, scopeCmd)
 	taskCmd.GroupID = "work"
 	rootCmd.AddCommand(taskCmd)
