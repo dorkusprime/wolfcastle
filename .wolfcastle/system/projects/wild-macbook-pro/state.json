@@ -740,7 +740,7 @@
     "parallel-sibling-execution-phase-1/scope-lock-types-and-store": {
       "name": "Scope Lock Types and Store",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "parallel-sibling-execution-phase-1/scope-lock-types-and-store",
       "decomposition_depth": 0,
       "parent": "parallel-sibling-execution-phase-1"
