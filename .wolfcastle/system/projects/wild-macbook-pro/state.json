@@ -725,7 +725,7 @@
     "parallel-execution-phase-2-scope-aware-git/logger-child-factory": {
       "name": "Logger Child Factory",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "parallel-execution-phase-2-scope-aware-git/logger-child-factory",
       "decomposition_depth": 0,
       "parent": "parallel-execution-phase-2-scope-aware-git"
