@@ -42,6 +42,10 @@ Examples:
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			taskID, _ := cmd.Flags().GetString("task")
 
+			if taskID == "" {
+				return fmt.Errorf("scope add requires --task when not running inside a daemon iteration")
+			}
+
 			taskAddr := nodeAddr + "/" + taskID
 
 			var conflicts []state.ScopeConflict

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -132,6 +133,24 @@ func TestScopeAdd_NoFiles(t *testing.T) {
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when no file args provided")
+	}
+}
+
+func TestScopeAdd_MissingTask(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.RootCmd.SetArgs([]string{
+		"task", "scope", "add",
+		"--node", "my-project/api",
+		"file.go",
+	})
+	err := env.RootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when --task is omitted")
+	}
+	want := "scope add requires --task"
+	if got := err.Error(); !strings.Contains(got, want) {
+		t.Errorf("error should mention --task requirement\ngot:  %s\nwant substring: %s", got, want)
 	}
 }
 
