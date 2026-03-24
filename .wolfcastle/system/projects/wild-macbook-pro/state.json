@@ -732,7 +732,7 @@
     "parallel-sibling-execution-phase-1/scope-cli-commands": {
       "name": "Scope CLI Commands",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "parallel-sibling-execution-phase-1/scope-cli-commands",
       "decomposition_depth": 0,
       "parent": "parallel-sibling-execution-phase-1"
