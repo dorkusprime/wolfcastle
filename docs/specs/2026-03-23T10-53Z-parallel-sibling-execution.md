@@ -162,7 +162,7 @@ On conflict:
 {
   "ok": false,
   "action": "task_scope_add",
-  "error": "scope conflict: internal/daemon/iteration.go held by my-project/other-node/task-0002",
+  "error": "scope conflict: internal/daemon/iteration.go (held by my-project/other-node/task-0002 on node my-project/other-node)",
   "code": 1,
   "data": {
     "conflicts": [
@@ -183,7 +183,7 @@ Action names use underscores (`task_scope_add`) to match the existing convention
 Lists current scope locks.
 
 ```
-wolfcastle task scope list [--node <address>] [--task <task-id>]
+wolfcastle task scope list [--node <address>] [--task <task-address>]
 ```
 
 Without flags, lists all locks. With `--node` or `--task`, filters to that scope. Used for debugging and by `wolfcastle status`.

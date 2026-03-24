@@ -65,6 +65,9 @@ func TestValidateScopePath(t *testing.T) {
 		{name: "dotdot only", path: "..", want: false},
 		{name: "single dot is fine", path: "internal/./foo.go", want: true},
 		{name: "dotdot-like name is fine", path: "internal/...foo/bar.go", want: true},
+		{name: "double slash", path: "internal//daemon/foo.go", want: false},
+		{name: "trailing double slash", path: "internal/daemon//", want: false},
+		{name: "leading double slash relative", path: "//foo.go", want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -157,7 +157,7 @@ Examples:
 				AcquiredAt time.Time `json:"acquired_at"`
 			}
 
-			var filtered []lockEntry
+			filtered := make([]lockEntry, 0)
 			for file, lock := range table.Locks {
 				if nodeFilter != "" && lock.Node != nodeFilter {
 					continue
@@ -220,10 +220,14 @@ Examples:
 
 			taskAddr := nodeAddr + "/" + taskID
 
-			var released []string
-			var tableEmpty bool
+			released := make([]string, 0)
 
-			if err := app.State.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+			if err := app.State.WithLock(func() error {
+				table, readErr := app.State.ReadScopeLocks()
+				if readErr != nil {
+					return readErr
+				}
+
 				if len(args) == 0 {
 					// Release all locks held by this task.
 					for file, lock := range table.Locks {
@@ -242,21 +246,24 @@ Examples:
 						}
 					}
 				}
-				tableEmpty = len(table.Locks) == 0
-				return nil
+
+				if len(table.Locks) == 0 {
+					// Remove the file entirely while still holding the lock
+					// to prevent a TOCTOU race where another process adds a
+					// lock between our write and the remove.
+					path := app.State.ScopeLocksPath()
+					if rmErr := os.Remove(path); rmErr != nil && !os.IsNotExist(rmErr) {
+						return fmt.Errorf("removing empty scope locks file: %w", rmErr)
+					}
+					return nil
+				}
+
+				return state.SaveScopeLocks(app.State.ScopeLocksPath(), table)
 			}); err != nil {
 				return err
 			}
 
 			sort.Strings(released)
-
-			// If the table is now empty, remove the file entirely.
-			if tableEmpty {
-				path := app.State.ScopeLocksPath()
-				if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-					return fmt.Errorf("removing empty scope locks file: %w", err)
-				}
-			}
 
 			if app.JSON {
 				output.Print(output.Ok("task_scope_release", map[string]any{

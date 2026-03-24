@@ -314,14 +314,15 @@ func (d *Daemon) selfHeal() error {
 // longer running. If every lock in the table belongs to a dead process,
 // the entire file is removed as a leftover from a crashed run.
 func (d *Daemon) cleanStaleScopeLocks() error {
-	// Use MutateScopeLocks so the staleness check and deletion happen
-	// atomically under the advisory file lock, avoiding a TOCTOU race
-	// where a new lock could be acquired between a lock-free read and
-	// the subsequent mutation.
-	var tableEmpty bool
-	err := d.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+	// Use WithLock so the staleness check, deletion, and optional file
+	// removal all happen atomically under the advisory file lock.
+	return d.Store.WithLock(func() error {
+		table, err := d.Store.ReadScopeLocks()
+		if err != nil {
+			return err
+		}
 		if len(table.Locks) == 0 {
-			return errNoChange
+			return nil
 		}
 
 		myPID := os.Getpid()
@@ -337,7 +338,7 @@ func (d *Daemon) cleanStaleScopeLocks() error {
 		}
 
 		if len(staleScopes) == 0 {
-			return errNoChange
+			return nil
 		}
 
 		for _, scope := range staleScopes {
@@ -345,23 +346,17 @@ func (d *Daemon) cleanStaleScopeLocks() error {
 			delete(table.Locks, scope)
 		}
 
-		tableEmpty = len(table.Locks) == 0
-		return nil
-	})
-	if err == errNoChange {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
-	// Clean up the file when all locks were stale.
-	if tableEmpty {
-		if rmErr := os.Remove(d.Store.ScopeLocksPath()); rmErr != nil && !os.IsNotExist(rmErr) {
-			return rmErr
+		if len(table.Locks) == 0 {
+			// All locks were stale; remove the file entirely while
+			// still holding the lock to avoid a TOCTOU race.
+			if rmErr := os.Remove(d.Store.ScopeLocksPath()); rmErr != nil && !os.IsNotExist(rmErr) {
+				return rmErr
+			}
+			return nil
 		}
-	}
-	return nil
+
+		return state.SaveScopeLocks(d.Store.ScopeLocksPath(), table)
+	})
 }
 
 // RunWithSupervisor wraps Run with crash recovery and configurable restarts.
