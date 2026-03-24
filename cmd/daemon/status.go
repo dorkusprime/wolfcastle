@@ -42,9 +42,18 @@ Examples:
 			scopeNode, _ := cmd.Flags().GetString("node")
 			watch, _ := cmd.Flags().GetBool("watch")
 			interval, _ := cmd.Flags().GetFloat64("interval")
+			width, _ := cmd.Flags().GetInt("width")
+
 			expand, _ := cmd.Flags().GetBool("expand")
 			detail, _ := cmd.Flags().GetBool("detail")
 			archived, _ := cmd.Flags().GetBool("archived")
+
+			opts := treeOpts{
+				Expand:   expand,
+				Detail:   detail,
+				Archived: archived,
+				Width:    width,
+			}
 
 			if !showAll {
 				if err := app.RequireIdentity(); err != nil {
@@ -59,7 +68,7 @@ Examples:
 				}
 				ctx, stop := signal.NotifyContext(parent, signals.Shutdown...)
 				defer stop()
-				return watchStatus(ctx, app, scopeNode, showAll, interval, expand, detail)
+				return watchStatus(ctx, app, scopeNode, showAll, interval, opts)
 			}
 
 			if showAll {
@@ -71,9 +80,17 @@ Examples:
 				return err
 			}
 
-			return showTreeStatus(app, idx, scopeNode, expand, detail, archived)
+			return showTreeStatus(app, idx, scopeNode, opts)
 		},
 	}
+}
+
+// treeOpts controls how the status tree is rendered.
+type treeOpts struct {
+	Expand   bool
+	Detail   bool
+	Archived bool
+	Width    int // truncation width for text fields
 }
 
 // nodeDetail holds the index entry and optionally the full node state
@@ -83,10 +100,8 @@ type nodeDetail struct {
 	ns    *state.NodeState // nil for orchestrators or load failures
 }
 
-func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags ...bool) error {
-	expand := len(flags) > 0 && flags[0]
-	detail := len(flags) > 1 && flags[1]
-	showArchived := len(flags) > 2 && flags[2]
+func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, opts treeOpts) error {
+	showArchived := opts.Archived
 
 	counts := map[state.NodeStatus]int{}
 	auditCounts := map[state.AuditStatus]int{}
@@ -245,7 +260,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 		if _, ok := idx.Nodes[rootAddr]; !ok {
 			continue
 		}
-		printNodeTree(app, idx, details, rootAddr, "  ", expand, detail)
+		printNodeTree(app, idx, details, rootAddr, "  ", opts)
 	}
 
 	if !showArchived && archivedProjects > 0 {
@@ -293,8 +308,9 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, flags 
 // printNodeTree recursively prints a node and its children/tasks.
 // The optional detailFlag parameter controls whether extra detail
 // (task body, failure type, deliverables, breadcrumbs) is shown.
-func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*nodeDetail, addr string, indent string, expand bool, detailFlag ...bool) {
-	detail := len(detailFlag) > 0 && detailFlag[0]
+func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*nodeDetail, addr string, indent string, opts treeOpts) {
+	expand := opts.Expand
+	detail := opts.Detail
 
 	nd, ok := details[addr]
 	if !ok {
@@ -323,7 +339,7 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	// Show most recent breadcrumb for in_progress nodes when --detail is set.
 	if detail && nd.ns != nil && nd.entry.State == state.StatusInProgress && len(nd.ns.Audit.Breadcrumbs) > 0 {
 		bc := nd.ns.Audit.Breadcrumbs[len(nd.ns.Audit.Breadcrumbs)-1]
-		text := truncate(bc.Text, 120)
+		text := truncate(bc.Text, opts.Width)
 		output.PrintHuman("%s  breadcrumb: %s", indent, text)
 	}
 
@@ -332,7 +348,7 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 	// (future). Within each group, creation order is preserved.
 	if nd.entry.Type == state.NodeOrchestrator {
 		for _, childAddr := range sortChildrenTimeline(nd.entry.Children, idx) {
-			printNodeTree(app, idx, details, childAddr, indent+"  ", expand, detail)
+			printNodeTree(app, idx, details, childAddr, indent+"  ", opts)
 		}
 		if nd.ns != nil {
 			for _, t := range nd.ns.Tasks {
@@ -445,7 +461,7 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		// Detail-only lines: task body
 		if detail {
 			if t.Body != "" {
-				output.PrintHuman("%s       %s", taskIndent, truncate(t.Body, 120))
+				output.PrintHuman("%s       %s", taskIndent, truncate(t.Body, opts.Width))
 			}
 		}
 	}
@@ -638,7 +654,7 @@ func showAllStatus(app *cmdutil.App) error {
 // watchStatus refreshes the status display on an interval. Uses the
 // alternate screen buffer and cursor repositioning for flicker-free
 // updates (no clear-then-redraw flash).
-func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64, expand bool, detailFlags ...bool) error {
+func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bool, intervalSec float64, opts treeOpts) error {
 	if intervalSec < 0.1 {
 		intervalSec = 0.1
 	}
@@ -671,8 +687,7 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 			if err != nil {
 				output.PrintError("%v", err)
 			} else {
-				detail := len(detailFlags) > 0 && detailFlags[0]
-				if err := showTreeStatus(app, idx, scope, expand, detail); err != nil {
+					if err := showTreeStatus(app, idx, scope, opts); err != nil {
 					output.PrintError("%v", err)
 				}
 			}

@@ -91,7 +91,7 @@ func TestPrintNodeTree_OrchestratorRecursion(t *testing.T) {
 	}
 
 	// Exercises recursive orchestrator → leaf rendering.
-	printNodeTree(env.App, idx, details, "tree", "  ", false)
+	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120})
 }
 
 func TestPrintNodeTree_BlockedTaskWithReason(t *testing.T) {
@@ -113,7 +113,7 @@ func TestPrintNodeTree_BlockedTaskWithReason(t *testing.T) {
 	details := map[string]*nodeDetail{
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 func TestPrintNodeTree_TaskFailureCount(t *testing.T) {
@@ -135,7 +135,7 @@ func TestPrintNodeTree_TaskFailureCount(t *testing.T) {
 	details := map[string]*nodeDetail{
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 func TestPrintNodeTree_CompletedWithTitleAndDescription(t *testing.T) {
@@ -157,7 +157,7 @@ func TestPrintNodeTree_CompletedWithTitleAndDescription(t *testing.T) {
 	details := map[string]*nodeDetail{
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 func TestPrintNodeTree_OpenGapRendering(t *testing.T) {
@@ -176,7 +176,7 @@ func TestPrintNodeTree_OpenGapRendering(t *testing.T) {
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
 	// Exercises gap printing: open gap rendered, fixed gap skipped.
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 func TestPrintNodeTree_TaskDescriptionFallback(t *testing.T) {
@@ -198,7 +198,7 @@ func TestPrintNodeTree_TaskDescriptionFallback(t *testing.T) {
 	details := map[string]*nodeDetail{
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 // ---------------------------------------------------------------------------
@@ -223,7 +223,7 @@ func TestShowTreeStatus_JSONWithAuditData(t *testing.T) {
 	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
 
 	env.App.JSON = true
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus JSON failed: %v", err)
 	}
 }
@@ -238,7 +238,7 @@ func TestShowTreeStatus_ScopeFiltering(t *testing.T) {
 	)
 
 	idx, _ := env.App.State.ReadIndex()
-	if err := showTreeStatus(env.App, idx, "multi/alpha"); err != nil {
+	if err := showTreeStatus(env.App, idx, "multi/alpha", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus scoped failed: %v", err)
 	}
 }
@@ -262,7 +262,7 @@ func TestShowTreeStatus_InboxRendering(t *testing.T) {
 		t.Fatalf("writing inbox: %v", err)
 	}
 
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus with inbox failed: %v", err)
 	}
 }
@@ -277,7 +277,7 @@ func TestShowTreeStatus_NodeReadError(t *testing.T) {
 	_ = os.Remove(filepath.Join(env.env.ProjectsDir(), "proj", "state.json"))
 
 	// Should tolerate the read error and continue.
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus should tolerate read errors: %v", err)
 	}
 }
@@ -315,7 +315,7 @@ func TestWatchStatus_ImmediateCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "", false, 0.1, false); err != nil {
+	if err := watchStatus(ctx, env.App, "", false, 0.1, treeOpts{Width: 120}); err != nil {
 		t.Fatalf("watchStatus cancelled: %v", err)
 	}
 }
@@ -327,7 +327,7 @@ func TestWatchStatus_ShowAllWithCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "", true, 0.1, false); err != nil {
+	if err := watchStatus(ctx, env.App, "", true, 0.1, treeOpts{Width: 120}); err != nil {
 		t.Fatalf("watchStatus showAll cancelled: %v", err)
 	}
 }
@@ -340,7 +340,7 @@ func TestWatchStatus_IntervalFloor(t *testing.T) {
 	defer cancel()
 
 	// Interval below the 0.1s floor should be clamped.
-	if err := watchStatus(ctx, env.App, "", false, 0.01, false); err != nil {
+	if err := watchStatus(ctx, env.App, "", false, 0.01, treeOpts{Width: 120}); err != nil {
 		t.Fatalf("watchStatus min interval: %v", err)
 	}
 }
@@ -352,7 +352,7 @@ func TestWatchStatus_TreeReadError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "", false, 0.1, false); err != nil {
+	if err := watchStatus(ctx, env.App, "", false, 0.1, treeOpts{Width: 120}); err != nil {
 		t.Fatalf("watchStatus read error: %v", err)
 	}
 }
@@ -364,7 +364,7 @@ func TestWatchStatus_ShowAllReadError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "", true, 0.1, false); err != nil {
+	if err := watchStatus(ctx, env.App, "", true, 0.1, treeOpts{Width: 120}); err != nil {
 		t.Fatalf("watchStatus showAll error: %v", err)
 	}
 }
@@ -376,7 +376,7 @@ func TestWatchStatus_ScopedWithCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "proj", false, 0.1, false); err != nil {
+	if err := watchStatus(ctx, env.App, "proj", false, 0.1, treeOpts{Width: 120}); err != nil {
 		t.Fatalf("watchStatus scoped cancelled: %v", err)
 	}
 }

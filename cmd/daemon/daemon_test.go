@@ -408,7 +408,7 @@ func TestShowTreeStatus_JSONOutput(t *testing.T) {
 	defer func() { env.App.JSON = false }()
 
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
-	err := showTreeStatus(env.App, idx, "")
+	err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	if err != nil {
 		t.Fatalf("showTreeStatus JSON failed: %v", err)
 	}
@@ -417,7 +417,7 @@ func TestShowTreeStatus_JSONOutput(t *testing.T) {
 func TestShowTreeStatus_WithScope(t *testing.T) {
 	env := newStatusTestEnv(t)
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
-	err := showTreeStatus(env.App, idx, "my-project")
+	err := showTreeStatus(env.App, idx, "my-project", treeOpts{Width: 120})
 	if err != nil {
 		t.Fatalf("showTreeStatus with scope failed: %v", err)
 	}
@@ -704,7 +704,7 @@ func TestPrintNodeTree(t *testing.T) {
 
 	// Should not panic; exercises orchestrator recursion, leaf task rendering,
 	// blocked reason display, failure count display, and title/description fallback.
-	printNodeTree(env.App, idx, details, "orch", "  ", true)
+	printNodeTree(env.App, idx, details, "orch", "  ", treeOpts{Expand: true, Width: 120})
 }
 
 func TestPrintNodeTree_MissingAddr(t *testing.T) {
@@ -713,7 +713,7 @@ func TestPrintNodeTree_MissingAddr(t *testing.T) {
 	details := map[string]*nodeDetail{}
 
 	// Calling with an address not in details should return silently.
-	printNodeTree(env.App, idx, details, "nonexistent", "  ", true)
+	printNodeTree(env.App, idx, details, "nonexistent", "  ", treeOpts{Expand: true, Width: 120})
 }
 
 func TestPrintNodeTree_LeafWithNilNodeState(t *testing.T) {
@@ -730,7 +730,7 @@ func TestPrintNodeTree_LeafWithNilNodeState(t *testing.T) {
 	}
 
 	// Should not panic when ns is nil (no tasks to print).
-	printNodeTree(env.App, idx, details, "leaf", "  ", true)
+	printNodeTree(env.App, idx, details, "leaf", "  ", treeOpts{Expand: true, Width: 120})
 }
 
 // ---------------------------------------------------------------------------
@@ -816,7 +816,7 @@ func TestWatchStatus_SingleCycle(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- watchStatus(ctx, env.App, "", false, 0.1, false)
+		done <- watchStatus(ctx, env.App, "", false, 0.1, treeOpts{Width: 120})
 	}()
 
 	select {
@@ -838,7 +838,7 @@ func TestWatchStatus_WithScope(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- watchStatus(ctx, env.App, "my-project", false, 0.1, false)
+		done <- watchStatus(ctx, env.App, "my-project", false, 0.1, treeOpts{Width: 120})
 	}()
 
 	select {
