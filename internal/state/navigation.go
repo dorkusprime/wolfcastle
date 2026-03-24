@@ -239,6 +239,88 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 	return nil, nil
 }
 
+// FindParallelTasks finds up to maxCount actionable tasks that can run concurrently.
+// It starts with the same DFS as FindNextTask, then scans siblings of the first
+// result's parent orchestrator for additional independent work. In-progress siblings
+// are skipped (not treated as blockers), and an unplanned orchestrator sibling stops
+// further scanning of later children.
+func FindParallelTasks(
+	idx *RootIndex,
+	scopeAddr string,
+	loadNode func(addr string) (*NodeState, error),
+	maxCount int,
+) ([]*NavigationResult, error) {
+	first, err := FindNextTask(idx, scopeAddr, loadNode)
+	if err != nil {
+		return nil, err
+	}
+	if first == nil || !first.Found {
+		return nil, nil
+	}
+
+	// Look up the node's index entry to find its parent.
+	nodeEntry, ok := idx.Nodes[first.NodeAddress]
+	if !ok {
+		return []*NavigationResult{first}, nil
+	}
+	if nodeEntry.Parent == "" {
+		return []*NavigationResult{first}, nil
+	}
+
+	parentEntry, ok := idx.Nodes[nodeEntry.Parent]
+	if !ok {
+		return []*NavigationResult{first}, nil
+	}
+
+	// Scan siblings in creation order (Children array order).
+	var results []*NavigationResult
+	for _, childAddr := range parentEntry.Children {
+		if len(results) >= maxCount {
+			break
+		}
+
+		childEntry, childOk := idx.Nodes[childAddr]
+		if !childOk {
+			continue
+		}
+
+		// Skip complete or blocked siblings.
+		if childEntry.State == StatusComplete || childEntry.State == StatusBlocked {
+			continue
+		}
+
+		// Unplanned orchestrator: stop scanning further siblings.
+		if childEntry.Type == NodeOrchestrator && len(childEntry.Children) == 0 {
+			break
+		}
+
+		// Skip in-progress siblings (already claimed by another worker).
+		if childEntry.State == StatusInProgress {
+			continue
+		}
+
+		result, loadErr := findActionableTask(childAddr, loadNode)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		if result != nil && result.Found {
+			results = append(results, result)
+		}
+	}
+
+	// If the first result wasn't found among the siblings (e.g. it came from a
+	// deeper DFS path), ensure it's included.
+	if len(results) == 0 {
+		results = append(results, first)
+	}
+
+	if len(results) > maxCount {
+		results = results[:maxCount]
+	}
+
+	return results, nil
+}
+
 // isChildTask returns true if the task ID contains a dot (hierarchical child).
 func isChildTask(id string) bool {
 	return strings.Contains(id, ".")
