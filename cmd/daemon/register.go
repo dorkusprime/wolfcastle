@@ -31,9 +31,10 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	statusCmd.Flags().String("node", "", "Show status for a specific subtree")
 	statusCmd.Flags().BoolP("watch", "w", false, "Refresh status on an interval")
 	statusCmd.Flags().Float64P("interval", "n", 2, "Refresh interval in seconds (with --watch)")
-	statusCmd.Flags().Bool("expand", false, "Show completed nodes expanded (default: collapsed)")
-	statusCmd.Flags().Bool("detail", false, "Show task bodies, failure reasons, deliverables, and breadcrumbs")
+	statusCmd.Flags().BoolP("expand", "x", false, "Show completed nodes expanded (default: collapsed)")
+	statusCmd.Flags().BoolP("detail", "d", false, "Show task bodies, failure reasons, deliverables, and breadcrumbs")
 	statusCmd.Flags().Bool("archived", false, "Show only archived nodes")
+	statusCmd.Flags().Int("width", 120, "Truncation width for text fields")
 	_ = statusCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 
 	startCmd.GroupID = "lifecycle"

@@ -290,7 +290,7 @@ func TestShowTreeStatus_WithAuditDataJSON(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus with audit data (JSON) failed: %v", err)
 	}
 }
@@ -333,7 +333,7 @@ func TestShowTreeStatus_WithAuditData(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus with audit data failed: %v", err)
 	}
 }
