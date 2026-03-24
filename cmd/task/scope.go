@@ -3,6 +3,7 @@ package task
 import (
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -18,6 +19,7 @@ func newScopeCmd(app *cmdutil.App) *cobra.Command {
 	}
 
 	cmd.AddCommand(newScopeAddCmd(app))
+	cmd.AddCommand(newScopeListCmd(app))
 	return cmd
 }
 
@@ -99,5 +101,78 @@ Examples:
 	cmd.Flags().String("node", "", "Node address (required)")
 	cmd.Flags().String("task", "", "Task ID (optional, derived from context if omitted)")
 	_ = cmd.MarkFlagRequired("node")
+	return cmd
+}
+
+func newScopeListCmd(app *cmdutil.App) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List current scope locks",
+		Long: `Lists file scope locks currently held by tasks. Without flags, shows all locks.
+Use --node or --task to filter results.
+
+Examples:
+  wolfcastle task scope list
+  wolfcastle task scope list --node my-project/api-layer
+  wolfcastle task scope list --task my-project/api-layer/task-0001`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			nodeFilter, _ := cmd.Flags().GetString("node")
+			taskFilter, _ := cmd.Flags().GetString("task")
+
+			table, err := app.State.ReadScopeLocks()
+			if err != nil {
+				return err
+			}
+
+			type lockEntry struct {
+				File       string    `json:"file"`
+				Task       string    `json:"task"`
+				Node       string    `json:"node"`
+				AcquiredAt time.Time `json:"acquired_at"`
+			}
+
+			var filtered []lockEntry
+			for file, lock := range table.Locks {
+				if nodeFilter != "" && lock.Node != nodeFilter {
+					continue
+				}
+				if taskFilter != "" && lock.Task != taskFilter {
+					continue
+				}
+				filtered = append(filtered, lockEntry{
+					File:       file,
+					Task:       lock.Task,
+					Node:       lock.Node,
+					AcquiredAt: lock.AcquiredAt,
+				})
+			}
+
+			sort.Slice(filtered, func(i, j int) bool {
+				return filtered[i].File < filtered[j].File
+			})
+
+			if app.JSON {
+				output.Print(output.Ok("task_scope_list", map[string]any{
+					"locks": filtered,
+				}))
+			} else {
+				if len(filtered) == 0 {
+					output.PrintHuman("No scope locks found.")
+				} else {
+					output.PrintHuman("%-40s %-30s %-30s %s", "FILE", "TASK", "NODE", "ACQUIRED")
+					for _, e := range filtered {
+						output.PrintHuman("%-40s %-30s %-30s %s",
+							e.File, e.Task, e.Node,
+							e.AcquiredAt.Format(time.RFC3339))
+					}
+				}
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().String("node", "", "Filter by node address")
+	cmd.Flags().String("task", "", "Filter by task address")
 	return cmd
 }
