@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -75,8 +76,11 @@ Examples:
 			}
 
 			if len(conflicts) > 0 {
-				errMsg := fmt.Sprintf("scope conflict: %s held by %s",
-					conflicts[0].File, conflicts[0].HeldByTask)
+				parts := make([]string, len(conflicts))
+				for i, c := range conflicts {
+					parts[i] = fmt.Sprintf("%s (held by %s)", c.File, c.HeldByTask)
+				}
+				errMsg := "scope conflict: " + strings.Join(parts, ", ")
 
 				if app.JSON {
 					output.Print(output.Response{
