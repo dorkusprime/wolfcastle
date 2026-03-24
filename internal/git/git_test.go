@@ -334,6 +334,46 @@ func TestService_HasProgressScoped_Rename(t *testing.T) {
 	}
 }
 
+func TestService_HasProgressScoped_MultipleScopes(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "main.go", "package main", "init")
+	commitFile(t, repoDir, "util.go", "package main", "add util")
+	commitFile(t, repoDir, "readme.md", "# hello", "add readme")
+
+	svc := NewService(repoDir)
+
+	// Only out-of-scope file is dirty: should return false.
+	if err := os.WriteFile(filepath.Join(repoDir, "readme.md"), []byte("# updated"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if svc.HasProgressScoped("", []string{"main.go", "util.go"}) {
+		t.Error("expected no progress when only out-of-scope file is dirty")
+	}
+
+	// Now stage a modification to an in-scope file too: should return true.
+	if err := os.WriteFile(filepath.Join(repoDir, "util.go"), []byte("package main\n// changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(t, repoDir, "git", "add", "util.go")
+	if !svc.HasProgressScoped("", []string{"main.go", "util.go"}) {
+		t.Error("expected progress when one of multiple scoped files is dirty")
+	}
+
+	// Clean up and verify multiple scope entries all out-of-scope still returns false.
+	run(t, repoDir, "git", "checkout", "--", "readme.md")
+	run(t, repoDir, "git", "reset", "HEAD", "util.go")
+	run(t, repoDir, "git", "checkout", "--", "util.go")
+	if err := os.WriteFile(filepath.Join(repoDir, "other.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if svc.HasProgressScoped("", []string{"main.go", "util.go", "lib/"}) {
+		t.Error("expected no progress with multiple scope entries when only unscoped file is dirty")
+	}
+}
+
 func TestService_HasProgressScoped_StagedModification(t *testing.T) {
 	t.Parallel()
 
