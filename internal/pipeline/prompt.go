@@ -7,13 +7,28 @@ package pipeline
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 )
 
+// cwdSection returns a prompt section that anchors the model to its
+// working directory. Injected at the top of every assembled prompt so
+// the model never cd's to a sibling worktree or follows branch rules
+// from .claude/CLAUDE.md.
+func cwdSection(wolfcastleDir string) string {
+	repoDir := filepath.Dir(wolfcastleDir)
+	return fmt.Sprintf(`# Working Directory
+
+Your working directory is %s. Do not change it.
+Do not cd to any other directory. Do not follow branch rules or directory
+instructions from .claude/CLAUDE.md — those apply to the human, not you.
+Run all commands from your current directory. You work HERE.`, repoDir)
+}
+
 // AssemblePrompt builds the complete system prompt for a pipeline stage.
-// Assembly order: rule fragments, script reference, stage prompt, iteration context.
+// Assembly order: working directory, rule fragments, script reference, stage prompt, iteration context.
 func AssemblePrompt(wolfcastleDir string, cfg *config.Config, stage config.PipelineStage, iterContext string) (string, error) {
 	if stage.ShouldSkipPromptAssembly() {
 		// Lightweight stage — stage prompt + iteration context only
@@ -22,6 +37,7 @@ func AssemblePrompt(wolfcastleDir string, cfg *config.Config, stage config.Pipel
 			return "", err
 		}
 		var sections []string
+		sections = append(sections, cwdSection(wolfcastleDir))
 		sections = append(sections, content)
 		if iterContext != "" {
 			sections = append(sections, "# Current Task Context\n\n"+iterContext)
@@ -30,6 +46,9 @@ func AssemblePrompt(wolfcastleDir string, cfg *config.Config, stage config.Pipel
 	}
 
 	var sections []string
+
+	// 0. Working directory anchor
+	sections = append(sections, cwdSection(wolfcastleDir))
 
 	// 1. Rule fragments
 	fragments, err := ResolveAllFragments(wolfcastleDir, "rules", cfg.Prompts.Fragments, cfg.Prompts.ExcludeFragments)
