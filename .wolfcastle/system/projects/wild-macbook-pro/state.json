@@ -850,7 +850,7 @@
     "phase-3-parallel-dispatch/dispatch-engine": {
       "name": "Dispatch Engine",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "phase-3-parallel-dispatch/dispatch-engine",
       "decomposition_depth": 0,
       "parent": "phase-3-parallel-dispatch"
