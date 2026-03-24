@@ -120,7 +120,7 @@ func TestStartIteration_CreatesNumberedLogFile(t *testing.T) {
 	}
 
 	name := entries[0].Name()
-	if name != "0001-20260314T12-30Z.jsonl" {
+	if name != "0001-iter-20260314T12-30Z.jsonl" {
 		t.Errorf("unexpected filename %q", name)
 	}
 }
@@ -1407,9 +1407,8 @@ func TestChild_WritesToSeparateLogFile(t *testing.T) {
 	}
 	defer parent.Close()
 
-	// Advance parent to iteration 2 so its filename (0002-...) differs
-	// from the child's first iteration (0001-...) under a frozen clock.
-	_ = parent.StartIteration()
+	// Both parent and child at iteration 1: prefix in the filename
+	// ("iter" vs "worker") prevents collision under a frozen clock.
 	if err := parent.StartIteration(); err != nil {
 		t.Fatal(err)
 	}

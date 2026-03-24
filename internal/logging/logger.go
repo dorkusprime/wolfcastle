@@ -121,7 +121,7 @@ func (l *Logger) StartIterationWithPrefix(prefix string) error {
 	l.Close() // prevent file handle leak if called without Close()
 	l.Iteration++
 	l.TraceID = fmt.Sprintf("%s-%04d", prefix, l.Iteration)
-	filename := fmt.Sprintf("%04d-%s.jsonl", l.Iteration, nowFunc().UTC().Format("20060102T15-04Z"))
+	filename := fmt.Sprintf("%04d-%s-%s.jsonl", l.Iteration, prefix, nowFunc().UTC().Format("20060102T15-04Z"))
 	path := filepath.Join(l.LogDir, filename)
 
 	var err error
