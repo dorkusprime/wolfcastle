@@ -301,7 +301,62 @@ func (d *Daemon) selfHeal() error {
 	} else {
 		output.PrintHuman("All clear. No interrupted tasks.")
 	}
+
+	// Clean up stale scope locks left by dead processes or previous daemon runs.
+	if err := d.cleanStaleScopeLocks(); err != nil {
+		output.PrintHuman("  Warning: scope lock cleanup failed: %v", err)
+	}
+
 	return nil
+}
+
+// cleanStaleScopeLocks removes scope locks held by processes that are no
+// longer running. If every lock in the table belongs to a dead process,
+// the entire file is removed as a leftover from a crashed run.
+func (d *Daemon) cleanStaleScopeLocks() error {
+	table, err := d.Store.ReadScopeLocks()
+	if err != nil {
+		return nil // file doesn't exist or unreadable; nothing to clean
+	}
+	if len(table.Locks) == 0 {
+		return nil
+	}
+
+	myPID := os.Getpid()
+	allForeign := true // true if no lock belongs to the current daemon
+	var staleScopes []string
+
+	for scope, lock := range table.Locks {
+		if lock.PID == myPID {
+			allForeign = false
+			continue
+		}
+		if IsProcessRunning(lock.PID) {
+			allForeign = false
+			continue
+		}
+		staleScopes = append(staleScopes, scope)
+	}
+
+	if len(staleScopes) == 0 {
+		return nil
+	}
+
+	// If every lock belongs to a dead, foreign process, the file is a
+	// leftover from a crashed daemon. Remove it outright.
+	if allForeign {
+		output.PrintHuman("  Removing stale scope lock file (all locks from dead processes)")
+		return os.Remove(d.Store.ScopeLocksPath())
+	}
+
+	// Otherwise, surgically remove only the stale entries.
+	return d.Store.MutateScopeLocks(func(t *state.ScopeLockTable) error {
+		for _, scope := range staleScopes {
+			output.PrintHuman("  Removed stale scope lock: %s (PID %d dead)", scope, t.Locks[scope].PID)
+			delete(t.Locks, scope)
+		}
+		return nil
+	})
 }
 
 // RunWithSupervisor wraps Run with crash recovery and configurable restarts.

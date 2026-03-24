@@ -716,7 +716,7 @@
     "parallel-sibling-execution-phase-1/daemon-and-status-integration": {
       "name": "Daemon and Status Integration",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "parallel-sibling-execution-phase-1/daemon-and-status-integration",
       "decomposition_depth": 0,
       "parent": "parallel-sibling-execution-phase-1"
