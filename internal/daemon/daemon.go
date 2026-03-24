@@ -64,7 +64,8 @@ type Daemon struct {
 	ExitWhenDone   bool                // stop after all work is complete (--exit-when-done)
 	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
-	hasWorked        bool // tracks whether the daemon has done work this run
+	gitMu            sync.Mutex // serializes git commit operations across parallel workers
+	hasWorked        bool       // tracks whether the daemon has done work this run
 	shutdown         chan struct{}
 	shutdownOnce     sync.Once
 	workAvailable    chan struct{}

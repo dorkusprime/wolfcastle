@@ -733,7 +733,7 @@
     "parallel-execution-phase-2-scope-aware-git/scoped-git-commit-operations": {
       "name": "Scoped Git Commit Operations",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "parallel-execution-phase-2-scope-aware-git/scoped-git-commit-operations",
       "decomposition_depth": 0,
       "parent": "parallel-execution-phase-2-scope-aware-git"
