@@ -3,10 +3,6 @@
   "root_id": "domain-repository-architecture",
   "root_name": "Domain Repository Architecture",
   "root_state": "complete",
-  "root": [
-    "parallel-sibling-execution-phase-1",
-    "parallel-sibling-execution-phase-1-code-review-fixes"
-  ],
   "archived_root": [
     "domain-repository-architecture",
     "code-coverage",
@@ -45,7 +41,9 @@
     "structured-timing-metrics-in-log-events",
     "daemon-commit-messages-from-task-metadata",
     "non-daemon-foreground-output-flags",
-    "document-git-revert-recovery-workflow"
+    "document-git-revert-recovery-workflow",
+    "parallel-sibling-execution-phase-1",
+    "parallel-sibling-execution-phase-1-code-review-fixes"
   ],
   "nodes": {
     "codebase-knowledge-files": {
@@ -712,7 +710,9 @@
         "parallel-sibling-execution-phase-1/parallel-config",
         "parallel-sibling-execution-phase-1/scope-cli-commands",
         "parallel-sibling-execution-phase-1/daemon-and-status-integration"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T21:38:23.348693Z"
     },
     "parallel-sibling-execution-phase-1-code-review-fixes": {
       "name": "Parallel Sibling Execution Phase 1 Code Review Fixes",
@@ -723,7 +723,9 @@
       "children": [
         "parallel-sibling-execution-phase-1-code-review-fixes/scope-validation-and-all-or-nothing-test",
         "parallel-sibling-execution-phase-1-code-review-fixes/scope-cli-command-fixes"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T21:38:23.402527Z"
     },
     "parallel-sibling-execution-phase-1-code-review-fixes/scope-cli-command-fixes": {
       "name": "Scope CLI Command Fixes",
@@ -731,7 +733,9 @@
       "state": "complete",
       "address": "parallel-sibling-execution-phase-1-code-review-fixes/scope-cli-command-fixes",
       "decomposition_depth": 0,
-      "parent": "parallel-sibling-execution-phase-1-code-review-fixes"
+      "parent": "parallel-sibling-execution-phase-1-code-review-fixes",
+      "archived": true,
+      "archived_at": "2026-03-24T21:38:23.402527Z"
     },
     "parallel-sibling-execution-phase-1-code-review-fixes/scope-validation-and-all-or-nothing-test": {
       "name": "Scope Validation and All-or-Nothing Test",
@@ -739,7 +743,9 @@
       "state": "complete",
       "address": "parallel-sibling-execution-phase-1-code-review-fixes/scope-validation-and-all-or-nothing-test",
       "decomposition_depth": 0,
-      "parent": "parallel-sibling-execution-phase-1-code-review-fixes"
+      "parent": "parallel-sibling-execution-phase-1-code-review-fixes",
+      "archived": true,
+      "archived_at": "2026-03-24T21:38:23.402527Z"
     },
     "parallel-sibling-execution-phase-1/daemon-and-status-integration": {
       "name": "Daemon and Status Integration",
@@ -747,7 +753,9 @@
       "state": "complete",
       "address": "parallel-sibling-execution-phase-1/daemon-and-status-integration",
       "decomposition_depth": 0,
-      "parent": "parallel-sibling-execution-phase-1"
+      "parent": "parallel-sibling-execution-phase-1",
+      "archived": true,
+      "archived_at": "2026-03-24T21:38:23.348693Z"
     },
     "parallel-sibling-execution-phase-1/parallel-config": {
       "name": "Parallel Config",
@@ -755,7 +763,9 @@
       "state": "complete",
       "address": "parallel-sibling-execution-phase-1/parallel-config",
       "decomposition_depth": 0,
-      "parent": "parallel-sibling-execution-phase-1"
+      "parent": "parallel-sibling-execution-phase-1",
+      "archived": true,
+      "archived_at": "2026-03-24T21:38:23.348693Z"
     },
     "parallel-sibling-execution-phase-1/scope-cli-commands": {
       "name": "Scope CLI Commands",
@@ -763,7 +773,9 @@
       "state": "complete",
       "address": "parallel-sibling-execution-phase-1/scope-cli-commands",
       "decomposition_depth": 0,
-      "parent": "parallel-sibling-execution-phase-1"
+      "parent": "parallel-sibling-execution-phase-1",
+      "archived": true,
+      "archived_at": "2026-03-24T21:38:23.348693Z"
     },
     "parallel-sibling-execution-phase-1/scope-lock-types-and-store": {
       "name": "Scope Lock Types and Store",
@@ -771,7 +783,9 @@
       "state": "complete",
       "address": "parallel-sibling-execution-phase-1/scope-lock-types-and-store",
       "decomposition_depth": 0,
-      "parent": "parallel-sibling-execution-phase-1"
+      "parent": "parallel-sibling-execution-phase-1",
+      "archived": true,
+      "archived_at": "2026-03-24T21:38:23.348693Z"
     },
     "structured-timing-metrics-in-log-events": {
       "name": "Structured Timing Metrics in Log Events",
