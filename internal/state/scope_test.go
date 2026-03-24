@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -161,4 +162,78 @@ func TestFindConflicts(t *testing.T) {
 			t.Errorf("conflict file = %q, want %q", conflicts[0].File, "internal/daemon/iteration.go")
 		}
 	})
+}
+
+// TestMutateScopeLocks_AllOrNothing exercises the all-or-nothing guarantee at
+// the persistence layer. When a batch of files is requested and one conflicts
+// with an existing lock, the mutation callback returns an error, aborting the
+// write. Re-reading the table afterward confirms that none of the non-
+// conflicting files leaked through.
+func TestMutateScopeLocks_AllOrNothing(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	s := NewStore(dir, 5*time.Second)
+
+	now := time.Now().UTC()
+	taskA := "proj/node-a/task-0001"
+	taskB := "proj/node-b/task-0002"
+
+	// Seed: task-A holds file1.go.
+	err := s.MutateScopeLocks(func(tbl *ScopeLockTable) error {
+		tbl.Locks["file1.go"] = ScopeLock{
+			Task:       taskA,
+			Node:       "proj/node-a",
+			AcquiredAt: now,
+			PID:        1000,
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("seeding task-A lock: %v", err)
+	}
+
+	// Task-B requests [file1.go, file2.go, file3.go]. file1.go conflicts.
+	// The callback detects the conflict and returns an error, aborting the
+	// entire mutation so that file2.go and file3.go are never persisted.
+	errConflict := errors.New("scope conflict: all-or-nothing abort")
+	requested := []string{"file1.go", "file2.go", "file3.go"}
+
+	err = s.MutateScopeLocks(func(tbl *ScopeLockTable) error {
+		conflicts := FindConflicts(requested, tbl, taskB)
+		if len(conflicts) > 0 {
+			return errConflict
+		}
+		for _, f := range requested {
+			tbl.Locks[f] = ScopeLock{
+				Task:       taskB,
+				Node:       "proj/node-b",
+				AcquiredAt: now,
+				PID:        2000,
+			}
+		}
+		return nil
+	})
+	if !errors.Is(err, errConflict) {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+
+	// Re-read and verify: only task-A's file1.go lock should exist.
+	tbl, err := s.ReadScopeLocks()
+	if err != nil {
+		t.Fatalf("reading scope locks after abort: %v", err)
+	}
+
+	if len(tbl.Locks) != 1 {
+		t.Errorf("expected exactly 1 lock after aborted batch, got %d", len(tbl.Locks))
+	}
+	for _, leaked := range []string{"file2.go", "file3.go"} {
+		if _, ok := tbl.Locks[leaked]; ok {
+			t.Errorf("%s was acquired despite conflict on file1.go; all-or-nothing violated", leaked)
+		}
+	}
+	if lock, ok := tbl.Locks["file1.go"]; !ok {
+		t.Error("task-A's file1.go lock should still be present")
+	} else if lock.Task != taskA {
+		t.Errorf("file1.go holder = %q, want %q", lock.Task, taskA)
+	}
 }
