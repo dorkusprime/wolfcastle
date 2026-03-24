@@ -858,7 +858,7 @@
     "phase-3-parallel-dispatch/foundation": {
       "name": "Foundation",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "phase-3-parallel-dispatch/foundation",
       "decomposition_depth": 0,
       "parent": "phase-3-parallel-dispatch"
