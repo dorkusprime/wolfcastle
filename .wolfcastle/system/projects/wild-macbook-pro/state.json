@@ -3,21 +3,6 @@
   "root_id": "domain-repository-architecture",
   "root_name": "Domain Repository Architecture",
   "root_state": "complete",
-  "root": [
-    "configuration-docs-overhaul",
-    "deterministic-git-activity",
-    "codebase-knowledge-files",
-    "template-based-file-generation",
-    "consolidate-atomic-write-helpers",
-    "document-pid-recycling-edge-case-in-filelock",
-    "update-cli-commands-spec",
-    "decouple-validate-from-daemon-package",
-    "config-validate-command",
-    "structured-timing-metrics-in-log-events",
-    "daemon-commit-messages-from-task-metadata",
-    "non-daemon-foreground-output-flags",
-    "document-git-revert-recovery-workflow"
-  ],
   "archived_root": [
     "domain-repository-architecture",
     "code-coverage",
@@ -43,7 +28,20 @@
     "task-classes-implementation",
     "fix-stale-class-flag-help-text",
     "fix-writing-class-voice-md-unreachable",
-    "fix-log-thoughts-and-interleaved-renderers"
+    "fix-log-thoughts-and-interleaved-renderers",
+    "configuration-docs-overhaul",
+    "deterministic-git-activity",
+    "codebase-knowledge-files",
+    "template-based-file-generation",
+    "consolidate-atomic-write-helpers",
+    "document-pid-recycling-edge-case-in-filelock",
+    "update-cli-commands-spec",
+    "decouple-validate-from-daemon-package",
+    "config-validate-command",
+    "structured-timing-metrics-in-log-events",
+    "daemon-commit-messages-from-task-metadata",
+    "non-daemon-foreground-output-flags",
+    "document-git-revert-recovery-workflow"
   ],
   "nodes": {
     "codebase-knowledge-files": {
@@ -57,7 +55,9 @@
         "codebase-knowledge-files/knowledge-cli-commands",
         "codebase-knowledge-files/pipeline-integration",
         "codebase-knowledge-files/documentation"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.877115Z"
     },
     "codebase-knowledge-files/documentation": {
       "name": "Documentation",
@@ -65,7 +65,9 @@
       "state": "complete",
       "address": "codebase-knowledge-files/documentation",
       "decomposition_depth": 0,
-      "parent": "codebase-knowledge-files"
+      "parent": "codebase-knowledge-files",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.877115Z"
     },
     "codebase-knowledge-files/knowledge-cli-commands": {
       "name": "Knowledge CLI Commands",
@@ -73,7 +75,9 @@
       "state": "complete",
       "address": "codebase-knowledge-files/knowledge-cli-commands",
       "decomposition_depth": 0,
-      "parent": "codebase-knowledge-files"
+      "parent": "codebase-knowledge-files",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.877115Z"
     },
     "codebase-knowledge-files/knowledge-config-and-storage": {
       "name": "Knowledge Config and Storage",
@@ -81,7 +85,9 @@
       "state": "complete",
       "address": "codebase-knowledge-files/knowledge-config-and-storage",
       "decomposition_depth": 0,
-      "parent": "codebase-knowledge-files"
+      "parent": "codebase-knowledge-files",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.877115Z"
     },
     "codebase-knowledge-files/pipeline-integration": {
       "name": "Pipeline Integration",
@@ -89,7 +95,9 @@
       "state": "complete",
       "address": "codebase-knowledge-files/pipeline-integration",
       "decomposition_depth": 0,
-      "parent": "codebase-knowledge-files"
+      "parent": "codebase-knowledge-files",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.877115Z"
     },
     "config-validate-command": {
       "name": "Config Validate Command",
@@ -99,7 +107,9 @@
       "decomposition_depth": 0,
       "children": [
         "config-validate-command/config-validate-implementation"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.218197Z"
     },
     "config-validate-command/config-validate-implementation": {
       "name": "Config Validate Implementation",
@@ -107,7 +117,9 @@
       "state": "complete",
       "address": "config-validate-command/config-validate-implementation",
       "decomposition_depth": 0,
-      "parent": "config-validate-command"
+      "parent": "config-validate-command",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.218197Z"
     },
     "configuration-docs-overhaul": {
       "name": "Configuration Docs Overhaul",
@@ -118,7 +130,9 @@
       "children": [
         "configuration-docs-overhaul/write-config-pages",
         "configuration-docs-overhaul/deep-linking-pass"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.773192Z"
     },
     "configuration-docs-overhaul/deep-linking-pass": {
       "name": "Deep-Linking Pass",
@@ -126,7 +140,9 @@
       "state": "complete",
       "address": "configuration-docs-overhaul/deep-linking-pass",
       "decomposition_depth": 0,
-      "parent": "configuration-docs-overhaul"
+      "parent": "configuration-docs-overhaul",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.773192Z"
     },
     "configuration-docs-overhaul/write-config-pages": {
       "name": "Write Config Pages",
@@ -140,7 +156,9 @@
         "configuration-docs-overhaul/write-config-pages/task-classes",
         "configuration-docs-overhaul/write-config-pages/configuration-guide",
         "configuration-docs-overhaul/write-config-pages/config-quickstart"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.773192Z"
     },
     "configuration-docs-overhaul/write-config-pages/config-quickstart": {
       "name": "Config Quickstart",
@@ -148,7 +166,9 @@
       "state": "complete",
       "address": "configuration-docs-overhaul/write-config-pages/config-quickstart",
       "decomposition_depth": 0,
-      "parent": "configuration-docs-overhaul/write-config-pages"
+      "parent": "configuration-docs-overhaul/write-config-pages",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.773192Z"
     },
     "configuration-docs-overhaul/write-config-pages/config-reference": {
       "name": "Config Reference",
@@ -156,7 +176,9 @@
       "state": "complete",
       "address": "configuration-docs-overhaul/write-config-pages/config-reference",
       "decomposition_depth": 0,
-      "parent": "configuration-docs-overhaul/write-config-pages"
+      "parent": "configuration-docs-overhaul/write-config-pages",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.773192Z"
     },
     "configuration-docs-overhaul/write-config-pages/configuration-guide": {
       "name": "Configuration Guide",
@@ -164,7 +186,9 @@
       "state": "complete",
       "address": "configuration-docs-overhaul/write-config-pages/configuration-guide",
       "decomposition_depth": 0,
-      "parent": "configuration-docs-overhaul/write-config-pages"
+      "parent": "configuration-docs-overhaul/write-config-pages",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.773192Z"
     },
     "configuration-docs-overhaul/write-config-pages/task-classes": {
       "name": "Task Classes",
@@ -172,7 +196,9 @@
       "state": "complete",
       "address": "configuration-docs-overhaul/write-config-pages/task-classes",
       "decomposition_depth": 0,
-      "parent": "configuration-docs-overhaul/write-config-pages"
+      "parent": "configuration-docs-overhaul/write-config-pages",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.773192Z"
     },
     "consolidate-atomic-write-helpers": {
       "name": "Consolidate Atomic Write Helpers",
@@ -182,7 +208,9 @@
       "decomposition_depth": 0,
       "children": [
         "consolidate-atomic-write-helpers/refactor-and-update-tests"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.991268Z"
     },
     "consolidate-atomic-write-helpers/refactor-and-update-tests": {
       "name": "Refactor and Update Tests",
@@ -190,7 +218,9 @@
       "state": "complete",
       "address": "consolidate-atomic-write-helpers/refactor-and-update-tests",
       "decomposition_depth": 0,
-      "parent": "consolidate-atomic-write-helpers"
+      "parent": "consolidate-atomic-write-helpers",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.991268Z"
     },
     "daemon-commit-messages-from-task-metadata": {
       "name": "Daemon Commit Messages from Task Metadata",
@@ -201,7 +231,9 @@
       "children": [
         "daemon-commit-messages-from-task-metadata/add-commit-prefix-config",
         "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.327271Z"
     },
     "daemon-commit-messages-from-task-metadata/add-commit-prefix-config": {
       "name": "Add Commit Prefix Config",
@@ -209,7 +241,9 @@
       "state": "complete",
       "address": "daemon-commit-messages-from-task-metadata/add-commit-prefix-config",
       "decomposition_depth": 0,
-      "parent": "daemon-commit-messages-from-task-metadata"
+      "parent": "daemon-commit-messages-from-task-metadata",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.327271Z"
     },
     "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata": {
       "name": "Enrich Commit Messages with Task Metadata",
@@ -217,7 +251,9 @@
       "state": "complete",
       "address": "daemon-commit-messages-from-task-metadata/enrich-commit-messages-with-task-metadata",
       "decomposition_depth": 0,
-      "parent": "daemon-commit-messages-from-task-metadata"
+      "parent": "daemon-commit-messages-from-task-metadata",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.327271Z"
     },
     "decouple-validate-from-daemon-package": {
       "name": "Decouple Validate from Daemon Package",
@@ -228,7 +264,9 @@
       "children": [
         "decouple-validate-from-daemon-package/extract-pid-checker-interface",
         "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.164017Z"
     },
     "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary": {
       "name": "ADR: Interface for Validate-Daemon Boundary",
@@ -236,7 +274,9 @@
       "state": "complete",
       "address": "decouple-validate-from-daemon-package/adr-interface-for-validate-daemon-boundary",
       "decomposition_depth": 0,
-      "parent": "decouple-validate-from-daemon-package"
+      "parent": "decouple-validate-from-daemon-package",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.164017Z"
     },
     "decouple-validate-from-daemon-package/extract-pid-checker-interface": {
       "name": "Extract PID Checker Interface",
@@ -244,7 +284,9 @@
       "state": "complete",
       "address": "decouple-validate-from-daemon-package/extract-pid-checker-interface",
       "decomposition_depth": 0,
-      "parent": "decouple-validate-from-daemon-package"
+      "parent": "decouple-validate-from-daemon-package",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.164017Z"
     },
     "deterministic-git-activity": {
       "name": "Deterministic Git Activity",
@@ -257,7 +299,9 @@
         "deterministic-git-activity/daemon-commit-logic",
         "deterministic-git-activity/prompt-cleanup",
         "deterministic-git-activity/documentation-update"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.824002Z"
     },
     "deterministic-git-activity/daemon-commit-logic": {
       "name": "Daemon Commit Logic",
@@ -265,7 +309,9 @@
       "state": "complete",
       "address": "deterministic-git-activity/daemon-commit-logic",
       "decomposition_depth": 0,
-      "parent": "deterministic-git-activity"
+      "parent": "deterministic-git-activity",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.824002Z"
     },
     "deterministic-git-activity/documentation-update": {
       "name": "Documentation Update",
@@ -273,7 +319,9 @@
       "state": "complete",
       "address": "deterministic-git-activity/documentation-update",
       "decomposition_depth": 0,
-      "parent": "deterministic-git-activity"
+      "parent": "deterministic-git-activity",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.824002Z"
     },
     "deterministic-git-activity/git-config-fields": {
       "name": "Git Config Fields",
@@ -281,7 +329,9 @@
       "state": "complete",
       "address": "deterministic-git-activity/git-config-fields",
       "decomposition_depth": 0,
-      "parent": "deterministic-git-activity"
+      "parent": "deterministic-git-activity",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.824002Z"
     },
     "deterministic-git-activity/prompt-cleanup": {
       "name": "Prompt Cleanup",
@@ -289,7 +339,9 @@
       "state": "complete",
       "address": "deterministic-git-activity/prompt-cleanup",
       "decomposition_depth": 0,
-      "parent": "deterministic-git-activity"
+      "parent": "deterministic-git-activity",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.824002Z"
     },
     "document-git-revert-recovery-workflow": {
       "name": "Document Git Revert Recovery Workflow",
@@ -299,7 +351,9 @@
       "decomposition_depth": 0,
       "children": [
         "document-git-revert-recovery-workflow/write-git-revert-recovery-section"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.439234Z"
     },
     "document-git-revert-recovery-workflow/write-git-revert-recovery-section": {
       "name": "Write Git Revert Recovery Section",
@@ -307,7 +361,9 @@
       "state": "complete",
       "address": "document-git-revert-recovery-workflow/write-git-revert-recovery-section",
       "decomposition_depth": 0,
-      "parent": "document-git-revert-recovery-workflow"
+      "parent": "document-git-revert-recovery-workflow",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.439234Z"
     },
     "document-pid-recycling-edge-case-in-filelock": {
       "name": "Document PID recycling edge case in filelock",
@@ -317,7 +373,9 @@
       "decomposition_depth": 0,
       "children": [
         "document-pid-recycling-edge-case-in-filelock/add-comment"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.056Z"
     },
     "document-pid-recycling-edge-case-in-filelock/add-comment": {
       "name": "add-comment",
@@ -325,7 +383,9 @@
       "state": "complete",
       "address": "document-pid-recycling-edge-case-in-filelock/add-comment",
       "decomposition_depth": 0,
-      "parent": "document-pid-recycling-edge-case-in-filelock"
+      "parent": "document-pid-recycling-edge-case-in-filelock",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.056Z"
     },
     "fix-log-follow-hang-with-stopped-daemon": {
       "name": "Fix log --follow hang with stopped daemon",
@@ -613,7 +673,9 @@
       "children": [
         "non-daemon-foreground-output-flags/spec-update",
         "non-daemon-foreground-output-flags/foreground-renderer-flags"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.383Z"
     },
     "non-daemon-foreground-output-flags/foreground-renderer-flags": {
       "name": "Foreground Renderer Flags",
@@ -621,7 +683,9 @@
       "state": "complete",
       "address": "non-daemon-foreground-output-flags/foreground-renderer-flags",
       "decomposition_depth": 0,
-      "parent": "non-daemon-foreground-output-flags"
+      "parent": "non-daemon-foreground-output-flags",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.383Z"
     },
     "non-daemon-foreground-output-flags/spec-update": {
       "name": "Spec Update",
@@ -629,7 +693,9 @@
       "state": "complete",
       "address": "non-daemon-foreground-output-flags/spec-update",
       "decomposition_depth": 0,
-      "parent": "non-daemon-foreground-output-flags"
+      "parent": "non-daemon-foreground-output-flags",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.383Z"
     },
     "structured-timing-metrics-in-log-events": {
       "name": "Structured Timing Metrics in Log Events",
@@ -641,7 +707,9 @@
         "structured-timing-metrics-in-log-events/daemon-duration-emission",
         "structured-timing-metrics-in-log-events/renderer-duration-field-support",
         "structured-timing-metrics-in-log-events/schema-documentation-update"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.274043Z"
     },
     "structured-timing-metrics-in-log-events/daemon-duration-emission": {
       "name": "Daemon Duration Emission",
@@ -649,7 +717,9 @@
       "state": "complete",
       "address": "structured-timing-metrics-in-log-events/daemon-duration-emission",
       "decomposition_depth": 0,
-      "parent": "structured-timing-metrics-in-log-events"
+      "parent": "structured-timing-metrics-in-log-events",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.274043Z"
     },
     "structured-timing-metrics-in-log-events/renderer-duration-field-support": {
       "name": "Renderer Duration Field Support",
@@ -657,7 +727,9 @@
       "state": "complete",
       "address": "structured-timing-metrics-in-log-events/renderer-duration-field-support",
       "decomposition_depth": 0,
-      "parent": "structured-timing-metrics-in-log-events"
+      "parent": "structured-timing-metrics-in-log-events",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.274043Z"
     },
     "structured-timing-metrics-in-log-events/schema-documentation-update": {
       "name": "Schema Documentation Update",
@@ -665,7 +737,9 @@
       "state": "complete",
       "address": "structured-timing-metrics-in-log-events/schema-documentation-update",
       "decomposition_depth": 0,
-      "parent": "structured-timing-metrics-in-log-events"
+      "parent": "structured-timing-metrics-in-log-events",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.274043Z"
     },
     "task-classes-implementation": {
       "name": "Task Classes Implementation",
@@ -848,7 +922,9 @@
         "template-based-file-generation/template-repository-infrastructure",
         "template-based-file-generation/call-site-migration",
         "template-based-file-generation/template-documentation"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.934038Z"
     },
     "template-based-file-generation/call-site-migration": {
       "name": "Call-Site Migration",
@@ -860,7 +936,9 @@
       "children": [
         "template-based-file-generation/call-site-migration/scaffold-templates",
         "template-based-file-generation/call-site-migration/artifact-templates"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.934038Z"
     },
     "template-based-file-generation/call-site-migration/artifact-templates": {
       "name": "Artifact Templates",
@@ -868,7 +946,9 @@
       "state": "complete",
       "address": "template-based-file-generation/call-site-migration/artifact-templates",
       "decomposition_depth": 0,
-      "parent": "template-based-file-generation/call-site-migration"
+      "parent": "template-based-file-generation/call-site-migration",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.934038Z"
     },
     "template-based-file-generation/call-site-migration/scaffold-templates": {
       "name": "Scaffold Templates",
@@ -876,7 +956,9 @@
       "state": "complete",
       "address": "template-based-file-generation/call-site-migration/scaffold-templates",
       "decomposition_depth": 0,
-      "parent": "template-based-file-generation/call-site-migration"
+      "parent": "template-based-file-generation/call-site-migration",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.934038Z"
     },
     "template-based-file-generation/template-documentation": {
       "name": "Template Documentation",
@@ -884,7 +966,9 @@
       "state": "complete",
       "address": "template-based-file-generation/template-documentation",
       "decomposition_depth": 0,
-      "parent": "template-based-file-generation"
+      "parent": "template-based-file-generation",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.934038Z"
     },
     "template-based-file-generation/template-repository-infrastructure": {
       "name": "Template Repository Infrastructure",
@@ -892,7 +976,9 @@
       "state": "complete",
       "address": "template-based-file-generation/template-repository-infrastructure",
       "decomposition_depth": 0,
-      "parent": "template-based-file-generation"
+      "parent": "template-based-file-generation",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:41.934038Z"
     },
     "update-cli-commands-spec": {
       "name": "Update CLI Commands Spec",
@@ -903,7 +989,9 @@
       "children": [
         "update-cli-commands-spec/add-missing-command-sections",
         "update-cli-commands-spec/finalize-spec-metadata"
-      ]
+      ],
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.110281Z"
     },
     "update-cli-commands-spec/add-missing-command-sections": {
       "name": "Add Missing Command Sections",
@@ -911,7 +999,9 @@
       "state": "complete",
       "address": "update-cli-commands-spec/add-missing-command-sections",
       "decomposition_depth": 0,
-      "parent": "update-cli-commands-spec"
+      "parent": "update-cli-commands-spec",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.110281Z"
     },
     "update-cli-commands-spec/finalize-spec-metadata": {
       "name": "Finalize Spec Metadata",
@@ -919,7 +1009,9 @@
       "state": "complete",
       "address": "update-cli-commands-spec/finalize-spec-metadata",
       "decomposition_depth": 0,
-      "parent": "update-cli-commands-spec"
+      "parent": "update-cli-commands-spec",
+      "archived": true,
+      "archived_at": "2026-03-24T06:16:42.110281Z"
     }
   }
 }
