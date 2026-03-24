@@ -632,7 +632,7 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 		commitArgs = append(commitArgs, "--no-verify")
 	}
 
-	if err := commitDirect(repoDir, gitCfg, commitArgs); err != nil {
+	if err := commitDirect(repoDir, gitCfg, commitArgs, nil); err != nil {
 		_ = logger.Log(map[string]any{"type": "commit_error", "task": taskID, "error": err.Error()})
 		return
 	}
@@ -666,7 +666,7 @@ func commitStateFlush(repoDir string, logger *logging.Logger, gitCfg config.GitC
 	if gitCfg.SkipHooksOnAutoCommit {
 		commitArgs = append(commitArgs, "--no-verify")
 	}
-	if err := commitDirect(repoDir, gitCfg, commitArgs); err != nil {
+	if err := commitDirect(repoDir, gitCfg, commitArgs, nil); err != nil {
 		_ = logger.Log(map[string]any{"type": "state_flush_error", "error": err.Error()})
 	}
 }
@@ -763,21 +763,40 @@ func extractTaskCommitMeta(ns *state.NodeState, taskID string) taskCommitMeta {
 // decomposed into subtasks and all those subtasks are now complete. If so,
 // the parent is auto-completed.
 // commitDirect performs git add/commit using the default index.
-func commitDirect(repoDir string, gitCfg config.GitConfig, commitArgs []string) error {
-	// Use "git add ." instead of "git add -u" so new files created by
-	// the agent are included. .gitignore protects sensitive files.
-	addCmd := exec.Command("git", "add", ".")
-	addCmd.Dir = repoDir
-	if err := addCmd.Run(); err != nil {
-		return fmt.Errorf("git add .: %w", err)
+// When scope is nil (serial mode), it stages everything with "git add ."
+// and optionally unstages .wolfcastle/ via reset. When scope is non-nil
+// (parallel mode), only the listed paths are staged; .wolfcastle/ is
+// included or excluded by presence in the file list, so no reset is needed.
+func commitDirect(repoDir string, gitCfg config.GitConfig, commitArgs []string, scope []string) error {
+	if scope == nil {
+		// Serial mode: stage everything, then optionally exclude state.
+		addCmd := exec.Command("git", "add", ".")
+		addCmd.Dir = repoDir
+		if err := addCmd.Run(); err != nil {
+			return fmt.Errorf("git add .: %w", err)
+		}
+		// When commit_state is disabled, unstage .wolfcastle/ so state
+		// files are excluded from the commit.
+		if !gitCfg.CommitState {
+			resetCmd := exec.Command("git", "reset", "HEAD", "--", ".wolfcastle/")
+			resetCmd.Dir = repoDir
+			_ = resetCmd.Run()
+		}
+	} else {
+		// Parallel mode: stage only scoped files.
+		files := make([]string, len(scope))
+		copy(files, scope)
+		if gitCfg.CommitState {
+			files = append(files, ".wolfcastle/")
+		}
+		addArgs := append([]string{"add", "--"}, files...)
+		addCmd := exec.Command("git", addArgs...)
+		addCmd.Dir = repoDir
+		if err := addCmd.Run(); err != nil {
+			return fmt.Errorf("git add (scoped): %w", err)
+		}
 	}
-	// When commit_state is disabled, unstage .wolfcastle/ so state
-	// files are excluded from the commit.
-	if !gitCfg.CommitState {
-		resetCmd := exec.Command("git", "reset", "HEAD", "--", ".wolfcastle/")
-		resetCmd.Dir = repoDir
-		_ = resetCmd.Run()
-	}
+
 	commitCmd := exec.Command("git", commitArgs...)
 	commitCmd.Dir = repoDir
 	if err := commitCmd.Run(); err != nil {
