@@ -1396,6 +1396,66 @@ func TestChild_UsesDefaultPrefix(t *testing.T) {
 	}
 }
 
+func TestChild_WritesToSeparateLogFile(t *testing.T) {
+	frozen := time.Date(2026, 3, 14, 12, 30, 0, 0, time.UTC)
+	withFrozenClock(t, frozen)
+	dir := t.TempDir()
+
+	parent, err := NewLogger(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parent.Close()
+
+	// Advance parent to iteration 2 so its filename (0002-...) differs
+	// from the child's first iteration (0001-...) under a frozen clock.
+	_ = parent.StartIteration()
+	if err := parent.StartIteration(); err != nil {
+		t.Fatal(err)
+	}
+	parentPath := parent.CurrentLogPath()
+	_ = parent.Log(map[string]any{"type": "test", "source": "parent"})
+
+	child := parent.Child("worker")
+	defer child.Close()
+
+	if err := child.StartIteration(); err != nil {
+		t.Fatal(err)
+	}
+	childPath := child.CurrentLogPath()
+	_ = child.Log(map[string]any{"type": "test", "source": "child"})
+
+	if parentPath == childPath {
+		t.Fatalf("parent and child wrote to the same file: %s", parentPath)
+	}
+
+	// Close both so writes are flushed.
+	parent.Close()
+	child.Close()
+
+	parentData, err := os.ReadFile(parentPath)
+	if err != nil {
+		t.Fatalf("reading parent log: %v", err)
+	}
+	if !strings.Contains(string(parentData), `"source":"parent"`) {
+		t.Error("parent log file missing parent record")
+	}
+	if strings.Contains(string(parentData), `"source":"child"`) {
+		t.Error("parent log file contains child record")
+	}
+
+	childData, err := os.ReadFile(childPath)
+	if err != nil {
+		t.Fatalf("reading child log: %v", err)
+	}
+	if !strings.Contains(string(childData), `"source":"child"`) {
+		t.Error("child log file missing child record")
+	}
+	if strings.Contains(string(childData), `"source":"parent"`) {
+		t.Error("child log file contains parent record")
+	}
+}
+
 func TestChild_ParentUnmodified(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
