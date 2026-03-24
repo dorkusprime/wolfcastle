@@ -687,7 +687,7 @@ func watchStatus(ctx context.Context, app *cmdutil.App, scope string, showAll bo
 			if err != nil {
 				output.PrintError("%v", err)
 			} else {
-					if err := showTreeStatus(app, idx, scope, opts); err != nil {
+				if err := showTreeStatus(app, idx, scope, opts); err != nil {
 					output.PrintError("%v", err)
 				}
 			}
