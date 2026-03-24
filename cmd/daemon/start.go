@@ -81,10 +81,10 @@ Examples:
 
 			// Check for uncommitted changes before the daemon touches anything.
 			// Direct commits will sweep in whatever is in the working tree,
-			// so the user needs to know before we start. Skip in background
-			// mode: the foreground process already confirmed with the user,
-			// and the re-exec has no TTY to prompt on.
-			if cfg.Git.AutoCommit && !background {
+			// so the user needs to know before we start. Skip when there is
+			// no TTY (background re-exec, piped input): the foreground
+			// process already confirmed with the user.
+			if cfg.Git.AutoCommit && output.IsTerminal() {
 				if dirty, reason := checkDirtyTree(repoDir); dirty {
 					output.PrintHuman("The working tree has uncommitted changes:\n%s", reason)
 					output.PrintHuman("")
