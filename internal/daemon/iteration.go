@@ -152,6 +152,21 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		if marker == invoke.MarkerStringYield {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringYield})
 
+			// Check for a scope-conflict suffix. When present, return a
+			// typed error so the parallel dispatcher can record the
+			// conflict and avoid immediately re-dispatching into it.
+			if kind, conflictAddr := scanYieldSuffix(result.Stdout); kind == "scope_conflict" {
+				_ = d.Logger.Log(map[string]any{
+					"type":     "yield_scope_conflict",
+					"task":     nav.TaskID,
+					"blocker":  conflictAddr,
+				})
+				return &ErrYieldScopeConflict{
+					Task:    nav.NodeAddress + "/" + nav.TaskID,
+					Blocker: conflictAddr,
+				}
+			}
+
 			// If the model created child tasks (hierarchical IDs like task-0001.0001),
 			// navigation handles them automatically via depth-first ordering.
 			// The parent task's status derives from its children.

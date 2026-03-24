@@ -2,12 +2,25 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"sync"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
+
+// ErrYieldScopeConflict is returned by runIteration when a worker yields
+// with a scope_conflict suffix. It carries the addresses of the yielding
+// task and the task that holds the conflicting scope locks.
+type ErrYieldScopeConflict struct {
+	Task    string // address of the task that yielded
+	Blocker string // address of the task holding the conflicting locks
+}
+
+func (e *ErrYieldScopeConflict) Error() string {
+	return fmt.Sprintf("scope conflict: %s blocked by %s", e.Task, e.Blocker)
+}
 
 // ParallelDispatcher coordinates concurrent task execution across multiple
 // worker slots. It serializes git operations through the parent Daemon's gitMu
@@ -30,10 +43,12 @@ type WorkerSlot struct {
 
 // WorkerResult captures the outcome of a single worker iteration.
 type WorkerResult struct {
-	Node   string
-	Task   string
-	Result IterationResult
-	Error  error
+	Node          string
+	Task          string
+	Result        IterationResult
+	Error         error
+	ScopeConflict bool   // true when the worker yielded due to a scope conflict
+	Blocker       string // address of the task holding the conflicting scope locks
 }
 
 // NewParallelDispatcher creates a ParallelDispatcher bound to the given Daemon.
@@ -99,17 +114,26 @@ func (pd *ParallelDispatcher) runWorker(ctx context.Context, nav *state.Navigati
 		err := pd.daemon.runIteration(workerCtx, nav, idx)
 		logger.Close()
 
-		result := IterationDidWork
-		if err != nil {
-			result = IterationError
+		wr := WorkerResult{
+			Node: nav.NodeAddress,
+			Task: nav.TaskID,
 		}
 
-		pd.results <- WorkerResult{
-			Node:   nav.NodeAddress,
-			Task:   nav.TaskID,
-			Result: result,
-			Error:  err,
+		var scopeErr *ErrYieldScopeConflict
+		switch {
+		case errors.As(err, &scopeErr):
+			// Scope-conflict yield: not a failure, just a scheduling conflict.
+			wr.Result = IterationDidWork
+			wr.ScopeConflict = true
+			wr.Blocker = scopeErr.Blocker
+		case err != nil:
+			wr.Result = IterationError
+			wr.Error = err
+		default:
+			wr.Result = IterationDidWork
 		}
+
+		pd.results <- wr
 	}()
 }
 
@@ -143,6 +167,45 @@ done:
 		ns, _ := d.Store.ReadNode(wr.Node)
 
 		switch {
+		case wr.ScopeConflict:
+			// Scope-conflict yield: record the conflict so fillSlots
+			// skips this task while the blocker is still active. Do not
+			// increment the failure count (this is a scheduling conflict,
+			// not an execution failure).
+			pd.mu.Lock()
+			pd.blocked[taskAddr] = wr.Blocker
+			pd.mu.Unlock()
+
+			// Commit any partial work the agent produced before yielding.
+			if d.Config.Git.CommitOnFailure {
+				d.gitMu.Lock()
+				meta := extractTaskCommitMeta(ns, wr.Task)
+				commitAfterIteration(d.RepoDir, d.Logger, wr.Task, "failure", 0, d.Config.Git, meta, scope)
+				d.gitMu.Unlock()
+			}
+
+			// Release scope locks so the blocker (or other tasks) can
+			// acquire files this task was holding.
+			pd.releaseScope(taskAddr)
+
+			// Reset the task to not_started so it is eligible for
+			// re-dispatch once the blocker completes.
+			_ = d.Store.MutateNode(wr.Node, func(mns *state.NodeState) error {
+				for i, t := range mns.Tasks {
+					if t.ID == wr.Task {
+						mns.Tasks[i].State = state.StatusNotStarted
+						break
+					}
+				}
+				return nil
+			})
+
+			// Remove from the active map but do NOT clear blocked entries
+			// (this task yielded; it did not complete).
+			pd.mu.Lock()
+			delete(pd.active, taskAddr)
+			pd.mu.Unlock()
+
 		case wr.Error == nil:
 			// Success path: commit scoped changes under gitMu, then
 			// propagate the node's state up through parent orchestrators.
@@ -161,6 +224,17 @@ done:
 				}
 			}
 
+			// Release scope locks and clean up active/blocked state.
+			pd.releaseScope(taskAddr)
+			pd.mu.Lock()
+			delete(pd.active, taskAddr)
+			for blocked, blocker := range pd.blocked {
+				if blocker == taskAddr {
+					delete(pd.blocked, blocked)
+				}
+			}
+			pd.mu.Unlock()
+
 		default:
 			// Failure path: increment the failure count and commit
 			// partial work so retries don't redo completed portions.
@@ -175,22 +249,18 @@ done:
 			failMeta := extractTaskCommitMeta(ns, wr.Task)
 			commitAfterIteration(d.RepoDir, d.Logger, wr.Task, "failure", failCount, d.Config.Git, failMeta, scope)
 			d.gitMu.Unlock()
-		}
 
-		// Release scope locks now that the commit is done.
-		pd.releaseScope(taskAddr)
-
-		// Remove from the active map.
-		pd.mu.Lock()
-		delete(pd.active, taskAddr)
-
-		// Unblock any yielded siblings that were waiting on this task.
-		for blocked, blocker := range pd.blocked {
-			if blocker == taskAddr {
-				delete(pd.blocked, blocked)
+			// Release scope locks and clean up active/blocked state.
+			pd.releaseScope(taskAddr)
+			pd.mu.Lock()
+			delete(pd.active, taskAddr)
+			for blocked, blocker := range pd.blocked {
+				if blocker == taskAddr {
+					delete(pd.blocked, blocked)
+				}
 			}
+			pd.mu.Unlock()
 		}
-		pd.mu.Unlock()
 	}
 
 	return collected
@@ -230,16 +300,9 @@ func (pd *ParallelDispatcher) fillSlots(ctx context.Context, idx *state.RootInde
 		taskAddr := nav.NodeAddress + "/" + nav.TaskID
 
 		// Skip tasks whose blocker is still running.
-		pd.mu.Lock()
-		if blocker, blocked := pd.blocked[taskAddr]; blocked {
-			if _, active := pd.active[blocker]; active {
-				pd.mu.Unlock()
-				continue
-			}
-			// Blocker finished; clear the stale entry.
-			delete(pd.blocked, taskAddr)
+		if pd.isBlocked(taskAddr) {
+			continue
 		}
-		pd.mu.Unlock()
 
 		// Claim the task (not_started -> in_progress).
 		claimErr := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
@@ -259,6 +322,25 @@ func (pd *ParallelDispatcher) fillSlots(ctx context.Context, idx *state.RootInde
 	}
 
 	return launched
+}
+
+// isBlocked checks whether taskAddr is in the blocked map with an active
+// blocker. If the blocker has already been drained (no longer in pd.active),
+// the stale blocked entry is removed and the task is eligible for dispatch.
+func (pd *ParallelDispatcher) isBlocked(taskAddr string) bool {
+	pd.mu.Lock()
+	defer pd.mu.Unlock()
+
+	blocker, ok := pd.blocked[taskAddr]
+	if !ok {
+		return false
+	}
+	if _, active := pd.active[blocker]; active {
+		return true
+	}
+	// Blocker finished; clear the stale entry.
+	delete(pd.blocked, taskAddr)
+	return false
 }
 
 // releaseScope deletes all scope locks held by the given task address.
