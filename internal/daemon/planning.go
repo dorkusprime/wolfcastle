@@ -164,8 +164,8 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	// we only clear items that existed when the pass started.
 	prePlanScopeCount := len(ns.PendingScope)
 
-	d.iteration++
-	output.PrintHuman("--- Planning %d: %s (%s) ---", d.iteration, nodeAddr, trigger)
+	d.iteration.Add(1)
+	output.PrintHuman("--- Planning %d: %s (%s) ---", d.iteration.Load(), nodeAddr, trigger)
 
 	_ = d.Logger.StartIterationWithPrefix("plan")
 	_ = d.Logger.LogIterationStart("plan", nodeAddr)

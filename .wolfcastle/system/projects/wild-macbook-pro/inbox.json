@@ -338,7 +338,7 @@
     {
       "timestamp": "2026-03-24T22:46:36Z",
       "text": "Implement Phase 3 of Parallel Sibling Execution: Parallel Dispatch.\n\nSpec: docs/specs/2026-03-23T10-53Z-parallel-sibling-execution.md\nADR: docs/decisions/095-parallel-sibling-execution.md\n\nPhase 3 adds the worker pool, parallel navigation, and modified daemon loop. After this, wolfcastle start with daemon.parallel.enabled=true executes independent sibling tasks concurrently.\n\n7 pieces of work: FindParallelTasks navigation, ParallelDispatcher struct, worker goroutine execution, modified RunOnce, shared Daemon field protection, scope acquisition in iteration context, WOLFCASTLE_YIELD scope_conflict marker parsing. See the full inbox item from the previous submission for detailed descriptions of each piece.",
-      "status": "new"
+      "status": "filed"
     }
   ]
 }

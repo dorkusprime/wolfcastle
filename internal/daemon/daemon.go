@@ -30,6 +30,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
@@ -72,7 +73,7 @@ type Daemon struct {
 	sigChan          chan os.Signal
 	runWg            sync.WaitGroup // tracks goroutines started by Run
 	branch           string
-	iteration        int
+	iteration        atomic.Int64
 	lastNoWorkMsg    string    // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
 	lastArchiveCheck time.Time // throttle auto-archive polling
 }
@@ -389,7 +390,7 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		d.shutdown = make(chan struct{})
 		d.shutdownOnce = sync.Once{}
 		d.workAvailable = make(chan struct{}, 1)
-		d.iteration = 0
+		d.iteration.Store(0)
 	}
 }
 
@@ -469,7 +470,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
 
-	d.iteration = 0
+	d.iteration.Store(0)
 	d.hasWorked = false
 	_ = d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
 	output.PrintHuman("=== Wolfcastle engaged (scope=%s) ===", d.scopeLabel())
@@ -603,8 +604,8 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 
 	// Max iterations check
 	maxIter := d.Config.Daemon.MaxIterations
-	if maxIter > 0 && d.iteration >= maxIter {
-		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration})
+	if maxIter > 0 && d.iteration.Load() >= int64(maxIter) {
+		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration.Load()})
 		output.PrintHuman("=== Iteration cap reached (%d) ===", maxIter)
 		return IterationStop, nil
 	}
@@ -702,8 +703,8 @@ execute:
 	// Tree has work again; reset the dedup so next idle prints fresh.
 	d.lastNoWorkMsg = ""
 
-	d.iteration++
-	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration, navResult.NodeAddress, navResult.TaskID)
+	d.iteration.Add(1)
+	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration.Load(), navResult.NodeAddress, navResult.TaskID)
 
 	// Start iteration log with "exec" trace prefix
 	_ = d.Logger.StartIterationWithPrefix("exec")

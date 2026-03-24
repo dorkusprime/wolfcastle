@@ -131,8 +131,8 @@ func TestRun_WorkAvailableWakesIdleLoop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run should exit cleanly after workAvailable signal: %v", err)
 	}
-	if d.iteration != 1 {
-		t.Errorf("expected 1 iteration after wake, got %d", d.iteration)
+	if d.iteration.Load() != 1 {
+		t.Errorf("expected 1 iteration after wake, got %d", d.iteration.Load())
 	}
 }
 
@@ -258,8 +258,8 @@ func TestRun_DidWorkEnforcesLogRetention(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run should exit cleanly after DidWork: %v", err)
 	}
-	if d.iteration != 1 {
-		t.Errorf("expected iteration=1, got %d", d.iteration)
+	if d.iteration.Load() != 1 {
+		t.Errorf("expected iteration=1, got %d", d.iteration.Load())
 	}
 }
 

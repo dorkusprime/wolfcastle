@@ -570,7 +570,7 @@ func TestRunOnce_StopFile(t *testing.T) {
 func TestRunOnce_MaxIterations(t *testing.T) {
 	d := testDaemon(t)
 	d.Config.Daemon.MaxIterations = 5
-	d.iteration = 5
+	d.iteration.Store(5)
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 
@@ -660,8 +660,8 @@ func TestRunOnce_WorkFound(t *testing.T) {
 	if result != IterationDidWork {
 		t.Errorf("expected IterationDidWork, got %d", result)
 	}
-	if d.iteration != 1 {
-		t.Errorf("iteration should be 1, got %d", d.iteration)
+	if d.iteration.Load() != 1 {
+		t.Errorf("iteration should be 1, got %d", d.iteration.Load())
 	}
 }
 
@@ -1336,8 +1336,8 @@ func TestRunWithSupervisor_StateResetBetweenRestarts(t *testing.T) {
 	// Iteration counter is reset to 0 by the supervisor between restarts.
 	// Run also sets it to 0 on entry, so after the final Run returns it
 	// should still be 0.
-	if d.iteration != 0 {
-		t.Errorf("expected iteration reset to 0, got %d", d.iteration)
+	if d.iteration.Load() != 0 {
+		t.Errorf("expected iteration reset to 0, got %d", d.iteration.Load())
 	}
 }
 
