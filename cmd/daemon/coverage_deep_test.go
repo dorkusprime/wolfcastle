@@ -50,7 +50,7 @@ func TestPrintNodeTree_CompletedOrchestratorCollapsed(t *testing.T) {
 	}
 
 	// expand=false: completed orchestrator with children should be collapsed.
-	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120})
+	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -80,7 +80,7 @@ func TestPrintNodeTree_CompletedLeafWithTasks(t *testing.T) {
 	}
 
 	// expand=false: completed leaf with tasks shows task count.
-	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -116,7 +116,7 @@ func TestPrintNodeTree_OrchestratorWithActiveAuditTask(t *testing.T) {
 	}
 
 	// Exercises orchestrator audit task display path.
-	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120})
+	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -143,7 +143,7 @@ func TestPrintNodeTree_SubtaskCollapsing(t *testing.T) {
 
 	// expand=false: completed parent task-0001 with all-complete children
 	// should be collapsed, showing child count instead.
-	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -168,7 +168,7 @@ func TestPrintNodeTree_SubtaskNotCollapsed(t *testing.T) {
 	}
 
 	// expand=false: parent complete but sub B incomplete — no collapse.
-	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -310,7 +310,7 @@ func TestPrintNodeTree_DeepSubtaskIndent(t *testing.T) {
 	}
 
 	// Exercises multi-level task indentation.
-	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Expand: true, Width: 120})
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Expand: true, Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -338,7 +338,7 @@ func TestPrintNodeTree_CompletedTaskCollapsedSubtasks(t *testing.T) {
 	}
 
 	// expand=false: exercises the collapsed-parent-task + skipChildren paths.
-	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -422,7 +422,7 @@ func TestPrintNodeTree_OpenGapNonTerminal(t *testing.T) {
 	}
 
 	// Exercises the non-terminal gap rendering branch.
-	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -504,7 +504,7 @@ func TestPrintNodeTree_OrchestratorBlockedAuditTask(t *testing.T) {
 	}
 
 	// Exercises blocked audit task display on orchestrator.
-	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120})
+	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -551,7 +551,7 @@ func TestPrintNodeTree_GrandchildSkippedInCollapseCheck(t *testing.T) {
 	}
 
 	// expand=false: exercises the grandchild "rest contains dot" skip.
-	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
