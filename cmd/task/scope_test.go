@@ -243,6 +243,44 @@ func TestScopeAdd_AllOrNothing(t *testing.T) {
 	}
 }
 
+func TestScopeAdd_ConflictMessageAllFiles(t *testing.T) {
+	env := newTestEnv(t)
+
+	// Task A acquires two files.
+	seedLocks(t, env, map[string]state.ScopeLock{
+		"alpha.go": {Task: "proj/node-a/task-0001", Node: "proj/node-a", AcquiredAt: time.Now().UTC(), PID: 1234},
+		"beta.go":  {Task: "proj/node-a/task-0001", Node: "proj/node-a", AcquiredAt: time.Now().UTC(), PID: 1234},
+	})
+
+	// Task B requests both files; FindConflicts should report both.
+	table, err := env.App.State.ReadScopeLocks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	conflicts := state.FindConflicts(
+		[]string{"alpha.go", "beta.go"},
+		table,
+		"proj/node-b/task-0002",
+	)
+	if len(conflicts) != 2 {
+		t.Fatalf("expected 2 conflicts, got %d", len(conflicts))
+	}
+
+	// Collect conflicting file names and verify both are present.
+	got := map[string]bool{}
+	for _, c := range conflicts {
+		got[c.File] = true
+		if c.HeldByTask != "proj/node-a/task-0001" {
+			t.Errorf("unexpected holder for %s: %s", c.File, c.HeldByTask)
+		}
+	}
+	for _, want := range []string{"alpha.go", "beta.go"} {
+		if !got[want] {
+			t.Errorf("conflict for %s not found in results", want)
+		}
+	}
+}
+
 func TestScopeAdd_DirectoryConflictsWithFile(t *testing.T) {
 	env := newTestEnv(t)
 
