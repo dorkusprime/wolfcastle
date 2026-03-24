@@ -113,9 +113,11 @@ Examples:
 			}
 			defer dmn.ReleaseGlobalLock()
 
-			// Check for running daemon (per-project PID, backward compat)
+			// Check for running daemon (per-project PID, backward compat).
+			// Skip if the PID in the file is our own process: background
+			// re-exec inherits a PID file written by startBackground.
 			pid, pidErr := app.Daemon.ReadPID()
-			if pidErr == nil && dmn.IsProcessRunning(pid) {
+			if pidErr == nil && pid != os.Getpid() && dmn.IsProcessRunning(pid) {
 				dmn.ReleaseGlobalLock()
 				return fmt.Errorf("already running (PID %d). Use 'wolfcastle stop' first", pid)
 			}
