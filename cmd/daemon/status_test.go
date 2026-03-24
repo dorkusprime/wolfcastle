@@ -48,7 +48,7 @@ func TestShowAllStatus_NoNamespaces(t *testing.T) {
 func TestShowTreeStatus_EmptyTree(t *testing.T) {
 	env := newTestEnv(t)
 	idx := state.NewRootIndex()
-	err := showTreeStatus(env.App, idx, "")
+	err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	if err != nil {
 		t.Fatalf("showTreeStatus failed: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestShowTreeStatus_EmptyTree(t *testing.T) {
 func TestShowTreeStatus_WithNodes(t *testing.T) {
 	env := newStatusTestEnv(t)
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
-	err := showTreeStatus(env.App, idx, "")
+	err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	if err != nil {
 		t.Fatalf("showTreeStatus failed: %v", err)
 	}
@@ -105,14 +105,14 @@ func TestShowTreeStatus_MultipleNodeStates(t *testing.T) {
 	}
 
 	// Test human output with scope
-	if err := showTreeStatus(env.App, idx, "my-project"); err != nil {
+	if err := showTreeStatus(env.App, idx, "my-project", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus with multiple states and scope failed: %v", err)
 	}
 
 	// Test JSON output
 	env.App.JSON = true
 	defer func() { env.App.JSON = false }()
-	if err := showTreeStatus(env.App, idx, "my-project"); err != nil {
+	if err := showTreeStatus(env.App, idx, "my-project", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus JSON with multiple states failed: %v", err)
 	}
 }
@@ -212,7 +212,7 @@ func TestShowTreeStatus_SubtaskIndentation(t *testing.T) {
 
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
 	// Should not panic and should render hierarchical tasks
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus with subtasks failed: %v", err)
 	}
 }
@@ -270,7 +270,7 @@ func setupDetailEnv(t *testing.T) (*testEnv, *state.RootIndex) {
 func TestShowTreeStatus_DetailFlag_ShowsTaskBody(t *testing.T) {
 	env, idx := setupDetailEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, true) // expand=false, detail=true
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Detail: true, Width: 120}) // expand=false, detail=true
 	})
 
 	if !strings.Contains(out, "This is a long task body") {
@@ -281,7 +281,7 @@ func TestShowTreeStatus_DetailFlag_ShowsTaskBody(t *testing.T) {
 func TestShowTreeStatus_DetailFlag_ShowsFailureType(t *testing.T) {
 	env, idx := setupDetailEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Detail: true, Width: 120})
 	})
 
 	if !strings.Contains(out, "3 failures, last: timeout") {
@@ -292,7 +292,7 @@ func TestShowTreeStatus_DetailFlag_ShowsFailureType(t *testing.T) {
 func TestShowTreeStatus_DetailFlag_ShowsBreadcrumb(t *testing.T) {
 	env, idx := setupDetailEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Detail: true, Width: 120})
 	})
 
 	if !strings.Contains(out, "breadcrumb:") {
@@ -306,7 +306,7 @@ func TestShowTreeStatus_DetailFlag_ShowsBreadcrumb(t *testing.T) {
 func TestShowTreeStatus_NoDetail_HidesExtras(t *testing.T) {
 	env, idx := setupDetailEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false) // expand=false, detail=false
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120}) // expand=false, detail=false
 	})
 
 	if strings.Contains(out, "This is a long task body") {
@@ -328,7 +328,7 @@ func TestShowTreeStatus_DefaultView_Unchanged(t *testing.T) {
 	env, idx := setupDetailEnv(t)
 	// Call with no flags at all (variadic empty)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	if strings.Contains(out, "breadcrumb:") {
@@ -342,7 +342,7 @@ func TestShowTreeStatus_JSON_IncludesNodeDetails(t *testing.T) {
 	defer func() { env.App.JSON = false }()
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	var resp map[string]any
@@ -460,7 +460,7 @@ func setupArchivedEnv(t *testing.T) (*testEnv, *state.RootIndex) {
 func TestShowTreeStatus_FiltersArchivedNodes(t *testing.T) {
 	env, idx := setupArchivedEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	if strings.Contains(out, "Old Project") {
@@ -474,7 +474,7 @@ func TestShowTreeStatus_FiltersArchivedNodes(t *testing.T) {
 func TestShowTreeStatus_ShowsArchivedSummaryLine(t *testing.T) {
 	env, idx := setupArchivedEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	if !strings.Contains(out, "1 project archived (use --archived to view)") {
@@ -485,7 +485,7 @@ func TestShowTreeStatus_ShowsArchivedSummaryLine(t *testing.T) {
 func TestShowTreeStatus_ArchivedCountInSummary(t *testing.T) {
 	env, idx := setupArchivedEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	if !strings.Contains(out, "1 archived") {
@@ -501,7 +501,7 @@ func TestShowTreeStatus_NoArchivedLine_WhenNoneArchived(t *testing.T) {
 	env := newStatusTestEnv(t)
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	if strings.Contains(out, "archived") {
@@ -515,7 +515,7 @@ func TestShowTreeStatus_JSON_IncludesArchivedCount(t *testing.T) {
 	defer func() { env.App.JSON = false }()
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	var resp map[string]any
@@ -572,7 +572,7 @@ func TestShowTreeStatus_PluralArchivedLine(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	if !strings.Contains(out, "2 projects archived (use --archived to view)") {
@@ -587,7 +587,7 @@ func TestShowTreeStatus_PluralArchivedLine(t *testing.T) {
 func TestShowArchivedStatus_ShowsOnlyArchived(t *testing.T) {
 	env, idx := setupArchivedEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Archived: true, Width: 120})
 	})
 
 	if !strings.Contains(out, "Old Project") {
@@ -601,7 +601,7 @@ func TestShowArchivedStatus_ShowsOnlyArchived(t *testing.T) {
 func TestShowArchivedStatus_ShowsArchivedAt(t *testing.T) {
 	env, idx := setupArchivedEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Archived: true, Width: 120})
 	})
 
 	// The new tree view uses printNodeTree which shows ● Leaf: Name  (addr)
@@ -617,7 +617,7 @@ func TestShowArchivedStatus_ShowsArchivedAt(t *testing.T) {
 func TestShowArchivedStatus_ShowsAddress(t *testing.T) {
 	env, idx := setupArchivedEnv(t)
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Archived: true, Width: 120})
 	})
 
 	if !strings.Contains(out, "old-proj") {
@@ -629,7 +629,7 @@ func TestShowArchivedStatus_EmptyWhenNoneArchived(t *testing.T) {
 	env := newStatusTestEnv(t)
 	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Archived: true, Width: 120})
 	})
 
 	if !strings.Contains(out, "No targets. Feed the inbox.") {
@@ -643,7 +643,7 @@ func TestShowArchivedStatus_JSON(t *testing.T) {
 	defer func() { env.App.JSON = false }()
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Archived: true, Width: 120})
 	})
 
 	var resp map[string]any
@@ -705,7 +705,7 @@ func TestShowArchivedStatus_RespectsScope(t *testing.T) {
 	}
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "old-a", false, false, true)
+		_ = showTreeStatus(env.App, idx, "old-a", treeOpts{Archived: true, Width: 120})
 	})
 
 	if !strings.Contains(out, "Old A") {
@@ -881,7 +881,7 @@ func TestShowTreeStatus_AllNodesArchived(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	// No active nodes rendered in the tree
@@ -936,7 +936,7 @@ func TestShowTreeStatus_MixedOrchestratorWithArchivedChildren(t *testing.T) {
 	}
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	if !strings.Contains(out, "Active Child") {
@@ -974,7 +974,7 @@ func TestShowArchivedStatus_NoArchivedAt(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Archived: true, Width: 120})
 	})
 
 	if !strings.Contains(out, "No Timestamp") {
@@ -1000,7 +1000,7 @@ func TestShowArchivedStatus_ReadNodeFailsGracefully(t *testing.T) {
 	// Don't create node state dir; ReadNode will fail
 	env.App.JSON = true
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Archived: true, Width: 120})
 	})
 
 	var resp map[string]any
@@ -1026,7 +1026,7 @@ func TestShowArchivedStatus_JSON_EmptyList(t *testing.T) {
 	env.App.JSON = true
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Archived: true, Width: 120})
 	})
 
 	var resp map[string]any
@@ -1069,7 +1069,7 @@ func TestShowArchivedStatus_MultipleNodesRendered(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "", false, false, true)
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Archived: true, Width: 120})
 	})
 
 	if !strings.Contains(out, "Alpha") || !strings.Contains(out, "Zebra") {
@@ -1091,7 +1091,7 @@ func TestShowTreeStatus_JSON_AllNodesArchived(t *testing.T) {
 
 	env.App.JSON = true
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "")
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 120})
 	})
 
 	var resp map[string]any
@@ -1169,7 +1169,7 @@ func TestShowTreeStatus_ScopeDoesNotCountOutOfScopeArchived(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "alpha")
+		_ = showTreeStatus(env.App, idx, "alpha", treeOpts{Width: 120})
 	})
 
 	// When scoped to alpha, the archived gamma should not contribute to archived count
@@ -1216,7 +1216,7 @@ func TestShowArchivedStatus_ScopeToOrchestratorSubtree(t *testing.T) {
 	}
 
 	out := captureStdout(t, func() {
-		_ = showTreeStatus(env.App, idx, "parent", false, false, true)
+		_ = showTreeStatus(env.App, idx, "parent", treeOpts{Archived: true, Width: 120})
 	})
 
 	// The child is archived but the parent (the only Root entry) is not,
@@ -1250,7 +1250,7 @@ func TestWatchStatus_WithDetailFlag(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := watchStatus(ctx, env.App, "", false, 0.1, false, true); err != nil {
+	if err := watchStatus(ctx, env.App, "", false, 0.1, treeOpts{Detail: true, Width: 120}); err != nil {
 		t.Fatalf("watchStatus with detail cancelled: %v", err)
 	}
 }

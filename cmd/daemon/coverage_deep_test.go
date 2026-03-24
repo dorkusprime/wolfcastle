@@ -50,7 +50,7 @@ func TestPrintNodeTree_CompletedOrchestratorCollapsed(t *testing.T) {
 	}
 
 	// expand=false: completed orchestrator with children should be collapsed.
-	printNodeTree(env.App, idx, details, "tree", "  ", false)
+	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -80,7 +80,7 @@ func TestPrintNodeTree_CompletedLeafWithTasks(t *testing.T) {
 	}
 
 	// expand=false: completed leaf with tasks shows task count.
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -116,7 +116,7 @@ func TestPrintNodeTree_OrchestratorWithActiveAuditTask(t *testing.T) {
 	}
 
 	// Exercises orchestrator audit task display path.
-	printNodeTree(env.App, idx, details, "tree", "  ", false)
+	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -143,7 +143,7 @@ func TestPrintNodeTree_SubtaskCollapsing(t *testing.T) {
 
 	// expand=false: completed parent task-0001 with all-complete children
 	// should be collapsed, showing child count instead.
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -168,7 +168,7 @@ func TestPrintNodeTree_SubtaskNotCollapsed(t *testing.T) {
 	}
 
 	// expand=false: parent complete but sub B incomplete — no collapse.
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -185,7 +185,7 @@ func TestShowTreeStatus_PlanningQueue(t *testing.T) {
 	idx, _ := env.App.State.ReadIndex()
 
 	// Verify the planning queue path fires.
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus planning queue: %v", err)
 	}
 }
@@ -205,7 +205,7 @@ func TestShowTreeStatus_InProgressCount(t *testing.T) {
 	e.State = state.StatusInProgress
 	idx.Nodes["active"] = e
 
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus in-progress: %v", err)
 	}
 }
@@ -224,7 +224,7 @@ func TestWatchStatus_RunsOneFullIteration(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- watchStatus(ctx, env.App, "", false, 0.1, false)
+		done <- watchStatus(ctx, env.App, "", false, 0.1, treeOpts{Width: 120})
 	}()
 
 	select {
@@ -246,7 +246,7 @@ func TestWatchStatus_ExpandFlag(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- watchStatus(ctx, env.App, "", false, 0.1, true)
+		done <- watchStatus(ctx, env.App, "", false, 0.1, treeOpts{Detail: true, Width: 120})
 	}()
 
 	select {
@@ -310,7 +310,7 @@ func TestPrintNodeTree_DeepSubtaskIndent(t *testing.T) {
 	}
 
 	// Exercises multi-level task indentation.
-	printNodeTree(env.App, idx, details, "proj", "  ", true)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Expand: true, Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -338,7 +338,7 @@ func TestPrintNodeTree_CompletedTaskCollapsedSubtasks(t *testing.T) {
 	}
 
 	// expand=false: exercises the collapsed-parent-task + skipChildren paths.
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -361,7 +361,7 @@ func TestShowTreeStatus_CompletedNodesCollapsed(t *testing.T) {
 		idx.Nodes[addr] = entry
 	}
 
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus completed nodes: %v", err)
 	}
 }
@@ -422,7 +422,7 @@ func TestPrintNodeTree_OpenGapNonTerminal(t *testing.T) {
 	}
 
 	// Exercises the non-terminal gap rendering branch.
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -466,7 +466,7 @@ func TestShowTreeStatus_EmptyTreeMessage(t *testing.T) {
 	idx := state.NewRootIndex()
 
 	// Exercises the "No targets" branch.
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus empty tree: %v", err)
 	}
 }
@@ -504,7 +504,7 @@ func TestPrintNodeTree_OrchestratorBlockedAuditTask(t *testing.T) {
 	}
 
 	// Exercises blocked audit task display on orchestrator.
-	printNodeTree(env.App, idx, details, "tree", "  ", false)
+	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -551,7 +551,7 @@ func TestPrintNodeTree_GrandchildSkippedInCollapseCheck(t *testing.T) {
 	}
 
 	// expand=false: exercises the grandchild "rest contains dot" skip.
-	printNodeTree(env.App, idx, details, "proj", "  ", false)
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -570,7 +570,7 @@ func TestWatchStatus_ShowAllError(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- watchStatus(ctx, env.App, "", true, 0.1, false)
+		done <- watchStatus(ctx, env.App, "", true, 0.1, treeOpts{Width: 120})
 	}()
 
 	select {
@@ -602,7 +602,7 @@ func TestWatchStatus_TreeStatusError(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- watchStatus(ctx, env.App, "", false, 0.1, false)
+		done <- watchStatus(ctx, env.App, "", false, 0.1, treeOpts{Width: 120})
 	}()
 
 	select {
@@ -697,7 +697,7 @@ func TestShowTreeStatus_AllStateCountParts(t *testing.T) {
 	idxData, _ := json.MarshalIndent(idx, "", "  ")
 	_ = os.WriteFile(filepath.Join(env.App.State.Dir(), "state.json"), idxData, 0644)
 
-	if err := showTreeStatus(env.App, idx, ""); err != nil {
+	if err := showTreeStatus(env.App, idx, "", treeOpts{Width: 120}); err != nil {
 		t.Fatalf("showTreeStatus all states: %v", err)
 	}
 }
