@@ -65,9 +65,10 @@ type Daemon struct {
 	ExitWhenDone   bool                // stop after all work is complete (--exit-when-done)
 	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
-	mu               sync.Mutex // protects lastNoWorkMsg and lastArchiveCheck
-	gitMu            sync.Mutex // serializes git commit operations across parallel workers
-	hasWorked        bool       // tracks whether the daemon has done work this run
+	dispatcher       *ParallelDispatcher // nil when parallel mode is disabled
+	mu               sync.Mutex         // protects lastNoWorkMsg and lastArchiveCheck
+	gitMu            sync.Mutex         // serializes git commit operations across parallel workers
+	hasWorked        bool               // tracks whether the daemon has done work this run
 	shutdown         chan struct{}
 	shutdownOnce     sync.Once
 	workAvailable    chan struct{}
@@ -491,6 +492,13 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 	}
 
+	// Initialize the parallel dispatcher when parallel mode is enabled.
+	// This must happen after selfHeal (which cleans stale scope locks)
+	// and before the main loop begins dispatching work.
+	if d.Config.Daemon.Parallel.Enabled {
+		d.dispatcher = NewParallelDispatcher(d, d.Config.Daemon.Parallel.MaxWorkers)
+	}
+
 	// Start the parallel inbox processing goroutine (ADR-064).
 	// It watches for new inbox items and runs the intake stage
 	// independently of the main execution loop.
@@ -615,6 +623,13 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	if d.Config.Git.VerifyBranch {
 		current, err := d.Git.CurrentBranch()
 		if err == nil && current != d.branch {
+			// In parallel mode, cancel all active workers and wait for
+			// them to drain before returning. This prevents orphaned
+			// goroutines from writing to a stale branch.
+			if d.dispatcher != nil {
+				d.dispatcher.cancelAll()
+				d.dispatcher.waitAndDrain()
+			}
 			return IterationStop, fmt.Errorf("%s: branch changed from %s to %s", invoke.MarkerStringBlocked, d.branch, current)
 		}
 	}
@@ -635,6 +650,19 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// the next daemon restart and selfHeal.
 	d.reconcileOrchestratorStates(idx)
 
+	// Parallel dispatch path: drain completed workers, fill open slots,
+	// and fall through to planning only when the worker pool is empty.
+	if d.dispatcher != nil {
+		return d.runOnceParallel(ctx, idx)
+	}
+
+	// Serial dispatch path: find one task and execute it.
+	return d.runOnceSerial(ctx, idx)
+}
+
+// runOnceSerial is the original single-task dispatch path. It finds the next
+// actionable task, runs the pipeline, and returns.
+func (d *Daemon) runOnceSerial(ctx context.Context, idx *state.RootIndex) (IterationResult, error) {
 	nodeLoader := func(addr string) (*state.NodeState, error) {
 		p, pathErr := d.Store.NodePath(addr)
 		if pathErr != nil {
@@ -747,6 +775,51 @@ execute:
 	d.checkKnowledgeBudget(navResult.NodeAddress)
 
 	return IterationDidWork, nil
+}
+
+// runOnceParallel is the multi-worker dispatch path. It drains completed
+// workers, fills open slots, and falls through to planning only when the
+// entire worker pool is empty (preventing plan-while-executing races).
+func (d *Daemon) runOnceParallel(ctx context.Context, idx *state.RootIndex) (IterationResult, error) {
+	pd := d.dispatcher
+
+	// Step 1: Drain completed workers. Each result triggers a scoped
+	// commit, scope release, and state propagation inside drainCompleted.
+	pd.drainCompleted()
+
+	// Step 2: Fill open worker slots with eligible tasks.
+	launched := pd.fillSlots(ctx, idx)
+
+	// Step 3: Determine the iteration outcome.
+	pd.mu.Lock()
+	activeCount := len(pd.active)
+	pd.mu.Unlock()
+
+	if activeCount > 0 || launched > 0 {
+		// Workers are running (or were just launched). Report progress
+		// even if no new slots were filled this tick; the active workers
+		// represent in-flight work.
+		return IterationDidWork, nil
+	}
+
+	// Pool is empty and nothing was dispatched. Safe to run planning,
+	// archiving, and state flush since no workers are modifying the tree.
+
+	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
+		if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
+			output.PrintHuman("Planning error: %v", err)
+			return IterationError, nil
+		}
+		return IterationDidWork, nil
+	}
+
+	if d.tryAutoArchive(idx) {
+		return IterationDidWork, nil
+	}
+
+	commitStateFlush(d.RepoDir, d.Logger, d.Config.Git)
+
+	return IterationNoWork, nil
 }
 
 // sleepWithContext sleeps for the given duration but returns immediately

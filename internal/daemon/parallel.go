@@ -343,6 +343,24 @@ func (pd *ParallelDispatcher) isBlocked(taskAddr string) bool {
 	return false
 }
 
+// cancelAll cancels every active worker's context. Used during branch
+// verification failure to stop in-flight work before the daemon exits.
+func (pd *ParallelDispatcher) cancelAll() {
+	pd.mu.Lock()
+	defer pd.mu.Unlock()
+	for _, slot := range pd.active {
+		slot.Cancel()
+	}
+}
+
+// waitAndDrain waits for all running worker goroutines to finish, then
+// drains their results. This ensures no goroutines are orphaned when the
+// daemon shuts down due to a branch change.
+func (pd *ParallelDispatcher) waitAndDrain() {
+	pd.daemon.runWg.Wait()
+	pd.drainCompleted()
+}
+
 // releaseScope deletes all scope locks held by the given task address.
 func (pd *ParallelDispatcher) releaseScope(taskAddr string) {
 	_ = pd.daemon.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
