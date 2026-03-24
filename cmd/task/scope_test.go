@@ -75,18 +75,35 @@ func TestScopeAdd_Idempotent(t *testing.T) {
 		t.Fatalf("first add: %v", err)
 	}
 
+	// Record the original lock's AcquiredAt and PID.
+	table, err := env.App.State.ReadScopeLocks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	origLock := table.Locks["file.go"]
+	origAcquiredAt := origLock.AcquiredAt
+	origPID := origLock.PID
+
 	// Acquire again with the same task; should succeed silently.
 	env.RootCmd.SetArgs(args)
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("idempotent re-add: %v", err)
 	}
 
-	table, err := env.App.State.ReadScopeLocks()
+	table, err = env.App.State.ReadScopeLocks()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(table.Locks) != 1 {
 		t.Fatalf("expected 1 lock after idempotent add, got %d", len(table.Locks))
+	}
+
+	reacquired := table.Locks["file.go"]
+	if !reacquired.AcquiredAt.Equal(origAcquiredAt) {
+		t.Errorf("AcquiredAt changed on re-acquisition: got %v, want %v", reacquired.AcquiredAt, origAcquiredAt)
+	}
+	if reacquired.PID != origPID {
+		t.Errorf("PID changed on re-acquisition: got %d, want %d", reacquired.PID, origPID)
 	}
 }
 

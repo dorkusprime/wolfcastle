@@ -59,7 +59,9 @@ Examples:
 				now := time.Now().UTC()
 				pid := os.Getpid()
 				for _, file := range args {
-					// Idempotent: overwriting own lock is a no-op in effect.
+					if existing, held := table.Locks[file]; held && existing.Task == taskAddr {
+						continue // Already ours; preserve original AcquiredAt and PID.
+					}
 					table.Locks[file] = state.ScopeLock{
 						Task:       taskAddr,
 						Node:       nodeAddr,
