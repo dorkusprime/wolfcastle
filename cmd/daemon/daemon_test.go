@@ -746,18 +746,9 @@ func TestStartBackground_HappyPath(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
 
 	// Use "sleep" as the child process; it starts and we release it.
-	err := startBackground(wolfDir, "", "", "sleep")
+	err := startBackground(wolfDir, "", false, false, "sleep")
 	if err != nil {
 		t.Fatalf("startBackground failed: %v", err)
-	}
-
-	// PID file should exist
-	pidData, err := os.ReadFile(filepath.Join(wolfDir, "system", "wolfcastle.pid"))
-	if err != nil {
-		t.Fatal("PID file should exist after startBackground")
-	}
-	if len(pidData) == 0 {
-		t.Error("PID file should not be empty")
 	}
 
 	// daemon.log should exist
@@ -773,22 +764,9 @@ func TestStartBackground_WithNodeScope(t *testing.T) {
 	_ = os.MkdirAll(wolfDir, 0755)
 	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
 
-	err := startBackground(wolfDir, "my-project", "", "sleep")
+	err := startBackground(wolfDir, "my-project", false, false, "sleep")
 	if err != nil {
 		t.Fatalf("startBackground with scope failed: %v", err)
-	}
-}
-
-func TestStartBackground_WithWorktree(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	wolfDir := filepath.Join(dir, ".wolfcastle")
-	_ = os.MkdirAll(wolfDir, 0755)
-	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
-
-	err := startBackground(wolfDir, "", "feature-branch", "sleep")
-	if err != nil {
-		t.Fatalf("startBackground with worktree failed: %v", err)
 	}
 }
 
@@ -799,7 +777,7 @@ func TestStartBackground_BadExecutable(t *testing.T) {
 	_ = os.MkdirAll(wolfDir, 0755)
 	_ = os.MkdirAll(filepath.Join(wolfDir, "system"), 0755)
 
-	err := startBackground(wolfDir, "", "", "/nonexistent/binary")
+	err := startBackground(wolfDir, "", false, false, "/nonexistent/binary")
 	if err == nil {
 		t.Error("expected error for nonexistent executable")
 	}
@@ -819,7 +797,7 @@ func TestStartBackground_LogDirNotWritable(t *testing.T) {
 	_ = os.Chmod(filepath.Join(wolfDir, "system"), 0555)
 	defer func() { _ = os.Chmod(filepath.Join(wolfDir, "system"), 0755) }()
 
-	err := startBackground(wolfDir, "", "", "sleep")
+	err := startBackground(wolfDir, "", false, false, "sleep")
 	if err == nil {
 		t.Error("expected error when log dir is not writable")
 	}

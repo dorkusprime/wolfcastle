@@ -34,13 +34,15 @@ Examples:
   wolfcastle start
   wolfcastle start --node auth-system
   wolfcastle start -d
-  wolfcastle start --worktree feature-branch`,
+  wolfcastle start --worktree feature-branch
+  wolfcastle start --exit-when-done`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			output.PrintHuman("wolfcastle %s", app.Version)
 			nodeScope, _ := cmd.Flags().GetString("node")
 			background, _ := cmd.Flags().GetBool("daemon")
 			worktreeBranch, _ := cmd.Flags().GetString("worktree")
 			verbose, _ := cmd.Flags().GetBool("verbose")
+			exitWhenDone, _ := cmd.Flags().GetBool("exit-when-done")
 
 			cfg, err := app.Config.Load()
 			if err != nil {
@@ -158,13 +160,17 @@ Examples:
 			}
 
 			if background {
-				return startBackground(app.Config.Root(), nodeScope, worktreeBranch, "")
+				if worktreeBranch != "" {
+					return fmt.Errorf("--worktree and --daemon cannot be combined: the background process cannot create worktrees")
+				}
+				return startBackground(app.Config.Root(), nodeScope, exitWhenDone, verbose, "")
 			}
 
 			d, err := dmn.New(cfg, app.Config.Root(), app.State, nodeScope, repoDir)
 			if err != nil {
 				return err
 			}
+			d.ExitWhenDone = exitWhenDone
 
 			// Write PID file for foreground mode too, so `wolfcastle status`
 			// can detect a running daemon regardless of how it was started.
@@ -183,17 +189,18 @@ Examples:
 			reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
 			records := reader.Records(ctx)
 			renderDone := make(chan struct{})
+			w := &output.SpinnerWriter{W: os.Stdout}
 			go func() {
 				defer close(renderDone)
 				switch mode {
 				case modeSummary:
-					sr := logrender.NewSummaryRenderer(os.Stdout)
+					sr := logrender.NewSummaryRenderer(w)
 					sr.Follow(ctx, records)
 				case modeThoughts:
-					tr := logrender.NewThoughtsRenderer(os.Stdout)
+					tr := logrender.NewThoughtsRenderer(w)
 					tr.Render(ctx, records)
 				case modeInterleaved:
-					ir := logrender.NewInterleavedRenderer(os.Stdout)
+					ir := logrender.NewInterleavedRenderer(w)
 					ir.Render(ctx, records)
 				case modeJSON:
 					for rec := range records {
@@ -201,8 +208,8 @@ Examples:
 						if err != nil {
 							continue
 						}
-						_, _ = os.Stdout.Write(raw)
-						_, _ = os.Stdout.Write([]byte{'\n'})
+						_, _ = w.Write(raw)
+						_, _ = w.Write([]byte{'\n'})
 					}
 				}
 			}()
@@ -221,8 +228,11 @@ Examples:
 }
 
 // startBackground launches the daemon as a detached background process.
+// The child re-execs into the hidden _daemon-run command, which skips
+// all interactive checks (dirty tree, validation prompts). The foreground
+// start command has already validated everything.
 // executablePath is the binary to re-exec; pass "" to use os.Executable().
-func startBackground(wolfcastleDir, nodeScope, worktreeBranch, executablePath string) error {
+func startBackground(wolfcastleDir, nodeScope string, exitWhenDone bool, verbose bool, executablePath string) error {
 	if executablePath == "" {
 		var err error
 		executablePath, err = os.Executable()
@@ -231,12 +241,15 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch, executablePath st
 		}
 	}
 
-	cmdArgs := []string{"start"}
+	cmdArgs := []string{"_daemon-run"}
 	if nodeScope != "" {
 		cmdArgs = append(cmdArgs, "--node", nodeScope)
 	}
-	if worktreeBranch != "" {
-		cmdArgs = append(cmdArgs, "--worktree", worktreeBranch)
+	if exitWhenDone {
+		cmdArgs = append(cmdArgs, "--exit-when-done")
+	}
+	if verbose {
+		cmdArgs = append(cmdArgs, "--verbose")
 	}
 
 	proc := exec.Command(executablePath, cmdArgs...)
@@ -258,17 +271,11 @@ func startBackground(wolfcastleDir, nodeScope, worktreeBranch, executablePath st
 		return fmt.Errorf("starting background process: %w", err)
 	}
 
-	// Write PID file
-	repo := dmn.NewDaemonRepository(wolfcastleDir)
-	if err := repo.WritePID(proc.Process.Pid); err != nil {
-		return fmt.Errorf("writing PID file: %w", err)
-	}
-
 	output.PrintHuman("Daemon deployed (PID %d)", proc.Process.Pid)
 	output.PrintHuman("  wolfcastle log -f    Watch the operation")
 	output.PrintHuman("  wolfcastle stop      Stand down")
 
-	// Detach
+	// Detach. The child process writes its own PID file.
 	_ = proc.Process.Release()
 	return nil
 }

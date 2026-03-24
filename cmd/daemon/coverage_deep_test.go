@@ -429,25 +429,8 @@ func TestPrintNodeTree_OpenGapNonTerminal(t *testing.T) {
 // startBackground — PID write failure (read-only dir)
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestStartBackground_PIDWriteFailure(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("skip in CI")
-	}
-	t.Parallel()
-	dir := t.TempDir()
-	wolfDir := filepath.Join(dir, ".wolfcastle")
-	sysDir := filepath.Join(wolfDir, "system")
-	_ = os.MkdirAll(sysDir, 0755)
-
-	// Create daemon.log writable, but make the PID write path fail
-	// by pre-creating wolfcastle.pid as a directory.
-	_ = os.MkdirAll(filepath.Join(sysDir, "wolfcastle.pid"), 0755)
-
-	err := startBackground(wolfDir, "", "", "sleep")
-	if err == nil {
-		t.Error("expected error when PID file cannot be written")
-	}
-}
+// TestStartBackground_PIDWriteFailure was removed: startBackground no
+// longer writes the PID file. The child _daemon-run process handles it.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // recoverStaleDaemonState — read error on PID file (not ENOENT)
