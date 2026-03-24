@@ -717,7 +717,7 @@
     "parallel-execution-phase-2-scope-aware-git/hasprogressscoped-interface-extension": {
       "name": "HasProgressScoped Interface Extension",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "parallel-execution-phase-2-scope-aware-git/hasprogressscoped-interface-extension",
       "decomposition_depth": 0,
       "parent": "parallel-execution-phase-2-scope-aware-git"
