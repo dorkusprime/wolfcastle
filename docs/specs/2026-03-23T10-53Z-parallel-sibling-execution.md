@@ -55,7 +55,7 @@ The config merge system (`DeepMerge`) handles nested structs correctly via JSON 
 
 `.wolfcastle/system/projects/{namespace}/scope-locks.json`, alongside the existing `state.json` (root index) and `.lock` file. This placement puts the scope lock table inside the namespace directory, where it is protected by the existing namespace file lock.
 
-The file is ephemeral, deleted on clean daemon shutdown. It exists only while the daemon is running. The `.wolfcastle/.gitignore` uses explicit excludes (not a deny-all pattern), so files under `system/projects/` are tracked by default. Add `scope-locks.json` to `.wolfcastle/.gitignore` alongside the existing runtime artifact rules (`system/wolfcastle.pid`, `system/stop`, `*.lock`) to prevent it from being committed.
+The file is ephemeral, deleted on clean daemon shutdown. It exists only while the daemon is running. The `.wolfcastle/.gitignore` uses explicit excludes (not a deny-all pattern), so files under `system/projects/` are tracked by default. Add `scope-locks.json` to both the live `.wolfcastle/.gitignore` and the scaffold template (`internal/project/templates/scaffold/gitignore.tmpl`) alongside the existing runtime artifact rules (`system/wolfcastle.pid`, `system/stop`, `*.lock`) to prevent it from being committed in existing and newly scaffolded projects.
 
 ### Schema
 
@@ -222,10 +222,15 @@ slash) when you expect to modify multiple files under a path. Be thorough: if yo
 write to a file you did not scope, the daemon rejects your commit and the task fails.
 
 If the command fails with a scope conflict, another task is working on those files.
-Emit WOLFCASTLE_YIELD immediately. Do not attempt to work around the conflict.
+Emit the following on its own line, replacing the address with the one from the error:
+
+    WOLFCASTLE_YIELD scope_conflict <conflicting-task-address>
+
+Do not attempt to work around the conflict.
 
 You may call `wolfcastle task scope add` again later if you discover additional files.
-If that second call fails, emit WOLFCASTLE_YIELD.
+If that second call also fails with a conflict, emit WOLFCASTLE_YIELD scope_conflict
+with the conflicting address.
 ```
 
 This approach requires no changes to `execute.md`, no new fragment mechanism, and no template conditionals. The context builder checks `d.Config.Daemon.Parallel.Enabled` and appends the section. When parallel is disabled, the section is absent and execution proceeds as today.
@@ -263,7 +268,7 @@ The `Daemon` struct has fields that are written during iteration without synchro
 | `d.iteration` | Counter incremented each iteration | Use `atomic.Int64` |
 | `d.lastNoWorkMsg` | Dedup for "no work" log messages | Protect with `d.mu sync.Mutex`, or move to dispatcher |
 | `d.lastArchiveCheck` | Timestamp for archive throttling | Protect with `d.mu` |
-| `d.Logger` | Shared logger with per-iteration prefix | Each worker creates its own logger via `d.Logger.StartIterationWithPrefix(taskAddr)`. Workers do not share a logger instance. The parent logger must support concurrent `StartIterationWithPrefix` calls (create independent child loggers, not mutate the parent). |
+| `d.Logger` | Shared logger with per-iteration prefix | Each worker gets an independent `Logger` instance via a new `Logger.Child()` factory method. `Child()` returns a new `Logger` writing to the same log directory but with its own file handle, iteration counter, and trace prefix. The parent logger is never shared across workers. |
 
 ### Worker pool
 
@@ -362,16 +367,20 @@ The `commitAfterIteration` function's pre-commit `git status` check must also be
 After a task completes and the daemon prepares to commit:
 
 1. Read the task's acquired scope from the scope lock table.
-2. Run `git status --porcelain` to get all modified/untracked files.
-3. Partition the dirty files into "in scope" and "out of scope."
-4. If any code files (outside `.wolfcastle/`) are dirty and out of scope:
-   a. **The task fails.** The daemon logs the out-of-scope files, increments the failure count, and does not commit.
-   b. The scope locks are released.
-   c. The out-of-scope files remain in the working tree. They will be cleaned up by `git checkout -- <files>` to restore the working tree to a clean state for those files.
-   d. In-scope files are committed normally (the task did produce valid scoped work, just also wrote outside its scope).
-5. If no in-scope dirty files exist and HEAD has not moved from this task's commit, the `HasProgress` check fails (same as today).
+2. Read all other active tasks' scopes from the same table.
+3. Run `git status --porcelain` to get all modified/untracked files.
+4. Classify each dirty code file (outside `.wolfcastle/`) into one of three buckets:
+   a. **In this task's scope**: will be committed.
+   b. **In another active task's scope**: expected, ignored (that task owns those files).
+   c. **Unowned** (not in any active task's scope): a true out-of-scope write.
+5. If any unowned dirty files exist:
+   a. **The task fails.** The daemon logs the unowned files and increments the failure count.
+   b. In-scope files are still committed (partial work preservation, same as `commit_on_failure`). The task produced valid scoped work but also wrote outside its scope.
+   c. Unowned files are reverted via `git checkout -- <files>` to keep the working tree clean for other workers.
+   d. The scope locks are released.
+6. If no in-scope dirty files exist, the `HasProgressScoped` check fails (same as today's `HasProgress` for serial mode).
 
-Out-of-scope writes are a task failure because silent exclusion produces commits that look complete but are missing files. The agent gets retried and can request a broader scope on the next attempt.
+Out-of-scope writes are a task failure because silent exclusion produces commits that look complete but are missing files. The agent gets retried and can request a broader scope. The partial commit preserves useful in-scope work so the retry doesn't re-do it.
 
 ### HasProgress (scope-aware)
 
@@ -410,11 +419,23 @@ func (pd *ParallelDispatcher) releaseScope(taskAddr string) {
 
 Two kinds of yield exist in parallel mode:
 
-1. **Scope-conflict yield.** The agent called `wolfcastle task scope add`, got a conflict error, and emitted `WOLFCASTLE_YIELD`. The agent may or may not have done implementation work (it might have partially implemented before discovering it needs an additional file).
+1. **Scope-conflict yield.** The agent called `wolfcastle task scope add`, got a conflict error, and emitted `WOLFCASTLE_YIELD scope_conflict <conflicting-task-address>`. The agent may or may not have done implementation work (it might have partially implemented before discovering it needs an additional file).
 
-2. **Normal yield.** The agent created subtasks and yielded, or made progress but needs another iteration. Same as today.
+2. **Normal yield.** The agent created subtasks and emitted `WOLFCASTLE_YIELD` (no suffix). Same as today.
 
-Both types commit partial work (if `commit_on_failure` or `commit_on_success` is true, depending on whether a marker was emitted). Both release all scope locks.
+The daemon distinguishes them by parsing the YIELD marker's suffix. The marker parser already handles suffixes for WOLFCASTLE_BLOCKED (block reason) and WOLFCASTLE_SKIP (skip reason). YIELD gains the same treatment:
+
+- `WOLFCASTLE_YIELD` (bare): normal yield.
+- `WOLFCASTLE_YIELD scope_conflict my-project/other-node/task-0002`: scope-conflict yield. The daemon extracts the conflicting task address from the suffix.
+
+The execute prompt's scope acquisition instructions tell the agent the exact format:
+
+```
+If the command fails with a scope conflict, emit:
+    WOLFCASTLE_YIELD scope_conflict <address from error>
+```
+
+Both types commit partial work (if `commit_on_failure` or `commit_on_success` is true). Both release all scope locks.
 
 The distinction matters for re-dispatch:
 
@@ -516,7 +537,7 @@ Yielded (waiting on scope):
 
 ### Logging
 
-Each worker logs with a task-scoped prefix. The NDJSON log format already includes node and task fields; no structural change needed. The parent `Logger` must support concurrent child logger creation (each worker calls `StartIterationWithPrefix` independently to get its own child logger).
+Each worker gets an independent `Logger` instance via `Logger.Child()`, writing to the same log directory with its own file handle and iteration counter. The NDJSON log format already includes node and task fields; no structural change needed. Workers never share a `Logger` instance. This follows the same pattern as the existing inbox logger (a separate `Logger` with offset iteration numbers).
 
 ### Commit ordering
 
@@ -570,7 +591,7 @@ Runs at the start of each `RunOnce`, before draining results or dispatching work
 - Add `FindParallelTasks` to navigation with the relaxed sibling scanning algorithm.
 - Modify `RunOnce` to use the dispatcher when `parallel.enabled` is true.
 - Add scope acquisition instructions to `ContextBuilder.Build()` (conditional on config).
-- Ensure `Logger.StartIterationWithPrefix` supports concurrent child creation.
+- Add `Logger.Child()` factory method that returns an independent `Logger` instance with its own file handle and iteration counter, writing to the same log directory. Each worker goroutine creates a child logger at dispatch time.
 - Integration tests with concurrent model invocations.
 
 ### Phase 4: Observability and hardening
