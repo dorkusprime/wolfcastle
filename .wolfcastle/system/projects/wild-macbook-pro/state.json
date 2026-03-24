@@ -866,7 +866,7 @@
     "phase-3-parallel-dispatch/parallel-navigation": {
       "name": "Parallel Navigation",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "phase-3-parallel-dispatch/parallel-navigation",
       "decomposition_depth": 0,
       "parent": "phase-3-parallel-dispatch"
