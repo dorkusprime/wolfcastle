@@ -2,7 +2,7 @@
   "version": 1,
   "root_id": "domain-repository-architecture",
   "root_name": "Domain Repository Architecture",
-  "root_state": "in_progress",
+  "root_state": "complete",
   "root": [
     "parallel-execution-phase-2-scope-aware-git"
   ],
@@ -705,7 +705,7 @@
     "parallel-execution-phase-2-scope-aware-git": {
       "name": "Parallel Execution Phase 2: Scope-Aware Git",
       "type": "orchestrator",
-      "state": "in_progress",
+      "state": "complete",
       "address": "parallel-execution-phase-2-scope-aware-git",
       "decomposition_depth": 0,
       "children": [
@@ -733,7 +733,7 @@
     "parallel-execution-phase-2-scope-aware-git/scoped-git-commit-operations": {
       "name": "Scoped Git Commit Operations",
       "type": "leaf",
-      "state": "in_progress",
+      "state": "complete",
       "address": "parallel-execution-phase-2-scope-aware-git/scoped-git-commit-operations",
       "decomposition_depth": 0,
       "parent": "parallel-execution-phase-2-scope-aware-git"
