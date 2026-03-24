@@ -580,10 +580,11 @@ Runs at the start of each `RunOnce`, before draining results or dispatching work
 
 ### Phase 2: Scope-aware git
 - Add `HasProgressScoped` to `git.Provider` interface and `git.Service` implementation.
-- Modify `commitDirect` to accept an optional file list (scope). When non-nil, use `git add <files>` and skip the `CommitState` reset logic (handled at file-list construction time). When nil, fall back to current `git add .` behavior.
+- Modify `commitDirect` to accept an optional file list (scope). When non-nil, use `git add <files>` and skip the `CommitState` reset logic (handled at file-list construction time). When nil, fall back to current `git add .` behavior. All existing tests must continue passing with nil scope (backward compatibility gate).
 - Modify `commitAfterIteration` to pass scope-filtered status checks.
 - Add `gitMu` to daemon for commit serialization.
 - Update test stubs implementing `git.Provider`.
+- Add `Logger.Child()` factory method (prerequisite for Phase 3; must land before any parallel dispatch code). Returns an independent `Logger` instance with its own file handle, iteration counter, and trace prefix, writing to the same log directory.
 
 ### Phase 3: Parallel dispatch
 - Add `ParallelDispatcher` with worker pool, active map, blocked map, results channel.
@@ -591,7 +592,7 @@ Runs at the start of each `RunOnce`, before draining results or dispatching work
 - Add `FindParallelTasks` to navigation with the relaxed sibling scanning algorithm.
 - Modify `RunOnce` to use the dispatcher when `parallel.enabled` is true.
 - Add scope acquisition instructions to `ContextBuilder.Build()` (conditional on config).
-- Add `Logger.Child()` factory method that returns an independent `Logger` instance with its own file handle and iteration counter, writing to the same log directory. Each worker goroutine creates a child logger at dispatch time.
+- Every worker goroutine must use `defer func() { if r := recover(); r != nil { ... } }()` to prevent panics from hanging `runWg.Wait()`.
 - Integration tests with concurrent model invocations.
 
 ### Phase 4: Observability and hardening
@@ -600,10 +601,42 @@ Runs at the start of each `RunOnce`, before draining results or dispatching work
 - Failure mode testing: scope violations, concurrent propagation, worker cancellation, yield livelock prevention.
 - Documentation updates (human docs, agent docs, AGENTS.md).
 
+## Build and Test Interference
+
+Concurrent agents in the same worktree share the Go compiler and test runner. Two agents cannot safely run `go build ./...` or `go test ./...` simultaneously if either is mid-write, because the compiler reads source files across all packages. Agent A's validation phase can fail because agent B is mid-write on a different file.
+
+### Mitigation: Daemon-level validation
+
+The execute prompt's validation phase (Phase D) tells the agent to run build and test commands. With parallel execution, this creates interference. The solution is to move build/test validation from the agent to the daemon:
+
+1. **Agents skip validation in parallel mode.** When scope acquisition instructions are present in the iteration context (indicating parallel mode), the agent skips Phase D. The daemon handles validation after committing.
+2. **Daemon runs validation after each commit.** After `commitDirect` stages and commits a task's scoped files, the daemon runs the configured validation commands (`config.Validation.Commands`). If validation fails, the task is marked as failed (same as the current no-progress check).
+3. **Validation runs under gitMu.** Since validation reads the full working tree, it must not overlap with another worker's writes. The simplest approach: hold `gitMu` during both the commit and the validation check. This serializes the commit-then-validate sequence but allows model invocations to proceed in parallel.
+4. **Fallback for serial mode.** When `parallel.enabled` is false, agents continue running validation themselves (current behavior). No change.
+
+This means parallel tasks have a slightly different execution protocol: study, scope, implement, record, signal. No agent-side validation. The daemon validates after commit.
+
+### Alternative considered: Locking the compiler
+
+Each agent could acquire a "build lock" before running `go build`/`go test`, serializing compilation. Rejected: this defeats the purpose of parallelism. If agents spend most of their time in validation, they'd serialize on the build lock and gain nothing from concurrent execution. The daemon-level validation approach is better because it separates write-heavy work (parallel) from read-heavy work (serial validation).
+
+## Re-invocation After Yield
+
+When a task yields (scope conflict or normal yield) and is re-dispatched, it receives a fresh model invocation. The agent sees the current codebase state, which includes:
+
+- Its own partial work from the previous attempt (committed before yield).
+- Any completed sibling work (committed by the daemon).
+- Any in-progress sibling work (uncommitted files in the working tree, but outside this task's scope).
+
+The agent has no explicit signal that it's a re-invocation. It reads the codebase, studies the task, acquires scope, and implements. If its previous partial work was meaningful, the agent discovers it during the Study phase ("this function already exists, I must have done it") and continues from there. If the partial work was trivial (the agent yielded early), the overhead is minimal.
+
+This is acceptable for v1. The agent's AARs and breadcrumbs from the previous attempt are visible in the iteration context, providing some continuity. Explicit re-invocation context (a "you were here last time" section) is a future enhancement.
+
 ## What This Does Not Cover
 
-- **Dependency edges between siblings.** Siblings are assumed independent when their file scopes are disjoint. Semantic dependencies (one creates a function, another calls it) are caught by build validation after commit and by the audit task. Explicit dependency declarations are a future enhancement.
+- **Dependency edges between siblings.** Siblings are assumed independent when their file scopes are disjoint. Semantic dependencies (one creates a function, another calls it) are caught by daemon-level build validation after commit and by the audit task. Explicit dependency declarations are a future enhancement.
 - **Cross-orchestrator parallelism.** Only siblings under the same orchestrator are parallelized. Independent subtrees under different orchestrators execute serially (depth-first tree traversal is preserved across orchestrator boundaries).
 - **Dynamic worker scaling.** The worker count is static per config. Adaptive scaling based on API rate limits or system load is out of scope.
 - **Distributed execution.** All workers run on the same machine, in the same worktree, managed by the same daemon process.
 - **Working tree cleanup.** Out-of-scope writes from failed tasks are reverted via `git checkout -- <files>`. Untracked stray files from other sources are not cleaned up automatically. Working tree hygiene beyond scope validation is a future concern.
+- **Explicit re-invocation context.** Yielded tasks get a fresh invocation with no "you were here last time" signal beyond AARs and breadcrumbs. A dedicated re-invocation context section is a future enhancement.
