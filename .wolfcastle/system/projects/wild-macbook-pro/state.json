@@ -724,7 +724,7 @@
     "parallel-sibling-execution-phase-1/parallel-config": {
       "name": "Parallel Config",
       "type": "leaf",
-      "state": "not_started",
+      "state": "in_progress",
       "address": "parallel-sibling-execution-phase-1/parallel-config",
       "decomposition_depth": 0,
       "parent": "parallel-sibling-execution-phase-1"

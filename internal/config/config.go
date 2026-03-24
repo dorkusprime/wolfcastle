@@ -94,6 +94,10 @@ func Defaults() *Config {
 			MaxRestarts:                3,
 			RestartDelaySeconds:        2,
 			LogLevel:                   "info",
+			Parallel: ParallelConfig{
+				Enabled:    false,
+				MaxWorkers: 3,
+			},
 		},
 		Git: GitConfig{
 			AutoCommit:            true,

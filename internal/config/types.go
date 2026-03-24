@@ -133,6 +133,12 @@ type PromptsConfig struct {
 	ExcludeFragments []string `json:"exclude_fragments"`
 }
 
+// ParallelConfig controls parallel sibling node execution.
+type ParallelConfig struct {
+	Enabled    bool `json:"enabled"`
+	MaxWorkers int  `json:"max_workers"`
+}
+
 // DaemonConfig controls the daemon's polling, timeout, and restart behavior.
 type DaemonConfig struct {
 	PollIntervalSeconds        int    `json:"poll_interval_seconds"`
@@ -144,7 +150,8 @@ type DaemonConfig struct {
 	StallTimeoutSeconds        int    `json:"stall_timeout_seconds"`
 	MaxRestarts                int    `json:"max_restarts"`
 	RestartDelaySeconds        int    `json:"restart_delay_seconds"`
-	LogLevel                   string `json:"log_level"`
+	LogLevel                   string         `json:"log_level"`
+	Parallel                   ParallelConfig `json:"parallel"`
 }
 
 // GitConfig controls automatic commit behavior and branch verification.
