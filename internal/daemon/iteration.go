@@ -377,8 +377,12 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 						// Commit the decomposition: audit gaps, remediation
 						// subtasks, and reverted audit state. This gives a
 						// clean revert point before remediation work starts.
-						auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
-						commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta, nil)
+						// In parallel mode, drainCompleted handles commits
+						// under gitMu with scoped file lists.
+						if d.dispatcher == nil {
+							auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
+							commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta, nil)
+						}
 						return nil
 					}
 				}
@@ -406,8 +410,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				}
 			}
 
-			// Commit after successful completion.
-			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID), nil)
+			// Commit after successful completion. In parallel mode,
+			// drainCompleted commits under gitMu with scoped file lists.
+			if d.dispatcher == nil {
+				commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID), nil)
+			}
 
 			return nil
 		}
@@ -469,9 +476,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 
 		// Commit code + state after all failure mutations are applied.
-		failMeta := extractTaskCommitMeta(ns, nav.TaskID)
-		failMeta.FailureType = failureType
-		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta, nil)
+		// In parallel mode, drainCompleted commits under gitMu with
+		// scoped file lists, so skip the unscoped commit here.
+		if d.dispatcher == nil {
+			failMeta := extractTaskCommitMeta(ns, nav.TaskID)
+			failMeta.FailureType = failureType
+			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta, nil)
+		}
 	}
 
 	return nil
