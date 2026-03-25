@@ -76,6 +76,16 @@ func (r *Repository) Load() (*Config, error) {
 		result = DeepMerge(result, overlay)
 	}
 
+	// Apply schema migrations if the merged config is behind CurrentVersion.
+	migrated, migrationDescs, migErr := MigrateConfig(result)
+	if migErr != nil {
+		return nil, fmt.Errorf("config: migration: %w", migErr)
+	}
+	result = migrated
+	for _, desc := range migrationDescs {
+		warnings = append(warnings, "config migrated: "+desc)
+	}
+
 	merged, err := json.Marshal(result)
 	if err != nil {
 		return nil, fmt.Errorf("config: marshaling merged config: %w", err)
@@ -92,6 +102,25 @@ func (r *Repository) Load() (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+// BaseVersion reads just the version field from the base tier's config.json.
+// Returns 0 if the file does not exist or the version field is absent.
+func (r *Repository) BaseVersion() int {
+	dirs := r.tiers.TierDirs()
+	if len(dirs) == 0 {
+		return 0
+	}
+	path := filepath.Join(dirs[0], "config.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return 0
+	}
+	return configVersion(raw)
 }
 
 // WriteBase marshals the full Config to indented JSON and writes it to

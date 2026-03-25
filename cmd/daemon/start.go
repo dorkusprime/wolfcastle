@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -47,6 +48,15 @@ Examples:
 			cfg, err := app.Config.Load()
 			if err != nil {
 				return err
+			}
+
+			// Check whether the on-disk base config is behind the current version.
+			if baseVer := app.Config.BaseVersion(); baseVer < config.CurrentVersion {
+				if mode == modeJSON {
+					output.PrintHuman(`{"warning":"config_version_behind","base_version":%d,"current_version":%d}`, baseVer, config.CurrentVersion)
+				} else {
+					output.PrintHuman("Configuration version %d is behind current version %d. Run `wolfcastle init --force` to update base config.", baseVer, config.CurrentVersion)
+				}
 			}
 
 			// ADR-046: --verbose overrides daemon.log_level to debug.
