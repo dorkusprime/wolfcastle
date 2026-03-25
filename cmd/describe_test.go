@@ -97,15 +97,6 @@ func newDescribeTestEnv(t *testing.T) *describeTestEnv {
 	}
 }
 
-func (e *describeTestEnv) loadNodeState(t *testing.T, addr string) *state.NodeState {
-	t.Helper()
-	ns, err := e.env.State.ReadNode(addr)
-	if err != nil {
-		t.Fatalf("loading node state for %s: %v", addr, err)
-	}
-	return ns
-}
-
 func (e *describeTestEnv) populateLeaf(t *testing.T, addr string) {
 	t.Helper()
 	e.env.WithProject("Test Project", testutil.Leaf(addr))
@@ -326,7 +317,7 @@ func TestDescribe_JSON(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"describe", "my-project", "--json"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -334,7 +325,7 @@ func TestDescribe_JSON(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 
 	var resp map[string]any
 	if err := json.Unmarshal(buf.Bytes(), &resp); err != nil {
@@ -385,7 +376,7 @@ func TestDescribe_NodeFlag(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"describe", "--node", "my-project"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -393,7 +384,7 @@ func TestDescribe_NodeFlag(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	out := buf.String()
 
 	if !strings.Contains(out, "my-project (leaf, in_progress)") {

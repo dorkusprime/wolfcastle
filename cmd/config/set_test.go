@@ -2,10 +2,12 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -156,14 +158,16 @@ func TestSet_BareStringFallback(t *testing.T) {
 func TestSet_TopLevelScalar(t *testing.T) {
 	env := newTestEnv(t)
 
-	env.RootCmd.SetArgs([]string{"config", "set", "version", "42"})
+	// Use CurrentVersion to avoid "future version" validation rejection.
+	ver := fmt.Sprintf("%d", config.CurrentVersion)
+	env.RootCmd.SetArgs([]string{"config", "set", "version", ver})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatalf("config set top-level key failed: %v", err)
 	}
 
 	m := readLocalOverlay(t, env)
-	if m["version"] != float64(42) {
-		t.Errorf("version = %v, want 42", m["version"])
+	if m["version"] != float64(config.CurrentVersion) {
+		t.Errorf("version = %v, want %d", m["version"], config.CurrentVersion)
 	}
 }
 
