@@ -164,7 +164,17 @@ done:
 		scope := pd.scopeFiles(taskAddr)
 
 		// Read node state for commit metadata and state propagation.
-		ns, _ := d.Store.ReadNode(wr.Node)
+		// A ReadNode failure (corrupted state, disk I/O) yields a nil ns;
+		// callers below must guard against that rather than crashing.
+		ns, nsErr := d.Store.ReadNode(wr.Node)
+		if nsErr != nil {
+			_ = d.Logger.Log(map[string]any{
+				"type":  "read_node_error",
+				"task":  taskAddr,
+				"node":  wr.Node,
+				"error": nsErr.Error(),
+			})
+		}
 
 		switch {
 		case wr.ScopeConflict:
@@ -179,7 +189,10 @@ done:
 			// Commit any partial work the agent produced before yielding.
 			if d.Config.Git.CommitOnFailure {
 				d.gitMu.Lock()
-				meta := extractTaskCommitMeta(ns, wr.Task)
+				var meta taskCommitMeta
+				if ns != nil {
+					meta = extractTaskCommitMeta(ns, wr.Task)
+				}
 				commitAfterIteration(d.RepoDir, d.Logger, wr.Task, "failure", 0, d.Config.Git, meta, scope)
 				d.gitMu.Unlock()
 			}
@@ -234,7 +247,10 @@ done:
 			// Success path: commit scoped changes under gitMu, then
 			// propagate the node's state up through parent orchestrators.
 			d.gitMu.Lock()
-			meta := extractTaskCommitMeta(ns, wr.Task)
+			var meta taskCommitMeta
+			if ns != nil {
+				meta = extractTaskCommitMeta(ns, wr.Task)
+			}
 			commitAfterIteration(d.RepoDir, d.Logger, wr.Task, "success", 0, d.Config.Git, meta, scope)
 			d.gitMu.Unlock()
 
@@ -280,7 +296,10 @@ done:
 			}
 
 			d.gitMu.Lock()
-			failMeta := extractTaskCommitMeta(ns, wr.Task)
+			var failMeta taskCommitMeta
+			if ns != nil {
+				failMeta = extractTaskCommitMeta(ns, wr.Task)
+			}
 			commitAfterIteration(d.RepoDir, d.Logger, wr.Task, "failure", failCount, d.Config.Git, failMeta, scope)
 			d.gitMu.Unlock()
 
