@@ -122,15 +122,36 @@ When a node's state changes, it must propagate up through all ancestors to the r
 
 ## In-Progress Tracking
 
-In-progress tracking applies to all node types. Orchestrators have tasks too (audit tasks, at minimum), and those tasks follow the same in_progress rules as leaf tasks. The serial execution invariant (at most one in_progress task globally) applies across both orchestrators and leaves.
+In-progress tracking applies to all node types. Orchestrators have tasks too (audit tasks, at minimum), and those tasks follow the same in_progress rules as leaf tasks. In serial mode (default), at most one task is in_progress globally (ADR-014). When `parallel.enabled` is true, up to `parallel.max_workers` tasks may be in_progress simultaneously, coordinated by file-level scope locks (ADR-095).
 
 ## Orchestrator Audit Deferral
 
 Audit tasks on orchestrators are actionable only when all children are complete AND at least one child exists. If no children exist, the orchestrator hasn't been planned yet, so the audit has nothing to verify. Navigation enforces this in `findActionableTask`: it checks `len(ns.Children) > 0` and every child's state before allowing the orchestrator's audit task into the work queue.
 
+## Scope Lock Table
+
+When `parallel.enabled` is true (ADR-095), running tasks acquire file-level scope locks to prevent conflicting writes. The lock table lives at `projects/{namespace}/scope-locks.json` and is ephemeral (deleted on clean shutdown, gitignored).
+
+Types in `internal/state/types.go`:
+
+| Type | Purpose |
+|------|---------|
+| `ScopeLockTable` | Top-level structure: `Version int`, `Locks map[string]ScopeLock` |
+| `ScopeLock` | Per-file lock: `Task`, `Node`, `AcquiredAt`, `PID` |
+
+Key functions in `internal/state/scope.go`:
+
+| Function | Purpose |
+|----------|---------|
+| `ValidateScopePath(p)` | Rejects empty, absolute, and `..`/`.` segment paths |
+| `ScopeConflicts(a, b)` | Bidirectional prefix match for file/directory scopes |
+| `FindConflicts(paths, table, taskAddr)` | Returns all conflicts, skipping locks held by taskAddr |
+
+Store methods: `ReadScopeLocks()`, `MutateScopeLocks(fn)`, `ScopeLocksPath()`.
+
 ## Navigation
 
-`FindNextTask(idx, scope, loader)` in `internal/state/navigation.go` uses depth-first traversal to find the next actionable task (not_started or in_progress).
+`FindNextTask(idx, scope, loader)` in `internal/state/navigation.go` uses depth-first traversal to find the next actionable task (not_started or in_progress). When parallel execution is enabled, `FindParallelTasks(idx, scope, loader, maxCount)` returns up to `maxCount` actionable sibling tasks under the same orchestrator.
 
 ## Atomic I/O
 

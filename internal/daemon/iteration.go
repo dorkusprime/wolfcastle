@@ -24,6 +24,10 @@ import (
 // task-NNNN, audit, and hierarchical variants like task-NNNN.NNNN or audit.NNNN.
 var validTaskIDPattern = regexp.MustCompile(`^(task-\d{4}|audit)(\.\d{4})*$`)
 
+// yieldSuffixScopeConflict is the suffix string appended to WOLFCASTLE_YIELD
+// when an agent yields because it cannot acquire scope locks.
+const yieldSuffixScopeConflict = "scope_conflict"
+
 // runIteration executes a single daemon iteration: claims the task, runs each
 // enabled pipeline stage in order, reloads state from disk (to pick up CLI
 // mutations), handles terminal markers, and manages failure escalation.
@@ -155,7 +159,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			// Check for a scope-conflict suffix. When present, return a
 			// typed error so the parallel dispatcher can record the
 			// conflict and avoid immediately re-dispatching into it.
-			if kind, conflictAddr := scanYieldSuffix(result.Stdout); kind == "scope_conflict" {
+			if kind, conflictAddr := scanYieldSuffix(result.Stdout); kind == yieldSuffixScopeConflict {
 				_ = d.Logger.Log(map[string]any{
 					"type":     "yield_scope_conflict",
 					"task":     nav.TaskID,
@@ -577,8 +581,8 @@ func scanYieldSuffix(output string) (kind string, addr string) {
 				continue
 			}
 			parts := strings.SplitN(suffix, " ", 2)
-			if len(parts) == 2 && parts[0] == "scope_conflict" {
-				return "scope_conflict", strings.TrimSpace(parts[1])
+			if len(parts) == 2 && parts[0] == yieldSuffixScopeConflict {
+				return yieldSuffixScopeConflict, strings.TrimSpace(parts[1])
 			}
 		}
 	}

@@ -274,12 +274,13 @@ The `Daemon` struct has fields that are written during iteration without synchro
 
 ```go
 // ParallelDispatcher manages concurrent task execution.
+// Note: gitMu lives on the Daemon struct, not here, because serial-mode
+// code paths also need it for commit serialization.
 type ParallelDispatcher struct {
     daemon     *Daemon
     maxWorkers int
     active     map[string]*WorkerSlot  // task address -> slot
     mu         sync.Mutex
-    gitMu      sync.Mutex              // serializes all git operations
     results    chan WorkerResult
     blocked    map[string]string       // task address -> conflicting task address (yield backoff)
 }

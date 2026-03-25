@@ -78,7 +78,7 @@ The sequence in `cmd/daemon/start.go` is: recover stale PID → `FixWithVerifica
 
 ## Key Invariants
 
-- **Serial execution.** Only one task is in_progress at a time (ADR-014).
+- **Serial execution by default.** Only one task is in_progress at a time (ADR-014) unless `parallel.enabled` is true, in which case up to `parallel.max_workers` tasks run concurrently with file-level scope locks (ADR-095).
 - **State reloaded after invocation.** The daemon reloads state.json from disk after each model invocation to pick up mutations made by the model's CLI subprocesses (ADR-067).
 - **Propagation after every state change.** `propagateState()` re-reads the root index from disk, applies the state change, and saves.
 - **Summary via CLI or marker.** The model can call `wolfcastle audit summary` (ADR-067) or emit `WOLFCASTLE_SUMMARY:` inline (ADR-036). The invoke package detects the marker and stores the text on `Result.Summary`.

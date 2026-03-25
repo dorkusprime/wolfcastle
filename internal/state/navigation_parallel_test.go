@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -318,6 +319,44 @@ func TestFindParallelTasks(t *testing.T) {
 			wantAddrs: []string{"p/leaf", "p/sub-orch"},
 			wantTasks: []string{"task-0001", "task-0001"},
 		},
+		{
+			name: "in_progress node containing DFS result is preserved",
+			idx: func() *RootIndex {
+				idx := NewRootIndex()
+				idx.Root = []string{"p"}
+				idx.Nodes["p"] = IndexEntry{
+					Name: "P", Type: NodeOrchestrator, State: StatusInProgress,
+					Children: []string{"p/a", "p/b"},
+				}
+				// p/a is in_progress (has a self-healing task from crash recovery)
+				idx.Nodes["p/a"] = IndexEntry{Name: "A", Type: NodeLeaf, State: StatusInProgress, Parent: "p"}
+				idx.Nodes["p/b"] = IndexEntry{Name: "B", Type: NodeLeaf, State: StatusNotStarted, Parent: "p"}
+				return idx
+			}(),
+			nodes: map[string]*NodeState{
+				"p/a": func() *NodeState {
+					ns := NewNodeState("p/a", "A", NodeLeaf)
+					ns.State = StatusInProgress
+					ns.Tasks = []Task{
+						{ID: "task-0001", Description: "resumed work", State: StatusInProgress},
+					}
+					return ns
+				}(),
+				"p/b": func() *NodeState {
+					ns := NewNodeState("p/b", "B", NodeLeaf)
+					ns.Tasks = []Task{
+						{ID: "task-0001", Description: "b work", State: StatusNotStarted},
+					}
+					return ns
+				}(),
+			},
+			maxCount: 5,
+			// DFS finds p/a/task-0001 (in_progress, self-healing). The sibling
+			// scan skips p/a because the index entry is in_progress. Without the
+			// "always include first" guard, p/a would be lost.
+			wantAddrs: []string{"p/a", "p/b"},
+			wantTasks: []string{"task-0001", "task-0001"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -344,5 +383,93 @@ func TestFindParallelTasks(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestFindParallelTasks_LoadNodeError(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Root = []string{"p"}
+	idx.Nodes["p"] = IndexEntry{
+		Name: "P", Type: NodeOrchestrator, State: StatusNotStarted,
+		Children: []string{"p/a"},
+	}
+	idx.Nodes["p/a"] = IndexEntry{
+		Name: "A", Type: NodeLeaf, State: StatusNotStarted, Parent: "p",
+	}
+
+	errLoad := fmt.Errorf("disk I/O failure")
+	failLoader := func(addr string) (*NodeState, error) {
+		return nil, errLoad
+	}
+
+	results, err := FindParallelTasks(idx, "", failLoader, 5)
+	if err == nil {
+		t.Fatal("expected error from loadNode failure")
+	}
+	if results != nil {
+		t.Errorf("expected nil results on error, got %d", len(results))
+	}
+}
+
+func TestFindParallelTasks_NoParentReturnsFirst(t *testing.T) {
+	t.Parallel()
+	// A root-level leaf with no parent should return just that one result.
+	idx := NewRootIndex()
+	idx.Root = []string{"solo"}
+	idx.Nodes["solo"] = IndexEntry{
+		Name: "Solo", Type: NodeLeaf, State: StatusNotStarted,
+	}
+
+	nodes := map[string]*NodeState{
+		"solo": func() *NodeState {
+			ns := NewNodeState("solo", "Solo", NodeLeaf)
+			ns.Tasks = []Task{{ID: "task-0001", Description: "only", State: StatusNotStarted}}
+			return ns
+		}(),
+	}
+
+	results, err := FindParallelTasks(idx, "", makeLoadNode(nodes), 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].NodeAddress != "solo" {
+		t.Errorf("expected solo, got %s", results[0].NodeAddress)
+	}
+}
+
+func TestFindParallelTasks_SiblingLoadError(t *testing.T) {
+	t.Parallel()
+	// When loading the first task succeeds but a sibling fails to load,
+	// the error should propagate.
+	idx := NewRootIndex()
+	idx.Root = []string{"p"}
+	idx.Nodes["p"] = IndexEntry{
+		Name: "P", Type: NodeOrchestrator, State: StatusNotStarted,
+		Children: []string{"p/a", "p/b"},
+	}
+	idx.Nodes["p/a"] = IndexEntry{Name: "A", Type: NodeLeaf, State: StatusNotStarted, Parent: "p"}
+	idx.Nodes["p/b"] = IndexEntry{Name: "B", Type: NodeLeaf, State: StatusNotStarted, Parent: "p"}
+
+	callCount := 0
+	loader := func(addr string) (*NodeState, error) {
+		callCount++
+		if addr == "p/a" {
+			ns := NewNodeState("p/a", "A", NodeLeaf)
+			ns.Tasks = []Task{{ID: "task-0001", Description: "a", State: StatusNotStarted}}
+			return ns, nil
+		}
+		return nil, fmt.Errorf("sibling load failure")
+	}
+
+	results, err := FindParallelTasks(idx, "", loader, 5)
+	if err == nil {
+		t.Fatal("expected error from sibling load failure")
+	}
+	if results != nil {
+		t.Errorf("expected nil results, got %d", len(results))
 	}
 }

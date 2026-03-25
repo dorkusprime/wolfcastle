@@ -669,3 +669,216 @@ func TestParallel_DrainCompletedProcessesResults(t *testing.T) {
 		t.Errorf("expected 0 active workers after drain, got %d", remaining)
 	}
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 10. ErrYieldScopeConflict.Error() string
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestErrYieldScopeConflict_Error(t *testing.T) {
+	t.Parallel()
+	err := &ErrYieldScopeConflict{
+		Task:    "proj/child-1/task-0001",
+		Blocker: "proj/child-0/task-0001",
+	}
+	got := err.Error()
+	want := "scope conflict: proj/child-1/task-0001 blocked by proj/child-0/task-0001"
+	if got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 11. scopeFiles returns locked files for a task
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestParallel_ScopeFilesReturnsLockedFiles(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	pd := d.dispatcher
+
+	taskAddr := "proj/child-0/task-0001"
+	otherAddr := "proj/child-1/task-0001"
+
+	// Seed scope locks: two files for our task, one for another.
+	_ = d.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+		table.Locks["alpha.go"] = state.ScopeLock{Task: taskAddr, Node: "proj/child-0"}
+		table.Locks["beta.go"] = state.ScopeLock{Task: taskAddr, Node: "proj/child-0"}
+		table.Locks["gamma.go"] = state.ScopeLock{Task: otherAddr, Node: "proj/child-1"}
+		return nil
+	})
+
+	files := pd.scopeFiles(taskAddr)
+	if len(files) != 2 {
+		t.Fatalf("expected 2 files, got %d: %v", len(files), files)
+	}
+
+	// Verify only our task's files are returned.
+	fileSet := map[string]bool{}
+	for _, f := range files {
+		fileSet[f] = true
+	}
+	if !fileSet["alpha.go"] || !fileSet["beta.go"] {
+		t.Errorf("expected alpha.go and beta.go, got %v", files)
+	}
+}
+
+func TestParallel_ScopeFilesEmptyTable(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	pd := d.dispatcher
+
+	files := pd.scopeFiles("proj/child-0/task-0001")
+	if files != nil {
+		t.Errorf("expected nil for empty table, got %v", files)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 12. releaseScope removes locks for the specified task
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestParallel_ReleaseScopeRemovesLocks(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	pd := d.dispatcher
+
+	taskAddr := "proj/child-0/task-0001"
+	otherAddr := "proj/child-1/task-0001"
+
+	_ = d.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+		table.Locks["alpha.go"] = state.ScopeLock{Task: taskAddr, Node: "proj/child-0"}
+		table.Locks["beta.go"] = state.ScopeLock{Task: taskAddr, Node: "proj/child-0"}
+		table.Locks["gamma.go"] = state.ScopeLock{Task: otherAddr, Node: "proj/child-1"}
+		return nil
+	})
+
+	pd.releaseScope(taskAddr)
+
+	table, err := d.Store.ReadScopeLocks()
+	if err != nil {
+		t.Fatalf("reading scope locks after release: %v", err)
+	}
+	if len(table.Locks) != 1 {
+		t.Fatalf("expected 1 lock remaining, got %d", len(table.Locks))
+	}
+	if _, ok := table.Locks["gamma.go"]; !ok {
+		t.Error("other task's lock on gamma.go should still exist")
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 13. drainCompleted handles worker errors (failure path)
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestParallel_DrainCompletedHandlesErrors(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	pd := d.dispatcher
+
+	setupOrchestrator(t, d, "proj", 2)
+
+	// Claim the task so IncrementFailure has something to increment.
+	_ = d.Store.MutateNode("proj/child-0", func(ns *state.NodeState) error {
+		return state.TaskClaim(ns, "task-0001")
+	})
+
+	taskAddr := "proj/child-0/task-0001"
+	pd.active[taskAddr] = &WorkerSlot{Node: "proj/child-0", Task: "task-0001"}
+
+	pd.results <- WorkerResult{
+		Node:   "proj/child-0",
+		Task:   "task-0001",
+		Result: IterationError,
+		Error:  fmt.Errorf("model invocation failed"),
+	}
+
+	collected := pd.drainCompleted()
+	if len(collected) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(collected))
+	}
+	if collected[0].Error == nil {
+		t.Error("expected error in collected result")
+	}
+
+	// The active map should be cleared.
+	pd.mu.Lock()
+	remaining := len(pd.active)
+	pd.mu.Unlock()
+	if remaining != 0 {
+		t.Errorf("expected 0 active after error drain, got %d", remaining)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 14. drainCompleted clears blocked entries on blocker completion
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestParallel_DrainCompletedClearsBlockedOnSuccess(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	pd := d.dispatcher
+
+	setupOrchestrator(t, d, "proj", 2)
+
+	blockerAddr := "proj/child-0/task-0001"
+	blockedAddr := "proj/child-1/task-0001"
+
+	pd.active[blockerAddr] = &WorkerSlot{Node: "proj/child-0", Task: "task-0001"}
+	pd.blocked[blockedAddr] = blockerAddr
+
+	// Blocker completes successfully.
+	pd.results <- WorkerResult{
+		Node:   "proj/child-0",
+		Task:   "task-0001",
+		Result: IterationDidWork,
+	}
+
+	pd.drainCompleted()
+
+	pd.mu.Lock()
+	_, stillBlocked := pd.blocked[blockedAddr]
+	pd.mu.Unlock()
+	if stillBlocked {
+		t.Error("blocked entry should be cleared when blocker completes")
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 15. runOnceParallel returns NoWork when pool is idle and no planning
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestParallel_RunOnceParallelNoWork(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	initLogger(d)
+
+	// Set up an index with all tasks complete so nothing is dispatchable.
+	projDir := d.Store.Dir()
+	idx := state.NewRootIndex()
+	idx.Root = []string{"proj"}
+	idx.Nodes["proj"] = state.IndexEntry{
+		Name:     "proj",
+		Type:     state.NodeOrchestrator,
+		State:    state.StatusComplete,
+		Address:  "proj",
+		Children: []string{"proj/child-0"},
+	}
+	idx.Nodes["proj/child-0"] = state.IndexEntry{
+		Name:    "child-0",
+		Type:    state.NodeLeaf,
+		State:   state.StatusComplete,
+		Address: "proj/child-0",
+		Parent:  "proj",
+	}
+	writeJSON(t, fmt.Sprintf("%s/state.json", projDir), idx)
+
+	result, err := d.runOnceParallel(context.Background(), idx)
+	if err != nil {
+		t.Fatalf("runOnceParallel error: %v", err)
+	}
+	if result != IterationNoWork {
+		t.Errorf("expected IterationNoWork, got %d", result)
+	}
+
+	shutdownParallel(d)
+}

@@ -36,17 +36,13 @@ victories. Reclaiming territory you already hold is accepted without
 complaint.
 
 Examples:
-  wolfcastle task scope add --node my-project/api-layer internal/daemon/iteration.go
+  wolfcastle task scope add --node my-project/api-layer --task task-0001 internal/daemon/iteration.go
   wolfcastle task scope add --node my-project/api-layer --task task-0001 internal/daemon/
-  wolfcastle task scope add --node my-project/api-layer file1.go file2.go file3.go`,
+  wolfcastle task scope add --node my-project/api-layer --task task-0001 file1.go file2.go file3.go`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			nodeAddr, _ := cmd.Flags().GetString("node")
 			taskID, _ := cmd.Flags().GetString("task")
-
-			if taskID == "" {
-				return fmt.Errorf("scope add requires --task when not running inside a daemon iteration")
-			}
 
 			// Validate all requested paths before touching the lock table.
 			var invalid []string
@@ -124,8 +120,9 @@ Examples:
 	}
 
 	cmd.Flags().String("node", "", "Node address (required)")
-	cmd.Flags().String("task", "", "Task ID (optional, derived from context if omitted)")
+	cmd.Flags().String("task", "", "Task ID (required)")
 	_ = cmd.MarkFlagRequired("node")
+	_ = cmd.MarkFlagRequired("task")
 	return cmd
 }
 

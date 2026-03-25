@@ -416,14 +416,20 @@ func (pd *ParallelDispatcher) waitAndDrain() {
 
 // releaseScope deletes all scope locks held by the given task address.
 func (pd *ParallelDispatcher) releaseScope(taskAddr string) {
-	_ = pd.daemon.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+	if err := pd.daemon.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
 		for file, lock := range table.Locks {
 			if lock.Task == taskAddr {
 				delete(table.Locks, file)
 			}
 		}
 		return nil
-	})
+	}); err != nil {
+		_ = pd.daemon.Logger.Log(map[string]any{
+			"type":  "scope_release_error",
+			"task":  taskAddr,
+			"error": err.Error(),
+		})
+	}
 }
 
 // scopeFiles reads the scope lock table and returns the list of files

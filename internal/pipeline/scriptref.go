@@ -115,6 +115,65 @@ wolfcastle task block "reason for blocking" --node <node-address/task-id>
 wolfcastle task block "Waiting for database migration to complete" --node my-project/auth/task-2
 ` + "```" + `
 
+### wolfcastle task scope add
+
+Claim exclusive file-level scope locks for parallel execution. All requested files must be free or the entire request is rejected (all-or-nothing).
+
+` + "```" + `
+wolfcastle task scope add --node <node-address> --task <task-id> <file> [<file>...]
+` + "```" + `
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| ` + "`--node`" + ` | Yes | Node address |
+| ` + "`--task`" + ` | Yes | Task ID |
+
+Directory scopes use a trailing slash. Paths with ` + "` + \"`..`\" + `" + ` or ` + "` + \"`/`\" + `" + ` prefix are rejected.
+
+**Example:**
+` + "```" + `
+wolfcastle task scope add --node my-project/api-layer --task task-0001 internal/daemon/iteration.go internal/daemon/parallel.go
+wolfcastle task scope add --node my-project/api-layer --task task-0001 internal/daemon/
+` + "```" + `
+
+### wolfcastle task scope list
+
+List current scope locks, optionally filtered by node or task.
+
+` + "```" + `
+wolfcastle task scope list [--node <address>] [--task <task-address>]
+` + "```" + `
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| ` + "`--node`" + ` | No | Filter by node address |
+| ` + "`--task`" + ` | No | Filter by full task address |
+
+**Example:**
+` + "```" + `
+wolfcastle task scope list
+wolfcastle task scope list --node my-project/api-layer
+` + "```" + `
+
+### wolfcastle task scope release
+
+Release scope locks held by a task. Without file arguments, releases all locks.
+
+` + "```" + `
+wolfcastle task scope release --node <address> --task <task-id> [<file>...]
+` + "```" + `
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| ` + "`--node`" + ` | Yes | Node address |
+| ` + "`--task`" + ` | Yes | Task ID |
+
+**Example:**
+` + "```" + `
+wolfcastle task scope release --node my-project/api-layer --task task-0001
+wolfcastle task scope release --node my-project/api-layer --task task-0001 internal/daemon/iteration.go
+` + "```" + `
+
 ---
 
 ## Project Commands

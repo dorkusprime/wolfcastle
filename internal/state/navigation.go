@@ -308,10 +308,19 @@ func FindParallelTasks(
 		}
 	}
 
-	// If the first result wasn't found among the siblings (e.g. it came from a
-	// deeper DFS path), ensure it's included.
-	if len(results) == 0 {
-		results = append(results, first)
+	// Ensure the first result (from DFS) is always present. It may have
+	// come from a deeper path (grandchild) that findActionableTask on
+	// the sibling orchestrator didn't reach.
+	found := false
+	for _, r := range results {
+		if r.NodeAddress == first.NodeAddress && r.TaskID == first.TaskID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		// Prepend: the DFS result has highest priority.
+		results = append([]*NavigationResult{first}, results...)
 	}
 
 	if len(results) > maxCount {

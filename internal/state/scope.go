@@ -13,7 +13,7 @@ func ValidateScopePath(p string) bool {
 		return false
 	}
 	for _, seg := range strings.Split(strings.TrimSuffix(p, "/"), "/") {
-		if seg == "" || seg == ".." {
+		if seg == "" || seg == "." || seg == ".." {
 			return false
 		}
 	}

@@ -63,7 +63,7 @@ func TestValidateScopePath(t *testing.T) {
 		{name: "dotdot mid-path", path: "internal/../daemon/foo.go", want: false},
 		{name: "dotdot at end", path: "internal/..", want: false},
 		{name: "dotdot only", path: "..", want: false},
-		{name: "single dot is fine", path: "internal/./foo.go", want: true},
+		{name: "single dot rejected", path: "internal/./foo.go", want: false},
 		{name: "dotdot-like name is fine", path: "internal/...foo/bar.go", want: true},
 		{name: "double slash", path: "internal//daemon/foo.go", want: false},
 		{name: "trailing double slash", path: "internal/daemon//", want: false},

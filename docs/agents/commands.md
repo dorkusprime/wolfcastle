@@ -155,3 +155,6 @@ Registered at root level (not grouped under a parent):
 | `complete` | Mark a task as complete |
 | `deliverable` | Manage task deliverables |
 | `unblock` | Unblock a blocked task |
+| `scope add` | Claim exclusive file-level scope locks for parallel execution |
+| `scope list` | List current scope locks, optionally filtered by node or task |
+| `scope release` | Release scope locks held by a task |
