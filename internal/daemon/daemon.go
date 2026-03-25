@@ -66,9 +66,9 @@ type Daemon struct {
 	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
 	dispatcher       *ParallelDispatcher // nil when parallel mode is disabled
-	mu               sync.Mutex         // protects lastNoWorkMsg and lastArchiveCheck
-	gitMu            sync.Mutex         // serializes git commit operations across parallel workers
-	hasWorked        bool               // tracks whether the daemon has done work this run
+	mu               sync.Mutex          // protects lastNoWorkMsg and lastArchiveCheck
+	gitMu            sync.Mutex          // serializes git commit operations across parallel workers
+	hasWorked        bool                // tracks whether the daemon has done work this run
 	shutdown         chan struct{}
 	shutdownOnce     sync.Once
 	workAvailable    chan struct{}
@@ -253,25 +253,15 @@ func (d *Daemon) selfHeal() error {
 				if hasSubtasks {
 					continue
 				}
-				// Find existing subtask numbers to avoid duplicates.
-				existingSubs := make(map[string]bool)
-				subPrefix := t.ID + "."
-				for _, other := range ns.Tasks {
-					if len(other.ID) > len(subPrefix) && other.ID[:len(subPrefix)] == subPrefix {
-						existingSubs[other.ID] = true
-					}
-				}
-				nextNum := len(existingSubs) + 1
+				// No existing subtasks (confirmed by hasSubtasks check above),
+				// so start numbering at 1.
+				nextNum := 1
 				subCount := 0
 				for _, g := range ns.Audit.Gaps {
 					if g.Status != state.GapOpen {
 						continue
 					}
 					childID := fmt.Sprintf("%s.%04d", t.ID, nextNum)
-					for existingSubs[childID] {
-						nextNum++
-						childID = fmt.Sprintf("%s.%04d", t.ID, nextNum)
-					}
 					ns.Tasks = append(ns.Tasks, state.Task{
 						ID:          childID,
 						Description: fmt.Sprintf("Fix: %s\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node %s %s", g.Description, addr, g.ID),
@@ -298,7 +288,7 @@ func (d *Daemon) selfHeal() error {
 			}
 			return nil
 		})
-		if mutErr != nil && mutErr != errNoChange {
+		if mutErr != nil && !errors.Is(mutErr, errNoChange) {
 			output.PrintHuman("  Warning: could not save %s: %v", addr, mutErr)
 		}
 

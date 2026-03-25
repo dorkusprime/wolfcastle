@@ -536,8 +536,8 @@ func (pd *ParallelDispatcher) snapshot() *ParallelStatus {
 			Task: taskAddr,
 			Node: slot.Node,
 		}
-		// Read scope without holding pd.mu (scopeFiles uses its own locking).
-		// We collect task addresses here and fill scope below.
+		// Scope is filled by writeStatusSnapshot after this method returns
+		// and pd.mu is released, since scopeFiles acquires its own lock.
 		status.Active = append(status.Active, entry)
 	}
 
@@ -586,7 +586,12 @@ func (pd *ParallelDispatcher) writeStatusSnapshot() {
 // removeStatusFile removes the parallel-status.json file. Called when the
 // dispatcher shuts down so stale status doesn't persist.
 func (pd *ParallelDispatcher) removeStatusFile() {
-	_ = os.Remove(parallelStatusPath(pd.daemon.WolfcastleDir))
+	if err := os.Remove(parallelStatusPath(pd.daemon.WolfcastleDir)); err != nil && !os.IsNotExist(err) {
+		_ = pd.daemon.Logger.Log(map[string]any{
+			"type":  "parallel_status_remove_error",
+			"error": err.Error(),
+		})
+	}
 }
 
 // parallelStatusPath returns the path to the parallel status snapshot file.

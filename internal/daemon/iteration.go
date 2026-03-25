@@ -161,9 +161,9 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			// conflict and avoid immediately re-dispatching into it.
 			if kind, conflictAddr := scanYieldSuffix(result.Stdout); kind == yieldSuffixScopeConflict {
 				_ = d.Logger.Log(map[string]any{
-					"type":     "yield_scope_conflict",
-					"task":     nav.TaskID,
-					"blocker":  conflictAddr,
+					"type":    "yield_scope_conflict",
+					"task":    nav.TaskID,
+					"blocker": conflictAddr,
 				})
 				return &ErrYieldScopeConflict{
 					Task:    nav.NodeAddress + "/" + nav.TaskID,
@@ -984,7 +984,7 @@ func findNewTasks(before, after *state.NodeState) []string {
 // number of subtasks created (0 if the task isn't an audit or has no gaps).
 func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 	var created int
-	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+	if err := d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 		// Find the audit task
 		auditIdx := -1
 		for i, t := range ns.Tasks {
@@ -1042,7 +1042,14 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 		ns.Tasks[auditIdx].BlockedReason = ""
 
 		return nil
-	})
+	}); err != nil {
+		_ = d.Logger.Log(map[string]any{
+			"type":  "remediation_subtask_error",
+			"node":  nodeAddr,
+			"task":  taskID,
+			"error": err.Error(),
+		})
+	}
 	return created
 }
 

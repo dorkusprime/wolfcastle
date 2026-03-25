@@ -18,9 +18,9 @@ func TestFindParallelTasks(t *testing.T) {
 		wantTasks []string // expected TaskID values in order (parallel to wantAddrs)
 	}{
 		{
-			name: "empty tree returns nil",
-			idx:  NewRootIndex(),
-			nodes: nil,
+			name:      "empty tree returns nil",
+			idx:       NewRootIndex(),
+			nodes:     nil,
 			maxCount:  3,
 			wantAddrs: nil,
 			wantTasks: nil,

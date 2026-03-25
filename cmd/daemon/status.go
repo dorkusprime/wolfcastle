@@ -622,7 +622,7 @@ func printParallelStatus(ps *dmn.ParallelStatus) {
 
 	for _, w := range ps.Active {
 		output.PrintHuman("")
-		output.PrintHuman("    %s [in_progress]", w.Task)
+		output.PrintHuman("    %s [%s]", w.Task, state.StatusInProgress)
 		if len(w.Scope) > 0 {
 			output.PrintHuman("      scope: %s", strings.Join(w.Scope, ", "))
 		}

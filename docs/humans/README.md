@@ -32,6 +32,10 @@ Tasks that fail get retried. After 10 failures, Wolfcastle decomposes the task i
 
 Every leaf gets verified by an automatic audit task that reviews breadcrumbs against defined criteria. Gaps escalate upward through the tree. A standalone `wolfcastle audit` command runs read-only codebase analysis against composable scopes, with an approval gate before findings become tasks. `wolfcastle doctor` validates and repairs the state tree itself.
 
+## [Parallel Execution](parallel-execution.md)
+
+Run multiple tasks concurrently with file-level scope locks. Configure the worker pool, monitor active workers and scope conflicts through `wolfcastle status`, and diagnose contention when tasks keep yielding on the same files.
+
 ## [Collaboration](collaboration.md)
 
 Each engineer gets their own namespace under `.wolfcastle/system/projects/`. No merge conflicts, no coordination overhead. Wolfcastle commits to your current branch with safety checks, or isolates work in a separate git worktree. Completed projects move to the archive. Everything is tracked in structured NDJSON logs.

@@ -282,7 +282,7 @@ type ParallelDispatcher struct {
     active     map[string]*WorkerSlot  // task address -> slot
     mu         sync.Mutex
     results    chan WorkerResult
-    blocked    map[string]string       // task address -> conflicting task address (yield backoff)
+    blocked    map[string]*BlockedEntry // task address -> block details (yield backoff)
 }
 
 // WorkerSlot tracks a running task execution.
@@ -292,16 +292,18 @@ type WorkerSlot struct {
     Cancel  context.CancelFunc
 }
 
-// WorkerResult is the outcome of a single task execution.
+// WorkerResult captures the outcome of a single worker iteration.
 type WorkerResult struct {
-    Node     string
-    Task     string
-    Result   IterationResult
-    Error    error
+    Node          string
+    Task          string
+    Result        IterationResult
+    Error         error
+    ScopeConflict bool   // true when the worker yielded due to a scope conflict
+    Blocker       string // address of the task holding the conflicting scope locks
 }
 ```
 
-The `blocked` map tracks which yielded tasks are waiting on which conflicting tasks. A yielded task is not eligible for re-dispatch until its blocking task completes and releases locks (see Yield Handling).
+The `blocked` map tracks which yielded tasks are waiting on which conflicting tasks. Each `BlockedEntry` records the blocker address, cumulative yield count, and the timestamp of the first yield. A yielded task is not eligible for re-dispatch until its blocking task completes and releases locks (see Yield Handling).
 
 ### Dispatch flow
 
@@ -491,13 +493,13 @@ The parallel variant needs a modified traversal:
 5. **For each sibling** (other children of the same orchestrator):
    a. Skip if the sibling's state in the index is `complete` or `blocked`.
    b. Skip if the sibling is an orchestrator that needs planning (has no children). The unplanned-orchestrator stopping rule is preserved: siblings created after an unplanned orchestrator are not eligible.
-   c. Skip if the sibling is already `in_progress` (claimed by another worker).
+   c. For `in_progress` siblings, call `findActionableTask` to check for available work. In-progress siblings may have unclaimed tasks (e.g., task-0001 complete, audit not_started). If an `in_progress` task is found, it's already claimed by another worker. If a `not_started` task is found, it's dispatchable.
    d. Load the sibling's node state and call `findActionableTask` on it.
    e. If an actionable task is found, add it to the result set.
    f. Stop when the result set reaches `maxCount`.
 6. **Return the results** in creation order (Children array order).
 
-The key difference from serial DFS: step 5c **skips** in-progress siblings instead of **stopping** at them. Serial execution stops because it assumes ordered dependencies. Parallel execution skips because it assumes independence (enforced later by scope locks, not by traversal order).
+The key difference from serial DFS: step 5c **inspects** in-progress siblings for available work instead of **stopping** at them. Serial execution stops because it assumes ordered dependencies. Parallel execution checks each sibling for dispatchable tasks because independence is enforced by scope locks, not by traversal order.
 
 The unplanned-orchestrator rule (step 5b) is preserved. If sibling B is an unplanned orchestrator, siblings C, D, E after it in the Children array are not eligible. Planning for B must happen first. Siblings A (before B) that are `not_started` are eligible.
 

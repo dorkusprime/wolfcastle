@@ -285,6 +285,29 @@ Controls the daemon's polling intervals, timeouts, and restart behavior.
 }
 ```
 
+### daemon.parallel.enabled
+
+- **Type:** `bool`
+- **Default:** `false`
+- **Description:** When true, the daemon runs multiple tasks concurrently using a worker pool with file-level scope locks. See [Parallel Execution](parallel-execution.md) for details.
+
+### daemon.parallel.max_workers
+
+- **Type:** `int`
+- **Default:** `3`
+- **Description:** Maximum number of tasks that can execute simultaneously. Must be >= 1.
+
+```json
+{
+  "daemon": {
+    "parallel": {
+      "enabled": true,
+      "max_workers": 3
+    }
+  }
+}
+```
+
 ---
 
 ## logs
