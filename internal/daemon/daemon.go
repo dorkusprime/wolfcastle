@@ -785,7 +785,17 @@ func (d *Daemon) runOnceParallel(ctx context.Context, idx *state.RootIndex) (Ite
 
 	// Step 1: Drain completed workers. Each result triggers a scoped
 	// commit, scope release, and state propagation inside drainCompleted.
-	pd.drainCompleted()
+	completed := pd.drainCompleted()
+
+	// Post-iteration hooks: check whether any successfully completed task
+	// produced a spec that needs review or pushed a knowledge file over
+	// its token budget. These mirror the serial path (lines 771-775).
+	for _, wr := range completed {
+		if wr.Error == nil && !wr.ScopeConflict {
+			d.checkSpecReviewNeeded(wr.Node, wr.Task)
+			d.checkKnowledgeBudget(wr.Node)
+		}
+	}
 
 	// Step 2: Fill open worker slots with eligible tasks.
 	launched := pd.fillSlots(ctx, idx)
