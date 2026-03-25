@@ -11,6 +11,11 @@ import (
 func ValidateStructure(cfg *Config) error {
 	var errs []string
 
+	// Version must not exceed what this binary understands
+	if cfg.Version > CurrentVersion {
+		errs = append(errs, fmt.Sprintf("config version %d is newer than this binary supports (%d); upgrade wolfcastle", cfg.Version, CurrentVersion))
+	}
+
 	// Pipeline must have at least one stage
 	if len(cfg.Pipeline.Stages) == 0 {
 		errs = append(errs, "pipeline has no stages: at least one stage is required")

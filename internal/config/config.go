@@ -16,7 +16,7 @@ import (
 // Defaults returns the hardcoded default configuration.
 func Defaults() *Config {
 	return &Config{
-		Version: 1,
+		Version: CurrentVersion,
 		Models: map[string]ModelDef{
 			"fast": {
 				Command: "claude",
@@ -238,6 +238,16 @@ func Load(wolfcastleDir string) (*Config, error) {
 			return nil, fmt.Errorf("parsing %s: %w", tier, err)
 		}
 		result = DeepMerge(result, overlay)
+	}
+
+	// Apply schema migrations if the merged config is behind CurrentVersion.
+	migrated, migrationDescs, migErr := MigrateConfig(result)
+	if migErr != nil {
+		return nil, fmt.Errorf("config migration: %w", migErr)
+	}
+	result = migrated
+	for _, desc := range migrationDescs {
+		warnings = append(warnings, "config migrated: "+desc)
 	}
 
 	// Marshal back to Config struct

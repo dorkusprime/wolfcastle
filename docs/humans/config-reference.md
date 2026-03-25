@@ -8,15 +8,17 @@ For context on how the three-tier system works, how merges resolve, and how to u
 
 ## version
 
-Schema version for the configuration format. Used by Wolfcastle to detect incompatible config files.
+Schema version for the configuration format. Wolfcastle uses this to apply automatic migrations when loading older configs and to reject configs written by a newer binary.
 
 - **Type:** `int`
-- **Default:** `1`
-- **Description:** Configuration schema version. Currently only version `1` exists.
+- **Default:** `2`
+- **Description:** Configuration schema version. When Wolfcastle loads a config with a version lower than its current version, it applies migrations automatically and logs what changed. If the version is higher than the binary supports, loading fails with an upgrade prompt.
+
+When the on-disk base config is behind the current version, `wolfcastle start` prints an informational message suggesting `wolfcastle init --force` to regenerate it.
 
 ```json
 {
-  "version": 1
+  "version": 2
 }
 ```
 
