@@ -199,7 +199,7 @@ func TestDescribe_LeafNode(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"describe", "my-project"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -207,7 +207,7 @@ func TestDescribe_LeafNode(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	out := buf.String()
 
 	// Verify key sections appear
@@ -251,7 +251,7 @@ func TestDescribe_OrchestratorNode(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"describe", "my-project"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -259,7 +259,7 @@ func TestDescribe_OrchestratorNode(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	out := buf.String()
 
 	checks := []string{
@@ -291,7 +291,7 @@ func TestDescribe_MinimalNode(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"describe", "minimal"})
 	err := env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -299,7 +299,7 @@ func TestDescribe_MinimalNode(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	out := buf.String()
 
 	// Minimal node should still show Audit section
@@ -471,7 +471,7 @@ func TestDescribe_WithDescriptionMD(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"describe", "md-project", "--json"})
 	err = env.RootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -479,7 +479,7 @@ func TestDescribe_WithDescriptionMD(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 
 	var resp map[string]any
 	if err := json.Unmarshal(buf.Bytes(), &resp); err != nil {

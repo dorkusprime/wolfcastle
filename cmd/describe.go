@@ -99,14 +99,14 @@ func describeJSON(app *cmdutil.App, ns *state.NodeState, entry state.IndexEntry,
 	data := map[string]any{
 		"node_state": ns,
 		"index_entry": map[string]any{
-			"name":               entry.Name,
-			"type":               entry.Type,
-			"state":              entry.State,
-			"address":            entry.Address,
+			"name":                entry.Name,
+			"type":                entry.Type,
+			"state":               entry.State,
+			"address":             entry.Address,
 			"decomposition_depth": entry.DecompositionDepth,
-			"parent":             entry.Parent,
-			"children":           entry.Children,
-			"archived":           entry.Archived,
+			"parent":              entry.Parent,
+			"children":            entry.Children,
+			"archived":            entry.Archived,
 		},
 	}
 
