@@ -193,7 +193,7 @@ done:
 			// the node-level state so the index entry reflects the
 			// task reset (without this, the index stays in_progress
 			// and FindParallelTasks skips the node).
-			_ = d.Store.MutateNode(wr.Node, func(mns *state.NodeState) error {
+			if err := d.Store.MutateNode(wr.Node, func(mns *state.NodeState) error {
 				for i, t := range mns.Tasks {
 					if t.ID == wr.Task {
 						mns.Tasks[i].State = state.StatusNotStarted
@@ -212,7 +212,17 @@ done:
 					mns.State = state.StatusNotStarted
 				}
 				return nil
-			})
+			}); err != nil {
+				// State write failed: the task remains in_progress permanently
+				// because fillSlots will never rediscover it. Log so operators
+				// can intervene.
+				_ = d.Logger.Log(map[string]any{
+					"type":  "scope_conflict_reset_error",
+					"task":  taskAddr,
+					"node":  wr.Node,
+					"error": err.Error(),
+				})
+			}
 
 			// Remove from the active map but do NOT clear blocked entries
 			// (this task yielded; it did not complete).
@@ -253,11 +263,21 @@ done:
 			// Failure path: increment the failure count and commit
 			// partial work so retries don't redo completed portions.
 			var failCount int
-			_ = d.Store.MutateNode(wr.Node, func(mns *state.NodeState) error {
+			if err := d.Store.MutateNode(wr.Node, func(mns *state.NodeState) error {
 				var err error
 				failCount, err = state.IncrementFailure(mns, wr.Task)
 				return err
-			})
+			}); err != nil {
+				// State write failed: failure count was not incremented, so
+				// the task may retry indefinitely or remain stuck. Log so
+				// operators can intervene.
+				_ = d.Logger.Log(map[string]any{
+					"type":  "failure_increment_error",
+					"task":  taskAddr,
+					"node":  wr.Node,
+					"error": err.Error(),
+				})
+			}
 
 			d.gitMu.Lock()
 			failMeta := extractTaskCommitMeta(ns, wr.Task)
