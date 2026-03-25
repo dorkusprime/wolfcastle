@@ -45,6 +45,29 @@ Without `--watch`, prints once and exits. With `--watch`, holds the screen and r
 
 None. This command is strictly read-only.
 
+## Parallel Worker Pool
+
+When the daemon is running in parallel mode (`daemon.parallel.enabled: true`), the status display includes a worker pool section below the daemon line. It shows how many workers are active out of the configured maximum, what each worker is executing, and which tasks are waiting on scope locks held by other workers.
+
+Example output:
+
+```
+Workers: 2/3 active
+
+    my-project/api-layer/task-0001 [in_progress]
+      scope: internal/api/handler.go, internal/api/routes.go
+
+    my-project/database/task-0001 [in_progress]
+      scope: internal/db/
+
+  Yielded (waiting on scope):
+    my-project/auth/task-0001 -> blocked by my-project/api-layer/task-0001 (2 yields, 45s)
+```
+
+The yielded section only appears when tasks are waiting. Yield count and duration are shown when a task has yielded more than once, indicating repeated contention on the same scope.
+
+In `--json` mode, the parallel status is included as a `parallel` object with `max_workers`, `active`, and `yielded` arrays.
+
 ## See Also
 
 - [`wolfcastle log`](log.md) to read daemon output (`follow` still works as an alias).

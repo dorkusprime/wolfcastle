@@ -190,7 +190,7 @@ func TestRunOnce_IterationCapReached(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
 	d.Config.Daemon.MaxIterations = 5
-	d.iteration = 5 // already at cap
+	d.iteration.Store(5) // already at cap
 	_ = d.Logger.StartIteration()
 	defer d.Logger.Close()
 

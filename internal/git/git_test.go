@@ -190,6 +190,29 @@ func TestService_IsDirty_NonRepo(t *testing.T) {
 	}
 }
 
+func TestService_IsDirty_UnstagedModification(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "file.go", "package main", "init")
+
+	svc := NewService(repoDir)
+
+	// Modify without staging: porcelain shows " M file.go" (leading space).
+	if err := os.WriteFile(filepath.Join(repoDir, "file.go"), []byte("package main\n// changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !svc.IsDirty() {
+		t.Error("expected dirty for unstaged modification")
+	}
+
+	// Excluding the file by prefix should hide it.
+	if svc.IsDirty("file.go") {
+		t.Error("expected clean when unstaged modified file is excluded")
+	}
+}
+
 func TestService_IsDirty_Rename(t *testing.T) {
 	t.Parallel()
 
@@ -246,6 +269,175 @@ func TestService_HasProgress(t *testing.T) {
 	}
 	if !svc.HasProgress(newBaseline) {
 		t.Error("expected progress when working tree is dirty (outside .wolfcastle/)")
+	}
+}
+
+func TestService_HasProgressScoped(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "init.txt", "hello", "initial commit")
+
+	svc := NewService(repoDir)
+
+	// Clean tree, no scope files changed: no progress.
+	if svc.HasProgressScoped("ignored", []string{"foo.go"}) {
+		t.Error("expected no progress on clean tree")
+	}
+
+	// Create an untracked file at root level (porcelain shows "?? foo.go").
+	if err := os.WriteFile(filepath.Join(repoDir, "foo.go"), []byte("package foo"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !svc.HasProgressScoped("ignored", []string{"foo.go"}) {
+		t.Error("expected progress when scoped file is untracked")
+	}
+
+	// Same dirty file, but scope doesn't include it: no progress.
+	if svc.HasProgressScoped("ignored", []string{"bar.go"}) {
+		t.Error("expected no progress when dirty file is outside scope")
+	}
+
+	// Untracked directory shows as "internal/" in porcelain; directory prefix
+	// scope should match it.
+	if err := os.MkdirAll(filepath.Join(repoDir, "internal"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "internal", "main.go"), []byte("package main"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !svc.HasProgressScoped("ignored", []string{"internal/"}) {
+		t.Error("expected progress with directory prefix scope matching untracked dir")
+	}
+
+	// sinceCommit is deliberately unused; verify HEAD movement alone
+	// doesn't trigger progress when no scoped files are dirty.
+	_ = os.Remove(filepath.Join(repoDir, "foo.go"))
+	_ = os.RemoveAll(filepath.Join(repoDir, "internal"))
+	baseline := svc.HEAD()
+	commitFile(t, repoDir, "unrelated.txt", "data", "unrelated commit")
+	if svc.HasProgressScoped(baseline, []string{"unrelated.txt"}) {
+		t.Error("expected no progress: HEAD moved but scoped file is committed and clean")
+	}
+}
+
+func TestService_HasProgressScoped_NonRepo(t *testing.T) {
+	t.Parallel()
+
+	plainDir := t.TempDir()
+	svc := NewService(plainDir)
+
+	// Non-repo returns true (conservative assumption).
+	if !svc.HasProgressScoped("", []string{"any.go"}) {
+		t.Error("expected true for non-repo (conservative)")
+	}
+}
+
+func TestService_HasProgressScoped_Rename(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "old.go", "package old", "add old.go")
+
+	// Stage a rename.
+	run(t, repoDir, "git", "mv", "old.go", "new.go")
+
+	svc := NewService(repoDir)
+
+	// Scope includes the new name: should detect progress.
+	if !svc.HasProgressScoped("", []string{"new.go"}) {
+		t.Error("expected progress when renamed file's new name is in scope")
+	}
+
+	// Scope includes only the old name: no progress (parser extracts new path).
+	if svc.HasProgressScoped("", []string{"old.go"}) {
+		t.Error("expected no progress when only old rename path is in scope")
+	}
+}
+
+func TestService_HasProgressScoped_UnstagedModification(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "main.go", "package main", "init")
+
+	svc := NewService(repoDir)
+
+	// Modify without staging: porcelain shows " M main.go" (leading space).
+	if err := os.WriteFile(filepath.Join(repoDir, "main.go"), []byte("package main\n// changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !svc.HasProgressScoped("", []string{"main.go"}) {
+		t.Error("expected progress for unstaged modification of scoped file")
+	}
+	if svc.HasProgressScoped("", []string{"other.go"}) {
+		t.Error("expected no progress when unstaged modification is outside scope")
+	}
+}
+
+func TestService_HasProgressScoped_MultipleScopes(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "main.go", "package main", "init")
+	commitFile(t, repoDir, "util.go", "package main", "add util")
+	commitFile(t, repoDir, "readme.md", "# hello", "add readme")
+
+	svc := NewService(repoDir)
+
+	// Only out-of-scope file is dirty: should return false.
+	if err := os.WriteFile(filepath.Join(repoDir, "readme.md"), []byte("# updated"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if svc.HasProgressScoped("", []string{"main.go", "util.go"}) {
+		t.Error("expected no progress when only out-of-scope file is dirty")
+	}
+
+	// Now stage a modification to an in-scope file too: should return true.
+	if err := os.WriteFile(filepath.Join(repoDir, "util.go"), []byte("package main\n// changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(t, repoDir, "git", "add", "util.go")
+	if !svc.HasProgressScoped("", []string{"main.go", "util.go"}) {
+		t.Error("expected progress when one of multiple scoped files is dirty")
+	}
+
+	// Clean up and verify multiple scope entries all out-of-scope still returns false.
+	run(t, repoDir, "git", "checkout", "--", "readme.md")
+	run(t, repoDir, "git", "reset", "HEAD", "util.go")
+	run(t, repoDir, "git", "checkout", "--", "util.go")
+	if err := os.WriteFile(filepath.Join(repoDir, "other.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if svc.HasProgressScoped("", []string{"main.go", "util.go", "lib/"}) {
+		t.Error("expected no progress with multiple scope entries when only unscoped file is dirty")
+	}
+}
+
+func TestService_HasProgressScoped_StagedModification(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	initRepo(t, repoDir)
+	commitFile(t, repoDir, "main.go", "package main", "init")
+
+	// Modify and stage.
+	if err := os.WriteFile(filepath.Join(repoDir, "main.go"), []byte("package main\n// changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(t, repoDir, "git", "add", "main.go")
+
+	svc := NewService(repoDir)
+
+	if !svc.HasProgressScoped("", []string{"main.go"}) {
+		t.Error("expected progress for staged modification")
+	}
+	if svc.HasProgressScoped("", []string{"other.go"}) {
+		t.Error("expected no progress for unrelated scope")
 	}
 }
 

@@ -138,12 +138,18 @@ func TestFindNextTask_SkipsBlockedNodes(t *testing.T) {
 		State: StatusNotStarted,
 	}
 
+	// leaf-a is blocked with only blocked tasks (no remediation work).
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "task-0001", Description: "stuck", State: StatusBlocked},
+	}
 	leafB := NewNodeState("leaf-b", "Leaf B", NodeLeaf)
 	leafB.Tasks = []Task{
 		{ID: "task-0001", Description: "available", State: StatusNotStarted},
 	}
 
 	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
 		"leaf-b": leafB,
 	}))
 	if err != nil {

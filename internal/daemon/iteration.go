@@ -24,6 +24,10 @@ import (
 // task-NNNN, audit, and hierarchical variants like task-NNNN.NNNN or audit.NNNN.
 var validTaskIDPattern = regexp.MustCompile(`^(task-\d{4}|audit)(\.\d{4})*$`)
 
+// yieldSuffixScopeConflict is the suffix string appended to WOLFCASTLE_YIELD
+// when an agent yields because it cannot acquire scope locks.
+const yieldSuffixScopeConflict = "scope_conflict"
+
 // runIteration executes a single daemon iteration: claims the task, runs each
 // enabled pipeline stage in order, reloads state from disk (to pick up CLI
 // mutations), handles terminal markers, and manages failure escalation.
@@ -151,6 +155,21 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		)
 		if marker == invoke.MarkerStringYield {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringYield})
+
+			// Check for a scope-conflict suffix. When present, return a
+			// typed error so the parallel dispatcher can record the
+			// conflict and avoid immediately re-dispatching into it.
+			if kind, conflictAddr := scanYieldSuffix(result.Stdout); kind == yieldSuffixScopeConflict {
+				_ = d.Logger.Log(map[string]any{
+					"type":    "yield_scope_conflict",
+					"task":    nav.TaskID,
+					"blocker": conflictAddr,
+				})
+				return &ErrYieldScopeConflict{
+					Task:    nav.NodeAddress + "/" + nav.TaskID,
+					Blocker: conflictAddr,
+				}
+			}
 
 			// If the model created child tasks (hierarchical IDs like task-0001.0001),
 			// navigation handles them automatically via depth-first ordering.
@@ -362,8 +381,12 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 						// Commit the decomposition: audit gaps, remediation
 						// subtasks, and reverted audit state. This gives a
 						// clean revert point before remediation work starts.
-						auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
-						commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta)
+						// In parallel mode, drainCompleted handles commits
+						// under gitMu with scoped file lists.
+						if d.dispatcher == nil {
+							auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
+							commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta, nil)
+						}
 						return nil
 					}
 				}
@@ -391,8 +414,11 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 				}
 			}
 
-			// Commit after successful completion.
-			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID))
+			// Commit after successful completion. In parallel mode,
+			// drainCompleted commits under gitMu with scoped file lists.
+			if d.dispatcher == nil {
+				commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID), nil)
+			}
 
 			return nil
 		}
@@ -454,9 +480,13 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 
 		// Commit code + state after all failure mutations are applied.
-		failMeta := extractTaskCommitMeta(ns, nav.TaskID)
-		failMeta.FailureType = failureType
-		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta)
+		// In parallel mode, drainCompleted commits under gitMu with
+		// scoped file lists, so skip the unscoped commit here.
+		if d.dispatcher == nil {
+			failMeta := extractTaskCommitMeta(ns, nav.TaskID)
+			failMeta.FailureType = failureType
+			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta, nil)
+		}
 	}
 
 	return nil
@@ -522,6 +552,43 @@ func scanTerminalMarker(output string, validMarkers ...string) string {
 	return ""
 }
 
+// scanYieldSuffix inspects the same output that scanTerminalMarker scans,
+// looking specifically for a WOLFCASTLE_YIELD line that carries a suffix.
+// Currently the only recognized suffix is "scope_conflict <task-address>".
+//
+// Returns (kind, addr) where kind is "scope_conflict" and addr is the
+// conflicting task address, or ("", "") for a bare YIELD or if no YIELD
+// line is found at all.
+func scanYieldSuffix(output string) (kind string, addr string) {
+	for _, line := range strings.Split(output, "\n") {
+		trimmed := strings.TrimSpace(line)
+
+		text := extractAssistantText(trimmed)
+		if text == "" {
+			text = trimmed
+		}
+
+		for _, subline := range strings.Split(text, "\n") {
+			sub := strings.TrimSpace(subline)
+			sub = strings.Trim(sub, "*_`")
+			sub = strings.TrimSpace(sub)
+
+			if !strings.HasPrefix(sub, invoke.MarkerStringYield) {
+				continue
+			}
+			suffix := strings.TrimSpace(sub[len(invoke.MarkerStringYield):])
+			if suffix == "" {
+				continue
+			}
+			parts := strings.SplitN(suffix, " ", 2)
+			if len(parts) == 2 && parts[0] == yieldSuffixScopeConflict {
+				return yieldSuffixScopeConflict, strings.TrimSpace(parts[1])
+			}
+		}
+	}
+	return "", ""
+}
+
 // extractAssistantText extracts the text content from a Claude Code
 // stream-json assistant message. Returns empty string if the line is
 // not a valid assistant JSON envelope.
@@ -585,7 +652,7 @@ type taskCommitMeta struct {
 // kind is "success" or "failure". attemptNum is used in failure commit
 // messages to indicate which attempt just finished. meta provides task
 // metadata for enriched commit messages.
-func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string, kind string, attemptNum int, gitCfg config.GitConfig, meta taskCommitMeta) {
+func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string, kind string, attemptNum int, gitCfg config.GitConfig, meta taskCommitMeta, scope []string) {
 	if !gitCfg.AutoCommit {
 		_ = logger.Log(map[string]any{"type": "commit_skip", "task": taskID, "reason": "auto_commit disabled"})
 		return
@@ -610,12 +677,49 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 		return
 	}
 
-	// Check for uncommitted changes
+	// Check for uncommitted changes. When scope is non-nil, only consider
+	// files that match a scope entry so other workers' dirty files don't
+	// trigger a false-positive commit.
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = repoDir
 	out, err := statusCmd.Output()
-	if err != nil || len(strings.TrimSpace(string(out))) == 0 {
-		return // no changes or git unavailable
+	if err != nil {
+		return // git unavailable
+	}
+	if scope == nil {
+		if len(strings.TrimSpace(string(out))) == 0 {
+			return // no changes
+		}
+	} else {
+		hasMatch := false
+		for _, line := range strings.Split(string(out), "\n") {
+			if strings.TrimSpace(line) == "" {
+				continue
+			}
+			// git status --porcelain format: XY <path> (path starts at column 3).
+			// Do not TrimSpace the full line; the leading space is part of the
+			// porcelain format (X column) and stripping it shifts the offset.
+			if len(line) < 4 {
+				continue
+			}
+			path := line[3:]
+			// Handle renames: "R  old -> new"
+			if idx := strings.Index(path, " -> "); idx >= 0 {
+				path = path[idx+4:]
+			}
+			for _, entry := range scope {
+				if strings.HasPrefix(path, entry) || strings.HasPrefix(entry, path) {
+					hasMatch = true
+					break
+				}
+			}
+			if hasMatch {
+				break
+			}
+		}
+		if !hasMatch {
+			return // no scoped changes
+		}
 	}
 
 	// Build subject line from prefix and title (or taskID as fallback).
@@ -632,7 +736,7 @@ func commitAfterIteration(repoDir string, logger *logging.Logger, taskID string,
 		commitArgs = append(commitArgs, "--no-verify")
 	}
 
-	if err := commitDirect(repoDir, gitCfg, commitArgs); err != nil {
+	if err := commitDirect(repoDir, gitCfg, commitArgs, scope); err != nil {
 		_ = logger.Log(map[string]any{"type": "commit_error", "task": taskID, "error": err.Error()})
 		return
 	}
@@ -666,7 +770,7 @@ func commitStateFlush(repoDir string, logger *logging.Logger, gitCfg config.GitC
 	if gitCfg.SkipHooksOnAutoCommit {
 		commitArgs = append(commitArgs, "--no-verify")
 	}
-	if err := commitDirect(repoDir, gitCfg, commitArgs); err != nil {
+	if err := commitDirect(repoDir, gitCfg, commitArgs, nil); err != nil {
 		_ = logger.Log(map[string]any{"type": "state_flush_error", "error": err.Error()})
 	}
 }
@@ -763,21 +867,40 @@ func extractTaskCommitMeta(ns *state.NodeState, taskID string) taskCommitMeta {
 // decomposed into subtasks and all those subtasks are now complete. If so,
 // the parent is auto-completed.
 // commitDirect performs git add/commit using the default index.
-func commitDirect(repoDir string, gitCfg config.GitConfig, commitArgs []string) error {
-	// Use "git add ." instead of "git add -u" so new files created by
-	// the agent are included. .gitignore protects sensitive files.
-	addCmd := exec.Command("git", "add", ".")
-	addCmd.Dir = repoDir
-	if err := addCmd.Run(); err != nil {
-		return fmt.Errorf("git add .: %w", err)
+// When scope is nil (serial mode), it stages everything with "git add ."
+// and optionally unstages .wolfcastle/ via reset. When scope is non-nil
+// (parallel mode), only the listed paths are staged; .wolfcastle/ is
+// included or excluded by presence in the file list, so no reset is needed.
+func commitDirect(repoDir string, gitCfg config.GitConfig, commitArgs []string, scope []string) error {
+	if scope == nil {
+		// Serial mode: stage everything, then optionally exclude state.
+		addCmd := exec.Command("git", "add", ".")
+		addCmd.Dir = repoDir
+		if err := addCmd.Run(); err != nil {
+			return fmt.Errorf("git add .: %w", err)
+		}
+		// When commit_state is disabled, unstage .wolfcastle/ so state
+		// files are excluded from the commit.
+		if !gitCfg.CommitState {
+			resetCmd := exec.Command("git", "reset", "HEAD", "--", ".wolfcastle/")
+			resetCmd.Dir = repoDir
+			_ = resetCmd.Run()
+		}
+	} else {
+		// Parallel mode: stage only scoped files.
+		files := make([]string, len(scope))
+		copy(files, scope)
+		if gitCfg.CommitState {
+			files = append(files, ".wolfcastle/")
+		}
+		addArgs := append([]string{"add", "--"}, files...)
+		addCmd := exec.Command("git", addArgs...)
+		addCmd.Dir = repoDir
+		if err := addCmd.Run(); err != nil {
+			return fmt.Errorf("git add (scoped): %w", err)
+		}
 	}
-	// When commit_state is disabled, unstage .wolfcastle/ so state
-	// files are excluded from the commit.
-	if !gitCfg.CommitState {
-		resetCmd := exec.Command("git", "reset", "HEAD", "--", ".wolfcastle/")
-		resetCmd.Dir = repoDir
-		_ = resetCmd.Run()
-	}
+
 	commitCmd := exec.Command("git", commitArgs...)
 	commitCmd.Dir = repoDir
 	if err := commitCmd.Run(); err != nil {
@@ -861,7 +984,7 @@ func findNewTasks(before, after *state.NodeState) []string {
 // number of subtasks created (0 if the task isn't an audit or has no gaps).
 func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 	var created int
-	_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+	if err := d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 		// Find the audit task
 		auditIdx := -1
 		for i, t := range ns.Tasks {
@@ -919,7 +1042,14 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 		ns.Tasks[auditIdx].BlockedReason = ""
 
 		return nil
-	})
+	}); err != nil {
+		_ = d.Logger.Log(map[string]any{
+			"type":  "remediation_subtask_error",
+			"node":  nodeAddr,
+			"task":  taskID,
+			"error": err.Error(),
+		})
+	}
 	return created
 }
 

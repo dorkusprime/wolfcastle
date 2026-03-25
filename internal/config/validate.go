@@ -89,6 +89,9 @@ func ValidateStructure(cfg *Config) error {
 	if cfg.Daemon.LogLevel != "" && !validLogLevels[cfg.Daemon.LogLevel] {
 		errs = append(errs, fmt.Sprintf("daemon.log_level %q must be one of: debug, info, warn, error", cfg.Daemon.LogLevel))
 	}
+	if cfg.Daemon.Parallel.MaxWorkers < 1 {
+		errs = append(errs, "daemon.parallel.max_workers must be >= 1")
+	}
 
 	// Log retention
 	if cfg.Logs.MaxFiles <= 0 {

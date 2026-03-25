@@ -711,6 +711,18 @@ func TestDefaults_KnowledgeMaxTokens(t *testing.T) {
 	}
 }
 
+func TestDefaults_ParallelConfig(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+
+	if cfg.Daemon.Parallel.Enabled {
+		t.Error("expected daemon.parallel.enabled=false by default")
+	}
+	if cfg.Daemon.Parallel.MaxWorkers != 3 {
+		t.Errorf("expected daemon.parallel.max_workers=3, got %d", cfg.Daemon.Parallel.MaxWorkers)
+	}
+}
+
 func TestLoad_KnowledgeThreeTierMerge(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()

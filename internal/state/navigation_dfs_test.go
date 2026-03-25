@@ -149,12 +149,52 @@ func TestDfs_BlockedNode(t *testing.T) {
 		State: StatusBlocked,
 	}
 
-	result, err := dfs(idx, "leaf-a", makeLoadNode(nil))
+	// Blocked node with only blocked tasks: no actionable work.
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "task-0001", Description: "stuck", State: StatusBlocked},
+	}
+
+	result, err := dfs(idx, "leaf-a", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result != nil {
-		t.Error("expected nil result for blocked node")
+	if result != nil && result.Found {
+		t.Error("expected no actionable result for blocked node without remediation work")
+	}
+}
+
+func TestDfs_BlockedNodeWithRemediationSubtasks(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["leaf-a"] = IndexEntry{
+		Name:  "Leaf A",
+		Type:  NodeLeaf,
+		State: StatusBlocked,
+	}
+
+	// Blocked node with a blocked audit that has not_started remediation
+	// subtasks: navigation should find the remediation work.
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "task-0001", Description: "done", State: StatusComplete},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+		{ID: "audit.0001", Description: "fix gap", State: StatusNotStarted},
+	}
+
+	result, err := dfs(idx, "leaf-a", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result == nil || !result.Found {
+		t.Fatal("expected to find remediation subtask in blocked node")
+	}
+	if result.TaskID != "audit.0001" {
+		t.Errorf("expected audit.0001, got %s", result.TaskID)
 	}
 }
 

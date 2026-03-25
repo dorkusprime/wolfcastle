@@ -28,9 +28,8 @@ func FindNextTask(idx *RootIndex, scopeAddr string, loadNode func(addr string) (
 		if entry.State == StatusComplete {
 			return &NavigationResult{Reason: "scoped node is complete"}, nil
 		}
-		if entry.State == StatusBlocked {
-			return &NavigationResult{Reason: "scoped node is blocked"}, nil
-		}
+		// Don't early-return for blocked scope nodes: a blocked node may
+		// contain actionable remediation subtasks. Let dfs() inspect it.
 		roots = []string{scopeAddr}
 	} else {
 		// Use Root array for deterministic O(1) root discovery
@@ -78,8 +77,24 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 		return nil, nil
 	}
 
-	// Skip complete or blocked nodes
-	if entry.State == StatusComplete || entry.State == StatusBlocked {
+	// Skip complete nodes unconditionally.
+	if entry.State == StatusComplete {
+		return nil, nil
+	}
+
+	// Blocked nodes are normally skipped, but a blocked leaf may contain
+	// remediation subtasks (children of a blocked audit) that are
+	// actionable. Check for work before giving up. This is a
+	// defense-in-depth measure: selfHeal should update the index state,
+	// but if the index is stale, navigation still finds the work.
+	if entry.State == StatusBlocked {
+		result, err := findActionableTask(addr, loadNode)
+		if err != nil {
+			return nil, err
+		}
+		if result != nil && result.Found {
+			return result, nil
+		}
 		return nil, nil
 	}
 
@@ -92,7 +107,22 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 			if !childOk {
 				continue
 			}
-			if childEntry.State == StatusComplete || childEntry.State == StatusBlocked {
+			if childEntry.State == StatusComplete {
+				continue
+			}
+			// Blocked children normally get skipped (allowing later
+			// siblings to proceed), but they may contain actionable
+			// remediation subtasks. Check for work first.
+			if childEntry.State == StatusBlocked {
+				result, err := dfs(idx, childAddr, loadNode)
+				if err != nil {
+					return nil, err
+				}
+				if result != nil && result.Found {
+					return result, nil
+				}
+				// No remediation work; skip this blocked child and
+				// let later siblings proceed.
 				continue
 			}
 			// If this child is an orchestrator that needs planning (no
@@ -237,6 +267,99 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 	}
 
 	return nil, nil
+}
+
+// FindParallelTasks finds up to maxCount actionable tasks that can run concurrently.
+// It starts with the same DFS as FindNextTask, then scans siblings of the first
+// result's parent orchestrator for additional independent work. In-progress siblings
+// are skipped (not treated as blockers), and an unplanned orchestrator sibling stops
+// further scanning of later children.
+func FindParallelTasks(
+	idx *RootIndex,
+	scopeAddr string,
+	loadNode func(addr string) (*NodeState, error),
+	maxCount int,
+) ([]*NavigationResult, error) {
+	first, err := FindNextTask(idx, scopeAddr, loadNode)
+	if err != nil {
+		return nil, err
+	}
+	if first == nil || !first.Found {
+		return nil, nil
+	}
+
+	// Look up the node's index entry to find its parent.
+	nodeEntry, ok := idx.Nodes[first.NodeAddress]
+	if !ok {
+		return []*NavigationResult{first}, nil
+	}
+	if nodeEntry.Parent == "" {
+		return []*NavigationResult{first}, nil
+	}
+
+	parentEntry, ok := idx.Nodes[nodeEntry.Parent]
+	if !ok {
+		return []*NavigationResult{first}, nil
+	}
+
+	// Scan siblings in creation order (Children array order).
+	var results []*NavigationResult
+	for _, childAddr := range parentEntry.Children {
+		if len(results) >= maxCount {
+			break
+		}
+
+		childEntry, childOk := idx.Nodes[childAddr]
+		if !childOk {
+			continue
+		}
+
+		// Skip complete siblings. Blocked siblings may have remediation
+		// work, so fall through to findActionableTask for them.
+		if childEntry.State == StatusComplete {
+			continue
+		}
+
+		// Unplanned orchestrator: stop scanning further siblings.
+		if childEntry.Type == NodeOrchestrator && len(childEntry.Children) == 0 {
+			break
+		}
+
+		// In-progress siblings may have a worker running on them, or they
+		// may be between tasks (e.g., task-0001 complete, audit not_started).
+		// Instead of skipping them wholesale, call findActionableTask to
+		// check for available work. If it finds an in_progress task, that
+		// task is already claimed; if it finds a not_started task, that's
+		// genuinely dispatchable parallel work.
+		result, loadErr := findActionableTask(childAddr, loadNode)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		if result != nil && result.Found {
+			results = append(results, result)
+		}
+	}
+
+	// Ensure the first result (from DFS) is always present. It may have
+	// come from a deeper path (grandchild) that findActionableTask on
+	// the sibling orchestrator didn't reach.
+	found := false
+	for _, r := range results {
+		if r.NodeAddress == first.NodeAddress && r.TaskID == first.TaskID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		// Prepend: the DFS result has highest priority.
+		results = append([]*NavigationResult{first}, results...)
+	}
+
+	if len(results) > maxCount {
+		results = results[:maxCount]
+	}
+
+	return results, nil
 }
 
 // isChildTask returns true if the task ID contains a dot (hierarchical child).

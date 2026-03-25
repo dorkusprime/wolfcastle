@@ -77,7 +77,8 @@ type Logger struct {
 	Iteration int
 	TraceID   string // set by StartIterationWithPrefix, included in every log record
 
-	file *os.File
+	defaultPrefix string // if set, StartIteration uses this instead of "iter"
+	file          *os.File
 }
 
 // NewLogger creates a logger for the given log directory.
@@ -90,11 +91,26 @@ func NewLogger(logDir string) (*Logger, error) {
 	}, nil
 }
 
+// Child creates a new Logger that shares the parent's LogDir but owns
+// independent state: its Iteration counter starts at 0, its file handle
+// is nil (opened on the first StartIteration call), and the given prefix
+// is used as the default for trace IDs. The parent Logger is unmodified.
+func (l *Logger) Child(prefix string) *Logger {
+	return &Logger{
+		LogDir:        l.LogDir,
+		defaultPrefix: prefix,
+	}
+}
+
 // StartIteration creates a new log file for the current iteration.
-// Closes any previously open file before starting a new one. Sets
-// the trace ID to "iter-NNNN".
+// Closes any previously open file before starting a new one. Uses
+// the logger's default prefix for the trace ID, falling back to "iter".
 func (l *Logger) StartIteration() error {
-	return l.StartIterationWithPrefix("iter")
+	prefix := l.defaultPrefix
+	if prefix == "" {
+		prefix = "iter"
+	}
+	return l.StartIterationWithPrefix(prefix)
 }
 
 // StartIterationWithPrefix creates a new log file and sets the trace
@@ -105,7 +121,7 @@ func (l *Logger) StartIterationWithPrefix(prefix string) error {
 	l.Close() // prevent file handle leak if called without Close()
 	l.Iteration++
 	l.TraceID = fmt.Sprintf("%s-%04d", prefix, l.Iteration)
-	filename := fmt.Sprintf("%04d-%s.jsonl", l.Iteration, nowFunc().UTC().Format("20060102T15-04Z"))
+	filename := fmt.Sprintf("%04d-%s-%s.jsonl", l.Iteration, prefix, nowFunc().UTC().Format("20060102T15-04Z"))
 	path := filepath.Join(l.LogDir, filename)
 
 	var err error

@@ -30,6 +30,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/clock"
@@ -64,14 +65,17 @@ type Daemon struct {
 	ExitWhenDone   bool                // stop after all work is complete (--exit-when-done)
 	SleepFunc      func(time.Duration) // override for testing; nil defaults to time.Sleep
 
-	hasWorked        bool // tracks whether the daemon has done work this run
+	dispatcher       *ParallelDispatcher // nil when parallel mode is disabled
+	mu               sync.Mutex          // protects lastNoWorkMsg and lastArchiveCheck
+	gitMu            sync.Mutex          // serializes git commit operations across parallel workers
+	hasWorked        bool                // tracks whether the daemon has done work this run
 	shutdown         chan struct{}
 	shutdownOnce     sync.Once
 	workAvailable    chan struct{}
 	sigChan          chan os.Signal
 	runWg            sync.WaitGroup // tracks goroutines started by Run
 	branch           string
-	iteration        int
+	iteration        atomic.Int64
 	lastNoWorkMsg    string    // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
 	lastArchiveCheck time.Time // throttle auto-archive polling
 }
@@ -249,25 +253,15 @@ func (d *Daemon) selfHeal() error {
 				if hasSubtasks {
 					continue
 				}
-				// Find existing subtask numbers to avoid duplicates.
-				existingSubs := make(map[string]bool)
-				subPrefix := t.ID + "."
-				for _, other := range ns.Tasks {
-					if len(other.ID) > len(subPrefix) && other.ID[:len(subPrefix)] == subPrefix {
-						existingSubs[other.ID] = true
-					}
-				}
-				nextNum := len(existingSubs) + 1
+				// No existing subtasks (confirmed by hasSubtasks check above),
+				// so start numbering at 1.
+				nextNum := 1
 				subCount := 0
 				for _, g := range ns.Audit.Gaps {
 					if g.Status != state.GapOpen {
 						continue
 					}
 					childID := fmt.Sprintf("%s.%04d", t.ID, nextNum)
-					for existingSubs[childID] {
-						nextNum++
-						childID = fmt.Sprintf("%s.%04d", t.ID, nextNum)
-					}
 					ns.Tasks = append(ns.Tasks, state.Task{
 						ID:          childID,
 						Description: fmt.Sprintf("Fix: %s\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node %s %s", g.Description, addr, g.ID),
@@ -280,6 +274,9 @@ func (d *Daemon) selfHeal() error {
 					// Re-index after append may have reallocated the slice.
 					ns.Tasks[i].State = state.StatusNotStarted
 					ns.Tasks[i].BlockedReason = ""
+					// The node itself must transition to in_progress so navigation
+					// can enter it and reach the new remediation subtasks.
+					ns.State = state.StatusInProgress
 					output.PrintHuman("  Created %d remediation subtask(s) for %s/%s", subCount, addr, ns.Tasks[i].ID)
 					changed = true
 					healed += subCount
@@ -291,8 +288,22 @@ func (d *Daemon) selfHeal() error {
 			}
 			return nil
 		})
-		if mutErr != nil && mutErr != errNoChange {
+		if mutErr != nil && !errors.Is(mutErr, errNoChange) {
 			output.PrintHuman("  Warning: could not save %s: %v", addr, mutErr)
+		}
+
+		// If the node was healed and its state changed, update the root
+		// index so navigation sees the new state immediately. Without
+		// this, a node that was blocked (with remediation subtasks now
+		// created) stays blocked in the index and dfs() skips it.
+		if mutErr == nil {
+			if updatedNS, readErr := d.Store.ReadNode(addr); readErr == nil {
+				if e, ok := idx.Nodes[addr]; ok && e.State != updatedNS.State {
+					e.State = updatedNS.State
+					idx.Nodes[addr] = e
+					_ = d.propagateState(addr, updatedNS.State, idx)
+				}
+			}
 		}
 	}
 
@@ -301,7 +312,62 @@ func (d *Daemon) selfHeal() error {
 	} else {
 		output.PrintHuman("All clear. No interrupted tasks.")
 	}
+
+	// Clean up stale scope locks left by dead processes or previous daemon runs.
+	if err := d.cleanStaleScopeLocks(); err != nil {
+		output.PrintHuman("  Warning: scope lock cleanup failed: %v", err)
+	}
+
 	return nil
+}
+
+// cleanStaleScopeLocks removes scope locks held by processes that are no
+// longer running. If every lock in the table belongs to a dead process,
+// the entire file is removed as a leftover from a crashed run.
+func (d *Daemon) cleanStaleScopeLocks() error {
+	// Use WithLock so the staleness check, deletion, and optional file
+	// removal all happen atomically under the advisory file lock.
+	return d.Store.WithLock(func() error {
+		table, err := d.Store.ReadScopeLocks()
+		if err != nil {
+			return err
+		}
+		if len(table.Locks) == 0 {
+			return nil
+		}
+
+		myPID := os.Getpid()
+		var staleScopes []string
+
+		for scope, lock := range table.Locks {
+			if lock.PID == myPID {
+				continue
+			}
+			if !IsProcessRunning(lock.PID) {
+				staleScopes = append(staleScopes, scope)
+			}
+		}
+
+		if len(staleScopes) == 0 {
+			return nil
+		}
+
+		for _, scope := range staleScopes {
+			output.PrintHuman("  Removed stale scope lock: %s (PID %d dead)", scope, table.Locks[scope].PID)
+			delete(table.Locks, scope)
+		}
+
+		if len(table.Locks) == 0 {
+			// All locks were stale; remove the file entirely while
+			// still holding the lock to avoid a TOCTOU race.
+			if rmErr := os.Remove(d.Store.ScopeLocksPath()); rmErr != nil && !os.IsNotExist(rmErr) {
+				return rmErr
+			}
+			return nil
+		}
+
+		return state.SaveScopeLocks(d.Store.ScopeLocksPath(), table)
+	})
 }
 
 // RunWithSupervisor wraps Run with crash recovery and configurable restarts.
@@ -333,7 +399,7 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		d.shutdown = make(chan struct{})
 		d.shutdownOnce = sync.Once{}
 		d.workAvailable = make(chan struct{}, 1)
-		d.iteration = 0
+		d.iteration.Store(0)
 	}
 }
 
@@ -413,7 +479,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
 
-	d.iteration = 0
+	d.iteration.Store(0)
 	d.hasWorked = false
 	_ = d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
 	output.PrintHuman("=== Wolfcastle engaged (scope=%s) ===", d.scopeLabel())
@@ -431,6 +497,13 @@ func (d *Daemon) Run(ctx context.Context) error {
 			output.PrintHuman("Not a git repository. Branch verification off.")
 			d.Config.Git.VerifyBranch = false
 		}
+	}
+
+	// Initialize the parallel dispatcher when parallel mode is enabled.
+	// This must happen after selfHeal (which cleans stale scope locks)
+	// and before the main loop begins dispatching work.
+	if d.Config.Daemon.Parallel.Enabled {
+		d.dispatcher = NewParallelDispatcher(d, d.Config.Daemon.Parallel.MaxWorkers)
 	}
 
 	// Start the parallel inbox processing goroutine (ADR-064).
@@ -547,8 +620,8 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 
 	// Max iterations check
 	maxIter := d.Config.Daemon.MaxIterations
-	if maxIter > 0 && d.iteration >= maxIter {
-		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration})
+	if maxIter > 0 && d.iteration.Load() >= int64(maxIter) {
+		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration.Load()})
 		output.PrintHuman("=== Iteration cap reached (%d) ===", maxIter)
 		return IterationStop, nil
 	}
@@ -557,6 +630,13 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	if d.Config.Git.VerifyBranch {
 		current, err := d.Git.CurrentBranch()
 		if err == nil && current != d.branch {
+			// In parallel mode, cancel all active workers and wait for
+			// them to drain before returning. This prevents orphaned
+			// goroutines from writing to a stale branch.
+			if d.dispatcher != nil {
+				d.dispatcher.cancelAll()
+				d.dispatcher.waitAndDrain()
+			}
 			return IterationStop, fmt.Errorf("%s: branch changed from %s to %s", invoke.MarkerStringBlocked, d.branch, current)
 		}
 	}
@@ -577,6 +657,19 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// the next daemon restart and selfHeal.
 	d.reconcileOrchestratorStates(idx)
 
+	// Parallel dispatch path: drain completed workers, fill open slots,
+	// and fall through to planning only when the worker pool is empty.
+	if d.dispatcher != nil {
+		return d.runOnceParallel(ctx, idx)
+	}
+
+	// Serial dispatch path: find one task and execute it.
+	return d.runOnceSerial(ctx, idx)
+}
+
+// runOnceSerial is the original single-task dispatch path. It finds the next
+// actionable task, runs the pipeline, and returns.
+func (d *Daemon) runOnceSerial(ctx context.Context, idx *state.RootIndex) (IterationResult, error) {
 	nodeLoader := func(addr string) (*state.NodeState, error) {
 		p, pathErr := d.Store.NodePath(addr)
 		if pathErr != nil {
@@ -634,9 +727,14 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		default:
 			msg = "Standing by. (" + navResult.Reason + ")"
 		}
-		if msg != d.lastNoWorkMsg {
-			output.PrintHuman(msg)
+		d.mu.Lock()
+		changed := msg != d.lastNoWorkMsg
+		if changed {
 			d.lastNoWorkMsg = msg
+		}
+		d.mu.Unlock()
+		if changed {
+			output.PrintHuman(msg)
 		}
 		return IterationNoWork, nil
 	}
@@ -644,10 +742,12 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 execute:
 
 	// Tree has work again; reset the dedup so next idle prints fresh.
+	d.mu.Lock()
 	d.lastNoWorkMsg = ""
+	d.mu.Unlock()
 
-	d.iteration++
-	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration, navResult.NodeAddress, navResult.TaskID)
+	d.iteration.Add(1)
+	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration.Load(), navResult.NodeAddress, navResult.TaskID)
 
 	// Start iteration log with "exec" trace prefix
 	_ = d.Logger.StartIterationWithPrefix("exec")
@@ -682,6 +782,61 @@ execute:
 	d.checkKnowledgeBudget(navResult.NodeAddress)
 
 	return IterationDidWork, nil
+}
+
+// runOnceParallel is the multi-worker dispatch path. It drains completed
+// workers, fills open slots, and falls through to planning only when the
+// entire worker pool is empty (preventing plan-while-executing races).
+func (d *Daemon) runOnceParallel(ctx context.Context, idx *state.RootIndex) (IterationResult, error) {
+	pd := d.dispatcher
+
+	// Step 1: Drain completed workers. Each result triggers a scoped
+	// commit, scope release, and state propagation inside drainCompleted.
+	completed := pd.drainCompleted()
+
+	// Post-iteration hooks: check whether any successfully completed task
+	// produced a spec that needs review or pushed a knowledge file over
+	// its token budget. These mirror the serial path (lines 771-775).
+	for _, wr := range completed {
+		if wr.Error == nil && !wr.ScopeConflict {
+			d.checkSpecReviewNeeded(wr.Node, wr.Task)
+			d.checkKnowledgeBudget(wr.Node)
+		}
+	}
+
+	// Step 2: Fill open worker slots with eligible tasks.
+	launched := pd.fillSlots(ctx, idx)
+
+	// Step 3: Determine the iteration outcome.
+	pd.mu.Lock()
+	activeCount := len(pd.active)
+	pd.mu.Unlock()
+
+	if activeCount > 0 || launched > 0 {
+		// Workers are running (or were just launched). Report progress
+		// even if no new slots were filled this tick; the active workers
+		// represent in-flight work.
+		return IterationDidWork, nil
+	}
+
+	// Pool is empty and nothing was dispatched. Safe to run planning,
+	// archiving, and state flush since no workers are modifying the tree.
+
+	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
+		if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
+			output.PrintHuman("Planning error: %v", err)
+			return IterationError, nil
+		}
+		return IterationDidWork, nil
+	}
+
+	if d.tryAutoArchive(idx) {
+		return IterationDidWork, nil
+	}
+
+	commitStateFlush(d.RepoDir, d.Logger, d.Config.Git)
+
+	return IterationNoWork, nil
 }
 
 // sleepWithContext sleeps for the given duration but returns immediately

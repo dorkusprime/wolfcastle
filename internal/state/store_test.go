@@ -514,6 +514,166 @@ func TestMutateIndex_MissingFile_CreatesDefault(t *testing.T) {
 	}
 }
 
+// ── ReadScopeLocks ──────────────────────────────────────────────────────
+
+func TestReadScopeLocks_MissingFile_ReturnsEmpty(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	s := NewStore(dir, 5*time.Second)
+
+	tbl, err := s.ReadScopeLocks()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tbl.Version != 1 {
+		t.Errorf("default version should be 1, got %d", tbl.Version)
+	}
+	if len(tbl.Locks) != 0 {
+		t.Errorf("expected empty locks, got %d", len(tbl.Locks))
+	}
+}
+
+func TestReadScopeLocks_RoundTrip(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	s := NewStore(dir, 5*time.Second)
+
+	tbl := NewScopeLockTable()
+	tbl.Locks["my-node"] = ScopeLock{
+		Task: "proj/my-node/task-0001",
+		Node: "proj/my-node",
+		PID:  12345,
+	}
+	if err := SaveScopeLocks(s.ScopeLocksPath(), tbl); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := s.ReadScopeLocks()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	lock, ok := got.Locks["my-node"]
+	if !ok {
+		t.Fatal("expected 'my-node' lock")
+	}
+	if lock.Task != "proj/my-node/task-0001" {
+		t.Errorf("expected task address, got %q", lock.Task)
+	}
+}
+
+// ── MutateScopeLocks ────────────────────────────────────────────────────
+
+func TestMutateScopeLocks_AddsLock(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	s := NewStore(dir, 5*time.Second)
+
+	err := s.MutateScopeLocks(func(tbl *ScopeLockTable) error {
+		tbl.Locks["my-node"] = ScopeLock{
+			Task: "proj/my-node/task-0001",
+			Node: "proj/my-node",
+			PID:  99,
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("MutateScopeLocks error: %v", err)
+	}
+
+	got, _ := s.ReadScopeLocks()
+	if _, ok := got.Locks["my-node"]; !ok {
+		t.Error("expected 'my-node' lock after mutation")
+	}
+}
+
+func TestMutateScopeLocks_CallbackError_AbortsWrite(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	s := NewStore(dir, 5*time.Second)
+
+	// Seed a lock
+	tbl := NewScopeLockTable()
+	tbl.Locks["existing"] = ScopeLock{Task: "t", Node: "n", PID: 1}
+	if err := SaveScopeLocks(s.ScopeLocksPath(), tbl); err != nil {
+		t.Fatal(err)
+	}
+
+	sentinel := errors.New("abort")
+	err := s.MutateScopeLocks(func(tbl *ScopeLockTable) error {
+		tbl.Locks["bad"] = ScopeLock{Task: "bad", Node: "bad", PID: 0}
+		return sentinel
+	})
+	if !errors.Is(err, sentinel) {
+		t.Errorf("expected sentinel error, got %v", err)
+	}
+
+	got, _ := s.ReadScopeLocks()
+	if _, ok := got.Locks["bad"]; ok {
+		t.Error("aborted mutation should not persist")
+	}
+	if _, ok := got.Locks["existing"]; !ok {
+		t.Error("existing lock should survive aborted mutation")
+	}
+}
+
+func TestMutateScopeLocks_MissingFile_CreatesDefault(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	s := NewStore(dir, 5*time.Second)
+
+	err := s.MutateScopeLocks(func(tbl *ScopeLockTable) error {
+		tbl.Locks["new-lock"] = ScopeLock{Task: "t", Node: "n", PID: 42}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("MutateScopeLocks error: %v", err)
+	}
+
+	got, _ := s.ReadScopeLocks()
+	if len(got.Locks) != 1 || got.Locks["new-lock"].PID != 42 {
+		t.Errorf("unexpected scope locks: %+v", got.Locks)
+	}
+}
+
+func TestMutateScopeLocks_Concurrent_NoLockLoss(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	s := NewStore(dir, 10*time.Second)
+
+	const n = 10
+	var wg sync.WaitGroup
+	errs := make([]error, n)
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			errs[idx] = s.MutateScopeLocks(func(tbl *ScopeLockTable) error {
+				tbl.Locks[fmt.Sprintf("node-%d", idx)] = ScopeLock{
+					Task: fmt.Sprintf("proj/node-%d/task-0001", idx),
+					Node: fmt.Sprintf("proj/node-%d", idx),
+					PID:  idx,
+				}
+				return nil
+			})
+		}(i)
+	}
+	wg.Wait()
+
+	for i, err := range errs {
+		if err != nil {
+			t.Errorf("goroutine %d error: %v", i, err)
+		}
+	}
+
+	got, err := s.ReadScopeLocks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Locks) != n {
+		t.Errorf("expected %d locks, got %d (data lost)", n, len(got.Locks))
+	}
+}
+
 func TestMutateInbox_MissingFile_CreatesDefault(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()

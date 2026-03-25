@@ -704,7 +704,7 @@ func TestPrintNodeTree(t *testing.T) {
 
 	// Should not panic; exercises orchestrator recursion, leaf task rendering,
 	// blocked reason display, failure count display, and title/description fallback.
-	printNodeTree(env.App, idx, details, "orch", "  ", treeOpts{Expand: true, Width: 120})
+	printNodeTree(env.App, idx, details, "orch", "  ", treeOpts{Expand: true, Width: 120}, nil)
 }
 
 func TestPrintNodeTree_MissingAddr(t *testing.T) {
@@ -713,7 +713,7 @@ func TestPrintNodeTree_MissingAddr(t *testing.T) {
 	details := map[string]*nodeDetail{}
 
 	// Calling with an address not in details should return silently.
-	printNodeTree(env.App, idx, details, "nonexistent", "  ", treeOpts{Expand: true, Width: 120})
+	printNodeTree(env.App, idx, details, "nonexistent", "  ", treeOpts{Expand: true, Width: 120}, nil)
 }
 
 func TestPrintNodeTree_LeafWithNilNodeState(t *testing.T) {
@@ -730,7 +730,7 @@ func TestPrintNodeTree_LeafWithNilNodeState(t *testing.T) {
 	}
 
 	// Should not panic when ns is nil (no tasks to print).
-	printNodeTree(env.App, idx, details, "leaf", "  ", treeOpts{Expand: true, Width: 120})
+	printNodeTree(env.App, idx, details, "leaf", "  ", treeOpts{Expand: true, Width: 120}, nil)
 }
 
 // ---------------------------------------------------------------------------

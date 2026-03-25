@@ -95,6 +95,62 @@ func TestSelfHeal_BlockedAuditWithOpenGaps_CreatesSubtasks(t *testing.T) {
 			}
 		}
 	}
+
+	// The node's own state should transition to in_progress so
+	// navigation can enter it and reach remediation subtasks.
+	if ns.State != state.StatusInProgress {
+		t.Errorf("node state = %s, want in_progress", ns.State)
+	}
+}
+
+func TestSelfHeal_BlockedAuditWithOpenGaps_UpdatesRootIndex(t *testing.T) {
+	store, projDir := setupSelfHealEnv(t)
+
+	// Set up a blocked node with a blocked audit and open gaps.
+	_ = store.MutateNode("proj", func(ns *state.NodeState) error {
+		for i := range ns.Tasks {
+			if ns.Tasks[i].ID == "task-0001" {
+				ns.Tasks[i].State = state.StatusComplete
+			}
+			if ns.Tasks[i].IsAudit {
+				ns.Tasks[i].State = state.StatusBlocked
+				ns.Tasks[i].BlockedReason = "open gaps"
+			}
+		}
+		ns.State = state.StatusBlocked
+		ns.Audit.Gaps = []state.Gap{
+			{ID: "gap-1", Description: "something wrong", Status: state.GapOpen},
+		}
+		ns.Audit.Status = state.AuditFailed
+		return nil
+	})
+
+	// Mark the root index entry as blocked too.
+	idx, _ := store.ReadIndex()
+	e := idx.Nodes["proj"]
+	e.State = state.StatusBlocked
+	idx.Nodes["proj"] = e
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(projDir, "state.json"), idxData, 0644)
+
+	d := &Daemon{Store: store}
+	if err := d.selfHeal(); err != nil {
+		t.Fatalf("selfHeal error: %v", err)
+	}
+
+	// Re-read the root index from disk.
+	updatedIdx, err := store.ReadIndex()
+	if err != nil {
+		t.Fatalf("reading index: %v", err)
+	}
+
+	entry, ok := updatedIdx.Nodes["proj"]
+	if !ok {
+		t.Fatal("proj not found in updated index")
+	}
+	if entry.State != state.StatusInProgress {
+		t.Errorf("index entry state = %s, want in_progress", entry.State)
+	}
 }
 
 func TestSelfHeal_BlockedAuditWithExistingSubtasks_Skips(t *testing.T) {

@@ -4,7 +4,7 @@ Spec for property-based testing of `FindNextTask` (defined in `internal/state/na
 
 ## Definitions
 
-**Reachable node**: A node whose index entry state is neither `StatusComplete` nor `StatusBlocked`, and whose ancestors in the DFS traversal are also reachable. `dfs()` skips complete/blocked nodes.
+**Reachable node**: A node whose index entry state is not `StatusComplete` and whose ancestors in the DFS traversal are also reachable. `dfs()` skips complete nodes unconditionally. Blocked nodes are inspected for actionable remediation subtasks before being skipped; if a blocked leaf contains a `not_started` or `in_progress` remediation child, `dfs()` enters it.
 
 **Parent task**: A task whose ID is a proper prefix of at least one other task's ID (separated by `.`). For example, `task-0001` is a parent if `task-0001.0001` exists. Parent tasks have derived status computed by `DeriveParentStatus` and are not directly actionable.
 
@@ -119,10 +119,11 @@ The random tree generator from `propagation_property_test.go` should be reused. 
 
 ## Source references
 
-- `FindNextTask`: `internal/state/navigation.go:20-73`
-- `findActionableTask`: `internal/state/navigation.go:130-240`
-- `hasNotStartedAncestor`: `internal/state/navigation.go:276-293`
-- `TaskChildren`: `internal/state/mutations.go:108-116`
-- `DeriveParentStatus`: `internal/state/mutations.go:121-180`
-- `allChildrenComplete`: `internal/state/navigation.go:297-314`
-- Random tree generator: `internal/state/propagation_property_test.go:23-122`
+- `FindNextTask`: `internal/state/navigation.go:20`
+- `findActionableTask`: `internal/state/navigation.go:160`
+- `FindParallelTasks`: `internal/state/navigation.go:277`
+- `hasNotStartedAncestor`: `internal/state/navigation.go:399`
+- `TaskChildren`: `internal/state/mutations.go:108`
+- `DeriveParentStatus`: `internal/state/mutations.go:121`
+- `allChildrenComplete`: `internal/state/navigation.go:420`
+- Random tree generator: `internal/state/propagation_property_test.go`

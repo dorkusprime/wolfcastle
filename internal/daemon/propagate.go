@@ -18,6 +18,11 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 		freshIdx, err := state.LoadRootIndex(d.Store.IndexPath())
 		if err != nil {
 			// Fall back to the in-memory copy if the file can't be read.
+			_ = d.Logger.Log(map[string]any{
+				"type":  "propagate_index_read_fallback",
+				"node":  nodeAddr,
+				"error": err.Error(),
+			})
 			freshIdx = idx
 		}
 

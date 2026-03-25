@@ -133,18 +133,25 @@ type PromptsConfig struct {
 	ExcludeFragments []string `json:"exclude_fragments"`
 }
 
+// ParallelConfig controls parallel sibling node execution.
+type ParallelConfig struct {
+	Enabled    bool `json:"enabled"`
+	MaxWorkers int  `json:"max_workers"`
+}
+
 // DaemonConfig controls the daemon's polling, timeout, and restart behavior.
 type DaemonConfig struct {
-	PollIntervalSeconds        int    `json:"poll_interval_seconds"`
-	BlockedPollIntervalSeconds int    `json:"blocked_poll_interval_seconds"`
-	InboxPollIntervalSeconds   int    `json:"inbox_poll_interval_seconds"`
-	MaxIterations              int    `json:"max_iterations"`
-	MaxTurnsPerInvocation      int    `json:"max_turns_per_invocation"`
-	InvocationTimeoutSeconds   int    `json:"invocation_timeout_seconds"`
-	StallTimeoutSeconds        int    `json:"stall_timeout_seconds"`
-	MaxRestarts                int    `json:"max_restarts"`
-	RestartDelaySeconds        int    `json:"restart_delay_seconds"`
-	LogLevel                   string `json:"log_level"`
+	PollIntervalSeconds        int            `json:"poll_interval_seconds"`
+	BlockedPollIntervalSeconds int            `json:"blocked_poll_interval_seconds"`
+	InboxPollIntervalSeconds   int            `json:"inbox_poll_interval_seconds"`
+	MaxIterations              int            `json:"max_iterations"`
+	MaxTurnsPerInvocation      int            `json:"max_turns_per_invocation"`
+	InvocationTimeoutSeconds   int            `json:"invocation_timeout_seconds"`
+	StallTimeoutSeconds        int            `json:"stall_timeout_seconds"`
+	MaxRestarts                int            `json:"max_restarts"`
+	RestartDelaySeconds        int            `json:"restart_delay_seconds"`
+	LogLevel                   string         `json:"log_level"`
+	Parallel                   ParallelConfig `json:"parallel"`
 }
 
 // GitConfig controls automatic commit behavior and branch verification.

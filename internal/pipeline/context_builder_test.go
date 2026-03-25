@@ -910,3 +910,137 @@ func TestContextBuilder_TemplateCaching(t *testing.T) {
 		t.Errorf("second call should render with count 7, got:\n%s", got2)
 	}
 }
+
+func TestContextBuilder_ParallelEnabled_InjectsScopeSection(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	cfg := config.Defaults()
+	cfg.Daemon.Parallel.Enabled = true
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("my-project/auth", "", ns, "task-0001", "", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "## Parallel Execution: Scope Acquisition Required") {
+		t.Error("missing scope acquisition section when parallel is enabled")
+	}
+	if !strings.Contains(got, "wolfcastle task scope add --node my-project/auth") {
+		t.Error("scope section should contain the node address")
+	}
+	if !strings.Contains(got, "WOLFCASTLE_YIELD scope_conflict") {
+		t.Error("scope section should contain yield instruction for conflicts")
+	}
+}
+
+func TestContextBuilder_ParallelDisabled_OmitsScopeSection(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	cfg := config.Defaults()
+	// Parallel.Enabled defaults to false; be explicit.
+	cfg.Daemon.Parallel.Enabled = false
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "Scope Acquisition Required") {
+		t.Error("scope acquisition section should be absent when parallel is disabled")
+	}
+}
+
+func TestContextBuilder_ParallelNilConfig_OmitsScopeSection(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "Scope Acquisition Required") {
+		t.Error("scope acquisition section should be absent when config is nil")
+	}
+}
+
+func TestContextBuilder_ParallelScopeSection_Ordering(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t).
+		WithClasses(map[string]config.ClassDef{"lang-go": {}}).
+		WithPrompt("classes/lang-go.md", "Go guidance.")
+
+	cfg := config.Defaults()
+	cfg.Daemon.Parallel.Enabled = true
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0002", Description: "Work", State: state.StatusInProgress, Class: "lang-go"},
+		},
+		AARs: map[string]state.AAR{
+			"task-0001": {
+				TaskID:       "task-0001",
+				Timestamp:    time.Date(2026, 3, 24, 12, 0, 0, 0, time.UTC),
+				Objective:    "Prior work",
+				WhatHappened: "Done",
+			},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0002", "", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	classIdx := strings.Index(got, "## Class Guidance")
+	scopeIdx := strings.Index(got, "## Parallel Execution: Scope Acquisition Required")
+	aarIdx := strings.Index(got, "## Prior Task Reviews (AARs)")
+
+	if classIdx < 0 {
+		t.Fatal("missing class guidance section")
+	}
+	if scopeIdx < 0 {
+		t.Fatal("missing scope acquisition section")
+	}
+	if aarIdx < 0 {
+		t.Fatal("missing AARs section")
+	}
+	if classIdx >= scopeIdx {
+		t.Error("class guidance should precede scope acquisition")
+	}
+	if scopeIdx >= aarIdx {
+		t.Error("scope acquisition should precede AARs")
+	}
+}

@@ -228,6 +228,40 @@ func TestValidate_CatchesMissingAuditPromptFile(t *testing.T) {
 	}
 }
 
+func TestValidateStructure_CatchesZeroMaxWorkers(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.Parallel.MaxWorkers = 0
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for zero max_workers")
+	}
+	if !strings.Contains(err.Error(), "daemon.parallel.max_workers must be >= 1") {
+		t.Errorf("expected max_workers message, got: %v", err)
+	}
+}
+
+func TestValidateStructure_CatchesNegativeMaxWorkers(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.Parallel.MaxWorkers = -3
+
+	err := ValidateStructure(cfg)
+	if err == nil {
+		t.Error("expected error for negative max_workers")
+	}
+}
+
+func TestValidateStructure_AcceptsValidMaxWorkers(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	cfg.Daemon.Parallel.MaxWorkers = 5
+	if err := ValidateStructure(cfg); err != nil {
+		t.Errorf("max_workers=5 should be valid, got: %v", err)
+	}
+}
+
 func TestValidateStructure_GitConfigFieldCombinations(t *testing.T) {
 	t.Parallel()
 

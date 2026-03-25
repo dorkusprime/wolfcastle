@@ -152,6 +152,23 @@ func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeS
 		}
 	}
 
+	// 4d. Parallel execution scope acquisition instructions
+	if cfg != nil && cfg.Daemon.Parallel.Enabled {
+		b.WriteString("\n## Parallel Execution: Scope Acquisition Required\n\n")
+		b.WriteString("Before writing any code, declare the files you intend to modify:\n\n")
+		fmt.Fprintf(&b, "    wolfcastle task scope add --node %s file1.go file2.go pkg/foo/\n\n", nodeAddr)
+		b.WriteString("List every file you plan to create or modify. Include directories (with trailing\n")
+		b.WriteString("slash) when you expect to modify multiple files under a path. Be thorough: if you\n")
+		b.WriteString("write to a file you did not scope, the daemon rejects your commit and the task fails.\n\n")
+		b.WriteString("If the command fails with a scope conflict, another task is working on those files.\n")
+		b.WriteString("Emit the following on its own line, replacing the address with the one from the error:\n\n")
+		b.WriteString("    WOLFCASTLE_YIELD scope_conflict <conflicting-task-address>\n\n")
+		b.WriteString("Do not attempt to work around the conflict.\n\n")
+		b.WriteString("You may call wolfcastle task scope add again later if you discover additional files.\n")
+		b.WriteString("If that second call also fails with a conflict, emit WOLFCASTLE_YIELD scope_conflict\n")
+		b.WriteString("with the conflicting address.\n")
+	}
+
 	// 5. Prior task AARs
 	b.WriteString(state.RenderAARs(ns.AARs))
 
