@@ -618,7 +618,7 @@ func TestParallel_IsBlockedClearsStaleEntries(t *testing.T) {
 	taskA := "proj/child-0/task-0001"
 	taskB := "proj/child-1/task-0001"
 
-	pd.blocked[taskA] = taskB
+	pd.blocked[taskA] = &BlockedEntry{Blocker: taskB, YieldCount: 1, FirstBlockedAt: time.Now()}
 	pd.active[taskB] = &WorkerSlot{Node: "proj/child-1", Task: "task-0001"}
 
 	if !pd.isBlocked(taskA) {
@@ -824,7 +824,7 @@ func TestParallel_DrainCompletedClearsBlockedOnSuccess(t *testing.T) {
 	blockedAddr := "proj/child-1/task-0001"
 
 	pd.active[blockerAddr] = &WorkerSlot{Node: "proj/child-0", Task: "task-0001"}
-	pd.blocked[blockedAddr] = blockerAddr
+	pd.blocked[blockedAddr] = &BlockedEntry{Blocker: blockerAddr, YieldCount: 1, FirstBlockedAt: time.Now()}
 
 	// Blocker completes successfully.
 	pd.results <- WorkerResult{
@@ -878,6 +878,451 @@ func TestParallel_RunOnceParallelNoWork(t *testing.T) {
 	}
 	if result != IterationNoWork {
 		t.Errorf("expected IterationNoWork, got %d", result)
+	}
+
+	shutdownParallel(d)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Phase 4: Failure Mode Tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+// 16. Worker panic releases scope locks and removes the active entry
+func TestParallel_WorkerPanicReleasesScope(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	initLogger(d)
+	setupOrchestrator(t, d, "proj", 2)
+
+	taskAddr := "proj/child-0/task-0001"
+
+	// Seed scope locks for the panicking worker.
+	_ = d.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+		table.Locks["handler.go"] = state.ScopeLock{Task: taskAddr, Node: "proj/child-0", PID: os.Getpid()}
+		table.Locks["routes.go"] = state.ScopeLock{Task: taskAddr, Node: "proj/child-0", PID: os.Getpid()}
+		return nil
+	})
+
+	// Claim the task so drainCompleted can process it.
+	_ = d.Store.MutateNode("proj/child-0", func(ns *state.NodeState) error {
+		return state.TaskClaim(ns, "task-0001")
+	})
+
+	pd := d.dispatcher
+	panicCancel := func() {}
+	pd.mu.Lock()
+	pd.active[taskAddr] = &WorkerSlot{Node: "proj/child-0", Task: "task-0001", Cancel: panicCancel}
+	pd.mu.Unlock()
+
+	// Simulate a worker panic producing an error result.
+	pd.results <- WorkerResult{
+		Node:   "proj/child-0",
+		Task:   "task-0001",
+		Result: IterationError,
+		Error:  fmt.Errorf("worker panic: something went wrong"),
+	}
+
+	pd.drainCompleted()
+
+	// Scope locks should be released.
+	table, err := d.Store.ReadScopeLocks()
+	if err != nil {
+		t.Fatalf("reading scope locks: %v", err)
+	}
+	if len(table.Locks) != 0 {
+		t.Errorf("expected 0 scope locks after panic drain, got %d", len(table.Locks))
+	}
+
+	// Active map should be empty.
+	pd.mu.Lock()
+	remaining := len(pd.active)
+	pd.mu.Unlock()
+	if remaining != 0 {
+		t.Errorf("expected 0 active after panic drain, got %d", remaining)
+	}
+
+	shutdownParallel(d)
+}
+
+// 17. All workers yield simultaneously (yield livelock prevention)
+func TestParallel_AllWorkersYieldSimultaneously(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 3)
+	initLogger(d)
+	setupOrchestrator(t, d, "proj", 3)
+
+	pd := d.dispatcher
+
+	// Claim all three tasks.
+	for i := 0; i < 3; i++ {
+		addr := fmt.Sprintf("proj/child-%d", i)
+		_ = d.Store.MutateNode(addr, func(ns *state.NodeState) error {
+			return state.TaskClaim(ns, "task-0001")
+		})
+	}
+
+	// Register all three as active.
+	for i := 0; i < 3; i++ {
+		taskAddr := fmt.Sprintf("proj/child-%d/task-0001", i)
+		pd.mu.Lock()
+		pd.active[taskAddr] = &WorkerSlot{
+			Node: fmt.Sprintf("proj/child-%d", i),
+			Task: "task-0001",
+		}
+		pd.mu.Unlock()
+	}
+
+	// All three yield, each claiming the next one as blocker (circular).
+	pd.results <- WorkerResult{
+		Node: "proj/child-0", Task: "task-0001",
+		Result: IterationDidWork, ScopeConflict: true,
+		Blocker: "proj/child-1/task-0001",
+	}
+	pd.results <- WorkerResult{
+		Node: "proj/child-1", Task: "task-0001",
+		Result: IterationDidWork, ScopeConflict: true,
+		Blocker: "proj/child-2/task-0001",
+	}
+	pd.results <- WorkerResult{
+		Node: "proj/child-2", Task: "task-0001",
+		Result: IterationDidWork, ScopeConflict: true,
+		Blocker: "proj/child-0/task-0001",
+	}
+
+	pd.drainCompleted()
+
+	// After drain, all tasks should be reset to not_started and removed
+	// from the active map. All should have blocked entries.
+	pd.mu.Lock()
+	activeCount := len(pd.active)
+	blockedCount := len(pd.blocked)
+	pd.mu.Unlock()
+
+	if activeCount != 0 {
+		t.Errorf("expected 0 active after all-yield, got %d", activeCount)
+	}
+	if blockedCount != 3 {
+		t.Errorf("expected 3 blocked entries after all-yield, got %d", blockedCount)
+	}
+
+	// On the next fillSlots call, all blockers are gone from active,
+	// so isBlocked should clear the stale entries and allow re-dispatch.
+	for i := 0; i < 3; i++ {
+		taskAddr := fmt.Sprintf("proj/child-%d/task-0001", i)
+		if pd.isBlocked(taskAddr) {
+			t.Errorf("task %s should not be blocked (blocker is no longer active)", taskAddr)
+		}
+	}
+
+	// blocked map should now be empty after isBlocked cleared stale entries.
+	pd.mu.Lock()
+	finalBlocked := len(pd.blocked)
+	pd.mu.Unlock()
+	if finalBlocked != 0 {
+		t.Errorf("expected 0 blocked entries after stale cleanup, got %d", finalBlocked)
+	}
+
+	shutdownParallel(d)
+}
+
+// 18. Context cancellation mid-worker (stops gracefully)
+func TestParallel_ContextCancellationMidWorker(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	initLogger(d)
+
+	// Model that blocks until context cancellation.
+	blockScript := `#!/bin/sh
+while true; do sleep 0.01; done
+`
+	blockScriptFile := filepath.Join(t.TempDir(), "block.sh")
+	if err := os.WriteFile(blockScriptFile, []byte(blockScript), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	setupOrchestrator(t, d, "proj", 2)
+	d.Config.Models["echo"] = config.ModelDef{
+		Command: "sh",
+		Args:    []string{blockScriptFile},
+	}
+
+	// Dispatch workers.
+	ctx, cancel := context.WithCancel(context.Background())
+	r1, err := d.RunOnce(ctx)
+	if err != nil {
+		t.Fatalf("dispatch error: %v", err)
+	}
+	if r1 != IterationDidWork {
+		t.Fatalf("expected IterationDidWork, got %d", r1)
+	}
+
+	// Cancel the context. Workers should exit promptly.
+	cancel()
+	d.dispatcher.cancelAll()
+
+	done := make(chan struct{})
+	go func() {
+		d.dispatcher.waitAndDrain()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Workers cleaned up successfully.
+	case <-time.After(5 * time.Second):
+		t.Fatal("waitAndDrain hung after context cancellation")
+	}
+
+	// Active map should be empty.
+	d.dispatcher.mu.Lock()
+	remaining := len(d.dispatcher.active)
+	d.dispatcher.mu.Unlock()
+	if remaining != 0 {
+		t.Errorf("expected 0 active after cancellation, got %d", remaining)
+	}
+
+	shutdownParallel(d)
+}
+
+// 19. Scope release on worker failure
+func TestParallel_ScopeReleaseOnWorkerFailure(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	initLogger(d)
+	setupOrchestrator(t, d, "proj", 2)
+
+	pd := d.dispatcher
+	taskAddr := "proj/child-0/task-0001"
+
+	// Seed scope locks.
+	_ = d.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+		table.Locks["main.go"] = state.ScopeLock{Task: taskAddr, Node: "proj/child-0", PID: os.Getpid()}
+		table.Locks["util.go"] = state.ScopeLock{Task: taskAddr, Node: "proj/child-0", PID: os.Getpid()}
+		return nil
+	})
+
+	// Claim the task.
+	_ = d.Store.MutateNode("proj/child-0", func(ns *state.NodeState) error {
+		return state.TaskClaim(ns, "task-0001")
+	})
+
+	pd.mu.Lock()
+	pd.active[taskAddr] = &WorkerSlot{Node: "proj/child-0", Task: "task-0001"}
+	pd.mu.Unlock()
+
+	// Worker fails with an error.
+	pd.results <- WorkerResult{
+		Node:   "proj/child-0",
+		Task:   "task-0001",
+		Result: IterationError,
+		Error:  fmt.Errorf("model invocation timeout"),
+	}
+
+	pd.drainCompleted()
+
+	// Scope locks should be fully released.
+	table, err := d.Store.ReadScopeLocks()
+	if err != nil {
+		t.Fatalf("reading scope locks: %v", err)
+	}
+	if len(table.Locks) != 0 {
+		t.Errorf("expected 0 scope locks after failure, got %d", len(table.Locks))
+	}
+
+	shutdownParallel(d)
+}
+
+// 20. Stale scope lock cleanup after daemon crash (selfHeal path)
+func TestParallel_StaleScopeLockCleanupAfterCrash(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	initLogger(d)
+	setupOrchestrator(t, d, "proj", 1)
+
+	// Seed scope locks with a dead PID to simulate a crashed daemon.
+	deadPID := 999999
+	_ = d.Store.MutateScopeLocks(func(table *state.ScopeLockTable) error {
+		table.Locks["handler.go"] = state.ScopeLock{
+			Task: "proj/child-0/task-0001",
+			Node: "proj/child-0",
+			PID:  deadPID,
+		}
+		table.Locks["routes.go"] = state.ScopeLock{
+			Task: "proj/child-0/task-0001",
+			Node: "proj/child-0",
+			PID:  deadPID,
+		}
+		return nil
+	})
+
+	// selfHeal includes cleanStaleScopeLocks.
+	if err := d.selfHeal(); err != nil {
+		t.Fatalf("selfHeal error: %v", err)
+	}
+
+	// The stale locks should have been cleaned up.
+	table, err := d.Store.ReadScopeLocks()
+	if err != nil {
+		// File removed entirely is also valid.
+		if !os.IsNotExist(err) {
+			t.Fatalf("reading scope locks after selfHeal: %v", err)
+		}
+		return
+	}
+	if len(table.Locks) != 0 {
+		t.Errorf("expected 0 scope locks after stale cleanup, got %d", len(table.Locks))
+	}
+
+	shutdownParallel(d)
+}
+
+// 21. Yield count tracking increments correctly across multiple yields
+func TestParallel_YieldCountTracking(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	initLogger(d)
+	setupOrchestrator(t, d, "proj", 2)
+
+	pd := d.dispatcher
+	taskAddr := "proj/child-0/task-0001"
+	blockerAddr := "proj/child-1/task-0001"
+
+	// First yield.
+	_ = d.Store.MutateNode("proj/child-0", func(ns *state.NodeState) error {
+		return state.TaskClaim(ns, "task-0001")
+	})
+
+	pd.mu.Lock()
+	pd.active[taskAddr] = &WorkerSlot{Node: "proj/child-0", Task: "task-0001"}
+	pd.active[blockerAddr] = &WorkerSlot{Node: "proj/child-1", Task: "task-0001"}
+	pd.mu.Unlock()
+
+	pd.results <- WorkerResult{
+		Node: "proj/child-0", Task: "task-0001",
+		Result: IterationDidWork, ScopeConflict: true,
+		Blocker: blockerAddr,
+	}
+
+	pd.drainCompleted()
+
+	pd.mu.Lock()
+	entry1 := pd.blocked[taskAddr]
+	pd.mu.Unlock()
+
+	if entry1 == nil {
+		t.Fatal("expected blocked entry after first yield")
+	}
+	if entry1.YieldCount != 1 {
+		t.Errorf("expected yield count 1, got %d", entry1.YieldCount)
+	}
+	firstBlockedAt := entry1.FirstBlockedAt
+
+	// Re-claim and second yield (simulating re-dispatch that yields again).
+	_ = d.Store.MutateNode("proj/child-0", func(ns *state.NodeState) error {
+		return state.TaskClaim(ns, "task-0001")
+	})
+
+	pd.mu.Lock()
+	pd.active[taskAddr] = &WorkerSlot{Node: "proj/child-0", Task: "task-0001"}
+	pd.mu.Unlock()
+
+	pd.results <- WorkerResult{
+		Node: "proj/child-0", Task: "task-0001",
+		Result: IterationDidWork, ScopeConflict: true,
+		Blocker: blockerAddr,
+	}
+
+	pd.drainCompleted()
+
+	pd.mu.Lock()
+	entry2 := pd.blocked[taskAddr]
+	pd.mu.Unlock()
+
+	if entry2 == nil {
+		t.Fatal("expected blocked entry after second yield")
+	}
+	if entry2.YieldCount != 2 {
+		t.Errorf("expected yield count 2, got %d", entry2.YieldCount)
+	}
+	if !entry2.FirstBlockedAt.Equal(firstBlockedAt) {
+		t.Errorf("FirstBlockedAt should not change across yields: got %v, want %v", entry2.FirstBlockedAt, firstBlockedAt)
+	}
+
+	shutdownParallel(d)
+}
+
+// 22. Status snapshot is written and readable
+func TestParallel_StatusSnapshotWriteAndRead(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 3)
+	initLogger(d)
+	pd := d.dispatcher
+
+	// Seed some active workers and blocked entries.
+	noop := func() {}
+	pd.mu.Lock()
+	pd.active["proj/api/task-0001"] = &WorkerSlot{Node: "proj/api", Task: "task-0001", Cancel: noop}
+	pd.active["proj/db/task-0001"] = &WorkerSlot{Node: "proj/db", Task: "task-0001", Cancel: noop}
+	pd.blocked["proj/auth/task-0001"] = &BlockedEntry{
+		Blocker:        "proj/api/task-0001",
+		YieldCount:     2,
+		FirstBlockedAt: time.Now().Add(-30 * time.Second),
+	}
+	pd.mu.Unlock()
+
+	// Write the snapshot.
+	pd.writeStatusSnapshot()
+
+	// Read it back.
+	ps := LoadParallelStatus(d.WolfcastleDir)
+	if ps == nil {
+		t.Fatal("LoadParallelStatus returned nil")
+	}
+
+	if ps.MaxWorkers != 3 {
+		t.Errorf("MaxWorkers = %d, want 3", ps.MaxWorkers)
+	}
+	if len(ps.Active) != 2 {
+		t.Errorf("Active count = %d, want 2", len(ps.Active))
+	}
+	if len(ps.Yielded) != 1 {
+		t.Errorf("Yielded count = %d, want 1", len(ps.Yielded))
+	}
+	if ps.Yielded[0].YieldCount != 2 {
+		t.Errorf("Yielded[0].YieldCount = %d, want 2", ps.Yielded[0].YieldCount)
+	}
+
+	shutdownParallel(d)
+}
+
+// 23. Status snapshot is cleaned up after waitAndDrain
+func TestParallel_StatusSnapshotCleanedUp(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 2)
+	initLogger(d)
+	pd := d.dispatcher
+
+	// Write a snapshot so the file exists.
+	pd.mu.Lock()
+	pd.active["proj/api/task-0001"] = &WorkerSlot{Node: "proj/api", Task: "task-0001", Cancel: func() {}}
+	pd.mu.Unlock()
+	pd.writeStatusSnapshot()
+
+	statusPath := parallelStatusPath(d.WolfcastleDir)
+	if _, err := os.Stat(statusPath); os.IsNotExist(err) {
+		t.Fatal("status file should exist after writeStatusSnapshot")
+	}
+
+	// Clear the active map so waitAndDrain doesn't try to drain results,
+	// then call removeStatusFile.
+	pd.mu.Lock()
+	delete(pd.active, "proj/api/task-0001")
+	pd.mu.Unlock()
+
+	pd.removeStatusFile()
+
+	if _, err := os.Stat(statusPath); !os.IsNotExist(err) {
+		t.Error("status file should be removed after removeStatusFile")
 	}
 
 	shutdownParallel(d)

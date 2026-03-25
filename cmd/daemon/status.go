@@ -211,7 +211,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, opts t
 			nodeDetails[addr] = info
 		}
 
-		output.Print(output.Ok("status", map[string]any{
+		statusData := map[string]any{
 			"total":             total,
 			"not_started":       counts[state.StatusNotStarted],
 			"in_progress":       counts[state.StatusInProgress],
@@ -226,7 +226,11 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, opts t
 			"open_gaps":         openGaps,
 			"open_escalations":  openEscalations,
 			"nodes":             nodeDetails,
-		}))
+		}
+		if ps := dmn.LoadParallelStatus(app.Config.Root()); ps != nil {
+			statusData["parallel"] = ps
+		}
+		output.Print(output.Ok("status", statusData))
 		return nil
 	}
 
@@ -317,6 +321,12 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, opts t
 	}
 
 	output.PrintHuman("  Daemon: %s", daemonStatus)
+
+	// Parallel worker pool status (only shown when a snapshot file exists).
+	if ps := dmn.LoadParallelStatus(app.Config.Root()); ps != nil {
+		printParallelStatus(ps)
+	}
+
 	return nil
 }
 
@@ -602,6 +612,33 @@ func getDaemonStatus(repo *dmn.DaemonRepository) string {
 		return fmt.Sprintf("stopped (stale PID %d)", pid)
 	}
 	return fmt.Sprintf("running (PID %d)", pid)
+}
+
+// printParallelStatus renders the worker pool section of the status display.
+func printParallelStatus(ps *dmn.ParallelStatus) {
+	activeCount := len(ps.Active)
+	output.PrintHuman("")
+	output.PrintHuman("  Workers: %d/%d active", activeCount, ps.MaxWorkers)
+
+	for _, w := range ps.Active {
+		output.PrintHuman("")
+		output.PrintHuman("    %s [in_progress]", w.Task)
+		if len(w.Scope) > 0 {
+			output.PrintHuman("      scope: %s", strings.Join(w.Scope, ", "))
+		}
+	}
+
+	if len(ps.Yielded) > 0 {
+		output.PrintHuman("")
+		output.PrintHuman("  Yielded (waiting on scope):")
+		for _, y := range ps.Yielded {
+			suffix := ""
+			if y.YieldCount > 1 {
+				suffix = fmt.Sprintf(" (%d yields, %ds)", y.YieldCount, y.BlockedForSecs)
+			}
+			output.PrintHuman("    %s -> blocked by %s%s", y.Task, y.Blocker, suffix)
+		}
+	}
 }
 
 func showAllStatus(app *cmdutil.App) error {

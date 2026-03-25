@@ -2,10 +2,14 @@ package daemon
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime/debug"
 	"sync"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
@@ -22,6 +26,13 @@ func (e *ErrYieldScopeConflict) Error() string {
 	return fmt.Sprintf("scope conflict: %s blocked by %s", e.Task, e.Blocker)
 }
 
+// BlockedEntry records why a task is blocked and how many times it has yielded.
+type BlockedEntry struct {
+	Blocker        string    // address of the task holding the conflicting locks
+	YieldCount     int       // number of times this task has yielded due to scope conflict
+	FirstBlockedAt time.Time // when the task first entered the blocked state
+}
+
 // ParallelDispatcher coordinates concurrent task execution across multiple
 // worker slots. It serializes git operations through the parent Daemon's gitMu
 // and tracks yield-backoff conflicts in its blocked map.
@@ -31,7 +42,7 @@ type ParallelDispatcher struct {
 	active     map[string]*WorkerSlot // task address -> slot
 	mu         sync.Mutex
 	results    chan WorkerResult
-	blocked    map[string]string // task address -> conflicting task address (yield backoff)
+	blocked    map[string]*BlockedEntry // task address -> block details (yield backoff)
 }
 
 // WorkerSlot represents a single active worker executing a task on a node.
@@ -60,7 +71,7 @@ func NewParallelDispatcher(d *Daemon, maxWorkers int) *ParallelDispatcher {
 		maxWorkers: maxWorkers,
 		active:     make(map[string]*WorkerSlot),
 		results:    make(chan WorkerResult, maxWorkers),
-		blocked:    make(map[string]string),
+		blocked:    make(map[string]*BlockedEntry),
 	}
 }
 
@@ -183,8 +194,26 @@ done:
 			// increment the failure count (this is a scheduling conflict,
 			// not an execution failure).
 			pd.mu.Lock()
-			pd.blocked[taskAddr] = wr.Blocker
+			if existing, ok := pd.blocked[taskAddr]; ok {
+				existing.Blocker = wr.Blocker
+				existing.YieldCount++
+			} else {
+				pd.blocked[taskAddr] = &BlockedEntry{
+					Blocker:        wr.Blocker,
+					YieldCount:     1,
+					FirstBlockedAt: time.Now(),
+				}
+			}
+			entry := pd.blocked[taskAddr]
 			pd.mu.Unlock()
+
+			_ = d.Logger.Log(map[string]any{
+				"type":        "scope_yield_tracking",
+				"task":        taskAddr,
+				"blocker":     wr.Blocker,
+				"yield_count": entry.YieldCount,
+				"blocked_for": time.Since(entry.FirstBlockedAt).String(),
+			})
 
 			// Commit any partial work the agent produced before yielding.
 			if d.Config.Git.CommitOnFailure {
@@ -268,8 +297,8 @@ done:
 			pd.releaseScope(taskAddr)
 			pd.mu.Lock()
 			delete(pd.active, taskAddr)
-			for blocked, blocker := range pd.blocked {
-				if blocker == taskAddr {
+			for blocked, entry := range pd.blocked {
+				if entry.Blocker == taskAddr {
 					delete(pd.blocked, blocked)
 				}
 			}
@@ -307,8 +336,8 @@ done:
 			pd.releaseScope(taskAddr)
 			pd.mu.Lock()
 			delete(pd.active, taskAddr)
-			for blocked, blocker := range pd.blocked {
-				if blocker == taskAddr {
+			for blocked, entry := range pd.blocked {
+				if entry.Blocker == taskAddr {
 					delete(pd.blocked, blocked)
 				}
 			}
@@ -316,6 +345,7 @@ done:
 		}
 	}
 
+	pd.writeStatusSnapshot()
 	return collected
 }
 
@@ -374,6 +404,9 @@ func (pd *ParallelDispatcher) fillSlots(ctx context.Context, idx *state.RootInde
 		launched++
 	}
 
+	if launched > 0 {
+		pd.writeStatusSnapshot()
+	}
 	return launched
 }
 
@@ -384,11 +417,11 @@ func (pd *ParallelDispatcher) isBlocked(taskAddr string) bool {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
 
-	blocker, ok := pd.blocked[taskAddr]
+	entry, ok := pd.blocked[taskAddr]
 	if !ok {
 		return false
 	}
-	if _, active := pd.active[blocker]; active {
+	if _, active := pd.active[entry.Blocker]; active {
 		return true
 	}
 	// Blocker finished; clear the stale entry.
@@ -402,7 +435,9 @@ func (pd *ParallelDispatcher) cancelAll() {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
 	for _, slot := range pd.active {
-		slot.Cancel()
+		if slot.Cancel != nil {
+			slot.Cancel()
+		}
 	}
 }
 
@@ -412,6 +447,7 @@ func (pd *ParallelDispatcher) cancelAll() {
 func (pd *ParallelDispatcher) waitAndDrain() {
 	pd.daemon.runWg.Wait()
 	pd.drainCompleted()
+	pd.removeStatusFile()
 }
 
 // releaseScope deletes all scope locks held by the given task address.
@@ -447,4 +483,119 @@ func (pd *ParallelDispatcher) scopeFiles(taskAddr string) []string {
 		}
 	}
 	return files
+}
+
+// ParallelStatus is a snapshot of the dispatcher's state, written to disk
+// so that `wolfcastle status` can display worker pool information without
+// needing to communicate with the running daemon process.
+type ParallelStatus struct {
+	MaxWorkers int                    `json:"max_workers"`
+	Active     []ParallelWorkerEntry  `json:"active"`
+	Yielded    []ParallelYieldedEntry `json:"yielded"`
+	UpdatedAt  time.Time              `json:"updated_at"`
+}
+
+// ParallelWorkerEntry describes a single active worker in the status snapshot.
+type ParallelWorkerEntry struct {
+	Task  string   `json:"task"`
+	Node  string   `json:"node"`
+	Scope []string `json:"scope,omitempty"`
+}
+
+// ParallelYieldedEntry describes a task that yielded due to a scope conflict.
+type ParallelYieldedEntry struct {
+	Task           string `json:"task"`
+	Blocker        string `json:"blocker"`
+	YieldCount     int    `json:"yield_count"`
+	BlockedForSecs int    `json:"blocked_for_secs"`
+}
+
+// snapshot captures the current dispatcher state as a ParallelStatus.
+func (pd *ParallelDispatcher) snapshot() *ParallelStatus {
+	pd.mu.Lock()
+	defer pd.mu.Unlock()
+
+	now := time.Now()
+	status := &ParallelStatus{
+		MaxWorkers: pd.maxWorkers,
+		Active:     make([]ParallelWorkerEntry, 0, len(pd.active)),
+		Yielded:    make([]ParallelYieldedEntry, 0, len(pd.blocked)),
+		UpdatedAt:  now,
+	}
+
+	for taskAddr, slot := range pd.active {
+		entry := ParallelWorkerEntry{
+			Task: taskAddr,
+			Node: slot.Node,
+		}
+		// Read scope without holding pd.mu (scopeFiles uses its own locking).
+		// We collect task addresses here and fill scope below.
+		status.Active = append(status.Active, entry)
+	}
+
+	for taskAddr, blocked := range pd.blocked {
+		status.Yielded = append(status.Yielded, ParallelYieldedEntry{
+			Task:           taskAddr,
+			Blocker:        blocked.Blocker,
+			YieldCount:     blocked.YieldCount,
+			BlockedForSecs: int(now.Sub(blocked.FirstBlockedAt).Seconds()),
+		})
+	}
+
+	return status
+}
+
+// writeStatusSnapshot writes the current dispatcher state to
+// parallel-status.json in the .wolfcastle/system/ directory. The status
+// command reads this file to display worker pool information. Errors are
+// logged but do not interrupt the dispatch cycle.
+func (pd *ParallelDispatcher) writeStatusSnapshot() {
+	status := pd.snapshot()
+
+	// Fill scope information outside the pd.mu lock.
+	for i, entry := range status.Active {
+		status.Active[i].Scope = pd.scopeFiles(entry.Task)
+	}
+
+	data, err := json.MarshalIndent(status, "", "  ")
+	if err != nil {
+		_ = pd.daemon.Logger.Log(map[string]any{
+			"type":  "parallel_status_error",
+			"error": err.Error(),
+		})
+		return
+	}
+
+	statusPath := parallelStatusPath(pd.daemon.WolfcastleDir)
+	if err := state.AtomicWriteFile(statusPath, data); err != nil {
+		_ = pd.daemon.Logger.Log(map[string]any{
+			"type":  "parallel_status_write_error",
+			"error": err.Error(),
+		})
+	}
+}
+
+// removeStatusFile removes the parallel-status.json file. Called when the
+// dispatcher shuts down so stale status doesn't persist.
+func (pd *ParallelDispatcher) removeStatusFile() {
+	_ = os.Remove(parallelStatusPath(pd.daemon.WolfcastleDir))
+}
+
+// parallelStatusPath returns the path to the parallel status snapshot file.
+func parallelStatusPath(wolfcastleDir string) string {
+	return filepath.Join(wolfcastleDir, "system", "parallel-status.json")
+}
+
+// LoadParallelStatus reads the parallel status snapshot from disk.
+// Returns nil if the file doesn't exist or can't be parsed.
+func LoadParallelStatus(wolfcastleDir string) *ParallelStatus {
+	data, err := os.ReadFile(parallelStatusPath(wolfcastleDir))
+	if err != nil {
+		return nil
+	}
+	var status ParallelStatus
+	if err := json.Unmarshal(data, &status); err != nil {
+		return nil
+	}
+	return &status
 }

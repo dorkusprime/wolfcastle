@@ -145,11 +145,41 @@ All state file mutations should go through the `Store` (lock, read, callback, at
 - **Task failures:** tracked in `task.FailureCount`, thresholds trigger decomposition or auto-block
 - **Non-fatal stage errors:** intake stage errors are logged but don't halt the daemon
 
+## Parallel Dispatch Flow
+
+When `daemon.parallel.enabled` is true, `RunOnce` delegates to `runOnceParallel` instead of `runOnceSerial`. The parallel path uses a `ParallelDispatcher` that manages a pool of worker goroutines:
+
+```
+runOnceParallel
+  ├── drainCompleted: collect finished workers, commit scoped changes,
+  │     release scope locks, update blocked map, write status snapshot
+  ├── fillSlots: find eligible tasks via FindParallelTasks, skip blocked
+  │     tasks (isBlocked), claim and launch workers up to maxWorkers
+  └── if pool empty: fall through to planning/archiving/flush
+```
+
+Each worker runs `runIteration` in its own goroutine with an independent context. Workers send results through a buffered channel. The dispatcher processes results in `drainCompleted`, which runs in the main loop's goroutine (serialized, no concurrency on the drain side).
+
+### Scope Conflict Handling
+
+When a worker encounters overlapping scope locks, it yields with `ErrYieldScopeConflict`. The dispatcher records the conflict in a `blocked` map as a `BlockedEntry` containing the blocker address, cumulative yield count, and the timestamp of the first yield. The yielding task is reset to `not_started` and excluded from dispatch while its blocker is active.
+
+When the blocker completes (success or failure), `drainCompleted` clears all blocked entries that reference it. The `isBlocked` method also clears stale entries when it detects the blocker is no longer in the active map, which breaks circular yield deadlocks.
+
+### Status Snapshot
+
+The dispatcher writes a `parallel-status.json` file to `.wolfcastle/system/` after each `drainCompleted` and `fillSlots` cycle. The `wolfcastle status` command reads this file to display worker pool state without needing IPC. The file is removed when the dispatcher shuts down (`waitAndDrain`).
+
+### Git Serialization
+
+All git operations (add, commit) are serialized through `d.gitMu`. In parallel mode, `commitAfterIteration` receives a scope file list so only the worker's declared files are staged, preventing one worker from committing another's changes.
+
 ## Concurrency Notes
 
 - The `sync.Once` in Daemon is reset between supervisor restarts. This is safe because all goroutines from the previous `Run()` have exited before reset occurs. The reset is documented in code.
 - `d.branch` is written in `Run()` and read in `RunOnce()`. Safe because `RunOnce` is only called from within `Run`'s serial loop.
 - The inbox goroutine and the main loop both access `inbox.json` and the project tree. Safety is provided by the Store's lock-read-mutate-write pattern (ADR-068). The model's CLI subprocesses also write state files during execution; the daemon reloads from disk after invocation returns.
+- The `ParallelDispatcher.mu` protects the `active` and `blocked` maps. Workers send results through the buffered `results` channel; only the main loop goroutine reads from it (in `drainCompleted`).
 
 ## Auto-Archive
 
