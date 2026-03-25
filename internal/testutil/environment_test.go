@@ -57,8 +57,8 @@ func TestNewEnvironment_ConfigLoadable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("config.Load failed: %v", err)
 	}
-	if cfg.Version != 1 {
-		t.Errorf("expected config version 1, got %d", cfg.Version)
+	if cfg.Version != config.CurrentVersion {
+		t.Errorf("expected config version %d, got %d", config.CurrentVersion, cfg.Version)
 	}
 }
 
