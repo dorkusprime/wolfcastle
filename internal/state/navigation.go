@@ -272,8 +272,8 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 // FindParallelTasks finds up to maxCount actionable tasks that can run concurrently.
 // It starts with the same DFS as FindNextTask, then scans siblings of the first
 // result's parent orchestrator for additional independent work. In-progress siblings
-// are skipped (not treated as blockers), and an unplanned orchestrator sibling stops
-// further scanning of later children.
+// are inspected for available work (not treated as blockers), and an unplanned
+// orchestrator sibling stops further scanning of later children.
 func FindParallelTasks(
 	idx *RootIndex,
 	scopeAddr string,

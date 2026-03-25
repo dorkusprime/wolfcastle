@@ -21,7 +21,7 @@ wolfcastle task scope add --node <address> --task <task-id> <file> [<file>...]
 | Flag | Description |
 |------|-------------|
 | `--node <address>` | **(Required)** Node address for the task. |
-| `--task <task-id>` | **(Required when not running inside a daemon iteration)** Task ID. |
+| `--task <task-id>` | **(Required)** Task ID. |
 | `--json` | Output as structured JSON. |
 
 ## Arguments

@@ -1,6 +1,49 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.3.0
+
+### Core
+- Parallel sibling execution: when `daemon.parallel.enabled` is true, sibling tasks under the same orchestrator run concurrently with file-level scope locks preventing collisions (ADR-095)
+- Parallel dispatcher with worker pool, buffered result channel, and scoped git commits serialized through `gitMu`
+- Scope conflict handling: workers that overlap yield with `ErrYieldScopeConflict`, tracked in a blocked map with stale-entry cleanup
+- `parallel-status.json` snapshot for `wolfcastle status` to display worker pool state without IPC
+- Codebase knowledge files: per-namespace markdown files injected into iteration context for accumulated informal observations
+- Positional task address arguments for lifecycle commands (claim, complete, block, unblock)
+- Removed deprecated `LoadConfig`, `Invoke`, and `InvokeStreaming` wrappers
+
+### CLI
+- 74 commands (up from 53)
+- `task scope add`, `task scope list`, `task scope release` for file-level scope locks
+- `knowledge add`, `knowledge show`, `knowledge edit`, `knowledge prune` for codebase knowledge management
+- `config validate` for configuration validation
+- `execute` and `intake` as standalone commands with live interleaved output
+- `install skill` for Claude Code skill deployment
+
+### Pipeline
+- Knowledge injection in `ContextBuilder`: reads per-namespace knowledge file fresh each iteration
+- Scope lock table (`scope-locks.json`) with `ScopeLockTable` and `ScopeLock` types
+- `FindParallelTasks` navigation: returns up to `maxCount` actionable sibling tasks under the same orchestrator
+
+### Safety
+- Scope path validation: rejects empty, absolute, and `..`/`.` segment paths
+- Bidirectional prefix matching for file/directory scope conflicts
+- Git commit serialization in parallel mode: only the worker's declared files are staged
+
+### Validation
+- 28 validation categories (up from 27)
+
+### Quality
+- `internal/knowledge` package for knowledge file management
+- `internal/logrender` package for log record rendering (summaries, thoughts, session views)
+- 20 internal packages (up from 18)
+
+### Documentation
+- 95 Architecture Decision Records (up from 89)
+- 44 specs (up from 38)
+- 74 CLI commands documented
+- Agent guides updated for parallel dispatch flow and scope lock types
+
+## 0.2.0
 
 ### Core
 - Orchestrator planning pipeline: lazy planning, completion review, AAR action item triage

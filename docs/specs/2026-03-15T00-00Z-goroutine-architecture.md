@@ -67,9 +67,9 @@ The channel is buffered with capacity 1. If the execute loop hasn't consumed the
 
 The `context.Context` from `signal.NotifyContext` is the shutdown signal. Both goroutines check `ctx.Done()` and exit cleanly. No additional shutdown channel needed.
 
-### 2.3 Stop file (via fsnotify)
+### 2.3 Stop file (polling)
 
-The stop file watch replaces the `os.Stat` check in `RunOnce`. When fsnotify detects the stop file's creation, it cancels the context, which propagates to both goroutines.
+The stop file is detected by the `RunOnce` polling loop via `HasStopFile()`. When the stop file is found, `RunOnce` removes it and returns `IterationStop`, which causes `Run` to exit cleanly. This is a periodic check, not an fsnotify watch.
 
 ---
 
@@ -80,21 +80,23 @@ The stop file watch replaces the `os.Stat` check in `RunOnce`. When fsnotify det
 Started by `Run()` after self-healing and branch verification. Stopped by context cancellation.
 
 ```go
-func (d *Daemon) runInboxLoop(ctx context.Context, workAvailable chan<- struct{}) {
-    watcher := fsnotify.NewWatcher()
-    watcher.Add(filepath.Join(d.Resolver.ProjectsDir(), "inbox.json"))
+func (d *Daemon) runInboxLoop(ctx context.Context) {
+    projDir := d.Store.Dir()
 
-    for {
-        select {
-        case <-ctx.Done():
+    // Watch the projects directory (not inbox.json directly) because
+    // inbox.json might not exist yet when the daemon starts.
+    watcher, err := fsnotify.NewWatcher()
+    if err == nil {
+        defer watcher.Close()
+        if watcher.Add(projDir) == nil {
+            d.runInboxWithFsnotify(ctx, watcher)
             return
-        case event := <-watcher.Events:
-            if event.Op&(fsnotify.Write|fsnotify.Create) == 0 {
-                continue
-            }
-            d.runIntakeIfNeeded(ctx, workAvailable)
         }
+        watcher.Close()
     }
+
+    // Fallback: polling
+    d.runInboxWithPolling(ctx)
 }
 ```
 

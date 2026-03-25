@@ -92,7 +92,7 @@
 | 088 | [DaemonRepository Uses Concrete Struct with Explicit Parameters](088-daemonrepository-concrete.md) | Accepted | 2026-03-18 |
 | 089 | [Auto-Archive Runs Inline in RunOnce](089-auto-archive-inline.md) | Accepted | 2026-03-21 |
 | 090 | [WithConfig Writes to Custom Tier](090-withconfig-custom-tier.md) | Accepted | 2026-03-18 |
-| 091 | [Task.RenderContext Parameterless Refactoring](091-task-rendercontext-parameterless.md) | Accepted | 2026-03-18 |
+| 091 | [Task.RenderContext Parameterless Refactoring](091-task-rendercontext-parameterless.md) | Duplicate of ADR-078 | 2026-03-18 |
 | 092 | [Result.Unavailable Field over Sentinel Error](092-result-unavailable-field.md) | Accepted | 2026-03-20 |
 | 093 | [Separate GIT_INDEX_FILE for Daemon Commits](093-separate-git-index-file.md) | Superseded | 2026-03-22 |
 | 094 | [PIDChecker Interface Decouples Validate from Daemon](094-pidchecker-interface.md) | Accepted (supersedes ADR-088) | 2026-03-22 |
