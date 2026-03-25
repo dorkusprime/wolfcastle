@@ -1,13 +1,10 @@
 # DaemonRepository uses concrete struct with explicit parameters
 
 ## Status
-Accepted
+Accepted (partially superseded by ADR-094 for the validate-daemon boundary)
 
 ## Date
 2026-03-18
-
-## Status
-Accepted
 
 ## Context
 The daemon package had free functions (WritePID, ReadPID, RemovePID) that each independently constructed filesystem paths from a wolfcastle directory string. Stop file operations lived in daemon.go with the same scattered path construction. This made the daemon's filesystem footprint implicit and spread across files.

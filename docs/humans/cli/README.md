@@ -14,17 +14,22 @@ See the [CLI Reference](../cli.md) for the command table organized by category, 
 
 - [start](start.md) | [stop](stop.md) | [status](status.md) | [log](log.md)
 
+### Execution
+
+- [execute](execute.md) | [intake](intake.md)
+
 ### Project Tree
 
-- [project create](project-create.md) | [navigate](navigate.md) | [unblock](unblock.md) | [orchestrator criteria](orchestrator-criteria.md)
+- [project create](project-create.md) | [navigate](navigate.md) | [orchestrator criteria](orchestrator-criteria.md)
 
 ### Tasks
 
 - [task add](task-add.md) | [task amend](task-amend.md) | [task claim](task-claim.md) | [task complete](task-complete.md) | [task block](task-block.md) | [task unblock](task-unblock.md) | [task deliverable](task-deliverable.md)
+- [task scope add](task-scope-add.md) | [task scope list](task-scope-list.md) | [task scope release](task-scope-release.md)
 
 ### Configuration
 
-- [config show](config-show.md) | [config set](config-set.md) | [config unset](config-unset.md) | [config append](config-append.md) | [config remove](config-remove.md)
+- [config show](config-show.md) | [config set](config-set.md) | [config unset](config-unset.md) | [config append](config-append.md) | [config remove](config-remove.md) | [config validate](config-validate.md)
 
 ### Audit
 
@@ -42,6 +47,10 @@ See the [CLI Reference](../cli.md) for the command table organized by category, 
 
 - [adr create](adr-create.md) | [spec create](spec-create.md) | [spec link](spec-link.md) | [spec list](spec-list.md)
 
+### Knowledge
+
+- [knowledge add](knowledge-add.md) | [knowledge show](knowledge-show.md) | [knowledge edit](knowledge-edit.md) | [knowledge prune](knowledge-prune.md)
+
 ### Diagnostics
 
-- [doctor](doctor.md)
+- [doctor](doctor.md) | [unblock](unblock.md)

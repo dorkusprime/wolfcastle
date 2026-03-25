@@ -27,7 +27,7 @@ wolfcastle init                                            # scaffold .wolfcastl
 wolfcastle inbox add "Build a website for my donut stand"  # queue up work
 wolfcastle start                                           # the daemon wakes up
 
-# in another terminal, same directory::
+# in another terminal, same directory:
 wolfcastle status -w                                       # watch it work
 ```
 
@@ -51,7 +51,7 @@ wolfcastle inbox add "Build a website for my donut stand"  # queue up work
 wolfcastle status -w                                       # watch it work
 ```
 
-Feed it work through the [CLI](docs/humans/cli.md) or chat with your coding agent to hammer out the details and have it inject the work directly with a markdown file path. A detailed spec or PRD gets the most predictable results, but Wolfcastle takes vague directions too without getting lost in the wrong state like a second lieutenant. "Make the API faster" becomes specs, task trees, and acceptance criteria before any code gets written. The [daemon](docs/humans/how-it-works.md#the-daemon) takes it from there: triage, planning, execution, audit, commit. Serial, depth-first, until the [tree](docs/humans/how-it-works.md#the-project-tree) is conquered or something insurmountable gets in the way.
+Feed it work through the [CLI](docs/humans/cli.md) or chat with your coding agent to hammer out the details and have it inject the work directly with a markdown file path. A detailed spec or PRD gets the most predictable results, but Wolfcastle takes vague directions too without getting lost in the wrong state like a second lieutenant. "Make the API faster" becomes specs, task trees, and acceptance criteria before any code gets written. The [daemon](docs/humans/how-it-works.md#the-daemon) takes it from there: triage, planning, execution, audit, commit. Serial by default, depth-first, until the [tree](docs/humans/how-it-works.md#the-project-tree) is conquered or something insurmountable gets in the way. With [parallel execution](docs/decisions/095-parallel-sibling-execution.md) enabled, sibling tasks under the same orchestrator run concurrently with file-level scope locks preventing collisions.
 
 ## Why This Exists
 
@@ -125,7 +125,7 @@ Wolfcastle turns tokens into code. It uses a lot of them. Every planning pass, e
 
 ## More
 
-- [65 CLI commands](docs/humans/cli.md)
+- [74 CLI commands](docs/humans/cli.md)
 - [Architecture Decision Records](docs/decisions/INDEX.md) (95 and counting)
 - [Specifications](docs/specs/)
 - [Developer guides](docs/agents/)

@@ -22,7 +22,7 @@ Option 3. Task.RenderContext now takes no parameters. It renders the task ID alo
 The ContextBuilder in `internal/pipeline/context.go` retains its own inline rendering that composes the full address and handles per-task `.md` reads. Over time, ContextBuilder will be refactored to delegate to the domain RenderContext methods, but that migration is a separate concern.
 
 ## Consequences
-- The `state` package no longer imports `path/filepath`. Its only remaining `os` usage is for reference file inlining, which operates on absolute paths stored in the task's References field.
+- The `state` package retains `path/filepath` and `os` only for reference file inlining, which validates and reads absolute paths stored in the task's References field. The nodeDir-dependent usage of `path/filepath` was removed.
 - Tests for Task.RenderContext no longer need temporary directories or real files for the nodeDir/.md reading path. Three such tests were removed in the refactoring commit.
-- NodeState.RenderContext and AuditState.RenderContext follow the same parameterless pattern, giving all three domain render methods a consistent shape.
+- AuditState.RenderContext follows the same parameterless pattern. NodeState.RenderContext retains a `taskID` parameter for future use (see ADR-079).
 - The pipeline's `buildIterationContext` still duplicates some rendering logic. Consolidation (having the pipeline call the domain methods and layer on its own concerns) is a planned follow-up, not part of this decision.

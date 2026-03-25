@@ -56,6 +56,8 @@ These commands skip config loading in `PersistentPreRunE`: `init`, `version`, `h
 | `update` | Update the CLI |
 | `navigate` | Navigate to a node directory |
 | `doctor` | Diagnose and repair broken state |
+| `execute` | Run the execution loop with live interleaved output |
+| `intake` | Process inbox items with live interleaved output |
 | `unblock` | Unblock a blocked task interactively |
 | `install skill` | Install the Claude Code skill for Wolfcastle interaction |
 
@@ -115,6 +117,7 @@ Registered at root level (not grouped under a parent):
 | `unset` | Remove a configuration value from the local tier |
 | `append` | Append to a configuration list value |
 | `remove` | Remove an item from a configuration list |
+| `validate` | Validate the configuration files |
 
 ### inbox
 

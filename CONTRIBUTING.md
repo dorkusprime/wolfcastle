@@ -2,7 +2,7 @@
 
 ## Package Structure
 
-Wolfcastle is a Go CLI with 18 internal packages. Here's the map:
+Wolfcastle is a Go CLI with 20 internal packages. Here's the map:
 
 | Package | What it does |
 |---------|-------------|
@@ -11,7 +11,7 @@ Wolfcastle is a Go CLI with 18 internal packages. Here's the map:
 | `internal/pipeline` | Prompt assembly, fragment resolution, script reference filtering |
 | `internal/invoke` | Model CLI subprocess execution, marker detection, terminal restoration |
 | `internal/config` | Three-tier config loading, deep merge, validation |
-| `internal/validate` | Structural validation engine: 25 validation categories, multi-pass deterministic repair, JSON recovery |
+| `internal/validate` | Structural validation engine: 28 validation categories, multi-pass deterministic repair, JSON recovery |
 | `internal/tree` | Address parsing, slug validation, filesystem path resolution |
 | `internal/logging` | Per-iteration NDJSON log files, rotation, retention |
 | `internal/output` | JSON envelope formatting, PrintHuman, spinner animation |
@@ -21,11 +21,13 @@ Wolfcastle is a Go CLI with 18 internal packages. Here's the map:
 | `internal/clock` | Time abstraction for deterministic testing |
 | `internal/selfupdate` | Binary self-update mechanism |
 | `internal/git` | Git operations behind a Provider interface for real repositories or test stubs |
+| `internal/knowledge` | Per-namespace codebase knowledge files (add, show, edit, prune, token budget) |
+| `internal/logrender` | Log record rendering (summaries, thoughts, session views) |
 | `internal/signals` | Canonical OS signal set (SIGINT, SIGTERM, SIGTSTP) for graceful shutdown |
 | `internal/tierfs` | Three-tier file resolution (base < custom < local) and tier name registry |
 | `internal/testutil` | Shared test helpers |
 
-The `cmd/` directory mirrors the CLI surface: `cmd/daemon/` (start, stop, log, status), `cmd/task/` (add, claim, complete, block, unblock, deliverable), `cmd/audit/` (breadcrumb, gap, scope, summary, etc.), `cmd/config/` (show, set, unset, append, remove), `cmd/orchestrator/`, `cmd/inbox/`, `cmd/project/`. Shared command utilities live in `cmd/cmdutil/`.
+The `cmd/` directory mirrors the CLI surface: `cmd/daemon/` (start, stop, log, status), `cmd/task/` (add, claim, complete, block, unblock, deliverable, scope), `cmd/audit/` (breadcrumb, gap, scope, summary, etc.), `cmd/config/` (show, set, unset, append, remove, validate), `cmd/orchestrator/`, `cmd/inbox/`, `cmd/project/`, `cmd/knowledge/` (add, show, edit, prune). Shared command utilities live in `cmd/cmdutil/`.
 
 ## Adding a CLI Command
 
@@ -83,6 +85,7 @@ graph TD
         cmdinbox[cmd/inbox]
         cmdproject[cmd/project]
         cmdorch[cmd/orchestrator]
+        cmdknow[cmd/knowledge]
     end
 
     subgraph Domain["Domain packages"]
@@ -91,6 +94,7 @@ graph TD
         validate[validate]
         archive[archive]
         project[project]
+        knowledge[knowledge]
     end
 
     subgraph Core["Core packages"]
@@ -107,6 +111,7 @@ graph TD
         git[git]
         output[output]
         logging[logging]
+        logrender[logrender]
         signals[signals]
     end
 
@@ -118,6 +123,7 @@ graph TD
     cmdinbox --> cmdutil
     cmdproject --> cmdutil
     cmdorch --> cmdutil
+    cmdknow --> cmdutil
 
     cmdutil --> daemon
     cmdutil --> state
@@ -160,4 +166,4 @@ graph TD
 
 Dependencies flow strictly downward. Domain packages orchestrate core packages. Core packages depend only on each other and on leaf packages. Leaf packages have no internal dependencies.
 
-79 ADRs document every major design decision. Read `docs/decisions/INDEX.md` before making architectural changes. If your change introduces a new pattern or reverses an existing decision, write an ADR.
+95 ADRs document every major design decision. Read `docs/decisions/INDEX.md` before making architectural changes. If your change introduces a new pattern or reverses an existing decision, write an ADR.
