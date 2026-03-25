@@ -464,6 +464,26 @@ wolfcastle navigate
 wolfcastle navigate --node my-project
 ` + "```" + `
 
+### wolfcastle describe
+
+Show the full state of a single node: type, status, tasks, audit state, breadcrumbs, gaps, escalations, AARs, specs, and planning history. Read-only.
+
+` + "```" + `
+wolfcastle describe <address> [--json]
+wolfcastle describe --node <address> [--json]
+` + "```" + `
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| ` + "`--node`" + ` | No | Node address (alternative to positional argument) |
+| ` + "`--json`" + ` | No | Output as structured JSON envelope |
+
+**Example:**
+` + "```" + `
+wolfcastle describe api/health
+wolfcastle describe --node api/health --json
+` + "```" + `
+
 ---
 
 ## Spec Commands

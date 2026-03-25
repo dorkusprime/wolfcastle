@@ -55,6 +55,7 @@ These commands skip config loading in `PersistentPreRunE`: `init`, `version`, `h
 | `version` | Display version information |
 | `update` | Update the CLI |
 | `navigate` | Navigate to a node directory |
+| `describe` | Show full detail for a single node (state, tasks, audit, AARs, specs, planning) |
 | `doctor` | Diagnose and repair broken state |
 | `execute` | Run the execution loop with live interleaved output |
 | `intake` | Process inbox items with live interleaved output |

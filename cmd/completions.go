@@ -21,4 +21,7 @@ func init() {
 	_ = archiveAddCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 	_ = archiveDeleteCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 	_ = archiveRestoreCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
+
+	// Describe command --node flag completion
+	_ = describeCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 }

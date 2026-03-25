@@ -20,7 +20,7 @@ See the [CLI Reference](../cli.md) for the command table organized by category, 
 
 ### Project Tree
 
-- [project create](project-create.md) | [navigate](navigate.md) | [orchestrator criteria](orchestrator-criteria.md)
+- [project create](project-create.md) | [navigate](navigate.md) | [describe](describe.md) | [orchestrator criteria](orchestrator-criteria.md)
 
 ### Tasks
 
