@@ -117,7 +117,7 @@ func TestFindParallelTasks(t *testing.T) {
 			wantTasks: []string{"task-0001", "task-0001"},
 		},
 		{
-			name: "in_progress sibling is skipped not stopped",
+			name: "in_progress sibling is entered not stopped",
 			idx: func() *RootIndex {
 				idx := NewRootIndex()
 				idx.Root = []string{"p"}
@@ -136,6 +136,12 @@ func TestFindParallelTasks(t *testing.T) {
 					ns.Tasks = []Task{{ID: "task-0001", Description: "a", State: StatusNotStarted}}
 					return ns
 				}(),
+				"p/b": func() *NodeState {
+					ns := NewNodeState("p/b", "B", NodeLeaf)
+					ns.State = StatusInProgress
+					ns.Tasks = []Task{{ID: "task-0001", Description: "b", State: StatusInProgress}}
+					return ns
+				}(),
 				"p/c": func() *NodeState {
 					ns := NewNodeState("p/c", "C", NodeLeaf)
 					ns.Tasks = []Task{{ID: "task-0001", Description: "c", State: StatusNotStarted}}
@@ -143,8 +149,8 @@ func TestFindParallelTasks(t *testing.T) {
 				}(),
 			},
 			maxCount:  5,
-			wantAddrs: []string{"p/a", "p/c"},
-			wantTasks: []string{"task-0001", "task-0001"},
+			wantAddrs: []string{"p/a", "p/b", "p/c"},
+			wantTasks: []string{"task-0001", "task-0001", "task-0001"},
 		},
 		{
 			name: "unplanned orchestrator stops scanning of later siblings",

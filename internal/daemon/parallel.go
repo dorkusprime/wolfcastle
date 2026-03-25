@@ -382,6 +382,14 @@ func (pd *ParallelDispatcher) fillSlots(ctx context.Context, idx *state.RootInde
 	for _, nav := range tasks {
 		taskAddr := nav.NodeAddress + "/" + nav.TaskID
 
+		// Skip tasks already running in the pool.
+		pd.mu.Lock()
+		_, alreadyActive := pd.active[taskAddr]
+		pd.mu.Unlock()
+		if alreadyActive {
+			continue
+		}
+
 		// Skip tasks whose blocker is still running.
 		if pd.isBlocked(taskAddr) {
 			continue

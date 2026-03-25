@@ -325,11 +325,12 @@ func FindParallelTasks(
 			break
 		}
 
-		// Skip in-progress siblings (already claimed by another worker).
-		if childEntry.State == StatusInProgress {
-			continue
-		}
-
+		// In-progress siblings may have a worker running on them, or they
+		// may be between tasks (e.g., task-0001 complete, audit not_started).
+		// Instead of skipping them wholesale, call findActionableTask to
+		// check for available work. If it finds an in_progress task, that
+		// task is already claimed; if it finds a not_started task, that's
+		// genuinely dispatchable parallel work.
 		result, loadErr := findActionableTask(childAddr, loadNode)
 		if loadErr != nil {
 			return nil, loadErr
