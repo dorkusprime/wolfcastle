@@ -35,15 +35,51 @@ func TestFindNextTask_ScopeBlocked(t *testing.T) {
 		State: StatusBlocked,
 	}
 
-	result, err := FindNextTask(idx, "leaf-a", makeLoadNode(nil))
+	// Blocked scope with only blocked tasks: no actionable work.
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "task-0001", Description: "stuck", State: StatusBlocked},
+	}
+
+	result, err := FindNextTask(idx, "leaf-a", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if result.Found {
-		t.Error("expected not found for blocked scope")
+		t.Error("expected not found for blocked scope without remediation work")
 	}
-	if result.Reason != "scoped node is blocked" {
-		t.Errorf("expected 'scoped node is blocked', got %q", result.Reason)
+}
+
+func TestFindNextTask_ScopeBlockedWithRemediation(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["leaf-a"] = IndexEntry{
+		Name:  "Leaf A",
+		Type:  NodeLeaf,
+		State: StatusBlocked,
+	}
+
+	// Blocked scope with remediation subtasks should find work.
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "task-0001", Description: "done", State: StatusComplete},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+		{ID: "audit.0001", Description: "fix gap", State: StatusNotStarted},
+	}
+
+	result, err := FindNextTask(idx, "leaf-a", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Found {
+		t.Fatal("expected to find remediation task in blocked scoped node")
+	}
+	if result.TaskID != "audit.0001" {
+		t.Errorf("expected audit.0001, got %s", result.TaskID)
 	}
 }
 
@@ -97,7 +133,20 @@ func TestFindNextTask_AllBlocked(t *testing.T) {
 		State: StatusBlocked,
 	}
 
-	result, err := FindNextTask(idx, "", makeLoadNode(nil))
+	// All blocked with only blocked tasks: no actionable work anywhere.
+	leafA := NewNodeState("leaf-a", "Leaf A", NodeLeaf)
+	leafA.Tasks = []Task{
+		{ID: "task-0001", Description: "stuck", State: StatusBlocked},
+	}
+	leafB := NewNodeState("leaf-b", "Leaf B", NodeLeaf)
+	leafB.Tasks = []Task{
+		{ID: "task-0001", Description: "stuck", State: StatusBlocked},
+	}
+
+	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
+		"leaf-a": leafA,
+		"leaf-b": leafB,
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}

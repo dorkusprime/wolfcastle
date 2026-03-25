@@ -228,6 +228,11 @@ func TestFindParallelTasks(t *testing.T) {
 				return idx
 			}(),
 			nodes: map[string]*NodeState{
+				"p/stuck": func() *NodeState {
+					ns := NewNodeState("p/stuck", "Stuck", NodeLeaf)
+					ns.Tasks = []Task{{ID: "task-0001", Description: "stuck", State: StatusBlocked}}
+					return ns
+				}(),
 				"p/ready": func() *NodeState {
 					ns := NewNodeState("p/ready", "Ready", NodeLeaf)
 					ns.Tasks = []Task{{ID: "task-0001", Description: "go", State: StatusNotStarted}}

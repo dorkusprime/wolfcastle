@@ -284,6 +284,9 @@ func (d *Daemon) selfHeal() error {
 					// Re-index after append may have reallocated the slice.
 					ns.Tasks[i].State = state.StatusNotStarted
 					ns.Tasks[i].BlockedReason = ""
+					// The node itself must transition to in_progress so navigation
+					// can enter it and reach the new remediation subtasks.
+					ns.State = state.StatusInProgress
 					output.PrintHuman("  Created %d remediation subtask(s) for %s/%s", subCount, addr, ns.Tasks[i].ID)
 					changed = true
 					healed += subCount
@@ -297,6 +300,20 @@ func (d *Daemon) selfHeal() error {
 		})
 		if mutErr != nil && mutErr != errNoChange {
 			output.PrintHuman("  Warning: could not save %s: %v", addr, mutErr)
+		}
+
+		// If the node was healed and its state changed, update the root
+		// index so navigation sees the new state immediately. Without
+		// this, a node that was blocked (with remediation subtasks now
+		// created) stays blocked in the index and dfs() skips it.
+		if mutErr == nil {
+			if updatedNS, readErr := d.Store.ReadNode(addr); readErr == nil {
+				if e, ok := idx.Nodes[addr]; ok && e.State != updatedNS.State {
+					e.State = updatedNS.State
+					idx.Nodes[addr] = e
+					_ = d.propagateState(addr, updatedNS.State, idx)
+				}
+			}
 		}
 	}
 

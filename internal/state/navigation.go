@@ -28,9 +28,8 @@ func FindNextTask(idx *RootIndex, scopeAddr string, loadNode func(addr string) (
 		if entry.State == StatusComplete {
 			return &NavigationResult{Reason: "scoped node is complete"}, nil
 		}
-		if entry.State == StatusBlocked {
-			return &NavigationResult{Reason: "scoped node is blocked"}, nil
-		}
+		// Don't early-return for blocked scope nodes: a blocked node may
+		// contain actionable remediation subtasks. Let dfs() inspect it.
 		roots = []string{scopeAddr}
 	} else {
 		// Use Root array for deterministic O(1) root discovery
@@ -78,8 +77,24 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 		return nil, nil
 	}
 
-	// Skip complete or blocked nodes
-	if entry.State == StatusComplete || entry.State == StatusBlocked {
+	// Skip complete nodes unconditionally.
+	if entry.State == StatusComplete {
+		return nil, nil
+	}
+
+	// Blocked nodes are normally skipped, but a blocked leaf may contain
+	// remediation subtasks (children of a blocked audit) that are
+	// actionable. Check for work before giving up. This is a
+	// defense-in-depth measure: selfHeal should update the index state,
+	// but if the index is stale, navigation still finds the work.
+	if entry.State == StatusBlocked {
+		result, err := findActionableTask(addr, loadNode)
+		if err != nil {
+			return nil, err
+		}
+		if result != nil && result.Found {
+			return result, nil
+		}
 		return nil, nil
 	}
 
@@ -92,7 +107,22 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 			if !childOk {
 				continue
 			}
-			if childEntry.State == StatusComplete || childEntry.State == StatusBlocked {
+			if childEntry.State == StatusComplete {
+				continue
+			}
+			// Blocked children normally get skipped (allowing later
+			// siblings to proceed), but they may contain actionable
+			// remediation subtasks. Check for work first.
+			if childEntry.State == StatusBlocked {
+				result, err := dfs(idx, childAddr, loadNode)
+				if err != nil {
+					return nil, err
+				}
+				if result != nil && result.Found {
+					return result, nil
+				}
+				// No remediation work; skip this blocked child and
+				// let later siblings proceed.
 				continue
 			}
 			// If this child is an orchestrator that needs planning (no
@@ -284,8 +314,9 @@ func FindParallelTasks(
 			continue
 		}
 
-		// Skip complete or blocked siblings.
-		if childEntry.State == StatusComplete || childEntry.State == StatusBlocked {
+		// Skip complete siblings. Blocked siblings may have remediation
+		// work, so fall through to findActionableTask for them.
+		if childEntry.State == StatusComplete {
 			continue
 		}
 
