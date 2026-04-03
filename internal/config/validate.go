@@ -149,6 +149,12 @@ func ValidateStructure(cfg *Config) error {
 		errs = append(errs, fmt.Sprintf("knowledge.max_tokens (%d) must be >= 1", cfg.Knowledge.MaxTokens))
 	}
 
+	// Audit require_tests must be a valid mode
+	validRequireTests := map[string]bool{"block": true, "warn": true, "skip": true, "": true}
+	if !validRequireTests[cfg.Audit.RequireTests] {
+		errs = append(errs, fmt.Sprintf("audit.require_tests %q must be one of: block, warn, skip", cfg.Audit.RequireTests))
+	}
+
 	// Model definitions must have a command
 	for name, model := range cfg.Models {
 		if model.Command == "" {

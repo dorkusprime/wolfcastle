@@ -43,6 +43,16 @@ Run the project's build and test commands. Look for whatever build system the pr
 - No formatting violations (run the project's formatter; fix and commit if needed)
 - Static analysis clean (run the linter if configured; new warnings from this node's work are findings)
 
+**If tests cannot run due to environment issues (missing dependencies, private registries, unavailable tools):**
+
+Check the project configuration for `require_tests`. If it is set to `"warn"` or `"skip"`, note the limitation in a breadcrumb and continue. If it is `"block"` or not set, you MUST file a gap:
+
+    wolfcastle audit gap --node {node} "test environment not functional: {describe the specific error}"
+
+Then emit WOLFCASTLE_BLOCKED. An audit that cannot verify test results must not pass.
+
+A code-review-only audit is categorically weaker than a test-verified audit. AST parsing and structural review cannot catch cross-module wiring gaps, import-time side effects, or runtime type mismatches. Do not substitute code review for test execution.
+
 ### Correctness
 
 For each file this node changed:

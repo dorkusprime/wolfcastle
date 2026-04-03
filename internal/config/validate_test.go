@@ -35,6 +35,39 @@ func TestValidation_ParallelMaxWorkers(t *testing.T) {
 	}
 }
 
+func TestValidation_AuditRequireTests(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		{name: "block passes", value: "block", wantErr: false},
+		{name: "warn passes", value: "warn", wantErr: false},
+		{name: "skip passes", value: "skip", wantErr: false},
+		{name: "empty passes", value: "", wantErr: false},
+		{name: "invalid fails", value: "ignore", wantErr: true},
+		{name: "typo fails", value: "Block", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := Defaults()
+			cfg.Audit.RequireTests = tt.value
+
+			err := ValidateStructure(cfg)
+			if tt.wantErr && err == nil {
+				t.Errorf("expected error for require_tests=%q", tt.value)
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("expected no error for require_tests=%q, got: %v", tt.value, err)
+			}
+		})
+	}
+}
+
 func TestDeepMerge_ParallelConfig(t *testing.T) {
 	t.Parallel()
 

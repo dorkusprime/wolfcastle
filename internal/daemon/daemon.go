@@ -257,16 +257,17 @@ func (d *Daemon) selfHeal() error {
 				// so start numbering at 1.
 				nextNum := 1
 				subCount := 0
-				for _, g := range ns.Audit.Gaps {
-					if g.Status != state.GapOpen {
+				for gi := range ns.Audit.Gaps {
+					if ns.Audit.Gaps[gi].Status != state.GapOpen {
 						continue
 					}
 					childID := fmt.Sprintf("%s.%04d", t.ID, nextNum)
 					ns.Tasks = append(ns.Tasks, state.Task{
 						ID:          childID,
-						Description: fmt.Sprintf("Fix: %s\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node %s %s", g.Description, addr, g.ID),
+						Description: fmt.Sprintf("Fix: %s\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node %s %s", ns.Audit.Gaps[gi].Description, addr, ns.Audit.Gaps[gi].ID),
 						State:       state.StatusNotStarted,
 					})
+					ns.Audit.Gaps[gi].RemediationTaskID = childID
 					nextNum++
 					subCount++
 				}

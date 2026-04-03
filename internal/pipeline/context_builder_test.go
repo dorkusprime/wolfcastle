@@ -993,6 +993,106 @@ func TestContextBuilder_ParallelNilConfig_OmitsScopeSection(t *testing.T) {
 	}
 }
 
+func TestContextBuilder_RequireTests_IncludesPolicy(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	cfg := config.Defaults()
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "## Test Verification Policy") {
+		t.Error("missing test verification policy section")
+	}
+	if !strings.Contains(got, "**require_tests:** `block`") {
+		t.Error("missing require_tests value in context")
+	}
+}
+
+func TestContextBuilder_RequireTests_Warn(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	cfg := config.Defaults()
+	cfg.Audit.RequireTests = "warn"
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "**require_tests:** `warn`") {
+		t.Error("expected require_tests=warn in context")
+	}
+}
+
+func TestContextBuilder_RequireTests_OmittedWhenEmpty(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	cfg := config.Defaults()
+	cfg.Audit.RequireTests = ""
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "## Test Verification Policy") {
+		t.Error("test verification policy should be absent when require_tests is empty")
+	}
+}
+
+func TestContextBuilder_RequireTests_OmittedWhenNilConfig(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Description: "Work", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "## Test Verification Policy") {
+		t.Error("test verification policy should be absent when config is nil")
+	}
+}
+
 func TestContextBuilder_ParallelScopeSection_Ordering(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t).
