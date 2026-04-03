@@ -148,14 +148,15 @@ type Task struct {
 
 // AuditState tracks audit information for a node.
 type AuditState struct {
-	Scope         *AuditScope  `json:"scope,omitempty"`
-	Breadcrumbs   []Breadcrumb `json:"breadcrumbs"`
-	Gaps          []Gap        `json:"gaps"`
-	Escalations   []Escalation `json:"escalations"`
-	Status        AuditStatus  `json:"status"`
-	StartedAt     *time.Time   `json:"started_at,omitempty"`
-	CompletedAt   *time.Time   `json:"completed_at,omitempty"`
-	ResultSummary string       `json:"result_summary,omitempty"`
+	Scope            *AuditScope  `json:"scope,omitempty"`
+	Breadcrumbs      []Breadcrumb `json:"breadcrumbs"`
+	Gaps             []Gap        `json:"gaps"`
+	Escalations      []Escalation `json:"escalations"`
+	Status           AuditStatus  `json:"status"`
+	StartedAt        *time.Time   `json:"started_at,omitempty"`
+	CompletedAt      *time.Time   `json:"completed_at,omitempty"`
+	ResultSummary    string       `json:"result_summary,omitempty"`
+	TestVerification string       `json:"test_verification,omitempty"` // "passed", "failed", "skipped", "not_run"
 }
 
 // AuditScope defines what the audit must verify.
@@ -175,13 +176,14 @@ type Breadcrumb struct {
 
 // Gap represents an issue found during audit.
 type Gap struct {
-	ID          string     `json:"id"`
-	Timestamp   time.Time  `json:"timestamp"`
-	Description string     `json:"description"`
-	Source      string     `json:"source"`
-	Status      GapStatus  `json:"status"`
-	FixedBy     string     `json:"fixed_by,omitempty"`
-	FixedAt     *time.Time `json:"fixed_at,omitempty"`
+	ID                string     `json:"id"`
+	Timestamp         time.Time  `json:"timestamp"`
+	Description       string     `json:"description"`
+	Source            string     `json:"source"`
+	Status            GapStatus  `json:"status"`
+	FixedBy           string     `json:"fixed_by,omitempty"`
+	FixedAt           *time.Time `json:"fixed_at,omitempty"`
+	RemediationTaskID string     `json:"remediation_task_id,omitempty"`
 }
 
 // Escalation is a gap escalated to a parent node.

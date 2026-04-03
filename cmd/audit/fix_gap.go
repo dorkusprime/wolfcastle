@@ -2,6 +2,7 @@ package audit
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -31,19 +32,46 @@ Examples:
 			}
 
 			if err := app.State.MutateNode(nodeAddr, func(ns *state.NodeState) error {
+				// Find and fix the gap.
+				gapIdx := -1
 				for i := range ns.Audit.Gaps {
 					if ns.Audit.Gaps[i].ID == gapID {
-						if ns.Audit.Gaps[i].Status == state.GapFixed {
-							return fmt.Errorf("gap %s is already fixed", gapID)
-						}
-						ns.Audit.Gaps[i].Status = state.GapFixed
-						ns.Audit.Gaps[i].FixedBy = nodeAddr
-						now := app.Clock.Now()
-						ns.Audit.Gaps[i].FixedAt = &now
-						return nil
+						gapIdx = i
+						break
 					}
 				}
-				return fmt.Errorf("gap %s not found in %s", gapID, nodeAddr)
+				if gapIdx < 0 {
+					return fmt.Errorf("gap %s not found in %s", gapID, nodeAddr)
+				}
+				if ns.Audit.Gaps[gapIdx].Status == state.GapFixed {
+					return fmt.Errorf("gap %s is already fixed", gapID)
+				}
+				ns.Audit.Gaps[gapIdx].Status = state.GapFixed
+				ns.Audit.Gaps[gapIdx].FixedBy = nodeAddr
+				now := app.Clock.Now()
+				ns.Audit.Gaps[gapIdx].FixedAt = &now
+
+				// Complete the corresponding remediation task.
+				remTaskID := ns.Audit.Gaps[gapIdx].RemediationTaskID
+				if remTaskID == "" {
+					// Backward compat: scan task descriptions for gap ID.
+					remTaskID = findRemediationTaskByDescription(ns, gapID)
+				}
+				if remTaskID != "" {
+					completeRemediationTask(ns, remTaskID)
+				}
+
+				// Sync audit lifecycle and derive audit task state.
+				state.SyncAuditLifecycle(ns, app.Clock)
+				syncAuditTaskState(ns)
+
+				// If all gaps are fixed and the node was blocked, transition
+				// to in_progress so the daemon can re-enter it.
+				if ns.State == state.StatusBlocked && !hasOpenGaps(ns) {
+					ns.State = state.StatusInProgress
+				}
+
+				return nil
 			}); err != nil {
 				return err
 			}
@@ -63,4 +91,53 @@ Examples:
 	cmd.Flags().String("node", "", "Target node address (required)")
 	_ = cmd.MarkFlagRequired("node")
 	return cmd
+}
+
+// findRemediationTaskByDescription scans task descriptions for a gap ID
+// as a fallback when RemediationTaskID is not set (pre-existing gaps).
+func findRemediationTaskByDescription(ns *state.NodeState, gapID string) string {
+	for _, t := range ns.Tasks {
+		if strings.Contains(t.Description, "wolfcastle audit fix-gap") && strings.HasSuffix(strings.TrimSpace(t.Description), gapID) {
+			return t.ID
+		}
+	}
+	return ""
+}
+
+// completeRemediationTask force-completes a remediation task regardless
+// of its current state (not_started, in_progress, or blocked).
+func completeRemediationTask(ns *state.NodeState, taskID string) {
+	for i := range ns.Tasks {
+		if ns.Tasks[i].ID == taskID && ns.Tasks[i].State != state.StatusComplete {
+			ns.Tasks[i].State = state.StatusComplete
+			ns.Tasks[i].BlockedReason = ""
+			return
+		}
+	}
+}
+
+// syncAuditTaskState re-derives the audit task status from its children.
+// When all remediation subtasks are complete, the audit task resets to
+// not_started so it can be re-verified.
+func syncAuditTaskState(ns *state.NodeState) {
+	for i := range ns.Tasks {
+		if !ns.Tasks[i].IsAudit {
+			continue
+		}
+		derived, hasChildren := state.DeriveParentStatus(ns, ns.Tasks[i].ID)
+		if hasChildren && derived != ns.Tasks[i].State {
+			ns.Tasks[i].State = derived
+			ns.Tasks[i].BlockedReason = ""
+		}
+	}
+}
+
+// hasOpenGaps returns true if any gap in the node has status "open".
+func hasOpenGaps(ns *state.NodeState) bool {
+	for _, g := range ns.Audit.Gaps {
+		if g.Status == state.GapOpen {
+			return true
+		}
+	}
+	return false
 }
