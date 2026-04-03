@@ -16,6 +16,26 @@ The audit task reviews all breadcrumbs against the leaf's defined criteria:
 - Are there gaps between what was planned and what was done?
 - Do the validation results confirm the work?
 
+### Test Verification
+
+Audits verify test execution by default. The `require_tests` config field controls enforcement:
+
+| Value | Behavior |
+|-------|----------|
+| `"block"` (default) | Audit must run tests. If the test environment is broken (missing deps, private registries), the audit files a gap and blocks. |
+| `"warn"` | Audit notes the test limitation in a breadcrumb but may still pass. |
+| `"skip"` | Test verification is optional. |
+
+Set this in your `config.json`:
+
+```json
+{
+  "audit": {
+    "require_tests": "warn"
+  }
+}
+```
+
 ### Gap Escalation
 
 If the audit finds gaps it cannot resolve locally, it escalates them upward to the parent [orchestrator](how-it-works.md#the-project-tree) via `wolfcastle audit escalate`. The parent's audit scope now includes cross-cutting verification of those gaps. Escalation can propagate all the way to the root if necessary.

@@ -169,6 +169,12 @@ func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeS
 		b.WriteString("with the conflicting address.\n")
 	}
 
+	// 4e. Audit test verification policy
+	if cfg != nil && cfg.Audit.RequireTests != "" {
+		fmt.Fprintf(&b, "\n## Test Verification Policy\n\n")
+		fmt.Fprintf(&b, "**require_tests:** `%s`\n", cfg.Audit.RequireTests)
+	}
+
 	// 5. Prior task AARs
 	b.WriteString(state.RenderAARs(ns.AARs))
 

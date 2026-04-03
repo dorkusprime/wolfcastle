@@ -694,6 +694,22 @@ Configures the codebase audit command (see ADR-029). The `wolfcastle audit` comm
 - **Default:** `"audits/audit.md"`
 - **Description:** Prompt template for the audit command, resolved through the three-tier prompt system.
 
+### audit.require_tests
+
+- **Type:** `string`
+- **Default:** `"block"`
+- **Description:** Controls whether test execution is mandatory during audits. When set to `"block"`, audits that cannot run tests (due to missing dependencies, private registries, or unavailable tools) must file a gap and block. When set to `"warn"`, the audit notes the limitation but may still pass. When set to `"skip"`, test verification is optional.
+
+Valid values: `"block"`, `"warn"`, `"skip"`.
+
+```json
+{
+  "audit": {
+    "require_tests": "warn"
+  }
+}
+```
+
 ---
 
 ## archive

@@ -187,8 +187,9 @@ type UnblockConfig struct {
 
 // AuditCommandConfig configures the codebase audit command (ADR-029).
 type AuditCommandConfig struct {
-	Model      string `json:"model"`
-	PromptFile string `json:"prompt_file"`
+	Model        string `json:"model"`
+	PromptFile   string `json:"prompt_file"`
+	RequireTests string `json:"require_tests,omitempty"` // "block" (default), "warn", "skip"
 }
 
 // ArchiveConfig controls automatic archival of completed project trees.

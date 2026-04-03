@@ -123,8 +123,9 @@ func Defaults() *Config {
 			PromptFile: "unblock.md",
 		},
 		Audit: AuditCommandConfig{
-			Model:      "heavy",
-			PromptFile: "audits/audit.md",
+			Model:        "heavy",
+			PromptFile:   "audits/audit.md",
+			RequireTests: "block",
 		},
 		Knowledge: KnowledgeConfig{
 			MaxTokens: 2000,

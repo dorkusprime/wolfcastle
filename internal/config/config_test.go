@@ -711,6 +711,14 @@ func TestDefaults_KnowledgeMaxTokens(t *testing.T) {
 	}
 }
 
+func TestDefaults_AuditRequireTests(t *testing.T) {
+	t.Parallel()
+	cfg := Defaults()
+	if cfg.Audit.RequireTests != "block" {
+		t.Errorf("expected audit.require_tests=%q, got %q", "block", cfg.Audit.RequireTests)
+	}
+}
+
 func TestDefaults_ParallelConfig(t *testing.T) {
 	t.Parallel()
 	cfg := Defaults()
