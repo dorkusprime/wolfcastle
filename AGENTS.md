@@ -41,7 +41,7 @@ Entries should be concrete, durable, and non-obvious. "The config loader silentl
 
 ## Design References
 
-- [Architecture Decision Records](docs/decisions/INDEX.md) (95 ADRs) document every major design choice. Consult these before making architectural decisions.
+- [Architecture Decision Records](docs/decisions/INDEX.md) (96 ADRs) document every major design choice. Consult these before making architectural decisions.
 - [Specifications](docs/specs/) (44 specs) describe the current system in detail. Consult these before modifying behavior.
 - [Full documentation hub](docs/)
 
