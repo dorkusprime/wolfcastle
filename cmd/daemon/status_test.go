@@ -1381,3 +1381,35 @@ func TestStatus_NoScopeLines_WhenNoLocks(t *testing.T) {
 		t.Errorf("scope: line should not appear when no locks exist, got:\n%s", out)
 	}
 }
+
+func TestShowTreeStatus_TruncatesLongTaskTitle(t *testing.T) {
+	env := newStatusTestEnv(t)
+
+	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
+	ns := state.NewNodeState("my-project", "My Project", state.NodeLeaf)
+	ns.State = state.StatusInProgress
+	longTitle := "This is an extremely long task title that goes well beyond any reasonable terminal width and should definitely be truncated when displayed"
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Title: longTitle, Description: "Short desc", State: state.StatusInProgress},
+	}
+	nsData, _ := json.MarshalIndent(ns, "", "  ")
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), nsData, 0644)
+
+	idx, _ := state.LoadRootIndex(filepath.Join(env.ProjectsDir, "state.json"))
+	entry := idx.Nodes["my-project"]
+	entry.State = state.StatusInProgress
+	idx.Nodes["my-project"] = entry
+	idxData, _ := json.MarshalIndent(idx, "", "  ")
+	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), idxData, 0644)
+
+	out := captureStdout(t, func() {
+		_ = showTreeStatus(env.App, idx, "", treeOpts{Width: 40})
+	})
+
+	if !strings.Contains(out, "...") {
+		t.Errorf("expected truncated title with '...' indicator, got:\n%s", out)
+	}
+	if strings.Contains(out, longTitle) {
+		t.Errorf("full long title should not appear in output with narrow width, got:\n%s", out)
+	}
+}

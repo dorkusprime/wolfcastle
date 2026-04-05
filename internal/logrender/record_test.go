@@ -200,6 +200,108 @@ func TestStageLabel(t *testing.T) {
 	}
 }
 
+func TestParseRecord_NewFields(t *testing.T) {
+	line := `{"type":"daemon_lifecycle","timestamp":"2026-03-21T18:10:00Z","level":"info","event":"engaged","action":"start","iteration":3,"kind":"execute","reason":"inbox_changed","counter":7,"attempt":2,"delay_s":1.5,"scope":"project/auth"}`
+
+	r, err := ParseRecord(line)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if r.Event != "engaged" {
+		t.Errorf("Event = %q, want %q", r.Event, "engaged")
+	}
+	if r.Action != "start" {
+		t.Errorf("Action = %q, want %q", r.Action, "start")
+	}
+	if r.Iteration != 3 {
+		t.Errorf("Iteration = %d, want 3", r.Iteration)
+	}
+	if r.Kind != "execute" {
+		t.Errorf("Kind = %q, want %q", r.Kind, "execute")
+	}
+	if r.Reason != "inbox_changed" {
+		t.Errorf("Reason = %q, want %q", r.Reason, "inbox_changed")
+	}
+	if r.Counter != 7 {
+		t.Errorf("Counter = %d, want 7", r.Counter)
+	}
+	if r.Attempt != 2 {
+		t.Errorf("Attempt = %d, want 2", r.Attempt)
+	}
+	if r.DelayS != 1.5 {
+		t.Errorf("DelayS = %f, want 1.5", r.DelayS)
+	}
+	if r.Scope != "project/auth" {
+		t.Errorf("Scope = %q, want %q", r.Scope, "project/auth")
+	}
+}
+
+func TestParseRecord_OldFormatMissingNewFields(t *testing.T) {
+	// A record from before the new fields existed: none of the new fields are present.
+	line := `{"type":"stage_complete","timestamp":"2026-03-21T18:04:00Z","level":"info","stage":"execute","exit_code":0,"text":"done"}`
+
+	r, err := ParseRecord(line)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if r.Type != "stage_complete" {
+		t.Errorf("Type = %q, want %q", r.Type, "stage_complete")
+	}
+	// All new fields should be zero values.
+	if r.Event != "" {
+		t.Errorf("Event = %q, want empty", r.Event)
+	}
+	if r.Action != "" {
+		t.Errorf("Action = %q, want empty", r.Action)
+	}
+	if r.Iteration != 0 {
+		t.Errorf("Iteration = %d, want 0", r.Iteration)
+	}
+	if r.Kind != "" {
+		t.Errorf("Kind = %q, want empty", r.Kind)
+	}
+	if r.Reason != "" {
+		t.Errorf("Reason = %q, want empty", r.Reason)
+	}
+	if r.Counter != 0 {
+		t.Errorf("Counter = %d, want 0", r.Counter)
+	}
+	if r.Attempt != 0 {
+		t.Errorf("Attempt = %d, want 0", r.Attempt)
+	}
+	if r.DelayS != 0 {
+		t.Errorf("DelayS = %f, want 0", r.DelayS)
+	}
+	if r.Scope != "" {
+		t.Errorf("Scope = %q, want empty", r.Scope)
+	}
+}
+
+func TestParseRecord_UnknownTypeWithNewFields(t *testing.T) {
+	// A completely unknown type that also carries some of the new fields.
+	line := `{"type":"teleportation_event","timestamp":"2026-03-21T18:12:00Z","event":"warp","reason":"quantum_flux","extra":"ignored_by_struct"}`
+
+	r, err := ParseRecord(line)
+	if err != nil {
+		t.Fatalf("unknown type should not error: %v", err)
+	}
+	if r.Type != "teleportation_event" {
+		t.Errorf("Type = %q, want %q", r.Type, "teleportation_event")
+	}
+	if r.Event != "warp" {
+		t.Errorf("Event = %q, want %q", r.Event, "warp")
+	}
+	if r.Reason != "quantum_flux" {
+		t.Errorf("Reason = %q, want %q", r.Reason, "quantum_flux")
+	}
+	// The extra field should land in Raw, not cause an error.
+	if r.Raw["extra"] != "ignored_by_struct" {
+		t.Errorf("Raw[extra] = %v, want %q", r.Raw["extra"], "ignored_by_struct")
+	}
+}
+
 func TestParseRecord_RealWorldRecords(t *testing.T) {
 	// Records shaped like actual daemon output.
 	cases := []struct {

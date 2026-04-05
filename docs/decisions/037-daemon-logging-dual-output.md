@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-097](097-unified-log-output.md)
 
 ## Date
 

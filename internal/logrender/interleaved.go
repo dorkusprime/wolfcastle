@@ -95,6 +95,44 @@ func (ir *InterleavedRenderer) handleRecord(r Record, starts map[stageKey]time.T
 	case "audit_report_written":
 		_, _ = fmt.Fprintf(ir.w, "%s     report: %s\n",
 			formatTimestamp(r.Timestamp), r.Path)
+
+	case "daemon_lifecycle":
+		switch r.Event {
+		case "engaged":
+			_, _ = fmt.Fprintf(ir.w, "%s === Wolfcastle engaged (scope=%s) ===\n", formatTimestamp(r.Timestamp), r.Scope)
+		case "standing_down":
+			_, _ = fmt.Fprintf(ir.w, "%s === Wolfcastle standing down (%s) ===\n", formatTimestamp(r.Timestamp), r.Reason)
+		default:
+			_, _ = fmt.Fprintf(ir.w, "%s === %s ===\n", formatTimestamp(r.Timestamp), r.Text)
+		}
+
+	case "self_heal":
+		_, _ = fmt.Fprintf(ir.w, "%s   %s\n", formatTimestamp(r.Timestamp), r.Text)
+
+	case "iteration_header":
+		if r.Kind == "plan" {
+			_, _ = fmt.Fprintf(ir.w, "%s --- Planning %d: %s ---\n", formatTimestamp(r.Timestamp), r.Iteration, r.Text)
+		} else {
+			_, _ = fmt.Fprintf(ir.w, "%s --- Iteration %d: %s ---\n", formatTimestamp(r.Timestamp), r.Iteration, r.Text)
+		}
+
+	case "inbox_event":
+		_, _ = fmt.Fprintf(ir.w, "%s   %s\n", formatTimestamp(r.Timestamp), r.Text)
+
+	case "task_event":
+		_, _ = fmt.Fprintf(ir.w, "%s   %s\n", formatTimestamp(r.Timestamp), r.Text)
+
+	case "retry_event":
+		_, _ = fmt.Fprintf(ir.w, "%s   Attempt %d failed: %s. Retrying in %.0fs.\n", formatTimestamp(r.Timestamp), r.Attempt, r.Error, r.DelayS)
+
+	case "idle_reason":
+		_, _ = fmt.Fprintf(ir.w, "%s %s\n", formatTimestamp(r.Timestamp), r.Text)
+
+	case "archive_event":
+		_, _ = fmt.Fprintf(ir.w, "%s %s\n", formatTimestamp(r.Timestamp), r.Text)
+
+	case "spec_event", "knowledge_event", "config_warning", "git_event":
+		_, _ = fmt.Fprintf(ir.w, "%s   %s\n", formatTimestamp(r.Timestamp), r.Text)
 	}
 }
 

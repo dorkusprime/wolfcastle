@@ -14,7 +14,6 @@ import (
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
-	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -154,108 +153,10 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			invoke.MarkerStringBlocked, invoke.MarkerStringYield,
 		)
 		if marker == invoke.MarkerStringYield {
-			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringYield})
-
-			// Check for a scope-conflict suffix. When present, return a
-			// typed error so the parallel dispatcher can record the
-			// conflict and avoid immediately re-dispatching into it.
-			if kind, conflictAddr := scanYieldSuffix(result.Stdout); kind == yieldSuffixScopeConflict {
-				_ = d.Logger.Log(map[string]any{
-					"type":    "yield_scope_conflict",
-					"task":    nav.TaskID,
-					"blocker": conflictAddr,
-				})
-				return &ErrYieldScopeConflict{
-					Task:    nav.NodeAddress + "/" + nav.TaskID,
-					Blocker: conflictAddr,
-				}
-			}
-
-			// If the model created child tasks (hierarchical IDs like task-0001.0001),
-			// navigation handles them automatically via depth-first ordering.
-			// The parent task's status derives from its children.
-			//
-			// Legacy support: if the model created sibling tasks (flat IDs like
-			// task-0002) and the planning pipeline is disabled, fall back to the
-			// old block-parent behavior.
-			if !d.Config.Pipeline.Planning.Enabled {
-				if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-					newTasks := findNewTasks(preInvocationNS, updatedNS)
-					if len(newTasks) > 0 {
-						reason := "decomposed into subtasks: " + strings.Join(newTasks, ", ")
-						_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
-							return state.TaskBlock(ns2, nav.TaskID, reason)
-						})
-						_ = d.Logger.Log(map[string]any{
-							"type":      "yield_decomposition",
-							"task":      nav.TaskID,
-							"new_tasks": newTasks,
-						})
-					}
-				}
-			} else {
-				// With planning enabled, just log the yield. Navigation
-				// handles child task ordering via hierarchical IDs.
-				if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-					newTasks := findNewTasks(preInvocationNS, updatedNS)
-					if len(newTasks) > 0 {
-						_ = d.Logger.Log(map[string]any{
-							"type":      "yield_decomposition",
-							"task":      nav.TaskID,
-							"new_tasks": newTasks,
-						})
-					}
-				}
-			}
-			return nil
+			return d.handleYieldMarker(nav, result, preInvocationNS)
 		}
 		if marker == invoke.MarkerStringBlocked {
-			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringBlocked, "task": nav.TaskID})
-
-			// Check if the model blocked a task that's actually
-			// superseded. Superseded work should be SKIP, not BLOCKED.
-			// Treat it as complete so it doesn't poison node state.
-			if d.isSupersededBlock(nav.NodeAddress, nav.TaskID) {
-				_ = d.Logger.Log(map[string]any{"type": "superseded_to_skip", "task": nav.TaskID})
-				output.PrintHuman("  Superseded (treating as skip).")
-				if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
-					return state.TaskComplete(ns, nav.TaskID)
-				}); err != nil {
-					_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
-				}
-				return nil
-			}
-
-			// For audit tasks with gaps, create remediation subtasks
-			// instead of blocking. The subtasks fix each gap, and when
-			// they all complete, DeriveParentStatus resets the audit to
-			// not_started so it re-runs to verify the fixes.
-			if created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID); created > 0 {
-				_ = d.Logger.Log(map[string]any{"type": "audit_remediation", "task": nav.TaskID, "subtasks": created})
-				output.PrintHuman("  Audit: %d gap(s), remediating.", created)
-				return nil
-			}
-
-			// Spec review blocked: feed issues back to the original spec
-			// task so it can be revised. The review task stays blocked;
-			// the spec task resets to not_started for another pass.
-			if d.handleSpecReviewBlocked(nav.NodeAddress, nav.TaskID) {
-				return nil
-			}
-
-			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
-				return state.TaskBlock(ns, nav.TaskID, "blocked by model")
-			}); err != nil {
-				_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
-			}
-			// Check replanning triggers before propagation (see COMPLETE path).
-			d.checkReplanningTriggers(nav.NodeAddress, nav.TaskID, idx)
-			// Propagate blocked state so parent orchestrators can detect
-			// the block and trigger remediation planning.
-			if err := d.propagateState(nav.NodeAddress, state.StatusBlocked, idx); err != nil {
-				_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
-			}
-			return nil
+			return d.handleBlockedMarker(nav, idx)
 		}
 		if marker == invoke.MarkerStringSkip {
 			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringSkip, "task": nav.TaskID})
@@ -281,215 +182,347 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			return nil
 		}
 		if marker == invoke.MarkerStringComplete {
-			// Re-read state from disk since the model may have added
-			// deliverables via CLI during execution.
-			if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-				ns = updated
+			if d.handleCompleteMarker(nav, ns, idx, beforeHEAD) {
+				return nil
 			}
-
-			// Verify deliverables exist. Missing deliverables are a warning,
-			// not a completion failure. Git progress is the hard gate.
-			missing := checkDeliverables(d.RepoDir, ns, nav.TaskID)
-			if len(missing) > 0 {
-				_ = d.Logger.Log(map[string]any{
-					"type":    "deliverable_warning",
-					"task":    nav.TaskID,
-					"missing": missing,
-				})
-				output.PrintHuman("  Warning: declared deliverables missing: %v", missing)
-			}
-		}
-		if marker == invoke.MarkerStringComplete {
-			// Audit tasks skip the git progress check: their output is
-			// state mutations in .wolfcastle/system/, not code changes.
-			isAudit := false
-			for _, t := range ns.Tasks {
-				if t.ID == nav.TaskID {
-					isAudit = t.IsAudit
-					break
-				}
-			}
-			if !isAudit && !d.Git.HasProgress(beforeHEAD) {
-				_ = d.Logger.Log(map[string]any{
-					"type": "no_progress",
-					"task": nav.TaskID,
-				})
-				output.PrintHuman("  No changes detected. Failing task.")
-				marker = ""
-			}
-		}
-		if marker == invoke.MarkerStringComplete {
-			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringComplete})
-			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
-				return state.TaskComplete(ns, nav.TaskID)
-			}); err != nil {
-				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
-			}
-
-			// Guard: audit tasks must not complete while open gaps remain.
-			// If the model declares COMPLETE but unresolved gaps exist, undo
-			// the completion and create remediation subtasks instead.
-			if completedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-				isAuditTask := false
-				for _, t := range completedNS.Tasks {
-					if t.ID == nav.TaskID && t.IsAudit {
-						isAuditTask = true
-						break
-					}
-				}
-				if isAuditTask {
-					var hasOpenGaps bool
-					for _, g := range completedNS.Audit.Gaps {
-						if g.Status == state.GapOpen {
-							hasOpenGaps = true
-							break
-						}
-					}
-					if hasOpenGaps {
-						// Undo the completion: revert the task to not_started
-						// so remediation subtasks run first.
-						_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
-							for i := range ns2.Tasks {
-								if ns2.Tasks[i].ID == nav.TaskID {
-									ns2.Tasks[i].State = state.StatusNotStarted
-									break
-								}
-							}
-							return nil
-						})
-
-						created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID)
-						if created > 0 {
-							_ = d.Logger.Log(map[string]any{
-								"type":     "audit_complete_with_gaps",
-								"task":     nav.TaskID,
-								"subtasks": created,
-							})
-							output.PrintHuman("  Audit has %d open gap(s), creating remediation subtasks.", created)
-						} else {
-							// Edge case: open gaps exist but no subtasks created.
-							// Block the audit to prevent silent completion.
-							_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
-								return state.TaskBlock(ns2, nav.TaskID, "open gaps remain")
-							})
-							_ = d.Logger.Log(map[string]any{
-								"type": "audit_blocked_open_gaps",
-								"task": nav.TaskID,
-							})
-							output.PrintHuman("  Audit blocked: open gaps remain.")
-						}
-						// Commit the decomposition: audit gaps, remediation
-						// subtasks, and reverted audit state. This gives a
-						// clean revert point before remediation work starts.
-						// In parallel mode, drainCompleted handles commits
-						// under gitMu with scoped file lists.
-						if d.dispatcher == nil {
-							auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
-							commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta, nil)
-						}
-						return nil
-					}
-				}
-			}
-
-			// Generate audit report when an audit task completes.
-			d.maybeWriteAuditReport(nav.NodeAddress, nav.TaskID)
-
-			if !d.Config.Pipeline.Planning.Enabled {
-				d.autoCompleteDecomposedParents(nav.NodeAddress)
-			}
-			// Check replanning triggers BEFORE propagation. Propagation may
-			// mark the parent orchestrator complete, after which the planning
-			// DFS skips it. The trigger must be set while the parent is still
-			// in_progress so findPlanningTarget can find it.
-			d.checkReplanningTriggers(nav.NodeAddress, nav.TaskID, idx)
-
-			// Propagate completion up through parent orchestrators so their
-			// persisted state derives from children. MutateNode propagates
-			// internally, but re-propagating here updates the in-memory idx
-			// and guards against silent propagation failures in the store.
-			if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-				if err := d.propagateState(nav.NodeAddress, updatedNS.State, idx); err != nil {
-					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
-				}
-			}
-
-			// Commit after successful completion. In parallel mode,
-			// drainCompleted commits under gitMu with scoped file lists.
-			if d.dispatcher == nil {
-				commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID), nil)
-			}
-
-			return nil
+			// Fell through: COMPLETE was cleared by no-progress check.
+			// Fall through to failure path.
 		}
 
-		// Determine failure type for context injection on retry
-		failureType := "no_terminal_marker"
-		if scanTerminalMarker(result.Stdout) != "" {
-			// A marker was found but cleared by deliverable or progress check
-			failureType = "no_progress"
-		}
-
-		_ = d.Logger.Log(map[string]any{
-			"type":  failureType,
-			"empty": result.Stdout == "",
-			"task":  nav.TaskID,
-		})
-
-		var failCount int
-		mutErr := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
-			// Record the failure type for context injection on next retry
-			for i := range ns.Tasks {
-				if ns.Tasks[i].ID == nav.TaskID {
-					ns.Tasks[i].LastFailureType = failureType
-					break
-				}
-			}
-
-			var err error
-			failCount, err = state.IncrementFailure(ns, nav.TaskID)
-			if err != nil {
-				return err
-			}
-
-			if failCount >= d.Config.Failure.DecompositionThreshold && d.Config.Failure.DecompositionThreshold > 0 {
-				if ns.DecompositionDepth < d.Config.Failure.MaxDecompositionDepth {
-					_ = d.Logger.Log(map[string]any{"type": "decomposition_threshold", "task": nav.TaskID, "depth": ns.DecompositionDepth})
-					state.SetNeedsDecomposition(ns, nav.TaskID, true)
-				} else {
-					_ = d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "max_decomposition_depth"})
-					if blockErr := state.TaskBlock(ns, nav.TaskID, "auto-blocked: decomposition threshold reached at max depth"); blockErr != nil {
-						_ = d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
-					}
-				}
-			}
-
-			if failCount >= d.Config.Failure.HardCap && d.Config.Failure.HardCap > 0 {
-				_ = d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "hard_cap", "count": failCount})
-				if blockErr := state.TaskBlock(ns, nav.TaskID, fmt.Sprintf("auto-blocked: failure hard cap reached (%d)", failCount)); blockErr != nil {
-					_ = d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
-				}
-			}
-
-			return nil
-		})
-		if mutErr != nil {
-			_ = d.Logger.Log(map[string]any{"type": "failure_increment_error", "error": mutErr.Error()})
-		} else {
-			_ = d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
-		}
-
-		// Commit code + state after all failure mutations are applied.
-		// In parallel mode, drainCompleted commits under gitMu with
-		// scoped file lists, so skip the unscoped commit here.
-		if d.dispatcher == nil {
-			failMeta := extractTaskCommitMeta(ns, nav.TaskID)
-			failMeta.FailureType = failureType
-			commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta, nil)
-		}
+		d.handleFailure(nav, ns, result, marker)
 	}
 
 	return nil
+}
+
+// handleYieldMarker processes a WOLFCASTLE_YIELD terminal marker: checks for
+// scope-conflict suffixes, detects newly created subtasks, and handles legacy
+// block-parent decomposition when planning is disabled.
+func (d *Daemon) handleYieldMarker(nav *state.NavigationResult, result *invoke.Result, preInvocationNS *state.NodeState) error {
+	_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringYield})
+
+	// Check for a scope-conflict suffix. When present, return a
+	// typed error so the parallel dispatcher can record the
+	// conflict and avoid immediately re-dispatching into it.
+	if kind, conflictAddr := scanYieldSuffix(result.Stdout); kind == yieldSuffixScopeConflict {
+		_ = d.Logger.Log(map[string]any{
+			"type":    "yield_scope_conflict",
+			"task":    nav.TaskID,
+			"blocker": conflictAddr,
+		})
+		return &ErrYieldScopeConflict{
+			Task:    nav.NodeAddress + "/" + nav.TaskID,
+			Blocker: conflictAddr,
+		}
+	}
+
+	// If the model created child tasks (hierarchical IDs like task-0001.0001),
+	// navigation handles them automatically via depth-first ordering.
+	// The parent task's status derives from its children.
+	//
+	// Legacy support: if the model created sibling tasks (flat IDs like
+	// task-0002) and the planning pipeline is disabled, fall back to the
+	// old block-parent behavior.
+	if !d.Config.Pipeline.Planning.Enabled {
+		if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+			newTasks := findNewTasks(preInvocationNS, updatedNS)
+			if len(newTasks) > 0 {
+				reason := "decomposed into subtasks: " + strings.Join(newTasks, ", ")
+				_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
+					return state.TaskBlock(ns2, nav.TaskID, reason)
+				})
+				_ = d.Logger.Log(map[string]any{
+					"type":      "yield_decomposition",
+					"task":      nav.TaskID,
+					"new_tasks": newTasks,
+				})
+			}
+		}
+	} else {
+		// With planning enabled, just log the yield. Navigation
+		// handles child task ordering via hierarchical IDs.
+		if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+			newTasks := findNewTasks(preInvocationNS, updatedNS)
+			if len(newTasks) > 0 {
+				_ = d.Logger.Log(map[string]any{
+					"type":      "yield_decomposition",
+					"task":      nav.TaskID,
+					"new_tasks": newTasks,
+				})
+			}
+		}
+	}
+	return nil
+}
+
+// handleBlockedMarker processes a WOLFCASTLE_BLOCKED terminal marker: checks
+// for superseded tasks, creates remediation subtasks for audit gaps, handles
+// spec review feedback, and propagates blocked state up the tree.
+func (d *Daemon) handleBlockedMarker(nav *state.NavigationResult, idx *state.RootIndex) error {
+	_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringBlocked, "task": nav.TaskID})
+
+	// Check if the model blocked a task that's actually
+	// superseded. Superseded work should be SKIP, not BLOCKED.
+	// Treat it as complete so it doesn't poison node state.
+	if d.isSupersededBlock(nav.NodeAddress, nav.TaskID) {
+		_ = d.Logger.Log(map[string]any{"type": "superseded_to_skip", "task": nav.TaskID})
+		d.log(map[string]any{"type": "task_event", "action": "superseded", "task": nav.TaskID, "text": "Superseded (treating as skip)."})
+		if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+			return state.TaskComplete(ns, nav.TaskID)
+		}); err != nil {
+			_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+		}
+		return nil
+	}
+
+	// For audit tasks with gaps, create remediation subtasks
+	// instead of blocking. The subtasks fix each gap, and when
+	// they all complete, DeriveParentStatus resets the audit to
+	// not_started so it re-runs to verify the fixes.
+	if created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID); created > 0 {
+		_ = d.Logger.Log(map[string]any{"type": "audit_remediation", "task": nav.TaskID, "subtasks": created})
+		d.log(map[string]any{"type": "task_event", "action": "audit_remediation", "task": nav.TaskID, "text": fmt.Sprintf("Audit: %d gap(s), remediating.", created)})
+		return nil
+	}
+
+	// Spec review blocked: feed issues back to the original spec
+	// task so it can be revised. The review task stays blocked;
+	// the spec task resets to not_started for another pass.
+	if d.handleSpecReviewBlocked(nav.NodeAddress, nav.TaskID) {
+		return nil
+	}
+
+	if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+		return state.TaskBlock(ns, nav.TaskID, "blocked by model")
+	}); err != nil {
+		_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+	}
+	// Check replanning triggers before propagation (see COMPLETE path).
+	d.checkReplanningTriggers(nav.NodeAddress, nav.TaskID, idx)
+	// Propagate blocked state so parent orchestrators can detect
+	// the block and trigger remediation planning.
+	if err := d.propagateState(nav.NodeAddress, state.StatusBlocked, idx); err != nil {
+		_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+	}
+	return nil
+}
+
+// handleCompleteMarker processes a WOLFCASTLE_COMPLETE terminal marker:
+// checks deliverables, verifies git progress, completes the task, handles
+// audit gap guards, generates audit reports, triggers replanning, and
+// propagates completion state. Returns true if the task was actually
+// completed, false if COMPLETE was cleared (no git progress) and the
+// caller should fall through to the failure path.
+func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.NodeState, idx *state.RootIndex, beforeHEAD string) (completed bool) {
+	// Re-read state from disk since the model may have added
+	// deliverables via CLI during execution.
+	if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+		ns = updated
+	}
+
+	// Verify deliverables exist. Missing deliverables are a warning,
+	// not a completion failure. Git progress is the hard gate.
+	missing := checkDeliverables(d.RepoDir, ns, nav.TaskID)
+	if len(missing) > 0 {
+		_ = d.Logger.Log(map[string]any{
+			"type":    "deliverable_warning",
+			"task":    nav.TaskID,
+			"missing": missing,
+		})
+		d.log(map[string]any{"type": "task_event", "action": "deliverable_warning", "task": nav.TaskID, "text": fmt.Sprintf("Warning: declared deliverables missing: %v", missing)})
+	}
+
+	// Audit tasks skip the git progress check: their output is
+	// state mutations in .wolfcastle/system/, not code changes.
+	isAudit := false
+	for _, t := range ns.Tasks {
+		if t.ID == nav.TaskID {
+			isAudit = t.IsAudit
+			break
+		}
+	}
+	if !isAudit && !d.Git.HasProgress(beforeHEAD) {
+		_ = d.Logger.Log(map[string]any{
+			"type": "no_progress",
+			"task": nav.TaskID,
+		})
+		d.log(map[string]any{"type": "task_event", "action": "no_progress", "task": nav.TaskID, "text": "No changes detected. Failing task."})
+		return false
+	}
+
+	_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringComplete})
+	if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+		return state.TaskComplete(ns, nav.TaskID)
+	}); err != nil {
+		_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
+	}
+
+	// Guard: audit tasks must not complete while open gaps remain.
+	// If the model declares COMPLETE but unresolved gaps exist, undo
+	// the completion and create remediation subtasks instead.
+	if completedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+		isAuditTask := false
+		for _, t := range completedNS.Tasks {
+			if t.ID == nav.TaskID && t.IsAudit {
+				isAuditTask = true
+				break
+			}
+		}
+		if isAuditTask {
+			var hasOpenGaps bool
+			for _, g := range completedNS.Audit.Gaps {
+				if g.Status == state.GapOpen {
+					hasOpenGaps = true
+					break
+				}
+			}
+			if hasOpenGaps {
+				// Undo the completion: revert the task to not_started
+				// so remediation subtasks run first.
+				_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
+					for i := range ns2.Tasks {
+						if ns2.Tasks[i].ID == nav.TaskID {
+							ns2.Tasks[i].State = state.StatusNotStarted
+							break
+						}
+					}
+					return nil
+				})
+
+				created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID)
+				if created > 0 {
+					_ = d.Logger.Log(map[string]any{
+						"type":     "audit_complete_with_gaps",
+						"task":     nav.TaskID,
+						"subtasks": created,
+					})
+					d.log(map[string]any{"type": "task_event", "action": "audit_gaps", "task": nav.TaskID, "text": fmt.Sprintf("Audit has %d open gap(s), creating remediation subtasks.", created)})
+				} else {
+					// Edge case: open gaps exist but no subtasks created.
+					// Block the audit to prevent silent completion.
+					_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
+						return state.TaskBlock(ns2, nav.TaskID, "open gaps remain")
+					})
+					_ = d.Logger.Log(map[string]any{
+						"type": "audit_blocked_open_gaps",
+						"task": nav.TaskID,
+					})
+					d.log(map[string]any{"type": "task_event", "action": "audit_blocked", "task": nav.TaskID, "text": "Audit blocked: open gaps remain."})
+				}
+				// Commit the decomposition: audit gaps, remediation
+				// subtasks, and reverted audit state. This gives a
+				// clean revert point before remediation work starts.
+				// In parallel mode, drainCompleted handles commits
+				// under gitMu with scoped file lists.
+				if d.dispatcher == nil {
+					auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
+					commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta, nil)
+				}
+				return true
+			}
+		}
+	}
+
+	// Generate audit report when an audit task completes.
+	d.maybeWriteAuditReport(nav.NodeAddress, nav.TaskID)
+
+	if !d.Config.Pipeline.Planning.Enabled {
+		d.autoCompleteDecomposedParents(nav.NodeAddress)
+	}
+	// Check replanning triggers BEFORE propagation. Propagation may
+	// mark the parent orchestrator complete, after which the planning
+	// DFS skips it. The trigger must be set while the parent is still
+	// in_progress so findPlanningTarget can find it.
+	d.checkReplanningTriggers(nav.NodeAddress, nav.TaskID, idx)
+
+	// Propagate completion up through parent orchestrators so their
+	// persisted state derives from children. MutateNode propagates
+	// internally, but re-propagating here updates the in-memory idx
+	// and guards against silent propagation failures in the store.
+	if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+		if err := d.propagateState(nav.NodeAddress, updatedNS.State, idx); err != nil {
+			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+		}
+	}
+
+	// Commit after successful completion. In parallel mode,
+	// drainCompleted commits under gitMu with scoped file lists.
+	if d.dispatcher == nil {
+		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID), nil)
+	}
+
+	return true
+}
+
+// handleFailure processes the failure path when no valid terminal marker was
+// found (or COMPLETE was cleared by the no-progress check). It records the
+// failure type, increments the failure counter, triggers decomposition or
+// auto-blocking at thresholds, and commits the result.
+func (d *Daemon) handleFailure(nav *state.NavigationResult, ns *state.NodeState, result *invoke.Result, marker string) {
+	// Determine failure type for context injection on retry
+	failureType := "no_terminal_marker"
+	if scanTerminalMarker(result.Stdout) != "" {
+		// A marker was found but cleared by deliverable or progress check
+		failureType = "no_progress"
+	}
+
+	_ = d.Logger.Log(map[string]any{
+		"type":  failureType,
+		"empty": result.Stdout == "",
+		"task":  nav.TaskID,
+	})
+
+	var failCount int
+	mutErr := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
+		// Record the failure type for context injection on next retry
+		for i := range ns.Tasks {
+			if ns.Tasks[i].ID == nav.TaskID {
+				ns.Tasks[i].LastFailureType = failureType
+				break
+			}
+		}
+
+		var err error
+		failCount, err = state.IncrementFailure(ns, nav.TaskID)
+		if err != nil {
+			return err
+		}
+
+		if failCount >= d.Config.Failure.DecompositionThreshold && d.Config.Failure.DecompositionThreshold > 0 {
+			if ns.DecompositionDepth < d.Config.Failure.MaxDecompositionDepth {
+				_ = d.Logger.Log(map[string]any{"type": "decomposition_threshold", "task": nav.TaskID, "depth": ns.DecompositionDepth})
+				state.SetNeedsDecomposition(ns, nav.TaskID, true)
+			} else {
+				_ = d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "max_decomposition_depth"})
+				if blockErr := state.TaskBlock(ns, nav.TaskID, "auto-blocked: decomposition threshold reached at max depth"); blockErr != nil {
+					_ = d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
+				}
+			}
+		}
+
+		if failCount >= d.Config.Failure.HardCap && d.Config.Failure.HardCap > 0 {
+			_ = d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "hard_cap", "count": failCount})
+			if blockErr := state.TaskBlock(ns, nav.TaskID, fmt.Sprintf("auto-blocked: failure hard cap reached (%d)", failCount)); blockErr != nil {
+				_ = d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
+			}
+		}
+
+		return nil
+	})
+	if mutErr != nil {
+		_ = d.Logger.Log(map[string]any{"type": "failure_increment_error", "error": mutErr.Error()})
+	} else {
+		_ = d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
+	}
+
+	// Commit code + state after all failure mutations are applied.
+	// In parallel mode, drainCompleted commits under gitMu with
+	// scoped file lists, so skip the unscoped commit here.
+	if d.dispatcher == nil {
+		failMeta := extractTaskCommitMeta(ns, nav.TaskID)
+		failMeta.FailureType = failureType
+		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta, nil)
+	}
 }
 
 // scanTerminalMarker scans model output line-by-line for terminal markers.
@@ -1107,7 +1140,6 @@ func (d *Daemon) maybeWriteAuditReport(nodeAddr, taskID string) {
 		"node": nodeAddr,
 		"path": reportPath,
 	})
-	output.PrintHuman("  Audit report: %s", reportPath)
 }
 
 // isSupersededBlock checks whether a blocked task was actually superseded

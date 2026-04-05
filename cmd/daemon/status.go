@@ -507,6 +507,9 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 				}
 			}
 			if childCount > 0 {
+				if opts.Width > 0 {
+					label = truncate(label, opts.Width)
+				}
 				output.PrintHuman("%s%s %s  %s  (%d subtasks)", taskIndent, tGlyph, t.ID, label, childCount)
 				continue
 			}
@@ -532,6 +535,9 @@ func printNodeTree(app *cmdutil.App, idx *state.RootIndex, details map[string]*n
 		classTag := ""
 		if t.Class != "" {
 			classTag = " [" + t.Class + "]"
+		}
+		if opts.Width > 0 {
+			label = truncate(label, opts.Width)
 		}
 		output.PrintHuman("%s%s %s  %s%s%s", taskIndent, tGlyph, t.ID, label, classTag, extra)
 

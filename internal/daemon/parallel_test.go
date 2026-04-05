@@ -1327,3 +1327,59 @@ func TestParallel_StatusSnapshotCleanedUp(t *testing.T) {
 
 	shutdownParallel(d)
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 24. Snapshot produces deterministic order for Active and Yielded
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestParallel_SnapshotDeterministicOrder(t *testing.T) {
+	t.Parallel()
+	d := parallelTestDaemon(t, 4)
+	pd := d.dispatcher
+
+	noop := func() {}
+	pd.mu.Lock()
+	pd.active["proj/zebra/task-0001"] = &WorkerSlot{Node: "proj/zebra", Task: "task-0001", Cancel: noop}
+	pd.active["proj/alpha/task-0001"] = &WorkerSlot{Node: "proj/alpha", Task: "task-0001", Cancel: noop}
+	pd.active["proj/mango/task-0001"] = &WorkerSlot{Node: "proj/mango", Task: "task-0001", Cancel: noop}
+	pd.blocked["proj/yak/task-0001"] = &BlockedEntry{
+		Blocker:        "proj/zebra/task-0001",
+		YieldCount:     1,
+		FirstBlockedAt: time.Now(),
+	}
+	pd.blocked["proj/berry/task-0001"] = &BlockedEntry{
+		Blocker:        "proj/alpha/task-0001",
+		YieldCount:     1,
+		FirstBlockedAt: time.Now(),
+	}
+	pd.blocked["proj/kiwi/task-0001"] = &BlockedEntry{
+		Blocker:        "proj/mango/task-0001",
+		YieldCount:     1,
+		FirstBlockedAt: time.Now(),
+	}
+	pd.mu.Unlock()
+
+	snap := pd.snapshot()
+
+	// Active entries should be sorted alphabetically by Task field.
+	if len(snap.Active) != 3 {
+		t.Fatalf("expected 3 active entries, got %d", len(snap.Active))
+	}
+	wantActive := []string{"proj/alpha/task-0001", "proj/mango/task-0001", "proj/zebra/task-0001"}
+	for i, want := range wantActive {
+		if snap.Active[i].Task != want {
+			t.Errorf("Active[%d].Task = %q, want %q", i, snap.Active[i].Task, want)
+		}
+	}
+
+	// Yielded entries should be sorted alphabetically by Task field.
+	if len(snap.Yielded) != 3 {
+		t.Fatalf("expected 3 yielded entries, got %d", len(snap.Yielded))
+	}
+	wantYielded := []string{"proj/berry/task-0001", "proj/kiwi/task-0001", "proj/yak/task-0001"}
+	for i, want := range wantYielded {
+		if snap.Yielded[i].Task != want {
+			t.Errorf("Yielded[%d].Task = %q, want %q", i, snap.Yielded[i].Task, want)
+		}
+	}
+}

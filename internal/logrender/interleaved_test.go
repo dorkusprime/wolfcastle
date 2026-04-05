@@ -400,6 +400,52 @@ func TestInterleavedRenderer_DurationMS_Planning(t *testing.T) {
 	}
 }
 
+func TestInterleavedRenderer_DaemonLifecycleEngaged(t *testing.T) {
+	recs := []Record{
+		{Type: "daemon_lifecycle", Event: "engaged", Scope: "my-project", Timestamp: makeTime("2026-03-21T10:00:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s === Wolfcastle engaged (scope=my-project) ===", localTS("2026-03-21T10:00:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_IterationHeader(t *testing.T) {
+	recs := []Record{
+		{Type: "iteration_header", Kind: "execute", Iteration: 3, Text: "building components", Timestamp: makeTime("2026-03-21T10:05:00Z")},
+		{Type: "iteration_header", Kind: "plan", Iteration: 1, Text: "initial planning", Timestamp: makeTime("2026-03-21T10:06:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s --- Iteration 3: building components ---", localTS("2026-03-21T10:05:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+	if want := fmt.Sprintf("%s --- Planning 1: initial planning ---", localTS("2026-03-21T10:06:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_RetryEvent(t *testing.T) {
+	recs := []Record{
+		{Type: "retry_event", Attempt: 2, Error: "connection refused", DelayS: 30, Timestamp: makeTime("2026-03-21T10:10:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s   Attempt 2 failed: connection refused. Retrying in 30s.", localTS("2026-03-21T10:10:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
 func TestInterleavedRenderer_NilDurationMS_FallsBack(t *testing.T) {
 	recs := []Record{
 		{Type: "stage_start", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:00:00Z")},

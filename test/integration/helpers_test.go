@@ -4,10 +4,13 @@ package integration
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
@@ -125,6 +128,52 @@ func saveNode(t *testing.T, dir, addr string, ns *state.NodeState) {
 	if err := state.SaveNodeState(statePath, ns); err != nil {
 		t.Fatalf("failed to save node state at %s: %v", statePath, err)
 	}
+}
+
+// readLogs concatenates the contents of all NDJSON log files under
+// .wolfcastle/system/logs/ and returns them as a single string. Both
+// uncompressed (.jsonl) and compressed (.jsonl.gz) files are read, since
+// the retention system compresses old iteration files during the run.
+func readLogs(t *testing.T, dir string) string {
+	t.Helper()
+	logDir := filepath.Join(dir, ".wolfcastle", "system", "logs")
+	entries, err := os.ReadDir(logDir)
+	if err != nil {
+		t.Fatalf("cannot read log dir %s: %v", logDir, err)
+	}
+	var buf bytes.Buffer
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		path := filepath.Join(logDir, e.Name())
+		switch {
+		case strings.HasSuffix(e.Name(), ".jsonl"):
+			data, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("reading log file %s: %v", e.Name(), err)
+			}
+			buf.Write(data)
+		case strings.HasSuffix(e.Name(), ".jsonl.gz"):
+			f, err := os.Open(path)
+			if err != nil {
+				t.Fatalf("opening compressed log %s: %v", e.Name(), err)
+			}
+			gz, err := gzip.NewReader(f)
+			if err != nil {
+				_ = f.Close()
+				t.Fatalf("decompressing log %s: %v", e.Name(), err)
+			}
+			data, err := io.ReadAll(gz)
+			_ = gz.Close()
+			_ = f.Close()
+			if err != nil {
+				t.Fatalf("reading compressed log %s: %v", e.Name(), err)
+			}
+			buf.Write(data)
+		}
+	}
+	return buf.String()
 }
 
 // discoverNamespace finds the engineer namespace directory under

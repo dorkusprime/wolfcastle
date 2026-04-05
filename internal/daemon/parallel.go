@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"sort"
 	"sync"
 	"time"
 
@@ -610,6 +611,7 @@ func (pd *ParallelDispatcher) snapshot() *ParallelStatus {
 		// and pd.mu is released, since scopeFiles acquires its own lock.
 		status.Active = append(status.Active, entry)
 	}
+	sort.Slice(status.Active, func(i, j int) bool { return status.Active[i].Task < status.Active[j].Task })
 
 	for taskAddr, blocked := range pd.blocked {
 		status.Yielded = append(status.Yielded, ParallelYieldedEntry{
@@ -619,6 +621,7 @@ func (pd *ParallelDispatcher) snapshot() *ParallelStatus {
 			BlockedForSecs: int(now.Sub(blocked.FirstBlockedAt).Seconds()),
 		})
 	}
+	sort.Slice(status.Yielded, func(i, j int) bool { return status.Yielded[i].Task < status.Yielded[j].Task })
 
 	return status
 }
