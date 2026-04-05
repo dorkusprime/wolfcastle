@@ -99,9 +99,10 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 	}
 
 	if entry.Type == NodeOrchestrator {
-		// Traverse children strictly in creation order. If an earlier
-		// child is incomplete, do not skip to later siblings. This
-		// enforces the creation-order-equals-execution-order contract.
+		// Pass 1: Creation-order scan for new work. Blocked children
+		// are skipped here and handled in pass 2. If an earlier
+		// non-blocked child is incomplete, stop — creation order is
+		// enforced for progressive work.
 		for _, childAddr := range entry.Children {
 			childEntry, childOk := idx.Nodes[childAddr]
 			if !childOk {
@@ -110,26 +111,16 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 			if childEntry.State == StatusComplete {
 				continue
 			}
-			// Blocked children normally get skipped (allowing later
-			// siblings to proceed), but they may contain actionable
-			// remediation subtasks. Check for work first.
 			if childEntry.State == StatusBlocked {
-				result, err := dfs(idx, childAddr, loadNode)
-				if err != nil {
-					return nil, err
-				}
-				if result != nil && result.Found {
-					return result, nil
-				}
-				// No remediation work; skip this blocked child and
-				// let later siblings proceed.
+				// Remediation scan below handles blocked children.
 				continue
 			}
 			// If this child is an orchestrator that needs planning (no
-			// children yet), stop searching. The daemon's planning pass
-			// will handle it before any later sibling executes.
+			// children yet), stop searching new work. The daemon's
+			// planning pass will handle it. Fall through to pass 2 so
+			// blocked siblings can still get remediation.
 			if childEntry.Type == NodeOrchestrator && len(childEntry.Children) == 0 {
-				return nil, nil
+				break
 			}
 			result, err := dfs(idx, childAddr, loadNode)
 			if err != nil {
@@ -138,12 +129,29 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 			if result != nil && result.Found {
 				return result, nil
 			}
-			// If DFS found nothing actionable in this incomplete child,
-			// stop. Don't skip to later siblings. The child has work
-			// that needs planning or unblocking before later siblings
-			// can proceed.
-			return nil, nil
+			// No actionable new work in this incomplete child. Stop
+			// the creation-order scan, but fall through to pass 2.
+			break
 		}
+
+		// Pass 2: Remediation scan. Blocked children may contain
+		// actionable remediation subtasks (e.g., audit.0003) that
+		// should not be gated behind creation order. Remediation
+		// fixes existing work, not new progressive work.
+		for _, childAddr := range entry.Children {
+			childEntry, childOk := idx.Nodes[childAddr]
+			if !childOk || childEntry.State != StatusBlocked {
+				continue
+			}
+			result, err := dfs(idx, childAddr, loadNode)
+			if err != nil {
+				return nil, err
+			}
+			if result != nil && result.Found {
+				return result, nil
+			}
+		}
+
 		// Children exhausted — check orchestrator's own tasks (e.g. audit)
 		return findActionableTask(addr, loadNode)
 	}
