@@ -627,6 +627,9 @@ func getDaemonStatus(repo *dmn.DaemonRepository) string {
 	if !dmn.IsProcessRunning(pid) {
 		return fmt.Sprintf("stopped (stale PID %d)", pid)
 	}
+	if repo.HasDrainFile() {
+		return fmt.Sprintf("draining (PID %d)", pid)
+	}
 	return fmt.Sprintf("running (PID %d)", pid)
 }
 

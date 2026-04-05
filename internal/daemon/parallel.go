@@ -352,6 +352,11 @@ done:
 // fillSlots finds eligible parallel tasks and launches workers for them,
 // up to the number of available slots. Returns the count of workers launched.
 func (pd *ParallelDispatcher) fillSlots(ctx context.Context, idx *state.RootIndex) int {
+	// In drain mode, don't launch new workers. Let active ones finish.
+	if pd.daemon.draining {
+		return 0
+	}
+
 	pd.mu.Lock()
 	available := pd.maxWorkers - len(pd.active)
 	pd.mu.Unlock()

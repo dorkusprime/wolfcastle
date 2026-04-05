@@ -109,6 +109,30 @@ func (r *DaemonRepository) StopFileExists() bool {
 	return err == nil
 }
 
+// HasDrainFile reports whether the drain file exists.
+func (r *DaemonRepository) HasDrainFile() bool {
+	_, err := os.Stat(r.drainPath())
+	return err == nil
+}
+
+// WriteDrainFile creates the drain file (empty, 0644).
+func (r *DaemonRepository) WriteDrainFile() error {
+	return os.WriteFile(r.drainPath(), nil, 0644)
+}
+
+// RemoveDrainFile removes the drain file. Returns nil if the file does not exist.
+func (r *DaemonRepository) RemoveDrainFile() error {
+	err := os.Remove(r.drainPath())
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+func (r *DaemonRepository) drainPath() string {
+	return filepath.Join(r.systemDir, "drain")
+}
+
 // LogDir returns the path to the daemon log directory. This is an
 // intentional escape hatch: the Logger manages its own file handles,
 // rotation, and compression, so it needs the directory path rather

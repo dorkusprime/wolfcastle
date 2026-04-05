@@ -17,12 +17,29 @@ func newStopCmd(app *cmdutil.App) *cobra.Command {
 		Short: "Stand down",
 		Long: `Sends a stop signal to the running daemon. Graceful by default.
 Use --force if it refuses to listen.
+Use --drain to let the daemon finish its current work before exiting.
 
 Examples:
   wolfcastle stop
-  wolfcastle stop --force`,
+  wolfcastle stop --force
+  wolfcastle stop --drain`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			force, _ := cmd.Flags().GetBool("force")
+			drain, _ := cmd.Flags().GetBool("drain")
+
+			if drain {
+				if err := app.Daemon.WriteDrainFile(); err != nil {
+					return fmt.Errorf("writing drain file: %w", err)
+				}
+				if app.JSON {
+					output.Print(output.Ok("stop", map[string]any{
+						"drain": true,
+					}))
+				} else {
+					output.PrintHuman("Drain signal sent. Daemon will exit after current work completes.")
+				}
+				return nil
+			}
 
 			pid, err := app.Daemon.ReadPID()
 			if err != nil {
