@@ -127,6 +127,31 @@ func saveNode(t *testing.T, dir, addr string, ns *state.NodeState) {
 	}
 }
 
+// readLogs concatenates the contents of all NDJSON log files under
+// .wolfcastle/system/logs/ and returns them as a single string. This
+// lets integration tests verify that expected daemon lifecycle records
+// were emitted even when those messages no longer appear on stdout.
+func readLogs(t *testing.T, dir string) string {
+	t.Helper()
+	logDir := filepath.Join(dir, ".wolfcastle", "system", "logs")
+	entries, err := os.ReadDir(logDir)
+	if err != nil {
+		t.Fatalf("cannot read log dir %s: %v", logDir, err)
+	}
+	var buf bytes.Buffer
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(logDir, e.Name()))
+		if err != nil {
+			t.Fatalf("reading log file %s: %v", e.Name(), err)
+		}
+		buf.Write(data)
+	}
+	return buf.String()
+}
+
 // discoverNamespace finds the engineer namespace directory under
 // .wolfcastle/projects/. There should be exactly one after init.
 func discoverNamespace(t *testing.T, dir string) string {

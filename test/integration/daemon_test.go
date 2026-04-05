@@ -206,11 +206,13 @@ func TestDaemon_EmptyTree(t *testing.T) {
 		t.Fatalf("creating stop file: %v", err)
 	}
 
-	out := run(t, dir, "start")
+	run(t, dir, "start")
 
-	// The daemon should not crash
-	if !strings.Contains(out, "stop file") && !strings.Contains(out, "No work") && !strings.Contains(out, "self-healing") {
-		t.Errorf("expected daemon to handle empty tree gracefully, got: %s", out)
+	// The daemon should not crash. The stop-file acknowledgement now goes
+	// to the NDJSON log rather than stdout, so verify it landed there.
+	logs := readLogs(t, dir)
+	if !strings.Contains(logs, "stop_file") && !strings.Contains(logs, "self_heal") {
+		t.Errorf("expected daemon to handle empty tree gracefully, got logs: %s", logs)
 	}
 }
 
@@ -264,10 +266,12 @@ func TestDaemon_MaxIterations(t *testing.T) {
 	run(t, dir, "task", "add", "--node", "maxiter-test", "infinite yielder")
 
 	setMaxIterations(t, dir, 3)
-	out := run(t, dir, "start")
+	run(t, dir, "start")
 
-	if !strings.Contains(out, "Iteration cap") {
-		t.Errorf("expected daemon to stop at iteration cap, got: %s", out)
+	// The iteration-cap message now goes to the NDJSON log, not stdout.
+	logs := readLogs(t, dir)
+	if !strings.Contains(logs, "iteration_cap") {
+		t.Errorf("expected daemon to stop at iteration cap, got logs: %s", logs)
 	}
 }
 
