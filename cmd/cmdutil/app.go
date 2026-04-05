@@ -110,8 +110,8 @@ func (a *App) RequireIdentity() error {
 
 // CheckOverlap scans other engineers' project names and descriptions
 // for potential scope overlap with the newly created project. Uses
-// bigram Jaccard similarity — no model invocation required (ADR-041).
-// Purely informational — failures are silently ignored (ADR-027).
+// bigram Jaccard similarity; no model invocation required (ADR-041).
+// Purely informational. Failures are silently ignored (ADR-027).
 func (a *App) CheckOverlap(projectName, description string) {
 	if a.Config == nil || a.Identity == nil {
 		return

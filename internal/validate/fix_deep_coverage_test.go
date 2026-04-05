@@ -11,7 +11,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — error during ApplyDeterministicFixes
+// FixWithVerification: error during ApplyDeterministicFixes
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_ApplyFixesError_ReadOnlyDir(t *testing.T) {
@@ -50,7 +50,7 @@ func TestFixWithVerification_ApplyFixesError_ReadOnlyDir(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — invalid state value normalization
+// FixWithVerification: invalid state value normalization
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_InvalidStateValueFix(t *testing.T) {
@@ -95,7 +95,7 @@ func TestFixWithVerification_InvalidStateValueFix(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — missing required fields
+// FixWithVerification: missing required fields
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_MissingRequiredFields(t *testing.T) {
@@ -138,7 +138,7 @@ func TestFixWithVerification_MissingRequiredFields(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — negative failure count
+// FixWithVerification: negative failure count
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_NegativeFailureCount(t *testing.T) {
@@ -181,7 +181,7 @@ func TestFixWithVerification_NegativeFailureCount(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — invalid audit status
+// FixWithVerification: invalid audit status
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_InvalidAuditStatus(t *testing.T) {
@@ -217,7 +217,7 @@ func TestFixWithVerification_InvalidAuditStatus(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — stale PID and stop file cleanup
+// FixWithVerification: stale PID and stop file cleanup
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_StalePIDFileFix(t *testing.T) {
@@ -259,7 +259,7 @@ func TestFixWithVerification_StalePIDFileFix(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — audit status/task mismatch
+// FixWithVerification: audit status/task mismatch
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_AuditStatusTaskMismatch(t *testing.T) {
@@ -296,7 +296,7 @@ func TestFixWithVerification_AuditStatusTaskMismatch(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — invalid audit gap metadata
+// FixWithVerification: invalid audit gap metadata
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_InvalidAuditGapMetadata(t *testing.T) {
@@ -334,7 +334,7 @@ func TestFixWithVerification_InvalidAuditGapMetadata(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — propagation mismatch with orchestrator
+// FixWithVerification: propagation mismatch with orchestrator
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_PropagationMismatch(t *testing.T) {
@@ -346,7 +346,7 @@ func TestFixWithVerification_PropagationMismatch(t *testing.T) {
 	parentDir := filepath.Join(dir, "orch")
 	_ = os.MkdirAll(parentDir, 0755)
 	parentNS := state.NewNodeState("orch", "Orch", state.NodeOrchestrator)
-	parentNS.State = state.StatusNotStarted // Wrong — child is in_progress
+	parentNS.State = state.StatusNotStarted // Wrong; child is in_progress
 	parentNS.Children = []state.ChildRef{
 		{ID: "leaf", Address: "orch/leaf", State: state.StatusInProgress},
 	}
@@ -388,7 +388,7 @@ func TestFixWithVerification_PropagationMismatch(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — root index missing entry (orphan detected on disk)
+// FixWithVerification: root index missing entry (orphan detected on disk)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_RootIndexMissingEntry(t *testing.T) {
@@ -406,7 +406,7 @@ func TestFixWithVerification_RootIndexMissingEntry(t *testing.T) {
 	}
 	_ = state.SaveNodeState(filepath.Join(orphanDir, "state.json"), ns)
 
-	// Index is empty — no reference to the orphan
+	// Index is empty. No reference to the orphan
 	idxPath := filepath.Join(dir, "state.json")
 	_ = state.SaveRootIndex(idxPath, idx)
 

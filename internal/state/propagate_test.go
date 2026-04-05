@@ -133,7 +133,7 @@ func TestPropagate_BlockOnlyWhenAllNonCompleteBlocked(t *testing.T) {
 		return nil
 	}
 
-	// Block c — now b and c are blocked, a is complete
+	// Block c. Now b and c are blocked, a is complete
 	err := Propagate("root/c", StatusBlocked, idx, loadNode, saveNode)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -177,7 +177,7 @@ func TestPropagate_BlockDoesNotBubbleWithAvailableSiblings(t *testing.T) {
 		return nil
 	}
 
-	// Block b — but a is still not_started, so root stays in_progress
+	// Block b. But a is still not_started, so root stays in_progress
 	err := Propagate("root/b", StatusBlocked, idx, loadNode, saveNode)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -551,7 +551,7 @@ func TestProcessGroupKill_NonStreamingCancelKillsChildren(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Cancel after a short delay — enough for the script to start
+	// Cancel after a short delay. Enough for the script to start
 	// its background child and echo "started".
 	go func() {
 		time.Sleep(500 * time.Millisecond)

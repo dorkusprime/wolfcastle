@@ -499,7 +499,7 @@ func TestSaveHistory_CreatesDirectories(t *testing.T) {
 func TestRemoveBatch_NonNotExistError(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	// Create a non-empty directory — os.Remove on it returns a non-NotExist error.
+	// Create a non-empty directory. Os.Remove on it returns a non-NotExist error.
 	nested := filepath.Join(dir, "subdir")
 	if err := os.Mkdir(nested, 0755); err != nil {
 		t.Fatal(err)

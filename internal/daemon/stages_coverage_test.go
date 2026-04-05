@@ -14,7 +14,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runInboxLoop — fallback to polling when watcher.Add fails
+// runInboxLoop: fallback to polling when watcher.Add fails
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunInboxLoop_FallbackToPolling_WatcherAddFails(t *testing.T) {
@@ -40,7 +40,7 @@ func TestRunInboxLoop_FallbackToPolling_WatcherAddFails(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runInboxWithFsnotify — watcher.Events channel closed
+// runInboxWithFsnotify: watcher.Events channel closed
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunInboxWithFsnotify_EventsChannelClosed(t *testing.T) {
@@ -72,7 +72,7 @@ func TestRunInboxWithFsnotify_EventsChannelClosed(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runInboxWithFsnotify — watcher error event
+// runInboxWithFsnotify: watcher error event
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunInboxWithFsnotify_WatcherError(t *testing.T) {
@@ -110,7 +110,7 @@ func TestRunInboxWithFsnotify_WatcherError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runInboxWithFsnotify — context done during select
+// runInboxWithFsnotify: context done during select
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunInboxWithFsnotify_ContextCancelledDuringLoop(t *testing.T) {
@@ -136,7 +136,7 @@ func TestRunInboxWithFsnotify_ContextCancelledDuringLoop(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// processInbox — intake stage error propagation
+// processInbox: intake stage error propagation
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestProcessInbox_IntakeStageError(t *testing.T) {
@@ -163,7 +163,7 @@ func TestProcessInbox_IntakeStageError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// processInbox — no intake stage configured (empty stages)
+// processInbox: no intake stage configured (empty stages)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestProcessInbox_DisabledIntakeStage(t *testing.T) {
@@ -180,7 +180,7 @@ func TestProcessInbox_DisabledIntakeStage(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — LoadInbox error (corrupt JSON)
+// runIntakeStage: LoadInbox error (corrupt JSON)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_LoadInboxError(t *testing.T) {
@@ -201,7 +201,7 @@ func TestRunIntakeStage_LoadInboxError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — planning enabled switches prompt file
+// runIntakeStage: planning enabled switches prompt file
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_PlanningEnabled(t *testing.T) {
@@ -232,7 +232,7 @@ func TestRunIntakeStage_PlanningEnabled(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — prompt assembly error
+// runIntakeStage: prompt assembly error
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_PromptAssemblyError(t *testing.T) {
@@ -254,7 +254,7 @@ func TestRunIntakeStage_PromptAssemblyError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — invocation error (bad model command)
+// runIntakeStage: invocation error (bad model command)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_InvocationError(t *testing.T) {
@@ -281,7 +281,7 @@ func TestRunIntakeStage_InvocationError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — non-zero exit code (items not filed)
+// runIntakeStage: non-zero exit code (items not filed)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_NonZeroExitCode(t *testing.T) {
@@ -313,7 +313,7 @@ func TestRunIntakeStage_NonZeroExitCode(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — existing tree context included in prompt
+// runIntakeStage: existing tree context included in prompt
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_ExistingTreeContext(t *testing.T) {
@@ -339,7 +339,7 @@ func TestRunIntakeStage_ExistingTreeContext(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — existing tree with parent node context
+// runIntakeStage: existing tree with parent node context
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_ExistingTreeWithParent(t *testing.T) {
@@ -375,7 +375,7 @@ func TestRunIntakeStage_ExistingTreeWithParent(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — planning enabled with overlap markers in output
+// runIntakeStage: planning enabled with overlap markers in output
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_PlanningWithOverlapMarkers(t *testing.T) {
@@ -417,7 +417,7 @@ func TestRunIntakeStage_PlanningWithOverlapMarkers(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — workAvailable channel already full (default branch)
+// runIntakeStage: workAvailable channel already full (default branch)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_WorkAvailableAlreadyFull(t *testing.T) {
@@ -442,7 +442,7 @@ func TestRunIntakeStage_WorkAvailableAlreadyFull(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — result.Summary logging
+// runIntakeStage: result.Summary logging
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_LogsSummary(t *testing.T) {
@@ -469,7 +469,7 @@ func TestRunIntakeStage_LogsSummary(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// parseOverlapMarkers — malformed markers
+// parseOverlapMarkers: malformed markers
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestParseOverlapMarkers_MissingOpenQuote(t *testing.T) {

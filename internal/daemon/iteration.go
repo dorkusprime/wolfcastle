@@ -136,7 +136,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			"duration_ms": stageDuration.Milliseconds(),
 		})
 
-		// Reload state from disk — CLI commands invoked by the model may
+		// Reload state from disk. CLI commands invoked by the model may
 		// have mutated state.json during execution (breadcrumbs, gaps, scope, etc.)
 		ns, err = d.Store.ReadNode(nav.NodeAddress)
 		if err != nil {

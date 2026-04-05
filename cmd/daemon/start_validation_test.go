@@ -13,7 +13,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStartCmd — RequireIdentity failure
+// newStartCmd: RequireIdentity failure
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_RequireIdentityFailure(t *testing.T) {
@@ -31,7 +31,7 @@ func TestStartCmd_RequireIdentityFailure(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStartCmd — verbose flag sets log level
+// newStartCmd: verbose flag sets log level
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_VerboseSetsDebugLogLevel(t *testing.T) {
@@ -62,7 +62,7 @@ func TestStartCmd_VerboseSetsDebugLogLevel(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStartCmd — validation gate: errors block startup
+// newStartCmd: validation gate: errors block startup
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_ValidationErrorsBlockStartup(t *testing.T) {
@@ -99,7 +99,7 @@ func TestStartCmd_ValidationErrorsBlockStartup(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStartCmd — validation gate: warnings proceed
+// newStartCmd: validation gate: warnings proceed
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_ValidationWarningsProceed(t *testing.T) {
@@ -145,7 +145,7 @@ func TestStartCmd_ValidationWarningsProceed(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStartCmd — already-running daemon detection (error message quality)
+// newStartCmd: already-running daemon detection (error message quality)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_AlreadyRunningErrorMessage(t *testing.T) {
@@ -179,7 +179,7 @@ func TestStartCmd_AlreadyRunningErrorMessage(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStartCmd — background mode flag triggers startBackground path
+// newStartCmd: background mode flag triggers startBackground path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_BackgroundFlag(t *testing.T) {
@@ -203,7 +203,7 @@ func TestStartCmd_BackgroundFlag(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStartCmd — stale PID recovered before lock acquisition
+// newStartCmd: stale PID recovered before lock acquisition
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_StalePIDRecovery(t *testing.T) {
@@ -232,7 +232,7 @@ func TestStartCmd_StalePIDRecovery(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStartCmd — global lock acquisition failure
+// newStartCmd: global lock acquisition failure
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_GlobalLockConflict(t *testing.T) {
@@ -257,7 +257,7 @@ func TestStartCmd_GlobalLockConflict(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStartCmd — worktree flag with invalid branch (exercising error path)
+// newStartCmd: worktree flag with invalid branch (exercising error path)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_WorktreeCreationFailure(t *testing.T) {

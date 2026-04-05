@@ -151,7 +151,7 @@ Examples:
 				}
 			}
 
-			// Startup validation gate — block on error-severity issues
+			// Startup validation gate: block on error-severity issues
 			if idxErr == nil {
 				engine := validate.NewEngine(app.State.Dir(), validate.DefaultNodeLoader(app.State.Dir()), dmn.NewDaemonRepository(app.Config.Root()))
 				report := engine.ValidateStartup(idx)

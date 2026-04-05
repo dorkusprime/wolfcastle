@@ -6,7 +6,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// logger.go — Log: pass map with unmarshalable value
+// logger.go: Log: pass map with unmarshalable value
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestLog_UnmarshalableMapValue(t *testing.T) {

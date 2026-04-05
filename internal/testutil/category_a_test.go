@@ -9,7 +9,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// helpers.go — WriteJSON: pass unmarshalable value (channel)
+// helpers.go: WriteJSON: pass unmarshalable value (channel)
 //
 // WriteJSON calls t.Fatalf on marshal error, which invokes runtime.Goexit.
 // We run the call inside a separate goroutine so Goexit terminates only
@@ -39,7 +39,7 @@ func TestWriteJSON_UnmarshalableValue_Channel(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// helpers.go — WriteJSON: MkdirAll error (file blocks directory creation)
+// helpers.go: WriteJSON: MkdirAll error (file blocks directory creation)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestWriteJSON_MkdirAllError_Fatals(t *testing.T) {
@@ -62,7 +62,7 @@ func TestWriteJSON_MkdirAllError_Fatals(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// helpers.go — WriteJSON: WriteFile error (read-only directory)
+// helpers.go: WriteJSON: WriteFile error (read-only directory)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestWriteJSON_WriteFileError_Fatals(t *testing.T) {
@@ -90,7 +90,7 @@ func TestWriteJSON_WriteFileError_Fatals(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// helpers.go — ReadJSON: pass nonexistent path
+// helpers.go: ReadJSON: pass nonexistent path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestReadJSON_NonexistentPath_Fatals(t *testing.T) {
@@ -111,7 +111,7 @@ func TestReadJSON_NonexistentPath_Fatals(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// helpers.go — ReadJSON: pass invalid JSON file
+// helpers.go: ReadJSON: pass invalid JSON file
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestReadJSON_InvalidJSONFile_Fatals(t *testing.T) {

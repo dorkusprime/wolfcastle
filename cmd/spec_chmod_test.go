@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// ── spec create — MkdirAll error ────────────────────────────────────
+// ── spec create: MkdirAll error ────────────────────────────────────
 
 func TestSpecCreate_MkdirAllError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -33,7 +33,7 @@ func TestSpecCreate_MkdirAllError_ReadOnly(t *testing.T) {
 	}
 }
 
-// ── spec create — WriteFile error ───────────────────────────────────
+// ── spec create: WriteFile error ───────────────────────────────────
 
 func TestSpecCreate_WriteFileError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -58,7 +58,7 @@ func TestSpecCreate_WriteFileError_ReadOnly(t *testing.T) {
 	}
 }
 
-// ── spec create — SaveNodeState error ───────────────────────────────
+// ── spec create: SaveNodeState error ───────────────────────────────
 
 func TestSpecCreate_SaveNodeStateError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -89,7 +89,7 @@ func TestSpecCreate_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 }
 
-// ── spec link — SaveNodeState error ─────────────────────────────────
+// ── spec link: SaveNodeState error ─────────────────────────────────
 
 func TestSpecLink_SaveNodeStateError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {

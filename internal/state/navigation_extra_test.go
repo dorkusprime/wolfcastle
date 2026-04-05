@@ -288,7 +288,7 @@ func TestFindNextTask_AuditOnlyNode_NoNonAuditTasks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// A root-level leaf with only an audit task stays blocked — no parent
+	// A root-level leaf with only an audit task stays blocked. No parent
 	// orchestrator to confirm that planning is complete.
 	if result.Found {
 		t.Error("expected not found: root-level audit-only node has no parent to confirm planning")
@@ -392,7 +392,7 @@ func TestFindNextTask_AuditOnlyLeaf_ParentDonePlanning(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Parent orchestrator is done planning. The empty leaf's audit is
-	// the only work — it should be actionable.
+	// the only work. It should be actionable.
 	if !result.Found {
 		t.Fatal("expected audit task to be found when parent is done planning")
 	}
@@ -421,7 +421,7 @@ func TestFindNextTask_AuditOnlyLeaf_ParentStillPlanning(t *testing.T) {
 	}
 
 	orchNS := NewNodeState("orch", "Orchestrator", NodeOrchestrator)
-	orchNS.NeedsPlanning = true // still planning — tasks may be incoming
+	orchNS.NeedsPlanning = true // still planning; tasks may be incoming
 	orchNS.Children = []ChildRef{{ID: "empty-leaf", Address: "orch/empty-leaf", State: StatusNotStarted}}
 
 	leafNS := NewNodeState("empty-leaf", "Empty Leaf", NodeLeaf)
@@ -436,7 +436,7 @@ func TestFindNextTask_AuditOnlyLeaf_ParentStillPlanning(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Parent is still planning — tasks may still be added to this leaf.
+	// Parent is still planning. Tasks may still be added to this leaf.
 	// The audit must not run yet.
 	if result.Found {
 		t.Error("expected not found: parent still planning, audit should be blocked")
@@ -477,7 +477,7 @@ func TestFindNextTask_BlockedSiblingRemediation_FoundAfterCreationBlock(t *testi
 	alphaNS.Tasks = []Task{
 		{ID: "task-0001", State: StatusComplete},
 		// audit is not_started but gated (allNonAuditDone is true, so it
-		// WOULD be actionable — but we need alpha to produce no result
+		// WOULD be actionable. But we need alpha to produce no result
 		// from findActionableTask). Actually, the audit IS actionable here.
 		// Let's make alpha an incomplete node with no actionable tasks:
 		// a single not_started task that has incomplete children.

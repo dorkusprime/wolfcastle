@@ -1015,7 +1015,7 @@ func TestInitCmd_AlreadyInitializedJSON(t *testing.T) {
 // ═══════════════════════════════════════════════════════════════════════════
 // spec.go: ReadDir error via corrupted specs dir (lines 207-209)
 // This is already tested in TestSpecList_ReadDirError in category_a but
-// the line is still uncovered — possibly the test doesn't exercise this
+// the line is still uncovered: possibly the test doesn't exercise this
 // path correctly. Let's test by making the specs dir unreadable.
 // ═══════════════════════════════════════════════════════════════════════════
 

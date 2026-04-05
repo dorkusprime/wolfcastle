@@ -439,7 +439,7 @@ func TestLogCmd_CompressedGzFiles(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// replayJSON — direct unit tests for streaming and decompression
+// replayJSON: direct unit tests for streaming and decompression
 // ═══════════════════════════════════════════════════════════════════════════
 
 // writeGzLines creates a gzip-compressed file containing newline-terminated lines.

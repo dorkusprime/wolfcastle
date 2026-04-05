@@ -10,7 +10,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// fragments.go — include list references missing fragment
+// fragments.go: include list references missing fragment
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestResolveAllFragments_IncludeListMissingFragment(t *testing.T) {
@@ -35,7 +35,7 @@ func TestResolveAllFragments_IncludeListMissingFragment(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// fragments.go — invalid Go template syntax
+// fragments.go: invalid Go template syntax
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestResolvePromptTemplate_InvalidGoTemplateSyntax(t *testing.T) {
@@ -57,7 +57,7 @@ func TestResolvePromptTemplate_InvalidGoTemplateSyntax(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// prompt.go — skip assembly error path
+// prompt.go: skip assembly error path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAssemblePrompt_SkipAssembly_MissingPromptFile(t *testing.T) {
@@ -80,7 +80,7 @@ func TestAssemblePrompt_SkipAssembly_MissingPromptFile(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// prompt.go — fragment resolution error path
+// prompt.go: fragment resolution error path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAssemblePrompt_FragmentResolutionError(t *testing.T) {

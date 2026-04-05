@@ -376,7 +376,7 @@ func TestValidateAll_DetectsDepthMismatch(t *testing.T) {
 	parentNS.Children = []state.ChildRef{{ID: "child", Address: "parent/child", State: state.StatusNotStarted}}
 	_ = state.SaveNodeState(filepath.Join(parentDir, "state.json"), parentNS)
 
-	// Child with depth 1 (less than parent — invalid)
+	// Child with depth 1 (less than parent. Invalid)
 	childDir := filepath.Join(dir, "parent", "child")
 	_ = os.MkdirAll(childDir, 0755)
 	childNS := state.NewNodeState("child", "Child", state.NodeLeaf)
@@ -473,7 +473,7 @@ func TestValidateStartup_OnlyRunsSubset(t *testing.T) {
 		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "leaf",
 	}
 
-	// Write an orphan .md file — ORPHAN_DEFINITION is not in startup subset
+	// Write an orphan .md file. ORPHAN_DEFINITION is not in startup subset
 	_ = os.WriteFile(filepath.Join(dir, "nonexistent", "readme.md"), []byte("orphan"), 0644)
 
 	engine := NewEngine(dir, DefaultNodeLoader(dir))
@@ -609,7 +609,7 @@ func TestValidateAll_DetectsAuditStatusTaskMismatch(t *testing.T) {
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("mismatch", "Mismatch", state.NodeLeaf)
 	ns.State = state.StatusInProgress
-	ns.Audit.Status = state.AuditPassed // wrong — should be in_progress
+	ns.Audit.Status = state.AuditPassed // wrong; should be in_progress
 	ns.Tasks = []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusInProgress},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},

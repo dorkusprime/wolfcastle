@@ -8,7 +8,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// atomicWriteJSON — error path coverage
+// atomicWriteJSON: error path coverage
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAtomicWriteJSON_TmpFileCreationFailure(t *testing.T) {

@@ -335,7 +335,7 @@ func detectMarkers(output string, result *Result) {
 func detectLineMarker(line string, result *Result) {
 	trimmed := strings.TrimSpace(line)
 
-	// Terminal markers — only record the first one encountered.
+	// Terminal markers: only record the first one encountered.
 	if result.TerminalMarker == MarkerNone {
 		switch {
 		case strings.Contains(trimmed, MarkerStringComplete):
@@ -351,7 +351,7 @@ func detectLineMarker(line string, result *Result) {
 		}
 	}
 
-	// Summary marker — can appear alongside a terminal marker.
+	// Summary marker: can appear alongside a terminal marker.
 	if strings.HasPrefix(trimmed, MarkerStringSummary) {
 		text := strings.TrimSpace(strings.TrimPrefix(trimmed, MarkerStringSummary))
 		if text != "" {

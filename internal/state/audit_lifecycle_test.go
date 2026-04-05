@@ -96,7 +96,7 @@ func TestSyncAuditLifecycle_InProgressRecordsStartedAtOnce(t *testing.T) {
 	SyncAuditLifecycle(ns)
 	firstStartedAt := ns.Audit.StartedAt
 
-	// Call again — should not change StartedAt
+	// Call again. Should not change StartedAt
 	SyncAuditLifecycle(ns)
 	if ns.Audit.StartedAt != firstStartedAt {
 		t.Error("StartedAt should not change on subsequent calls")

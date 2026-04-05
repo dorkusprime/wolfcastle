@@ -13,7 +13,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// fix.go — FixWithVerification: LoadRootIndex error in loop (corrupt index)
+// fix.go: FixWithVerification: LoadRootIndex error in loop (corrupt index)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_CorruptIndexMidPass(t *testing.T) {
@@ -27,7 +27,7 @@ func TestFixWithVerification_CorruptIndexMidPass(t *testing.T) {
 	ns := state.NewNodeState("fixable", "Fixable", state.NodeLeaf)
 	ns.Tasks = []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
-		// Missing audit task — triggers fix
+		// Missing audit task. Triggers fix
 	}
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
 
@@ -60,7 +60,7 @@ func TestFixWithVerification_CorruptIndexMidPass(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// fix.go — FixWithVerification: zero fixes break (report with issues but
+// fix.go: FixWithVerification: zero fixes break (report with issues but
 // none auto-fixable triggers the len(fixes)==0 break)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -102,7 +102,7 @@ func TestFixWithVerification_HasAutoFixableButZeroApplied(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// model_fix.go — invoke error (nonexistent command)
+// model_fix.go: invoke error (nonexistent command)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestTryModelAssistedFix_InvokeError(t *testing.T) {
@@ -138,7 +138,7 @@ func TestTryModelAssistedFix_InvokeError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// model_fix.go — JSON parse error (mock returning non-JSON)
+// model_fix.go: JSON parse error (mock returning non-JSON)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestTryModelAssistedFix_JSONParseError(t *testing.T) {

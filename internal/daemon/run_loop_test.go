@@ -12,7 +12,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Run — stop-file detection mid-loop
+// Run: stop-file detection mid-loop
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRun_StopFileMidLoop(t *testing.T) {
@@ -53,7 +53,7 @@ func TestRun_StopFileMidLoop(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Run — shutdown channel closes during idle select
+// Run: shutdown channel closes during idle select
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRun_ShutdownDuringIdle(t *testing.T) {
@@ -82,7 +82,7 @@ func TestRun_ShutdownDuringIdle(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Run — workAvailable channel wakes idle loop
+// Run: workAvailable channel wakes idle loop
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRun_WorkAvailableWakesIdleLoop(t *testing.T) {
@@ -137,7 +137,7 @@ func TestRun_WorkAvailableWakesIdleLoop(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Run — context cancellation at top of loop (with spinner active)
+// Run: context cancellation at top of loop (with spinner active)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRun_ContextCancelAtLoopTop(t *testing.T) {
@@ -165,7 +165,7 @@ func TestRun_ContextCancelAtLoopTop(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Run — IterationError path sleeps then retries
+// Run: IterationError path sleeps then retries
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRun_IterationErrorSleepsAndRetries(t *testing.T) {
@@ -205,7 +205,7 @@ func TestRun_IterationErrorSleepsAndRetries(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Run — IterationError with context cancel during sleep
+// Run: IterationError with context cancel during sleep
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRun_IterationErrorContextCancelDuringSleep(t *testing.T) {
@@ -236,7 +236,7 @@ func TestRun_IterationErrorContextCancelDuringSleep(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Run — IterationDidWork exercises log retention
+// Run: IterationDidWork exercises log retention
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRun_DidWorkEnforcesLogRetention(t *testing.T) {
@@ -264,7 +264,7 @@ func TestRun_DidWorkEnforcesLogRetention(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Run — context cancelled during idle select (ctx.Done case, lines 338-340)
+// Run: context cancelled during idle select (ctx.Done case, lines 338-340)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRun_ContextCancelDuringIdleSelect(t *testing.T) {

@@ -25,8 +25,8 @@ type RetryLogger interface {
 // governed by the project's retry configuration (ADR-019).
 //
 // Only invocation errors (non-nil error returns from Invoke) are retried.
-// A successful process exit — even with a non-zero exit code captured in
-// Result — is not retried, since that represents the model running to
+// A successful process exit (even with a non-zero exit code captured in
+// Result) is not retried, since that represents the model running to
 // completion and returning a meaningful (if unsuccessful) outcome.
 type RetryInvoker struct {
 	// Inner is the underlying invoker to wrap with retries.
@@ -65,7 +65,7 @@ func (r *RetryInvoker) Invoke(ctx context.Context, model config.ModelDef, prompt
 			return result, nil
 		}
 
-		// Context cancellation is never retryable — the caller is
+		// Context cancellation is never retryable; the caller is
 		// shutting down or the invocation timed out.
 		if ctx.Err() != nil {
 			return result, fmt.Errorf("invocation cancelled: %w", err)
@@ -106,7 +106,7 @@ func (r *RetryInvoker) Invoke(ctx context.Context, model config.ModelDef, prompt
 }
 
 // IsRetryableError returns true if the error represents a condition worth
-// retrying — process spawn failures, pipe errors, and similar infrastructure
+// retrying: process spawn failures, pipe errors, and similar infrastructure
 // issues. Context cancellation and deadline exceeded errors are not retryable.
 func IsRetryableError(err error) bool {
 	if err == nil {

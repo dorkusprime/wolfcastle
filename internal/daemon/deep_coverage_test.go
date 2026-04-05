@@ -9,17 +9,17 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// propagateState — error paths and deep hierarchies
+// propagateState: error paths and deep hierarchies
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPropagateState_NodeNotInIndex(t *testing.T) {
 	d := testDaemon(t)
 	idx := state.NewRootIndex()
 
-	// Node not in index — propagateState succeeds but does nothing meaningful
+	// Node not in index. PropagateState succeeds but does nothing meaningful
 	// since there's nothing to propagate up from
 	err := d.propagateState("nonexistent-node", state.StatusInProgress, idx)
-	// Should succeed — the function just saves the index
+	// Should succeed. The function just saves the index
 	if err != nil {
 		t.Logf("propagateState for missing node: %v (may be acceptable)", err)
 	}
@@ -41,7 +41,7 @@ func TestPropagateState_ParentLoadError(t *testing.T) {
 	}
 	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
-	// Don't create parent state.json on disk — loadNode for parent will fail
+	// Don't create parent state.json on disk. LoadNode for parent will fail
 	// but propagateState should still succeed or return an error gracefully
 	err := d.propagateState("parent/child", state.StatusInProgress, idx)
 	// This exercises the loadNode error path inside state.Propagate
@@ -104,7 +104,7 @@ func TestPropagateState_FourLevelHierarchy(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkInboxState — various states
+// checkInboxState: various states
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCheckInboxState_NoFile(t *testing.T) {

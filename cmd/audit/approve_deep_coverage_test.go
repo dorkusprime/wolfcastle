@@ -9,7 +9,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// approve — invalid slug from title
+// approve: invalid slug from title
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestApprove_InvalidSlugTitle_Skipped(t *testing.T) {
@@ -29,7 +29,7 @@ func TestApprove_InvalidSlugTitle_Skipped(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"audit", "approve", "--all"})
 	err := env.RootCmd.Execute()
-	// Should succeed — invalid slug finding is skipped, valid one proceeds
+	// Should succeed. Invalid slug finding is skipped, valid one proceeds
 	if err != nil {
 		t.Logf("approve --all with invalid slug: %v (may be acceptable)", err)
 	}
@@ -57,7 +57,7 @@ func TestApprove_EmptyTitle_ProducesUnnamed(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// approve — finding with existing project (dedup path)
+// approve: finding with existing project (dedup path)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestApprove_ExistingProject_JSON(t *testing.T) {
@@ -84,7 +84,7 @@ func TestApprove_ExistingProject_JSON(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// approve — batch with multiple findings, approve one at a time
+// approve: batch with multiple findings, approve one at a time
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestApprove_Sequential(t *testing.T) {
@@ -148,7 +148,7 @@ func copyDir(src, dst string) error {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// finalizeBatchIfComplete — with all approved (history retention)
+// finalizeBatchIfComplete: with all approved (history retention)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFinalizeBatchIfComplete_WithCreatedNodes(t *testing.T) {

@@ -592,7 +592,7 @@ func TestRunOnce_BranchChange(t *testing.T) {
 
 	// Git service points at temp dir (no git repo) so CurrentBranch errors
 	result, err := d.RunOnce(context.Background())
-	// Either branch check errors or root index load errors — both acceptable
+	// Either branch check errors or root index load errors. Both acceptable
 	_ = result
 	_ = err
 }

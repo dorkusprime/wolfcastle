@@ -13,7 +13,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// sleepWithContext — both branches
+// sleepWithContext: both branches
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSleepWithContext_FullSleep(t *testing.T) {
@@ -49,7 +49,7 @@ func TestSleepWithContext_ContextCancelledDuringSleep(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runInboxWithPolling — context cancellation exits cleanly
+// runInboxWithPolling: context cancellation exits cleanly
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunInboxWithPolling_ExitsOnCancel(t *testing.T) {
@@ -111,7 +111,7 @@ func TestRunInboxWithPolling_BlockedPollFallback(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runInboxLoop — polling fallback when fsnotify fails
+// runInboxLoop: polling fallback when fsnotify fails
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunInboxLoop_ExitsOnCancel(t *testing.T) {
@@ -126,7 +126,7 @@ func TestRunInboxLoop_ExitsOnCancel(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// git.CurrentBranch — fallback paths
+// git.CurrentBranch: fallback paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCurrentBranch_NotAGitRepo(t *testing.T) {
@@ -156,7 +156,7 @@ func TestCurrentBranch_EmptyRepo(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// processInbox — no matching intake stage
+// processInbox: no matching intake stage
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestProcessInbox_NoIntakeStage(t *testing.T) {
@@ -183,7 +183,7 @@ func TestProcessInbox_IntakeStageDisabled(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — iteration cap (new test, stop/shutdown covered elsewhere)
+// RunOnce: iteration cap (new test, stop/shutdown covered elsewhere)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_IterationCapReached(t *testing.T) {
@@ -204,7 +204,7 @@ func TestRunOnce_IterationCapReached(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — error paths
+// runIntakeStage: error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_MissingModel(t *testing.T) {
@@ -284,7 +284,7 @@ func TestRunIntakeStage_WithExistingTree(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkInboxForNew — the stages.go variant
+// checkInboxForNew: the stages.go variant
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCheckInboxForNew_MissingFile(t *testing.T) {

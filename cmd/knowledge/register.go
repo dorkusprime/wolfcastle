@@ -1,5 +1,5 @@
 // Package knowledge implements the knowledge command group for managing
-// codebase knowledge files — the living, growing "what you need to know"
+// codebase knowledge files: the living, growing "what you need to know"
 // documents that accumulate across tasks.
 package knowledge
 

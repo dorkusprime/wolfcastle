@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// ── compressFile — permission-based error paths ─────────────────────
+// ── compressFile: permission-based error paths ─────────────────────
 
 func TestCompressFile_UnreadableSource_Chmod(t *testing.T) {
 	if runtime.GOOS == "windows" {

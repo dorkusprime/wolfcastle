@@ -263,7 +263,7 @@ func Load(wolfcastleDir string) (*Config, error) {
 
 	cfg.Warnings = warnings
 
-	// Validate structural integrity (skip identity — handled by resolver)
+	// Validate structural integrity (skip identity; handled by resolver)
 	if err := ValidateStructure(&cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}

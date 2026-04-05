@@ -158,7 +158,7 @@ func TestStopCmd_ForceFlag(t *testing.T) {
 
 func TestStopCmd_RunningProcess(t *testing.T) {
 	env := newTestEnv(t)
-	// Use our own PID — it's running, but signal will succeed
+	// Use our own PID. It's running, but signal will succeed
 	pid := os.Getpid()
 	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
@@ -173,7 +173,7 @@ func TestStopCmd_JSONOutput(t *testing.T) {
 	env.App.JSON = true
 	defer func() { env.App.JSON = false }()
 
-	// No PID file — should error
+	// No PID file. Should error
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
 	if err == nil {
@@ -182,7 +182,7 @@ func TestStopCmd_JSONOutput(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// showAllStatus edge case — missing projects dir
+// showAllStatus edge case: missing projects dir
 // ---------------------------------------------------------------------------
 
 func TestShowAllStatus_MissingProjectsDir(t *testing.T) {
@@ -197,7 +197,7 @@ func TestShowAllStatus_MissingProjectsDir(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// status command — node scope with nodes
+// status command: node scope with nodes
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------

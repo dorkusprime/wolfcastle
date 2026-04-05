@@ -12,7 +12,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// start command — error paths (without starting the daemon loop)
+// start command: error paths (without starting the daemon loop)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_AlreadyRunning_OwnPID(t *testing.T) {
@@ -102,7 +102,7 @@ func TestStartCmd_StalePIDRecoveredBeforeStart(t *testing.T) {
 // Validation-only paths are tested by TestStartCmd_ValidationBlocksWithErrors.
 
 // ═══════════════════════════════════════════════════════════════════════════
-// recoverStaleDaemonState — edge cases
+// recoverStaleDaemonState: edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoverStaleDaemonState_ValidPIDNotRunning(t *testing.T) {

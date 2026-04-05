@@ -8,7 +8,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// atomicWriteJSON — success with nested directories and content verification
+// atomicWriteJSON: success with nested directories and content verification
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAtomicWriteJSON_ContentMatchesInput(t *testing.T) {
@@ -66,7 +66,7 @@ func TestAtomicWriteJSON_OverwritesExistingFile(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LoadRootIndex — error paths
+// LoadRootIndex: error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestLoadRootIndex_NonexistentPath(t *testing.T) {
@@ -105,7 +105,7 @@ func TestLoadRootIndex_InitializesNilNodes(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LoadNodeState — error paths
+// LoadNodeState: error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestLoadNodeState_NonexistentPath(t *testing.T) {
@@ -163,7 +163,7 @@ func TestLoadNodeState_NormalizesAuditState(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SaveRootIndex / SaveNodeState — round-trip
+// SaveRootIndex / SaveNodeState: round-trip
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSaveAndLoadRootIndex_RoundTrip(t *testing.T) {
@@ -226,7 +226,7 @@ func TestSaveAndLoadNodeState_RoundTrip(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// normalizeAuditState — already-set fields preserved
+// normalizeAuditState: already-set fields preserved
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestNormalizeAuditState_PreservesExistingStatus(t *testing.T) {

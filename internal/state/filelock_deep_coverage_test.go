@@ -9,7 +9,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// tryCleanStaleLock — various PID states
+// tryCleanStaleLock: various PID states
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestTryCleanStaleLock_EmptyFile(t *testing.T) {
@@ -62,7 +62,7 @@ func TestTryCleanStaleLock_LiveProcess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Write our own PID — this process is alive
+	// Write our own PID. This process is alive
 	pid := os.Getpid()
 	_, _ = fmt.Fprintf(f, "%d\n", pid)
 	_ = f.Sync()
@@ -99,7 +99,7 @@ func TestTryCleanStaleLock_DeadProcess(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Acquire / Release — basic lifecycle
+// Acquire / Release: basic lifecycle
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAcquireRelease_BasicCycle(t *testing.T) {
@@ -147,7 +147,7 @@ func TestAcquire_Timeout_WhenHeld(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// WithLock — success path
+// WithLock: success path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestWithLock_Success(t *testing.T) {
@@ -167,7 +167,7 @@ func TestWithLock_Success(t *testing.T) {
 		t.Error("fn should have been called")
 	}
 
-	// Lock should be released — verify by acquiring again
+	// Lock should be released. Verify by acquiring again
 	fl2 := NewFileLock(dir, 200*time.Millisecond)
 	if err := fl2.Acquire(); err != nil {
 		t.Fatalf("could not acquire after WithLock: %v", err)
@@ -176,7 +176,7 @@ func TestWithLock_Success(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Acquire — writes PID to lock file
+// Acquire: writes PID to lock file
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAcquire_WritesPIDToLockFile(t *testing.T) {
@@ -201,7 +201,7 @@ func TestAcquire_WritesPIDToLockFile(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// signalProcess — live and dead process
+// signalProcess: live and dead process
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSignalProcess_LiveProcess(t *testing.T) {

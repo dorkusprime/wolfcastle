@@ -17,7 +17,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// commitAfterIteration — config flag combinations
+// commitAfterIteration: config flag combinations
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCommitAfterIteration_AutoCommitDisabled(t *testing.T) {
@@ -211,7 +211,7 @@ func TestCommitAfterIteration_InvalidTaskID_Skips(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// commitAfterIteration — enriched commit messages
+// commitAfterIteration: enriched commit messages
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCommitAfterIteration_EnrichedMessages(t *testing.T) {
@@ -366,7 +366,7 @@ func TestCommitAfterIteration_EnrichedMessages(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — success-path commit integration
+// runIteration: success-path commit integration
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_SuccessCommit_CreatesCommit(t *testing.T) {
@@ -517,7 +517,7 @@ func TestRunIteration_SuccessCommit_SkippedWhenAutoCommitDisabled(t *testing.T) 
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — failure-path commit integration
+// runIteration: failure-path commit integration
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_FailureCommit_CreatesCommit(t *testing.T) {
@@ -614,7 +614,7 @@ func TestRunIteration_FailureCommit_SkippedWhenDisabled(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — clean working tree skip (no empty commits)
+// runIteration: clean working tree skip (no empty commits)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_SuccessCleanTree_NoEmptyCommit(t *testing.T) {
@@ -659,7 +659,7 @@ func TestRunIteration_SuccessCleanTree_NoEmptyCommit(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// commitDirect — scope-aware behavior
+// commitDirect: scope-aware behavior
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCommitDirect_NilScope_StagesEverything(t *testing.T) {
@@ -813,7 +813,7 @@ func TestCommitDirect_NonNilScope_CommitStateFalse_ExcludesWolfcastle(t *testing
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// commitAfterIteration — scope-aware behavior
+// commitAfterIteration: scope-aware behavior
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCommitAfterIteration_NilScope_GlobalStatusCheck(t *testing.T) {

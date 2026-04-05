@@ -174,7 +174,7 @@ func TestSpecLifecycle(t *testing.T) {
 	// Create a second spec and link it manually
 	run(t, dir, "spec", "create", "Standalone Spec")
 	// Link it to the project
-	// We need to find the filename — it includes a timestamp, so list all specs
+	// We need to find the filename. It includes a timestamp, so list all specs
 	out = run(t, dir, "spec", "list")
 	// The standalone spec should appear in the full list
 	if !strings.Contains(out, "standalone-spec") {

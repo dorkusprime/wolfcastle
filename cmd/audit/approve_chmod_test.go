@@ -9,7 +9,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-// ── approve — filesystem error paths via chmod ──────────────────────
+// ── approve: filesystem error paths via chmod ──────────────────────
 
 func TestApprove_MkdirAllError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -96,7 +96,7 @@ func TestApprove_WriteFileError_ReadOnly(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chmod(env.ProjectsDir, 0755) })
 
 	env.RootCmd.SetArgs([]string{"audit", "approve", "f-1"})
-	// MkdirAll for node dir also fails — finding is skipped.
+	// MkdirAll for node dir also fails. Finding is skipped.
 	err := env.RootCmd.Execute()
 	if err == nil {
 		t.Error("expected error since no finding was successfully approved")

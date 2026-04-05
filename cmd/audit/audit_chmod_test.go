@@ -9,7 +9,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-// ── audit breadcrumb — SaveNodeState error ──────────────────────────
+// ── audit breadcrumb: SaveNodeState error ──────────────────────────
 
 func TestBreadcrumb_SaveNodeStateError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -30,7 +30,7 @@ func TestBreadcrumb_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 }
 
-// ── audit escalate — SaveNodeState error ────────────────────────────
+// ── audit escalate: SaveNodeState error ────────────────────────────
 
 func TestEscalate_SaveNodeStateError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -51,7 +51,7 @@ func TestEscalate_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 }
 
-// ── audit fix-gap — SaveNodeState error ─────────────────────────────
+// ── audit fix-gap: SaveNodeState error ─────────────────────────────
 
 func TestFixGap_SaveNodeStateError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -80,7 +80,7 @@ func TestFixGap_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 }
 
-// ── audit gap — SaveNodeState error ─────────────────────────────────
+// ── audit gap: SaveNodeState error ─────────────────────────────────
 
 func TestGap_SaveNodeStateError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -101,7 +101,7 @@ func TestGap_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 }
 
-// ── audit resolve — SaveNodeState error ─────────────────────────────
+// ── audit resolve: SaveNodeState error ─────────────────────────────
 
 func TestResolve_SaveNodeStateError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -129,7 +129,7 @@ func TestResolve_SaveNodeStateError_ReadOnly(t *testing.T) {
 	}
 }
 
-// ── audit reject — SaveBatch error ──────────────────────────────────
+// ── audit reject: SaveBatch error ──────────────────────────────────
 
 func TestReject_SaveBatchError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {

@@ -313,7 +313,7 @@ func EnforceRetention(logDir string, maxFiles int, maxAgeDays int, opts ...Reten
 				uncompressed = append(uncompressed, e)
 			}
 		}
-		// Keep the newest uncompressed file open — compress only older ones.
+		// Keep the newest uncompressed file open. Compress only older ones.
 		if len(uncompressed) > 1 {
 			sort.Slice(uncompressed, func(i, j int) bool {
 				return uncompressed[i].Name() < uncompressed[j].Name()
@@ -321,7 +321,7 @@ func EnforceRetention(logDir string, maxFiles int, maxAgeDays int, opts ...Reten
 			for _, e := range uncompressed[:len(uncompressed)-1] {
 				src := filepath.Join(logDir, e.Name())
 				if err := compressFile(src); err != nil {
-					// Non-fatal — the file simply stays uncompressed.
+					// Non-fatal: the file simply stays uncompressed.
 					continue
 				}
 			}

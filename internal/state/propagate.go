@@ -3,7 +3,7 @@ package state
 import "fmt"
 
 // Propagate updates a node's state, propagates to all ancestors, and updates
-// the root index. This is the single authoritative mutation path — both CLI
+// the root index. This is the single authoritative mutation path; both CLI
 // commands and the daemon must use it to stay ADR-024 compliant.
 func Propagate(
 	nodeAddr string,

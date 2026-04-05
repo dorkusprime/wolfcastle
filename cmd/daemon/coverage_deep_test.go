@@ -15,7 +15,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — completed orchestrator with children (collapse path)
+// printNodeTree: completed orchestrator with children (collapse path)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPrintNodeTree_CompletedOrchestratorCollapsed(t *testing.T) {
@@ -54,7 +54,7 @@ func TestPrintNodeTree_CompletedOrchestratorCollapsed(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — completed leaf node with tasks (collapse path)
+// printNodeTree: completed leaf node with tasks (collapse path)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPrintNodeTree_CompletedLeafWithTasks(t *testing.T) {
@@ -84,7 +84,7 @@ func TestPrintNodeTree_CompletedLeafWithTasks(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — orchestrator with active audit task
+// printNodeTree: orchestrator with active audit task
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPrintNodeTree_OrchestratorWithActiveAuditTask(t *testing.T) {
@@ -120,7 +120,7 @@ func TestPrintNodeTree_OrchestratorWithActiveAuditTask(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — subtask collapsing: completed parent with all-complete children
+// printNodeTree: subtask collapsing: completed parent with all-complete children
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPrintNodeTree_SubtaskCollapsing(t *testing.T) {
@@ -147,7 +147,7 @@ func TestPrintNodeTree_SubtaskCollapsing(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — subtask NOT collapsed: parent complete but child incomplete
+// printNodeTree: subtask NOT collapsed: parent complete but child incomplete
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPrintNodeTree_SubtaskNotCollapsed(t *testing.T) {
@@ -167,12 +167,12 @@ func TestPrintNodeTree_SubtaskNotCollapsed(t *testing.T) {
 		"proj": {entry: idx.Nodes["proj"], ns: ns},
 	}
 
-	// expand=false: parent complete but sub B incomplete — no collapse.
+	// expand=false: parent complete but sub B incomplete. No collapse.
 	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// showTreeStatus — planning queue rendering
+// showTreeStatus: planning queue rendering
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestShowTreeStatus_PlanningQueue(t *testing.T) {
@@ -191,7 +191,7 @@ func TestShowTreeStatus_PlanningQueue(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// showTreeStatus — in-progress summary line
+// showTreeStatus: in-progress summary line
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestShowTreeStatus_InProgressCount(t *testing.T) {
@@ -211,7 +211,7 @@ func TestShowTreeStatus_InProgressCount(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// watchStatus — runs at least one full loop iteration with tree data
+// watchStatus: runs at least one full loop iteration with tree data
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestWatchStatus_RunsOneFullIteration(t *testing.T) {
@@ -260,7 +260,7 @@ func TestWatchStatus_ExpandFlag(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// newStatusCmd — watch flag path through command
+// newStatusCmd: watch flag path through command
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStatusCmd_WatchFlag(t *testing.T) {
@@ -289,7 +289,7 @@ func TestStatusCmd_WatchFlag(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — deep subtask indentation (task-0001.0002.0003)
+// printNodeTree: deep subtask indentation (task-0001.0002.0003)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPrintNodeTree_DeepSubtaskIndent(t *testing.T) {
@@ -314,7 +314,7 @@ func TestPrintNodeTree_DeepSubtaskIndent(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — completed task with collapsed subtasks (child count display)
+// printNodeTree: completed task with collapsed subtasks (child count display)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPrintNodeTree_CompletedTaskCollapsedSubtasks(t *testing.T) {
@@ -324,7 +324,7 @@ func TestPrintNodeTree_CompletedTaskCollapsedSubtasks(t *testing.T) {
 	idx, _ := env.App.State.ReadIndex()
 	ns, _ := env.App.State.ReadNode("proj")
 	ns.Tasks = []state.Task{
-		// Completed task with children — the task itself hits the "collapsed
+		// Completed task with children. The task itself hits the "collapsed
 		// parent task: show child count" branch at line 305-316.
 		{ID: "task-0001", Title: "Done parent", State: state.StatusComplete},
 		{ID: "task-0001.0001", Title: "Child 1", State: state.StatusComplete},
@@ -342,7 +342,7 @@ func TestPrintNodeTree_CompletedTaskCollapsedSubtasks(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// showTreeStatus — completed node in non-JSON with scope
+// showTreeStatus: completed node in non-JSON with scope
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestShowTreeStatus_CompletedNodesCollapsed(t *testing.T) {
@@ -386,7 +386,7 @@ func TestStartCmd_ConfigLoadError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// showAllStatus — file entry in projects dir (not a directory)
+// showAllStatus: file entry in projects dir (not a directory)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestShowAllStatus_FileInProjectsDir(t *testing.T) {
@@ -402,7 +402,7 @@ func TestShowAllStatus_FileInProjectsDir(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — gap with IsTerminal=false (non-terminal display path)
+// printNodeTree: gap with IsTerminal=false (non-terminal display path)
 // Already tested, but this adds an explicit assertion on the output path.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -426,14 +426,14 @@ func TestPrintNodeTree_OpenGapNonTerminal(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// startBackground — PID write failure (read-only dir)
+// startBackground: PID write failure (read-only dir)
 // ═══════════════════════════════════════════════════════════════════════════
 
 // TestStartBackground_PIDWriteFailure was removed: startBackground no
 // longer writes the PID file. The child _daemon-run process handles it.
 
 // ═══════════════════════════════════════════════════════════════════════════
-// recoverStaleDaemonState — read error on PID file (not ENOENT)
+// recoverStaleDaemonState: read error on PID file (not ENOENT)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoverStaleDaemonState_ReadError(t *testing.T) {
@@ -458,7 +458,7 @@ func TestRecoverStaleDaemonState_ReadError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// showTreeStatus — empty tree path (zero total nodes)
+// showTreeStatus: empty tree path (zero total nodes)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestShowTreeStatus_EmptyTreeMessage(t *testing.T) {
@@ -472,7 +472,7 @@ func TestShowTreeStatus_EmptyTreeMessage(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — orchestrator with blocked audit task
+// printNodeTree: orchestrator with blocked audit task
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPrintNodeTree_OrchestratorBlockedAuditTask(t *testing.T) {
@@ -508,7 +508,7 @@ func TestPrintNodeTree_OrchestratorBlockedAuditTask(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// showAllStatus — truly empty projects dir (no namespaces, human output)
+// showAllStatus: truly empty projects dir (no namespaces, human output)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestShowAllStatus_EmptyProjectsDir_Human(t *testing.T) {
@@ -526,7 +526,7 @@ func TestShowAllStatus_EmptyProjectsDir_Human(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// printNodeTree — subtask with grandchild (rest contains ".", skipped)
+// printNodeTree: subtask with grandchild (rest contains ".", skipped)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPrintNodeTree_GrandchildSkippedInCollapseCheck(t *testing.T) {
@@ -555,7 +555,7 @@ func TestPrintNodeTree_GrandchildSkippedInCollapseCheck(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// watchStatus — showAll error path inside the loop
+// watchStatus: showAll error path inside the loop
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestWatchStatus_ShowAllError(t *testing.T) {
@@ -584,7 +584,7 @@ func TestWatchStatus_ShowAllError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// watchStatus — tree status error path inside the loop
+// watchStatus: tree status error path inside the loop
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestWatchStatus_TreeStatusError(t *testing.T) {
@@ -616,7 +616,7 @@ func TestWatchStatus_TreeStatusError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// stop command — Signal error path
+// stop command: Signal error path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStopCmd_SignalError(t *testing.T) {
@@ -638,7 +638,7 @@ func TestStopCmd_SignalError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// start.go — validation warnings printed, then proceed
+// start.go: validation warnings printed, then proceed
 // ═══════════════════════════════════════════════════════════════════════════
 
 // TestStartCmd_DaemonNewFails exercises the foreground daemon.New() error
@@ -664,7 +664,7 @@ func TestStartCmd_DaemonNewFails(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// showTreeStatus — multiple state summary parts (all states represented)
+// showTreeStatus: multiple state summary parts (all states represented)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestShowTreeStatus_AllStateCountParts(t *testing.T) {
@@ -703,7 +703,7 @@ func TestShowTreeStatus_AllStateCountParts(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// timelinePriority — all status branches
+// timelinePriority: all status branches
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestTimelinePriority_AllStatuses(t *testing.T) {

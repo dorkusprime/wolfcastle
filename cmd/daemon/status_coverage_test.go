@@ -15,7 +15,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// nodeGlyph — all NodeStatus values (non-terminal mode, which is what tests get)
+// nodeGlyph: all NodeStatus values (non-terminal mode, which is what tests get)
 // ---------------------------------------------------------------------------
 
 func TestNodeGlyph_AllStatuses(t *testing.T) {
@@ -40,7 +40,7 @@ func TestNodeGlyph_AllStatuses(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// taskGlyph — all NodeStatus values
+// taskGlyph: all NodeStatus values
 // ---------------------------------------------------------------------------
 
 func TestTaskGlyph_AllStatuses(t *testing.T) {
@@ -65,7 +65,7 @@ func TestTaskGlyph_AllStatuses(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// printNodeTree — coverage for task rendering edge cases
+// printNodeTree: coverage for task rendering edge cases
 // ---------------------------------------------------------------------------
 
 func TestPrintNodeTree_OrchestratorRecursion(t *testing.T) {
@@ -187,7 +187,7 @@ func TestPrintNodeTree_TaskDescriptionFallback(t *testing.T) {
 
 	idx, _ := env.App.State.ReadIndex()
 	ns, _ := env.App.State.ReadNode("proj")
-	// Task with no Title, only Description — label falls back to Description.
+	// Task with no Title, only Description. Label falls back to Description.
 	ns.Tasks = []state.Task{
 		{
 			ID:          "task-0001",
@@ -204,7 +204,7 @@ func TestPrintNodeTree_TaskDescriptionFallback(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// showTreeStatus — JSON output path with audit counts, inbox rendering
+// showTreeStatus: JSON output path with audit counts, inbox rendering
 // ---------------------------------------------------------------------------
 
 func TestShowTreeStatus_JSONWithAuditData(t *testing.T) {
@@ -285,7 +285,7 @@ func TestShowTreeStatus_NodeReadError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// showAllStatus — error and empty paths
+// showAllStatus: error and empty paths
 // ---------------------------------------------------------------------------
 
 func TestShowAllStatus_ProjectsDirRemoved(t *testing.T) {
@@ -307,7 +307,7 @@ func TestShowAllStatus_EmptyJSONOutput(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// watchStatus — context cancellation and error paths
+// watchStatus: context cancellation and error paths
 // ---------------------------------------------------------------------------
 
 func TestWatchStatus_ImmediateCancel(t *testing.T) {
@@ -384,7 +384,7 @@ func TestWatchStatus_ScopedWithCancel(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// newStatusCmd — flag combinations
+// newStatusCmd: flag combinations
 // ---------------------------------------------------------------------------
 
 func TestStatusCmd_AllWithJSON(t *testing.T) {
@@ -497,7 +497,7 @@ func mustJSON(v any) string {
 }
 
 // ---------------------------------------------------------------------------
-// showTreeStatus JSON — daemon activity fields
+// showTreeStatus JSON: daemon activity fields
 // ---------------------------------------------------------------------------
 
 func TestShowTreeStatus_JSONWithDaemonActivity(t *testing.T) {

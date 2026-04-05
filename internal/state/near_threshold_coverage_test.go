@@ -11,7 +11,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MutateNode — propagation path coverage (46.4% → target ~90%)
+// MutateNode: propagation path coverage (46.4% → target ~90%)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestMutateNode_PropagatesStateToIndex(t *testing.T) {
@@ -174,7 +174,7 @@ func TestMutateNode_SaveError_AfterMutation(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ReadNode / ReadIndex — non-ErrNotExist errors (corrupt JSON)
+// ReadNode / ReadIndex: non-ErrNotExist errors (corrupt JSON)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestReadNode_CorruptJSON_ReturnsError(t *testing.T) {
@@ -212,7 +212,7 @@ func TestReadIndex_CorruptJSON_ReturnsError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// nodePath — edge cases
+// nodePath: edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestNodePath_DotSegment_ReturnsError(t *testing.T) {
@@ -260,7 +260,7 @@ func TestNodePath_TabInSegment_ReturnsError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MutateIndex — corrupt JSON (non-ErrNotExist) error
+// MutateIndex: corrupt JSON (non-ErrNotExist) error
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestMutateIndex_CorruptJSON_ReturnsError(t *testing.T) {
@@ -279,7 +279,7 @@ func TestMutateIndex_CorruptJSON_ReturnsError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// InboxMutate — callback error and save failure
+// InboxMutate: callback error and save failure
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestInboxMutate_CallbackError(t *testing.T) {
@@ -348,7 +348,7 @@ func TestInboxAppend_SaveFailure(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// parentInList — no-dot edge case
+// parentInList: no-dot edge case
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestParentInList_NoDot_ReturnsFalse(t *testing.T) {
@@ -376,7 +376,7 @@ func TestParentInList_ParentExists(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TaskBlock — edge cases
+// TaskBlock: edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestTaskBlock_CompleteTask_ReturnsError(t *testing.T) {
@@ -452,7 +452,7 @@ func TestTaskBlock_NotFoundTask_ReturnsError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RecomputeState — blocked derivation
+// RecomputeState: blocked derivation
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecomputeState_AllNonCompleteBlocked_CompleteAndBlocked(t *testing.T) {
@@ -508,7 +508,7 @@ func TestRecomputeState_WithTasks_AllComplete(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LoadInbox — permission error (non-ErrNotExist)
+// LoadInbox: permission error (non-ErrNotExist)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestLoadInbox_PermissionError(t *testing.T) {
@@ -549,7 +549,7 @@ func TestLoadInbox_CorruptJSON(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MutateInbox — corrupt inbox triggers load error
+// MutateInbox: corrupt inbox triggers load error
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestMutateInbox_CorruptInbox_ReturnsError(t *testing.T) {
@@ -568,7 +568,7 @@ func TestMutateInbox_CorruptInbox_ReturnsError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PropagateUp — error paths
+// PropagateUp: error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPropagateUp_LoadParentError_ReturnsWrapped(t *testing.T) {
@@ -633,7 +633,7 @@ func TestPropagateUp_CycleDetection(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Propagate — error in re-walk ancestors
+// Propagate: error in re-walk ancestors
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPropagate_LoadParentForIndex_Error(t *testing.T) {
@@ -671,7 +671,7 @@ func TestPropagate_LoadParentForIndex_Error(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// normalizeAuditState — coverage for default paths
+// normalizeAuditState: coverage for default paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestNormalizeAuditState_DefaultsAllNilSlices(t *testing.T) {
@@ -712,7 +712,7 @@ func TestNormalizeAuditState_PreservesExistingInProgressStatus(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LoadNodeState / LoadRootIndex — parse errors
+// LoadNodeState / LoadRootIndex: parse errors
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestLoadNodeState_CorruptJSON(t *testing.T) {
@@ -747,7 +747,7 @@ func TestLoadRootIndex_NilNodesInitialized(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "state.json")
-	// Valid JSON with no "nodes" field — should initialize the map.
+	// Valid JSON with no "nodes" field. Should initialize the map.
 	if err := os.WriteFile(path, []byte(`{"version":1}`), 0644); err != nil {
 		t.Fatal(err)
 	}

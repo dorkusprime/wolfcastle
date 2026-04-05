@@ -14,7 +14,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkOrphanedStateFiles — direct method tests
+// checkOrphanedStateFiles: direct method tests
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCheckOrphanedStateFiles_NestedOrphan(t *testing.T) {
@@ -80,7 +80,7 @@ func TestCheckOrphanedStateFiles_KnownNodeNotFlagged(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkOrphanedDefinitions — direct method tests
+// checkOrphanedDefinitions: direct method tests
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCheckOrphanedDefinitions_NestedOrphanMD(t *testing.T) {
@@ -150,7 +150,7 @@ func TestCheckOrphanedDefinitions_ArchiveSkipped(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — multi-pass convergence
+// FixWithVerification: multi-pass convergence
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_MultiplePassesConverge(t *testing.T) {
@@ -233,7 +233,7 @@ func TestFixWithVerification_WithWolfcastleDirArg(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TryModelAssistedFix — coverage for all code paths
+// TryModelAssistedFix: coverage for all code paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestTryModelAssistedFix_InvalidModelResponse(t *testing.T) {
@@ -341,7 +341,7 @@ func TestTryModelAssistedFix_MissingNodeState(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ApplyDeterministicFixes — orphan definition and audit gap
+// ApplyDeterministicFixes: orphan definition and audit gap
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestApplyDeterministicFixes_OrphanDefinitionEntry(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// compressFile — successful compression and read error paths
+// compressFile: successful compression and read error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCompressFile_SuccessfulRoundTrip(t *testing.T) {

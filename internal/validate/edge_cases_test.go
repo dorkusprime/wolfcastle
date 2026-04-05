@@ -11,7 +11,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RecoverNodeState — advanced corruption scenarios
+// RecoverNodeState: advanced corruption scenarios
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoverNodeState_BOMPlusTruncation(t *testing.T) {
@@ -150,7 +150,7 @@ func TestRecoverNodeState_NormalizesAuditFields(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RecoverRootIndex — edge cases
+// RecoverRootIndex: edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoverRootIndex_Unrecoverable(t *testing.T) {
@@ -187,7 +187,7 @@ func TestRecoverRootIndex_MissingNodesField(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RecoveringNodeLoader — recovery callback and error paths
+// RecoveringNodeLoader: recovery callback and error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoveringNodeLoader_ValidNode_NoRecovery(t *testing.T) {
@@ -294,7 +294,7 @@ func TestRecoveringNodeLoader_NilCallback_StillRecovers(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// loadOrRecoverRootIndex — error paths
+// loadOrRecoverRootIndex: error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestLoadOrRecoverRootIndex_ValidIndex(t *testing.T) {
@@ -355,7 +355,7 @@ func TestLoadOrRecoverRootIndex_CompletelyCorrupt(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// NormalizeStateValue — table-driven edge cases
+// NormalizeStateValue: table-driven edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestNormalizeStateValue_EdgeCases(t *testing.T) {
@@ -403,7 +403,7 @@ func TestNormalizeStateValue_EdgeCases(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — malformed root index triggers recovery
+// FixWithVerification: malformed root index triggers recovery
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_MalformedIndex_RecoversAndFixes(t *testing.T) {
@@ -441,7 +441,7 @@ func TestFixWithVerification_MalformedIndex_RecoversAndFixes(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Engine.ValidateStartup — verifies subset of categories
+// Engine.ValidateStartup: verifies subset of categories
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEngine_ValidateStartup_OnlyStartupCategories(t *testing.T) {
@@ -482,7 +482,7 @@ func TestEngine_ValidateStartup_OnlyStartupCategories(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Engine — blocked task without reason
+// Engine: blocked task without reason
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEngine_BlockedWithoutReason_Detected(t *testing.T) {
@@ -522,7 +522,7 @@ func TestEngine_BlockedWithoutReason_Detected(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Engine — complete node with incomplete tasks
+// Engine: complete node with incomplete tasks
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEngine_CompleteWithIncomplete_Detected(t *testing.T) {
@@ -560,7 +560,7 @@ func TestEngine_CompleteWithIncomplete_Detected(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Engine — negative failure count
+// Engine: negative failure count
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEngine_NegativeFailureCount_Detected(t *testing.T) {
@@ -600,7 +600,7 @@ func TestEngine_NegativeFailureCount_Detected(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// sanitizeJSON — no BOM, no null bytes, no whitespace
+// sanitizeJSON: no BOM, no null bytes, no whitespace
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSanitizeJSON_OnlyWhitespace(t *testing.T) {
@@ -620,7 +620,7 @@ func TestSanitizeJSON_OnlyWhitespace(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// tryStripTrailing — edge cases
+// tryStripTrailing: edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestTryStripTrailing_EmptyInput(t *testing.T) {
@@ -651,7 +651,7 @@ func TestTryStripTrailing_ArrayInput(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// tryCloseTruncated — edge cases
+// tryCloseTruncated: edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestTryCloseTruncated_EmptyInput(t *testing.T) {
@@ -728,7 +728,7 @@ func TestReport_HasErrors_NoErrors(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Engine — dangling reference detection
+// Engine: dangling reference detection
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEngine_DanglingRef_DetectedAndFixable(t *testing.T) {
@@ -760,7 +760,7 @@ func TestEngine_DanglingRef_DetectedAndFixable(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Engine — multiple in-progress tasks
+// Engine: multiple in-progress tasks
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEngine_MultipleInProgress_Detected(t *testing.T) {
@@ -808,7 +808,7 @@ func TestEngine_MultipleInProgress_Detected(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Engine — invalid audit status
+// Engine: invalid audit status
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEngine_InvalidAuditStatus_Detected(t *testing.T) {

@@ -62,7 +62,7 @@ func (d *Daemon) checkKnowledgeBudget(nodeAddr string) bool {
 			"1. Remove entries that are stale or no longer accurate\n"+
 			"2. Consolidate related entries into single, concise bullets\n"+
 			"3. Remove entries that duplicate information in README, CONTRIBUTING.md, specs, or ADRs\n"+
-			"4. If an entry describes an enforceable convention or coding standard (naming rules, import patterns, style requirements), migrate it to the appropriate class file or rule fragment instead of keeping it in the knowledge file — knowledge entries should be observations, not rules\n"+
+			"4. If an entry describes an enforceable convention or coding standard (naming rules, import patterns, style requirements), migrate it to the appropriate class file or rule fragment instead of keeping it in the knowledge file. Knowledge entries should be observations, not rules\n"+
 			"5. Bring the total under %d tokens\n\n"+
 			"Use `wolfcastle knowledge show` to view the current file and `wolfcastle knowledge prune` to edit it.",
 		ns, tokens, maxTokens,

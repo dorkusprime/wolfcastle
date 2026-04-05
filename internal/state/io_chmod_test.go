@@ -26,7 +26,7 @@ func TestAtomicWriteJSON_MkdirAll_ReadOnlyParent(t *testing.T) {
 	t.Parallel()
 
 	roDir := readOnlyDir(t)
-	// MkdirAll needs to create "sub" inside read-only parent — should fail.
+	// MkdirAll needs to create "sub" inside read-only parent. Should fail.
 	path := filepath.Join(roDir, "sub", "state.json")
 
 	err := atomicWriteJSON(path, map[string]string{"k": "v"})
@@ -66,7 +66,7 @@ func TestAtomicWriteJSON_Rename_TargetIsDir(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	// Place a directory where the destination file should be — rename fails.
+	// Place a directory where the destination file should be. Rename fails.
 	target := filepath.Join(dir, "state.json")
 	if err := os.MkdirAll(target, 0755); err != nil {
 		t.Fatal(err)
