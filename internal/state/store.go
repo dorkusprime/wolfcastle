@@ -3,6 +3,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -143,7 +144,9 @@ func (s *Store) MutateNode(addr string, fn func(*NodeState) error) error {
 		}
 
 		if err := Propagate(addr, ns.State, idx, loadNode, saveNode); err != nil {
-			// Propagation failure is non-fatal for the mutation itself.
+			// Propagation failure is non-fatal for the mutation itself,
+			// but log it so operators can diagnose stale parent state.
+			log.Printf("wolfcastle: propagation error for %s: %v", addr, err)
 			return nil
 		}
 		return SaveRootIndex(s.indexPath(), idx)
