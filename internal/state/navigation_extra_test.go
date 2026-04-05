@@ -442,3 +442,150 @@ func TestFindNextTask_AuditOnlyLeaf_ParentStillPlanning(t *testing.T) {
 		t.Error("expected not found: parent still planning, audit should be blocked")
 	}
 }
+
+// TestFindNextTask_BlockedSiblingRemediation_FoundAfterCreationBlock verifies
+// that a blocked child with pending remediation tasks is found even when an
+// earlier non-blocked sibling stops the creation-order scan. This is the
+// core scenario from issue #188.
+func TestFindNextTask_BlockedSiblingRemediation_FoundAfterCreationBlock(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["orch"] = IndexEntry{
+		Name:     "Orchestrator",
+		Type:     NodeOrchestrator,
+		State:    StatusInProgress,
+		Children: []string{"orch/alpha", "orch/beta"},
+	}
+	// alpha: not_started, all tasks complete except audit which is gated.
+	// The creation-order scan visits alpha, finds no actionable work
+	// (audit is gated), and breaks. Without the fix, beta is never reached.
+	idx.Nodes["orch/alpha"] = IndexEntry{
+		Name:   "Alpha",
+		Type:   NodeLeaf,
+		State:  StatusNotStarted,
+		Parent: "orch",
+	}
+	// beta: blocked with pending remediation subtask.
+	idx.Nodes["orch/beta"] = IndexEntry{
+		Name:   "Beta",
+		Type:   NodeLeaf,
+		State:  StatusBlocked,
+		Parent: "orch",
+	}
+
+	alphaNS := NewNodeState("alpha", "Alpha", NodeLeaf)
+	alphaNS.Tasks = []Task{
+		{ID: "task-0001", State: StatusComplete},
+		// audit is not_started but gated (allNonAuditDone is true, so it
+		// WOULD be actionable — but we need alpha to produce no result
+		// from findActionableTask). Actually, the audit IS actionable here.
+		// Let's make alpha an incomplete node with no actionable tasks:
+		// a single not_started task that has incomplete children.
+		{ID: "task-0002", State: StatusNotStarted, NeedsDecomposition: true},
+		{ID: "task-0002.0001", State: StatusNotStarted},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+	}
+
+	betaNS := NewNodeState("beta", "Beta", NodeLeaf)
+	betaNS.Tasks = []Task{
+		{ID: "task-0001", State: StatusComplete},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+		{ID: "audit.0001", State: StatusComplete},
+		{ID: "audit.0002", State: StatusComplete},
+		{ID: "audit.0003", Description: "Fix missing validation", State: StatusNotStarted},
+	}
+	betaNS.Audit.Gaps = []Gap{
+		{ID: "gap-1", Status: GapOpen},
+	}
+
+	orchNS := NewNodeState("orch", "Orchestrator", NodeOrchestrator)
+	orchNS.Children = []ChildRef{
+		{ID: "alpha", Address: "orch/alpha", State: StatusNotStarted},
+		{ID: "beta", Address: "orch/beta", State: StatusBlocked},
+	}
+
+	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
+		"orch":       orchNS,
+		"orch/alpha": alphaNS,
+		"orch/beta":  betaNS,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Found {
+		t.Fatal("expected to find remediation task audit.0003 in blocked sibling")
+	}
+	if result.NodeAddress != "orch/beta" {
+		t.Errorf("NodeAddress = %q, want %q", result.NodeAddress, "orch/beta")
+	}
+	if result.TaskID != "audit.0003" {
+		t.Errorf("TaskID = %q, want %q", result.TaskID, "audit.0003")
+	}
+}
+
+// TestFindParallelTasks_BlockedSiblingRemediation verifies that
+// FindParallelTasks includes remediation tasks from blocked siblings,
+// which is the parallel-mode manifestation of issue #188.
+func TestFindParallelTasks_BlockedSiblingRemediation(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Root = []string{"orch"}
+	idx.Nodes["orch"] = IndexEntry{
+		Name:     "Orchestrator",
+		Type:     NodeOrchestrator,
+		State:    StatusInProgress,
+		Children: []string{"orch/active", "orch/blocked-leaf"},
+	}
+	idx.Nodes["orch/active"] = IndexEntry{
+		Name:   "Active",
+		Type:   NodeLeaf,
+		State:  StatusInProgress,
+		Parent: "orch",
+	}
+	idx.Nodes["orch/blocked-leaf"] = IndexEntry{
+		Name:   "Blocked Leaf",
+		Type:   NodeLeaf,
+		State:  StatusBlocked,
+		Parent: "orch",
+	}
+
+	activeNS := NewNodeState("active", "Active", NodeLeaf)
+	activeNS.Tasks = []Task{
+		{ID: "task-0001", State: StatusNotStarted},
+	}
+
+	blockedNS := NewNodeState("blocked-leaf", "Blocked Leaf", NodeLeaf)
+	blockedNS.Tasks = []Task{
+		{ID: "task-0001", State: StatusComplete},
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+		{ID: "audit.0001", Description: "Fix test", State: StatusNotStarted},
+	}
+	blockedNS.Audit.Gaps = []Gap{{ID: "gap-1", Status: GapOpen}}
+
+	orchNS := NewNodeState("orch", "Orchestrator", NodeOrchestrator)
+	orchNS.Children = []ChildRef{
+		{ID: "active", Address: "orch/active", State: StatusInProgress},
+		{ID: "blocked-leaf", Address: "orch/blocked-leaf", State: StatusBlocked},
+	}
+
+	results, err := FindParallelTasks(idx, "", makeLoadNode(map[string]*NodeState{
+		"orch":              orchNS,
+		"orch/active":       activeNS,
+		"orch/blocked-leaf": blockedNS,
+	}), 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Should find both: active/task-0001 and blocked-leaf/audit.0001
+	found := map[string]string{}
+	for _, r := range results {
+		found[r.NodeAddress] = r.TaskID
+	}
+	if _, ok := found["orch/blocked-leaf"]; !ok {
+		t.Errorf("blocked leaf remediation not found; got results: %v", found)
+	}
+	if _, ok := found["orch/active"]; !ok {
+		t.Errorf("active leaf task not found; got results: %v", found)
+	}
+}
