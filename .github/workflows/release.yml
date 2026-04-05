@@ -29,3 +29,38 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+      - name: Archive versioned Homebrew formula
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          MAJOR_MINOR="${TAG%.*}"
+          VERSIONED="wolfcastle@${MAJOR_MINOR}.rb"
+
+          # Fetch the formula GoReleaser just pushed
+          FORMULA=$(gh api repos/dorkusprime/homebrew-tap/contents/Formula/wolfcastle.rb --jq .content | base64 -d)
+
+          # Rewrite class name: Wolfcastle -> WolfcastleATX_Y
+          SAFE_MM=$(echo "$MAJOR_MINOR" | tr '.' '_')
+          VERSIONED_FORMULA=$(echo "$FORMULA" | sed "s/^class Wolfcastle < Formula/class WolfcastleAT${SAFE_MM} < Formula/")
+
+          # Add keg_only after the license line so it doesn't conflict
+          VERSIONED_FORMULA=$(echo "$VERSIONED_FORMULA" | sed '/^  license/a\  keg_only :versioned_formula')
+
+          # Push to tap (create or update)
+          EXISTING_SHA=$(gh api repos/dorkusprime/homebrew-tap/contents/Formula/"$VERSIONED" --jq .sha 2>/dev/null || true)
+          ENCODED=$(echo "$VERSIONED_FORMULA" | base64 -w 0)
+
+          if [ -n "$EXISTING_SHA" ]; then
+            gh api repos/dorkusprime/homebrew-tap/contents/Formula/"$VERSIONED" \
+              -X PUT \
+              -f message="Archive wolfcastle@${MAJOR_MINOR} formula for v${TAG}" \
+              -f content="$ENCODED" \
+              -f sha="$EXISTING_SHA"
+          else
+            gh api repos/dorkusprime/homebrew-tap/contents/Formula/"$VERSIONED" \
+              -X PUT \
+              -f message="Archive wolfcastle@${MAJOR_MINOR} formula for v${TAG}" \
+              -f content="$ENCODED"
+          fi
