@@ -462,6 +462,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 					time.Sleep(2 * time.Second)
 					_ = d.Logger.Log(map[string]any{"type": "force_exit", "message": "signal handler force exit after 2s grace period"})
 					_ = d.repo().RemovePID()
+					d.removeActivityFile()
 					os.Exit(0)
 				}()
 				return
@@ -479,6 +480,8 @@ func (d *Daemon) Run(ctx context.Context) error {
 		<-ctx.Done()
 		d.shutdownOnce.Do(func() { close(d.shutdown) })
 	}()
+
+	defer d.removeActivityFile()
 
 	d.iteration.Store(0)
 	d.hasWorked = false
@@ -748,6 +751,7 @@ execute:
 	d.mu.Unlock()
 
 	d.iteration.Add(1)
+	d.writeActivity(navResult.NodeAddress, navResult.TaskID)
 	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration.Load(), navResult.NodeAddress, navResult.TaskID)
 
 	// Start iteration log with "exec" trace prefix

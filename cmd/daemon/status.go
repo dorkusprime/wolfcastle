@@ -230,6 +230,16 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, opts t
 		if ps := dmn.LoadParallelStatus(app.Config.Root()); ps != nil {
 			statusData["parallel"] = ps
 		}
+		if da := dmn.LoadDaemonActivity(app.Config.Root()); da != nil {
+			statusData["last_activity_at"] = da.LastActivityAt
+			statusData["current_iteration"] = da.Iteration
+			if da.CurrentNode != "" {
+				statusData["current_node"] = da.CurrentNode
+			}
+			if da.CurrentTask != "" {
+				statusData["current_task"] = da.CurrentTask
+			}
+		}
 		output.Print(output.Ok("status", statusData))
 		return nil
 	}
