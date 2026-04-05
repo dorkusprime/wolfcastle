@@ -1,16 +1,16 @@
 package daemon
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
-
-	"bytes"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
@@ -22,7 +22,9 @@ import (
 )
 
 func newStatusCmd(app *cmdutil.App) *cobra.Command {
-	return &cobra.Command{
+	var watchFlag watchIntervalFlag
+
+	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Survey the battlefield",
 		Long: `Shows node states across the project tree. How many targets remain.
@@ -35,7 +37,7 @@ Examples:
   wolfcastle status
   wolfcastle status --node auth-system
   wolfcastle status --watch
-  wolfcastle status -w --interval 2
+  wolfcastle status -w 0.5
   wolfcastle status --all
   wolfcastle status --detail
   wolfcastle status --expand --detail
@@ -43,8 +45,6 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			showAll, _ := cmd.Flags().GetBool("all")
 			scopeNode, _ := cmd.Flags().GetString("node")
-			watch, _ := cmd.Flags().GetBool("watch")
-			interval, _ := cmd.Flags().GetFloat64("interval")
 			width, _ := cmd.Flags().GetInt("width")
 
 			expand, _ := cmd.Flags().GetBool("expand")
@@ -64,14 +64,14 @@ Examples:
 				}
 			}
 
-			if watch {
+			if watchFlag.enabled {
 				parent := cmd.Context()
 				if parent == nil {
 					parent = context.Background()
 				}
 				ctx, stop := signal.NotifyContext(parent, signals.Shutdown...)
 				defer stop()
-				return watchStatus(ctx, app, scopeNode, showAll, interval, opts)
+				return watchStatus(ctx, app, scopeNode, showAll, watchFlag.interval, opts)
 			}
 
 			if showAll {
@@ -86,7 +86,35 @@ Examples:
 			return showTreeStatus(app, idx, scopeNode, opts)
 		},
 	}
+
+	cmd.Flags().VarP(&watchFlag, "watch", "w", "Refresh on an interval (default 2s, or specify e.g. -w 0.5)")
+	cmd.Flags().Lookup("watch").NoOptDefVal = "2"
+
+	return cmd
 }
+
+// watchIntervalFlag implements pflag.Value for the combined --watch flag.
+// When parsed without a value (-w, --watch), it uses the default interval.
+// When parsed with a value (-w 0.5, --watch=0.5), it uses the given seconds.
+type watchIntervalFlag struct {
+	enabled  bool
+	interval float64
+}
+
+func (f *watchIntervalFlag) String() string { return "false" }
+func (f *watchIntervalFlag) Type() string   { return "seconds" }
+
+func (f *watchIntervalFlag) Set(val string) error {
+	f.enabled = true
+	v, err := strconv.ParseFloat(val, 64)
+	if err != nil {
+		return fmt.Errorf("invalid interval %q: expected a number in seconds", val)
+	}
+	f.interval = v
+	return nil
+}
+
+func (f *watchIntervalFlag) IsBoolFlag() bool { return false }
 
 // treeOpts controls how the status tree is rendered.
 type treeOpts struct {

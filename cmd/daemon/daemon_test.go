@@ -587,37 +587,42 @@ func TestStatusCmd_AllFlagJSON(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// status --interval flag accepts floats
+// status -w flag accepts optional interval
 // ---------------------------------------------------------------------------
 
-func TestStatusCmd_IntervalAcceptsFloat(t *testing.T) {
+func TestStatusCmd_WatchAcceptsFloat(t *testing.T) {
 	env := newTestEnv(t)
-	// Verify --interval parses a float without error
-	env.RootCmd.SetArgs([]string{"status", "--interval", "0.5"})
-	// This will fail because no resolver, but the flag parsing succeeds
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	env.RootCmd.SetContext(ctx)
+	env.RootCmd.SetArgs([]string{"status", "-w", "0.5"})
 	err := env.RootCmd.Execute()
-	// We only care that it didn't fail with "invalid argument" for --interval
-	if err != nil && strings.Contains(err.Error(), "ParseInt") {
-		t.Errorf("--interval should accept floats: %v", err)
+	if err != nil && strings.Contains(err.Error(), "invalid") {
+		t.Errorf("-w should accept floats: %v", err)
 	}
 }
 
-func TestStatusCmd_IntervalAcceptsSubSecond(t *testing.T) {
+func TestStatusCmd_WatchAcceptsSubSecond(t *testing.T) {
 	env := newTestEnv(t)
-	env.RootCmd.SetArgs([]string{"status", "--interval", "0.05"})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	env.RootCmd.SetContext(ctx)
+	env.RootCmd.SetArgs([]string{"status", "-w", "0.05"})
 	err := env.RootCmd.Execute()
-	if err != nil && strings.Contains(err.Error(), "ParseInt") {
-		t.Errorf("--interval should accept sub-second floats: %v", err)
+	if err != nil && strings.Contains(err.Error(), "invalid") {
+		t.Errorf("-w should accept sub-second floats: %v", err)
 	}
 }
 
-func TestStatusCmd_ShortIntervalFlag(t *testing.T) {
+func TestStatusCmd_WatchNoValue(t *testing.T) {
 	env := newTestEnv(t)
-	// -n should work as shorthand for --interval
-	env.RootCmd.SetArgs([]string{"status", "-n", "2"})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	env.RootCmd.SetContext(ctx)
+	env.RootCmd.SetArgs([]string{"status", "-w"})
 	err := env.RootCmd.Execute()
 	if err != nil && strings.Contains(err.Error(), "unknown shorthand flag") {
-		t.Errorf("-n should be accepted as shorthand for --interval: %v", err)
+		t.Errorf("-w without value should work: %v", err)
 	}
 }
 
