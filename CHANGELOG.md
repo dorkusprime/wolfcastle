@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.0
+
+### Bug Fixes
+- Process group kill applied unconditionally to both streaming and non-streaming invocations, preventing orphaned child processes (test runners, linters, build tools) from accumulating during long sessions (#177, #178)
+- Remediation subtasks inherit the parent task's class, so language-specific guidance (e.g., `coding/go.md`) is available during gap fixes instead of falling back to `coding/default.md` (#183)
+- Empty leaf nodes (audit-only, no regular tasks) no longer stuck in `not_started` forever; the navigator checks the parent orchestrator's planning state to determine if the task set is final (#186)
+- Blocked siblings with pending remediation tasks are now found regardless of creation order; the DFS orchestrator child loop is split into a creation-order scan (new work) and a remediation scan (blocked children) (#188)
+
+### Features
+- `last_activity_at`, `current_iteration`, `current_node`, and `current_task` fields in `wolfcastle status --json` output for external stall detection without filesystem stat tricks (#179)
+- Intake stage logs `result.Summary` to both human-readable output and NDJSON, making intake actions visible without parsing raw model output (#180)
+- Leaf audit context now includes sibling task deliverables and acceptance criteria, giving the auditor an explicit checklist instead of relying on breadcrumb prose (#184)
+- `wolfcastle status` shows the 2 most recent rendered log lines at the bottom, using the same format as foreground mode
+
+### Prompt Improvements
+- Audit procedure includes a linter verification step: run the project's linter and record violations as gaps (#185)
+- Orchestrator audits verify cross-node integration: shared interfaces, wiring files, dependency injection, and configuration between children (#181)
+- Audit procedure reviews codebase knowledge entries for applicable conventions (#182)
+- Knowledge maintenance instructs the pruning agent to migrate enforceable conventions out of knowledge files and into class or rule files (#182)
+
+### CLI
+- 75 commands (up from 74)
+
 ## 0.3.0
 
 ### Core
