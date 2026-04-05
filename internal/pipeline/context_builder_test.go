@@ -1227,3 +1227,27 @@ func TestContextBuilder_NonAuditOmitsSiblingTasks(t *testing.T) {
 		t.Error("non-audit task should not include sibling tasks section")
 	}
 }
+
+func TestContextBuilder_AuditWithNoNonAuditSiblings(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "audit", Description: "Verify all work", State: state.StatusNotStarted, IsAudit: true},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj/empty", "", ns, "audit", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Audit with no non-audit siblings should not include the sibling section.
+	if strings.Contains(got, "## Sibling Tasks") {
+		t.Error("audit with no non-audit siblings should not include sibling tasks section")
+	}
+}

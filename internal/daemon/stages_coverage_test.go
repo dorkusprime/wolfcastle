@@ -442,6 +442,33 @@ func TestRunIntakeStage_WorkAvailableAlreadyFull(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// runIntakeStage — result.Summary logging
+// ═══════════════════════════════════════════════════════════════════════════
+
+func TestRunIntakeStage_LogsSummary(t *testing.T) {
+	d := testDaemon(t)
+	_ = d.InboxLogger.StartIteration()
+	defer d.InboxLogger.Close()
+	writePromptFile(t, d.WolfcastleDir, "stages/intake.md")
+
+	inboxPath := filepath.Join(d.Store.Dir(), "inbox.json")
+	writeJSON(t, inboxPath, &state.InboxFile{Items: []state.InboxItem{
+		{Status: "new", Text: "fix the tests", Timestamp: "2026-01-01T00:00:00Z"},
+	}})
+
+	// Model that outputs a WOLFCASTLE_SUMMARY marker.
+	d.Config.Models["summary-model"] = config.ModelDef{
+		Command: "sh",
+		Args:    []string{"-c", `cat > /dev/null; echo "WOLFCASTLE_SUMMARY: Created 3 tasks for test fixes"; echo "done"`},
+	}
+
+	stage := config.PipelineStage{Model: "summary-model", PromptFile: "stages/intake.md"}
+	if err := d.runIntakeStage(context.Background(), stage); err != nil {
+		t.Fatalf("intake stage error: %v", err)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // parseOverlapMarkers — malformed markers
 // ═══════════════════════════════════════════════════════════════════════════
 

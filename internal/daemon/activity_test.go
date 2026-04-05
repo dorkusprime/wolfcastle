@@ -106,3 +106,45 @@ func TestLoadDaemonActivity_ReturnsNilForBadJSON(t *testing.T) {
 		t.Errorf("expected nil for bad JSON, got %+v", got)
 	}
 }
+
+func TestWriteActivity_WriteError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	// Point WolfcastleDir at a path where system/ doesn't exist and can't
+	// be created (file in place of directory).
+	wolfcastleDir := filepath.Join(dir, ".wolfcastle")
+	blocker := filepath.Join(wolfcastleDir, "system")
+	if err := os.MkdirAll(wolfcastleDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Create a file where the directory should be, blocking AtomicWriteFile.
+	if err := os.WriteFile(blocker, []byte("not a dir"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	logDir := filepath.Join(dir, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	logger, err := logging.NewLogger(logDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger.Close()
+
+	d := &Daemon{
+		WolfcastleDir: wolfcastleDir,
+		Clock:         clock.NewFixed(time.Now()),
+		Logger:        logger,
+	}
+
+	// Should not panic; the error is logged internally.
+	d.writeActivity("node", "task")
+}
+
+func TestRemoveActivityFile_NoFile(t *testing.T) {
+	t.Parallel()
+	// Removing a non-existent file should not panic.
+	d := &Daemon{WolfcastleDir: t.TempDir()}
+	d.removeActivityFile()
+}
