@@ -229,9 +229,11 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	switch marker {
 	case invoke.MarkerStringComplete:
 		_ = d.Logger.Log(map[string]any{"type": "planning_marker", "marker": invoke.MarkerStringComplete})
-		// Clear planning state and complete the orchestrator's audit task.
-		// Without this, the orchestrator stays in_progress because its
-		// audit never goes through the execution pipeline's TaskComplete.
+		// Clear planning state. Only complete the audit task when all
+		// children are already done; otherwise a premature audit
+		// completion breaks the allNotStarted check in RecomputeState
+		// and makes the orchestrator appear in_progress when all its
+		// children are still not_started (#192).
 		_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 			ns.NeedsPlanning = false
 			ns.PlanningTrigger = ""
@@ -240,35 +242,26 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 			} else {
 				ns.PendingScope = nil
 			}
-			// Complete the audit task so the node can derive to complete.
+			// Only complete the audit task when all children are done.
 			// The audit may be not_started (never executed separately for
 			// orchestrators), so set it directly rather than going through
 			// TaskComplete which requires in_progress.
-			for i := range ns.Tasks {
-				if ns.Tasks[i].IsAudit {
-					ns.Tasks[i].State = state.StatusComplete
+			allChildrenComplete := true
+			for _, c := range ns.Children {
+				if c.State != state.StatusComplete {
+					allChildrenComplete = false
 					break
 				}
 			}
-			// Recompute node state from tasks + children.
-			allDone := true
-			for _, t := range ns.Tasks {
-				s := t.State
-				if derived, has := state.DeriveParentStatus(ns, t.ID); has {
-					s = derived
-				}
-				if s != state.StatusComplete {
-					allDone = false
+			if allChildrenComplete {
+				for i := range ns.Tasks {
+					if ns.Tasks[i].IsAudit {
+						ns.Tasks[i].State = state.StatusComplete
+						break
+					}
 				}
 			}
-			for _, c := range ns.Children {
-				if c.State != state.StatusComplete {
-					allDone = false
-				}
-			}
-			if allDone {
-				ns.State = state.StatusComplete
-			}
+			ns.State = state.RecomputeState(ns.Children, ns.Tasks)
 			return nil
 		})
 		// Propagate the actual derived state. If planning created children
