@@ -349,6 +349,71 @@ done:
 	return collected
 }
 
+// reclaimOrphans finds in_progress tasks with no active worker and resets
+// them to not_started. This handles the case where a worker was lost (stall
+// kill, daemon restart) and its task was never cleaned up. Without this,
+// orphaned tasks stay in_progress forever because fillSlots can't claim
+// them and the navigator returns them ahead of not_started tasks.
+func (pd *ParallelDispatcher) reclaimOrphans(idx *state.RootIndex) int {
+	d := pd.daemon
+	reclaimed := 0
+
+	for addr, entry := range idx.Nodes {
+		if entry.Type != state.NodeLeaf {
+			continue
+		}
+		if entry.State != state.StatusInProgress {
+			continue
+		}
+
+		ns, err := d.Store.ReadNode(addr)
+		if err != nil {
+			continue
+		}
+
+		for _, task := range ns.Tasks {
+			if task.State != state.StatusInProgress {
+				continue
+			}
+			// Parent tasks (with children) derive their status; skip them.
+			if state.TaskChildren(ns, task.ID) {
+				continue
+			}
+
+			taskAddr := addr + "/" + task.ID
+			pd.mu.Lock()
+			_, active := pd.active[taskAddr]
+			pd.mu.Unlock()
+			if active {
+				continue
+			}
+
+			// This task is in_progress but no worker owns it. Reset it.
+			if err := d.Store.MutateNode(addr, func(mns *state.NodeState) error {
+				for i := range mns.Tasks {
+					if mns.Tasks[i].ID == task.ID && mns.Tasks[i].State == state.StatusInProgress {
+						mns.Tasks[i].State = state.StatusNotStarted
+						break
+					}
+				}
+				mns.State = state.RecomputeState(mns.Children, mns.Tasks)
+				return nil
+			}); err != nil {
+				continue
+			}
+
+			_ = d.Logger.Log(map[string]any{
+				"type": "reclaim_orphan",
+				"task": taskAddr,
+				"node": addr,
+			})
+			reclaimed++
+		}
+	}
+
+	return reclaimed
+}
+
 // fillSlots finds eligible parallel tasks and launches workers for them,
 // up to the number of available slots. Returns the count of workers launched.
 func (pd *ParallelDispatcher) fillSlots(ctx context.Context, idx *state.RootIndex) int {

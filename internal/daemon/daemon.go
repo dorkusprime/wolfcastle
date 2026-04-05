@@ -828,10 +828,13 @@ func (d *Daemon) runOnceParallel(ctx context.Context, idx *state.RootIndex) (Ite
 		}
 	}
 
-	// Step 2: Fill open worker slots with eligible tasks.
+	// Step 2: Reclaim orphaned in_progress tasks whose workers are gone.
+	pd.reclaimOrphans(idx)
+
+	// Step 3: Fill open worker slots with eligible tasks.
 	launched := pd.fillSlots(ctx, idx)
 
-	// Step 3: Determine the iteration outcome.
+	// Step 4: Determine the iteration outcome.
 	pd.mu.Lock()
 	activeCount := len(pd.active)
 	pd.mu.Unlock()

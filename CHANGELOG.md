@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3
+
+### Bug Fixes
+- In parallel mode, orphaned `in_progress` tasks (lost worker, stall kill) are now reclaimed at runtime, not just on startup. The dispatcher scans for tasks with no active worker each iteration and resets them to `not_started`. (#201)
+- Status screen "Recent:" section no longer shows stale content when intake log files outnumber execution files (#203)
+
 ## 0.4.2
 
 ### Features
