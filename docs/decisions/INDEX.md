@@ -38,7 +38,7 @@
 | 034 | [Inbox Format and Lifecycle](034-inbox-format.md) | Accepted (partially superseded by ADR-064) | 2026-03-13 |
 | 035 | [Model-Driven Decomposition via CLI](035-decomposition-via-cli.md) | Accepted | 2026-03-13 |
 | 036 | [Summaries via Inline Marker, Not Separate Stage](036-summary-via-inline-marker.md) | Accepted | 2026-03-13 |
-| 037 | [Daemon Dual Output (Console + NDJSON)](037-daemon-logging-dual-output.md) | Accepted | 2026-03-13 |
+| 037 | [Daemon Dual Output (Console + NDJSON)](037-daemon-logging-dual-output.md) | Superseded by ADR-097 | 2026-03-13 |
 | 038 | [Staged Audit Review Workflow](038-staged-audit-review.md) | Accepted | 2026-03-14 |
 | 039 | [Clean Daemon Iteration Boundary](039-daemon-iteration-boundary.md) | Accepted | 2026-03-14 |
 | 040 | [Daemon Artifact Cleanup in Doctor](040-daemon-artifact-cleanup.md) | Accepted | 2026-03-14 |
@@ -98,3 +98,4 @@
 | 094 | [PIDChecker Interface Decouples Validate from Daemon](094-pidchecker-interface.md) | Accepted (supersedes ADR-088) | 2026-03-22 |
 | 095 | [Parallel Sibling Execution](095-parallel-sibling-execution.md) | Accepted | 2026-03-23 |
 | 096 | [Config Versioning and Migration](096-config-versioning.md) | Accepted | 2026-03-24 |
+| 097 | [Unified Log Output](097-unified-log-output.md) | Accepted (supersedes ADR-037) | 2026-04-05 |

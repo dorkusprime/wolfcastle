@@ -8,8 +8,6 @@ Finds the latest session in `.wolfcastle/system/logs/` and renders it. Default o
 
 When the daemon is running, output streams in real time (implicit `--follow`). When the daemon is stopped, the last session's output is displayed and the command exits. `--follow` is a no-op when the daemon is not running.
 
-The old command name `wolfcastle follow` still works as an alias.
-
 Four output modes are available, mutually exclusive. When multiple mode flags appear, the last one wins:
 
 - **(default)** Summary: one line per stage with duration.
