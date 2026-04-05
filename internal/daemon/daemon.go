@@ -576,11 +576,13 @@ func (d *Daemon) Run(ctx context.Context) error {
 			return nil
 		case IterationNoWork:
 			if d.draining {
+				_ = d.Logger.StartIterationWithPrefix("shutdown")
 				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "drain"})
 				d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "drain", "text": "Drain complete. Wolfcastle standing down."})
 				return nil
 			}
 			if d.ExitWhenDone && d.hasWorked {
+				_ = d.Logger.StartIterationWithPrefix("shutdown")
 				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "exit_when_done"})
 				d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "exit_when_done", "text": "Work complete. Wolfcastle standing down."})
 				return nil
@@ -625,6 +627,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				retOpts...,
 			)
 			if d.draining {
+				_ = d.Logger.StartIterationWithPrefix("shutdown")
 				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "drain"})
 				d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "drain", "text": "Drain complete. Wolfcastle standing down."})
 				return nil
@@ -643,6 +646,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// Check shutdown signal
 	select {
 	case <-d.shutdown:
+		_ = d.Logger.StartIterationWithPrefix("shutdown")
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "signal"})
 		d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "signal", "text": "Wolfcastle standing down (signal)"})
 		return IterationStop, nil
@@ -652,6 +656,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// Check stop file
 	if d.repo().HasStopFile() {
 		_ = d.repo().RemoveStopFile()
+		_ = d.Logger.StartIterationWithPrefix("shutdown")
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
 		d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "stop_file", "text": "Wolfcastle standing down (stop file)"})
 		return IterationStop, nil
@@ -661,6 +666,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	if !d.draining && d.repo().HasDrainFile() {
 		_ = d.repo().RemoveDrainFile()
 		d.draining = true
+		_ = d.Logger.StartIterationWithPrefix("lifecycle")
 		_ = d.Logger.Log(map[string]any{"type": "daemon_drain"})
 		d.log(map[string]any{"type": "daemon_lifecycle", "event": "drain", "text": "Drain mode: will exit after current work completes."})
 	}
@@ -668,6 +674,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	// Max iterations check
 	maxIter := d.Config.Daemon.MaxIterations
 	if maxIter > 0 && d.iteration.Load() >= int64(maxIter) {
+		_ = d.Logger.StartIterationWithPrefix("shutdown")
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration.Load()})
 		d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "iteration_cap", "text": fmt.Sprintf("Iteration cap reached (%d)", maxIter)})
 		return IterationStop, nil
