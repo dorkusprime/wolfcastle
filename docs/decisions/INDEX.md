@@ -47,7 +47,7 @@
 | 043 | [CI/CD Pipeline and Quality Gates](043-ci-cd-pipeline.md) | Accepted | 2026-03-14 |
 | 044 | [Test Strategy: Unit, Integration, and Smoke](044-test-strategy.md) | Accepted | 2026-03-14 |
 | 045 | [Daemon Package Decomposition](045-daemon-package-decomposition.md) | Accepted | 2026-03-14 |
-| 046 | [Structured Log Levels](046-structured-log-levels.md) | Accepted | 2026-03-14 |
+| 046 | [Structured Log Levels](046-structured-log-levels.md) | Accepted (amended by ADR-097) | 2026-03-14 |
 | 047 | [Release Automation via GoReleaser](047-release-automation.md) | Accepted | 2026-03-14 |
 | 048 | [Interactive Session UX](048-interactive-session-ux.md) | Accepted | 2026-03-14 |
 | 049 | [Lint Policy via golangci-lint](049-lint-policy.md) | Accepted | 2026-03-14 |
