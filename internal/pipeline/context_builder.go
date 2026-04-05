@@ -113,6 +113,38 @@ func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeS
 		}
 		b.WriteString(taskCtx)
 
+		// 3b. Sibling task context for audit tasks
+		if task.IsAudit {
+			var siblings strings.Builder
+			for _, t := range ns.Tasks {
+				if t.ID == taskID || t.IsAudit {
+					continue
+				}
+				if t.Title != "" {
+					fmt.Fprintf(&siblings, "### %s: %s\n", t.ID, t.Title)
+				} else {
+					fmt.Fprintf(&siblings, "### %s\n", t.ID)
+				}
+				if t.Description != "" {
+					siblings.WriteString(t.Description + "\n")
+				}
+				if len(t.Deliverables) > 0 {
+					siblings.WriteString("**Deliverables:** " + strings.Join(t.Deliverables, ", ") + "\n")
+				}
+				if len(t.AcceptanceCriteria) > 0 {
+					siblings.WriteString("**Acceptance Criteria:**\n")
+					for _, ac := range t.AcceptanceCriteria {
+						siblings.WriteString("- " + ac + "\n")
+					}
+				}
+				siblings.WriteString("\n")
+			}
+			if siblings.Len() > 0 {
+				b.WriteString("\n## Sibling Tasks (verify these deliverables)\n\n")
+				b.WriteString(siblings.String())
+			}
+		}
+
 		// 4a. Universal guidance (always injected)
 		if universal, err := cb.prompts.ResolveRaw("prompts/classes", "universal.md"); err == nil {
 			b.WriteString("\n## Universal Guidance\n\n")
