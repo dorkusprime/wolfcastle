@@ -533,6 +533,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// and before the main loop begins dispatching work.
 	if d.Config.Daemon.Parallel.Enabled {
 		d.dispatcher = NewParallelDispatcher(d, d.Config.Daemon.Parallel.MaxWorkers)
+	} else {
+		// Remove stale parallel status from a previous session so
+		// `wolfcastle status` doesn't show misleading worker counts.
+		_ = os.Remove(parallelStatusPath(d.WolfcastleDir))
 	}
 
 	// Start the parallel inbox processing goroutine (ADR-064).

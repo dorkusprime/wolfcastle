@@ -99,3 +99,28 @@ func TestRemoveStatusFile_NoFile(t *testing.T) {
 	// Should not panic when file doesn't exist.
 	dispatcher.removeStatusFile()
 }
+
+func TestSerialMode_CleansStaleParallelStatus(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	d.Config.Daemon.Parallel.Enabled = false
+
+	// Plant a stale parallel-status.json from a previous session.
+	statusPath := parallelStatusPath(d.WolfcastleDir)
+	_ = os.MkdirAll(filepath.Dir(statusPath), 0755)
+	_ = os.WriteFile(statusPath, []byte(`{"max_workers":3}`), 0644)
+
+	if _, err := os.Stat(statusPath); os.IsNotExist(err) {
+		t.Fatal("precondition: stale status file should exist")
+	}
+
+	// Drop a stop file so the daemon exits after startup cleanup.
+	stopPath := filepath.Join(d.WolfcastleDir, "system", "stop")
+	_ = os.WriteFile(stopPath, nil, 0644)
+
+	_ = d.Run(t.Context())
+
+	if _, err := os.Stat(statusPath); !os.IsNotExist(err) {
+		t.Error("stale parallel-status.json should be removed in serial mode")
+	}
+}
