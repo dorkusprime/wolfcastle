@@ -1144,3 +1144,110 @@ func TestContextBuilder_ParallelScopeSection_Ordering(t *testing.T) {
 		t.Error("scope acquisition should precede AARs")
 	}
 }
+
+func TestContextBuilder_AuditIncludesSiblingDeliverables(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{
+				ID:                 "task-0001",
+				Title:              "Implement widget",
+				Description:        "Build the widget module",
+				State:              state.StatusComplete,
+				Deliverables:       []string{"widget.go", "widget_test.go"},
+				AcceptanceCriteria: []string{"tests pass", "no lint errors"},
+			},
+			{
+				ID:                 "task-0002",
+				Title:              "Wire widget into main",
+				Description:        "Connect widget to main.go",
+				State:              state.StatusComplete,
+				Deliverables:       []string{"main.go"},
+				AcceptanceCriteria: []string{"widget is initialized"},
+			},
+			{
+				ID:          "audit",
+				Description: "Verify all work",
+				State:       state.StatusNotStarted,
+				IsAudit:     true,
+			},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj/widget", "", ns, "audit", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "## Sibling Tasks (verify these deliverables)") {
+		t.Error("missing sibling tasks section")
+	}
+	if !strings.Contains(got, "task-0001: Implement widget") {
+		t.Error("missing sibling task-0001 header")
+	}
+	if !strings.Contains(got, "widget.go, widget_test.go") {
+		t.Error("missing task-0001 deliverables")
+	}
+	if !strings.Contains(got, "tests pass") {
+		t.Error("missing task-0001 acceptance criteria")
+	}
+	if !strings.Contains(got, "task-0002: Wire widget into main") {
+		t.Error("missing sibling task-0002 header")
+	}
+	if !strings.Contains(got, "main.go") {
+		t.Error("missing task-0002 deliverables")
+	}
+}
+
+func TestContextBuilder_NonAuditOmitsSiblingTasks(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", Title: "First task", State: state.StatusComplete, Deliverables: []string{"a.go"}},
+			{ID: "task-0002", Description: "Second task", State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0002", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "## Sibling Tasks") {
+		t.Error("non-audit task should not include sibling tasks section")
+	}
+}
+
+func TestContextBuilder_AuditWithNoNonAuditSiblings(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "audit", Description: "Verify all work", State: state.StatusNotStarted, IsAudit: true},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj/empty", "", ns, "audit", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Audit with no non-audit siblings should not include the sibling section.
+	if strings.Contains(got, "## Sibling Tasks") {
+		t.Error("audit with no non-audit siblings should not include sibling tasks section")
+	}
+}

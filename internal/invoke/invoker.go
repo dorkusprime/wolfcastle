@@ -148,7 +148,12 @@ func (p *ProcessInvoker) Invoke(ctx context.Context, model config.ModelDef, prom
 	cmd.Stderr = &stderr
 
 	// Put child in its own process group for clean signal propagation.
+	// Override Cancel to kill the entire group (not just the leader) so
+	// child processes (test runners, linters, etc.) don't become orphans.
 	cmd.SysProcAttr = processSysProcAttr()
+	cmd.Cancel = func() error {
+		return killProcessGroup(cmd.Process)
+	}
 
 	if logWriter == nil && onLine == nil {
 		// No streaming: capture stdout directly into a buffer.
@@ -183,16 +188,6 @@ func (p *ProcessInvoker) Invoke(ctx context.Context, model config.ModelDef, prom
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("creating stdout pipe: %w", err)
-	}
-
-	// When stall detection is active, override the cancel function to
-	// kill the entire process group (not just the leader). This ensures
-	// child processes like sleep(1) don't hold the pipe open after the
-	// context is cancelled.
-	if stallEnabled {
-		cmd.Cancel = func() error {
-			return killProcessGroup(cmd.Process)
-		}
 	}
 
 	if err := cmd.Start(); err != nil {

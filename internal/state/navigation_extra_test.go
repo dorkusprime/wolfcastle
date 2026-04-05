@@ -288,10 +288,10 @@ func TestFindNextTask_AuditOnlyNode_NoNonAuditTasks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// A node with only an audit task and no real tasks is not ready.
-	// The intake model hasn't finished adding tasks yet.
+	// A root-level leaf with only an audit task stays blocked — no parent
+	// orchestrator to confirm that planning is complete.
 	if result.Found {
-		t.Error("expected not found: audit-only node is not ready for execution")
+		t.Error("expected not found: root-level audit-only node has no parent to confirm planning")
 	}
 }
 
@@ -356,5 +356,89 @@ func TestDfs_UnknownAddress(t *testing.T) {
 	}
 	if result != nil {
 		t.Error("expected nil result for unknown address")
+	}
+}
+
+func TestFindNextTask_AuditOnlyLeaf_ParentDonePlanning(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["orch"] = IndexEntry{
+		Name:     "Orchestrator",
+		Type:     NodeOrchestrator,
+		State:    StatusInProgress,
+		Children: []string{"orch/empty-leaf"},
+	}
+	idx.Nodes["orch/empty-leaf"] = IndexEntry{
+		Name:   "Empty Leaf",
+		Type:   NodeLeaf,
+		State:  StatusNotStarted,
+		Parent: "orch",
+	}
+
+	orchNS := NewNodeState("orch", "Orchestrator", NodeOrchestrator)
+	orchNS.NeedsPlanning = false // planning is done
+	orchNS.Children = []ChildRef{{ID: "empty-leaf", Address: "orch/empty-leaf", State: StatusNotStarted}}
+
+	leafNS := NewNodeState("empty-leaf", "Empty Leaf", NodeLeaf)
+	leafNS.Tasks = []Task{
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+	}
+
+	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
+		"orch":            orchNS,
+		"orch/empty-leaf": leafNS,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Parent orchestrator is done planning. The empty leaf's audit is
+	// the only work — it should be actionable.
+	if !result.Found {
+		t.Fatal("expected audit task to be found when parent is done planning")
+	}
+	if result.NodeAddress != "orch/empty-leaf" {
+		t.Errorf("NodeAddress = %q, want %q", result.NodeAddress, "orch/empty-leaf")
+	}
+	if result.TaskID != "audit" {
+		t.Errorf("TaskID = %q, want %q", result.TaskID, "audit")
+	}
+}
+
+func TestFindNextTask_AuditOnlyLeaf_ParentStillPlanning(t *testing.T) {
+	t.Parallel()
+	idx := NewRootIndex()
+	idx.Nodes["orch"] = IndexEntry{
+		Name:     "Orchestrator",
+		Type:     NodeOrchestrator,
+		State:    StatusInProgress,
+		Children: []string{"orch/empty-leaf"},
+	}
+	idx.Nodes["orch/empty-leaf"] = IndexEntry{
+		Name:   "Empty Leaf",
+		Type:   NodeLeaf,
+		State:  StatusNotStarted,
+		Parent: "orch",
+	}
+
+	orchNS := NewNodeState("orch", "Orchestrator", NodeOrchestrator)
+	orchNS.NeedsPlanning = true // still planning — tasks may be incoming
+	orchNS.Children = []ChildRef{{ID: "empty-leaf", Address: "orch/empty-leaf", State: StatusNotStarted}}
+
+	leafNS := NewNodeState("empty-leaf", "Empty Leaf", NodeLeaf)
+	leafNS.Tasks = []Task{
+		{ID: "audit", Description: "audit", State: StatusNotStarted, IsAudit: true},
+	}
+
+	result, err := FindNextTask(idx, "", makeLoadNode(map[string]*NodeState{
+		"orch":            orchNS,
+		"orch/empty-leaf": leafNS,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Parent is still planning — tasks may still be added to this leaf.
+	// The audit must not run yet.
+	if result.Found {
+		t.Error("expected not found: parent still planning, audit should be blocked")
 	}
 }

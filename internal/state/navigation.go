@@ -199,8 +199,16 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 	}
 	allNonAuditDone := nonAuditDone == nonAuditCount
 	if ns.Type == NodeLeaf && nonAuditCount == 0 {
-		// Leaf with no real tasks yet. Don't run audit on empty leaves.
+		// Leaf with no real tasks. Only run the audit if the parent
+		// orchestrator has finished planning — otherwise tasks may
+		// still be incoming. Root-level leaves (no parent) stay
+		// blocked as a safe default.
 		allNonAuditDone = false
+		if parent := parentNodeAddress(addr); parent != "" {
+			if parentNS, loadErr := loadNode(parent); loadErr == nil && !parentNS.NeedsPlanning {
+				allNonAuditDone = true
+			}
+		}
 	}
 	if ns.Type == NodeOrchestrator {
 		// Orchestrator audits require all children to be complete,
@@ -375,6 +383,16 @@ func parentTaskID(childID string) string {
 		return ""
 	}
 	return childID[:dot]
+}
+
+// parentNodeAddress returns the parent node address from a slash-separated
+// tree address. Returns "" for root-level nodes (no slash).
+func parentNodeAddress(addr string) string {
+	i := strings.LastIndex(addr, "/")
+	if i < 0 {
+		return ""
+	}
+	return addr[:i]
 }
 
 // parentInList checks if the immediate parent of a child task exists in the list.

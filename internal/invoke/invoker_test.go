@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 )
@@ -526,5 +527,58 @@ func TestProcessInvoker_BothLogWriterAndCallback(t *testing.T) {
 	}
 	if !strings.Contains(result.Stdout, "hello") || !strings.Contains(result.Stdout, "world") {
 		t.Errorf("result.Stdout = %q, should contain both lines", result.Stdout)
+	}
+}
+
+// --- Process group kill tests ---
+
+func TestProcessGroupKill_NonStreamingCancelKillsChildren(t *testing.T) {
+	// Spawn a non-streaming command that starts a background child, then
+	// cancel the context. The child should be killed via process group
+	// signal, not left as an orphan.
+	//
+	// Strategy: write the child's PID to a temp file so we can check
+	// whether it's still alive after cancellation.
+	pidFile := filepath.Join(t.TempDir(), "child.pid")
+
+	// The script: (1) start a background sleep, (2) write its PID,
+	// (3) echo "started" so we get output, (4) sleep to keep the
+	// leader alive until the cancel arrives.
+	script := fmt.Sprintf(
+		`sleep 999 & echo $! > %s; echo started; sleep 999`,
+		pidFile,
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Cancel after a short delay — enough for the script to start
+	// its background child and echo "started".
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		cancel()
+	}()
+
+	inv := NewProcessInvoker()
+	_, _ = inv.Invoke(ctx, shModel(script), "", ".", nil, nil)
+
+	// Read the child PID and verify it's dead.
+	pidBytes, err := os.ReadFile(pidFile)
+	if err != nil {
+		t.Fatalf("failed to read child PID file: %v", err)
+	}
+	pidStr := strings.TrimSpace(string(pidBytes))
+	if pidStr == "" {
+		t.Fatal("child PID file is empty")
+	}
+
+	// Give the OS a moment to reap the child.
+	time.Sleep(200 * time.Millisecond)
+
+	// Sending signal 0 checks if the process exists without killing it.
+	checkCmd := exec.Command("kill", "-0", pidStr)
+	if err := checkCmd.Run(); err == nil {
+		// Clean up the orphan we just detected, then fail.
+		_ = exec.Command("kill", "-9", pidStr).Run()
+		t.Errorf("child process %s is still alive after context cancellation (orphan)", pidStr)
 	}
 }

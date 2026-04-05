@@ -240,6 +240,15 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 			"duration_ms": time.Since(itemStart).Milliseconds(),
 		})
 
+		if result.Summary != "" {
+			output.PrintHuman("  intake-%04d: %s", itemIdx+1, result.Summary)
+			_ = d.InboxLogger.Log(map[string]any{
+				"type":    "intake_summary",
+				"item":    itemIdx + 1,
+				"summary": result.Summary,
+			})
+		}
+
 		if result.ExitCode != 0 {
 			output.PrintHuman("  Intake item %d failed (exit %d). Queued for retry.", itemIdx+1, result.ExitCode)
 			continue
