@@ -4,7 +4,7 @@ Shows everything about a single node: type, status, tasks, audit state, breadcru
 
 ## What It Does
 
-Loads the node's `state.json` and its index entry, then renders a comprehensive view of the node's current state. Sections are shown conditionally: a leaf node won't display Planning, an orchestrator won't list Tasks, and empty collections (no specs, no AARs) are omitted entirely.
+Loads the node's `state.json` and its index entry, then renders a full view of the node's current state. Sections are shown conditionally: a leaf node won't display Planning, an orchestrator won't list Tasks, and empty collections (no specs, no AARs) are omitted entirely.
 
 In `--json` mode, the full `NodeState` and `IndexEntry` are included in the envelope, along with the contents of any `description.md` file in the node directory.
 
