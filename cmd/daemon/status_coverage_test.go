@@ -488,6 +488,36 @@ func TestPrintRecentLog_RenderedEmpty(t *testing.T) {
 	printRecentLog(logDir, 2)
 }
 
+func TestPrintRecentLog_IntakeFilesFiltered(t *testing.T) {
+	logDir := t.TempDir()
+	ts := time.Now().UTC()
+
+	// Write one exec file with a real stage_complete, then several intake
+	// files after it. Without filtering, the intake files push the exec
+	// file out of the "last 5" window and nothing renders.
+	execLine := mustJSON(map[string]any{
+		"type": "stage_complete", "stage": "execute",
+		"node": "proj/auth", "task": "task-0001",
+		"exit_code": 0, "duration_ms": 3000,
+		"timestamp": ts.Format(time.RFC3339Nano),
+	})
+	_ = os.WriteFile(filepath.Join(logDir, "0001-exec-20260405T12-00Z.jsonl"),
+		[]byte(execLine+"\n"), 0o644)
+
+	// 10 intake files after it (higher iteration numbers, later timestamps).
+	for i := 0; i < 10; i++ {
+		intakeLine := mustJSON(map[string]any{
+			"type":      "intake_complete",
+			"timestamp": ts.Add(time.Duration(i+1) * time.Minute).Format(time.RFC3339Nano),
+		})
+		name := fmt.Sprintf("%04d-intake-20260405T12-%02dZ.jsonl", 10001+i, i+1)
+		_ = os.WriteFile(filepath.Join(logDir, name), []byte(intakeLine+"\n"), 0o644)
+	}
+
+	// Should still render the exec line, not be drowned by intake files.
+	printRecentLog(logDir, 2)
+}
+
 func mustJSON(v any) string {
 	data, err := json.Marshal(v)
 	if err != nil {

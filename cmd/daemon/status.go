@@ -705,9 +705,23 @@ func printRecentLog(logDir string, n int) {
 		return
 	}
 
+	// Filter to exec/plan files. Intake files contain inbox processing
+	// records that the summary renderer doesn't render, and they can
+	// outnumber execution files, pushing real work out of the tail.
+	var workFiles []string
+	for _, f := range session.Files {
+		base := filepath.Base(f)
+		if !strings.Contains(base, "-intake-") {
+			workFiles = append(workFiles, f)
+		}
+	}
+	if len(workFiles) == 0 {
+		return
+	}
+
 	// Only read the last few files to avoid parsing an entire long session.
 	// Each file is one iteration; 5 files is plenty to yield 2 rendered lines.
-	files := session.Files
+	files := workFiles
 	if len(files) > 5 {
 		files = files[len(files)-5:]
 	}
