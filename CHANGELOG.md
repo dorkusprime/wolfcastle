@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2
+
+### Features
+- `wolfcastle stop --drain`: tell a running daemon to finish its current work then exit. No signal sent, no work lost. In parallel mode, active workers finish but no new workers are dispatched. `wolfcastle status` shows "draining" while pending. (#197)
+
 ## 0.4.1
 
 ### Bug Fixes

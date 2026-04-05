@@ -21,6 +21,7 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 
 	stopCmd := newStopCmd(app)
 	stopCmd.Flags().Bool("force", false, "Force kill (SIGKILL) instead of graceful stop")
+	stopCmd.Flags().Bool("drain", false, "Finish current work then exit")
 
 	logCmd := newLogCmd(app)
 	logCmd.Flags().BoolP("follow", "f", false, "Follow live output (default when daemon is running)")
