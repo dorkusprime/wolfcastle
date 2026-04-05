@@ -28,3 +28,7 @@ The old `wolfcastle follow` name is kept as a hidden alias. Existing scripts and
 - The CLI surface aligns with conventions that operators already know. `wolfcastle log -f` reads the same as `docker logs -f` or `tail -f`.
 - The hidden alias means no breaking change. Anyone using `wolfcastle follow` in scripts does not need to update immediately.
 - Help text and documentation reference `wolfcastle log` exclusively. The alias exists for backward compatibility, not as a supported alternative.
+
+## Amendment: v0.5.0
+
+The hidden `follow` alias was removed. Scripts using `wolfcastle follow` must update to `wolfcastle log`. The alias served its purpose during the transition period and is no longer needed.

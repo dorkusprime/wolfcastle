@@ -108,7 +108,7 @@ func TestLogCmd_SessionFlag(t *testing.T) {
 	}
 }
 
-func TestLogCmd_FollowAlias(t *testing.T) {
+func TestLogCmd_FollowAlias_Removed(t *testing.T) {
 	t.Parallel()
 	env := newTestEnv(t)
 
@@ -117,10 +117,10 @@ func TestLogCmd_FollowAlias(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(logDir, "0001-20260321T18-00Z.jsonl"),
 		[]byte(`{"type":"daemon_start","scope":"test","timestamp":"2026-03-21T18:00:00Z"}`+"\n"), 0644)
 
-	// The "follow" alias should work as "log".
+	// The "follow" alias was removed in v0.5.0; the command should fail.
 	env.RootCmd.SetArgs([]string{"follow"})
-	if err := env.RootCmd.Execute(); err != nil {
-		t.Fatalf("follow alias failed: %v", err)
+	if err := env.RootCmd.Execute(); err == nil {
+		t.Fatal("expected error: follow alias should no longer be recognized")
 	}
 }
 
