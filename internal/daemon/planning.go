@@ -7,7 +7,6 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
-	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
@@ -165,9 +164,9 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	prePlanScopeCount := len(ns.PendingScope)
 
 	d.iteration.Add(1)
-	output.PrintHuman("--- Planning %d: %s (%s) ---", d.iteration.Load(), nodeAddr, trigger)
 
 	_ = d.Logger.StartIterationWithPrefix("plan")
+	d.log(map[string]any{"type": "iteration_header", "iteration": int(d.iteration.Load()), "kind": "plan", "text": fmt.Sprintf("%s (%s)", nodeAddr, trigger)})
 	_ = d.Logger.LogIterationStart("plan", nodeAddr)
 
 	// Select the planning prompt variant

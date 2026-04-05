@@ -3,8 +3,9 @@ package daemon
 import (
 	"time"
 
+	"fmt"
+
 	"github.com/dorkusprime/wolfcastle/internal/archive"
-	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -115,7 +116,7 @@ func (d *Daemon) tryAutoArchive(idx *state.RootIndex) bool {
 			"node":  addr,
 			"error": err.Error(),
 		})
-		output.PrintHuman("Auto-archive failed for %s: %v", addr, err)
+		d.log(map[string]any{"type": "archive_event", "action": "auto_archive_failed", "node": addr, "text": fmt.Sprintf("Auto-archive failed for %s: %v", addr, err), "error": err.Error()})
 		return false
 	}
 
@@ -123,6 +124,6 @@ func (d *Daemon) tryAutoArchive(idx *state.RootIndex) bool {
 		"type": "auto_archive",
 		"node": addr,
 	})
-	output.PrintHuman("Archived completed project: %s", addr)
+	d.log(map[string]any{"type": "archive_event", "action": "archived", "node": addr, "text": fmt.Sprintf("Archived completed project: %s", addr)})
 	return true
 }

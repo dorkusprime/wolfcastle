@@ -14,7 +14,6 @@ import (
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
-	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -217,7 +216,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			// Treat it as complete so it doesn't poison node state.
 			if d.isSupersededBlock(nav.NodeAddress, nav.TaskID) {
 				_ = d.Logger.Log(map[string]any{"type": "superseded_to_skip", "task": nav.TaskID})
-				output.PrintHuman("  Superseded (treating as skip).")
+				d.log(map[string]any{"type": "task_event", "action": "superseded", "task": nav.TaskID, "text": "Superseded (treating as skip)."})
 				if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 					return state.TaskComplete(ns, nav.TaskID)
 				}); err != nil {
@@ -232,7 +231,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			// not_started so it re-runs to verify the fixes.
 			if created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID); created > 0 {
 				_ = d.Logger.Log(map[string]any{"type": "audit_remediation", "task": nav.TaskID, "subtasks": created})
-				output.PrintHuman("  Audit: %d gap(s), remediating.", created)
+				d.log(map[string]any{"type": "task_event", "action": "audit_remediation", "task": nav.TaskID, "text": fmt.Sprintf("Audit: %d gap(s), remediating.", created)})
 				return nil
 			}
 
@@ -296,7 +295,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 					"task":    nav.TaskID,
 					"missing": missing,
 				})
-				output.PrintHuman("  Warning: declared deliverables missing: %v", missing)
+				d.log(map[string]any{"type": "task_event", "action": "deliverable_warning", "task": nav.TaskID, "text": fmt.Sprintf("Warning: declared deliverables missing: %v", missing)})
 			}
 		}
 		if marker == invoke.MarkerStringComplete {
@@ -314,7 +313,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 					"type": "no_progress",
 					"task": nav.TaskID,
 				})
-				output.PrintHuman("  No changes detected. Failing task.")
+				d.log(map[string]any{"type": "task_event", "action": "no_progress", "task": nav.TaskID, "text": "No changes detected. Failing task."})
 				marker = ""
 			}
 		}
@@ -365,7 +364,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 								"task":     nav.TaskID,
 								"subtasks": created,
 							})
-							output.PrintHuman("  Audit has %d open gap(s), creating remediation subtasks.", created)
+							d.log(map[string]any{"type": "task_event", "action": "audit_gaps", "task": nav.TaskID, "text": fmt.Sprintf("Audit has %d open gap(s), creating remediation subtasks.", created)})
 						} else {
 							// Edge case: open gaps exist but no subtasks created.
 							// Block the audit to prevent silent completion.
@@ -376,7 +375,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 								"type": "audit_blocked_open_gaps",
 								"task": nav.TaskID,
 							})
-							output.PrintHuman("  Audit blocked: open gaps remain.")
+							d.log(map[string]any{"type": "task_event", "action": "audit_blocked", "task": nav.TaskID, "text": "Audit blocked: open gaps remain."})
 						}
 						// Commit the decomposition: audit gaps, remediation
 						// subtasks, and reverted audit state. This gives a
@@ -1107,7 +1106,6 @@ func (d *Daemon) maybeWriteAuditReport(nodeAddr, taskID string) {
 		"node": nodeAddr,
 		"path": reportPath,
 	})
-	output.PrintHuman("  Audit report: %s", reportPath)
 }
 
 // isSupersededBlock checks whether a blocked task was actually superseded

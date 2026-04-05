@@ -39,7 +39,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/git"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
-	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/output" // retained for idle spinner + New() warning
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tree"
@@ -79,6 +79,21 @@ type Daemon struct {
 	iteration        atomic.Int64
 	lastNoWorkMsg    string    // dedup "no targets" / "WOLFCASTLE_COMPLETE" messages
 	lastArchiveCheck time.Time // throttle auto-archive polling
+}
+
+// log is a nil-safe wrapper around d.Logger.Log. Tests that construct a
+// Daemon without a Logger will silently drop records instead of panicking.
+func (d *Daemon) log(record map[string]any) {
+	if d.Logger != nil {
+		_ = d.Logger.Log(record)
+	}
+}
+
+// logInbox is a nil-safe wrapper around d.InboxLogger.Log.
+func (d *Daemon) logInbox(record map[string]any) {
+	if d.InboxLogger != nil {
+		_ = d.InboxLogger.Log(record)
+	}
 }
 
 // repo returns a DaemonRepository for the daemon's wolfcastle directory.
@@ -124,6 +139,8 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 	prompts := pipeline.NewPromptRepository(wolfcastleDir)
 	classes := pipeline.NewClassRepository(prompts)
 	classes.Reload(cfg.TaskClasses)
+	// output.PrintHuman retained here: the logger has no active iteration
+	// inside New(), so structured logging is not yet available.
 	if missing := classes.Validate(); len(missing) > 0 {
 		output.PrintHuman("Warning: task classes with missing prompt files: %v", missing)
 	}
@@ -151,10 +168,10 @@ var errNoChange = errors.New("no change")
 
 // selfHeal scans the tree for stale in_progress tasks on startup (ADR-020).
 func (d *Daemon) selfHeal() error {
-	output.PrintHuman("Scanning for casualties...")
+	d.log(map[string]any{"type": "self_heal", "action": "scan_start", "text": "Scanning for casualties..."})
 	idx, err := d.Store.ReadIndex()
 	if err != nil {
-		output.PrintHuman("No root index. Nothing to recover.")
+		d.log(map[string]any{"type": "self_heal", "action": "no_index", "text": "No root index. Nothing to recover."})
 		return nil
 	}
 
@@ -221,15 +238,15 @@ func (d *Daemon) selfHeal() error {
 				if t.State == state.StatusInProgress {
 					if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren {
 						t.State = derived
-						output.PrintHuman("  Derived %s/%s → %s", addr, t.ID, derived)
+						d.log(map[string]any{"type": "self_heal", "action": "derive", "text": fmt.Sprintf("Derived %s/%s → %s", addr, t.ID, derived)})
 					} else {
 						t.State = state.StatusNotStarted
-						output.PrintHuman("  Reset %s/%s → not_started", addr, t.ID)
+						d.log(map[string]any{"type": "self_heal", "action": "reset", "text": fmt.Sprintf("Reset %s/%s → not_started", addr, t.ID)})
 					}
 					changed = true
 					healed++
 				} else if derived, hasChildren := state.DeriveParentStatus(ns, t.ID); hasChildren && derived != t.State {
-					output.PrintHuman("  Derived %s/%s → %s (was %s)", addr, t.ID, derived, t.State)
+					d.log(map[string]any{"type": "self_heal", "action": "derive", "text": fmt.Sprintf("Derived %s/%s → %s (was %s)", addr, t.ID, derived, t.State)})
 					t.State = derived
 					changed = true
 					healed++
@@ -279,7 +296,7 @@ func (d *Daemon) selfHeal() error {
 					// The node itself must transition to in_progress so navigation
 					// can enter it and reach the new remediation subtasks.
 					ns.State = state.StatusInProgress
-					output.PrintHuman("  Created %d remediation subtask(s) for %s/%s", subCount, addr, ns.Tasks[i].ID)
+					d.log(map[string]any{"type": "self_heal", "action": "remediation", "text": fmt.Sprintf("Created %d remediation subtask(s) for %s/%s", subCount, addr, ns.Tasks[i].ID)})
 					changed = true
 					healed += subCount
 				}
@@ -291,7 +308,7 @@ func (d *Daemon) selfHeal() error {
 			return nil
 		})
 		if mutErr != nil && !errors.Is(mutErr, errNoChange) {
-			output.PrintHuman("  Warning: could not save %s: %v", addr, mutErr)
+			d.log(map[string]any{"type": "self_heal", "action": "save_error", "text": fmt.Sprintf("Warning: could not save %s: %v", addr, mutErr)})
 		}
 
 		// If the node was healed and its state changed, update the root
@@ -310,14 +327,14 @@ func (d *Daemon) selfHeal() error {
 	}
 
 	if healed > 0 {
-		output.PrintHuman("Healed %d interrupted task(s).", healed)
+		d.log(map[string]any{"type": "self_heal", "action": "complete", "text": fmt.Sprintf("Healed %d interrupted task(s).", healed)})
 	} else {
-		output.PrintHuman("All clear. No interrupted tasks.")
+		d.log(map[string]any{"type": "self_heal", "action": "complete", "text": "All clear. No interrupted tasks."})
 	}
 
 	// Clean up stale scope locks left by dead processes or previous daemon runs.
 	if err := d.cleanStaleScopeLocks(); err != nil {
-		output.PrintHuman("  Warning: scope lock cleanup failed: %v", err)
+		d.log(map[string]any{"type": "self_heal", "action": "scope_cleanup_error", "text": fmt.Sprintf("Warning: scope lock cleanup failed: %v", err)})
 	}
 
 	return nil
@@ -355,7 +372,7 @@ func (d *Daemon) cleanStaleScopeLocks() error {
 		}
 
 		for _, scope := range staleScopes {
-			output.PrintHuman("  Removed stale scope lock: %s (PID %d dead)", scope, table.Locks[scope].PID)
+			d.log(map[string]any{"type": "self_heal", "action": "scope_removed", "text": fmt.Sprintf("Removed stale scope lock: %s (PID %d dead)", scope, table.Locks[scope].PID)})
 			delete(table.Locks, scope)
 		}
 
@@ -390,7 +407,9 @@ func (d *Daemon) RunWithSupervisor(ctx context.Context) error {
 		if restart >= maxRestarts {
 			return fmt.Errorf("daemon exceeded max restarts (%d): %w", maxRestarts, err)
 		}
-		output.PrintHuman("Crash (attempt %d/%d): %v. Restarting in %v.", restart+1, maxRestarts, err, delay)
+		_ = d.Logger.StartIterationWithPrefix("crash")
+		d.log(map[string]any{"type": "daemon_lifecycle", "event": "crash_restart", "attempt": restart + 1, "text": fmt.Sprintf("Crash (attempt %d/%d): %v. Restarting in %v.", restart+1, maxRestarts, err, delay)})
+		d.Logger.Close()
 		sleepFn(delay)
 
 		// Close shutdown so goroutines from the previous Run() exit,
@@ -456,7 +475,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				if !ok {
 					return
 				}
-				output.PrintHuman("\n=== Wolfcastle standing down (signal) ===")
+				d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "signal", "text": "Wolfcastle standing down (signal)"})
 				cancel()
 				d.shutdownOnce.Do(func() { close(d.shutdown) })
 				go func() {
@@ -486,11 +505,15 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	d.iteration.Store(0)
 	d.hasWorked = false
-	_ = d.Logger.Log(map[string]any{"type": "daemon_start", "scope": d.scopeLabel()})
-	output.PrintHuman("=== Wolfcastle engaged (scope=%s) ===", d.scopeLabel())
+
+	// Open a "heal" iteration to capture the startup banner, self-heal
+	// output, and git-check warning in a single structured log file.
+	_ = d.Logger.StartIterationWithPrefix("heal")
+	d.log(map[string]any{"type": "daemon_lifecycle", "event": "engaged", "scope": d.scopeLabel(), "text": fmt.Sprintf("Wolfcastle engaged (scope=%s)", d.scopeLabel())})
 
 	// Self-healing phase (ADR-020)
 	if err := d.selfHeal(); err != nil {
+		d.Logger.Close()
 		return fmt.Errorf("self-healing failed: %w", err)
 	}
 
@@ -499,10 +522,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 		var err error
 		d.branch, err = d.Git.CurrentBranch()
 		if err != nil {
-			output.PrintHuman("Not a git repository. Branch verification off.")
+			d.log(map[string]any{"type": "config_warning", "text": "Not a git repository. Branch verification off."})
 			d.Config.Git.VerifyBranch = false
 		}
 	}
+	d.Logger.Close()
 
 	// Initialize the parallel dispatcher when parallel mode is enabled.
 	// This must happen after selfHeal (which cleans stale scope locks)
@@ -553,12 +577,12 @@ func (d *Daemon) Run(ctx context.Context) error {
 		case IterationNoWork:
 			if d.draining {
 				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "drain"})
-				output.PrintHuman("=== Drain complete. Wolfcastle standing down. ===")
+				d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "drain", "text": "Drain complete. Wolfcastle standing down."})
 				return nil
 			}
 			if d.ExitWhenDone && d.hasWorked {
 				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "exit_when_done"})
-				output.PrintHuman("=== Work complete. Wolfcastle standing down. ===")
+				d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "exit_when_done", "text": "Work complete. Wolfcastle standing down."})
 				return nil
 			}
 			// Start spinner on first idle cycle; keep it running
@@ -602,7 +626,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 			)
 			if d.draining {
 				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "drain"})
-				output.PrintHuman("=== Drain complete. Wolfcastle standing down. ===")
+				d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "drain", "text": "Drain complete. Wolfcastle standing down."})
 				return nil
 			}
 			// No sleep after successful work. If there's more to do,
@@ -620,7 +644,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	select {
 	case <-d.shutdown:
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "signal"})
-		output.PrintHuman("=== Wolfcastle standing down (signal) ===")
+		d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "signal", "text": "Wolfcastle standing down (signal)"})
 		return IterationStop, nil
 	default:
 	}
@@ -629,7 +653,7 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 	if d.repo().HasStopFile() {
 		_ = d.repo().RemoveStopFile()
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
-		output.PrintHuman("=== Wolfcastle standing down (stop file) ===")
+		d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "stop_file", "text": "Wolfcastle standing down (stop file)"})
 		return IterationStop, nil
 	}
 
@@ -638,14 +662,14 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		_ = d.repo().RemoveDrainFile()
 		d.draining = true
 		_ = d.Logger.Log(map[string]any{"type": "daemon_drain"})
-		output.PrintHuman("Drain mode: will exit after current work completes.")
+		d.log(map[string]any{"type": "daemon_lifecycle", "event": "drain", "text": "Drain mode: will exit after current work completes."})
 	}
 
 	// Max iterations check
 	maxIter := d.Config.Daemon.MaxIterations
 	if maxIter > 0 && d.iteration.Load() >= int64(maxIter) {
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "iteration_cap", "iterations": d.iteration.Load()})
-		output.PrintHuman("=== Iteration cap reached (%d) ===", maxIter)
+		d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "iteration_cap", "text": fmt.Sprintf("Iteration cap reached (%d)", maxIter)})
 		return IterationStop, nil
 	}
 
@@ -721,7 +745,7 @@ func (d *Daemon) runOnceSerial(ctx context.Context, idx *state.RootIndex) (Itera
 	// its subtree needs work, not before.
 	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
 		if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
-			output.PrintHuman("Planning error: %v", err)
+			d.log(map[string]any{"type": "task_event", "action": "planning_error", "text": fmt.Sprintf("Planning error: %v", err), "error": err.Error()})
 			return IterationError, nil
 		}
 		return IterationDidWork, nil
@@ -757,7 +781,7 @@ func (d *Daemon) runOnceSerial(ctx context.Context, idx *state.RootIndex) (Itera
 		}
 		d.mu.Unlock()
 		if changed {
-			output.PrintHuman(msg)
+			d.log(map[string]any{"type": "idle_reason", "reason": navResult.Reason, "text": msg})
 		}
 		return IterationNoWork, nil
 	}
@@ -771,10 +795,10 @@ execute:
 
 	d.iteration.Add(1)
 	d.writeActivity(navResult.NodeAddress, navResult.TaskID)
-	output.PrintHuman("--- Iteration %d: %s/%s ---", d.iteration.Load(), navResult.NodeAddress, navResult.TaskID)
 
 	// Start iteration log with "exec" trace prefix
 	_ = d.Logger.StartIterationWithPrefix("exec")
+	d.log(map[string]any{"type": "iteration_header", "iteration": int(d.iteration.Load()), "kind": "execute", "text": fmt.Sprintf("%s/%s", navResult.NodeAddress, navResult.TaskID)})
 	_ = d.Logger.LogIterationStart("execute", navResult.NodeAddress)
 
 	// Run pipeline stages
@@ -782,7 +806,7 @@ execute:
 	d.Logger.Close()
 
 	if err != nil {
-		output.PrintHuman("Iteration error: %v", err)
+		d.log(map[string]any{"type": "task_event", "action": "iteration_error", "text": fmt.Sprintf("Iteration error: %v", err), "error": err.Error()})
 
 		// State corruption is fatal: continuing risks further damage.
 		var stateErr *werrors.StateError
@@ -851,7 +875,7 @@ func (d *Daemon) runOnceParallel(ctx context.Context, idx *state.RootIndex) (Ite
 
 	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
 		if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
-			output.PrintHuman("Planning error: %v", err)
+			d.log(map[string]any{"type": "task_event", "action": "planning_error", "text": fmt.Sprintf("Planning error: %v", err), "error": err.Error()})
 			return IterationError, nil
 		}
 		return IterationDidWork, nil
