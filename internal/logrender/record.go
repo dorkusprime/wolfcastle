@@ -24,6 +24,17 @@ type Record struct {
 	Marker     string    `json:"marker"`
 	Error      string    `json:"error"`
 
+	// Lifecycle and event fields for daemon_lifecycle, self_heal, iteration_header, etc.
+	Event     string  `json:"event,omitempty"`
+	Action    string  `json:"action,omitempty"`
+	Iteration int     `json:"iteration,omitempty"`
+	Kind      string  `json:"kind,omitempty"`
+	Reason    string  `json:"reason,omitempty"`
+	Counter   int     `json:"counter,omitempty"`
+	Attempt   int     `json:"attempt,omitempty"`
+	DelayS    float64 `json:"delay_s,omitempty"`
+	Scope     string  `json:"scope,omitempty"`
+
 	// Raw preserves every field from the original JSON line, including
 	// fields not mapped to typed struct members.
 	Raw map[string]any `json:"-"`

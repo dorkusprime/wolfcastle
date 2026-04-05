@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -129,7 +128,7 @@ func (d *Daemon) checkSpecReviewNeeded(nodeAddr, taskID string) bool {
 		"spec_task": taskID,
 		"review_id": reviewID,
 	})
-	output.PrintHuman("  Spec review queued: %s", reviewID)
+	d.log(map[string]any{"type": "spec_event", "action": "review_queued", "node": nodeAddr, "text": fmt.Sprintf("Spec review queued: %s", reviewID)})
 	return true
 }
 
@@ -195,6 +194,6 @@ func (d *Daemon) handleSpecReviewBlocked(nodeAddr, taskID string) bool {
 		"review_id": taskID,
 		"spec_task": specTaskID,
 	})
-	output.PrintHuman("  Spec review failed, revision queued for %s", specTaskID)
+	d.log(map[string]any{"type": "spec_event", "action": "review_failed", "node": nodeAddr, "text": fmt.Sprintf("Spec review failed, revision queued for %s", specTaskID)})
 	return true
 }

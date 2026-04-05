@@ -123,8 +123,19 @@ The log command reads these record types from the log files:
 | `assistant` | Agent thoughts (debug level) |
 | `audit_report_written` | Audit report path |
 | `planning_start` / `planning_complete` | Planning stage boundaries. `planning_complete` contains `duration_ms` (integer): pre-computed elapsed milliseconds for the planning phase. |
+| `daemon_lifecycle` | Engaged/standing-down banners, drain, crash-restart. Fields: `event`, `scope`, `reason`. |
+| `self_heal` | Startup recovery: scan, reset, derive, remediation. Fields: `action`, `text`. |
+| `iteration_header` | Per-iteration banner (execute or plan). Fields: `iteration`, `kind`, `text`. |
+| `inbox_event` | Watcher deploy, intake processing, intake results. Fields: `action`, `counter`, `text`. |
+| `task_event` | Superseded, audit remediation, deliverable warnings, no-progress. Fields: `action`, `task`, `text`. |
+| `retry_event` | Invocation retry with backoff. Fields: `attempt`, `delay_s`, `error`, `text`. |
+| `idle_reason` | Why the daemon is idle (all-complete, empty tree, all-blocked). Fields: `reason`, `text`. |
+| `archive_event` | Auto-archive success or failure. Fields: `action`, `node`, `text`. |
+| `spec_event` | Spec review queued or failed. Fields: `action`, `node`, `text`. |
+| `knowledge_event` | Knowledge budget exceeded. Fields: `action`, `node`, `text`. |
+| `config_warning` | Configuration warnings (e.g., not a git repo). Fields: `text`. |
 
-Records missing from the current NDJSON schema should be added to the logging package. The log command should degrade gracefully if a record type is absent (skip that detail, don't crash).
+Renderers degrade gracefully for unrecognized record types (skip, don't crash). Old NDJSON files without the new fields parse to zero values.
 
 ## Non-Daemon Mode
 

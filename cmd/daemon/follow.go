@@ -73,7 +73,6 @@ Examples:
   wolfcastle log -i -f
   wolfcastle log --session 1
   wolfcastle log --json | jq '.type'`,
-		Aliases: []string{"follow"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logDir := app.Daemon.LogDir()
 			sessionIdx, _ := cmd.Flags().GetInt("session")

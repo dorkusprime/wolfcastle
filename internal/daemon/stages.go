@@ -11,7 +11,6 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
-	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
@@ -28,7 +27,9 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 	if err == nil {
 		defer func() { _ = watcher.Close() }()
 		if addErr := watcher.Add(projDir); addErr == nil {
-			output.PrintHuman("Inbox watcher deployed.")
+			_ = d.InboxLogger.StartIterationWithPrefix("inbox-init")
+			d.logInbox(map[string]any{"type": "inbox_event", "action": "watcher_deployed", "text": "Inbox watcher deployed."})
+			d.InboxLogger.Close()
 			d.runInboxWithFsnotify(ctx, watcher)
 			return
 		}
@@ -36,7 +37,9 @@ func (d *Daemon) runInboxLoop(ctx context.Context) {
 	}
 
 	// Fallback: polling
-	output.PrintHuman("Inbox watcher deployed. (polling)")
+	_ = d.InboxLogger.StartIterationWithPrefix("inbox-init")
+	d.logInbox(map[string]any{"type": "inbox_event", "action": "watcher_deployed", "text": "Inbox watcher deployed. (polling)"})
+	d.InboxLogger.Close()
 	d.runInboxWithPolling(ctx)
 }
 
@@ -75,7 +78,9 @@ func (d *Daemon) runInboxWithFsnotify(ctx context.Context, watcher *fsnotify.Wat
 			if !ok {
 				return
 			}
-			output.PrintHuman("Inbox watcher error: %v", err)
+			_ = d.InboxLogger.StartIterationWithPrefix("inbox-error")
+			d.logInbox(map[string]any{"type": "inbox_event", "action": "watcher_error", "text": fmt.Sprintf("Inbox watcher error: %v", err), "error": err.Error()})
+			d.InboxLogger.Close()
 		}
 	}
 }
@@ -113,13 +118,12 @@ func (d *Daemon) runInboxWithPolling(ctx context.Context) {
 
 // processInbox runs the intake stage for pending inbox items.
 func (d *Daemon) processInbox(ctx context.Context, counter int) {
-	output.PrintHuman("inbox-%04d: Processing...", counter)
-
 	if stage, ok := d.Config.Pipeline.Stages["intake"]; ok && stage.IsEnabled() {
 		_ = d.InboxLogger.StartIterationWithPrefix("intake")
+		d.logInbox(map[string]any{"type": "inbox_event", "action": "processing", "counter": counter, "text": fmt.Sprintf("inbox-%04d: Processing...", counter)})
 		_ = d.InboxLogger.LogIterationStart("intake", "")
 		if err := d.runIntakeStage(ctx, stage); err != nil {
-			output.PrintHuman("  Intake stage error (non-fatal): %v", err)
+			d.logInbox(map[string]any{"type": "inbox_event", "action": "intake_error", "text": fmt.Sprintf("Intake stage error (non-fatal): %v", err), "error": err.Error()})
 		}
 		d.InboxLogger.Close()
 	}
@@ -241,7 +245,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		})
 
 		if result.Summary != "" {
-			output.PrintHuman("  intake-%04d: %s", itemIdx+1, result.Summary)
+			d.logInbox(map[string]any{"type": "inbox_event", "action": "intake_summary", "text": fmt.Sprintf("intake-%04d: %s", itemIdx+1, result.Summary)})
 			_ = d.InboxLogger.Log(map[string]any{
 				"type":    "intake_summary",
 				"item":    itemIdx + 1,
@@ -250,7 +254,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		}
 
 		if result.ExitCode != 0 {
-			output.PrintHuman("  Intake item %d failed (exit %d). Queued for retry.", itemIdx+1, result.ExitCode)
+			d.logInbox(map[string]any{"type": "inbox_event", "action": "intake_failed", "text": fmt.Sprintf("Intake item %d failed (exit %d). Queued for retry.", itemIdx+1, result.ExitCode)})
 			continue
 		}
 
@@ -277,7 +281,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		filedCount++
 	}
 
-	output.PrintHuman("  Intake: %d items filed", filedCount)
+	d.logInbox(map[string]any{"type": "inbox_event", "action": "intake_complete", "counter": filedCount, "text": fmt.Sprintf("Intake: %d items filed", filedCount)})
 
 	// Signal the execute loop that new work may be available.
 	// Non-blocking: if the channel already has a signal, the loop

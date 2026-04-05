@@ -5,10 +5,11 @@ import (
 	"io"
 	"time"
 
+	"fmt"
+
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
-	"github.com/dorkusprime/wolfcastle/internal/output"
 )
 
 // invokeWithRetry wraps ProcessInvoker.Invoke with exponential backoff
@@ -54,7 +55,7 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 			"delay_s": delay.Seconds(),
 			"error":   err.Error(),
 		})
-		output.PrintHuman("  Attempt %d failed: %v. Retrying in %v.", attempt+1, err, delay)
+		d.log(map[string]any{"type": "retry_event", "attempt": attempt + 1, "delay_s": delay.Seconds(), "error": err.Error(), "text": fmt.Sprintf("Attempt %d failed: %v. Retrying in %v.", attempt+1, err, delay)})
 
 		select {
 		case <-ctx.Done():

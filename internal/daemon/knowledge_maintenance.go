@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/dorkusprime/wolfcastle/internal/knowledge"
-	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -116,6 +115,6 @@ func (d *Daemon) checkKnowledgeBudget(nodeAddr string) bool {
 		"tokens":     tokens,
 		"max_tokens": maxTokens,
 	})
-	output.PrintHuman("  Knowledge budget exceeded (%d/%d tokens), maintenance task queued", tokens, maxTokens)
+	d.log(map[string]any{"type": "knowledge_event", "action": "budget_exceeded", "node": nodeAddr, "text": fmt.Sprintf("Knowledge budget exceeded (%d/%d tokens), maintenance task queued", tokens, maxTokens)})
 	return true
 }

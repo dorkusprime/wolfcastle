@@ -28,6 +28,7 @@ type summaryLine struct {
 	address string // node/task-id
 	dur     string // (1m22s)
 	report  string // non-empty only for audit_report_written follow-ups
+	text    string // plain text line (lifecycle events, self-heal, etc.)
 }
 
 // stageKey uniquely identifies an in-flight stage so we can pair start with
@@ -86,6 +87,44 @@ func (sr *SummaryRenderer) Replay(records <-chan Record) {
 			lines = append(lines, summaryLine{
 				report: r.Path,
 			})
+
+		case "daemon_lifecycle":
+			switch r.Event {
+			case "engaged":
+				lines = append(lines, summaryLine{text: fmt.Sprintf("=== Wolfcastle engaged (scope=%s) ===", r.Scope)})
+			case "standing_down":
+				lines = append(lines, summaryLine{text: fmt.Sprintf("=== Wolfcastle standing down (%s) ===", r.Reason)})
+			default:
+				lines = append(lines, summaryLine{text: fmt.Sprintf("=== %s ===", r.Text)})
+			}
+
+		case "self_heal":
+			lines = append(lines, summaryLine{text: fmt.Sprintf("  %s", r.Text)})
+
+		case "iteration_header":
+			if r.Kind == "plan" {
+				lines = append(lines, summaryLine{text: fmt.Sprintf("--- Planning %d: %s ---", r.Iteration, r.Text)})
+			} else {
+				lines = append(lines, summaryLine{text: fmt.Sprintf("--- Iteration %d: %s ---", r.Iteration, r.Text)})
+			}
+
+		case "inbox_event":
+			lines = append(lines, summaryLine{text: fmt.Sprintf("  %s", r.Text)})
+
+		case "task_event":
+			lines = append(lines, summaryLine{text: fmt.Sprintf("  %s", r.Text)})
+
+		case "retry_event":
+			lines = append(lines, summaryLine{text: fmt.Sprintf("  Attempt %d failed: %s. Retrying in %.0fs.", r.Attempt, r.Error, r.DelayS)})
+
+		case "idle_reason":
+			lines = append(lines, summaryLine{text: r.Text})
+
+		case "archive_event":
+			lines = append(lines, summaryLine{text: r.Text})
+
+		case "spec_event", "knowledge_event", "config_warning", "git_event":
+			lines = append(lines, summaryLine{text: fmt.Sprintf("  %s", r.Text)})
 		}
 	}
 
@@ -146,6 +185,44 @@ func (sr *SummaryRenderer) handleFollowRecord(r Record, starts map[stageKey]time
 
 	case "audit_report_written":
 		_, _ = fmt.Fprintf(sr.w, "  report: %s\n", r.Path)
+
+	case "daemon_lifecycle":
+		switch r.Event {
+		case "engaged":
+			_, _ = fmt.Fprintf(sr.w, "=== Wolfcastle engaged (scope=%s) ===\n", r.Scope)
+		case "standing_down":
+			_, _ = fmt.Fprintf(sr.w, "=== Wolfcastle standing down (%s) ===\n", r.Reason)
+		default:
+			_, _ = fmt.Fprintf(sr.w, "=== %s ===\n", r.Text)
+		}
+
+	case "self_heal":
+		_, _ = fmt.Fprintf(sr.w, "  %s\n", r.Text)
+
+	case "iteration_header":
+		if r.Kind == "plan" {
+			_, _ = fmt.Fprintf(sr.w, "--- Planning %d: %s ---\n", r.Iteration, r.Text)
+		} else {
+			_, _ = fmt.Fprintf(sr.w, "--- Iteration %d: %s ---\n", r.Iteration, r.Text)
+		}
+
+	case "inbox_event":
+		_, _ = fmt.Fprintf(sr.w, "  %s\n", r.Text)
+
+	case "task_event":
+		_, _ = fmt.Fprintf(sr.w, "  %s\n", r.Text)
+
+	case "retry_event":
+		_, _ = fmt.Fprintf(sr.w, "  Attempt %d failed: %s. Retrying in %.0fs.\n", r.Attempt, r.Error, r.DelayS)
+
+	case "idle_reason":
+		_, _ = fmt.Fprintf(sr.w, "%s\n", r.Text)
+
+	case "archive_event":
+		_, _ = fmt.Fprintf(sr.w, "%s\n", r.Text)
+
+	case "spec_event", "knowledge_event", "config_warning", "git_event":
+		_, _ = fmt.Fprintf(sr.w, "  %s\n", r.Text)
 	}
 }
 
@@ -155,7 +232,7 @@ func (sr *SummaryRenderer) writeAligned(lines []summaryLine) {
 	maxLabel := 0
 	maxAddr := 0
 	for _, l := range lines {
-		if l.report != "" {
+		if l.report != "" || l.text != "" {
 			continue
 		}
 		if len(l.label) > maxLabel {
@@ -167,6 +244,10 @@ func (sr *SummaryRenderer) writeAligned(lines []summaryLine) {
 	}
 
 	for _, l := range lines {
+		if l.text != "" {
+			_, _ = fmt.Fprintf(sr.w, "%s\n", l.text)
+			continue
+		}
 		if l.report != "" {
 			_, _ = fmt.Fprintf(sr.w, "  report: %s\n", l.report)
 			continue

@@ -152,45 +152,40 @@ func TestRunOnce_CompletePrintedOnce(t *testing.T) {
 
 	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
-	// Capture stdout to count WOLFCASTLE_COMPLETE occurrences.
-	origStdout := os.Stdout
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	os.Stdout = w
+	// Start a logger iteration so idle_reason records can be written.
+	_ = d.Logger.StartIterationWithPrefix("test")
 
 	// Run three iterations; all should return NoWork.
 	for i := 0; i < 3; i++ {
 		result, err := d.RunOnce(context.Background())
 		if err != nil {
-			os.Stdout = origStdout
 			t.Fatalf("iteration %d error: %v", i, err)
 		}
 		if result != IterationNoWork {
-			os.Stdout = origStdout
 			t.Fatalf("iteration %d: expected NoWork, got %v", i, result)
 		}
 	}
 
-	_ = w.Close()
-	os.Stdout = origStdout
+	d.Logger.Close()
 
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatal(err)
-	}
-	output := buf.String()
-
+	// Read the log file and count idle_reason records containing WOLFCASTLE_COMPLETE.
+	logFiles, _ := filepath.Glob(filepath.Join(d.Logger.LogDir, "*.jsonl"))
 	count := 0
-	for _, line := range bytes.Split([]byte(output), []byte("\n")) {
-		if bytes.Contains(line, []byte("WOLFCASTLE_COMPLETE")) {
-			count++
+	for _, f := range logFiles {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		for _, line := range bytes.Split(data, []byte("\n")) {
+			if bytes.Contains(line, []byte(`"type":"idle_reason"`)) &&
+				bytes.Contains(line, []byte("WOLFCASTLE_COMPLETE")) {
+				count++
+			}
 		}
 	}
 
 	if count != 1 {
-		t.Errorf("expected WOLFCASTLE_COMPLETE exactly once, got %d times in output:\n%s", count, output)
+		t.Errorf("expected idle_reason with WOLFCASTLE_COMPLETE exactly once in logs, got %d", count)
 	}
 }
 
