@@ -27,6 +27,18 @@ Check the codebase:
 - Are there gaps between what was planned and what was delivered?
 - Were ADRs and specs created where needed?
 
+#### Cross-sibling verification
+If any child modified a schema, endpoint, response model, shared interface, or public API, identify all test files that exercise those contracts in other siblings. Run those tests. A passing leaf audit does not guarantee cross-leaf compatibility. Schema changes in one child can break assertions in another child's tests without either leaf audit catching it.
+
+#### Behavioral regression check
+For refactoring tasks (extract helper, unify components, rename), compare observable behavior before and after. If an endpoint previously returned a specific response shape, verify it still does. If a function previously handled an edge case with graceful degradation, verify that path is preserved. Uniform extraction of patterns that had intentional per-site variation is a common regression source.
+
+#### Multi-tool verification
+Run ALL verification tools the project uses, not just the test suite. This includes type checkers (`tsc --noEmit`, `pyright`, `mypy`), linters (`ruff`, `eslint`, `go vet`), formatters, and build checks. A test suite that passes does not guarantee type safety or lint cleanliness. Check the project's CI configuration or Makefile for the full list of verification commands.
+
+#### Inbox item completeness
+When the orchestrator was created from an inbox item containing a numbered list of sub-items, verify each sub-item was addressed by at least one child's deliverables. Explicitly check off each sub-item. Flag any that were missed as gaps.
+
 ### D. Decide
 If all success criteria are met, no unaddressed action items remain, and no gaps exist, this orchestrator's work is done.
 
