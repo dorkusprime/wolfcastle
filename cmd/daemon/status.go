@@ -10,8 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"bytes"
+
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -337,6 +340,9 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, opts t
 		printParallelStatus(ps)
 	}
 
+	// Recent log tail: last 2 rendered lines from the current session.
+	printRecentLog(filepath.Join(app.Config.Root(), "system", "logs"), 2)
+
 	return nil
 }
 
@@ -648,6 +654,47 @@ func printParallelStatus(ps *dmn.ParallelStatus) {
 			}
 			output.PrintHuman("    %s -> blocked by %s%s", y.Task, y.Blocker, suffix)
 		}
+	}
+}
+
+// printRecentLog renders the last n summary lines from the most recent log
+// session using the same format as foreground mode (▶/✓/✗ glyphs, audit
+// report paths). Silently does nothing when no log session exists.
+func printRecentLog(logDir string, n int) {
+	session, err := logrender.ResolveSession(logDir, 0)
+	if err != nil || len(session.Files) == 0 {
+		return
+	}
+
+	// Only read the last few files to avoid parsing an entire long session.
+	// Each file is one iteration; 5 files is plenty to yield 2 rendered lines.
+	files := session.Files
+	if len(files) > 5 {
+		files = files[len(files)-5:]
+	}
+
+	var buf bytes.Buffer
+	sr := logrender.NewSummaryRenderer(&buf)
+	records := logrender.NewReplayReader(files).Records()
+	sr.Follow(context.Background(), records)
+
+	rendered := buf.String()
+	if rendered == "" {
+		return
+	}
+
+	// Take the last n non-empty lines.
+	allLines := strings.Split(strings.TrimRight(rendered, "\n"), "\n")
+	start := len(allLines) - n
+	if start < 0 {
+		start = 0
+	}
+	tail := allLines[start:]
+
+	output.PrintHuman("")
+	output.PrintHuman("  Recent:")
+	for _, line := range tail {
+		output.PrintHuman("  %s", line)
 	}
 }
 
