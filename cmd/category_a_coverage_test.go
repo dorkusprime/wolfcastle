@@ -28,7 +28,7 @@ func TestDoctorCmd_CorruptStateJSON(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(env.ProjectsDir, "state.json"), []byte("corrupt json{{"), 0644)
 
 	rootCmd.SetArgs([]string{"doctor"})
-	// Should not return an error — it reports the issue via reportValidationIssues
+	// Should not return an error. It reports the issue via reportValidationIssues
 	err := rootCmd.Execute()
 	if err != nil {
 		t.Fatalf("doctor with corrupt state should still report: %v", err)

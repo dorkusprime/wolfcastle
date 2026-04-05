@@ -8,7 +8,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// compressFile — nonexistent source
+// compressFile: nonexistent source
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCompressFile_NonexistentSource(t *testing.T) {
@@ -20,7 +20,7 @@ func TestCompressFile_NonexistentSource(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Level — String and ParseLevel coverage
+// Level: String and ParseLevel coverage
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestLevel_String_Unknown(t *testing.T) {
@@ -57,7 +57,7 @@ func TestParseLevel_AllLevels(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Logger — Log with no active iteration
+// Logger: Log with no active iteration
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestLog_NoActiveIteration(t *testing.T) {
@@ -69,7 +69,7 @@ func TestLog_NoActiveIteration(t *testing.T) {
 	}
 	defer logger.Close()
 
-	// Don't call StartIteration — file is nil
+	// Don't call StartIteration. File is nil
 	err = logger.Log(map[string]any{"msg": "test"})
 	if err == nil {
 		t.Error("expected error when logging without active iteration")
@@ -77,7 +77,7 @@ func TestLog_NoActiveIteration(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AssistantWriter — nil and active
+// AssistantWriter: nil and active
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAssistantWriter_NilWhenNoIteration(t *testing.T) {
@@ -192,7 +192,7 @@ func TestLatestLogFile_WithGzAndPlain(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// NewLogger — error path
+// NewLogger: error path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestNewLogger_DirectoryCreationFails(t *testing.T) {
@@ -209,7 +209,7 @@ func TestNewLogger_DirectoryCreationFails(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Close — idempotent
+// Close: idempotent
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestClose_Idempotent(t *testing.T) {
@@ -229,7 +229,7 @@ func TestClose_Idempotent(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EnforceRetention — read-only directory (error path)
+// EnforceRetention: read-only directory (error path)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEnforceRetention_UnreadableDirectory(t *testing.T) {

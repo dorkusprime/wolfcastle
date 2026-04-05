@@ -9,7 +9,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// filelock.go — stale lock cleanup triggers retry
+// filelock.go: stale lock cleanup triggers retry
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAcquire_StaleLockCleanupTriggersRetry(t *testing.T) {

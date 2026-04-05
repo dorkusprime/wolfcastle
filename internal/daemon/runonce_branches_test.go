@@ -14,7 +14,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — context cancelled after navigation (line 436-438)
+// RunOnce: context cancelled after navigation (line 436-438)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_ContextCancelledBeforeExecution(t *testing.T) {
@@ -41,7 +41,7 @@ func TestRunOnce_ContextCancelledBeforeExecution(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — planning pass success returns IterationDidWork (lines 449-455)
+// RunOnce: planning pass success returns IterationDidWork (lines 449-455)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_PlanningPassSuccess(t *testing.T) {
@@ -80,7 +80,7 @@ func TestRunOnce_PlanningPassSuccess(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — planning pass error returns IterationError (lines 450-453)
+// RunOnce: planning pass error returns IterationError (lines 450-453)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_PlanningPassError(t *testing.T) {
@@ -116,7 +116,7 @@ func TestRunOnce_PlanningPassError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — default no-work reason (lines 467-468)
+// RunOnce: default no-work reason (lines 467-468)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_DefaultNoWorkReason(t *testing.T) {
@@ -159,7 +159,7 @@ func TestRunOnce_DefaultNoWorkReason(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — StateError from runIteration returns fatal (lines 496-499)
+// RunOnce: StateError from runIteration returns fatal (lines 496-499)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_StateErrorIsFatal(t *testing.T) {
@@ -216,7 +216,7 @@ func TestRunOnce_StateErrorIsFatal(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — replanning triggers after successful work (lines 506-511)
+// RunOnce: replanning triggers after successful work (lines 506-511)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_ReplanningTriggersAfterWork(t *testing.T) {
@@ -272,7 +272,7 @@ func TestRunOnce_ReplanningTriggersAfterWork(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — nodeLoader parse error (line 425-427)
+// RunOnce: nodeLoader parse error (line 425-427)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_NodeLoaderParseError(t *testing.T) {
@@ -300,7 +300,7 @@ func TestRunOnce_NodeLoaderParseError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — RunOnce error from runIteration (non-StateError) returns
+// RunOnce: RunOnce error from runIteration (non-StateError) returns
 // IterationError (line 501)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -329,7 +329,7 @@ func TestRunOnce_NonStateErrorReturnsIterationError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — branch verification detects change (lines 406-411)
+// RunOnce: branch verification detects change (lines 406-411)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_BranchChangeDetected(t *testing.T) {

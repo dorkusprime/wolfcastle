@@ -145,7 +145,7 @@ func TestArchiveAddCmd_NoIdentity(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSetupCommands(t *testing.T) {
-	// setupCommands is idempotent — calling it again should not panic
+	// setupCommands is idempotent. Calling it again should not panic
 	setupCommands()
 
 	// Verify groups are assigned
@@ -644,7 +644,7 @@ func TestDoctorCmd_Fix_WithFixableIssues(t *testing.T) {
 	_ = state.SaveNodeState(nodeStatePath(env.ProjectsDir, parsed), ns)
 
 	rootCmd.SetArgs([]string{"doctor", "--fix"})
-	// Should not error — it reports and fixes
+	// Should not error. It reports and fixes
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("doctor --fix with fixable issues failed: %v", err)
 	}

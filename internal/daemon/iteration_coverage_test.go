@@ -17,7 +17,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — already in_progress task skips claim
+// runIteration: already in_progress task skips claim
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_AlreadyInProgress_SkipsClaim(t *testing.T) {
@@ -50,7 +50,7 @@ func TestRunIteration_AlreadyInProgress_SkipsClaim(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_YIELD with planning disabled + new tasks
+// runIteration: WOLFCASTLE_YIELD with planning disabled + new tasks
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_YieldDecomposition_PlanningDisabled(t *testing.T) {
@@ -110,7 +110,7 @@ with open('%s','w') as f: json.dump(data, f)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_YIELD with planning enabled + new tasks
+// runIteration: WOLFCASTLE_YIELD with planning enabled + new tasks
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_YieldDecomposition_PlanningEnabled(t *testing.T) {
@@ -165,7 +165,7 @@ with open('%s','w') as f: json.dump(data, f)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_YIELD with no new tasks
+// runIteration: WOLFCASTLE_YIELD with no new tasks
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_YieldNoNewTasks(t *testing.T) {
@@ -204,7 +204,7 @@ func TestRunIteration_YieldNoNewTasks(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_BLOCKED with superseded detection
+// runIteration: WOLFCASTLE_BLOCKED with superseded detection
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_BlockedSuperseded_TreatedAsSkip(t *testing.T) {
@@ -245,7 +245,7 @@ func TestRunIteration_BlockedSuperseded_TreatedAsSkip(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_BLOCKED triggers remediation subtasks
+// runIteration: WOLFCASTLE_BLOCKED triggers remediation subtasks
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_BlockedAudit_CreatesRemediationSubtasks(t *testing.T) {
@@ -348,7 +348,7 @@ func TestRunIteration_RemediationSubtasks_InheritClass(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_BLOCKED normal path (propagateState)
+// runIteration: WOLFCASTLE_BLOCKED normal path (propagateState)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_BlockedNormal_BlocksAndPropagates(t *testing.T) {
@@ -391,7 +391,7 @@ func TestRunIteration_BlockedNormal_BlocksAndPropagates(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_COMPLETE with missing deliverables (warning)
+// runIteration: WOLFCASTLE_COMPLETE with missing deliverables (warning)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_Complete_MissingDeliverables(t *testing.T) {
@@ -429,7 +429,7 @@ func TestRunIteration_Complete_MissingDeliverables(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_COMPLETE for audit task (skips git check)
+// runIteration: WOLFCASTLE_COMPLETE for audit task (skips git check)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_CompleteAudit_SkipsGitCheck(t *testing.T) {
@@ -463,7 +463,7 @@ func TestRunIteration_CompleteAudit_SkipsGitCheck(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_COMPLETE with no git progress (non-audit)
+// runIteration: WOLFCASTLE_COMPLETE with no git progress (non-audit)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_CompleteNoGitProgress_FailsTask(t *testing.T) {
@@ -513,7 +513,7 @@ func TestRunIteration_CompleteNoGitProgress_FailsTask(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — WOLFCASTLE_SKIP with planning disabled (autoComplete)
+// runIteration: WOLFCASTLE_SKIP with planning disabled (autoComplete)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_Skip_AutoCompleteDecomposedParent(t *testing.T) {
@@ -957,7 +957,7 @@ func TestCommitWithSeparateIndex_TempFileCleanedUp(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// autoCompleteDecomposedParents — edge cases
+// autoCompleteDecomposedParents: edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAutoCompleteDecomposedParents_MissingSubtask(t *testing.T) {
@@ -1062,7 +1062,7 @@ func TestIsSupersededBlock_TaskNotFound(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// findNewTasks — audit exclusion
+// findNewTasks: audit exclusion
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFindNewTasks_ExcludesAuditTasks(t *testing.T) {
@@ -1090,7 +1090,7 @@ func TestFindNewTasks_ExcludesAuditTasks(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — failure type detection
+// runIteration: failure type detection
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_NoProgress_FailureType(t *testing.T) {

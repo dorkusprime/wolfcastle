@@ -11,7 +11,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-// ── runIntakeStage — SaveInbox error after intake ───────────────────
+// ── runIntakeStage: SaveInbox error after intake ───────────────────
 
 func TestRunIntakeStage_SaveInboxError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {

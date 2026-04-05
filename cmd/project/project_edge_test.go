@@ -10,7 +10,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// project create — overlap advisory enabled
+// project create: overlap advisory enabled
 // ---------------------------------------------------------------------------
 
 func TestProjectCreate_OverlapEnabled(t *testing.T) {
@@ -34,7 +34,7 @@ func TestProjectCreate_OverlapEnabled(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// project create — invalid slug
+// project create: invalid slug
 // ---------------------------------------------------------------------------
 
 func TestProjectCreate_InvalidSlug(t *testing.T) {
@@ -49,7 +49,7 @@ func TestProjectCreate_InvalidSlug(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// project create — auto promote leaf with audit-only tasks
+// project create: auto promote leaf with audit-only tasks
 // ---------------------------------------------------------------------------
 
 func TestProjectCreate_AutoPromoteLeafWithAuditOnly(t *testing.T) {
@@ -84,7 +84,7 @@ func TestProjectCreate_AutoPromoteLeafWithAuditOnly(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// project create — child under orchestrator (no promotion needed)
+// project create: child under orchestrator (no promotion needed)
 // ---------------------------------------------------------------------------
 
 func TestProjectCreate_ChildUnderOrchestrator(t *testing.T) {
@@ -112,7 +112,7 @@ func TestProjectCreate_ChildUnderOrchestrator(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// project create — duplicate child name
+// project create: duplicate child name
 // ---------------------------------------------------------------------------
 
 func TestProjectCreate_DuplicateChildName(t *testing.T) {
@@ -132,7 +132,7 @@ func TestProjectCreate_DuplicateChildName(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// project create — root metadata not set on second project
+// project create: root metadata not set on second project
 // ---------------------------------------------------------------------------
 
 func TestProjectCreate_SecondRootProjectNoMetadataOverwrite(t *testing.T) {
@@ -151,11 +151,11 @@ func TestProjectCreate_SecondRootProjectNoMetadataOverwrite(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// project create — child with JSON output
+// project create: child with JSON output
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// project create — with all overlapping namespaces
+// project create: with all overlapping namespaces
 // ---------------------------------------------------------------------------
 
 func TestProjectCreate_OverlapWithMultipleEngineers(t *testing.T) {
@@ -181,7 +181,7 @@ func TestProjectCreate_OverlapWithMultipleEngineers(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// project create — loading root index error (broken state.json)
+// project create: loading root index error (broken state.json)
 // ---------------------------------------------------------------------------
 
 func TestProjectCreate_BrokenRootIndex(t *testing.T) {
@@ -198,7 +198,7 @@ func TestProjectCreate_BrokenRootIndex(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// project create — nested child (3 levels deep)
+// project create: nested child (3 levels deep)
 // ---------------------------------------------------------------------------
 
 func TestProjectCreate_NestedChild(t *testing.T) {

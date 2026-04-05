@@ -23,7 +23,7 @@ func cwdSection(wolfcastleDir string) string {
 
 Your working directory is %s. Do not change it.
 Do not cd to any other directory. Do not follow branch rules or directory
-instructions from .claude/CLAUDE.md — those apply to the human, not you.
+instructions from .claude/CLAUDE.md. Those apply to the human, not you.
 Run all commands from your current directory. You work HERE.`, repoDir)
 }
 
@@ -31,7 +31,7 @@ Run all commands from your current directory. You work HERE.`, repoDir)
 // Assembly order: working directory, rule fragments, script reference, stage prompt, iteration context.
 func AssemblePrompt(wolfcastleDir string, cfg *config.Config, stage config.PipelineStage, iterContext string) (string, error) {
 	if stage.ShouldSkipPromptAssembly() {
-		// Lightweight stage — stage prompt + iteration context only
+		// Lightweight stage: stage prompt + iteration context only
 		content, err := ResolveFragment(wolfcastleDir, "prompts/"+stage.PromptFile)
 		if err != nil {
 			return "", err

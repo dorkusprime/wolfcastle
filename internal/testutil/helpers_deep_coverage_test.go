@@ -9,7 +9,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// WriteJSON — creates nested directories
+// WriteJSON: creates nested directories
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestWriteJSON_CreatesNestedDirectories(t *testing.T) {
@@ -47,7 +47,7 @@ func TestWriteJSON_ComplexObject(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ReadJSON — complex types
+// ReadJSON: complex types
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestReadJSON_NodeState(t *testing.T) {
@@ -77,7 +77,7 @@ func TestReadJSON_NodeState(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SetupWolfcastle — verifies all key directories
+// SetupWolfcastle: verifies all key directories
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSetupWolfcastle_AllDirectoriesExist(t *testing.T) {
@@ -132,7 +132,7 @@ func TestSetupWolfcastle_RootIndexExists(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SetupTree — verify tree structure deeply
+// SetupTree: verify tree structure deeply
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSetupTree_ChildAHasTasks(t *testing.T) {
@@ -184,7 +184,7 @@ func TestSetupTree_IndexHasCorrectParents(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SaveNode — verify persistence
+// SaveNode: verify persistence
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSaveNode_PreservesAllFields(t *testing.T) {

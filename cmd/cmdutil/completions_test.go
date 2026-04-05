@@ -10,7 +10,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// CompleteTaskAddresses — orchestrator nodes (non-leaf, no tasks)
+// CompleteTaskAddresses: orchestrator nodes (non-leaf, no tasks)
 // ---------------------------------------------------------------------------
 
 func TestCompleteTaskAddresses_WithOrchestrator(t *testing.T) {
@@ -70,7 +70,7 @@ func TestCompleteTaskAddresses_WithOrchestrator(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// CompleteTaskAddresses — node with invalid state file
+// CompleteTaskAddresses: node with invalid state file
 // ---------------------------------------------------------------------------
 
 func TestCompleteTaskAddresses_BrokenNodeState(t *testing.T) {
@@ -107,7 +107,7 @@ func TestCompleteTaskAddresses_BrokenNodeState(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// CheckOverlap — empty bigrams from short text
+// CheckOverlap: empty bigrams from short text
 // ---------------------------------------------------------------------------
 
 func TestCheckOverlap_ShortText(t *testing.T) {
@@ -137,7 +137,7 @@ func TestCheckOverlap_ShortText(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// loadRootIndexForCompletion — fallback to LoadConfig
+// loadRootIndexForCompletion: fallback to LoadConfig
 // ---------------------------------------------------------------------------
 
 func TestLoadRootIndexForCompletion_FallbackConfigFails(t *testing.T) {
@@ -209,7 +209,7 @@ func TestLoadConfig_MalformedConfig(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// CheckOverlap — nonexistent projects dir
+// CheckOverlap: nonexistent projects dir
 // ---------------------------------------------------------------------------
 
 func TestCheckOverlap_NonexistentProjectsDir(t *testing.T) {
@@ -232,7 +232,7 @@ func TestCheckOverlap_NonexistentProjectsDir(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// CheckOverlap — found matches (coverage of output section)
+// CheckOverlap: found matches (coverage of output section)
 // ---------------------------------------------------------------------------
 
 func TestCheckOverlap_NoMatchesBelowThreshold(t *testing.T) {

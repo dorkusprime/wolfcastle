@@ -11,7 +11,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// task block — error paths
+// task block: error paths
 // ---------------------------------------------------------------------------
 
 func TestTaskBlock_NoIdentity(t *testing.T) {
@@ -46,7 +46,7 @@ func TestTaskBlock_NonexistentNode(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task claim — error paths
+// task claim: error paths
 // ---------------------------------------------------------------------------
 
 func TestTaskClaim_NoIdentity(t *testing.T) {
@@ -71,7 +71,7 @@ func TestTaskClaim_NonexistentNode(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task complete — error paths
+// task complete: error paths
 // ---------------------------------------------------------------------------
 
 func TestTaskComplete_NoIdentity(t *testing.T) {
@@ -86,7 +86,7 @@ func TestTaskComplete_NoIdentity(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task unblock — error paths
+// task unblock: error paths
 // ---------------------------------------------------------------------------
 
 func TestTaskUnblock_NoIdentity(t *testing.T) {
@@ -121,7 +121,7 @@ func TestTaskUnblock_NonexistentNode(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task block — ParseAddress error after SplitTaskAddress succeeds
+// task block: ParseAddress error after SplitTaskAddress succeeds
 // ---------------------------------------------------------------------------
 
 func TestTaskBlock_InvalidNodeAfterSplit(t *testing.T) {
@@ -135,7 +135,7 @@ func TestTaskBlock_InvalidNodeAfterSplit(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task claim — ParseAddress error after SplitTaskAddress succeeds
+// task claim: ParseAddress error after SplitTaskAddress succeeds
 // ---------------------------------------------------------------------------
 
 func TestTaskClaim_InvalidNodeAfterSplit(t *testing.T) {
@@ -148,7 +148,7 @@ func TestTaskClaim_InvalidNodeAfterSplit(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task complete — ParseAddress error after SplitTaskAddress succeeds
+// task complete: ParseAddress error after SplitTaskAddress succeeds
 // ---------------------------------------------------------------------------
 
 func TestTaskComplete_InvalidNodeAfterSplit(t *testing.T) {
@@ -161,7 +161,7 @@ func TestTaskComplete_InvalidNodeAfterSplit(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task unblock — ParseAddress error after SplitTaskAddress succeeds
+// task unblock: ParseAddress error after SplitTaskAddress succeeds
 // ---------------------------------------------------------------------------
 
 func TestTaskUnblock_InvalidNodeAfterSplit(t *testing.T) {
@@ -174,7 +174,7 @@ func TestTaskUnblock_InvalidNodeAfterSplit(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task complete — validation edge cases
+// task complete: validation edge cases
 // ---------------------------------------------------------------------------
 
 func TestTaskComplete_ValidationDefaultTimeout(t *testing.T) {
@@ -219,7 +219,7 @@ func TestTaskComplete_DefaultConfig(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task complete — JSON output when node becomes complete
+// task complete: JSON output when node becomes complete
 // ---------------------------------------------------------------------------
 
 func TestTaskComplete_JSONOutput_NodeComplete(t *testing.T) {
@@ -248,11 +248,11 @@ func TestTaskComplete_JSONOutput_NodeComplete(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task complete — human output when node becomes complete
+// task complete: human output when node becomes complete
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// task claim — broken root index is non-fatal (MutateNode propagation
+// task claim: broken root index is non-fatal (MutateNode propagation
 // silently skips when the index can't be loaded)
 // ---------------------------------------------------------------------------
 
@@ -277,7 +277,7 @@ func TestTaskClaim_BrokenIndexStillClaims(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task block — PropagateState error (broken root index)
+// task block: PropagateState error (broken root index)
 // ---------------------------------------------------------------------------
 
 func TestTaskBlock_BrokenIndexStillBlocks(t *testing.T) {
@@ -303,7 +303,7 @@ func TestTaskBlock_BrokenIndexStillBlocks(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task complete — broken root index is non-fatal (MutateNode propagation
+// task complete: broken root index is non-fatal (MutateNode propagation
 // silently skips when the index can't be loaded)
 // ---------------------------------------------------------------------------
 
@@ -330,7 +330,7 @@ func TestTaskComplete_BrokenIndexStillCompletes(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task unblock — broken root index is non-fatal (MutateNode propagation
+// task unblock: broken root index is non-fatal (MutateNode propagation
 // silently skips when the index can't be loaded)
 // ---------------------------------------------------------------------------
 
@@ -359,7 +359,7 @@ func TestTaskUnblock_BrokenIndexStillUnblocks(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// task add — TaskAdd error (non-leaf node)
+// task add: TaskAdd error (non-leaf node)
 // ---------------------------------------------------------------------------
 
 func TestTaskAdd_NonLeafNode(t *testing.T) {
@@ -402,7 +402,7 @@ func TestTaskComplete_NodeBecomeComplete(t *testing.T) {
 	env.RootCmd.SetArgs([]string{"task", "complete", "--node", "my-project/task-0001"})
 	_ = env.RootCmd.Execute()
 
-	// Complete audit task — node should become complete
+	// Complete audit task. Node should become complete
 	env.RootCmd.SetArgs([]string{"task", "claim", "--node", "my-project/audit"})
 	_ = env.RootCmd.Execute()
 

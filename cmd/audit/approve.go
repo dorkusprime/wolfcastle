@@ -148,7 +148,7 @@ Examples:
 				return fmt.Errorf("finding %q not found or already decided", args[0])
 			}
 
-			// Save batch first — if this fails, no index changes are persisted,
+			// Save batch first. If this fails, no index changes are persisted,
 			// so the batch remains the source of truth for what's been decided.
 			if err := state.SaveBatch(batchPath, batch); err != nil {
 				return err

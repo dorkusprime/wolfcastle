@@ -8,7 +8,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AddEscalation — clock parameter and nested address coverage
+// AddEscalation: clock parameter and nested address coverage
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAddEscalation_WithNestedAddress(t *testing.T) {

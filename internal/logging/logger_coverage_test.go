@@ -13,7 +13,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// compressFile — additional error paths
+// compressFile: additional error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCompressFile_ValidContent(t *testing.T) {
@@ -74,7 +74,7 @@ func TestCompressFile_EmptyFile(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EnforceRetention — age-based cleanup with frozen clock
+// EnforceRetention: age-based cleanup with frozen clock
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEnforceRetention_AgeCutoff_WithFrozenClock(t *testing.T) {
@@ -187,7 +187,7 @@ func TestEnforceRetention_CountDeletesOldestFirst(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// StartIteration — error path
+// StartIteration: error path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartIteration_ErrorOnReadOnlyDir(t *testing.T) {
@@ -210,7 +210,7 @@ func TestStartIteration_ErrorOnReadOnlyDir(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// WatchForNewFiles — additional scenarios
+// WatchForNewFiles: additional scenarios
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestWatchForNewFiles_ImmediateNewFile(t *testing.T) {
@@ -246,7 +246,7 @@ func TestWatchForNewFiles_DoneBeforePoll(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EnforceRetention — compression with read-only target (non-fatal)
+// EnforceRetention: compression with read-only target (non-fatal)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEnforceRetention_CompressionErrorNonFatal(t *testing.T) {
@@ -264,14 +264,14 @@ func TestEnforceRetention_CompressionErrorNonFatal(t *testing.T) {
 	_ = os.Chmod(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), 0000)
 	defer func() { _ = os.Chmod(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), 0644) }()
 
-	// Should not error — compression failures are non-fatal
+	// Should not error. Compression failures are non-fatal
 	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// compressFile — error during gzip write and close
+// compressFile: error during gzip write and close
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCompressFile_DestCannotBeCreated(t *testing.T) {
@@ -325,7 +325,7 @@ func TestCompressFile_OriginalRemovedOnSuccess(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EnforceRetention — retention with only gz files
+// EnforceRetention: retention with only gz files
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEnforceRetention_OnlyGzFiles_NoCompression(t *testing.T) {
@@ -337,7 +337,7 @@ func TestEnforceRetention_OnlyGzFiles_NoCompression(t *testing.T) {
 		_ = os.WriteFile(name, []byte("compressed"), 0644)
 	}
 
-	// No uncompressed files — compression pass should be a no-op
+	// No uncompressed files. Compression pass should be a no-op
 	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
 		t.Fatal(err)
 	}
@@ -388,7 +388,7 @@ func TestEnforceRetention_NoUncompressedFiles_SkipsCompression(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	// Only .gz files — compression step should be a no-op
+	// Only .gz files. Compression step should be a no-op
 	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl.gz"), []byte("gz1"), 0644)
 	_ = os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl.gz"), []byte("gz2"), 0644)
 
@@ -446,7 +446,7 @@ func TestEnforceRetention_AgeAndCountCombined(t *testing.T) {
 	}
 }
 
-// ── StartIteration — previous file leak prevention ──────────────
+// ── StartIteration: previous file leak prevention ──────────────
 
 func TestStartIteration_ClosePreviousBeforeNew(t *testing.T) {
 	t.Parallel()
@@ -458,7 +458,7 @@ func TestStartIteration_ClosePreviousBeforeNew(t *testing.T) {
 
 	defer logger.Close()
 
-	// Start 3 iterations rapidly — should close each previous
+	// Start 3 iterations rapidly. Should close each previous
 	for i := 0; i < 3; i++ {
 		if err := logger.StartIteration(); err != nil {
 			t.Fatalf("iteration %d: %v", i, err)
@@ -480,7 +480,7 @@ func TestStartIteration_ClosePreviousBeforeNew(t *testing.T) {
 	}
 }
 
-// ── compressFile — simulate errors via special files ──────────────
+// ── compressFile: simulate errors via special files ──────────────
 
 func TestEnforceRetention_SymlinkInfoError(t *testing.T) {
 	t.Parallel()
@@ -489,7 +489,7 @@ func TestEnforceRetention_SymlinkInfoError(t *testing.T) {
 	// Create a normal file and a broken symlink
 	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
 
-	// Create a symlink to a nonexistent target — os.DirEntry.Info() will error
+	// Create a symlink to a nonexistent target. Os.DirEntry.Info() will error
 	brokenTarget := filepath.Join(dir, "nonexistent_target.jsonl")
 	brokenLink := filepath.Join(dir, "0002-20260102T00-00Z.jsonl")
 	_ = os.Symlink(brokenTarget, brokenLink)
@@ -540,7 +540,7 @@ func TestCompressFile_SourceOpenButDstDirGone(t *testing.T) {
 	}
 }
 
-// ── Log — write error path ──────────────────────────────────────
+// ── Log: write error path ──────────────────────────────────────
 
 func TestLog_WriteError(t *testing.T) {
 	t.Parallel()

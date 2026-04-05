@@ -20,7 +20,7 @@ func TestResolveOptionalClock_NilSlice(t *testing.T) {
 	if clk == nil {
 		t.Error("expected non-nil clock for nil slice")
 	}
-	// Should be real clock — just verify it returns a time
+	// Should be real clock. Just verify it returns a time
 	now := clk.Now()
 	if now.IsZero() {
 		t.Error("expected non-zero time from real clock")
@@ -103,7 +103,7 @@ func TestCollapseHyphens_LeadingTrailing(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GenerateEntry — long slug truncation
+// GenerateEntry: long slug truncation
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestGenerateEntry_LongSlugTruncation(t *testing.T) {
@@ -179,7 +179,7 @@ func TestGenerateEntry_ConsecutiveHyphensInAddress(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GenerateEntry — various node shapes
+// GenerateEntry: various node shapes
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestGenerateEntry_OrchestratorNode(t *testing.T) {

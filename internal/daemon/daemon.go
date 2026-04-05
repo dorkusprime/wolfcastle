@@ -11,15 +11,15 @@
 //
 // File layout follows ADR-045:
 //
-//   - daemon.go    — Daemon struct, New, Run, RunWithSupervisor, RunOnce
-//   - iteration.go   — per-iteration pipeline dispatch, terminal marker scanning
-//   - stages.go      — intake stage handler, parallel inbox goroutine
-//   - deliverables.go — deliverable file verification
-//   - retry.go       — invocation retry with exponential backoff
-//   - propagate.go   — state propagation via Store
-//   - pid.go             — PID file operations
-//   - signals_unix.go    — shutdown signals (Unix)
-//   - signals_windows.go — shutdown signals (Windows)
+//   - daemon.go   : Daemon struct, New, Run, RunWithSupervisor, RunOnce
+//   - iteration.go  : per-iteration pipeline dispatch, terminal marker scanning
+//   - stages.go     : intake stage handler, parallel inbox goroutine
+//   - deliverables.go: deliverable file verification
+//   - retry.go      : invocation retry with exponential backoff
+//   - propagate.go  : state propagation via Store
+//   - pid.go            : PID file operations
+//   - signals_unix.go   : shutdown signals (Unix)
+//   - signals_windows.go: shutdown signals (Windows)
 package daemon
 
 import (
@@ -572,7 +572,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 			case <-d.workAvailable:
 				// New work arrived from inbox goroutine
 			case <-time.After(time.Duration(d.Config.Daemon.BlockedPollIntervalSeconds) * time.Second):
-				// Poll timeout — loop back to RunOnce, spinner stays alive
+				// Poll timeout. Loop back to RunOnce, spinner stays alive
 				continue
 			}
 			// Leaving idle state: stop and discard spinner

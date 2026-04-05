@@ -13,7 +13,7 @@ import (
 
 // invokeWithRetry wraps ProcessInvoker.Invoke with exponential backoff
 // governed by the config's retries settings. Only invocation errors (non-nil
-// error returns) are retried — a successful process exit (even with a
+// error returns) are retried. A successful process exit (even with a
 // non-zero exit code captured in Result) is not retried here.
 func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, prompt string, workDir string, logWriter io.Writer, stageName string) (*invoke.Result, error) {
 	rc := d.Config.Retries
@@ -31,7 +31,7 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 			return result, nil
 		}
 
-		// Context cancellation is not retryable — the daemon is shutting down.
+		// Context cancellation is not retryable; the daemon is shutting down.
 		if ctx.Err() != nil {
 			return result, err
 		}

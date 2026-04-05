@@ -102,14 +102,14 @@ func TestFileLock_ConcurrentAcquisition(t *testing.T) {
 func TestFileLock_Timeout(t *testing.T) {
 	dir := t.TempDir()
 
-	// First lock — held for the duration of the test.
+	// First lock. Held for the duration of the test.
 	holder := NewFileLock(dir, DefaultLockTimeout)
 	if err := holder.Acquire(); err != nil {
 		t.Fatalf("holder Acquire failed: %v", err)
 	}
 	defer holder.Release()
 
-	// Second lock — should time out quickly.
+	// Second lock. Should time out quickly.
 	waiter := NewFileLock(dir, 200*time.Millisecond)
 	start := time.Now()
 	err := waiter.Acquire()
@@ -234,7 +234,7 @@ func TestFileLock_CreatesDirectory(t *testing.T) {
 func TestFileLock_ReentrantAcquireFails(t *testing.T) {
 	// flock is per-file-description, so opening a second fd and trying
 	// to lock it from the same process should still work (flock is not
-	// per-process exclusive on the same file — it's per open-file-description).
+	// per-process exclusive on the same file. It's per open-file-description).
 	// This test documents that behaviour: a second FileLock in the same process
 	// CAN acquire the lock because it opens a new file descriptor.
 	dir := t.TempDir()

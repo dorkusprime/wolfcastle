@@ -9,7 +9,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-// ── FixWithVerification — ApplyDeterministicFixes error via chmod ────
+// ── FixWithVerification: ApplyDeterministicFixes error via chmod ────
 
 func TestFixWithVerification_ApplyFixesError_ReadOnlyStateFiles(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -20,7 +20,7 @@ func TestFixWithVerification_ApplyFixesError_ReadOnlyStateFiles(t *testing.T) {
 	dir := t.TempDir()
 	idx := state.NewRootIndex()
 
-	// Create a node with a missing audit task — triggers MISSING_AUDIT_TASK fix.
+	// Create a node with a missing audit task. Triggers MISSING_AUDIT_TASK fix.
 	leafDir := filepath.Join(dir, "perm-node")
 	_ = os.MkdirAll(leafDir, 0755)
 	ns := state.NewNodeState("perm-node", "Perm", state.NodeLeaf)

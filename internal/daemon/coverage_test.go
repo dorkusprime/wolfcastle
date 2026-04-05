@@ -14,7 +14,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// New — error paths
+// New: error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestNew_LogDirCreationFails(t *testing.T) {
@@ -56,7 +56,7 @@ func TestNew_ResumesIteration(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — additional scenarios
+// RunOnce: additional scenarios
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_NoRootIndex(t *testing.T) {
@@ -156,7 +156,7 @@ func TestResolveContextHeader_WithTemplate(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// propagateState — edge cases
+// propagateState: edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPropagateState_MissingRootIndex(t *testing.T) {
@@ -166,7 +166,7 @@ func TestPropagateState_MissingRootIndex(t *testing.T) {
 	idx.Nodes["node-a"] = state.IndexEntry{
 		Name: "A", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "node-a",
 	}
-	// Don't write the root index to disk — SaveRootIndex will be attempted
+	// Don't write the root index to disk. SaveRootIndex will be attempted
 	// but the projects dir exists, so propagateState should still attempt to save.
 	err := d.propagateState("node-a", state.StatusInProgress, idx)
 	// This should succeed as it only needs to save the index
@@ -218,7 +218,7 @@ func TestPropagateState_DeepHierarchy(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// selfHeal — skips bad addresses, missing state files
+// selfHeal: skips bad addresses, missing state files
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSelfHeal_BadAddressSkipped(t *testing.T) {
@@ -250,7 +250,7 @@ func TestSelfHeal_MissingStateFileSkipped(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — intake stage is skipped in the iteration pipeline
+// runIteration: intake stage is skipped in the iteration pipeline
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_IntakeStageSkipped(t *testing.T) {
@@ -277,7 +277,7 @@ func TestRunIteration_IntakeStageSkipped(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunWithSupervisor — restart after crash
+// RunWithSupervisor: restart after crash
 // ═══════════════════════════════════════════════════════════════════════════
 
 // RunWithSupervisor restart path cannot be tested under -race because
@@ -286,7 +286,7 @@ func TestRunIteration_IntakeStageSkipped(t *testing.T) {
 // structurally simple and verified by code review.
 
 // ═══════════════════════════════════════════════════════════════════════════
-// git.CurrentBranch — success case in current repo
+// git.CurrentBranch: success case in current repo
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCurrentBranch_CurrentRepo(t *testing.T) {
@@ -309,7 +309,7 @@ func TestCurrentBranch_CurrentRepo(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — invocation timeout path
+// runIntakeStage: invocation timeout path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_InvocationTimeout(t *testing.T) {
@@ -331,7 +331,7 @@ func TestRunIntakeStage_InvocationTimeout(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — zero invocation timeout (no timeout set)
+// runIntakeStage: zero invocation timeout (no timeout set)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_NoInvocationTimeout(t *testing.T) {
@@ -353,7 +353,7 @@ func TestRunIntakeStage_NoInvocationTimeout(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Run — integration coverage for main loop paths
+// Run: integration coverage for main loop paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRun_AllComplete_ExitsCleanly(t *testing.T) {
@@ -461,7 +461,7 @@ func TestRun_BranchVerifyEnabled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	// Should succeed — branch won't change during the test
+	// Should succeed. Branch won't change during the test
 	err := d.Run(ctx)
 	if err != nil {
 		t.Skipf("Run() error (possibly not in git repo): %v", err)

@@ -203,7 +203,7 @@ func Validate(cfg *Config) error {
 		errs = append(errs, "unblock.prompt_file must not be empty")
 	}
 
-	// Overlap advisory model is optional — algorithmic detection (ADR-041)
+	// Overlap advisory model is optional. Algorithmic detection (ADR-041)
 	// does not require a model. The model field is retained for potential
 	// future hybrid use but is not validated.
 
@@ -217,7 +217,7 @@ func Validate(cfg *Config) error {
 
 	// Check identity presence
 	if cfg.Identity == nil {
-		errs = append(errs, "identity not configured. Run 'wolfcastle init' first")
+		errs = append(errs, "identity not configured")
 	}
 
 	if len(errs) > 0 {

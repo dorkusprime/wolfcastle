@@ -10,7 +10,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// audit show — with scope, result summary, all sections
+// audit show: with scope, result summary, all sections
 // ---------------------------------------------------------------------------
 
 func TestShow_WithScopeAndResultSummary(t *testing.T) {
@@ -61,7 +61,7 @@ func TestShow_NoIdentity(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit scope — error paths
+// audit scope: error paths
 // ---------------------------------------------------------------------------
 
 func TestScope_NoIdentity(t *testing.T) {
@@ -109,7 +109,7 @@ func TestScope_AllFields(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit pending — with long descriptions
+// audit pending: with long descriptions
 // ---------------------------------------------------------------------------
 
 func TestPending_WithLongDescription(t *testing.T) {
@@ -153,7 +153,7 @@ func TestPending_WithMultilineDescription(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit reject — error paths
+// audit reject: error paths
 // ---------------------------------------------------------------------------
 
 func TestReject_FindingNotFound(t *testing.T) {
@@ -197,7 +197,7 @@ func TestReject_NoPendingForAll(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit approve — mixed batch (some approved, some pending)
+// audit approve: mixed batch (some approved, some pending)
 // ---------------------------------------------------------------------------
 
 func TestApprove_MixedBatch(t *testing.T) {
@@ -229,7 +229,7 @@ func TestApprove_MixedBatch(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// finalizeBatchIfComplete — with DecidedAt set
+// finalizeBatchIfComplete: with DecidedAt set
 // ---------------------------------------------------------------------------
 
 func TestFinalizeBatchIfComplete_WithDecidedAt(t *testing.T) {
@@ -268,7 +268,7 @@ func TestFinalizeBatchIfComplete_WithDecidedAt(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit gap — no resolver
+// audit gap: no resolver
 // ---------------------------------------------------------------------------
 
 func TestGap_NoIdentity(t *testing.T) {
@@ -293,7 +293,7 @@ func TestGap_NonexistentNode(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit fix-gap — no resolver
+// audit fix-gap: no resolver
 // ---------------------------------------------------------------------------
 
 func TestFixGap_NoIdentity(t *testing.T) {
@@ -318,7 +318,7 @@ func TestFixGap_NonexistentNode(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit escalate — no resolver
+// audit escalate: no resolver
 // ---------------------------------------------------------------------------
 
 func TestEscalate_NoIdentity(t *testing.T) {
@@ -346,7 +346,7 @@ func TestEscalate_NonexistentParent(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit resolve — no resolver
+// audit resolve: no resolver
 // ---------------------------------------------------------------------------
 
 func TestResolve_NoIdentity(t *testing.T) {
@@ -371,7 +371,7 @@ func TestResolve_NonexistentNode(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit breadcrumb — nonexistent node
+// audit breadcrumb: nonexistent node
 // ---------------------------------------------------------------------------
 
 func TestBreadcrumb_NonexistentNode(t *testing.T) {
@@ -385,7 +385,7 @@ func TestBreadcrumb_NonexistentNode(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit reject — JSON output with all
+// audit reject: JSON output with all
 // ---------------------------------------------------------------------------
 
 func TestReject_JSONOutput_All(t *testing.T) {
@@ -412,7 +412,7 @@ func TestReject_JSONOutput_All(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit approve — JSON output with --all
+// audit approve: JSON output with --all
 // ---------------------------------------------------------------------------
 
 func TestApprove_JSONOutput_All(t *testing.T) {
@@ -439,7 +439,7 @@ func TestApprove_JSONOutput_All(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit pending — JSON output with all reviewed
+// audit pending: JSON output with all reviewed
 // ---------------------------------------------------------------------------
 
 func TestPending_JSONOutput_AllReviewed(t *testing.T) {
@@ -464,7 +464,7 @@ func TestPending_JSONOutput_AllReviewed(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// parseFindings — numbered bold with description after
+// parseFindings: numbered bold with description after
 // ---------------------------------------------------------------------------
 
 func TestParseFindings_BoldWithDescriptionAfter(t *testing.T) {
@@ -503,11 +503,11 @@ Description of second.
 }
 
 // ---------------------------------------------------------------------------
-// audit list — no scopes (human output)
+// audit list: no scopes (human output)
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// audit approve — approve finding with description (covers descContent branch)
+// audit approve: approve finding with description (covers descContent branch)
 // ---------------------------------------------------------------------------
 
 func TestApprove_WithDescription(t *testing.T) {
@@ -541,7 +541,7 @@ func TestApprove_WithDescription(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit approve — approve all with mixed findings including already-decided
+// audit approve: approve all with mixed findings including already-decided
 // ---------------------------------------------------------------------------
 
 func TestApprove_AllWithMixed(t *testing.T) {
@@ -566,7 +566,7 @@ func TestApprove_AllWithMixed(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit scope — update existing scope (scope already non-nil)
+// audit scope: update existing scope (scope already non-nil)
 // ---------------------------------------------------------------------------
 
 func TestScope_UpdateExisting(t *testing.T) {
@@ -593,7 +593,7 @@ func TestScope_UpdateExisting(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit gap — multiple gaps
+// audit gap: multiple gaps
 // ---------------------------------------------------------------------------
 
 func TestGap_Multiple(t *testing.T) {
@@ -615,7 +615,7 @@ func TestGap_Multiple(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit breadcrumb — with task flag
+// audit breadcrumb: with task flag
 // ---------------------------------------------------------------------------
 
 func TestBreadcrumb_MultipleBreadcrumbs(t *testing.T) {
@@ -634,7 +634,7 @@ func TestBreadcrumb_MultipleBreadcrumbs(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit show — with all audit data populated
+// audit show: with all audit data populated
 // ---------------------------------------------------------------------------
 
 func TestShow_FullAuditState(t *testing.T) {
@@ -672,7 +672,7 @@ func TestShow_FullAuditState(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit approve — duplicate project (CreateProject error)
+// audit approve: duplicate project (CreateProject error)
 // ---------------------------------------------------------------------------
 
 func TestApprove_CreateProjectError(t *testing.T) {
@@ -698,7 +698,7 @@ func TestApprove_CreateProjectError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit approve — LoadBatch error (invalid JSON)
+// audit approve: LoadBatch error (invalid JSON)
 // ---------------------------------------------------------------------------
 
 func TestApprove_BrokenBatchFile(t *testing.T) {
@@ -715,7 +715,7 @@ func TestApprove_BrokenBatchFile(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit reject — LoadBatch error (invalid JSON)
+// audit reject: LoadBatch error (invalid JSON)
 // ---------------------------------------------------------------------------
 
 func TestReject_BrokenBatchFile(t *testing.T) {
@@ -732,7 +732,7 @@ func TestReject_BrokenBatchFile(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit pending — LoadBatch error (invalid JSON)
+// audit pending: LoadBatch error (invalid JSON)
 // ---------------------------------------------------------------------------
 
 func TestPending_BrokenBatchFile(t *testing.T) {
@@ -749,7 +749,7 @@ func TestPending_BrokenBatchFile(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit run — LoadBatch error (invalid JSON in existing batch)
+// audit run: LoadBatch error (invalid JSON in existing batch)
 // ---------------------------------------------------------------------------
 
 func TestRunCmd_BrokenBatchFile(t *testing.T) {
@@ -772,7 +772,7 @@ func TestRunCmd_BrokenBatchFile(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit approve — LoadRootIndex error (broken root index)
+// audit approve: LoadRootIndex error (broken root index)
 // ---------------------------------------------------------------------------
 
 func TestApprove_BrokenRootIndex(t *testing.T) {
@@ -799,7 +799,7 @@ func TestApprove_BrokenRootIndex(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit breadcrumb — save error (broken state file)
+// audit breadcrumb: save error (broken state file)
 // ---------------------------------------------------------------------------
 
 func TestBreadcrumb_InvalidNodeAddress(t *testing.T) {
@@ -813,7 +813,7 @@ func TestBreadcrumb_InvalidNodeAddress(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit gap — invalid address
+// audit gap: invalid address
 // ---------------------------------------------------------------------------
 
 func TestGap_InvalidAddress(t *testing.T) {
@@ -827,7 +827,7 @@ func TestGap_InvalidAddress(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit fix-gap — invalid address
+// audit fix-gap: invalid address
 // ---------------------------------------------------------------------------
 
 func TestFixGap_InvalidAddress(t *testing.T) {
@@ -841,7 +841,7 @@ func TestFixGap_InvalidAddress(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit escalate — invalid address
+// audit escalate: invalid address
 // ---------------------------------------------------------------------------
 
 func TestEscalate_InvalidAddress(t *testing.T) {
@@ -855,7 +855,7 @@ func TestEscalate_InvalidAddress(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit resolve — invalid address
+// audit resolve: invalid address
 // ---------------------------------------------------------------------------
 
 func TestResolve_InvalidAddress(t *testing.T) {
@@ -869,7 +869,7 @@ func TestResolve_InvalidAddress(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit scope — invalid address
+// audit scope: invalid address
 // ---------------------------------------------------------------------------
 
 func TestScope_InvalidAddress(t *testing.T) {
@@ -883,7 +883,7 @@ func TestScope_InvalidAddress(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit show — invalid address
+// audit show: invalid address
 // ---------------------------------------------------------------------------
 
 func TestShow_InvalidAddress(t *testing.T) {
@@ -897,7 +897,7 @@ func TestShow_InvalidAddress(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// finalizeBatchIfComplete — LoadHistory error (invalid JSON)
+// finalizeBatchIfComplete: LoadHistory error (invalid JSON)
 // ---------------------------------------------------------------------------
 
 func TestFinalizeBatchIfComplete_BrokenHistory(t *testing.T) {
@@ -925,7 +925,7 @@ func TestFinalizeBatchIfComplete_BrokenHistory(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit approve — approve with no-description finding
+// audit approve: approve with no-description finding
 // ---------------------------------------------------------------------------
 
 func TestApprove_NoDescriptionFinding(t *testing.T) {
@@ -948,7 +948,7 @@ func TestApprove_NoDescriptionFinding(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// discoverScopes — local tier overrides
+// discoverScopes: local tier overrides
 // ---------------------------------------------------------------------------
 
 func TestDiscoverScopes_LocalOverride(t *testing.T) {
@@ -975,7 +975,7 @@ func TestDiscoverScopes_LocalOverride(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit history — LoadHistory error (invalid JSON)
+// audit history: LoadHistory error (invalid JSON)
 // ---------------------------------------------------------------------------
 
 func TestHistory_BrokenHistoryFile(t *testing.T) {
@@ -992,7 +992,7 @@ func TestHistory_BrokenHistoryFile(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// discoverScopes — skip directories and non-.md files
+// discoverScopes: skip directories and non-.md files
 // ---------------------------------------------------------------------------
 
 func TestDiscoverScopes_SkipsDirsAndNonMd(t *testing.T) {
@@ -1014,7 +1014,7 @@ func TestDiscoverScopes_SkipsDirsAndNonMd(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// discoverScopes — description from file content (non-heading line)
+// discoverScopes: description from file content (non-heading line)
 // ---------------------------------------------------------------------------
 
 func TestDiscoverScopes_DescriptionFromContent(t *testing.T) {
@@ -1038,7 +1038,7 @@ func TestDiscoverScopes_DescriptionFromContent(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// audit run — scope flag with valid scope
+// audit run: scope flag with valid scope
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------

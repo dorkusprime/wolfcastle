@@ -8,7 +8,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ensureSkillSource — additional coverage
+// ensureSkillSource: additional coverage
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEnsureSkillSource_FileAlreadyExistsWithDifferentContent(t *testing.T) {

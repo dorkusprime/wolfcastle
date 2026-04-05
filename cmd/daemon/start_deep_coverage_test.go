@@ -10,7 +10,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// recoverStaleDaemonState — additional PID states
+// recoverStaleDaemonState: additional PID states
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoverStaleDaemonState_EmptyPidFile(t *testing.T) {
@@ -19,7 +19,7 @@ func TestRecoverStaleDaemonState_EmptyPidFile(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(""), 0644)
 	recoverStaleDaemonState(tmp)
 
-	// Empty PID parses as error — file should be cleaned
+	// Empty PID parses as error. File should be cleaned
 	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); !os.IsNotExist(err) {
 		t.Error("empty PID file should be removed")
 	}
@@ -72,7 +72,7 @@ func TestRecoverStaleDaemonState_DeadProcessCleansAllFiles(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// start command — worktree flags (parsed but not executed)
+// start command: worktree flags (parsed but not executed)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_FlagsRegistered(t *testing.T) {
@@ -91,7 +91,7 @@ func TestStartCmd_FlagsRegistered(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// start command — already running with own PID (error message quality)
+// start command: already running with own PID (error message quality)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartCmd_AlreadyRunning_ErrorContainsPID(t *testing.T) {

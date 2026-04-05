@@ -9,7 +9,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// approve — additional approval paths
+// approve: additional approval paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestApprove_WithDescriptionField(t *testing.T) {

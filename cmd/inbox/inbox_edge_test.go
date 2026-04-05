@@ -9,7 +9,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// inbox add — error paths
+// inbox add: error paths
 // ---------------------------------------------------------------------------
 
 func TestInboxAdd_JSONOutput_Multiple(t *testing.T) {
@@ -31,7 +31,7 @@ func TestInboxAdd_JSONOutput_Multiple(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// inbox list — error paths
+// inbox list: error paths
 // ---------------------------------------------------------------------------
 
 func TestInboxList_NoIdentity(t *testing.T) {
@@ -46,7 +46,7 @@ func TestInboxList_NoIdentity(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// inbox clear — error paths
+// inbox clear: error paths
 // ---------------------------------------------------------------------------
 
 func TestInboxClear_NoIdentity(t *testing.T) {
@@ -129,11 +129,11 @@ func TestInboxClear_AllClearsNewItems(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// inbox list — empty inbox path
+// inbox list: empty inbox path
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// inbox add — LoadInbox error (invalid JSON in inbox file)
+// inbox add: LoadInbox error (invalid JSON in inbox file)
 // ---------------------------------------------------------------------------
 
 func TestInboxAdd_BrokenInboxFile(t *testing.T) {
@@ -151,7 +151,7 @@ func TestInboxAdd_BrokenInboxFile(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// inbox list — LoadInbox error (invalid JSON)
+// inbox list: LoadInbox error (invalid JSON)
 // ---------------------------------------------------------------------------
 
 func TestInboxList_BrokenInboxFile(t *testing.T) {
@@ -168,7 +168,7 @@ func TestInboxList_BrokenInboxFile(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// inbox clear — LoadInbox error (invalid JSON)
+// inbox clear: LoadInbox error (invalid JSON)
 // ---------------------------------------------------------------------------
 
 func TestInboxClear_BrokenInboxFile(t *testing.T) {

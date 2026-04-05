@@ -10,7 +10,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RecoveringNodeLoader — normal load, recovery, and error paths
+// RecoveringNodeLoader: normal load, recovery, and error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoveringNodeLoader_NormalLoad(t *testing.T) {

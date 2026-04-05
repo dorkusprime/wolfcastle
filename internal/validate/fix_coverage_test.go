@@ -9,7 +9,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FixWithVerification — additional coverage paths
+// FixWithVerification: additional coverage paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFixWithVerification_PerfectlyCleanTree_NilFixes(t *testing.T) {
@@ -78,7 +78,7 @@ func TestFixWithVerification_CascadingMultiPassFixes(t *testing.T) {
 	ns.Tasks = []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted, FailureCount: -1},
 	}
-	// No audit task — triggers MISSING_AUDIT_TASK
+	// No audit task. Triggers MISSING_AUDIT_TASK
 	_ = state.SaveNodeState(filepath.Join(leafDir, "state.json"), ns)
 
 	idx.Root = []string{"cascade-node"}
@@ -237,7 +237,7 @@ func TestFixWithVerification_DepthMismatchFix(t *testing.T) {
 	childDir := filepath.Join(dir, "parent", "child")
 	_ = os.MkdirAll(childDir, 0755)
 	childNS := state.NewNodeState("child", "Child", state.NodeLeaf)
-	childNS.DecompositionDepth = 1 // Wrong — should match parent
+	childNS.DecompositionDepth = 1 // Wrong; should match parent
 	childNS.Tasks = []state.Task{
 		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},

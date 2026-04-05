@@ -8,7 +8,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// detectLoss — direct unit tests
+// detectLoss: direct unit tests
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestDetectLoss_NoLoss_TasksOnly(t *testing.T) {
@@ -123,7 +123,7 @@ func TestDetectLoss_NoChildrenSection(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RecoverNodeState — sanitizeJSON edge cases exercising detectLoss paths
+// RecoverNodeState: sanitizeJSON edge cases exercising detectLoss paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecoverNodeState_NullBytesDetected(t *testing.T) {

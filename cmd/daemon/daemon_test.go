@@ -804,7 +804,7 @@ func TestStartBackground_LogDirNotWritable(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// watchStatus — runs one cycle then context cancels
+// watchStatus: runs one cycle then context cancels
 // ---------------------------------------------------------------------------
 
 func TestWatchStatus_SingleCycle(t *testing.T) {

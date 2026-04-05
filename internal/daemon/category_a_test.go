@@ -15,7 +15,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// selfHeal — multiple in-progress tasks are healed (reset to not_started)
+// selfHeal: multiple in-progress tasks are healed (reset to not_started)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSelfHeal_MultipleInProgress_ResetsAll(t *testing.T) {
@@ -69,7 +69,7 @@ func TestSelfHeal_MultipleInProgress_ResetsAll(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — branch change detection via d.branch mismatch
+// RunOnce: branch change detection via d.branch mismatch
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_BranchMismatchDetection(t *testing.T) {
@@ -125,7 +125,7 @@ func catAFindRepoRoot() string {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// iteration.go — invoke error return path
+// iteration.go: invoke error return path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_InvokeErrorReturnsError(t *testing.T) {
@@ -154,7 +154,7 @@ func TestRunIteration_InvokeErrorReturnsError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// iteration.go — failure escalation: decomposition threshold with depth OK
+// iteration.go: failure escalation: decomposition threshold with depth OK
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_DecompThreshold_SetsNeedsDecomposition(t *testing.T) {
@@ -203,7 +203,7 @@ func TestRunIteration_DecompThreshold_SetsNeedsDecomposition(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// iteration.go — failure escalation: decomposition at max depth (auto-block)
+// iteration.go: failure escalation: decomposition at max depth (auto-block)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_DecompAtMaxDepth_TaskAutoBlocked(t *testing.T) {
@@ -264,7 +264,7 @@ func TestRunIteration_DecompAtMaxDepth_TaskAutoBlocked(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// iteration.go — hard cap auto-block path
+// iteration.go: hard cap auto-block path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_HardCapReached_TaskAutoBlocked(t *testing.T) {
@@ -315,7 +315,7 @@ func TestRunIteration_HardCapReached_TaskAutoBlocked(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// iteration.go — IncrementFailure error path
+// iteration.go: IncrementFailure error path
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_NoTerminalMarker_FailureIncremented(t *testing.T) {
@@ -346,7 +346,7 @@ func TestRunIteration_NoTerminalMarker_FailureIncremented(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// propagate.go — ParseAddress error in loadNode callback
+// propagate.go: ParseAddress error in loadNode callback
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPropagateState_EmptyParentAddr_LoadNodeError(t *testing.T) {
@@ -373,7 +373,7 @@ func TestPropagateState_EmptyParentAddr_LoadNodeError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// propagate.go — saveNode callback exercised via valid propagation
+// propagate.go: saveNode callback exercised via valid propagation
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestPropagateState_SaveNodeCallbackExercised(t *testing.T) {
@@ -409,7 +409,7 @@ func TestPropagateState_SaveNodeCallbackExercised(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// retry.go — context cancellation before invocation
+// retry.go: context cancellation before invocation
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestInvokeWithRetry_PreCancelledContext(t *testing.T) {
@@ -430,7 +430,7 @@ func TestInvokeWithRetry_PreCancelledContext(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// retry.go — context cancellation during backoff wait
+// retry.go: context cancellation during backoff wait
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestInvokeWithRetry_CancelDuringBackoff(t *testing.T) {
@@ -457,7 +457,7 @@ func TestInvokeWithRetry_CancelDuringBackoff(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// stages.go — model not found in intake stage (with prompt file present)
+// stages.go: model not found in intake stage (with prompt file present)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_MissingModelWithPrompt(t *testing.T) {
@@ -483,7 +483,7 @@ func TestRunIntakeStage_MissingModelWithPrompt(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// stages.go — invoke error in intake stage
+// stages.go: invoke error in intake stage
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_BrokenCommand(t *testing.T) {
@@ -508,7 +508,7 @@ func TestRunIntakeStage_BrokenCommand(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// stages.go — prompt assembly error in intake stage
+// stages.go: prompt assembly error in intake stage
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_MissingPromptFile(t *testing.T) {

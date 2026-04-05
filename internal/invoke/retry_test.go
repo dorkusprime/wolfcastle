@@ -468,7 +468,7 @@ func TestRetryInvoker_DefaultSleepFunc(t *testing.T) {
 		},
 	}
 	ri := NewRetryInvoker(inner, defaultRetryConfig(), nil)
-	// Do NOT set SleepFunc — exercise the nil branch.
+	// Do NOT set SleepFunc. Exercise the nil branch.
 	result, err := ri.Invoke(context.Background(), config.ModelDef{}, "", "", nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

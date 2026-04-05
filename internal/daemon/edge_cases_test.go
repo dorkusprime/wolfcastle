@@ -16,7 +16,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// scanTerminalMarker — malformed and garbage model output
+// scanTerminalMarker: malformed and garbage model output
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestScanTerminalMarker_MalformedResponses(t *testing.T) {
@@ -146,7 +146,7 @@ func TestScanTerminalMarker_MalformedResponses(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// extractAssistantText — edge cases
+// extractAssistantText: edge cases
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestExtractAssistantText_EdgeCases(t *testing.T) {
@@ -179,7 +179,7 @@ func TestExtractAssistantText_EdgeCases(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// sleepWithContext — unit tests
+// sleepWithContext: unit tests
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSleepWithContext_CompletesNormally(t *testing.T) {
@@ -201,7 +201,7 @@ func TestSleepWithContext_PreCancelledContext(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// invokeWithRetry — unlimited retries (-1), exponential backoff doubling
+// invokeWithRetry: unlimited retries (-1), exponential backoff doubling
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestInvokeWithRetry_UnlimitedRetriesRespectsContextCancel(t *testing.T) {
@@ -250,7 +250,7 @@ func TestInvokeWithRetry_ZeroMaxRetries_NoRetry(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — model outputs plain text (no CLI commands, no marker)
+// runIteration: model outputs plain text (no CLI commands, no marker)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_PlainTextOutput_NoToolUse(t *testing.T) {
@@ -304,7 +304,7 @@ echo "Let me know if you have questions."`},
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — model command fails with nonzero exit code
+// runIteration: model command fails with nonzero exit code
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_NonzeroExitCode_NoMarker(t *testing.T) {
@@ -353,7 +353,7 @@ func TestRunIteration_NonzeroExitCode_NoMarker(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — model produces COMPLETE with warning-level output
+// runIteration: model produces COMPLETE with warning-level output
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_CompleteWithWarnings(t *testing.T) {
@@ -402,7 +402,7 @@ echo "WOLFCASTLE_COMPLETE"`},
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — nonzero exit code leaves items as "new"
+// runIntakeStage: nonzero exit code leaves items as "new"
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_NonzeroExitCode_ItemsStayNew(t *testing.T) {
@@ -436,7 +436,7 @@ func TestRunIntakeStage_NonzeroExitCode_ItemsStayNew(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIntakeStage — includes existing tree context in prompt
+// runIntakeStage: includes existing tree context in prompt
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIntakeStage_IncludesExistingTreeContext(t *testing.T) {
@@ -490,7 +490,7 @@ echo "WOLFCASTLE_COMPLETE"
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// selfHeal — single interrupted task with multiple complete tasks
+// selfHeal: single interrupted task with multiple complete tasks
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestSelfHeal_OneInProgressAmongManyComplete(t *testing.T) {
@@ -523,7 +523,7 @@ func TestSelfHeal_OneInProgressAmongManyComplete(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — context cancelled during model execution
+// runIteration: context cancelled during model execution
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_ContextCancelledDuringExecution(t *testing.T) {
@@ -566,7 +566,7 @@ func TestRunIteration_ContextCancelledDuringExecution(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — model produces partial marker output
+// runIteration: model produces partial marker output
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_PartialMarkerOutput(t *testing.T) {
@@ -641,7 +641,7 @@ func TestRunIteration_PartialMarkerOutput(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — model writes garbage JSON to stdout
+// runIteration: model writes garbage JSON to stdout
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_GarbageJSONOutput(t *testing.T) {
@@ -692,7 +692,7 @@ echo 'random text at the end'`},
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — empty stdout from model
+// runIteration: empty stdout from model
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_EmptyOutput(t *testing.T) {
@@ -737,7 +737,7 @@ func TestRunIteration_EmptyOutput(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — prompt assembly error
+// runIteration: prompt assembly error
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_PromptAssemblyError(t *testing.T) {
@@ -767,7 +767,7 @@ func TestRunIteration_PromptAssemblyError(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — empty tree (no root index entries)
+// RunOnce: empty tree (no root index entries)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_EmptyTree(t *testing.T) {
@@ -788,7 +788,7 @@ func TestRunOnce_EmptyTree(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — deliverables unchanged rejects COMPLETE
+// runIteration: deliverables unchanged rejects COMPLETE
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_NoGitProgress_RejectsComplete(t *testing.T) {
@@ -874,7 +874,7 @@ func initTestGitRepo(t *testing.T, dir string) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — state error from RunOnce returns IterationStop
+// RunOnce: state error from RunOnce returns IterationStop
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_StateError_ReturnsFatal(t *testing.T) {
@@ -909,7 +909,7 @@ func TestRunOnce_StateError_ReturnsFatal(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// workAvailable channel — intake signals execute loop
+// workAvailable channel: intake signals execute loop
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestIntakeStage_SignalsWorkAvailable(t *testing.T) {
@@ -943,7 +943,7 @@ func TestIntakeStage_SignalsWorkAvailable(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RunOnce — repeated NoWork messages are deduplicated
+// RunOnce: repeated NoWork messages are deduplicated
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunOnce_NoWorkDeduplication(t *testing.T) {
@@ -975,11 +975,11 @@ func TestRunOnce_NoWorkDeduplication(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkDeliverables — glob pattern with subdirectory
+// checkDeliverables: glob pattern with subdirectory
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runIteration — multiple stages, only execute runs (intake skipped)
+// runIteration: multiple stages, only execute runs (intake skipped)
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunIteration_MultipleStages_CustomStagesRun(t *testing.T) {
@@ -1020,7 +1020,7 @@ func TestRunIteration_MultipleStages_CustomStagesRun(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkInboxForNew vs checkInboxState — exercise both code paths
+// checkInboxForNew vs checkInboxState: exercise both code paths
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCheckInboxForNew_InvalidJSON(t *testing.T) {

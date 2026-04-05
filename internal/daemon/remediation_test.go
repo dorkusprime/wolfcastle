@@ -172,7 +172,7 @@ func TestRunIteration_MissingDeliverables_WarnsButCompletes(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// findNewTasks — detects new non-audit tasks between snapshots
+// findNewTasks: detects new non-audit tasks between snapshots
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestFindNewTasks(t *testing.T) {
@@ -230,7 +230,7 @@ func TestFindNewTasks_NoNewTasks(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// autoCompleteDecomposedParents — blocked parent auto-completes
+// autoCompleteDecomposedParents: blocked parent auto-completes
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestAutoCompleteDecomposedParents(t *testing.T) {

@@ -101,7 +101,7 @@ func setupCommands() {
 }
 
 // executeRoot runs the root command and returns any error along with
-// whether JSON mode was active — allowing the caller to format the
+// whether JSON mode was active, allowing the caller to format the
 // error appropriately. Separated from Execute for testability.
 func executeRoot() error {
 	setupCommands()

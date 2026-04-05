@@ -7,7 +7,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Apply — exercises the full code path including the unavailable branch
+// Apply: exercises the full code path including the unavailable branch
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStubUpdater_Apply_FullPath(t *testing.T) {

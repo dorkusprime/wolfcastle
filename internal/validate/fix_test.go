@@ -172,7 +172,7 @@ func TestFix_MissingEntry_TopLevel(t *testing.T) {
 	dir := t.TempDir()
 	idx := state.NewRootIndex()
 
-	// Node on disk but not in index — top-level (no parent)
+	// Node on disk but not in index. Top-level (no parent)
 	ns := state.NewNodeState("orphan", "Orphan Node", state.NodeLeaf)
 	ns.State = state.StatusInProgress
 	ns.DecompositionDepth = 2
@@ -281,7 +281,7 @@ func TestFix_PropagationMismatch(t *testing.T) {
 	dir := t.TempDir()
 	idx := state.NewRootIndex()
 
-	// Orchestrator with wrong state — children say not_started
+	// Orchestrator with wrong state. Children say not_started
 	orchNS := state.NewNodeState("orch", "Orch", state.NodeOrchestrator)
 	orchNS.State = state.StatusComplete // wrong
 	orchNS.Children = []state.ChildRef{
@@ -381,7 +381,7 @@ func TestFix_InvalidStateValue(t *testing.T) {
 	idx := state.NewRootIndex()
 
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
-	ns.State = "completed" // typo — should normalize to "complete"
+	ns.State = "completed" // typo; should normalize to "complete"
 	ns.Tasks = []state.Task{
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
 	}
@@ -642,7 +642,7 @@ func TestFix_AuditStatusTaskMismatch(t *testing.T) {
 
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.State = state.StatusInProgress
-	ns.Audit.Status = state.AuditPassed // wrong — should be in_progress
+	ns.Audit.Status = state.AuditPassed // wrong; should be in_progress
 	ns.Tasks = []state.Task{
 		{ID: "t1", Description: "work", State: state.StatusInProgress},
 		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
@@ -798,7 +798,7 @@ func TestFix_StalePIDFile_NoWolfcastleDir(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	// No wolfcastleDir passed — fix should silently do nothing
+	// No wolfcastleDir passed. Fix should silently do nothing
 	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath)
 	if err != nil {
 		t.Fatal(err)
@@ -914,7 +914,7 @@ func TestDetect_StalePIDFile_NoPIDFile(t *testing.T) {
 	wolfcastleDir := t.TempDir()
 	idx := state.NewRootIndex()
 
-	// No PID file — should not report
+	// No PID file. Should not report
 	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfcastleDir))
 	report := engine.ValidateAll(idx)
 
@@ -956,7 +956,7 @@ func TestDetect_StaleStopFile(t *testing.T) {
 func TestIsDaemonAlive_NoWolfcastleDir(t *testing.T) {
 	t.Parallel()
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()))
-	// wolfcastleDir is "" — should return false
+	// wolfcastleDir is "". Should return false
 	if engine.isDaemonAlive() {
 		t.Error("expected false when wolfcastleDir is empty")
 	}
@@ -1008,7 +1008,7 @@ func TestIsDaemonAlive_DeadProcess(t *testing.T) {
 func TestIsDaemonAlive_LiveProcess(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
-	// Use our own PID — we know we're alive
+	// Use our own PID. We know we're alive
 	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"),
 		[]byte(fmt.Sprintf("%d", os.Getpid())), 0644)
@@ -1336,7 +1336,7 @@ func TestDetect_AuditStatusMismatch_CompleteWithOpenGaps(t *testing.T) {
 
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.State = state.StatusComplete
-	ns.Audit.Status = state.AuditPassed // wrong — has open gaps, should be failed
+	ns.Audit.Status = state.AuditPassed // wrong; has open gaps, should be failed
 	ns.Audit.Gaps = []state.Gap{
 		{ID: "g1", Description: "open gap", Status: state.GapOpen},
 	}
@@ -1371,7 +1371,7 @@ func TestDetect_AuditStatusMismatch_CompleteNoGaps(t *testing.T) {
 
 	ns := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
 	ns.State = state.StatusComplete
-	ns.Audit.Status = state.AuditFailed // wrong — no open gaps, should be passed
+	ns.Audit.Status = state.AuditFailed // wrong; no open gaps, should be passed
 	ns.Tasks = []state.Task{
 		{ID: "t1", Description: "work", State: state.StatusComplete},
 		{ID: "audit", Description: "audit", State: state.StatusComplete, IsAudit: true},
@@ -1457,7 +1457,7 @@ func TestDetect_StalePIDFile_NoWolfcastleDir(t *testing.T) {
 	dir := t.TempDir()
 	idx := state.NewRootIndex()
 
-	// No wolfcastleDir — stale PID/stop should not be checked
+	// No wolfcastleDir. Stale PID/stop should not be checked
 	engine := NewEngine(dir, DefaultNodeLoader(dir))
 	report := engine.ValidateAll(idx)
 
@@ -1485,7 +1485,7 @@ func TestValidate_SkipsInvalidAddressInIndex(t *testing.T) {
 		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "leaf",
 	}
 
-	// Add an entry with an invalid address (contains uppercase — invalid slug)
+	// Add an entry with an invalid address (contains uppercase. Invalid slug)
 	idx.Nodes["INVALID ADDRESS"] = state.IndexEntry{
 		Name: "Bad", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "INVALID ADDRESS",
 	}
@@ -1624,7 +1624,7 @@ func TestFix_CacheHit_TwoFixesSameNode(t *testing.T) {
 	}
 	idxPath := saveIndex(t, dir, idx)
 
-	// Two fixes on the same node — the second should hit the cache
+	// Two fixes on the same node. The second should hit the cache
 	issues := []Issue{
 		{Severity: SeverityError, Category: CatBlockedWithoutReason, Node: "leaf", CanAutoFix: true, FixType: FixDeterministic},
 		{Severity: SeverityError, Category: CatInvalidAuditStatus, Node: "leaf", CanAutoFix: true, FixType: FixDeterministic},

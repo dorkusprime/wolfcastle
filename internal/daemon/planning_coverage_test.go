@@ -12,7 +12,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// dfsFindPlanning — coverage gaps
+// dfsFindPlanning: coverage gaps
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestDfsFindPlanning_ReadNodeError(t *testing.T) {
@@ -215,7 +215,7 @@ func TestFindPlanningTarget_ScopeNodePath(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// runPlanningPass — coverage gaps
+// runPlanningPass: coverage gaps
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRunPlanningPass_ModelNotFound(t *testing.T) {
@@ -490,7 +490,7 @@ func TestRunPlanningPass_EmptyTriggerDefaultsToInitial(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// recordPlanningPass — history cap
+// recordPlanningPass: history cap
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestRecordPlanningPass_CapsAtFiveEntries(t *testing.T) {
@@ -518,7 +518,7 @@ func TestRecordPlanningPass_CapsAtFiveEntries(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// incrementReplanCount — config fallback and default
+// incrementReplanCount: config fallback and default
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestIncrementReplanCount_UsesConfigMaxReplans(t *testing.T) {
@@ -576,7 +576,7 @@ func TestIncrementReplanCount_DefaultMaxReplansThree(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// checkReplanningTriggers — coverage gaps
+// checkReplanningTriggers: coverage gaps
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestCheckReplanningTriggers_PlanningDisabled(t *testing.T) {
@@ -822,7 +822,7 @@ func TestCheckReplanningTriggers_MixedChildStates(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// deliverPendingScope — ReadNode error
+// deliverPendingScope: ReadNode error
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestDeliverPendingScope_ReadNodeError(t *testing.T) {

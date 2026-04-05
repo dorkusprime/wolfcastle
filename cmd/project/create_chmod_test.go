@@ -9,7 +9,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-// ── project create — filesystem error paths via chmod ────────────────
+// ── project create: filesystem error paths via chmod ────────────────
 
 func TestProjectCreate_SaveNodeState_PromotedParent_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -18,7 +18,7 @@ func TestProjectCreate_SaveNodeState_PromotedParent_ReadOnly(t *testing.T) {
 
 	env := newTestEnv(t)
 
-	// Create a leaf node (no non-audit tasks — eligible for promotion).
+	// Create a leaf node (no non-audit tasks. Eligible for promotion).
 	env.RootCmd.SetArgs([]string{"project", "create", "--type", "leaf", "parent-leaf"})
 	if err := env.RootCmd.Execute(); err != nil {
 		t.Fatal(err)

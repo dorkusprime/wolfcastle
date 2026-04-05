@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// ── inbox add — SaveInbox error ─────────────────────────────────────
+// ── inbox add: SaveInbox error ─────────────────────────────────────
 
 func TestInboxAdd_SaveInboxError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -26,7 +26,7 @@ func TestInboxAdd_SaveInboxError_ReadOnly(t *testing.T) {
 	}
 }
 
-// ── inbox clear — SaveInbox error ───────────────────────────────────
+// ── inbox clear: SaveInbox error ───────────────────────────────────
 
 func TestInboxClear_SaveInboxError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// ── task commands — SaveNodeState error via read-only state dir ──────
+// ── task commands: SaveNodeState error via read-only state dir ──────
 
 func TestTaskAdd_SaveNodeStateError_ReadOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {

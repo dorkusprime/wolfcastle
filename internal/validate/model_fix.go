@@ -29,7 +29,7 @@ type DoctorPromptContext struct {
 
 // TryModelAssistedFix invokes the configured doctor model to resolve an ambiguous issue.
 // Returns true if the fix was applied successfully.
-// wolfcastleDir is optional — when provided, the doctor prompt is loaded from
+// wolfcastleDir is optional. When provided, the doctor prompt is loaded from
 // the three-tier template system; otherwise a hardcoded fallback is used.
 func TryModelAssistedFix(ctx context.Context, invoker invoke.Invoker, model config.ModelDef, issue Issue, projectsDir string, wolfcastleDirs ...string) (bool, error) {
 	if issue.Node == "" {

@@ -101,7 +101,7 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 	if entry.Type == NodeOrchestrator {
 		// Pass 1: Creation-order scan for new work. Blocked children
 		// are skipped here and handled in pass 2. If an earlier
-		// non-blocked child is incomplete, stop — creation order is
+		// non-blocked child is incomplete, stop. Creation order is
 		// enforced for progressive work.
 		for _, childAddr := range entry.Children {
 			childEntry, childOk := idx.Nodes[childAddr]
@@ -152,11 +152,11 @@ func dfs(idx *RootIndex, addr string, loadNode func(addr string) (*NodeState, er
 			}
 		}
 
-		// Children exhausted — check orchestrator's own tasks (e.g. audit)
+		// Children exhausted. check orchestrator's own tasks (e.g. audit)
 		return findActionableTask(addr, loadNode)
 	}
 
-	// Leaf node — find next actionable task
+	// Leaf node: find next actionable task
 	return findActionableTask(addr, loadNode)
 }
 
@@ -208,7 +208,7 @@ func findActionableTask(addr string, loadNode func(addr string) (*NodeState, err
 	allNonAuditDone := nonAuditDone == nonAuditCount
 	if ns.Type == NodeLeaf && nonAuditCount == 0 {
 		// Leaf with no real tasks. Only run the audit if the parent
-		// orchestrator has finished planning — otherwise tasks may
+		// orchestrator has finished planning. Otherwise tasks may
 		// still be incoming. Root-level leaves (no parent) stay
 		// blocked as a safe default.
 		allNonAuditDone = false

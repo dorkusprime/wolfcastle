@@ -14,7 +14,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// findFilesByName — unit tests
+// findFilesByName: unit tests
 // ---------------------------------------------------------------------------
 
 func TestFindFilesByName_SkipsWolfcastleDir(t *testing.T) {
@@ -99,7 +99,7 @@ func TestFindFilesByName_WalkErrorPermission(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// isGlobPath — unit tests
+// isGlobPath: unit tests
 // ---------------------------------------------------------------------------
 
 func TestIsGlobPath(t *testing.T) {
@@ -121,7 +121,7 @@ func TestIsGlobPath(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// deliverable command — uncovered branches
+// deliverable command: uncovered branches
 // ---------------------------------------------------------------------------
 
 func TestTaskDeliverable_EmptyPath(t *testing.T) {
@@ -272,7 +272,7 @@ func TestTaskDeliverable_ExistingFileNoWarning(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// add command — uncovered flag combinations
+// add command: uncovered flag combinations
 // ---------------------------------------------------------------------------
 
 func TestTaskAdd_WithBody(t *testing.T) {
@@ -450,7 +450,7 @@ func TestTaskAdd_JSONOutputWithDeliverables(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// writeTaskMD — coverage for body inclusion and error path
+// writeTaskMD: coverage for body inclusion and error path
 // ---------------------------------------------------------------------------
 
 // newTaskPrompts creates a PromptRepository with the task template seeded.
@@ -529,7 +529,7 @@ func TestWriteTaskMD_NonexistentDir(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// amend command — remaining uncovered branches
+// amend command: remaining uncovered branches
 // ---------------------------------------------------------------------------
 
 func TestTaskAmend_NoIdentity(t *testing.T) {

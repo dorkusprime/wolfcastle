@@ -9,7 +9,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// compressFile — io.Copy failure via read permission revoked mid-stream,
+// compressFile: io.Copy failure via read permission revoked mid-stream,
 // and gz.Close / out.Close error paths.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -52,7 +52,7 @@ func TestCompressFile_EmptyFile_ErrorPath(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EnforceRetention — compress path with unreadable source triggers
+// EnforceRetention: compress path with unreadable source triggers
 // non-fatal continue in the compression loop.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -108,7 +108,7 @@ func TestEnforceRetention_CompressWithReadOnlyDestDir(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EnforceRetention — age-based deletion with old files
+// EnforceRetention: age-based deletion with old files
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestEnforceRetention_DeletesByCount(t *testing.T) {
@@ -140,7 +140,7 @@ func TestEnforceRetention_DeletesByCount(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// IterationFromDir — with non-log files
+// IterationFromDir: with non-log files
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestIterationFromDir_MixedFiles(t *testing.T) {
