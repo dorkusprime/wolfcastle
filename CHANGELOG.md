@@ -3,11 +3,7 @@
 ## 0.4.1
 
 ### Bug Fixes
-- Orchestrators with all `not_started` children no longer show as `in_progress` after planning; the planning COMPLETE handler now defers audit task completion until all children are done and derives state via `RecomputeState` (#192)
-
-### Maintenance
-- Remove all em-dashes from Go source and test comments per VOICE.md guidelines
-- Add coverage tests for `IsBoolFlag`, `followJSON`, `printParallelStatus`, `nodeGlyphPlain`, `countOpenEscalations`, `countGaps`, `BaseVersion`
+- Orchestrators with all `not_started` children no longer show as `in_progress` after planning (#192)
 
 ## 0.4.0
 
