@@ -29,6 +29,16 @@ Wolfcastle is a Go CLI with 20 internal packages. Here's the map:
 
 The `cmd/` directory mirrors the CLI surface: `cmd/daemon/` (start, stop, log, status), `cmd/task/` (add, claim, complete, block, unblock, deliverable, scope), `cmd/audit/` (breadcrumb, gap, scope, summary, etc.), `cmd/config/` (show, set, unset, append, remove, validate), `cmd/orchestrator/`, `cmd/inbox/`, `cmd/project/`, `cmd/knowledge/` (add, show, edit, prune). Shared command utilities live in `cmd/cmdutil/`.
 
+## Getting Started
+
+```
+git clone https://github.com/dorkusprime/wolfcastle.git
+cd wolfcastle
+make test
+```
+
+All 3,000+ tests should pass. If they do, you're ready to contribute.
+
 ## Adding a CLI Command
 
 1. Create a file in the appropriate `cmd/` subdirectory (e.g., `cmd/task/newcmd.go`)
