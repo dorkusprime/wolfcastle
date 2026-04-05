@@ -301,6 +301,52 @@ func TestRunIteration_BlockedAudit_CreatesRemediationSubtasks(t *testing.T) {
 	}
 }
 
+func TestRunIteration_RemediationSubtasks_InheritClass(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+	_ = d.Logger.StartIteration()
+	defer d.Logger.Close()
+
+	projDir := d.Store.Dir()
+
+	setupLeafNode(t, d, "class-inherit", []state.Task{
+		{ID: "task-0001", State: state.StatusComplete, Class: "coding/go.md"},
+		{ID: "task-0002", State: state.StatusComplete, Class: "coding/go.md"},
+		{ID: "audit", Description: "audit", State: state.StatusNotStarted, IsAudit: true},
+	})
+
+	nsPath := filepath.Join(projDir, "class-inherit", "state.json")
+	ns, _ := state.LoadNodeState(nsPath)
+	ns.Audit.Gaps = []state.Gap{
+		{ID: "gap-1", Description: "Missing test coverage", Status: state.GapOpen},
+	}
+	writeJSON(t, nsPath, ns)
+
+	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
+
+	d.Config.Models["blocked"] = config.ModelDef{Command: "echo", Args: []string{"WOLFCASTLE_BLOCKED"}}
+	d.Config.Pipeline.Stages = map[string]config.PipelineStage{
+		"execute": {Model: "blocked", PromptFile: "stages/execute.md"},
+	}
+	d.Config.Pipeline.StageOrder = []string{"execute"}
+
+	idx, _ := d.Store.ReadIndex()
+	nav := &state.NavigationResult{NodeAddress: "class-inherit", TaskID: "audit", Found: true}
+	err := d.runIteration(context.Background(), nav, idx)
+	if err != nil {
+		t.Fatalf("runIteration error: %v", err)
+	}
+
+	after, _ := d.Store.ReadNode("class-inherit")
+	for _, task := range after.Tasks {
+		if strings.HasPrefix(task.ID, "audit.") {
+			if task.Class != "coding/go.md" {
+				t.Errorf("remediation subtask %s: Class = %q, want %q", task.ID, task.Class, "coding/go.md")
+			}
+		}
+	}
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // runIteration — WOLFCASTLE_BLOCKED normal path (propagateState)
 // ═══════════════════════════════════════════════════════════════════════════

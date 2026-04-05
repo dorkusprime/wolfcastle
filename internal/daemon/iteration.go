@@ -1017,6 +1017,16 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 			}
 		}
 
+		// Inherit the class from the first non-audit task so remediation
+		// subtasks get language-specific guidance instead of the default.
+		var inheritedClass string
+		for _, t := range ns.Tasks {
+			if !t.IsAudit && t.Class != "" {
+				inheritedClass = t.Class
+				break
+			}
+		}
+
 		// Create a subtask for each open gap that doesn't already have one.
 		nextNum := len(existingSubtasks) + 1
 		for idx, g := range openGaps {
@@ -1029,6 +1039,7 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 				ID:          childID,
 				Description: fmt.Sprintf("Fix: %s\n\nAfter fixing, close the gap:\n  wolfcastle audit fix-gap --node %s %s", g.Description, nodeAddr, g.ID),
 				State:       state.StatusNotStarted,
+				Class:       inheritedClass,
 			})
 			// Link the gap back to its remediation subtask.
 			for i := range ns.Audit.Gaps {
