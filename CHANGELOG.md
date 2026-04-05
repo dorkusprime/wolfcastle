@@ -5,6 +5,9 @@
 ### Features
 - `wolfcastle stop --drain`: tell a running daemon to finish its current work then exit. No signal sent, no work lost. In parallel mode, active workers finish but no new workers are dispatched. `wolfcastle status` shows "draining" while pending. (#197)
 
+### CLI
+- `status --watch` and `--interval` merged into a single `-w` flag that accepts an optional interval (`status -w 0.5`). Default remains 2s.
+
 ## 0.4.1
 
 ### Bug Fixes
