@@ -69,6 +69,7 @@ type Daemon struct {
 	mu               sync.Mutex          // protects lastNoWorkMsg and lastArchiveCheck
 	gitMu            sync.Mutex          // serializes git commit operations across parallel workers
 	hasWorked        bool                // tracks whether the daemon has done work this run
+	draining         bool                // finish current work then exit
 	shutdown         chan struct{}
 	shutdownOnce     sync.Once
 	workAvailable    chan struct{}
@@ -550,6 +551,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 		case IterationStop:
 			return nil
 		case IterationNoWork:
+			if d.draining {
+				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "drain"})
+				output.PrintHuman("=== Drain complete. Wolfcastle standing down. ===")
+				return nil
+			}
 			if d.ExitWhenDone && d.hasWorked {
 				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "exit_when_done"})
 				output.PrintHuman("=== Work complete. Wolfcastle standing down. ===")
@@ -594,6 +600,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 				d.Config.Logs.MaxAgeDays,
 				retOpts...,
 			)
+			if d.draining {
+				_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "drain"})
+				output.PrintHuman("=== Drain complete. Wolfcastle standing down. ===")
+				return nil
+			}
 			// No sleep after successful work. If there's more to do,
 			// the next iteration will find it immediately. The daemon
 			// only sleeps when idle (NoWork) or recovering (Error).
@@ -620,6 +631,14 @@ func (d *Daemon) RunOnce(ctx context.Context) (IterationResult, error) {
 		_ = d.Logger.Log(map[string]any{"type": "daemon_stop", "reason": "stop_file"})
 		output.PrintHuman("=== Wolfcastle standing down (stop file) ===")
 		return IterationStop, nil
+	}
+
+	// Check drain file: finish current work then exit.
+	if !d.draining && d.repo().HasDrainFile() {
+		_ = d.repo().RemoveDrainFile()
+		d.draining = true
+		_ = d.Logger.Log(map[string]any{"type": "daemon_drain"})
+		output.PrintHuman("Drain mode: will exit after current work completes.")
 	}
 
 	// Max iterations check
