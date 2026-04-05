@@ -275,7 +275,7 @@ func TestStatusCmd_WatchFlag(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {
 		env.RootCmd.SetContext(ctx)
-		env.RootCmd.SetArgs([]string{"status", "--watch", "--interval", "0.1"})
+		env.RootCmd.SetArgs([]string{"status", "--watch", "0.1"})
 		done <- env.RootCmd.Execute()
 	}()
 

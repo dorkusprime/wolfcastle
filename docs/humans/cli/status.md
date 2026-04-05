@@ -27,8 +27,7 @@ Without `--watch`, prints once and exits. With `--watch`, holds the screen and r
 |------|-------------|
 | `--node <path>` | Show status for a specific subtree only. |
 | `--all` | Aggregate status across all engineer namespaces. |
-| `--watch`, `-w` | Continuously refresh the tree view. Uses the alternate screen buffer for flicker-free updates. |
-| `--interval <seconds>`, `-n` | Refresh interval for `--watch`, in seconds. Accepts float64. Default: `2`. |
+| `--watch [seconds]`, `-w` | Continuously refresh the tree view. Optionally accepts an interval in seconds (e.g. `-w 0.5`). Default: `2`. Uses the alternate screen buffer for flicker-free updates. |
 | `--detail` | Show task bodies, failure reasons, deliverable status, and recent breadcrumbs for in-progress nodes. |
 | `--expand` | Show all task details for completed nodes. By default, completed nodes collapse to just their name. |
 | `--archived` | Show only archived nodes instead of active ones. |
