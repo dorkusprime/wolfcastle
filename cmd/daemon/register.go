@@ -30,7 +30,7 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	statusCmd := newStatusCmd(app)
 	statusCmd.Flags().Bool("all", false, "Show status across all engineers")
 	statusCmd.Flags().String("node", "", "Show status for a specific subtree")
-	// --watch/-w is registered inside newStatusCmd (custom flag type)
+	// --watch/-w is registered inside newStatusCmd
 	statusCmd.Flags().BoolP("expand", "x", false, "Show completed nodes expanded (default: collapsed)")
 	statusCmd.Flags().BoolP("detail", "d", false, "Show task bodies, failure reasons, deliverables, and breadcrumbs")
 	statusCmd.Flags().Bool("archived", false, "Show only archived nodes")

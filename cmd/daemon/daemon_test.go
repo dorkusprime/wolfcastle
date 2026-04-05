@@ -590,27 +590,29 @@ func TestStatusCmd_AllFlagJSON(t *testing.T) {
 // status -w flag accepts optional interval
 // ---------------------------------------------------------------------------
 
-func TestStatusCmd_WatchAcceptsFloat(t *testing.T) {
+func TestStatusCmd_WatchSpaceSeparated(t *testing.T) {
 	env := newTestEnv(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	env.RootCmd.SetContext(ctx)
+	// -w 0.5 (space-separated): reclaimed from positional args
 	env.RootCmd.SetArgs([]string{"status", "-w", "0.5"})
 	err := env.RootCmd.Execute()
 	if err != nil && strings.Contains(err.Error(), "invalid") {
-		t.Errorf("-w should accept floats: %v", err)
+		t.Errorf("-w 0.5 should work: %v", err)
 	}
 }
 
-func TestStatusCmd_WatchAcceptsSubSecond(t *testing.T) {
+func TestStatusCmd_WatchEqualsSyntax(t *testing.T) {
 	env := newTestEnv(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	env.RootCmd.SetContext(ctx)
-	env.RootCmd.SetArgs([]string{"status", "-w", "0.05"})
+	// -w=0.05 (equals syntax): parsed directly by pflag
+	env.RootCmd.SetArgs([]string{"status", "-w=0.05"})
 	err := env.RootCmd.Execute()
 	if err != nil && strings.Contains(err.Error(), "invalid") {
-		t.Errorf("-w should accept sub-second floats: %v", err)
+		t.Errorf("-w=0.05 should work: %v", err)
 	}
 }
 
@@ -619,10 +621,37 @@ func TestStatusCmd_WatchNoValue(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	env.RootCmd.SetContext(ctx)
+	// -w alone: uses NoOptDefVal (2s)
 	env.RootCmd.SetArgs([]string{"status", "-w"})
 	err := env.RootCmd.Execute()
 	if err != nil && strings.Contains(err.Error(), "unknown shorthand flag") {
-		t.Errorf("-w without value should work: %v", err)
+		t.Errorf("-w without value should default to 2s: %v", err)
+	}
+}
+
+func TestStatusCmd_WatchCombinedFlags(t *testing.T) {
+	env := newTestEnv(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	env.RootCmd.SetContext(ctx)
+	// -dxw: combined short flags, watch uses NoOptDefVal (2s)
+	env.RootCmd.SetArgs([]string{"status", "-dxw"})
+	err := env.RootCmd.Execute()
+	if err != nil && strings.Contains(err.Error(), "unknown shorthand flag") {
+		t.Errorf("-dxw should work: %v", err)
+	}
+}
+
+func TestStatusCmd_WatchCombinedWithInterval(t *testing.T) {
+	env := newTestEnv(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	env.RootCmd.SetContext(ctx)
+	// -dxw 0.5: combined flags, 0.5 reclaimed from positional args
+	env.RootCmd.SetArgs([]string{"status", "-dxw", "0.5"})
+	err := env.RootCmd.Execute()
+	if err != nil && strings.Contains(err.Error(), "invalid") {
+		t.Errorf("-dxw 0.5 should work: %v", err)
 	}
 }
 

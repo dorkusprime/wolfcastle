@@ -29,14 +29,14 @@ func newStatusCmd(app *cmdutil.App) *cobra.Command {
 		Short: "Survey the battlefield",
 		Long: `Shows node states across the project tree. How many targets remain.
 How many have fallen. Use --node to scope to a subtree, --all to
-see every engineer's namespace. Use --watch to refresh on an interval.
+see every engineer's namespace. Use -w to refresh on an interval.
 Use --detail to see task bodies, failure reasons, deliverables, and
 breadcrumbs for in-progress work.
 
 Examples:
   wolfcastle status
   wolfcastle status --node auth-system
-  wolfcastle status --watch
+  wolfcastle status -dxw
   wolfcastle status -w 0.5
   wolfcastle status --all
   wolfcastle status --detail
@@ -50,6 +50,15 @@ Examples:
 			expand, _ := cmd.Flags().GetBool("expand")
 			detail, _ := cmd.Flags().GetBool("detail")
 			archived, _ := cmd.Flags().GetBool("archived")
+
+			// When -w is used with a space-separated value (-w 0.5),
+			// NoOptDefVal causes cobra to treat 0.5 as a positional arg.
+			// Reclaim it here.
+			if watchFlag.enabled && len(args) > 0 {
+				if v, err := strconv.ParseFloat(args[0], 64); err == nil {
+					watchFlag.interval = v
+				}
+			}
 
 			opts := treeOpts{
 				Expand:   expand,
@@ -87,21 +96,22 @@ Examples:
 		},
 	}
 
-	cmd.Flags().VarP(&watchFlag, "watch", "w", "Refresh on an interval (default 2s, or specify e.g. -w 0.5)")
+	cmd.Flags().VarP(&watchFlag, "watch", "w", "Refresh interval in seconds (default 2s, e.g. -w 0.5)")
 	cmd.Flags().Lookup("watch").NoOptDefVal = "2"
+	cmd.Args = cobra.ArbitraryArgs
 
 	return cmd
 }
 
-// watchIntervalFlag implements pflag.Value for the combined --watch flag.
-// When parsed without a value (-w, --watch), it uses the default interval.
-// When parsed with a value (-w 0.5, --watch=0.5), it uses the given seconds.
+// watchIntervalFlag implements pflag.Value for -w/--watch. NoOptDefVal
+// provides the default when -w appears without a value (-dxw). The RunE
+// handler reclaims space-separated values (-w 0.5) from positional args.
 type watchIntervalFlag struct {
 	enabled  bool
 	interval float64
 }
 
-func (f *watchIntervalFlag) String() string { return "false" }
+func (f *watchIntervalFlag) String() string { return "" }
 func (f *watchIntervalFlag) Type() string   { return "seconds" }
 
 func (f *watchIntervalFlag) Set(val string) error {
@@ -113,8 +123,6 @@ func (f *watchIntervalFlag) Set(val string) error {
 	f.interval = v
 	return nil
 }
-
-func (f *watchIntervalFlag) IsBoolFlag() bool { return false }
 
 // treeOpts controls how the status tree is rendered.
 type treeOpts struct {
