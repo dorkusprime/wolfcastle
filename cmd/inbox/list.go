@@ -19,6 +19,9 @@ Examples:
   wolfcastle inbox list
   wolfcastle inbox list --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := resolveInstance(cmd, app); err != nil {
+				return err
+			}
 			if err := app.RequireIdentity(); err != nil {
 				return err
 			}

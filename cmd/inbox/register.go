@@ -8,6 +8,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// resolveInstance checks the --instance persistent flag and re-initializes
+// the app to target the specified worktree. Returns nil when the flag is
+// absent or empty.
+func resolveInstance(cmd *cobra.Command, app *cmdutil.App) error {
+	instancePath, _ := cmd.Flags().GetString("instance")
+	if instancePath != "" {
+		return app.InitFromDir(instancePath)
+	}
+	return nil
+}
+
 // Register creates the inbox command tree and attaches it to rootCmd.
 func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	inboxCmd := &cobra.Command{
@@ -22,6 +33,8 @@ Examples:
   wolfcastle inbox clear
   wolfcastle inbox clear --all`,
 	}
+
+	inboxCmd.PersistentFlags().String("instance", "", "Worktree path to target (bypasses CWD-based discovery)")
 
 	inboxCmd.AddCommand(newAddCmd(app))
 	inboxCmd.AddCommand(newListCmd(app))

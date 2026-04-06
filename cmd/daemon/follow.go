@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -75,9 +76,25 @@ Examples:
   wolfcastle log --session 1
   wolfcastle log --json | jq '.type'`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			instancePath, _ := cmd.Flags().GetString("instance")
+			if instancePath != "" {
+				if err := app.InitFromDir(instancePath); err != nil {
+					return err
+				}
+			}
+
 			logDir := app.Daemon.LogDir()
 			sessionIdx, _ := cmd.Flags().GetInt("session")
 			follow, _ := cmd.Flags().GetBool("follow")
+
+			// Build an alive-check that uses the app's config root
+			// (which may have been re-pointed by --instance) rather
+			// than relying on CWD.
+			aliveCheck := func() bool {
+				dir := filepath.Dir(app.Config.Root())
+				_, err := instance.Resolve(dir)
+				return err == nil
+			}
 
 			// Resolve session. Exit 1 when the log directory is missing
 			// (project not initialized) or contains no sessions.
@@ -87,7 +104,7 @@ Examples:
 			}
 
 			// Implicit follow when daemon is running and session 0.
-			if !follow && sessionIdx == 0 && isDaemonAlive() {
+			if !follow && sessionIdx == 0 && aliveCheck() {
 				follow = true
 			}
 
@@ -95,14 +112,14 @@ Examples:
 			// The spec says --follow is a no-op when the daemon is not running;
 			// without this guard the command hangs waiting for log lines that
 			// will never arrive.
-			if follow && !isDaemonAlive() {
+			if follow && !aliveCheck() {
 				follow = false
 			}
 
 			ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer stop()
 
-			return runLog(ctx, logDir, session, mode, follow, isDaemonAlive)
+			return runLog(ctx, logDir, session, mode, follow, aliveCheck)
 		},
 	}
 

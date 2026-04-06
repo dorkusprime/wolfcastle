@@ -45,6 +45,13 @@ Examples:
   wolfcastle status --expand --detail
   wolfcastle status --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			instancePath, _ := cmd.Flags().GetString("instance")
+			if instancePath != "" {
+				if err := app.InitFromDir(instancePath); err != nil {
+					return err
+				}
+			}
+
 			showAll, _ := cmd.Flags().GetBool("all")
 			scopeNode, _ := cmd.Flags().GetString("node")
 			width, _ := cmd.Flags().GetInt("width")
@@ -201,7 +208,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, opts t
 
 	total := len(details)
 
-	daemonStatus := getDaemonStatus(app.Daemon)
+	daemonStatus := getDaemonStatus(app.Daemon, filepath.Dir(app.Config.Root()))
 
 	if app.JSON {
 		// Build per-node detail for JSON consumers.
@@ -663,12 +670,19 @@ func taskGlyph(s state.NodeStatus) string {
 }
 
 // getDaemonStatus checks the instance registry and reports daemon status.
-func getDaemonStatus(repo *dmn.DaemonRepository) string {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "stopped"
+// repoDir is the directory containing .wolfcastle (i.e., the worktree root).
+func getDaemonStatus(repo *dmn.DaemonRepository, repoDir ...string) string {
+	dir := ""
+	if len(repoDir) > 0 && repoDir[0] != "" {
+		dir = repoDir[0]
+	} else {
+		var err error
+		dir, err = os.Getwd()
+		if err != nil {
+			return "stopped"
+		}
 	}
-	entry, err := instance.Resolve(cwd)
+	entry, err := instance.Resolve(dir)
 	if err != nil {
 		return "stopped"
 	}

@@ -99,6 +99,39 @@ func (a *App) Init() error {
 	return nil
 }
 
+// InitFromDir re-initializes the App using the given directory as the
+// worktree root, bypassing CWD-based discovery. Used by --instance to
+// target a specific worktree.
+func (a *App) InitFromDir(dir string) error {
+	candidate := filepath.Join(dir, ".wolfcastle")
+	if info, err := os.Stat(candidate); err != nil || !info.IsDir() {
+		return fmt.Errorf("no .wolfcastle directory found in %s", dir)
+	}
+
+	a.Config = config.NewRepository(candidate)
+	a.Prompts = pipeline.NewPromptRepository(candidate)
+	a.Daemon = daemon.NewDaemonRepository(candidate)
+	a.Git = git.NewService(dir)
+	a.Classes = pipeline.NewClassRepository(a.Prompts)
+
+	cfg, err := a.Config.Load()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+	for _, w := range cfg.Warnings {
+		output.PrintError("%s", w)
+	}
+
+	id, err := config.IdentityFromConfig(cfg)
+	if err == nil {
+		a.Identity = id
+		a.State = state.NewStore(id.ProjectsDir(candidate), state.DefaultLockTimeout)
+		a.Classes.Reload(cfg.TaskClasses)
+	}
+
+	return nil
+}
+
 // RequireIdentity returns an error if identity is not configured.
 // Commands that operate on the project tree should call this early
 // to surface a clear message.
