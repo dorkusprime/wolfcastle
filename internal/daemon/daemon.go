@@ -456,6 +456,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Root the daemon in a cancelable signal context so shutdown signals
 	// cancel in-flight model invocations (ADR-024 shutdown compliance).
 	ctx, cancel := signal.NotifyContext(ctx, shutdownSignals...)
+	defer d.runWg.Wait()
 	defer cancel()
 
 	// Dedicated signal channel as a backup. Child processes may corrupt
