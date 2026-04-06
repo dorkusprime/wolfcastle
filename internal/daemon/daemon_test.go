@@ -18,7 +18,23 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tree"
 )
 
-// --- checkInboxState ---
+// checkInboxState is a test-only helper that checks whether the inbox
+// has new items. Defined here (not in production code) because no
+// production code path needs this check as a Daemon method.
+func (d *Daemon) checkInboxState(inboxPath string) bool {
+	inboxData, err := state.LoadInbox(inboxPath)
+	if err != nil {
+		return false
+	}
+	for _, item := range inboxData.Items {
+		if item.Status == state.InboxNew {
+			return true
+		}
+	}
+	return false
+}
+
+// --- checkInboxState tests ---
 
 func TestCheckInboxState_MissingFile(t *testing.T) {
 	t.Parallel()

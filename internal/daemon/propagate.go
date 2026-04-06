@@ -61,17 +61,3 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 	})
 }
 
-// checkInboxState returns whether the inbox has new items (needing intake).
-// Returns false if the inbox file doesn't exist or can't be read.
-func (d *Daemon) checkInboxState(inboxPath string) bool {
-	inboxData, err := state.LoadInbox(inboxPath)
-	if err != nil {
-		return false
-	}
-	for _, item := range inboxData.Items {
-		if item.Status == state.InboxNew {
-			return true
-		}
-	}
-	return false
-}

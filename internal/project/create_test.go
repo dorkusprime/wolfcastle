@@ -218,16 +218,3 @@ func TestCreateProject_DeeplyNestedChild(t *testing.T) {
 	}
 }
 
-func TestDetectIdentity_ReturnsNonEmptyValues(t *testing.T) {
-	t.Parallel()
-	identity := detectIdentity()
-
-	user, ok := identity["user"].(string)
-	if !ok || user == "" {
-		t.Error("expected non-empty user string")
-	}
-	machine, ok := identity["machine"].(string)
-	if !ok || machine == "" {
-		t.Error("expected non-empty machine string")
-	}
-}

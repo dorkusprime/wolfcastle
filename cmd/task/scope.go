@@ -90,20 +90,7 @@ Examples:
 				for i, c := range conflicts {
 					parts[i] = fmt.Sprintf("%s (held by %s on node %s)", c.File, c.HeldByTask, c.HeldByNode)
 				}
-				errMsg := "scope conflict: " + strings.Join(parts, ", ")
-
-				if app.JSON {
-					output.Print(output.Response{
-						OK:     false,
-						Action: "task_scope_add",
-						Error:  errMsg,
-						Code:   1,
-						Data:   map[string]any{"conflicts": conflicts},
-					})
-				} else {
-					output.PrintError("%s", errMsg)
-				}
-				os.Exit(1)
+				return fmt.Errorf("scope conflict: %s", strings.Join(parts, ", "))
 			}
 
 			if app.JSON {

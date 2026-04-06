@@ -6,36 +6,11 @@ package project
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
-
-// detectIdentity reads the current username and hostname from the system.
-func detectIdentity() map[string]any {
-	user := "unknown"
-	machine := "unknown"
-
-	if u, err := exec.Command("whoami").Output(); err == nil {
-		user = strings.TrimSpace(string(u))
-	}
-	if h, err := os.Hostname(); err == nil {
-		// Use short hostname
-		if idx := strings.IndexByte(h, '.'); idx > 0 {
-			h = h[:idx]
-		}
-		machine = strings.ToLower(h)
-	}
-
-	return map[string]any{
-		"user":    user,
-		"machine": machine,
-	}
-}
 
 // WriteAuditTaskMD writes audit.md into nodeDir by resolving the audit-task
 // template through the three-tier system. This allows users to override the
