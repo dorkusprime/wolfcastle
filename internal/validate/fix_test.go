@@ -900,7 +900,6 @@ func TestIsDaemonAlive_NoRegistryEntry(t *testing.T) {
 }
 
 func TestIsDaemonAlive_LiveProcess(t *testing.T) {
-	t.Parallel()
 	wolfcastleDir := t.TempDir()
 
 	// Redirect instance registry to a temp dir so we don't pollute the real one.
