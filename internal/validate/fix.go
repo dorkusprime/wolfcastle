@@ -525,7 +525,7 @@ func loadOrRecoverRootIndex(indexPath string) (*state.RootIndex, error) {
 
 	recovered, _, recoverErr := RecoverRootIndex(data)
 	if recoverErr != nil {
-		return nil, fmt.Errorf("%v (recovery also failed: %v)", err, recoverErr)
+		return nil, fmt.Errorf("%w (recovery also failed: %w)", err, recoverErr)
 	}
 
 	// Write the recovered index so subsequent passes work cleanly.

@@ -92,7 +92,7 @@ func RecoveringNodeLoader(projectsDir string, onRecover func(addr string, report
 
 		recovered, report, recoverErr := RecoverNodeState(data)
 		if recoverErr != nil {
-			return nil, fmt.Errorf("%v (recovery also failed: %v)", loadErr, recoverErr)
+			return nil, fmt.Errorf("%w (recovery also failed: %w)", loadErr, recoverErr)
 		}
 
 		if onRecover != nil {

@@ -64,7 +64,7 @@ Examples:
 				slug := tree.ToSlug(f.Title)
 				if err := tree.ValidateSlug(slug); err != nil {
 					if !allFlag {
-						return fmt.Errorf("cannot approve %s: title %q produces invalid slug: %v", f.ID, f.Title, err)
+						return fmt.Errorf("cannot approve %s: title %q produces invalid slug: %w", f.ID, f.Title, err)
 					}
 					output.PrintHuman("  Skipped %s (invalid slug from title): %s", f.ID, f.Title)
 					continue

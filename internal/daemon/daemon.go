@@ -11,15 +11,24 @@
 //
 // File layout follows ADR-045:
 //
-//   - daemon.go   : Daemon struct, New, Run, RunWithSupervisor, RunOnce
-//   - iteration.go  : per-iteration pipeline dispatch, terminal marker scanning
-//   - stages.go     : intake stage handler, parallel inbox goroutine
-//   - deliverables.go: deliverable file verification
-//   - retry.go      : invocation retry with exponential backoff
-//   - propagate.go  : state propagation via Store
-//   - pid.go            : PID file operations
-//   - signals_unix.go   : shutdown signals (Unix)
-//   - signals_windows.go: shutdown signals (Windows)
+//   - daemon.go             : Daemon struct, New, Run, RunWithSupervisor, RunOnce
+//   - iteration.go          : per-iteration pipeline dispatch, terminal marker scanning
+//   - stages.go             : intake stage handler, parallel inbox goroutine
+//   - deliverables.go       : deliverable file verification
+//   - retry.go              : invocation retry with exponential backoff
+//   - propagate.go          : state propagation via Store
+//   - activity.go           : daemon activity snapshot for stall detection
+//   - archive.go            : auto-archival of completed root nodes
+//   - knowledge_maintenance.go : knowledge file pruning task creation
+//   - lock.go               : global daemon lock file
+//   - parallel.go           : parallel worker dispatch and scope conflict handling
+//   - planning.go           : orchestrator state reconciliation and planning passes
+//   - repository.go         : filesystem path consolidation for daemon operations
+//   - scope.go              : dirty-file scope validation for parallel workers
+//   - spec_review.go        : auto-creation of spec review tasks
+//   - pid.go                : PID file operations
+//   - signals_unix.go       : shutdown signals (Unix)
+//   - signals_windows.go    : shutdown signals (Windows)
 package daemon
 
 import (
@@ -456,6 +465,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Root the daemon in a cancelable signal context so shutdown signals
 	// cancel in-flight model invocations (ADR-024 shutdown compliance).
 	ctx, cancel := signal.NotifyContext(ctx, shutdownSignals...)
+	defer d.runWg.Wait()
 	defer cancel()
 
 	// Dedicated signal channel as a backup. Child processes may corrupt

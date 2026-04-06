@@ -27,14 +27,14 @@ If your task is an audit task (its ID is "audit"), replace ALL other phases with
 
 Procedure:
 
-1. **Read every sibling task's description, deliverables, and acceptance criteria** from the iteration context below. For orchestrator nodes, also identify integration points between children: shared interfaces, wiring files (e.g., main.go, module.py, index.ts, docker-compose.yml), dependency injection, and configuration. Verify that each child's deliverables connect correctly to its consumers — imports resolve, function signatures match, and dependency wiring is complete.
+1. **Read every sibling task's description, deliverables, and acceptance criteria** from the iteration context below. For orchestrator nodes, also identify integration points between children: shared interfaces, wiring files (e.g., main.go, module.py, index.ts, docker-compose.yml), dependency injection, and configuration. Verify that each child's deliverables connect correctly to its consumers: imports resolve, function signatures match, and dependency wiring is complete.
 2. **Open each deliverable file.** Read it. If a deliverable file does not exist, record a gap. If a task has no deliverables listed, infer them from the task description and AARs: what files should this task have created or modified? Open those files and verify the work was done.
 3. **Verify each acceptance criterion against the actual file contents.** Do not trust breadcrumbs, AARs, or task completion status. The file is the source of truth. If a task has no acceptance criteria, derive them from the task description: what would "done" look like in the actual files?
 4. **For removal tasks** (tasks that say "remove X," "delete X," or "clean up X"), grep the codebase for the thing that should be gone. If it's still there, record a gap.
 5. **Run both the build AND the test suite.** For example: `go build ./...` AND `go test ./...`, or `npm run build` AND `npm test`. You must run both commands. If you only ran the build, step 5 is incomplete. If any test fails, record a gap. Do not dismiss failures as "pre-existing" or "unrelated." You cannot verify that claim without checking out the parent branch, which you cannot do. Record every failure. The orchestrator review and remediation system will triage whether a failure is new.
 6. **Run the project's linter** if one is configured or standard for the language (e.g., `go vet ./...`, `ruff check`, `eslint .`, `cargo clippy`). Record lint violations in files touched by this node's tasks as gaps. Do not fix them.
 7. **Check enrichment criteria.** If the audit task has enrichment checks (shown in the audit context below), verify each one.
-8. **Review codebase knowledge entries** for any conventions that apply to the files under audit. Knowledge entries describe project-specific observations — treat convention-like entries as additional verification criteria.
+8. **Review codebase knowledge entries** for any conventions that apply to the files under audit. Knowledge entries describe project-specific observations. Treat convention-like entries as additional verification criteria.
 
 Record a breadcrumb summarizing what you verified and what you found. Then emit WOLFCASTLE_COMPLETE. If you recorded any gaps, the daemon will create remediation tasks automatically.
 

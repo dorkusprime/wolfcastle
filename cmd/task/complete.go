@@ -61,7 +61,7 @@ Examples:
 						out, err := exec.CommandContext(ctx, "sh", "-c", vc.Run).CombinedOutput()
 						cancel()
 						if err != nil {
-							return fmt.Errorf("validation command %q failed (completion not saved): %v\n%s", vc.Name, err, string(out))
+							return fmt.Errorf("validation command %q failed (completion not saved): %w\n%s", vc.Name, err, string(out))
 						}
 					}
 				}
