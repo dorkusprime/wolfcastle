@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -818,6 +819,9 @@ func TestStartBackground_BadExecutable(t *testing.T) {
 }
 
 func TestStartBackground_LogDirNotWritable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getenv("CI") != "" {
 		t.Skip("skip in CI")
 	}
