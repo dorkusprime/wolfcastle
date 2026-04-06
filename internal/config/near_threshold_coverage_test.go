@@ -10,6 +10,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
 // ---------------------------------------------------------------------------
@@ -190,14 +191,16 @@ func TestRepository_Load_CustomTierParseError(t *testing.T) {
 func TestLoad_InvalidCustomJSON(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(dir, "system", "custom"), 0o755)
+	sysDir := filepath.Join(dir, tierfs.SystemPrefix)
+	_ = os.MkdirAll(filepath.Join(sysDir, "custom"), 0o755)
 	_ = os.WriteFile(
-		filepath.Join(dir, "system", "custom", "config.json"),
+		filepath.Join(sysDir, "custom", "config.json"),
 		[]byte("not json"),
 		0o644,
 	)
 
-	_, err := config.Load(dir)
+	repo := config.NewRepositoryWithTiers(tierfs.New(sysDir), dir)
+	_, err := repo.Load()
 	if err == nil {
 		t.Error("expected error for invalid custom/config.json")
 	}
@@ -217,13 +220,15 @@ func TestLoad_PermissionError(t *testing.T) {
 	}
 
 	dir := t.TempDir()
-	basePath := filepath.Join(dir, "system", "base", "config.json")
+	sysDir := filepath.Join(dir, tierfs.SystemPrefix)
+	basePath := filepath.Join(sysDir, "base", "config.json")
 	_ = os.MkdirAll(filepath.Dir(basePath), 0o755)
 	_ = os.WriteFile(basePath, []byte(`{}`), 0o644)
 	_ = os.Chmod(basePath, 0o000)
 	t.Cleanup(func() { _ = os.Chmod(basePath, 0o644) })
 
-	_, err := config.Load(dir)
+	repo := config.NewRepositoryWithTiers(tierfs.New(sysDir), dir)
+	_, err := repo.Load()
 	if err == nil {
 		t.Error("expected error for permission-denied config file")
 	}
@@ -236,7 +241,8 @@ func TestLoad_PermissionError(t *testing.T) {
 func TestLoad_ValidationFailureAfterMerge(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(dir, "system", "base"), 0o755)
+	sysDir := filepath.Join(dir, tierfs.SystemPrefix)
+	_ = os.MkdirAll(filepath.Join(sysDir, "base"), 0o755)
 
 	// Override pipeline stages to empty, which fails validation.
 	overlay := map[string]any{
@@ -245,9 +251,10 @@ func TestLoad_ValidationFailureAfterMerge(t *testing.T) {
 		},
 	}
 	data, _ := json.MarshalIndent(overlay, "", "  ")
-	_ = os.WriteFile(filepath.Join(dir, "system", "base", "config.json"), data, 0o644)
+	_ = os.WriteFile(filepath.Join(sysDir, "base", "config.json"), data, 0o644)
 
-	_, err := config.Load(dir)
+	repo := config.NewRepositoryWithTiers(tierfs.New(sysDir), dir)
+	_, err := repo.Load()
 	if err == nil {
 		t.Error("expected validation error for empty pipeline stages")
 	}

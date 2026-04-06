@@ -5,7 +5,17 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
+
+// loadFromDir constructs a Repository from a directory containing a
+// system/{base,custom,local} layout and loads the merged config.
+func loadFromDir(dir string) (*Config, error) {
+	sysDir := filepath.Join(dir, tierfs.SystemPrefix)
+	repo := NewRepositoryWithTiers(tierfs.New(sysDir), dir)
+	return repo.Load()
+}
 
 func TestDefaults_ReturnsValidConfig(t *testing.T) {
 	t.Parallel()
@@ -60,7 +70,7 @@ func TestLoad_EmptyConfigJSON_ReturnsDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +94,7 @@ func TestLoad_WithOverrides_MergesCorrectly(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +123,7 @@ func TestLoad_LocalOverridesConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +148,7 @@ func TestLoad_ThreeTierMerge(t *testing.T) {
 	// local overrides hard_cap to 200, but decomposition_threshold stays from custom
 	_ = os.WriteFile(filepath.Join(dir, "system", "local", "config.json"), []byte(`{"failure": {"hard_cap": 200}}`), 0644)
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +165,7 @@ func TestLoad_NoConfigFiles_ReturnsDefaults(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -511,7 +521,7 @@ func TestLoad_LocalOnly_NoBaseOrCustom(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +544,7 @@ func TestLoad_InvalidJSON_ReturnsError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := Load(dir)
+	_, err := loadFromDir(dir)
 	if err == nil {
 		t.Error("expected error for invalid JSON in base/config.json")
 	}
@@ -549,7 +559,7 @@ func TestLoad_InvalidLocalJSON_ReturnsError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := Load(dir)
+	_, err := loadFromDir(dir)
 	if err == nil {
 		t.Error("expected error for invalid JSON in local/config.json")
 	}
@@ -566,7 +576,7 @@ func TestLoad_ValidationFailure_ReturnsError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := Load(dir)
+	_, err := loadFromDir(dir)
 	if err == nil {
 		t.Error("expected error for invalid config structure")
 	}
@@ -749,7 +759,7 @@ func TestLoad_KnowledgeThreeTierMerge(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "system", "local", "config.json"),
 		[]byte(`{"knowledge": {"max_tokens": 5000}}`), 0644)
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -268,7 +268,7 @@ func TestLoad_UnknownField_ProducesWarning(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatalf("Load() should succeed with unknown fields, got error: %v", err)
 	}
@@ -298,7 +298,7 @@ func TestLoad_UnknownFieldInSpecificTier(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatalf("Load() should succeed, got: %v", err)
 	}
@@ -320,7 +320,7 @@ func TestLoad_CleanConfig_NoWarnings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +342,7 @@ func TestLoad_MultipleUnknownFieldsAcrossTiers(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "system", "local", "config.json"),
 		[]byte(`{"typo_two": true}`), 0644)
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
