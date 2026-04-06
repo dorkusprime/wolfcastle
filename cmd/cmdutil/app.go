@@ -18,6 +18,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
 // App holds the shared runtime state for the CLI: repository references,
@@ -133,7 +134,7 @@ func (a *App) CheckOverlap(projectName, description string) {
 	}
 
 	// Collect and compare against other engineers' projects
-	projectsRoot := filepath.Join(a.Config.Root(), "system", "projects")
+	projectsRoot := filepath.Join(a.Config.Root(), tierfs.SystemPrefix, "projects")
 	entries, err := os.ReadDir(projectsRoot)
 	if err != nil {
 		return

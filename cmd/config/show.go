@@ -105,7 +105,7 @@ func isValidTier(name string) bool {
 // readTierFile reads and parses a single tier's config.json. Returns an
 // empty map if the file does not exist; returns an error for malformed JSON.
 func readTierFile(wolfcastleRoot, tier string) (map[string]any, error) {
-	path := filepath.Join(wolfcastleRoot, "system", tier, "config.json")
+	path := filepath.Join(wolfcastleRoot, tierfs.SystemPrefix, tier, "config.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {

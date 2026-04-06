@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +35,7 @@ copies on Windows.`,
 		skillDir := filepath.Join(claudeDir, "wolfcastle")
 
 		// Source: base/skills/ in .wolfcastle
-		sourceDir := filepath.Join(root, "system", "base", "skills")
+		sourceDir := filepath.Join(root, tierfs.SystemPrefix, tierfs.TierNames[0], "skills")
 
 		// Ensure source exists and has content
 		if err := ensureSkillSource(sourceDir); err != nil {

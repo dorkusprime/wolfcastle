@@ -47,7 +47,7 @@ func (d *Daemon) removeActivityFile() {
 
 // activityPath returns the path to the daemon activity snapshot file.
 func activityPath(wolfcastleDir string) string {
-	return filepath.Join(wolfcastleDir, "system", "daemon-activity.json")
+	return filepath.Join(NewDaemonRepository(wolfcastleDir).systemDir, "daemon-activity.json")
 }
 
 // LoadDaemonActivity reads the daemon activity snapshot from disk.
