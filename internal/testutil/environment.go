@@ -103,7 +103,7 @@ func NewEnvironment(t *testing.T) *Environment {
 
 	root := t.TempDir()
 	wolfcastleDir := filepath.Join(root, ".wolfcastle")
-	systemDir := filepath.Join(wolfcastleDir, "system")
+	systemDir := filepath.Join(wolfcastleDir, tierfs.SystemPrefix)
 	namespace := "test-machine"
 
 	// Construct tierfs.FS rooted at .wolfcastle/system.
@@ -228,7 +228,7 @@ func (e *Environment) ToAppFields() AppFields {
 // ProjectsDir returns the absolute path to the projects directory within
 // the namespace.
 func (e *Environment) ProjectsDir() string {
-	return filepath.Join(e.Root, "system", "projects", e.namespace)
+	return filepath.Join(e.Root, tierfs.SystemPrefix, "projects", e.namespace)
 }
 
 // WithConfig deep-merges overrides into the custom tier config file
@@ -236,7 +236,7 @@ func (e *Environment) ProjectsDir() string {
 func (e *Environment) WithConfig(overrides map[string]any) *Environment {
 	e.t.Helper()
 
-	customPath := filepath.Join(e.Root, "system", "custom", "config.json")
+	customPath := filepath.Join(e.Root, tierfs.SystemPrefix, "custom", "config.json")
 
 	// Read existing custom config.
 	data, err := os.ReadFile(customPath)

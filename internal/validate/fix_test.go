@@ -1803,3 +1803,134 @@ func TestFixWithVerification_CleanTree(t *testing.T) {
 		t.Errorf("expected no fixes for clean tree, got %d", len(fixes))
 	}
 }
+
+func TestFixWithVerificationRepo_LoadIndexError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Point at a nonexistent index so the first pass fails to load.
+	indexPath := filepath.Join(dir, "nonexistent", "state.json")
+	loader := DefaultNodeLoader(dir)
+
+	fixes, _, err := FixWithVerificationRepo(dir, indexPath, loader, nil)
+	if err == nil {
+		t.Fatal("expected error when index file is missing")
+	}
+	if len(fixes) != 0 {
+		t.Errorf("expected no fixes before error, got %d", len(fixes))
+	}
+}
+
+func TestFixWithVerificationRepo_MalformedIndex(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	indexPath := filepath.Join(dir, "state.json")
+
+	// Write unrecoverable garbage so loadOrRecoverRootIndex fails.
+	if err := os.WriteFile(indexPath, []byte("<<<not json>>>"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	loader := DefaultNodeLoader(dir)
+	_, _, err := FixWithVerificationRepo(dir, indexPath, loader, nil)
+	if err == nil {
+		t.Fatal("expected error for unrecoverable index")
+	}
+	if !strings.Contains(err.Error(), "loading root index") {
+		t.Errorf("expected 'loading root index' in error, got: %v", err)
+	}
+}
+
+func TestFixWithVerificationRepo_NoFixableIssues(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Create a leaf with a manual-only issue: invalid task ID.
+	// The validator flags it, but it's FixManual, so no fixes are applied
+	// and the loop should break at len(fixes) == 0.
+	leaf := state.NewNodeState("leaf", "Leaf", state.NodeLeaf)
+	leaf.Tasks = []state.Task{
+		{ID: "task-0001", Description: "work", State: state.StatusNotStarted},
+		{ID: "audit", Description: "verify", State: state.StatusNotStarted, IsAudit: true},
+	}
+	saveLeaf(t, dir, "leaf", leaf)
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"leaf"}
+	idx.Nodes["leaf"] = state.IndexEntry{
+		Name:    "Leaf",
+		Type:    state.NodeLeaf,
+		State:   state.StatusNotStarted,
+		Address: "leaf",
+	}
+	indexPath := saveIndex(t, dir, idx)
+
+	loader := DefaultNodeLoader(dir)
+
+	// This should exit cleanly with zero fixes (the clean tree hits
+	// HasAutoFixable() == false on the first pass).
+	fixes, report, err := FixWithVerificationRepo(dir, indexPath, loader, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fixes) != 0 {
+		t.Errorf("expected no fixes, got %d", len(fixes))
+	}
+	if report == nil {
+		t.Error("expected a final report even with no fixes")
+	}
+}
+
+func TestFixWithVerificationRepo_MultiPass(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	// Create a parent with a propagation mismatch AND a missing audit task
+	// on the child. The first pass adds the audit task, the revalidation
+	// may trigger a second pass for propagation. This exercises the
+	// multi-pass loop and the final validation.
+	child := state.NewNodeState("parent/child", "Child", state.NodeLeaf)
+	child.State = state.StatusComplete
+	child.Tasks = []state.Task{
+		{ID: "task-0001", Description: "done", State: state.StatusComplete},
+		// Missing audit task will be added in pass 1.
+	}
+	saveLeaf(t, dir, "parent/child", child)
+
+	parent := state.NewNodeState("parent", "Parent", state.NodeOrchestrator)
+	parent.State = state.StatusNotStarted // wrong: should match child
+	parent.Children = []state.ChildRef{
+		{Address: "parent/child", State: state.StatusComplete},
+	}
+	saveLeaf(t, dir, "parent", parent)
+
+	idx := state.NewRootIndex()
+	idx.Root = []string{"parent"}
+	idx.Nodes["parent"] = state.IndexEntry{
+		Name:     "Parent",
+		Type:     state.NodeOrchestrator,
+		State:    state.StatusNotStarted,
+		Address:  "parent",
+		Children: []string{"parent/child"},
+	}
+	idx.Nodes["parent/child"] = state.IndexEntry{
+		Name:    "Child",
+		Type:    state.NodeLeaf,
+		State:   state.StatusComplete,
+		Address: "parent/child",
+		Parent:  "parent",
+	}
+	indexPath := saveIndex(t, dir, idx)
+
+	loader := DefaultNodeLoader(dir)
+	fixes, report, err := FixWithVerificationRepo(dir, indexPath, loader, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fixes) == 0 {
+		t.Error("expected at least one fix across passes")
+	}
+	if report == nil {
+		t.Error("expected a final report")
+	}
+}

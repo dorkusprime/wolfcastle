@@ -191,6 +191,9 @@ func TestEnforceRetention_CountDeletesOldestFirst(t *testing.T) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestStartIteration_ErrorOnReadOnlyDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	t.Parallel()
 	dir := t.TempDir()
 	logger, err := NewLogger(dir)
@@ -521,6 +524,9 @@ func TestWatchForNewFiles_LatestLogFileError(t *testing.T) {
 }
 
 func TestCompressFile_SourceOpenButDstDirGone(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	t.Parallel()
 	// Test that compressFile handles errors gracefully when the .gz
 	// destination cannot be written (directory removed after Open).

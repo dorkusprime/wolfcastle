@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -595,6 +596,9 @@ func TestReplayJSON_MissingFileSkipped(t *testing.T) {
 }
 
 func TestReplayJSON_UnreadableFileSkipped(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	if os.Getenv("CI") != "" {
 		t.Skip("skip in CI where permissions may differ")
 	}
