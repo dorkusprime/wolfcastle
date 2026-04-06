@@ -583,3 +583,247 @@ func TestShowTreeStatus_JSONWithDaemonActivity_PartialFields(t *testing.T) {
 		t.Fatalf("showTreeStatus JSON with partial activity failed: %v", err)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// printNodeTree: collapsed subtask and detail rendering
+// ---------------------------------------------------------------------------
+
+func TestPrintNodeTree_CollapsedSubtasks(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Proj", testutil.Leaf("proj"))
+
+	idx, _ := env.App.State.ReadIndex()
+	ns, _ := env.App.State.ReadNode("proj")
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Title: "Parent task", State: state.StatusComplete},
+		{ID: "task-0001.0001", Title: "Sub A", State: state.StatusComplete},
+		{ID: "task-0001.0002", Title: "Sub B", State: state.StatusComplete},
+		{ID: "task-0002", Title: "Other task", State: state.StatusNotStarted},
+	}
+	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
+
+	details := map[string]*nodeDetail{
+		"proj": {entry: idx.Nodes["proj"], ns: ns},
+	}
+	// expand=false triggers collapsing of completed parent tasks with all-done children.
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
+}
+
+func TestPrintNodeTree_TaskWithClassTag(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Proj", testutil.Leaf("proj"))
+
+	idx, _ := env.App.State.ReadIndex()
+	ns, _ := env.App.State.ReadNode("proj")
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Title: "Classed task", State: state.StatusInProgress, Class: "fast-track"},
+	}
+	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
+
+	details := map[string]*nodeDetail{
+		"proj": {entry: idx.Nodes["proj"], ns: ns},
+	}
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
+}
+
+func TestPrintNodeTree_DetailModeWithBody(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Proj", testutil.Leaf("proj"))
+
+	idx, _ := env.App.State.ReadIndex()
+	ns, _ := env.App.State.ReadNode("proj")
+	ns.Tasks = []state.Task{
+		{
+			ID:    "task-0001",
+			Title: "Has body",
+			State: state.StatusInProgress,
+			Body:  "Detailed body text for this task.",
+		},
+	}
+	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
+
+	details := map[string]*nodeDetail{
+		"proj": {entry: idx.Nodes["proj"], ns: ns},
+	}
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120, Detail: true}, nil)
+}
+
+func TestPrintNodeTree_FailureWithLastType(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Proj", testutil.Leaf("proj"))
+
+	idx, _ := env.App.State.ReadIndex()
+	ns, _ := env.App.State.ReadNode("proj")
+	ns.Tasks = []state.Task{
+		{
+			ID:              "task-0001",
+			Title:           "Failing task",
+			State:           state.StatusInProgress,
+			FailureCount:    5,
+			LastFailureType: "lint_error",
+		},
+	}
+	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
+
+	details := map[string]*nodeDetail{
+		"proj": {entry: idx.Nodes["proj"], ns: ns},
+	}
+	// Detail mode shows LastFailureType.
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120, Detail: true}, nil)
+}
+
+func TestPrintNodeTree_ScopeLockDisplay(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Proj", testutil.Leaf("proj"))
+
+	idx, _ := env.App.State.ReadIndex()
+	ns, _ := env.App.State.ReadNode("proj")
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Title: "Locked task", State: state.StatusInProgress},
+	}
+	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
+
+	details := map[string]*nodeDetail{
+		"proj": {entry: idx.Nodes["proj"], ns: ns},
+	}
+	scopeLocks := map[string][]string{
+		"proj/task-0001": {"internal/auth", "internal/db"},
+	}
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, scopeLocks)
+}
+
+func TestPrintNodeTree_CollapsedCompletedOrchestrator(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Tree",
+		testutil.Orchestrator("tree",
+			testutil.Leaf("child-a"),
+			testutil.Leaf("child-b"),
+		),
+	)
+
+	idx, _ := env.App.State.ReadIndex()
+	// Set the orchestrator and its children to complete.
+	for addr := range idx.Nodes {
+		e := idx.Nodes[addr]
+		e.State = state.StatusComplete
+		idx.Nodes[addr] = e
+	}
+
+	details := map[string]*nodeDetail{}
+	for addr, entry := range idx.Nodes {
+		nd := &nodeDetail{entry: entry}
+		if entry.Type == state.NodeLeaf {
+			ns, _ := env.App.State.ReadNode(addr)
+			nd.ns = ns
+		}
+		details[addr] = nd
+	}
+
+	// expand=false, completed orchestrator with children should collapse.
+	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120}, nil)
+}
+
+func TestPrintNodeTree_CollapsedNotStartedWithTasks(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Proj", testutil.Leaf("proj"))
+
+	idx, _ := env.App.State.ReadIndex()
+	ns, _ := env.App.State.ReadNode("proj")
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Title: "Pending", State: state.StatusNotStarted},
+		{ID: "task-0002", Title: "Also pending", State: state.StatusNotStarted},
+	}
+	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
+
+	// Make sure the node is not_started so the collapse branch triggers.
+	entry := idx.Nodes["proj"]
+	entry.State = state.StatusNotStarted
+	idx.Nodes["proj"] = entry
+
+	details := map[string]*nodeDetail{
+		"proj": {entry: entry, ns: ns},
+	}
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120}, nil)
+}
+
+func TestPrintNodeTree_OrchestratorAuditTask(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Tree",
+		testutil.Orchestrator("tree",
+			testutil.Leaf("child-a"),
+		),
+	)
+
+	idx, _ := env.App.State.ReadIndex()
+	ns, _ := env.App.State.ReadNode("tree")
+	if ns == nil {
+		// Orchestrators may not have state; create one.
+		ns = &state.NodeState{}
+	}
+	ns.Tasks = []state.Task{
+		{ID: "audit-0001", Description: "Review gaps", State: state.StatusInProgress, IsAudit: true},
+		{ID: "audit-0002", Description: "Blocked gap", State: state.StatusBlocked, IsAudit: true},
+	}
+	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "tree", ns)
+
+	// Set orchestrator to in_progress so it doesn't collapse.
+	entry := idx.Nodes["tree"]
+	entry.State = state.StatusInProgress
+	idx.Nodes["tree"] = entry
+
+	details := map[string]*nodeDetail{}
+	for addr, e := range idx.Nodes {
+		nd := &nodeDetail{entry: e}
+		if addr == "tree" {
+			nd.ns = ns
+		} else if e.Type == state.NodeLeaf {
+			leafNS, _ := env.App.State.ReadNode(addr)
+			nd.ns = leafNS
+		}
+		details[addr] = nd
+	}
+
+	printNodeTree(env.App, idx, details, "tree", "  ", treeOpts{Width: 120}, nil)
+}
+
+func TestPrintNodeTree_DetailBreadcrumb(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Proj", testutil.Leaf("proj"))
+
+	idx, _ := env.App.State.ReadIndex()
+	ns, _ := env.App.State.ReadNode("proj")
+	ns.Audit.Breadcrumbs = []state.Breadcrumb{
+		{Text: "Started implementation"},
+		{Text: "Fixing edge cases in auth flow"},
+	}
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Title: "Active task", State: state.StatusInProgress},
+	}
+	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
+
+	entry := idx.Nodes["proj"]
+	entry.State = state.StatusInProgress
+	idx.Nodes["proj"] = entry
+
+	details := map[string]*nodeDetail{
+		"proj": {entry: entry, ns: ns},
+	}
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120, Detail: true}, nil)
+}
+
+func TestPrintNodeTree_ExpandedWithAuditReport(t *testing.T) {
+	env := newTestEnv(t)
+	env.env.WithProject("Proj", testutil.Leaf("proj"))
+
+	idx, _ := env.App.State.ReadIndex()
+	ns, _ := env.App.State.ReadNode("proj")
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Title: "Simple task", State: state.StatusNotStarted},
+	}
+	testutil.SaveNode(t, env.WolfcastleDir, env.env.Namespace(), "proj", ns)
+
+	details := map[string]*nodeDetail{
+		"proj": {entry: idx.Nodes["proj"], ns: ns},
+	}
+	printNodeTree(env.App, idx, details, "proj", "  ", treeOpts{Width: 120, Expand: true}, nil)
+}

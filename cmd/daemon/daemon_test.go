@@ -83,6 +83,51 @@ func TestGetDaemonStatus_NoInstance(t *testing.T) {
 	}
 }
 
+func TestGetDaemonStatus_Running(t *testing.T) {
+	tmp := t.TempDir()
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
+	// Register an entry with our own PID for the current working directory.
+	cwd, _ := os.Getwd()
+	cwd, _ = filepath.EvalSymlinks(cwd)
+	slug := instance.Slug(cwd)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"main","started_at":"2026-01-01T00:00:00Z"}`, os.Getpid(), cwd)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
+
+	repo := dmn.NewDaemonRepository(tmp)
+	status := getDaemonStatus(repo)
+	if !strings.Contains(status, "running") {
+		t.Errorf("expected 'running' status, got %q", status)
+	}
+}
+
+func TestGetDaemonStatus_Draining(t *testing.T) {
+	tmp := t.TempDir()
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
+	cwd, _ := os.Getwd()
+	cwd, _ = filepath.EvalSymlinks(cwd)
+	slug := instance.Slug(cwd)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"main","started_at":"2026-01-01T00:00:00Z"}`, os.Getpid(), cwd)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
+
+	// Create the system dir + drain file so HasDrainFile returns true.
+	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
+	repo := dmn.NewDaemonRepository(tmp)
+	if err := repo.WriteDrainFile(); err != nil {
+		t.Fatalf("writing drain file: %v", err)
+	}
+
+	status := getDaemonStatus(repo)
+	if !strings.Contains(status, "draining") {
+		t.Errorf("expected 'draining' status, got %q", status)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // isInSubtree
 // ---------------------------------------------------------------------------
