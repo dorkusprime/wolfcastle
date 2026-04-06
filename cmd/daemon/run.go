@@ -2,8 +2,6 @@ package daemon
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"os/signal"
 	"path/filepath"
 
@@ -40,26 +38,19 @@ func newDaemonRunCmd(app *cmdutil.App) *cobra.Command {
 
 			repoDir := filepath.Dir(app.Config.Root())
 
-			// Acquire global lock. The foreground start command does not
+			// Acquire per-worktree lock. The foreground start command does not
 			// hold the lock across the re-exec boundary, so we acquire
 			// it here.
-			if err := dmn.AcquireGlobalLock(repoDir, repoDir); err != nil {
+			if err := dmn.AcquireLock(app.Config.Root(), repoDir, ""); err != nil {
 				return err
 			}
-			defer dmn.ReleaseGlobalLock()
+			defer dmn.ReleaseLock(app.Config.Root())
 
 			d, err := dmn.New(cfg, app.Config.Root(), app.State, nodeScope, repoDir)
 			if err != nil {
 				return err
 			}
 			d.ExitWhenDone = exitWhenDone
-
-			// Write PID file. In background mode the foreground process
-			// used to write this, but now we own our own PID file.
-			if err := app.Daemon.WritePID(os.Getpid()); err != nil {
-				return fmt.Errorf("writing PID file: %w", err)
-			}
-			defer func() { _ = app.Daemon.RemovePID() }()
 
 			ctx, cancel := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer cancel()

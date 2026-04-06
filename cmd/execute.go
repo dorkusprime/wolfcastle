@@ -9,6 +9,7 @@ import (
 	"time"
 
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
@@ -47,8 +48,11 @@ Examples:
 		logDir := filepath.Join(app.Config.Root(), tierfs.SystemPrefix, "logs")
 
 		// Check for a running daemon before proceeding.
-		if app.Daemon.IsAlive() {
-			return errDaemonRunning
+		cwd, cwdErr := os.Getwd()
+		if cwdErr == nil {
+			if _, resolveErr := instance.Resolve(cwd); resolveErr == nil {
+				return errDaemonRunning
+			}
 		}
 
 		d, err := dmn.New(cfg, app.Config.Root(), app.State, nodeScope, repoDir)

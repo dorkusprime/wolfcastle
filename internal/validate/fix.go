@@ -463,12 +463,7 @@ func ApplyDeterministicFixesRepo(
 		// CatInvalidTaskID is report-only (FixManual). Renaming task IDs
 		// could break references in breadcrumbs, AARs, and audit gaps.
 
-		case CatStalePIDFile:
-			if checker != nil {
-				if err := checker.RemovePID(); err == nil {
-					fixes = append(fixes, FixResult{Category: issue.Category, Description: "removed stale PID file"})
-				}
-			}
+		// CatStalePIDFile: no longer applicable (PID files replaced by instance registry).
 
 		case CatStaleStopFile:
 			if checker != nil {

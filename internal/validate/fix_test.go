@@ -1,7 +1,6 @@
 package validate
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -755,37 +755,7 @@ func TestFix_OrphanDefinition(t *testing.T) {
 	}
 }
 
-// ── Fix: CatStalePIDFile ────────────────────────────────────────────────
-
-func TestFix_StalePIDFile(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	wolfcastleDir := t.TempDir()
-	idx := state.NewRootIndex()
-	idxPath := saveIndex(t, dir, idx)
-
-	// Create a stale PID file
-	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
-	pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
-	_ = os.WriteFile(pidPath, []byte("99999999"), 0644)
-
-	issues := []Issue{{
-		Severity: SeverityWarning, Category: CatStalePIDFile,
-		CanAutoFix: true, FixType: FixDeterministic,
-	}}
-
-	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewDaemonRepository(wolfcastleDir))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if findFix(fixes, CatStalePIDFile) == nil {
-		t.Fatal("expected stale PID file fix")
-	}
-
-	if _, err := os.Stat(pidPath); !os.IsNotExist(err) {
-		t.Error("PID file should have been removed")
-	}
-}
+// CatStalePIDFile tests removed: PID files replaced by instance registry.
 
 func TestFix_StalePIDFile_NoWolfcastleDir(t *testing.T) {
 	t.Parallel()
@@ -881,49 +851,7 @@ func TestFix_SkipsNonDeterministic(t *testing.T) {
 	}
 }
 
-// ── Detection: STALE_PID_FILE ───────────────────────────────────────────
-
-func TestDetect_StalePIDFile(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	wolfcastleDir := t.TempDir()
-	idx := state.NewRootIndex()
-
-	// Create PID file with a dead PID
-	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
-	pidPath := filepath.Join(wolfcastleDir, "system", "wolfcastle.pid")
-	_ = os.WriteFile(pidPath, []byte("99999999"), 0644)
-
-	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfcastleDir))
-	report := engine.ValidateAll(idx)
-
-	found := false
-	for _, issue := range report.Issues {
-		if issue.Category == CatStalePIDFile {
-			found = true
-		}
-	}
-	if !found {
-		t.Error("expected STALE_PID_FILE issue")
-	}
-}
-
-func TestDetect_StalePIDFile_NoPIDFile(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	wolfcastleDir := t.TempDir()
-	idx := state.NewRootIndex()
-
-	// No PID file. Should not report
-	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfcastleDir))
-	report := engine.ValidateAll(idx)
-
-	for _, issue := range report.Issues {
-		if issue.Category == CatStalePIDFile {
-			t.Error("should not report STALE_PID_FILE when no PID file exists")
-		}
-	}
-}
+// CatStalePIDFile detection tests removed: PID files replaced by instance registry.
 
 // ── Detection: STALE_STOP_FILE ──────────────────────────────────────────
 
@@ -962,56 +890,29 @@ func TestIsDaemonAlive_NoWolfcastleDir(t *testing.T) {
 	}
 }
 
-func TestIsDaemonAlive_NoPIDFile(t *testing.T) {
+func TestIsDaemonAlive_NoRegistryEntry(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
 	if engine.isDaemonAlive() {
-		t.Error("expected false when PID file does not exist")
-	}
-}
-
-func TestIsDaemonAlive_EmptyPIDFile(t *testing.T) {
-	t.Parallel()
-	wolfcastleDir := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte(""), 0644)
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
-	if engine.isDaemonAlive() {
-		t.Error("expected false for empty PID file")
-	}
-}
-
-func TestIsDaemonAlive_NonNumericPID(t *testing.T) {
-	t.Parallel()
-	wolfcastleDir := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte("not-a-number"), 0644)
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
-	if engine.isDaemonAlive() {
-		t.Error("expected false for non-numeric PID")
-	}
-}
-
-func TestIsDaemonAlive_DeadProcess(t *testing.T) {
-	t.Parallel()
-	wolfcastleDir := t.TempDir()
-	// Use a very large PID unlikely to be alive
-	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
-	if engine.isDaemonAlive() {
-		t.Error("expected false for dead process")
+		t.Error("expected false when no instance is registered")
 	}
 }
 
 func TestIsDaemonAlive_LiveProcess(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
-	// Use our own PID. We know we're alive
-	_ = os.MkdirAll(filepath.Join(wolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(wolfcastleDir, "system", "wolfcastle.pid"),
-		[]byte(fmt.Sprintf("%d", os.Getpid())), 0644)
+
+	// Redirect instance registry to a temp dir so we don't pollute the real one.
+	regDir := filepath.Join(t.TempDir(), "instances")
+	oldOverride := instance.RegistryDirOverride
+	instance.RegistryDirOverride = regDir
+	t.Cleanup(func() { instance.RegistryDirOverride = oldOverride })
+
+	// Register the current process as a daemon for wolfcastleDir.
+	if err := instance.Register(wolfcastleDir, "test-branch"); err != nil {
+		t.Fatal(err)
+	}
 
 	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
 	if !engine.isDaemonAlive() {

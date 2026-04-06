@@ -15,6 +15,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
 	"github.com/spf13/cobra"
@@ -69,37 +70,17 @@ func newTestEnv(t *testing.T) *testEnv {
 // getDaemonStatus
 // ---------------------------------------------------------------------------
 
-func TestGetDaemonStatus_NoPidFile(t *testing.T) {
+func TestGetDaemonStatus_NoInstance(t *testing.T) {
 	tmp := t.TempDir()
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	repo := dmn.NewDaemonRepository(tmp)
 	status := getDaemonStatus(repo)
 	if status != "stopped" {
 		t.Errorf("expected 'stopped', got %q", status)
 	}
-}
-
-func TestGetDaemonStatus_MalformedPid(t *testing.T) {
-	tmp := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("not-a-number"), 0644)
-	repo := dmn.NewDaemonRepository(tmp)
-	status := getDaemonStatus(repo)
-	if status != "stopped" {
-		t.Errorf("expected 'stopped', got %q", status)
-	}
-}
-
-func TestGetDaemonStatus_StalePid(t *testing.T) {
-	tmp := t.TempDir()
-	// Use PID 1 (which exists but won't be our daemon), or a very large PID
-	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
-	repo := dmn.NewDaemonRepository(tmp)
-	status := getDaemonStatus(repo)
-	if status == "" {
-		t.Error("status should not be empty")
-	}
-	// Should report stopped with stale PID
 }
 
 // ---------------------------------------------------------------------------
@@ -142,50 +123,6 @@ func TestIsInSubtree_NoMatch(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// recoverStaleDaemonState
-// ---------------------------------------------------------------------------
-
-func TestRecoverStaleDaemonState_NoPidFile(t *testing.T) {
-	tmp := t.TempDir()
-	// Should not panic
-	recoverStaleDaemonState(tmp)
-}
-
-func TestRecoverStaleDaemonState_MalformedPid(t *testing.T) {
-	tmp := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("garbage"), 0644)
-	recoverStaleDaemonState(tmp)
-
-	// PID file should be removed
-	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); !os.IsNotExist(err) {
-		t.Error("malformed PID file should be cleaned up")
-	}
-}
-
-func TestRecoverStaleDaemonState_DeadProcess(t *testing.T) {
-	tmp := t.TempDir()
-	// Use a very large PID that almost certainly doesn't exist
-	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "daemon.meta.json"), []byte("{}"), 0644)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "stop"), []byte(""), 0644)
-
-	recoverStaleDaemonState(tmp)
-
-	// All stale files should be cleaned up
-	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); !os.IsNotExist(err) {
-		t.Error("stale PID file should be removed")
-	}
-	if _, err := os.Stat(filepath.Join(tmp, "system", "daemon.meta.json")); !os.IsNotExist(err) {
-		t.Error("stale daemon meta file should be removed")
-	}
-	if _, err := os.Stat(filepath.Join(tmp, "system", "stop")); !os.IsNotExist(err) {
-		t.Error("stale stop file should be removed")
-	}
-}
-
-// ---------------------------------------------------------------------------
 // status command (no resolver)
 // ---------------------------------------------------------------------------
 
@@ -204,38 +141,24 @@ func TestStatusCmd_NoIdentity(t *testing.T) {
 // stop command - no running daemon
 // ---------------------------------------------------------------------------
 
-func TestStopCmd_NoPidFile(t *testing.T) {
+func TestStopCmd_NoInstance(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	env := newTestEnv(t)
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when no PID file exists")
-	}
-}
-
-func TestStopCmd_StalePid(t *testing.T) {
-	env := newTestEnv(t)
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
-	env.RootCmd.SetArgs([]string{"stop"})
-	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Error("expected error for stale PID")
-	}
-}
-
-func TestStopCmd_StalePid_Force(t *testing.T) {
-	env := newTestEnv(t)
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
-	env.RootCmd.SetArgs([]string{"stop", "--force"})
-	err := env.RootCmd.Execute()
-	if err == nil {
-		t.Error("expected error for stale PID even with force")
+		t.Error("expected error when no instance is registered")
 	}
 }
 
 func TestStopCmd_RunningProcess_SIGTERM(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	env := newTestEnv(t)
 
 	// Start a long-lived subprocess that we can safely send SIGTERM to
@@ -245,9 +168,13 @@ func TestStopCmd_RunningProcess_SIGTERM(t *testing.T) {
 	}
 	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
 
+	// Register the subprocess in the instance registry using cwd as worktree
+	cwd, _ := os.Getwd()
+	cwd, _ = filepath.EvalSymlinks(cwd)
 	pid := sleepCmd.Process.Pid
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	slug := instance.Slug(cwd)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, cwd)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
@@ -257,6 +184,10 @@ func TestStopCmd_RunningProcess_SIGTERM(t *testing.T) {
 }
 
 func TestStopCmd_RunningProcess_SIGTERM_JSON(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	env := newTestEnv(t)
 	env.App.JSON = true
 	defer func() { env.App.JSON = false }()
@@ -267,9 +198,12 @@ func TestStopCmd_RunningProcess_SIGTERM_JSON(t *testing.T) {
 	}
 	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
 
+	cwd, _ := os.Getwd()
+	cwd, _ = filepath.EvalSymlinks(cwd)
 	pid := sleepCmd.Process.Pid
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	slug := instance.Slug(cwd)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, cwd)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
@@ -279,6 +213,10 @@ func TestStopCmd_RunningProcess_SIGTERM_JSON(t *testing.T) {
 }
 
 func TestStopCmd_RunningProcess_Force(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	env := newTestEnv(t)
 
 	sleepCmd := exec.Command("sleep", "60")
@@ -287,9 +225,12 @@ func TestStopCmd_RunningProcess_Force(t *testing.T) {
 	}
 	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
 
+	cwd, _ := os.Getwd()
+	cwd, _ = filepath.EvalSymlinks(cwd)
 	pid := sleepCmd.Process.Pid
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	slug := instance.Slug(cwd)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, cwd)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
 	env.RootCmd.SetArgs([]string{"stop", "--force"})
 	err := env.RootCmd.Execute()
@@ -347,6 +288,10 @@ func TestFollowCmd_NoLogs(t *testing.T) {
 }
 
 func TestStopCmd_RunningProcess_Force_JSON(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	env := newTestEnv(t)
 	env.App.JSON = true
 	defer func() { env.App.JSON = false }()
@@ -357,9 +302,12 @@ func TestStopCmd_RunningProcess_Force_JSON(t *testing.T) {
 	}
 	defer func() { _ = sleepCmd.Process.Kill(); _ = sleepCmd.Wait() }()
 
+	cwd, _ := os.Getwd()
+	cwd, _ = filepath.EvalSymlinks(cwd)
 	pid := sleepCmd.Process.Pid
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	slug := instance.Slug(cwd)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, cwd)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
 	env.RootCmd.SetArgs([]string{"stop", "--force"})
 	err := env.RootCmd.Execute()
@@ -469,37 +417,26 @@ func TestRegister_AllCommandsPresent(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// getDaemonStatus with running process (self PID)
+// getDaemonStatus with running process (self PID via instance registry)
 // ---------------------------------------------------------------------------
 
 func TestGetDaemonStatus_RunningProcess(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	tmp := t.TempDir()
+	cwd, _ := os.Getwd()
+	cwd, _ = filepath.EvalSymlinks(cwd)
 	pid := os.Getpid()
-	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	slug := instance.Slug(cwd)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, cwd)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
+
 	repo := dmn.NewDaemonRepository(tmp)
 	status := getDaemonStatus(repo)
 	if status == "stopped" {
 		t.Error("expected running status for own PID")
-	}
-}
-
-// ---------------------------------------------------------------------------
-// recoverStaleDaemonState edge cases
-// ---------------------------------------------------------------------------
-
-func TestRecoverStaleDaemonState_RunningProcess(t *testing.T) {
-	tmp := t.TempDir()
-	// Use our own PID (which is running)
-	pid := os.Getpid()
-	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
-
-	recoverStaleDaemonState(tmp)
-
-	// PID file should still exist since process is running
-	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); os.IsNotExist(err) {
-		t.Error("PID file should not be removed for a running process")
 	}
 }
 
@@ -518,11 +455,22 @@ func TestStartCmd_NoIdentity(t *testing.T) {
 }
 
 func TestStartCmd_AlreadyRunning(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
+	lockDir := t.TempDir()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", lockDir)
+
 	env := newTestEnv(t)
-	// Write our own PID as the running daemon
+	// Register our own PID in the instance registry for the repo dir.
+	// Resolve symlinks to match what instance.Resolve will do internally.
+	repoDir := filepath.Dir(env.WolfcastleDir)
+	resolved, _ := filepath.EvalSymlinks(repoDir)
 	pid := os.Getpid()
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	slug := instance.Slug(resolved)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, resolved)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
@@ -551,16 +499,25 @@ func TestShowAllStatus_JSONWithNamespace(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestStopCmd_StalePidJSON(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	env := newTestEnv(t)
 	env.App.JSON = true
 	defer func() { env.App.JSON = false }()
 
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
+	// Register a stale PID (99999999) in the instance registry
+	cwd, _ := os.Getwd()
+	cwd, _ = filepath.EvalSymlinks(cwd)
+	slug := instance.Slug(cwd)
+	entryJSON := fmt.Sprintf(`{"pid":99999999,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, cwd)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
+
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error for stale PID")
+		t.Error("expected error for stale instance")
 	}
 }
 

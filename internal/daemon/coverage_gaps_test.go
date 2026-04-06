@@ -14,88 +14,71 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// globalLockPath
+// lockPath
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestGlobalLockPath_UsesEnvVar(t *testing.T) {
+func TestLockPath_UsesEnvVar(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
-	old := GlobalLockDir
-	GlobalLockDir = ""
-	defer func() { GlobalLockDir = old }()
 
-	p, err := globalLockPath()
-	if err != nil {
-		t.Fatal(err)
-	}
+	p := lockPath("/some/wolfcastle/dir")
 	if p != filepath.Join(dir, "daemon.lock") {
 		t.Errorf("expected lock under WOLFCASTLE_LOCK_DIR, got %s", p)
 	}
 }
 
-func TestGlobalLockPath_UsesGlobalLockDir(t *testing.T) {
+func TestLockPath_UsesWolfcastleDir(t *testing.T) {
 	dir := t.TempDir()
-	old := GlobalLockDir
-	GlobalLockDir = dir
-	defer func() { GlobalLockDir = old }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", "")
 
-	p, err := globalLockPath()
-	if err != nil {
-		t.Fatal(err)
-	}
+	p := lockPath(dir)
 	if p != filepath.Join(dir, "daemon.lock") {
-		t.Errorf("expected lock under GlobalLockDir, got %s", p)
+		t.Errorf("expected lock under wolfcastleDir, got %s", p)
 	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ReadGlobalLock
+// ReadLock
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestReadGlobalLock_MalformedJSON(t *testing.T) {
+func TestReadLock_MalformedJSON(t *testing.T) {
 	dir := t.TempDir()
-	old := GlobalLockDir
-	GlobalLockDir = dir
-	defer func() { GlobalLockDir = old }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
 
 	_ = os.WriteFile(filepath.Join(dir, "daemon.lock"), []byte("{{{not json"), 0644)
 
-	_, err := ReadGlobalLock()
+	_, err := ReadLock(dir)
 	if err == nil {
 		t.Error("expected error for malformed JSON lock file")
 	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ReleaseGlobalLock
+// ReleaseLock
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestReleaseGlobalLock_NoLockFile(t *testing.T) {
+func TestReleaseLock_NoLockFile(t *testing.T) {
 	dir := t.TempDir()
-	old := GlobalLockDir
-	GlobalLockDir = dir
-	defer func() { GlobalLockDir = old }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
 
 	// No lock file exists; should not panic.
-	ReleaseGlobalLock()
+	ReleaseLock(dir)
 }
 
-func TestReleaseGlobalLock_RemovesOwnLock(t *testing.T) {
+func TestReleaseLock_RemovesOwnLock(t *testing.T) {
 	dir := t.TempDir()
-	old := GlobalLockDir
-	GlobalLockDir = dir
-	defer func() { GlobalLockDir = old }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
 
-	lock := GlobalLock{
+	lock := Lock{
 		PID:      os.Getpid(),
-		Repo:     "/repo",
 		Worktree: "/repo/wt",
+		Branch:   "main",
 		Started:  time.Now().UTC(),
 	}
 	data, _ := json.MarshalIndent(lock, "", "  ")
 	_ = os.WriteFile(filepath.Join(dir, "daemon.lock"), data, 0644)
 
-	ReleaseGlobalLock()
+	ReleaseLock(dir)
 
 	if _, err := os.Stat(filepath.Join(dir, "daemon.lock")); !os.IsNotExist(err) {
 		t.Error("expected lock file to be removed")
@@ -103,20 +86,19 @@ func TestReleaseGlobalLock_RemovesOwnLock(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AcquireGlobalLock – MkdirAll failure
+// AcquireLock – MkdirAll failure
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestAcquireGlobalLock_MkdirAllFailure(t *testing.T) {
+func TestAcquireLock_MkdirAllFailure(t *testing.T) {
 	// Point the lock directory at a path where a file blocks mkdir.
 	base := t.TempDir()
 	blocker := filepath.Join(base, "blocker")
 	_ = os.WriteFile(blocker, []byte("I am a file"), 0644)
 
-	old := GlobalLockDir
-	GlobalLockDir = blocker // "blocker" is a file, so MkdirAll("blocker") fails
-	defer func() { GlobalLockDir = old }()
+	// Set WOLFCASTLE_LOCK_DIR to a path nested inside the file, so MkdirAll fails.
+	t.Setenv("WOLFCASTLE_LOCK_DIR", filepath.Join(blocker, "subdir"))
 
-	err := AcquireGlobalLock("/repo", "/repo/wt")
+	err := AcquireLock(base, "/repo/wt", "main")
 	if err == nil {
 		t.Error("expected error when MkdirAll cannot create lock directory")
 	}
@@ -316,10 +298,10 @@ func TestCheckGitProgress_RenamedFile(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AcquireGlobalLock – WriteFile failure
+// AcquireLock – WriteFile failure
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestAcquireGlobalLock_WriteFileFailure(t *testing.T) {
+func TestAcquireLock_WriteFileFailure(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("chmod restrictions have no effect on Windows")
 	}
@@ -327,15 +309,13 @@ func TestAcquireGlobalLock_WriteFileFailure(t *testing.T) {
 	lockDir := filepath.Join(dir, "lockdir")
 	_ = os.MkdirAll(lockDir, 0755)
 
-	old := GlobalLockDir
-	GlobalLockDir = lockDir
-	defer func() { GlobalLockDir = old }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", lockDir)
 
 	// Make the directory read-only so WriteFile fails.
 	_ = os.Chmod(lockDir, 0555)
 	defer func() { _ = os.Chmod(lockDir, 0755) }()
 
-	err := AcquireGlobalLock("/repo", "/repo/wt")
+	err := AcquireLock(dir, "/repo/wt", "main")
 	if err == nil {
 		t.Error("expected error when lock directory is not writable")
 	}

@@ -198,29 +198,7 @@ func TestValidateAll_DetectsInvalidStateValue(t *testing.T) {
 	}
 }
 
-func TestValidateAll_DetectsStalePIDFile(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	wDir := t.TempDir()
-	idx := state.NewRootIndex()
-
-	// Write a PID file with a definitely-dead PID
-	_ = os.MkdirAll(filepath.Join(wDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(wDir, "system", "wolfcastle.pid"), []byte("99999999\n"), 0644)
-
-	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wDir))
-	report := engine.ValidateAll(idx)
-
-	found := false
-	for _, issue := range report.Issues {
-		if issue.Category == CatStalePIDFile {
-			found = true
-		}
-	}
-	if !found {
-		t.Error("expected STALE_PID_FILE issue")
-	}
-}
+// TestValidateAll_DetectsStalePIDFile removed: PID files replaced by instance registry.
 
 func TestValidateAll_DetectsStaleStopFile(t *testing.T) {
 	t.Parallel()
@@ -328,37 +306,7 @@ func TestExpectedAuditStatus_CompleteWithNoGaps(t *testing.T) {
 	}
 }
 
-func TestApplyDeterministicFixes_StalePIDFile(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	wDir := t.TempDir()
-	idx := state.NewRootIndex()
-	idxPath := filepath.Join(dir, "state.json")
-	_ = state.SaveRootIndex(idxPath, idx)
-
-	// Create a stale PID file
-	_ = os.MkdirAll(filepath.Join(wDir, "system"), 0755)
-	pidPath := filepath.Join(wDir, "system", "wolfcastle.pid")
-	_ = os.WriteFile(pidPath, []byte("99999999\n"), 0644)
-
-	issues := []Issue{{
-		Severity: SeverityWarning, Category: CatStalePIDFile,
-		CanAutoFix: true, FixType: FixDeterministic,
-	}}
-
-	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewDaemonRepository(wDir))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(fixes) != 1 {
-		t.Fatalf("expected 1 fix, got %d", len(fixes))
-	}
-
-	// PID file should be removed
-	if _, err := os.Stat(pidPath); !os.IsNotExist(err) {
-		t.Error("PID file should have been removed")
-	}
-}
+// TestApplyDeterministicFixes_StalePIDFile removed: PID files replaced by instance registry.
 
 func TestApplyDeterministicFixes_StaleStopFile(t *testing.T) {
 	t.Parallel()

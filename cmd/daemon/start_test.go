@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -98,8 +98,11 @@ func TestStartCmd_ValidationErrors(t *testing.T) {
 	env := newStatusTestEnv(t)
 
 	lockDir := t.TempDir()
-	dmn.GlobalLockDir = lockDir
-	defer func() { dmn.GlobalLockDir = "" }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", lockDir)
+
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
 
 	// Set node to "complete" with incomplete tasks. This is
 	// COMPLETE_WITH_INCOMPLETE (model-assisted), which pre-start
@@ -125,8 +128,11 @@ func TestStartCmd_ValidationWarnings(t *testing.T) {
 	env := newStatusTestEnv(t)
 
 	lockDir := t.TempDir()
-	dmn.GlobalLockDir = lockDir
-	defer func() { dmn.GlobalLockDir = "" }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", lockDir)
+
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
 
 	// Place a stop file so the daemon exits after starting.
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
@@ -145,39 +151,32 @@ func TestStartCmd_ValidationWarnings(t *testing.T) {
 // stop command - force flag
 // ---------------------------------------------------------------------------
 
-func TestStopCmd_ForceFlag(t *testing.T) {
+func TestStopCmd_ForceFlag_NoInstance(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	env := newTestEnv(t)
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
 	env.RootCmd.SetArgs([]string{"stop", "--force"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error for stale PID (even with --force)")
+		t.Error("expected error when no instance is registered")
 	}
 }
 
-func TestStopCmd_RunningProcess(t *testing.T) {
-	env := newTestEnv(t)
-	// Use our own PID. It's running, but signal will succeed
-	pid := os.Getpid()
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+func TestStopCmd_JSONOutput_NoInstance(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
 
-	// This will send SIGTERM to ourselves, which is dangerous in a test.
-	// Instead, test the JSON output path by making sure stop parses the PID correctly.
-	// We skip the actual signal send by checking stop's error message for running PID.
-}
-
-func TestStopCmd_JSONOutput(t *testing.T) {
 	env := newTestEnv(t)
 	env.App.JSON = true
 	defer func() { env.App.JSON = false }()
 
-	// No PID file. Should error
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()
 	if err == nil {
-		t.Error("expected error when no PID file exists")
+		t.Error("expected error when no instance is registered")
 	}
 }
 
@@ -208,8 +207,11 @@ func TestStartCmd_VerboseFlag(t *testing.T) {
 	env := newStatusTestEnv(t)
 
 	lockDir := t.TempDir()
-	dmn.GlobalLockDir = lockDir
-	defer func() { dmn.GlobalLockDir = "" }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", lockDir)
+
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
 
 	// Place a stop file so the daemon exits immediately.
 	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
@@ -220,32 +222,22 @@ func TestStartCmd_VerboseFlag(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// recoverStaleDaemonState - unreadable PID file
-// ---------------------------------------------------------------------------
-
-func TestRecoverStaleDaemonState_UnreadablePidFile(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("permission-based test not supported on Windows")
-	}
-	tmp := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
-	pidPath := filepath.Join(tmp, "system", "wolfcastle.pid")
-	_ = os.WriteFile(pidPath, []byte("12345"), 0000)
-	// Should handle read error gracefully
-	recoverStaleDaemonState(tmp)
-	// Restore for cleanup
-	_ = os.Chmod(pidPath, 0644)
-}
-
-// ---------------------------------------------------------------------------
-// getDaemonStatus - with own PID (running)
+// getDaemonStatus - with own PID (running, via instance registry)
 // ---------------------------------------------------------------------------
 
 func TestGetDaemonStatus_CurrentProcessJSON(t *testing.T) {
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
 	tmp := t.TempDir()
+	cwd, _ := os.Getwd()
+	cwd, _ = filepath.EvalSymlinks(cwd)
 	pid := os.Getpid()
-	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	slug := instance.Slug(cwd)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, cwd)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
+
 	repo := dmn.NewDaemonRepository(tmp)
 	status := getDaemonStatus(repo)
 	expected := fmt.Sprintf("running (PID %d)", pid)

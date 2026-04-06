@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
-	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
 )
@@ -433,31 +432,6 @@ func TestPrintNodeTree_OpenGapNonTerminal(t *testing.T) {
 // longer writes the PID file. The child _daemon-run process handles it.
 
 // ═══════════════════════════════════════════════════════════════════════════
-// recoverStaleDaemonState: read error on PID file (not ENOENT)
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestRecoverStaleDaemonState_ReadError(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("chmod restrictions have no effect on Windows")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("skip in CI")
-	}
-	tmp := t.TempDir()
-	sysDir := filepath.Join(tmp, "system")
-	_ = os.MkdirAll(sysDir, 0755)
-
-	// Make the PID file unreadable (triggers the err != nil, !IsNotExist path).
-	pidPath := filepath.Join(sysDir, "wolfcastle.pid")
-	_ = os.WriteFile(pidPath, []byte("1234"), 0644)
-	_ = os.Chmod(pidPath, 0000)
-	defer func() { _ = os.Chmod(pidPath, 0644) }()
-
-	// Should return silently without panicking.
-	recoverStaleDaemonState(tmp)
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // showTreeStatus: empty tree path (zero total nodes)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -647,8 +621,11 @@ func TestStartCmd_DaemonNewFails(t *testing.T) {
 	env := newStatusTestEnv(t)
 
 	lockDir := t.TempDir()
-	dmn.GlobalLockDir = lockDir
-	defer func() { dmn.GlobalLockDir = "" }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", lockDir)
+
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
 
 	// Replace the logs directory with a regular file so logging.NewLogger
 	// fails when it tries to create files inside it.

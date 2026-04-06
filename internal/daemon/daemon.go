@@ -45,6 +45,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/git"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/output" // retained for idle spinner + New() warning
@@ -490,7 +491,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				go func() {
 					time.Sleep(2 * time.Second)
 					_ = d.Logger.Log(map[string]any{"type": "force_exit", "message": "signal handler force exit after 2s grace period"})
-					_ = d.repo().RemovePID()
+					_ = instance.Deregister(d.RepoDir)
 					d.removeActivityFile()
 					os.Exit(0)
 				}()
@@ -536,6 +537,13 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 	}
 	d.Logger.Close()
+
+	// Register this daemon in the instance registry so CLI commands
+	// can discover it by CWD matching.
+	if regErr := instance.Register(d.RepoDir, d.branch); regErr != nil {
+		d.log(map[string]any{"type": "warning", "text": fmt.Sprintf("instance registry: %v", regErr)})
+	}
+	defer func() { _ = instance.Deregister(d.RepoDir) }()
 
 	// Initialize the parallel dispatcher when parallel mode is enabled.
 	// This must happen after selfHeal (which cleans stale scope locks)

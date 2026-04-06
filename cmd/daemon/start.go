@@ -14,6 +14,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
@@ -111,22 +112,16 @@ Examples:
 				}
 			}
 
-			// Recover stale daemon state
-			recoverStaleDaemonState(app.Config.Root())
+			// Check instance registry for an already-running daemon in this worktree.
+			if existing, resolveErr := instance.Resolve(repoDir); resolveErr == nil {
+				return fmt.Errorf("already running (PID %d). Use 'wolfcastle stop' first", existing.PID)
+			}
 
-			// Check global daemon lock (one daemon at a time, globally)
-			if err := dmn.AcquireGlobalLock(repoDir, repoDir); err != nil {
+			// Per-worktree lock (prevents duplicate daemons in the same worktree)
+			if err := dmn.AcquireLock(app.Config.Root(), repoDir, ""); err != nil {
 				return err
 			}
-			defer dmn.ReleaseGlobalLock()
-
-			// Check for running daemon (per-project PID, backward compat)
-			pid, pidErr := app.Daemon.ReadPID()
-			if pidErr == nil && dmn.IsProcessRunning(pid) {
-				dmn.ReleaseGlobalLock()
-				return fmt.Errorf("already running (PID %d). Use 'wolfcastle stop' first", pid)
-			}
-			_ = app.Daemon.RemovePID()
+			defer dmn.ReleaseLock(app.Config.Root())
 
 			// Self-heal before validation: fix deterministic issues so
 			// startup validation doesn't block on repairable state.
@@ -182,13 +177,6 @@ Examples:
 				return err
 			}
 			d.ExitWhenDone = exitWhenDone
-
-			// Write PID file for foreground mode too, so `wolfcastle status`
-			// can detect a running daemon regardless of how it was started.
-			if err := app.Daemon.WritePID(os.Getpid()); err != nil {
-				return fmt.Errorf("writing PID file: %w", err)
-			}
-			defer func() { _ = app.Daemon.RemovePID() }()
 
 			ctx, cancel := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer cancel()
@@ -322,20 +310,6 @@ func createWorktree(repoDir, branch string) (string, error) {
 	}
 
 	return wtDir, nil
-}
-
-func recoverStaleDaemonState(wolfcastleDir string) {
-	repo := dmn.NewDaemonRepository(wolfcastleDir)
-	if !repo.PIDFileExists() {
-		return
-	}
-	if repo.IsAlive() {
-		return
-	}
-	// Process is dead or PID is unreadable. Clean up stale files.
-	_ = repo.RemovePID()
-	_ = os.Remove(filepath.Join(wolfcastleDir, tierfs.SystemPrefix, "daemon.meta.json"))
-	_ = repo.RemoveStopFile()
 }
 
 // checkDirtyTree returns true if the git working tree has uncommitted

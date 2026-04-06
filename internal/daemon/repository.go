@@ -2,14 +2,10 @@ package daemon
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
-	"syscall"
 
-	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
@@ -29,38 +25,8 @@ func NewDaemonRepository(wolfcastleRoot string) *DaemonRepository {
 	}
 }
 
-func (r *DaemonRepository) pidPath() string {
-	return filepath.Join(r.systemDir, "wolfcastle.pid")
-}
-
 func (r *DaemonRepository) stopPath() string {
 	return filepath.Join(r.systemDir, "stop")
-}
-
-// ReadPID reads the daemon PID from the PID file, trimming whitespace
-// and converting to int.
-func (r *DaemonRepository) ReadPID() (int, error) {
-	data, err := os.ReadFile(r.pidPath())
-	if err != nil {
-		return 0, err
-	}
-	return strconv.Atoi(strings.TrimSpace(string(data)))
-}
-
-// WritePID writes the given PID as a decimal string with a trailing newline.
-// Uses atomic write (temp file + rename) so a crash mid-write never leaves
-// a truncated PID file.
-func (r *DaemonRepository) WritePID(pid int) error {
-	return state.AtomicWriteFile(r.pidPath(), []byte(fmt.Sprintf("%d\n", pid)))
-}
-
-// RemovePID removes the PID file. Returns nil if the file does not exist.
-func (r *DaemonRepository) RemovePID() error {
-	err := os.Remove(r.pidPath())
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	return err
 }
 
 // HasStopFile reports whether the stop file exists.
@@ -83,31 +49,21 @@ func (r *DaemonRepository) RemoveStopFile() error {
 	return err
 }
 
-// IsAlive checks whether a daemon process is currently running by reading
-// the PID file and sending signal 0. Returns false if the PID file is
-// missing, malformed, or the process is dead.
-func (r *DaemonRepository) IsAlive() bool {
-	pid, err := r.ReadPID()
-	if err != nil {
-		return false
-	}
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		return false
-	}
-	return proc.Signal(syscall.Signal(0)) == nil
-}
-
-// PIDFileExists reports whether the PID file exists on disk.
-func (r *DaemonRepository) PIDFileExists() bool {
-	_, err := os.Stat(r.pidPath())
-	return err == nil
-}
-
 // StopFileExists reports whether the stop file exists on disk.
 func (r *DaemonRepository) StopFileExists() bool {
 	_, err := os.Stat(r.stopPath())
 	return err == nil
+}
+
+// IsAlive checks the instance registry for a running daemon whose
+// worktree matches this repository's root directory (parent of systemDir).
+func (r *DaemonRepository) IsAlive() bool {
+	repoDir := filepath.Dir(r.systemDir)
+	entry, err := instance.Resolve(repoDir)
+	if err != nil {
+		return false
+	}
+	return IsProcessRunning(entry.PID)
 }
 
 // HasDrainFile reports whether the drain file exists.

@@ -8,52 +8,49 @@ import (
 	"time"
 )
 
-func TestAcquireGlobalLock_CreatesLockFile(t *testing.T) {
-	// Use a temp dir as HOME to avoid touching the real ~/.wolfcastle
-	tmpHome := t.TempDir()
-	t.Setenv("HOME", tmpHome)
+func TestAcquireLock_CreatesLockFile(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
 
-	err := AcquireGlobalLock("/repo", "/repo/worktree")
+	err := AcquireLock(dir, "/repo/worktree", "main")
 	if err != nil {
-		t.Fatalf("AcquireGlobalLock: %v", err)
+		t.Fatalf("AcquireLock: %v", err)
 	}
-	defer ReleaseGlobalLock()
+	defer ReleaseLock(dir)
 
-	lock, err := ReadGlobalLock()
+	lock, err := ReadLock(dir)
 	if err != nil {
-		t.Fatalf("ReadGlobalLock: %v", err)
+		t.Fatalf("ReadLock: %v", err)
 	}
 	if lock.PID != os.Getpid() {
 		t.Errorf("expected PID %d, got %d", os.Getpid(), lock.PID)
 	}
-	if lock.Repo != "/repo" {
-		t.Errorf("expected repo /repo, got %s", lock.Repo)
-	}
 	if lock.Worktree != "/repo/worktree" {
 		t.Errorf("expected worktree /repo/worktree, got %s", lock.Worktree)
+	}
+	if lock.Branch != "main" {
+		t.Errorf("expected branch main, got %s", lock.Branch)
 	}
 	if lock.Started.IsZero() {
 		t.Error("started should be set")
 	}
 }
 
-func TestAcquireGlobalLock_FailsWhenAlreadyRunning(t *testing.T) {
-	tmpHome := t.TempDir()
-	t.Setenv("HOME", tmpHome)
+func TestAcquireLock_FailsWhenAlreadyRunning(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
 
 	// Write a lock file with the current PID (simulating a running daemon)
-	lockDir := filepath.Join(tmpHome, ".wolfcastle")
-	_ = os.MkdirAll(lockDir, 0755)
-	lock := GlobalLock{
+	lock := Lock{
 		PID:      os.Getpid(), // Current process is definitely alive
-		Repo:     "/other/repo",
 		Worktree: "/other/repo/feat",
+		Branch:   "feat/thing",
 		Started:  time.Now().UTC(),
 	}
 	data, _ := json.MarshalIndent(lock, "", "  ")
-	_ = os.WriteFile(filepath.Join(lockDir, "daemon.lock"), data, 0644)
+	_ = os.WriteFile(filepath.Join(dir, "daemon.lock"), data, 0644)
 
-	err := AcquireGlobalLock("/repo", "/repo/worktree")
+	err := AcquireLock(dir, "/repo/worktree", "main")
 	if err == nil {
 		t.Fatal("expected error when daemon already running")
 	}
@@ -65,66 +62,62 @@ func TestAcquireGlobalLock_FailsWhenAlreadyRunning(t *testing.T) {
 	}
 }
 
-func TestAcquireGlobalLock_RemovesStaleLock(t *testing.T) {
-	tmpHome := t.TempDir()
-	t.Setenv("HOME", tmpHome)
+func TestAcquireLock_RemovesStaleLock(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
 
 	// Write a lock with a PID that doesn't exist
-	lockDir := filepath.Join(tmpHome, ".wolfcastle")
-	_ = os.MkdirAll(lockDir, 0755)
-	lock := GlobalLock{
+	lock := Lock{
 		PID:      99999999, // Almost certainly not running
-		Repo:     "/old/repo",
 		Worktree: "/old/repo/old-branch",
+		Branch:   "old-branch",
 		Started:  time.Now().Add(-24 * time.Hour).UTC(),
 	}
 	data, _ := json.MarshalIndent(lock, "", "  ")
-	_ = os.WriteFile(filepath.Join(lockDir, "daemon.lock"), data, 0644)
+	_ = os.WriteFile(filepath.Join(dir, "daemon.lock"), data, 0644)
 
 	// Should succeed because old PID is dead
-	err := AcquireGlobalLock("/repo", "/repo/worktree")
+	err := AcquireLock(dir, "/repo/worktree", "main")
 	if err != nil {
 		t.Fatalf("expected stale lock to be replaced: %v", err)
 	}
-	defer ReleaseGlobalLock()
+	defer ReleaseLock(dir)
 
 	// Verify lock was replaced
-	newLock, _ := ReadGlobalLock()
+	newLock, _ := ReadLock(dir)
 	if newLock.PID != os.Getpid() {
 		t.Errorf("lock should have current PID, got %d", newLock.PID)
 	}
 }
 
-func TestReleaseGlobalLock_OnlyRemovesOwnLock(t *testing.T) {
-	tmpHome := t.TempDir()
-	t.Setenv("HOME", tmpHome)
+func TestReleaseLock_OnlyRemovesOwnLock(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
 
 	// Write a lock with a different PID
-	lockDir := filepath.Join(tmpHome, ".wolfcastle")
-	_ = os.MkdirAll(lockDir, 0755)
-	lock := GlobalLock{
+	lock := Lock{
 		PID:      os.Getpid() + 1, // Different process
-		Repo:     "/other",
 		Worktree: "/other",
+		Branch:   "other",
 		Started:  time.Now().UTC(),
 	}
 	data, _ := json.MarshalIndent(lock, "", "  ")
-	lockPath := filepath.Join(lockDir, "daemon.lock")
-	_ = os.WriteFile(lockPath, data, 0644)
+	lp := filepath.Join(dir, "daemon.lock")
+	_ = os.WriteFile(lp, data, 0644)
 
 	// Release should not remove another process's lock
-	ReleaseGlobalLock()
+	ReleaseLock(dir)
 
-	if _, err := os.Stat(lockPath); os.IsNotExist(err) {
+	if _, err := os.Stat(lp); os.IsNotExist(err) {
 		t.Error("release should not remove another process's lock file")
 	}
 }
 
-func TestReadGlobalLock_MissingFile(t *testing.T) {
-	tmpHome := t.TempDir()
-	t.Setenv("HOME", tmpHome)
+func TestReadLock_MissingFile(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
 
-	_, err := ReadGlobalLock()
+	_, err := ReadLock(dir)
 	if err == nil {
 		t.Error("expected error for missing lock file")
 	}
