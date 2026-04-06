@@ -143,6 +143,15 @@ func (cb *ContextBuilder) Build(nodeAddr string, nodeDir string, ns *state.NodeS
 				b.WriteString("\n## Sibling Tasks (verify these deliverables)\n\n")
 				b.WriteString(siblings.String())
 			}
+
+			// 3c. Audit enrichment (supervisor-provided context)
+			if len(ns.AuditEnrichment) > 0 {
+				b.WriteString("\n## Audit Enrichment\n\n")
+				b.WriteString("The following context was provided by the supervisor to guide this audit:\n\n")
+				for _, e := range ns.AuditEnrichment {
+					fmt.Fprintf(&b, "- %s\n", e)
+				}
+			}
 		}
 
 		// 4a. Universal guidance (always injected)

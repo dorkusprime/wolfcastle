@@ -36,6 +36,9 @@ For refactoring tasks (extract helper, unify components, rename), compare observ
 #### Multi-tool verification
 Run ALL verification tools the project uses, not just the test suite. This includes type checkers (`tsc --noEmit`, `pyright`, `mypy`), linters (`ruff`, `eslint`, `go vet`), formatters, and build checks. A test suite that passes does not guarantee type safety or lint cleanliness. Check the project's CI configuration or Makefile for the full list of verification commands.
 
+#### Cross-layer contract verification
+When children produce or modify files in more than one language stack (e.g., Python backend + TypeScript frontend, or Go + generated clients), verify data contracts are consistent across the boundary. Check that field names match after the expected casing transform (snake_case to camelCase for JSON serialization). For file paths, store paths, or environment variables shared across layers, verify the names are identical. For renamed symbols, grep for the old name across the entire scope to confirm all references were updated.
+
 #### Inbox item completeness
 When the orchestrator was created from an inbox item containing a numbered list of sub-items, verify each sub-item was addressed by at least one child's deliverables. Explicitly check off each sub-item. Flag any that were missed as gaps.
 
