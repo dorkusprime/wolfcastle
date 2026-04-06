@@ -14,7 +14,7 @@ Prefer `.container-fluid` for full-width layouts. Prefer `.container` or `.conta
 
 ## Utility Classes
 
-Bootstrap 5 ships a comprehensive set of utility classes for spacing (`m-*`, `p-*`), display (`d-flex`, `d-none`), text (`text-center`, `fw-bold`), color (`text-primary`, `bg-light`), and more.
+Bootstrap 5 ships utility classes for spacing (`m-*`, `p-*`), display (`d-flex`, `d-none`), text (`text-center`, `fw-bold`), color (`text-primary`, `bg-light`), and more.
 
 Prefer utilities over custom CSS for one-off styling adjustments. `class="mb-3 text-center"` is easier to maintain than a single-use CSS class with `margin-bottom: 1rem; text-align: center`.
 

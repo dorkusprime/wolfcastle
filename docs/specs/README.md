@@ -45,6 +45,7 @@ Living system specifications for Wolfcastle. These describe the current design a
 | [Deterministic Git](2026-03-22T07-00Z-deterministic-git.md) | Daemon-owned git commits after every iteration, configurable via `git.*` fields, agent never touches git |
 | [Codebase Knowledge](2026-03-22T08-00Z-codebase-knowledge.md) | Per-namespace markdown knowledge files accumulating codebase observations across tasks |
 | [Template File Generation](2026-03-22T09-00Z-template-file-generation.md) | Move generated file content from string builders to overridable templates via three-tier resolution |
+| [Parallel Sibling Execution](2026-03-23T10-53Z-parallel-sibling-execution.md) | Concurrent execution of independent sibling tasks with file-level scope locks and serialized git commits |
 
 ## Drafts
 
