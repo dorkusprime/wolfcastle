@@ -54,7 +54,7 @@ borderline algorithmic matches are confirmed by a model.
   completes in milliseconds regardless of team size.
 - **Deterministic.** Same inputs always produce the same score. Results
   are reproducible and debuggable.
-- **Scalable.** Bigram comparison is O(n) per pair, with no prompt size
+- **Fast at any size.** Bigram comparison is O(n) per pair, with no prompt size
   limits.
 - **Structured.** Each match includes engineer, project, score, and
   shared terms: ready for `--json` output.

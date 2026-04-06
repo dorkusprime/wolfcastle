@@ -285,6 +285,9 @@ func TestAppend_InvalidDirectory(t *testing.T) {
 }
 
 func TestAppend_ReadOnlyDirectory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	t.Parallel()
 	dir := t.TempDir()
 	knowledgeDir := filepath.Join(dir, "docs", "knowledge")
@@ -304,6 +307,9 @@ func TestAppend_ReadOnlyDirectory(t *testing.T) {
 }
 
 func TestCheckBudget_ReadError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod restrictions have no effect on Windows")
+	}
 	t.Parallel()
 	dir := t.TempDir()
 	p := FilePath(dir, "ns")
