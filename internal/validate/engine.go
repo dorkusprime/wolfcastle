@@ -398,19 +398,7 @@ func (e *Engine) checkGlobalState(idx *state.RootIndex, categories map[string]bo
 		}
 	}
 
-	if e.include(CatStalePIDFile, categories) {
-		if e.daemonRepo != nil && !e.isDaemonAlive() {
-			if e.daemonRepo.PIDFileExists() {
-				report.Issues = append(report.Issues, Issue{
-					Severity:    SeverityWarning,
-					Category:    CatStalePIDFile,
-					Description: "PID file exists but daemon process is not alive",
-					CanAutoFix:  true,
-					FixType:     FixDeterministic,
-				})
-			}
-		}
-	}
+	// CatStalePIDFile: no longer applicable (PID files replaced by instance registry).
 	if e.include(CatStaleStopFile, categories) {
 		if e.daemonRepo != nil && !e.isDaemonAlive() {
 			if e.daemonRepo.StopFileExists() {

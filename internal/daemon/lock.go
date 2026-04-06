@@ -8,63 +8,49 @@ import (
 	"time"
 )
 
-// GlobalLock represents the daemon lock file at ~/.wolfcastle/daemon.lock.
-// One daemon runs globally at a time.
-type GlobalLock struct {
+// Lock represents the per-worktree daemon lock file inside .wolfcastle/.
+// Only one daemon may run per worktree at a time.
+type Lock struct {
 	PID      int       `json:"pid"`
-	Repo     string    `json:"repo"`
 	Worktree string    `json:"worktree"`
+	Branch   string    `json:"branch"`
 	Started  time.Time `json:"started"`
 }
 
-// GlobalLockDir overrides the lock directory for testing.
-// When empty, defaults to ~/.wolfcastle/.
-var GlobalLockDir string
-
-// globalLockPath returns the path to daemon.lock. It checks GlobalLockDir
-// first, then WOLFCASTLE_LOCK_DIR, then falls back to ~/.wolfcastle/.
-func globalLockPath() (string, error) {
-	dir := GlobalLockDir
-	if dir == "" {
-		dir = os.Getenv("WOLFCASTLE_LOCK_DIR")
+// lockPath returns the path to daemon.lock. When WOLFCASTLE_LOCK_DIR is set
+// (testing escape hatch), the lock lives there instead of inside wolfcastleDir.
+func lockPath(wolfcastleDir string) string {
+	if dir := os.Getenv("WOLFCASTLE_LOCK_DIR"); dir != "" {
+		return filepath.Join(dir, "daemon.lock")
 	}
-	if dir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("resolving home directory: %w", err)
-		}
-		dir = filepath.Join(home, ".wolfcastle")
-	}
-	return filepath.Join(dir, "daemon.lock"), nil
+	return filepath.Join(wolfcastleDir, "daemon.lock")
 }
 
-// AcquireGlobalLock checks for an existing daemon and creates the lock file.
-// Returns an error if another daemon is running.
-func AcquireGlobalLock(repoDir, worktreeDir string) error {
-	lockPath, err := globalLockPath()
-	if err != nil {
-		return err
-	}
+// AcquireLock checks for an existing daemon in this worktree and creates
+// the lock file. Returns an error if another daemon is already running
+// in the same worktree.
+func AcquireLock(wolfcastleDir, worktreeDir, branch string) error {
+	lp := lockPath(wolfcastleDir)
 
 	// Check for existing lock
-	if existing, readErr := ReadGlobalLock(); readErr == nil {
+	if existing, readErr := ReadLock(wolfcastleDir); readErr == nil {
 		if IsProcessRunning(existing.PID) {
 			return fmt.Errorf("daemon already running in %s (PID %d, started %s)",
 				existing.Worktree, existing.PID, existing.Started.Format(time.RFC3339))
 		}
 		// Stale lock, remove it
-		_ = os.Remove(lockPath)
+		_ = os.Remove(lp)
 	}
 
 	// Create the lock directory if needed
-	if err := os.MkdirAll(filepath.Dir(lockPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(lp), 0755); err != nil {
 		return fmt.Errorf("creating lock directory: %w", err)
 	}
 
-	lock := GlobalLock{
+	lock := Lock{
 		PID:      os.Getpid(),
-		Repo:     repoDir,
 		Worktree: worktreeDir,
+		Branch:   branch,
 		Started:  time.Now().UTC(),
 	}
 
@@ -74,7 +60,7 @@ func AcquireGlobalLock(repoDir, worktreeDir string) error {
 	}
 
 	// Atomic write: temp file + rename to avoid partial reads.
-	tmp, err := os.CreateTemp(filepath.Dir(lockPath), ".wolfcastle-tmp-*")
+	tmp, err := os.CreateTemp(filepath.Dir(lp), ".wolfcastle-tmp-*")
 	if err != nil {
 		return fmt.Errorf("creating temp lock file: %w", err)
 	}
@@ -94,7 +80,7 @@ func AcquireGlobalLock(repoDir, worktreeDir string) error {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("closing temp lock file: %w", err)
 	}
-	if err := os.Rename(tmpName, lockPath); err != nil {
+	if err := os.Rename(tmpName, lp); err != nil {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("renaming temp lock file: %w", err)
 	}
@@ -102,35 +88,28 @@ func AcquireGlobalLock(repoDir, worktreeDir string) error {
 	return nil
 }
 
-// ReleaseGlobalLock removes the global lock file. Only removes if the
-// lock belongs to the current process (prevents removing another daemon's lock
-// in race conditions).
-func ReleaseGlobalLock() {
-	lockPath, err := globalLockPath()
-	if err != nil {
-		return
-	}
-	existing, readErr := ReadGlobalLock()
+// ReleaseLock removes the per-worktree lock file. Only removes if the
+// lock belongs to the current process (prevents removing another daemon's lock).
+func ReleaseLock(wolfcastleDir string) {
+	lp := lockPath(wolfcastleDir)
+	existing, readErr := ReadLock(wolfcastleDir)
 	if readErr != nil {
 		return
 	}
 	if existing.PID == os.Getpid() {
-		_ = os.Remove(lockPath)
+		_ = os.Remove(lp)
 	}
 }
 
-// ReadGlobalLock reads the global lock file. Returns an error if the
+// ReadLock reads the per-worktree lock file. Returns an error if the
 // file doesn't exist or can't be parsed.
-func ReadGlobalLock() (*GlobalLock, error) {
-	lockPath, err := globalLockPath()
+func ReadLock(wolfcastleDir string) (*Lock, error) {
+	lp := lockPath(wolfcastleDir)
+	data, err := os.ReadFile(lp)
 	if err != nil {
 		return nil, err
 	}
-	data, err := os.ReadFile(lockPath)
-	if err != nil {
-		return nil, err
-	}
-	var lock GlobalLock
+	var lock Lock
 	if err := json.Unmarshal(data, &lock); err != nil {
 		return nil, fmt.Errorf("parsing lock file: %w", err)
 	}

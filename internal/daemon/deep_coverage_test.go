@@ -1,7 +1,6 @@
 package daemon
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -151,34 +150,4 @@ func TestCheckInboxState_OnlyFiled(t *testing.T) {
 	if hasNew {
 		t.Error("filed items should not count as new")
 	}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PID utilities
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestWriteAndReadPID_RoundTrip(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(dir, "system"), 0755)
-	repo := NewDaemonRepository(dir)
-	if err := repo.WritePID(os.Getpid()); err != nil {
-		t.Fatal(err)
-	}
-
-	pid, err := repo.ReadPID()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pid != os.Getpid() {
-		t.Errorf("expected PID %d, got %d", os.Getpid(), pid)
-	}
-}
-
-func TestRemovePID_NoFileNoPanic(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	repo := NewDaemonRepository(dir)
-	// Should not panic or error
-	_ = repo.RemovePID()
 }

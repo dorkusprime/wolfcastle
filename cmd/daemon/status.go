@@ -14,6 +14,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
 	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
@@ -661,19 +662,23 @@ func taskGlyph(s state.NodeStatus) string {
 	}
 }
 
-// getDaemonStatus checks the PID file and reports daemon status.
+// getDaemonStatus checks the instance registry and reports daemon status.
 func getDaemonStatus(repo *dmn.DaemonRepository) string {
-	pid, err := repo.ReadPID()
+	cwd, err := os.Getwd()
 	if err != nil {
 		return "stopped"
 	}
-	if !dmn.IsProcessRunning(pid) {
-		return fmt.Sprintf("stopped (stale PID %d)", pid)
+	entry, err := instance.Resolve(cwd)
+	if err != nil {
+		return "stopped"
+	}
+	if !dmn.IsProcessRunning(entry.PID) {
+		return fmt.Sprintf("stopped (stale PID %d)", entry.PID)
 	}
 	if repo.HasDrainFile() {
-		return fmt.Sprintf("draining (PID %d)", pid)
+		return fmt.Sprintf("draining (PID %d)", entry.PID)
 	}
-	return fmt.Sprintf("running (PID %d)", pid)
+	return fmt.Sprintf("running (PID %d)", entry.PID)
 }
 
 // printParallelStatus renders the worker pool section of the status display.

@@ -2,11 +2,11 @@ package daemon
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -179,14 +179,19 @@ func TestFillSlots_SkipsWhenDraining(t *testing.T) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestDrainFileStatus(t *testing.T) {
-	t.Parallel()
 	d := testDaemon(t)
 	repo := d.repo()
 
-	// Write PID file with our own PID.
-	if err := repo.WritePID(os.Getpid()); err != nil {
-		t.Fatalf("writing PID: %v", err)
+	// Register the current process in the instance registry so IsAlive returns true.
+	regDir := t.TempDir()
+	old := instance.RegistryDirOverride
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = old }()
+
+	if err := instance.Register(d.RepoDir, "test-branch"); err != nil {
+		t.Fatalf("instance.Register: %v", err)
 	}
+	defer func() { _ = instance.Deregister(d.RepoDir) }()
 
 	if repo.HasDrainFile() {
 		t.Error("drain file should not exist")

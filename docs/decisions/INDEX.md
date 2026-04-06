@@ -99,3 +99,6 @@
 | 095 | [Parallel Sibling Execution](095-parallel-sibling-execution.md) | Accepted | 2026-03-23 |
 | 096 | [Config Versioning and Migration](096-config-versioning.md) | Accepted | 2026-03-24 |
 | 097 | [Unified Log Output](097-unified-log-output.md) | Accepted (supersedes ADR-037) | 2026-04-05 |
+| 098 | [Per-Worktree Daemon Lock](098-per-worktree-daemon-lock.md) | Accepted | 2026-04-06 |
+| 099 | [File-Per-Instance Registry](099-instance-registry.md) | Accepted | 2026-04-06 |
+| 100 | [CWD-Based Instance Routing](100-cwd-instance-routing.md) | Accepted | 2026-04-06 |

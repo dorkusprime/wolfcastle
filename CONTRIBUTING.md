@@ -176,4 +176,4 @@ graph TD
 
 Dependencies flow strictly downward. Domain packages orchestrate core packages. Core packages depend only on each other and on leaf packages. Leaf packages have no internal dependencies.
 
-97 ADRs document every major design decision. Read `docs/decisions/INDEX.md` before making architectural changes. If your change introduces a new pattern or reverses an existing decision, write an ADR.
+100 ADRs document every major design decision. Read `docs/decisions/INDEX.md` before making architectural changes. If your change introduces a new pattern or reverses an existing decision, write an ADR.

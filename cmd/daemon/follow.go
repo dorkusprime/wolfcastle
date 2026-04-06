@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/spf13/cobra"
@@ -86,7 +87,7 @@ Examples:
 			}
 
 			// Implicit follow when daemon is running and session 0.
-			if !follow && sessionIdx == 0 && app.Daemon.IsAlive() {
+			if !follow && sessionIdx == 0 && isDaemonAlive() {
 				follow = true
 			}
 
@@ -94,14 +95,14 @@ Examples:
 			// The spec says --follow is a no-op when the daemon is not running;
 			// without this guard the command hangs waiting for log lines that
 			// will never arrive.
-			if follow && !app.Daemon.IsAlive() {
+			if follow && !isDaemonAlive() {
 				follow = false
 			}
 
 			ctx, stop := signal.NotifyContext(context.Background(), signals.Shutdown...)
 			defer stop()
 
-			return runLog(ctx, logDir, session, mode, follow, app.Daemon.IsAlive)
+			return runLog(ctx, logDir, session, mode, follow, isDaemonAlive)
 		},
 	}
 
@@ -223,4 +224,15 @@ func followJSON(ctx context.Context, logDir string, aliveCheck func() bool) erro
 		_, _ = os.Stdout.Write([]byte{'\n'})
 	}
 	return nil
+}
+
+// isDaemonAlive checks the instance registry for a running daemon
+// in the current working directory.
+func isDaemonAlive() bool {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return false
+	}
+	_, err = instance.Resolve(cwd)
+	return err == nil
 }

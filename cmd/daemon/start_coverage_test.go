@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -17,13 +17,21 @@ import (
 
 func TestStartCmd_AlreadyRunning_OwnPID(t *testing.T) {
 	lockDir := t.TempDir()
-	dmn.GlobalLockDir = lockDir
-	defer func() { dmn.GlobalLockDir = "" }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", lockDir)
+
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
 
 	env := newStatusTestEnv(t)
-	// Write our own PID as the running daemon
+	// Register our own PID in the instance registry for the repo dir.
+	// Resolve symlinks to match what instance.Resolve does internally.
+	repoDir := filepath.Dir(env.WolfcastleDir)
+	resolved, _ := filepath.EvalSymlinks(repoDir)
 	pid := os.Getpid()
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte(fmt.Sprintf("%d", pid)), 0644)
+	slug := instance.Slug(resolved)
+	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, resolved)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
@@ -34,8 +42,11 @@ func TestStartCmd_AlreadyRunning_OwnPID(t *testing.T) {
 
 func TestStartCmd_ValidationBlocksWithErrors(t *testing.T) {
 	lockDir := t.TempDir()
-	dmn.GlobalLockDir = lockDir
-	defer func() { dmn.GlobalLockDir = "" }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", lockDir)
+
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
 
 	env := newStatusTestEnv(t)
 
@@ -61,21 +72,21 @@ func TestStartCmd_ValidationBlocksWithErrors(t *testing.T) {
 
 func TestStartCmd_StalePIDRecoveredBeforeStart(t *testing.T) {
 	lockDir := t.TempDir()
-	dmn.GlobalLockDir = lockDir
-	defer func() { dmn.GlobalLockDir = "" }()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", lockDir)
+
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
 
 	env := newStatusTestEnv(t)
 
-	// Write a stale PID file (process doesn't exist) and a stop file.
-	// recoverStaleDaemonState cleans up all three when the PID is dead.
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "daemon.meta.json"), []byte("{}"), 0644)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "stop"), []byte(""), 0644)
+	// Write a stale lock file (process doesn't exist). AcquireLock
+	// will detect the stale lock and remove it before acquiring.
+	_ = os.WriteFile(filepath.Join(lockDir, "daemon.lock"),
+		[]byte(`{"pid":99999999,"worktree":"/tmp/fake","branch":"test","started":"2026-01-01T00:00:00Z"}`), 0644)
 
-	// Also place a fresh stop file AFTER recovery would run, so the daemon
-	// exits immediately if self-heal + validation pass and it actually starts.
-	// We do this by making the node state unfixable (complete with incomplete tasks).
+	// Make the node state unfixable (complete with incomplete tasks)
+	// so the daemon doesn't actually start.
 	nodeDir := filepath.Join(env.ProjectsDir, "my-project")
 	ns, _ := state.LoadNodeState(filepath.Join(nodeDir, "state.json"))
 	ns.State = state.StatusComplete
@@ -88,36 +99,10 @@ func TestStartCmd_StalePIDRecoveredBeforeStart(t *testing.T) {
 
 	env.RootCmd.SetArgs([]string{"start"})
 	err := env.RootCmd.Execute()
-	// The stale PID should be cleaned up; startup should block on validation
+	// Startup should block on validation (stale lock was cleaned up by AcquireLock)
 	_ = err
-
-	// Verify stale PID file was cleaned up
-	if _, statErr := os.Stat(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid")); !os.IsNotExist(statErr) {
-		t.Error("stale PID file should be cleaned up before start")
-	}
 }
 
 // TestStartCmd_ValidationWarningsProceeds was removed: it exercises the full
 // daemon loop (RunWithSupervisor) which triggers race detector issues.
 // Validation-only paths are tested by TestStartCmd_ValidationBlocksWithErrors.
-
-// ═══════════════════════════════════════════════════════════════════════════
-// recoverStaleDaemonState: edge cases
-// ═══════════════════════════════════════════════════════════════════════════
-
-func TestRecoverStaleDaemonState_ValidPIDNotRunning(t *testing.T) {
-	tmp := t.TempDir()
-	// Write a PID that was valid but the process is now dead
-	_ = os.WriteFile(filepath.Join(tmp, "system", "wolfcastle.pid"), []byte("99999999"), 0644)
-	_ = os.WriteFile(filepath.Join(tmp, "system", "stop"), []byte(""), 0644)
-
-	recoverStaleDaemonState(tmp)
-
-	// Should clean up the stale files
-	if _, err := os.Stat(filepath.Join(tmp, "system", "wolfcastle.pid")); !os.IsNotExist(err) {
-		t.Error("stale PID file should be removed for dead process")
-	}
-	if _, err := os.Stat(filepath.Join(tmp, "system", "stop")); !os.IsNotExist(err) {
-		t.Error("stale stop file should be removed for dead process")
-	}
-}

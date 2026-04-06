@@ -55,6 +55,7 @@ Specs that explore potential directions without proposing adoption. Implementati
 |------|-------------|-----------------------|
 | [TUI](2026-03-15T00-02Z-tui.md) | Bubbletea-based terminal UI for observing and commanding the daemon | Not started. No bubbletea dependency or TUI code exists |
 | [Worktree by Default](2026-03-15T00-03Z-worktree-by-default.md) | Running all daemon work in isolated git worktrees by default | Not started. The opt-in `--worktree` flag exists (spec Section 1 status quo) but none of the default-worktree behavior, auto-merge, or config gates have been built |
+| [Multi-Process Architecture](2026-04-06T00-00Z-multi-process-architecture.md) | Per-worktree daemon locks, file-per-instance registry, CWD-based instance routing for concurrent daemon support | Draft |
 
 ## Superseded
 
