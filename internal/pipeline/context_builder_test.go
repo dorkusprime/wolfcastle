@@ -252,6 +252,87 @@ func TestContextBuilder_IncludesAuditContext(t *testing.T) {
 	}
 }
 
+func TestContextBuilder_IncludesAuditEnrichment(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", State: state.StatusComplete},
+			{ID: "audit", IsAudit: true, State: state.StatusInProgress},
+		},
+		AuditEnrichment: []string{
+			"Focus on error handling in retry.go",
+			"The backoff logic was rewritten twice",
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "audit", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got, "## Audit Enrichment") {
+		t.Error("missing audit enrichment section")
+	}
+	if !strings.Contains(got, "Focus on error handling in retry.go") {
+		t.Error("missing first enrichment entry")
+	}
+	if !strings.Contains(got, "backoff logic was rewritten twice") {
+		t.Error("missing second enrichment entry")
+	}
+}
+
+func TestContextBuilder_OmitsAuditEnrichment_WhenEmpty(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "audit", IsAudit: true, State: state.StatusInProgress},
+		},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "audit", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "Audit Enrichment") {
+		t.Error("enrichment section should be omitted when empty")
+	}
+}
+
+func TestContextBuilder_OmitsAuditEnrichment_ForNonAuditTasks(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnvironment(t)
+
+	ns := &state.NodeState{
+		Type:  state.NodeLeaf,
+		State: state.StatusInProgress,
+		Tasks: []state.Task{
+			{ID: "task-0001", State: state.StatusInProgress},
+		},
+		AuditEnrichment: []string{"This should not appear"},
+	}
+
+	cb := pipeline.NewContextBuilder(env.Prompts, env.Classes, "")
+	got, err := cb.Build("proj", "", ns, "task-0001", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(got, "Audit Enrichment") {
+		t.Error("enrichment section should not appear for non-audit tasks")
+	}
+}
+
 func TestContextBuilder_SummaryRequired_LastIncompleteTask(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
