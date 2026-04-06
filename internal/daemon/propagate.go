@@ -60,4 +60,3 @@ func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx
 		return state.SaveRootIndex(d.Store.IndexPath(), freshIdx)
 	})
 }
-
