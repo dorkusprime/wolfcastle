@@ -446,6 +446,127 @@ func TestInterleavedRenderer_RetryEvent(t *testing.T) {
 	}
 }
 
+func TestInterleavedRenderer_DaemonLifecycleStandingDown(t *testing.T) {
+	recs := []Record{
+		{Type: "daemon_lifecycle", Event: "standing_down", Reason: "all work complete", Timestamp: makeTime("2026-03-21T10:05:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s === Wolfcastle standing down (all work complete) ===", localTS("2026-03-21T10:05:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_DaemonLifecycleDefault(t *testing.T) {
+	recs := []Record{
+		{Type: "daemon_lifecycle", Event: "custom_event", Text: "something happened", Timestamp: makeTime("2026-03-21T10:06:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s === something happened ===", localTS("2026-03-21T10:06:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_SelfHeal(t *testing.T) {
+	recs := []Record{
+		{Type: "self_heal", Text: "recovered orphaned task", Timestamp: makeTime("2026-03-21T10:07:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s   recovered orphaned task", localTS("2026-03-21T10:07:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_InboxEvent(t *testing.T) {
+	recs := []Record{
+		{Type: "inbox_event", Text: "3 new items queued", Timestamp: makeTime("2026-03-21T10:08:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s   3 new items queued", localTS("2026-03-21T10:08:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_TaskEvent(t *testing.T) {
+	recs := []Record{
+		{Type: "task_event", Text: "task-0001 marked complete", Timestamp: makeTime("2026-03-21T10:09:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s   task-0001 marked complete", localTS("2026-03-21T10:09:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_IdleReason(t *testing.T) {
+	recs := []Record{
+		{Type: "idle_reason", Text: "waiting for blocked tasks", Timestamp: makeTime("2026-03-21T10:10:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s waiting for blocked tasks", localTS("2026-03-21T10:10:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_ArchiveEvent(t *testing.T) {
+	recs := []Record{
+		{Type: "archive_event", Text: "node archived", Timestamp: makeTime("2026-03-21T10:11:00Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	if want := fmt.Sprintf("%s node archived", localTS("2026-03-21T10:11:00Z")); !strings.Contains(got, want) {
+		t.Errorf("output missing expected substring\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInterleavedRenderer_MiscEvents(t *testing.T) {
+	recs := []Record{
+		{Type: "spec_event", Text: "spec loaded", Timestamp: makeTime("2026-03-21T10:12:00Z")},
+		{Type: "knowledge_event", Text: "knowledge synced", Timestamp: makeTime("2026-03-21T10:12:01Z")},
+		{Type: "config_warning", Text: "deprecated key", Timestamp: makeTime("2026-03-21T10:12:02Z")},
+		{Type: "git_event", Text: "committed changes", Timestamp: makeTime("2026-03-21T10:12:03Z")},
+	}
+
+	var buf bytes.Buffer
+	NewInterleavedRenderer(&buf).Render(context.Background(), feedRecords(recs))
+
+	got := buf.String()
+	lineCount := strings.Count(got, "\n")
+	if lineCount != 4 {
+		t.Errorf("expected 4 lines, got %d:\n%s", lineCount, got)
+	}
+	for _, want := range []string{"spec loaded", "knowledge synced", "deprecated key", "committed changes"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("output missing %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestInterleavedRenderer_NilDurationMS_FallsBack(t *testing.T) {
 	recs := []Record{
 		{Type: "stage_start", Stage: "execute", Node: "proj", Task: "task-0001", Timestamp: makeTime("2026-03-21T10:00:00Z")},
