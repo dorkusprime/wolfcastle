@@ -53,6 +53,8 @@ Then emit WOLFCASTLE_BLOCKED. An audit that cannot verify test results must not 
 
 A code-review-only audit is categorically weaker than a test-verified audit. AST parsing and structural review cannot catch cross-module wiring gaps, import-time side effects, or runtime type mismatches. Do not substitute code review for test execution.
 
+**Generated code staleness:** If this node added or modified files that serve as input to a code generator (API routes, schemas, protobuf definitions, database models, OpenAPI specs), check whether the corresponding generated output files were also updated. Look for generator config in the Makefile, build scripts, or project config. If generated files exist but appear stale relative to their source, file a gap.
+
 ### Correctness
 
 For each file this node changed:
@@ -67,6 +69,7 @@ For each file this node changed:
 
 - No duplication: search for copy-pasted logic across files
 - No dead code: unused functions, variables, imports, commented-out blocks
+- No dead files: for every file this node created (not modified, created), verify at least one other file in the codebase imports or references it. A file with zero consumers is dead code regardless of its internal quality. Use grep or the project's import tooling to verify.
 - No overly complex functions: 50+ lines or 3+ levels of nesting should be decomposed
 - Clear naming: no abbreviations that obscure meaning, no stuttering (a `config` module with a `ConfigManager` class)
 - Minimal public surface: only expose what callers need
@@ -83,6 +86,7 @@ For each file this node changed:
 - Every non-obvious choice has an ADR in `.wolfcastle/docs/decisions/`
 - Every contract (type, interface, package API) has a spec in `.wolfcastle/docs/specs/`
 - Placeholder specs (title only, fewer than 10 lines) count as missing
+- Doc-code consistency: for every ADR, spec, or README this node produced or modified, verify that file paths, function names, class names, endpoint paths, and field names mentioned in the document exist in the current code with those exact names. For tables that enumerate states, transitions, fields, or tools, verify every entry against the code. A well-formatted document that describes code that doesn't exist is worse than no document.
 
 ## Phase 3: Weigh the findings
 
