@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
 // DaemonRepository consolidates all filesystem operations the daemon
@@ -24,7 +25,7 @@ type DaemonRepository struct {
 // wolfcastle directory. All paths are derived from wolfcastleRoot/system.
 func NewDaemonRepository(wolfcastleRoot string) *DaemonRepository {
 	return &DaemonRepository{
-		systemDir: filepath.Join(wolfcastleRoot, "system"),
+		systemDir: filepath.Join(wolfcastleRoot, tierfs.SystemPrefix),
 	}
 }
 

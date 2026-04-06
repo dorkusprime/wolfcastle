@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -113,7 +112,7 @@ func (d *Daemon) namespace() string {
 
 // New creates a new daemon.
 func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode string, repoDir string) (*Daemon, error) {
-	logDir := filepath.Join(wolfcastleDir, "system", "logs")
+	logDir := NewDaemonRepository(wolfcastleDir).LogDir()
 	logger, err := logging.NewLogger(logDir)
 	if err != nil {
 		return nil, err
@@ -625,7 +624,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 				retOpts = append(retOpts, logging.WithCompression())
 			}
 			_ = logging.EnforceRetention(
-				filepath.Join(d.WolfcastleDir, "system", "logs"),
+				d.repo().LogDir(),
 				d.Config.Logs.MaxFiles,
 				d.Config.Logs.MaxAgeDays,
 				retOpts...,

@@ -18,6 +18,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 	"github.com/spf13/cobra"
 )
 
@@ -377,7 +378,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, opts t
 	}
 
 	// Recent log tail: last 2 rendered lines from the current session.
-	printRecentLog(filepath.Join(app.Config.Root(), "system", "logs"), 2)
+	printRecentLog(filepath.Join(app.Config.Root(), tierfs.SystemPrefix, "logs"), 2)
 
 	return nil
 }
@@ -758,7 +759,7 @@ func printRecentLog(logDir string, n int) {
 }
 
 func showAllStatus(app *cmdutil.App) error {
-	projectsDir := filepath.Join(app.Config.Root(), "system", "projects")
+	projectsDir := filepath.Join(app.Config.Root(), tierfs.SystemPrefix, "projects")
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
 		return fmt.Errorf("reading projects dir: %w", err)

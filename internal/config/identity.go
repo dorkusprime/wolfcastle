@@ -6,6 +6,8 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
 // Identity is the domain type representing a resolved user+machine pair.
@@ -60,5 +62,5 @@ func DetectIdentity() *Identity {
 
 // ProjectsDir returns the projects directory for this identity's namespace.
 func (id *Identity) ProjectsDir(wolfcastleRoot string) string {
-	return filepath.Join(wolfcastleRoot, "system", "projects", id.Namespace)
+	return filepath.Join(wolfcastleRoot, tierfs.SystemPrefix, "projects", id.Namespace)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +41,7 @@ Examples:
 			return err
 		}
 
-		logDir := filepath.Join(app.Config.Root(), "system", "logs")
+		logDir := filepath.Join(app.Config.Root(), tierfs.SystemPrefix, "logs")
 		repoDir := filepath.Dir(app.Config.Root())
 
 		if app.Daemon.IsAlive() {

@@ -669,7 +669,7 @@ func (pd *ParallelDispatcher) removeStatusFile() {
 
 // parallelStatusPath returns the path to the parallel status snapshot file.
 func parallelStatusPath(wolfcastleDir string) string {
-	return filepath.Join(wolfcastleDir, "system", "parallel-status.json")
+	return filepath.Join(NewDaemonRepository(wolfcastleDir).systemDir, "parallel-status.json")
 }
 
 // LoadParallelStatus reads the parallel status snapshot from disk.

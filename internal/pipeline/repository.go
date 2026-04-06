@@ -30,7 +30,7 @@ const DefaultCacheTTL = 30 * time.Second
 // The tierfs.FS is constructed over the "system" subdirectory and wrapped
 // with a CachingResolver for TTL-based read caching.
 func NewPromptRepository(wolfcastleRoot string) *PromptRepository {
-	fs := tierfs.New(filepath.Join(wolfcastleRoot, "system"))
+	fs := tierfs.New(filepath.Join(wolfcastleRoot, tierfs.SystemPrefix))
 	return NewPromptRepositoryWithTiers(
 		tierfs.NewCachingResolver(fs, DefaultCacheTTL),
 	)

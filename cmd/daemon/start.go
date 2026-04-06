@@ -17,6 +17,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
+	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 	"github.com/dorkusprime/wolfcastle/internal/validate"
 	"github.com/spf13/cobra"
 )
@@ -195,7 +196,7 @@ Examples:
 			// Start the renderer goroutine. It tails the log directory
 			// for new NDJSON files and renders them to stdout using
 			// whichever output mode was selected (default: summary).
-			logDir := filepath.Join(app.Config.Root(), "system", "logs")
+			logDir := filepath.Join(app.Config.Root(), tierfs.SystemPrefix, "logs")
 			reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
 			records := reader.Records(ctx)
 			renderDone := make(chan struct{})
@@ -268,7 +269,7 @@ func startBackground(wolfcastleDir, nodeScope string, exitWhenDone bool, verbose
 
 	// Redirect stdout/stderr to a daemon log file so startup errors
 	// aren't silently lost.
-	daemonLog := filepath.Join(wolfcastleDir, "system", "daemon.log")
+	daemonLog := filepath.Join(wolfcastleDir, tierfs.SystemPrefix, "daemon.log")
 	logFile, err := os.OpenFile(daemonLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return fmt.Errorf("creating daemon log: %w", err)
@@ -333,7 +334,7 @@ func recoverStaleDaemonState(wolfcastleDir string) {
 	}
 	// Process is dead or PID is unreadable. Clean up stale files.
 	_ = repo.RemovePID()
-	_ = os.Remove(filepath.Join(wolfcastleDir, "system", "daemon.meta.json"))
+	_ = os.Remove(filepath.Join(wolfcastleDir, tierfs.SystemPrefix, "daemon.meta.json"))
 	_ = repo.RemoveStopFile()
 }
 

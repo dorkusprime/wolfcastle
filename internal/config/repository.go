@@ -26,7 +26,7 @@ const DefaultConfigCacheTTL = 30 * time.Second
 // The tierfs.FS is constructed over the "system" subdirectory and wrapped
 // with a CachingResolver for TTL-based read caching.
 func NewRepository(wolfcastleRoot string) *Repository {
-	fs := tierfs.New(filepath.Join(wolfcastleRoot, "system"))
+	fs := tierfs.New(filepath.Join(wolfcastleRoot, tierfs.SystemPrefix))
 	return NewRepositoryWithTiers(
 		tierfs.NewCachingResolver(fs, DefaultConfigCacheTTL),
 		wolfcastleRoot,
