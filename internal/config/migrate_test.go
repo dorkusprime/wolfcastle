@@ -153,7 +153,7 @@ func TestLoad_AppliesMigrations(t *testing.T) {
 		0644,
 	)
 
-	cfg, err := Load(dir)
+	cfg, err := loadFromDir(dir)
 	if err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}

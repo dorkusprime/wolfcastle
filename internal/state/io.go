@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
+
+	"github.com/dorkusprime/wolfcastle/internal/fsutil"
 )
 
 // LoadRootIndex reads the root state.json for an engineer namespace.
@@ -71,35 +72,7 @@ func SaveNodeState(path string, ns *NodeState) error {
 // file in the same directory and renaming. The caller sees either the
 // old content or the new content, never a partial write.
 func AtomicWriteFile(path string, data []byte) error {
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("creating directory: %w", err)
-	}
-
-	tmp, err := os.CreateTemp(dir, ".wolfcastle-tmp-*")
-	if err != nil {
-		return fmt.Errorf("creating temp file: %w", err)
-	}
-	tmpName := tmp.Name()
-
-	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
-		_ = os.Remove(tmpName)
-		return fmt.Errorf("writing temp file: %w", err)
-	}
-	if err := tmp.Sync(); err != nil {
-		_ = tmp.Close()
-		_ = os.Remove(tmpName)
-		return fmt.Errorf("syncing temp file: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		_ = os.Remove(tmpName)
-		return fmt.Errorf("closing temp file: %w", err)
-	}
-	if err := os.Rename(tmpName, path); err != nil {
-		return fmt.Errorf("renaming temp file to %s: %w", filepath.Base(path), err)
-	}
-	return nil
+	return fsutil.AtomicWriteFile(path, data)
 }
 
 // atomicWriteJSON marshals v as indented JSON and writes it atomically.

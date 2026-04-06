@@ -217,17 +217,3 @@ func TestCreateProject_DeeplyNestedChild(t *testing.T) {
 		t.Errorf("expected parent children ['gp/par/child'], got %v", parEntry.Children)
 	}
 }
-
-func TestDetectIdentity_ReturnsNonEmptyValues(t *testing.T) {
-	t.Parallel()
-	identity := detectIdentity()
-
-	user, ok := identity["user"].(string)
-	if !ok || user == "" {
-		t.Error("expected non-empty user string")
-	}
-	machine, ok := identity["machine"].(string)
-	if !ok || machine == "" {
-		t.Error("expected non-empty machine string")
-	}
-}

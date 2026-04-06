@@ -53,7 +53,7 @@ func TestNewEnvironment_ConfigLoadable(t *testing.T) {
 	t.Parallel()
 	env := NewEnvironment(t)
 
-	cfg, err := config.Load(env.Root)
+	cfg, err := env.Config.Load()
 	if err != nil {
 		t.Fatalf("config.Load failed: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestNewEnvironment_Identity(t *testing.T) {
 	t.Parallel()
 	env := NewEnvironment(t)
 
-	cfg, err := config.Load(env.Root)
+	cfg, err := env.Config.Load()
 	if err != nil {
 		t.Fatalf("config.Load failed: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestWithConfig_OverridesMerged(t *testing.T) {
 		},
 	})
 
-	cfg, err := config.Load(env.Root)
+	cfg, err := env.Config.Load()
 	if err != nil {
 		t.Fatalf("config.Load failed: %v", err)
 	}
@@ -168,7 +168,7 @@ func TestWithConfig_PreservesBaseDefaults(t *testing.T) {
 		},
 	})
 
-	cfg, err := config.Load(env.Root)
+	cfg, err := env.Config.Load()
 	if err != nil {
 		t.Fatalf("config.Load failed: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestWithConfig_MultipleCalls_Accumulate(t *testing.T) {
 			},
 		})
 
-	cfg, err := config.Load(env.Root)
+	cfg, err := env.Config.Load()
 	if err != nil {
 		t.Fatalf("config.Load failed: %v", err)
 	}
@@ -801,7 +801,7 @@ func TestChaining_FluentAPI(t *testing.T) {
 		WithRule("style.md", "test rule")
 
 	// Config override applied.
-	cfg, err := config.Load(env.Root)
+	cfg, err := env.Config.Load()
 	if err != nil {
 		t.Fatalf("config.Load failed: %v", err)
 	}

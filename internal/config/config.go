@@ -7,10 +7,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
 // Defaults returns the hardcoded default configuration.
@@ -195,80 +191,6 @@ func Defaults() *Config {
 			"audit":        {Description: "Read-only review, gap recording, no fixes"},
 		},
 	}
-}
-
-// configTiers returns the three-tier config file paths relative to the
-// wolfcastle directory, in resolution order from lowest to highest priority.
-// Derived from tierfs.TierNames, the single source of truth (ADR-063).
-func configTiers() []string {
-	paths := make([]string, len(tierfs.TierNames))
-	for i, name := range tierfs.TierNames {
-		paths[i] = tierfs.SystemPrefix + "/" + name + "/config.json"
-	}
-	return paths
-}
-
-// Load reads and merges configuration from the .wolfcastle directory.
-// Resolution order: hardcoded defaults <- base/config.json <- custom/config.json <- local/config.json
-func Load(wolfcastleDir string) (*Config, error) {
-	// Start with defaults as raw map
-	result, err := structToMap(Defaults())
-	if err != nil {
-		return nil, fmt.Errorf("marshaling defaults: %w", err)
-	}
-
-	var warnings []string
-
-	// Overlay each tier in order, checking for unknown fields per tier
-	for i, tier := range configTiers() {
-		path := filepath.Join(wolfcastleDir, tier)
-		data, err := os.ReadFile(path)
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return nil, fmt.Errorf("reading %s: %w", tier, err)
-		}
-
-		// Check this tier's raw JSON for unknown fields
-		tierLabel := tierfs.TierNames[i] + "/config.json"
-		warnings = append(warnings, checkUnknownFields(data, tierLabel)...)
-
-		var overlay map[string]any
-		if err := json.Unmarshal(data, &overlay); err != nil {
-			return nil, fmt.Errorf("parsing %s: %w", tier, err)
-		}
-		result = DeepMerge(result, overlay)
-	}
-
-	// Apply schema migrations if the merged config is behind CurrentVersion.
-	migrated, migrationDescs, migErr := MigrateConfig(result)
-	if migErr != nil {
-		return nil, fmt.Errorf("config migration: %w", migErr)
-	}
-	result = migrated
-	for _, desc := range migrationDescs {
-		warnings = append(warnings, "config migrated: "+desc)
-	}
-
-	// Marshal back to Config struct
-	merged, err := json.Marshal(result)
-	if err != nil {
-		return nil, fmt.Errorf("marshaling merged config: %w", err)
-	}
-	var cfg Config
-	if err := json.Unmarshal(merged, &cfg); err != nil {
-		return nil, fmt.Errorf("unmarshaling merged config: %w", err)
-	}
-
-	cfg.Warnings = warnings
-
-	// Validate structural integrity (skip identity; handled by resolver)
-	if err := ValidateStructure(&cfg); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
-	}
-
-	return &cfg, nil
 }
 
 // structToMap converts a struct to a map[string]any via JSON round-trip.
