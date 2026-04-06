@@ -56,7 +56,7 @@ Examples:
 
 			entry, err := instance.Resolve(cwd)
 			if err != nil {
-				return fmt.Errorf("no running instance found. Is the daemon running? Check with 'wolfcastle status'")
+				return fmt.Errorf("no running instance found for this directory, check with 'wolfcastle status'")
 			}
 
 			return stopInstance(entry, force, app.JSON)

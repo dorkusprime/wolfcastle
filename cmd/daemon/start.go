@@ -114,7 +114,7 @@ Examples:
 
 			// Check instance registry for an already-running daemon in this worktree.
 			if existing, resolveErr := instance.Resolve(repoDir); resolveErr == nil {
-				return fmt.Errorf("already running (PID %d). Use 'wolfcastle stop' first", existing.PID)
+				return fmt.Errorf("already running (PID %d), use 'wolfcastle stop' first", existing.PID)
 			}
 
 			// Per-worktree lock (prevents duplicate daemons in the same worktree)

@@ -123,6 +123,32 @@ func TestReadLock_MissingFile(t *testing.T) {
 	}
 }
 
+func TestReleaseLock_MissingFile(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("WOLFCASTLE_LOCK_DIR", dir)
+
+	// Should not panic or error when no lock file exists.
+	ReleaseLock(dir)
+}
+
+func TestLockPath_EnvOverride(t *testing.T) {
+	t.Setenv("WOLFCASTLE_LOCK_DIR", "/custom/lock/dir")
+	got := lockPath("/ignored/wolfcastle/dir")
+	want := filepath.Join("/custom/lock/dir", "daemon.lock")
+	if got != want {
+		t.Errorf("lockPath = %q, want %q", got, want)
+	}
+}
+
+func TestLockPath_Default(t *testing.T) {
+	t.Setenv("WOLFCASTLE_LOCK_DIR", "")
+	got := lockPath("/my/wolfcastle")
+	want := filepath.Join("/my/wolfcastle", "daemon.lock")
+	if got != want {
+		t.Errorf("lockPath = %q, want %q", got, want)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }

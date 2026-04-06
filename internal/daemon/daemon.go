@@ -20,7 +20,7 @@
 //   - activity.go           : daemon activity snapshot for stall detection
 //   - archive.go            : auto-archival of completed root nodes
 //   - knowledge_maintenance.go : knowledge file pruning task creation
-//   - lock.go               : global daemon lock file
+//   - lock.go               : per-worktree daemon lock file
 //   - parallel.go           : parallel worker dispatch and scope conflict handling
 //   - planning.go           : orchestrator state reconciliation and planning passes
 //   - repository.go         : filesystem path consolidation for daemon operations

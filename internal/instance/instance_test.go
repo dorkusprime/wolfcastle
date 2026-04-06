@@ -277,6 +277,122 @@ func TestResolve_BoundaryCheck(t *testing.T) {
 	}
 }
 
+func TestRegister_EvalSymlinksError(t *testing.T) {
+	setup(t)
+	// A path that doesn't exist causes EvalSymlinks to fail.
+	err := Register("/nonexistent/path/that/will/fail", "feat/broken")
+	if err == nil {
+		t.Error("expected error for non-existent worktree path")
+	}
+}
+
+func TestDeregister_EvalSymlinksFallback(t *testing.T) {
+	dir := setup(t)
+	regDir := filepath.Join(dir, "instances")
+	_ = os.MkdirAll(regDir, 0755)
+
+	// Write a file using the raw (non-resolved) path slug so Deregister
+	// can find and remove it even when EvalSymlinks fails.
+	rawPath := "/nonexistent/worktree"
+	slug := Slug(rawPath)
+	entry := Entry{PID: os.Getpid(), Worktree: rawPath, Branch: "test", StartedAt: time.Now().UTC()}
+	data, _ := json.Marshal(entry)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), data, 0644)
+
+	// Deregister a path that doesn't exist on disk; EvalSymlinks fails
+	// but the fallback to the raw path should still remove the file.
+	if err := Deregister(rawPath); err != nil {
+		t.Fatalf("Deregister with fallback: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(regDir, slug+".json")); !os.IsNotExist(err) {
+		t.Error("expected instance file to be removed via fallback path")
+	}
+}
+
+func TestList_SkipsNonJSON(t *testing.T) {
+	dir := setup(t)
+	regDir := filepath.Join(dir, "instances")
+	_ = os.MkdirAll(regDir, 0755)
+
+	// Create a non-JSON file and a subdirectory; both should be skipped.
+	_ = os.WriteFile(filepath.Join(regDir, "readme.txt"), []byte("ignore"), 0644)
+	_ = os.MkdirAll(filepath.Join(regDir, "subdir"), 0755)
+
+	// Add one valid live entry.
+	entry := Entry{PID: os.Getpid(), Worktree: "/fake/live", Branch: "main", StartedAt: time.Now().UTC()}
+	data, _ := json.Marshal(entry)
+	_ = os.WriteFile(filepath.Join(regDir, "live.json"), data, 0644)
+
+	entries, err := List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+}
+
+func TestList_SkipsMalformedJSON(t *testing.T) {
+	dir := setup(t)
+	regDir := filepath.Join(dir, "instances")
+	_ = os.MkdirAll(regDir, 0755)
+
+	// Write a JSON file with invalid content.
+	_ = os.WriteFile(filepath.Join(regDir, "bad.json"), []byte("{{{not json"), 0644)
+
+	entries, err := List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("expected 0 entries for malformed JSON, got %d", len(entries))
+	}
+}
+
+func TestResolve_EvalSymlinksError(t *testing.T) {
+	setup(t)
+	_, err := Resolve("/nonexistent/path/that/will/fail")
+	if err == nil {
+		t.Error("expected error for non-existent resolve path")
+	}
+}
+
+func TestList_UnreadableFile(t *testing.T) {
+	dir := setup(t)
+	regDir := filepath.Join(dir, "instances")
+	_ = os.MkdirAll(regDir, 0755)
+
+	// Create a JSON file that can't be read.
+	path := filepath.Join(regDir, "unreadable.json")
+	_ = os.WriteFile(path, []byte(`{"pid":1}`), 0644)
+	_ = os.Chmod(path, 0o000)
+	t.Cleanup(func() { _ = os.Chmod(path, 0o644) })
+
+	// Should skip the unreadable file without error.
+	entries, err := List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("expected 0 entries, got %d", len(entries))
+	}
+}
+
+func TestIsProcessRunning_DeadPID(t *testing.T) {
+	t.Parallel()
+	// PID 999999999 should not be running on any real system.
+	if isProcessRunning(999999999) {
+		t.Error("expected PID 999999999 to not be running")
+	}
+}
+
+func TestIsProcessRunning_SelfPID(t *testing.T) {
+	t.Parallel()
+	if !isProcessRunning(os.Getpid()) {
+		t.Error("expected own PID to be running")
+	}
+}
+
 func TestIsSubpath(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

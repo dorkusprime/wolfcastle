@@ -3,6 +3,7 @@ package daemon
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -599,10 +600,18 @@ func TestStopCmd_SignalError(t *testing.T) {
 	}
 	env := newTestEnv(t)
 
-	// PID 1 (launchd/init) is always running but we can't signal it.
-	_ = os.MkdirAll(filepath.Join(env.WolfcastleDir, "system"), 0755)
-	_ = os.WriteFile(filepath.Join(env.WolfcastleDir, "system", "wolfcastle.pid"),
-		[]byte("1"), 0644)
+	// Register PID 1 (launchd/init) which is always running but we can't signal.
+	repoDir := filepath.Dir(env.WolfcastleDir)
+	resolved, _ := filepath.EvalSymlinks(repoDir)
+	regDir := t.TempDir()
+	instance.RegistryDirOverride = regDir
+	defer func() { instance.RegistryDirOverride = "" }()
+
+	instDir := filepath.Join(regDir)
+	_ = os.MkdirAll(instDir, 0755)
+	slug := instance.Slug(resolved)
+	instData := fmt.Sprintf(`{"pid":1,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, resolved)
+	_ = os.WriteFile(filepath.Join(instDir, slug+".json"), []byte(instData), 0644)
 
 	env.RootCmd.SetArgs([]string{"stop"})
 	err := env.RootCmd.Execute()

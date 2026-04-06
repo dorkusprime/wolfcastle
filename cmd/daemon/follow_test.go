@@ -3,7 +3,6 @@ package daemon
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/spf13/cobra"
@@ -642,21 +642,24 @@ func TestReplayJSON_AllFilesMissing(t *testing.T) {
 // --follow downgrade when daemon is stopped
 // ═══════════════════════════════════════════════════════════════════════════
 
-// makeDaemonAlive writes the current process PID into the test env's PID file,
-// causing DaemonRepository.IsAlive() to return true.
+// makeDaemonAlive registers the current process in the instance registry,
+// causing isDaemonAlive() to return true for the test worktree.
 func makeDaemonAlive(t *testing.T, wolfcastleDir string) {
 	t.Helper()
-	sysDir := filepath.Join(wolfcastleDir, "system")
-	_ = os.MkdirAll(sysDir, 0755)
-	_ = os.WriteFile(
-		filepath.Join(sysDir, "wolfcastle.pid"),
-		[]byte(fmt.Sprintf("%d", os.Getpid())),
-		0644,
-	)
+	repoDir := filepath.Dir(wolfcastleDir)
+	resolved, err := filepath.EvalSymlinks(repoDir)
+	if err != nil {
+		resolved = repoDir
+	}
+	instance.RegistryDirOverride = filepath.Join(t.TempDir(), "instances")
+	t.Cleanup(func() { instance.RegistryDirOverride = "" })
+	if err := instance.Register(resolved, "test"); err != nil {
+		t.Fatalf("registering test instance: %v", err)
+	}
+	t.Cleanup(func() { _ = instance.Deregister(resolved) })
 }
 
 func TestLogCmd_ExplicitFollowStoppedDaemon_FallsToReplay(t *testing.T) {
-	t.Parallel()
 	env := newTestEnv(t)
 
 	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")
@@ -684,7 +687,6 @@ func TestLogCmd_ExplicitFollowStoppedDaemon_FallsToReplay(t *testing.T) {
 }
 
 func TestLogCmd_ExplicitFollowRunningDaemon_EntersFollowMode(t *testing.T) {
-	t.Parallel()
 	env := newTestEnv(t)
 
 	logDir := filepath.Join(env.WolfcastleDir, "system", "logs")

@@ -257,7 +257,7 @@ func TestStartCmd_StaleLockRecovery(t *testing.T) {
 // newStartCmd: lock acquisition failure (another daemon holds the lock)
 // ═══════════════════════════════════════════════════════════════════════════
 
-func TestStartCmd_GlobalLockConflict(t *testing.T) {
+func TestStartCmd_LockConflict(t *testing.T) {
 	env := newStatusTestEnv(t)
 
 	lockDir := t.TempDir()

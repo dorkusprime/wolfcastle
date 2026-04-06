@@ -2,19 +2,17 @@
 
 package instance
 
-import "os"
+import "golang.org/x/sys/windows"
 
 // isProcessRunning checks if a process with the given PID exists.
-// On Windows, FindProcess succeeds for any PID; we attempt to open
-// the process handle to verify it actually exists.
+// On Windows, os.FindProcess succeeds for any PID, so we open the
+// process handle with PROCESS_QUERY_LIMITED_INFORMATION to verify
+// it actually exists.
 func isProcessRunning(pid int) bool {
-	proc, err := os.FindProcess(pid)
+	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
 	if err != nil {
 		return false
 	}
-	// On Windows, Signal(0) returns "not supported" rather than
-	// checking liveness. Release is the best we can do without
-	// opening the process handle via Win32 API.
-	_ = proc.Release()
+	_ = windows.CloseHandle(h)
 	return true
 }
