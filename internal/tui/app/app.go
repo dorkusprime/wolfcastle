@@ -596,7 +596,10 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tui.PollTickMsg:
 		m.tree.CleanCache()
-		return m, nil
+		// Re-read state and schedule the next tick.
+		var pollCmds []tea.Cmd
+		pollCmds = append(pollCmds, m.pollState(), m.detectEntryState(), m.schedulePollTick())
+		return m, tea.Batch(pollCmds...)
 
 	case tui.InboxUpdatedMsg:
 		d, dcmd := m.detail.Update(msg)
@@ -1133,8 +1136,29 @@ func (m *TUIModel) startWatcher() tea.Cmd {
 }
 
 func (m TUIModel) startPoller() tea.Cmd {
-	return func() tea.Msg {
+	return m.schedulePollTick()
+}
+
+func (m TUIModel) schedulePollTick() tea.Cmd {
+	return tea.Tick(2*time.Second, func(time.Time) tea.Msg {
 		return tui.PollTickMsg{}
+	})
+}
+
+// pollState re-reads the root index and returns a StateUpdatedMsg if
+// the data has changed. This is the polling fallback that keeps the
+// TUI in sync with daemon activity.
+func (m TUIModel) pollState() tea.Cmd {
+	store := m.store
+	return func() tea.Msg {
+		if store == nil {
+			return nil
+		}
+		idx, err := store.ReadIndex()
+		if err != nil {
+			return nil // silent on poll errors; next tick will retry
+		}
+		return tui.StateUpdatedMsg{Index: idx}
 	}
 }
 
