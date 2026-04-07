@@ -340,6 +340,12 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case tui.DaemonStatusMsg:
+		// Update instance list on the TUI model.
+		if msg.Instances != nil {
+			m.instances = msg.Instances
+			m.header.SetInstances(m.instances, m.activeInstanceIndex)
+		}
+
 		h, hcmd := m.header.Update(header.DaemonStatusMsg{
 			Status:     msg.Status,
 			Branch:     msg.Branch,
@@ -1048,26 +1054,58 @@ func (m *TUIModel) clearErrorsByFilename(filename string) {
 
 func (m TUIModel) detectEntryState() tea.Cmd {
 	repo := m.daemonRepo
+	worktreeDir := m.worktreeDir
 	return func() tea.Msg {
 		if repo == nil {
 			return nil
 		}
-		running := repo.IsAlive()
-		draining := repo.HasDrainFile()
+
 		instances, _ := instance.List()
+
+		// Try to resolve the specific instance for this worktree.
+		var pid int
+		var branch string
+		var running, draining bool
+
+		if entry, err := instance.Resolve(worktreeDir); err == nil {
+			pid = entry.PID
+			branch = entry.Branch
+			running = isProcessRunning(entry.PID)
+			draining = repo.HasDrainFile()
+		} else {
+			// Fallback to repository-level check.
+			running = repo.IsAlive()
+			draining = repo.HasDrainFile()
+		}
+
 		status := "standing down"
 		if running && !draining {
 			status = "hunting"
 		} else if running && draining {
 			status = "draining"
 		}
+
 		return tui.DaemonStatusMsg{
 			Status:     status,
+			Branch:     branch,
+			PID:        pid,
 			IsRunning:  running,
 			IsDraining: draining,
 			Instances:  instances,
 		}
 	}
+}
+
+// isProcessRunning checks if a PID is alive (signal 0).
+func isProcessRunning(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	p, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	return p.Signal(syscall.Signal(0)) == nil
 }
 
 func (m *TUIModel) startWatcher() tea.Cmd {
