@@ -315,6 +315,73 @@ func TestRenderTaskRow_IDExtraction(t *testing.T) {
 	}
 }
 
+func TestRenderRow_SearchHit(t *testing.T) {
+	row := TreeRow{
+		Addr:       "a",
+		Name:       "SearchMe",
+		Depth:      0,
+		NodeType:   state.NodeLeaf,
+		Status:     state.StatusNotStarted,
+		Expandable: true,
+	}
+
+	normal := RenderRow(row, 60, false, false)
+	hit := RenderRow(row, 60, false, false, true)
+
+	if normal == hit {
+		t.Error("search hit row should differ from normal row")
+	}
+}
+
+func TestRenderRow_SearchHit_SelectedTakesPrecedence(t *testing.T) {
+	row := TreeRow{
+		Addr:       "a",
+		Name:       "SearchMe",
+		Depth:      0,
+		NodeType:   state.NodeLeaf,
+		Status:     state.StatusNotStarted,
+		Expandable: true,
+	}
+
+	selected := RenderRow(row, 60, true, false)
+	selectedAndHit := RenderRow(row, 60, true, false, true)
+
+	// When selected, the search hit styling should not apply (selected takes priority).
+	if selected != selectedAndHit {
+		t.Error("selected styling should take precedence over search hit")
+	}
+}
+
+func TestView_SearchMatchHighlighted(t *testing.T) {
+	m := NewTreeModel()
+	m.SetIndex(simpleIndex())
+	m.SetSize(60, 10)
+	m.SetSearchMatches(map[int]bool{1: true})
+
+	v := m.View()
+	// The view should contain Beta (the highlighted row).
+	if !strings.Contains(v, "Beta") {
+		t.Error("view should still contain the search-matched row text")
+	}
+}
+
+func TestRenderRow_TaskSearchHit(t *testing.T) {
+	row := TreeRow{
+		Addr:   "node/t-001",
+		Name:   "A task",
+		Depth:  1,
+		Status: state.StatusInProgress,
+		IsTask: true,
+	}
+
+	normal := RenderRow(row, 60, false, false)
+	hit := RenderRow(row, 60, false, false, true)
+
+	if normal == hit {
+		t.Error("search hit task row should differ from normal task row")
+	}
+}
+
 func TestRenderRow_DepthIndentation(t *testing.T) {
 	shallow := RenderRow(TreeRow{
 		Addr: "a", Name: "Shallow", Depth: 0, NodeType: state.NodeLeaf, Expandable: true,

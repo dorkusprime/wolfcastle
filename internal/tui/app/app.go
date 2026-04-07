@@ -121,6 +121,7 @@ func (m TUIModel) Init() tea.Cmd {
 	cmds = append(cmds, m.detectEntryState())
 
 	if m.store != nil {
+		m.header.SetLoading(true)
 		cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
 	}
 
@@ -208,6 +209,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case key.Matches(msg, tui.GlobalKeyMap.Refresh):
+			m.header.SetLoading(true)
 			return m, m.handleRefresh()
 
 		case key.Matches(msg, tui.GlobalKeyMap.ToggleHelp):
@@ -256,6 +258,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Data messages: always broadcast regardless of overlay state
 	// ---------------------------------------------------------------
 	case tui.StateUpdatedMsg:
+		m.header.SetLoading(false)
 		h, hcmd := m.header.Update(header.StateUpdatedMsg{Index: msg.Index})
 		m.header = h
 		cmds = append(cmds, hcmd)
@@ -332,6 +335,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case tui.ErrorMsg:
+		m.header.SetLoading(false)
 		m.errors = append(m.errors, errorEntry{
 			filename: msg.Filename,
 			message:  msg.Message,
@@ -360,11 +364,13 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			wolfDir := filepath.Join(msg.Dir, ".wolfcastle")
 			m.store = state.NewStore(wolfDir, 5*time.Second)
 			m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+			m.header.SetLoading(true)
 			cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
 		}
 		return m, tea.Batch(cmds...)
 
 	case tui.PollTickMsg:
+		m.tree.CleanCache()
 		return m, nil
 	}
 
@@ -516,21 +522,28 @@ func (m *TUIModel) computeTreeSearchMatches() {
 	query := strings.ToLower(m.search.Query())
 	if query == "" {
 		m.search.SetMatches(nil)
+		m.tree.SetSearchMatches(nil)
 		return
 	}
 
 	var matches []search.SearchMatch
+	highlights := make(map[int]bool)
 	for i, row := range m.tree.FlatList() {
 		if strings.Contains(strings.ToLower(row.Name), query) {
 			matches = append(matches, search.SearchMatch{Row: i})
+			highlights[i] = true
 		}
 	}
 	m.search.SetMatches(matches)
+	m.tree.SetSearchMatches(highlights)
 }
 
 func (m *TUIModel) jumpTreeToSearchMatch() {
-	// TODO: expose tree.SetCursor(int) for direct cursor positioning.
-	// For Phase 1 the match metadata is tracked but cursor jump is deferred.
+	match, ok := m.search.CurrentMatch()
+	if !ok {
+		return
+	}
+	m.tree.SetCursor(match.Row)
 }
 
 func (m TUIModel) handleCopy() tea.Cmd {
@@ -552,7 +565,10 @@ func (m TUIModel) handleRefresh() tea.Cmd {
 		cmds = append(cmds, func() tea.Msg {
 			idx, err := store.ReadIndex()
 			if err != nil {
-				return tui.ErrorMsg{Filename: "state.json", Message: err.Error()}
+				return tui.ErrorMsg{
+					Filename: "state.json",
+					Message:  "State corruption detected: state.json. Run wolfcastle doctor.",
+				}
 			}
 			return tui.StateUpdatedMsg{Index: idx}
 		})
@@ -699,7 +715,10 @@ func (m TUIModel) loadInitialState() tea.Cmd {
 		}
 		idx, err := store.ReadIndex()
 		if err != nil {
-			return tui.ErrorMsg{Filename: "state.json", Message: err.Error()}
+			return tui.ErrorMsg{
+				Filename: "state.json",
+				Message:  "State corruption detected: state.json. Run wolfcastle doctor.",
+			}
 		}
 		return tui.StateUpdatedMsg{Index: idx}
 	}

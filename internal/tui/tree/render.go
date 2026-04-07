@@ -17,13 +17,15 @@ var (
 	colorYellow     = lipgloss.Color("3")
 	colorRed        = lipgloss.Color("1")
 	colorDim        = lipgloss.Color("240")
-	colorTargetMark = lipgloss.Color("11") // bright yellow
+	colorTargetMark  = lipgloss.Color("11")  // bright yellow
+	colorSearchMatch = lipgloss.Color("3")   // yellow background for search hits
 
 	styleSelected = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("255")).
 			Background(colorSelected)
-	styleNormal = lipgloss.NewStyle().Foreground(colorNormal)
+	styleNormal      = lipgloss.NewStyle().Foreground(colorNormal)
+	styleSearchMatch = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(colorSearchMatch)
 )
 
 // Status glyphs, each pre-styled.
@@ -41,14 +43,15 @@ func statusGlyph(s state.NodeStatus) string {
 }
 
 // RenderRow produces a single styled line for the given TreeRow.
-func RenderRow(row TreeRow, width int, selected bool, isCurrentTarget bool) string {
+func RenderRow(row TreeRow, width int, selected bool, isCurrentTarget bool, searchHit ...bool) string {
+	hit := len(searchHit) > 0 && searchHit[0]
 	if row.IsTask {
-		return renderTaskRow(row, width, selected)
+		return renderTaskRow(row, width, selected, hit)
 	}
-	return renderNodeRow(row, width, selected, isCurrentTarget)
+	return renderNodeRow(row, width, selected, isCurrentTarget, hit)
 }
 
-func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool) string {
+func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool, searchHit bool) string {
 	indent := strings.Repeat("  ", row.Depth)
 
 	var marker string
@@ -86,10 +89,13 @@ func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool) 
 	if selected {
 		return styleSelected.Width(width).Render(line)
 	}
+	if searchHit {
+		return styleSearchMatch.Width(width).Render(line)
+	}
 	return styleNormal.Width(width).Render(line)
 }
 
-func renderTaskRow(row TreeRow, width int, selected bool) string {
+func renderTaskRow(row TreeRow, width int, selected bool, searchHit bool) string {
 	indent := strings.Repeat("  ", row.Depth)
 	glyph := statusGlyph(row.Status)
 
@@ -111,6 +117,9 @@ func renderTaskRow(row TreeRow, width int, selected bool) string {
 
 	if selected {
 		return styleSelected.Width(width).Render(line)
+	}
+	if searchHit {
+		return styleSearchMatch.Width(width).Render(line)
 	}
 	return styleNormal.Width(width).Render(line)
 }
@@ -138,7 +147,8 @@ func (m TreeModel) View() string {
 		row := m.flatList[i]
 		selected := i == m.cursor
 		isTarget := row.Addr == m.currentTarget
-		lines = append(lines, RenderRow(row, m.width, selected, isTarget))
+		searchHit := !selected && m.searchMatches[i]
+		lines = append(lines, RenderRow(row, m.width, selected, isTarget, searchHit))
 	}
 
 	return strings.Join(lines, "\n")

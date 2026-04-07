@@ -114,6 +114,11 @@ func (m *HeaderModel) SetSize(width int) {
 	m.width = width
 }
 
+// SetLoading sets the loading spinner state.
+func (m *HeaderModel) SetLoading(loading bool) {
+	m.loading = loading
+}
+
 // ---------------------------------------------------------------------------
 // Update
 // ---------------------------------------------------------------------------

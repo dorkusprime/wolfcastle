@@ -184,7 +184,13 @@ func (w *Watcher) flush(paths map[string]bool) {
 		case p == indexPath || filepath.Dir(p) == indexDir && strings.HasSuffix(p, "state.json"):
 			if !sentIndex {
 				sentIndex = true
-				if idx, err := w.store.ReadIndex(); err == nil {
+				idx, err := w.store.ReadIndex()
+				if err != nil {
+					w.program.Send(ErrorMsg{
+						Filename: "state.json",
+						Message:  "State corruption detected: state.json. Run wolfcastle doctor.",
+					})
+				} else {
 					w.program.Send(StateUpdatedMsg{Index: idx})
 				}
 			}
@@ -204,7 +210,13 @@ func (w *Watcher) flush(paths map[string]bool) {
 			addr := w.nodeAddrFromPath(p)
 			if addr != "" && !sentNodes[addr] {
 				sentNodes[addr] = true
-				if node, err := w.store.ReadNode(addr); err == nil {
+				node, err := w.store.ReadNode(addr)
+				if err != nil {
+					w.program.Send(ErrorMsg{
+						Filename: addr + "/state.json",
+						Message:  fmt.Sprintf("Unreadable: %s/state.json. Run wolfcastle doctor.", addr),
+					})
+				} else {
 					w.program.Send(NodeUpdatedMsg{Address: addr, Node: node})
 				}
 			}
@@ -305,7 +317,13 @@ func (w *Watcher) pollTick() {
 	if info, err := os.Stat(w.store.IndexPath()); err == nil {
 		if info.ModTime() != w.indexMtime {
 			w.indexMtime = info.ModTime()
-			if idx, err := w.store.ReadIndex(); err == nil {
+			idx, err := w.store.ReadIndex()
+			if err != nil {
+				w.program.Send(ErrorMsg{
+					Filename: "state.json",
+					Message:  "State corruption detected: state.json. Run wolfcastle doctor.",
+				})
+			} else {
 				w.program.Send(StateUpdatedMsg{Index: idx})
 			}
 		}

@@ -484,3 +484,35 @@ func TestStateUpdatedMsg_ResetsCountsOnSecondUpdate(t *testing.T) {
 		t.Errorf("complete count should reset to 0, got %d", m.nodeCounts[state.StatusComplete])
 	}
 }
+
+func TestSetLoading(t *testing.T) {
+	m := NewHeaderModel("1.0.0")
+	m.SetSize(80)
+
+	m.SetLoading(true)
+	view := m.View()
+	// When loading, the spinner frame should appear in the header.
+	found := false
+	for _, frame := range spinnerFrames {
+		if strings.ContainsRune(view, frame) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("header should contain a spinner frame when loading is true")
+	}
+
+	m.SetLoading(false)
+	view = m.View()
+	found = false
+	for _, frame := range spinnerFrames {
+		if strings.ContainsRune(view, frame) {
+			found = true
+			break
+		}
+	}
+	if found {
+		t.Error("header should not contain a spinner frame when loading is false")
+	}
+}

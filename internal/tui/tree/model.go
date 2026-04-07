@@ -46,17 +46,18 @@ type TreeRow struct {
 
 // TreeModel is the sub-model that owns the project tree panel.
 type TreeModel struct {
-	index         *state.RootIndex
-	nodes         map[string]*state.NodeState
-	cacheExpiry   map[string]time.Time
-	flatList      []TreeRow
-	cursor        int
-	scrollTop     int
-	expanded      map[string]bool
-	focused       bool
-	width         int
-	height        int
-	currentTarget string
+	index          *state.RootIndex
+	nodes          map[string]*state.NodeState
+	cacheExpiry    map[string]time.Time
+	flatList       []TreeRow
+	cursor         int
+	scrollTop      int
+	expanded       map[string]bool
+	focused        bool
+	width          int
+	height         int
+	currentTarget  string
+	searchMatches  map[int]bool
 }
 
 // NewTreeModel returns an initialized TreeModel with empty maps.
@@ -207,6 +208,7 @@ func (m TreeModel) handleCollapse() TreeModel {
 
 	if m.expanded[row.Addr] {
 		delete(m.expanded, row.Addr)
+		m.cacheExpiry[row.Addr] = time.Now().Add(30 * time.Second)
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -244,6 +246,31 @@ func (m *TreeModel) SetIndex(index *state.RootIndex) {
 // SetCurrentTarget sets the address of the node the daemon is working on.
 func (m *TreeModel) SetCurrentTarget(addr string) {
 	m.currentTarget = addr
+}
+
+// SetSearchMatches replaces the set of row indices that should be
+// highlighted as search matches. Pass nil to clear highlighting.
+func (m *TreeModel) SetSearchMatches(matches map[int]bool) {
+	m.searchMatches = matches
+}
+
+// SetCursor moves the cursor to the given row index (clamped to bounds)
+// and scrolls it into view.
+func (m *TreeModel) SetCursor(row int) {
+	m.cursor = row
+	m.clampCursor()
+	m.scrollIntoCursor()
+}
+
+// CleanCache removes cached node entries whose expiry time has passed.
+func (m *TreeModel) CleanCache() {
+	now := time.Now()
+	for addr, exp := range m.cacheExpiry {
+		if now.After(exp) {
+			delete(m.nodes, addr)
+			delete(m.cacheExpiry, addr)
+		}
+	}
 }
 
 // FlatList returns the current flattened tree rows. The returned slice

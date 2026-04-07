@@ -2,6 +2,7 @@ package tree
 
 import (
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -635,5 +636,97 @@ func TestHandleExpand_EmptyList(t *testing.T) {
 	m, cmd := m.Update(specialKey(tea.KeyEnter))
 	if cmd != nil {
 		t.Error("expand on empty list should not produce a command")
+	}
+}
+
+func TestSetSearchMatches(t *testing.T) {
+	m := NewTreeModel()
+	m.SetIndex(simpleIndex())
+
+	matches := map[int]bool{0: true, 2: true}
+	m.SetSearchMatches(matches)
+
+	if !m.searchMatches[0] || !m.searchMatches[2] {
+		t.Error("SetSearchMatches should store the provided map")
+	}
+	if m.searchMatches[1] {
+		t.Error("row 1 should not be a search match")
+	}
+
+	m.SetSearchMatches(nil)
+	if m.searchMatches != nil {
+		t.Error("SetSearchMatches(nil) should clear the map")
+	}
+}
+
+func TestSetCursor(t *testing.T) {
+	m := NewTreeModel()
+	m.SetIndex(simpleIndex())
+	m.SetSize(80, 20)
+
+	m.SetCursor(2)
+	if m.cursor != 2 {
+		t.Errorf("cursor = %d, want 2", m.cursor)
+	}
+
+	// Beyond bounds should clamp.
+	m.SetCursor(100)
+	if m.cursor != 2 {
+		t.Errorf("cursor = %d, want 2 (clamped)", m.cursor)
+	}
+
+	m.SetCursor(-1)
+	if m.cursor != 0 {
+		t.Errorf("cursor = %d, want 0 (clamped)", m.cursor)
+	}
+}
+
+func TestCleanCache_RemovesExpired(t *testing.T) {
+	m := NewTreeModel()
+	m.SetIndex(simpleIndex())
+
+	// Add a node with an already-expired cache entry.
+	m.nodes["alpha"] = &state.NodeState{}
+	m.cacheExpiry["alpha"] = time.Now().Add(-1 * time.Second)
+
+	// Add a node with a fresh cache entry.
+	m.nodes["beta"] = &state.NodeState{}
+	m.cacheExpiry["beta"] = time.Now().Add(30 * time.Second)
+
+	m.CleanCache()
+
+	if _, ok := m.nodes["alpha"]; ok {
+		t.Error("expired node should have been evicted")
+	}
+	if _, ok := m.cacheExpiry["alpha"]; ok {
+		t.Error("expired cache expiry entry should have been removed")
+	}
+	if _, ok := m.nodes["beta"]; !ok {
+		t.Error("fresh node should still be cached")
+	}
+}
+
+func TestCleanCache_EmptyIsNoop(t *testing.T) {
+	m := NewTreeModel()
+	// Should not panic on empty maps.
+	m.CleanCache()
+}
+
+func TestCollapse_SetsCacheExpiry(t *testing.T) {
+	m := NewTreeModel()
+	m.SetFocused(true)
+	m.expanded["parent"] = true
+	m.SetIndex(orchestratorIndex())
+	m.SetSize(80, 20)
+
+	before := time.Now()
+	m, _ = m.Update(specialKey(tea.KeyEscape))
+
+	exp, ok := m.cacheExpiry["parent"]
+	if !ok {
+		t.Fatal("collapse should set cache expiry for the collapsed node")
+	}
+	if exp.Before(before) {
+		t.Error("cache expiry should be in the future")
 	}
 }
