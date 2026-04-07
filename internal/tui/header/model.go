@@ -126,6 +126,11 @@ func (m *HeaderModel) SetLoading(loading bool) {
 	m.loading = loading
 }
 
+// IsLoading returns true when the loading spinner is active.
+func (m HeaderModel) IsLoading() bool {
+	return m.loading
+}
+
 // SetInstances updates the instance list and active index for the tab bar.
 func (m *HeaderModel) SetInstances(entries []instance.Entry, activeIdx int) {
 	m.instances = entries

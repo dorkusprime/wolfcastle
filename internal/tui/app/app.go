@@ -532,6 +532,13 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.welcome = &w
 			cmds = append(cmds, wcmd)
 		}
+
+		// Keep ticking while loading or switching so the spinner animates.
+		if m.switching || m.header.IsLoading() {
+			cmds = append(cmds, tea.Tick(80*time.Millisecond, func(time.Time) tea.Msg {
+				return tui.SpinnerTickMsg{}
+			}))
+		}
 		return m, tea.Batch(cmds...)
 
 	case tui.LogLinesMsg:
@@ -728,6 +735,19 @@ func (m TUIModel) renderLayout() string {
 }
 
 func (m TUIModel) renderContent(contentHeight int) string {
+	if m.switching {
+		label := m.switchLabel
+		if label == "" {
+			label = "another instance"
+		}
+		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		frame := spinner[int(time.Now().UnixMilli()/80)%len(spinner)]
+		line := lipgloss.NewStyle().Foreground(tui.ColorYellow).Render(frame) +
+			"  " +
+			lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Render("Switching to "+label)
+		return lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, line)
+	}
+
 	if !m.treeVisible || m.width < 60 {
 		content := m.detail.View()
 		if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
@@ -1357,7 +1377,12 @@ func (m *TUIModel) handleSwitchInstance(delta int) tea.Cmd {
 	}
 	next := (m.activeInstanceIndex + delta + len(m.instances)) % len(m.instances)
 	m.activeInstanceIndex = next
-	return m.switchInstance(m.instances[next])
+	switchCmd := m.switchInstance(m.instances[next])
+	// Kick off spinner animation.
+	spinnerTick := tea.Tick(80*time.Millisecond, func(time.Time) tea.Msg {
+		return tui.SpinnerTickMsg{}
+	})
+	return tea.Batch(switchCmd, spinnerTick)
 }
 
 func (m *TUIModel) switchInstance(entry instance.Entry) tea.Cmd {
@@ -1368,6 +1393,7 @@ func (m *TUIModel) switchInstance(entry instance.Entry) tea.Cmd {
 	}
 	m.switchLabel = label
 	m.header.SetStatusHint("Switching...")
+	m.header.SetLoading(true)
 
 	// Find the index of this entry in our instances list.
 	for i, inst := range m.instances {

@@ -11,7 +11,7 @@ import (
 const (
 	maxQueue     = 5
 	dismissAfter = 3 * time.Second
-	maxWidth     = 50
+	maxWidth     = 60
 )
 
 type toast struct {
@@ -40,7 +40,15 @@ func NewNotificationModel() NotificationModel {
 
 // Push adds a toast to the queue, trims to maxQueue (dropping oldest), and
 // returns a tick command that will dismiss the toast after 3 seconds.
+// Long text is truncated from the front (keeping the most specific suffix).
 func (m *NotificationModel) Push(text string) tea.Cmd {
+	// Truncate from the front so the most specific part (end) stays visible.
+	// Account for padding/border overhead in the toast style (~5 chars).
+	limit := maxWidth - 5
+	if len(text) > limit {
+		text = "..." + text[len(text)-limit+3:]
+	}
+
 	id := m.nextID
 	m.nextID++
 	t := toast{
