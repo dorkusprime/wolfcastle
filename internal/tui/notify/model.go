@@ -40,13 +40,22 @@ func NewNotificationModel() NotificationModel {
 
 // Push adds a toast to the queue, trims to maxQueue (dropping oldest), and
 // returns a tick command that will dismiss the toast after 3 seconds.
-// Long text is truncated from the front (keeping the most specific suffix).
+// If the text contains a colon, the part after the colon is front-truncated
+// so the label stays intact and the most specific part of the value is visible.
 func (m *NotificationModel) Push(text string) tea.Cmd {
-	// Truncate from the front so the most specific part (end) stays visible.
-	// Account for padding/border overhead in the toast style (~5 chars).
-	limit := maxWidth - 5
+	limit := maxWidth - 5 // account for padding/border
 	if len(text) > limit {
-		text = "..." + text[len(text)-limit+3:]
+		if idx := strings.Index(text, ": "); idx >= 0 && idx < limit {
+			prefix := text[:idx+2]
+			value := text[idx+2:]
+			valueLimit := limit - len(prefix)
+			if valueLimit > 3 && len(value) > valueLimit {
+				value = "..." + value[len(value)-valueLimit+3:]
+			}
+			text = prefix + value
+		} else {
+			text = "..." + text[len(text)-limit+3:]
+		}
 	}
 
 	id := m.nextID

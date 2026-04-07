@@ -742,10 +742,13 @@ func (m TUIModel) renderContent(contentHeight int) string {
 		}
 		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 		frame := spinner[int(time.Now().UnixMilli()/80)%len(spinner)]
-		line := lipgloss.NewStyle().Foreground(tui.ColorYellow).Render(frame) +
-			"  " +
-			lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Render("Switching to "+label)
-		return lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, line)
+
+		title := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Render("WOLFCASTLE")
+		spin := lipgloss.NewStyle().Foreground(tui.ColorYellow).Render(frame)
+		msg := lipgloss.NewStyle().Foreground(tui.ColorDimWhite).Render("Switching to " + label + "...")
+		block := title + "\n\n" + spin + " " + msg
+
+		return lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, block)
 	}
 
 	if !m.treeVisible || m.width < 60 {
