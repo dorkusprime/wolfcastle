@@ -103,13 +103,14 @@ func (m *HelpOverlayModel) buildContent() {
 				{"q", "quit"},
 				{"Ctrl+C", "quit"},
 				{"d", "dashboard"},
+				{"L", "log stream"},
 				{"i", "inbox"},
 				{"t", "toggle tree"},
 				{"Tab", "cycle focus"},
 				{"R", "refresh"},
 				{"?", "help"},
 				{"/", "search"},
-				{"y", "copy"},
+				{"y", "copy address"},
 			},
 		},
 		{
@@ -117,8 +118,8 @@ func (m *HelpOverlayModel) buildContent() {
 			bindings: []binding{
 				{"j / \u2193", "move down"},
 				{"k / \u2191", "move up"},
-				{"Enter / l", "expand"},
-				{"Esc / h", "collapse"},
+				{"Enter / l", "expand / view detail"},
+				{"Esc / h", "collapse / back"},
 				{"g", "jump to top"},
 				{"G", "jump to bottom"},
 			},
@@ -127,7 +128,7 @@ func (m *HelpOverlayModel) buildContent() {
 			title: "Daemon Control",
 			bindings: []binding{
 				{"s", "start/stop daemon"},
-				{"S", "stop all"},
+				{"S", "stop all daemons"},
 				{"< >", "switch instance"},
 				{"1-9", "select instance"},
 			},
@@ -142,8 +143,19 @@ func (m *HelpOverlayModel) buildContent() {
 			},
 		},
 		{
+			title: "Log Stream",
+			bindings: []binding{
+				{"L", "open log stream"},
+				{"j / \u2193", "scroll down"},
+				{"k / \u2191", "scroll up"},
+				{"g", "jump to top"},
+				{"G", "jump to bottom"},
+			},
+		},
+		{
 			title: "Search",
 			bindings: []binding{
+				{"/", "start search"},
 				{"Enter", "confirm search"},
 				{"Esc", "cancel search"},
 				{"n", "next match"},

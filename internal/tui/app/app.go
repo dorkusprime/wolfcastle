@@ -27,6 +27,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tui/footer"
 	"github.com/dorkusprime/wolfcastle/internal/tui/header"
 	"github.com/dorkusprime/wolfcastle/internal/tui/help"
+	"github.com/dorkusprime/wolfcastle/internal/tui/notify"
 	"github.com/dorkusprime/wolfcastle/internal/tui/search"
 	"github.com/dorkusprime/wolfcastle/internal/tui/tree"
 	"github.com/dorkusprime/wolfcastle/internal/tui/welcome"
@@ -71,7 +72,12 @@ type TUIModel struct {
 	welcome       *welcome.WelcomeModel
 	search        search.SearchModel
 	help          help.HelpOverlayModel
+	notify        notify.NotificationModel
 	overlayActive bool
+
+	// State diffing for toast notifications (Phase 5).
+	prevIndex *state.RootIndex
+	prevNodes map[string]*state.NodeState
 
 	entryState  EntryState
 	store       *state.Store
@@ -103,6 +109,8 @@ func NewTUIModel(store *state.Store, daemonRepo *daemon.DaemonRepository, worktr
 		footer:      footer.NewFooterModel(),
 		search:      search.NewSearchModel(),
 		help:        help.NewHelpOverlayModel(),
+		notify:      notify.NewNotificationModel(),
+		prevNodes:   make(map[string]*state.NodeState),
 		store:       store,
 		daemonRepo:  daemonRepo,
 		worktreeDir: worktreeDir,
@@ -315,6 +323,17 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.detail = d
 		cmds = append(cmds, dcmd)
 
+		// Phase 5: diff against previous index to detect new nodes.
+		if msg.Index != nil && m.prevIndex != nil {
+			for addr := range msg.Index.Nodes {
+				if _, existed := m.prevIndex.Nodes[addr]; !existed {
+					cmd := m.notify.Push(fmt.Sprintf("New target acquired: %s", addr))
+					cmds = append(cmds, cmd)
+				}
+			}
+		}
+		m.prevIndex = msg.Index
+
 		m.clearErrorsByFilename("state.json")
 		return m, tea.Batch(cmds...)
 
@@ -352,6 +371,17 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		})
 		m.tree = t
 		cmds = append(cmds, tcmd)
+
+		// Phase 5: diff against previous node state for toast notifications.
+		if msg.Node != nil {
+			if prev, ok := m.prevNodes[msg.Address]; ok {
+				cmds = append(cmds, m.diffNodeForToasts(msg.Address, prev, msg.Node)...)
+			}
+			// Store a shallow copy of the node for future diffs.
+			cp := *msg.Node
+			m.prevNodes[msg.Address] = &cp
+		}
+
 		return m, tea.Batch(cmds...)
 
 	case tui.InstancesUpdatedMsg:
@@ -522,6 +552,16 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		})
 		return m, nil
 
+	case tui.ToastMsg:
+		cmd := m.notify.Push(msg.Text)
+		return m, cmd
+
+	case notify.ToastDismissMsg:
+		n, ncmd := m.notify.Update(msg)
+		m.notify = n
+		cmds = append(cmds, ncmd)
+		return m, tea.Batch(cmds...)
+
 	case tui.PollTickMsg:
 		m.tree.CleanCache()
 		return m, nil
@@ -611,6 +651,9 @@ func (m TUIModel) renderLayout() string {
 func (m TUIModel) renderContent(contentHeight int) string {
 	if !m.treeVisible || m.width < 60 {
 		content := m.detail.View()
+		if m.notify.HasToasts() {
+			content = m.overlayToasts(content, m.width-2)
+		}
 		if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
 			content += "\n" + m.search.View()
 		}
@@ -642,6 +685,9 @@ func (m TUIModel) renderContent(contentHeight int) string {
 	treePane := treePaneStyle.Render(treeContent)
 
 	detailContent := m.detail.View()
+	if m.notify.HasToasts() {
+		detailContent = m.overlayToasts(detailContent, detailWidth)
+	}
 	if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
 		detailContent += "\n" + m.search.View()
 	}
@@ -925,6 +971,7 @@ func (m *TUIModel) propagateSize() {
 	m.header.SetSize(m.width)
 	m.footer.SetSize(m.width)
 	m.help.SetSize(m.width, m.height)
+	m.notify.SetSize(m.width)
 
 	if m.welcome != nil {
 		m.welcome.SetSize(m.width, m.height)
@@ -1198,6 +1245,87 @@ func (m *TUIModel) switchInstance(entry instance.Entry) tea.Cmd {
 			Entry: entry,
 		}
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Toast notification helpers (Phase 5)
+// ---------------------------------------------------------------------------
+
+// diffNodeForToasts compares old and new node states and generates toast
+// notifications for task status changes and newly opened audit gaps.
+func (m *TUIModel) diffNodeForToasts(addr string, old, new *state.NodeState) []tea.Cmd {
+	var cmds []tea.Cmd
+
+	// Build a map of old task statuses for quick lookup.
+	oldTasks := make(map[string]state.NodeStatus, len(old.Tasks))
+	for _, t := range old.Tasks {
+		oldTasks[t.ID] = t.State
+	}
+
+	for _, t := range new.Tasks {
+		oldStatus, existed := oldTasks[t.ID]
+		if !existed || oldStatus == t.State {
+			continue
+		}
+		switch t.State {
+		case state.StatusComplete:
+			cmds = append(cmds, m.notify.Push(fmt.Sprintf("Target eliminated: %s/%s", addr, t.ID)))
+		case state.StatusBlocked:
+			cmds = append(cmds, m.notify.Push(fmt.Sprintf("Blocked: %s/%s", addr, t.ID)))
+		}
+	}
+
+	// Count open gaps in old vs new.
+	oldOpen := 0
+	for _, g := range old.Audit.Gaps {
+		if g.Status == state.GapOpen {
+			oldOpen++
+		}
+	}
+	newOpen := 0
+	for _, g := range new.Audit.Gaps {
+		if g.Status == state.GapOpen {
+			newOpen++
+		}
+	}
+	if newOpen > oldOpen {
+		// Find gaps that are new (not present in old set).
+		oldGaps := make(map[string]bool, len(old.Audit.Gaps))
+		for _, g := range old.Audit.Gaps {
+			oldGaps[g.ID] = true
+		}
+		for _, g := range new.Audit.Gaps {
+			if g.Status == state.GapOpen && !oldGaps[g.ID] {
+				cmds = append(cmds, m.notify.Push(fmt.Sprintf("Gap opened: %s %s", addr, g.Description)))
+			}
+		}
+	}
+
+	return cmds
+}
+
+// overlayToasts places the notification toast stack at the top of the given
+// content string, right-aligned within the specified width.
+func (m TUIModel) overlayToasts(content string, width int) string {
+	m.notify.SetSize(width)
+	toastView := m.notify.View()
+	if toastView == "" {
+		return content
+	}
+
+	contentLines := strings.Split(content, "\n")
+	toastLines := strings.Split(toastView, "\n")
+
+	// Overlay toast lines onto the first N lines of content.
+	for i, tl := range toastLines {
+		if i < len(contentLines) {
+			contentLines[i] = tl
+		} else {
+			contentLines = append(contentLines, tl)
+		}
+	}
+
+	return strings.Join(contentLines, "\n")
 }
 
 // instanceRegistryDir resolves the instance registry path. It mirrors the

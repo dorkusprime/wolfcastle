@@ -7,8 +7,8 @@ import (
 
 func TestHelpContentIncludesDaemonControl(t *testing.T) {
 	m := NewHelpOverlayModel()
-	m.SetSize(120, 40)
-	m.Toggle() // activate to build content
+	m.SetSize(120, 80) // tall enough to show all sections without scrolling
+	m.Toggle()         // activate to build content
 
 	view := m.View()
 

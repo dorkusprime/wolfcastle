@@ -123,3 +123,9 @@ type InboxAddFailedMsg struct {
 type AddInboxItemCmd struct {
 	Text string
 }
+
+// Phase 5 messages
+
+type ToastMsg struct {
+	Text string
+}
