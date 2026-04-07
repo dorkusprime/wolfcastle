@@ -22,6 +22,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/task"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
 	wcDaemon "github.com/dorkusprime/wolfcastle/internal/daemon"
+	wcInstance "github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -72,9 +73,14 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&app.JSON, "json", false, "Output in JSON format")
 }
 
-// launchTUI starts the Bubbletea TUI program. It resolves the .wolfcastle
-// directory and daemon repository if available; if neither exists, the TUI
-// opens in welcome mode so the user can initialize.
+// launchTUI starts the Bubbletea TUI program. Resolution order:
+//
+//  1. Walk CWD upward for .wolfcastle/ (local project)
+//  2. instance.Resolve(cwd) (running daemon owns this directory)
+//  3. instance.List() (any running daemons anywhere)
+//  4. Welcome screen (nothing found)
+//
+// Steps 2 and 3 let the TUI manage running instances from any directory.
 func launchTUI() error {
 	var (
 		store       *state.Store
@@ -87,7 +93,7 @@ func launchTUI() error {
 		return fmt.Errorf("getwd: %w", err)
 	}
 
-	// Walk CWD upward looking for .wolfcastle/
+	// Step 1: Walk CWD upward looking for .wolfcastle/
 	dir := cwd
 	for {
 		candidate := filepath.Join(dir, ".wolfcastle")
@@ -102,18 +108,36 @@ func launchTUI() error {
 		dir = parent
 	}
 
+	// Step 2: If no local .wolfcastle, try instance resolution for CWD.
+	if worktreeDir == "" {
+		if entry, resolveErr := wcInstance.Resolve(cwd); resolveErr == nil {
+			worktreeDir = entry.Worktree
+		}
+	}
+
+	// Step 3: If still nothing, check for any running instance anywhere.
+	if worktreeDir == "" {
+		if instances, listErr := wcInstance.List(); listErr == nil && len(instances) > 0 {
+			worktreeDir = instances[0].Worktree
+		}
+	}
+
+	// Initialize from the resolved worktree.
 	if worktreeDir != "" {
 		wolfcastleDir := filepath.Join(worktreeDir, ".wolfcastle")
-		daemonRepo = wcDaemon.NewDaemonRepository(wolfcastleDir)
+		if info, statErr := os.Stat(wolfcastleDir); statErr == nil && info.IsDir() {
+			daemonRepo = wcDaemon.NewDaemonRepository(wolfcastleDir)
 
-		// Try to initialize the app so we can get the Store with the
-		// correct namespace. If Init fails (e.g. no identity configured),
-		// fall back to cold-start without node data.
-		if initErr := app.Init(); initErr == nil && app.State != nil {
-			store = app.State
+			// Try full app init for Store access. Failure is non-fatal;
+			// the TUI runs in cold-start mode without node data.
+			if initErr := app.Init(); initErr == nil && app.State != nil {
+				store = app.State
+			}
 		}
-	} else {
-		// No .wolfcastle/ found; welcome screen will use CWD
+	}
+
+	// Step 4: No worktree found at all; welcome screen uses CWD.
+	if worktreeDir == "" {
 		worktreeDir = cwd
 	}
 
