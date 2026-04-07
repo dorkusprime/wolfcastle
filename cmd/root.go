@@ -5,7 +5,11 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dorkusprime/wolfcastle/cmd/audit"
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -17,8 +21,11 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/project"
 	"github.com/dorkusprime/wolfcastle/cmd/task"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
+	wcDaemon "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/state"
+	tuiApp "github.com/dorkusprime/wolfcastle/internal/tui/app"
 	"github.com/spf13/cobra"
 )
 
@@ -45,6 +52,9 @@ Use "wolfcastle [command] --help" for more information about a command.
 All commands support --json for machine-readable output.`,
 	SilenceErrors: true,
 	SilenceUsage:  true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return launchTUI()
+	},
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip config loading for commands that don't need it
 		switch cmd.Name() {
@@ -57,6 +67,55 @@ All commands support --json for machine-readable output.`,
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&app.JSON, "json", false, "Output in JSON format")
+}
+
+// launchTUI starts the Bubbletea TUI program. It resolves the .wolfcastle
+// directory and daemon repository if available; if neither exists, the TUI
+// opens in welcome mode so the user can initialize.
+func launchTUI() error {
+	var (
+		store       *state.Store
+		daemonRepo  *wcDaemon.DaemonRepository
+		worktreeDir string
+	)
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("getwd: %w", err)
+	}
+
+	// Walk CWD upward looking for .wolfcastle/
+	dir := cwd
+	for {
+		candidate := filepath.Join(dir, ".wolfcastle")
+		if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+			worktreeDir = dir
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	if worktreeDir != "" {
+		// Initialize store and daemon repo from the discovered .wolfcastle
+		wolfcastleDir := filepath.Join(worktreeDir, ".wolfcastle")
+		daemonRepo = wcDaemon.NewDaemonRepository(wolfcastleDir)
+
+		// Store needs the namespace dir. Try loading identity for the full path,
+		// but if identity isn't configured, the store remains nil and the TUI
+		// will run in cold-start mode without node data.
+		if app.State != nil {
+			store = app.State
+		}
+	}
+
+	model := tuiApp.NewTUIModel(store, daemonRepo, worktreeDir, Version)
+	p := tea.NewProgram(model)
+	_, err = p.Run()
+	return err
 }
 
 // setupCommands registers all subcommand groups and wires up
