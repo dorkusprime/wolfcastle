@@ -349,6 +349,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		h, hcmd := m.header.Update(header.DaemonStatusMsg{
 			Status:     msg.Status,
 			Branch:     msg.Branch,
+			Worktree:   msg.Worktree,
 			PID:        msg.PID,
 			IsRunning:  msg.IsRunning,
 			IsDraining: msg.IsDraining,
@@ -927,24 +928,7 @@ func (m TUIModel) handleRefresh() tea.Cmd {
 	}
 
 	if m.daemonRepo != nil {
-		repo := m.daemonRepo
-		cmds = append(cmds, func() tea.Msg {
-			running := repo.IsAlive()
-			draining := repo.HasDrainFile()
-			instances, _ := instance.List()
-			status := "standing down"
-			if running && !draining {
-				status = "hunting"
-			} else if running && draining {
-				status = "draining"
-			}
-			return tui.DaemonStatusMsg{
-				Status:     status,
-				IsRunning:  running,
-				IsDraining: draining,
-				Instances:  instances,
-			}
-		})
+		cmds = append(cmds, m.detectEntryState())
 	}
 
 	return tea.Batch(cmds...)
@@ -1088,6 +1072,7 @@ func (m TUIModel) detectEntryState() tea.Cmd {
 		return tui.DaemonStatusMsg{
 			Status:     status,
 			Branch:     branch,
+			Worktree:   worktreeDir,
 			PID:        pid,
 			IsRunning:  running,
 			IsDraining: draining,

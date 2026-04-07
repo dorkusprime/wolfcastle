@@ -31,6 +31,7 @@ type StateUpdatedMsg struct{ Index *state.RootIndex }
 type DaemonStatusMsg struct {
 	Status     string
 	Branch     string
+	Worktree   string
 	PID        int
 	IsRunning  bool
 	IsDraining bool
@@ -238,20 +239,35 @@ func (m HeaderModel) View() string {
 // ---------------------------------------------------------------------------
 
 // daemonStatusString computes the human-readable daemon status label.
+// Format: "{worktree} ({branch}) hunting (PID 12345)" or just the
+// status when worktree/branch are empty.
 func daemonStatusString(msg DaemonStatusMsg) string {
 	if msg.Status == "" {
 		return "status unknown"
 	}
-	if msg.IsRunning && !msg.IsDraining {
-		return fmt.Sprintf("hunting (PID %d)", msg.PID)
+
+	var state string
+	switch {
+	case msg.IsRunning && !msg.IsDraining:
+		state = fmt.Sprintf("hunting (PID %d)", msg.PID)
+	case msg.IsRunning && msg.IsDraining:
+		state = fmt.Sprintf("draining (PID %d)", msg.PID)
+	case !msg.IsRunning && msg.PID > 0:
+		state = fmt.Sprintf("presumed dead (stale PID %d)", msg.PID)
+	default:
+		state = "standing down"
 	}
-	if msg.IsRunning && msg.IsDraining {
-		return fmt.Sprintf("draining (PID %d)", msg.PID)
+
+	// Prefix with worktree path and branch when available.
+	if msg.Worktree != "" {
+		prefix := msg.Worktree
+		if msg.Branch != "" {
+			prefix += " (" + msg.Branch + ")"
+		}
+		return prefix + " " + state
 	}
-	if !msg.IsRunning && msg.PID > 0 {
-		return fmt.Sprintf("presumed dead (stale PID %d)", msg.PID)
-	}
-	return "standing down"
+
+	return state
 }
 
 // renderNodeCounts builds the "12 nodes: 4● 3◐ 3◯ 2☢" string.

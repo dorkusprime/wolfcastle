@@ -20,6 +20,7 @@ type NodeUpdatedMsg struct {
 type DaemonStatusMsg struct {
 	Status     string
 	Branch     string
+	Worktree   string
 	PID        int
 	IsRunning  bool
 	IsDraining bool
