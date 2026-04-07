@@ -106,6 +106,11 @@ func (m InboxModel) updateNormalMode(msg tea.KeyPressMsg) (InboxModel, tea.Cmd) 
 	return m, nil
 }
 
+// IsInputActive returns true when the text input field is capturing keys.
+func (m InboxModel) IsInputActive() bool {
+	return m.inputMode
+}
+
 // SetItems replaces the items list and clamps the cursor.
 func (m *InboxModel) SetItems(items []state.InboxItem) {
 	m.items = items

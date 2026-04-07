@@ -60,6 +60,13 @@ func (m DetailModel) Mode() DetailMode {
 	return m.mode
 }
 
+// IsCapturingInput returns true when a sub-view is capturing keyboard
+// input (e.g., the inbox text input field is active). The app
+// orchestrator should suppress global key bindings in this state.
+func (m DetailModel) IsCapturingInput() bool {
+	return m.mode == ModeInbox && m.inbox.IsInputActive()
+}
+
 // Update routes messages to the active sub-view.
 func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 	// InboxUpdatedMsg is always forwarded to the inbox sub-model regardless of

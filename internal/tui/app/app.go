@@ -173,6 +173,14 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
+		// Detail pane capturing input (e.g., inbox text field) routes
+		// directly to the detail model, bypassing all global bindings.
+		if m.detail.IsCapturingInput() {
+			d, cmd := m.detail.Update(msg)
+			m.detail = d
+			return m, cmd
+		}
+
 		// Welcome screen swallows everything else.
 		if m.welcome != nil && m.entryState == StateWelcome {
 			if key.Matches(msg, tui.GlobalKeyMap.Quit) {
@@ -216,6 +224,8 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, tui.GlobalKeyMap.Inbox):
 			m.detail.SwitchToInbox()
+			m.focused = PaneDetail
+			m.syncFocus()
 			return m, m.loadInbox()
 
 		case key.Matches(msg, tui.GlobalKeyMap.ToggleTree):
