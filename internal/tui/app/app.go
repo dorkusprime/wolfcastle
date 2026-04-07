@@ -539,7 +539,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
 			m.store = storeFromWolfcastleDir(wolfDir)
 			m.header.SetLoading(true)
-			cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
+			cmds = append(cmds, m.detectEntryState(), m.startWatcher(), m.startPoller(), m.loadInitialState())
 		}
 		return m, tea.Batch(cmds...)
 
@@ -561,7 +561,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.header.SetInstances(m.instances, m.activeInstanceIndex)
 		m.header.SetLoading(true)
 		m.propagateSize()
-		cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
+		cmds = append(cmds, m.detectEntryState(), m.startWatcher(), m.startPoller(), m.loadInitialState())
 		return m, tea.Batch(cmds...)
 
 	case tui.WorktreeGoneMsg:
