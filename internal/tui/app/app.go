@@ -463,7 +463,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Update store and daemon repo for the new worktree.
 		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
-		m.store = state.NewStore(wolfDir, 5*time.Second)
+		m.store = storeFromWolfcastleDir(wolfDir)
 		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
 		m.worktreeDir = msg.Entry.Worktree
 
@@ -1297,7 +1297,13 @@ func (m *TUIModel) switchInstance(entry instance.Entry) tea.Cmd {
 		}
 
 		wolfDir := filepath.Join(worktree, ".wolfcastle")
-		store := state.NewStore(wolfDir, 5*time.Second)
+		store := storeFromWolfcastleDir(wolfDir)
+		if store == nil {
+			return tui.ErrorMsg{
+				Filename: "state.json",
+				Message:  fmt.Sprintf("Failed to resolve identity for %s", worktree),
+			}
+		}
 		idx, err := store.ReadIndex()
 		if err != nil {
 			return tui.ErrorMsg{
