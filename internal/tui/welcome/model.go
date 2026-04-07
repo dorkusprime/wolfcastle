@@ -363,7 +363,9 @@ func (m WelcomeModel) visibleEntries() []os.DirEntry {
 	return m.entries[m.scrollTop:end]
 }
 
-// place centers content within the terminal using lipgloss.Place.
+// place centers content as a left-aligned block within the terminal.
+// The content is first wrapped in a fixed-width left-aligned box so that
+// lines stay aligned with each other, then that box is centered.
 func (m WelcomeModel) place(content string) string {
 	w := m.width
 	h := m.height
@@ -373,5 +375,22 @@ func (m WelcomeModel) place(content string) string {
 	if h <= 0 {
 		h = 24
 	}
-	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
+
+	// Determine the content's natural width (widest line).
+	contentWidth := lipgloss.Width(content)
+	maxBox := w - 4 // leave some margin
+	if contentWidth > maxBox {
+		contentWidth = maxBox
+	}
+	if contentWidth < 40 {
+		contentWidth = 40
+	}
+
+	// Wrap in a left-aligned box so all lines share the same left edge.
+	box := lipgloss.NewStyle().
+		Width(contentWidth).
+		Align(lipgloss.Left).
+		Render(content)
+
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, box)
 }
