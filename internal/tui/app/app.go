@@ -728,20 +728,6 @@ func (m TUIModel) renderLayout() string {
 }
 
 func (m TUIModel) renderContent(contentHeight int) string {
-	// Loading screen while switching instances.
-	if m.switching {
-		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-		frame := spinner[int(time.Now().UnixMilli()/80)%len(spinner)]
-		label := m.switchLabel
-		if label == "" {
-			label = "another instance"
-		}
-		loadingText := lipgloss.NewStyle().Foreground(tui.ColorYellow).Render(frame) +
-			" " +
-			lipgloss.NewStyle().Foreground(tui.ColorDimWhite).Render("Switching to "+label+"...")
-		return lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, loadingText)
-	}
-
 	if !m.treeVisible || m.width < 60 {
 		content := m.detail.View()
 		if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {

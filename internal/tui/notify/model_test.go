@@ -54,7 +54,7 @@ func TestToastDismissMsg_MarksDismissed(t *testing.T) {
 	m.Push("first")
 	m.Push("second")
 
-	m, _ = m.Update(ToastDismissMsg{Index: 0})
+	m, _ = m.Update(ToastDismissMsg{ID: 0})
 	// After dismiss + pruning, only "second" remains.
 	if len(m.toasts) != 1 {
 		t.Fatalf("expected 1 toast after dismiss, got %d", len(m.toasts))
@@ -77,7 +77,7 @@ func TestHasToasts_TrueWhenActive_FalseWhenAllDismissed(t *testing.T) {
 		t.Error("should have toasts after push")
 	}
 
-	m, _ = m.Update(ToastDismissMsg{Index: 0})
+	m, _ = m.Update(ToastDismissMsg{ID: 0})
 	if m.HasToasts() {
 		t.Error("should have no toasts after all dismissed")
 	}
