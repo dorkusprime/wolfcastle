@@ -7,6 +7,7 @@ type GlobalKeys struct {
 	ForceQuit  key.Binding
 	Dashboard  key.Binding
 	LogStream  key.Binding
+	Inbox      key.Binding
 	ToggleTree key.Binding
 	CycleFocus key.Binding
 	Refresh    key.Binding
@@ -20,6 +21,7 @@ var GlobalKeyMap = GlobalKeys{
 	ForceQuit:  key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit")),
 	Dashboard:  key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "dash")),
 	LogStream:  key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "logs")),
+	Inbox:      key.NewBinding(key.WithKeys("i"), key.WithHelp("i", "inbox")),
 	ToggleTree: key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "tree")),
 	CycleFocus: key.NewBinding(key.WithKeys("tab"), key.WithHelp("Tab", "focus")),
 	Refresh:    key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "refresh")),

@@ -108,8 +108,18 @@ type WorktreeGoneMsg struct {
 	Entry instance.Entry
 }
 
-// Phase 4 placeholder
+// Phase 4: Inbox
 
 type InboxUpdatedMsg struct {
 	Inbox *state.InboxFile
+}
+
+type InboxItemAddedMsg struct{}
+
+type InboxAddFailedMsg struct {
+	Err error
+}
+
+type AddInboxItemCmd struct {
+	Text string
 }

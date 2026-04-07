@@ -203,6 +203,10 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.detail.SwitchToLogView()
 			return m, nil
 
+		case key.Matches(msg, tui.GlobalKeyMap.Inbox):
+			m.detail.SwitchToInbox()
+			return m, m.loadInbox()
+
 		case key.Matches(msg, tui.GlobalKeyMap.ToggleTree):
 			m.treeVisible = !m.treeVisible
 			if !m.treeVisible && m.focused == PaneTree {
@@ -520,6 +524,30 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tui.PollTickMsg:
 		m.tree.CleanCache()
+		return m, nil
+
+	case tui.InboxUpdatedMsg:
+		d, dcmd := m.detail.Update(msg)
+		m.detail = d
+		cmds = append(cmds, dcmd)
+		return m, tea.Batch(cmds...)
+
+	case tui.AddInboxItemCmd:
+		return m, m.addInboxItem(msg.Text)
+
+	case tui.InboxItemAddedMsg:
+		return m, m.loadInbox()
+
+	case tui.InboxAddFailedMsg:
+		errMsg := fmt.Sprintf("Inbox write failed: %s.", msg.Err)
+		errText := msg.Err.Error()
+		if strings.Contains(errText, "lock") || strings.Contains(errText, "timed out") {
+			errMsg = "Failed to write inbox. Another process may hold the lock."
+		}
+		m.errors = append(m.errors, errorEntry{
+			filename: "inbox",
+			message:  errMsg,
+		})
 		return m, nil
 	}
 
@@ -845,6 +873,48 @@ func (m TUIModel) handleRefresh() tea.Cmd {
 	}
 
 	return tea.Batch(cmds...)
+}
+
+// ---------------------------------------------------------------------------
+// Inbox helpers
+// ---------------------------------------------------------------------------
+
+func (m TUIModel) loadInbox() tea.Cmd {
+	store := m.store
+	if store == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		inbox, err := store.ReadInbox()
+		if err != nil {
+			return tui.ErrorMsg{
+				Filename: "inbox.json",
+				Message:  "Inbox unreadable. Run wolfcastle doctor.",
+			}
+		}
+		return tui.InboxUpdatedMsg{Inbox: inbox}
+	}
+}
+
+func (m TUIModel) addInboxItem(text string) tea.Cmd {
+	store := m.store
+	if store == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		err := store.MutateInbox(func(f *state.InboxFile) error {
+			f.Items = append(f.Items, state.InboxItem{
+				Timestamp: time.Now().UTC().Format(time.RFC3339),
+				Text:      text,
+				Status:    state.InboxNew,
+			})
+			return nil
+		})
+		if err != nil {
+			return tui.InboxAddFailedMsg{Err: err}
+		}
+		return tui.InboxItemAddedMsg{}
+	}
 }
 
 // ---------------------------------------------------------------------------

@@ -28,6 +28,7 @@ type DetailModel struct {
 	nodeDetail NodeDetailModel
 	taskDetail TaskDetailModel
 	logView    LogViewModel
+	inbox      InboxModel
 	viewport   viewport.Model
 	width      int
 	height     int
@@ -49,6 +50,7 @@ func NewDetailModel() DetailModel {
 		nodeDetail: NewNodeDetailModel(),
 		taskDetail: NewTaskDetailModel(),
 		logView:    NewLogViewModel(),
+		inbox:      NewInboxModel(),
 		viewport:   vp,
 	}
 }
@@ -60,6 +62,12 @@ func (m DetailModel) Mode() DetailMode {
 
 // Update routes messages to the active sub-view.
 func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
+	// InboxUpdatedMsg is always forwarded to the inbox sub-model regardless of
+	// which mode is active, so the data stays fresh when the user switches.
+	if inboxMsg, ok := msg.(tui.InboxUpdatedMsg); ok {
+		m.inbox, _ = m.inbox.Update(inboxMsg)
+	}
+
 	switch m.mode {
 	case ModeDashboard:
 		return m.updateDashboard(msg)
@@ -69,6 +77,8 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 		return m.updateTaskDetail(msg)
 	case ModeLogStream:
 		return m.updateLogView(msg)
+	case ModeInbox:
+		return m.updateInbox(msg)
 	default:
 		return m.updatePlaceholder(msg)
 	}
@@ -118,6 +128,16 @@ func (m DetailModel) updateLogView(msg tea.Msg) (DetailModel, tea.Cmd) {
 	return m, nil
 }
 
+func (m DetailModel) updateInbox(msg tea.Msg) (DetailModel, tea.Cmd) {
+	switch msg.(type) {
+	case tea.KeyPressMsg, tui.InboxUpdatedMsg:
+		var cmd tea.Cmd
+		m.inbox, cmd = m.inbox.Update(msg)
+		return m, cmd
+	}
+	return m, nil
+}
+
 func (m DetailModel) updatePlaceholder(msg tea.Msg) (DetailModel, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyPressMsg:
@@ -136,6 +156,7 @@ func (m *DetailModel) SetSize(width, height int) {
 	m.nodeDetail.SetSize(width, height)
 	m.taskDetail.SetSize(width, height)
 	m.logView.SetSize(width, height)
+	m.inbox.SetSize(width, height)
 	m.viewport.SetWidth(width)
 	m.viewport.SetHeight(height)
 }
@@ -145,13 +166,9 @@ func (m *DetailModel) SetFocused(focused bool) {
 	m.focused = focused
 }
 
-// SetMode switches the active sub-view. When switching to a placeholder mode,
-// the viewport content is set to the placeholder string.
+// SetMode switches the active sub-view.
 func (m *DetailModel) SetMode(mode DetailMode) {
 	m.mode = mode
-	if mode == ModeInbox {
-		m.viewport.SetContent(placeholderStyle.Render(placeholderText))
-	}
 }
 
 // LoadNodeDetail switches to node detail mode and populates the view.
@@ -176,6 +193,22 @@ func (m *DetailModel) SwitchToDashboard() {
 	m.mode = ModeDashboard
 }
 
+// SwitchToInbox switches to inbox mode.
+func (m *DetailModel) SwitchToInbox() {
+	m.mode = ModeInbox
+	m.inbox.SetFocused(m.focused)
+}
+
+// LoadInbox updates the inbox model with fresh data.
+func (m *DetailModel) LoadInbox(items []state.InboxItem) {
+	m.inbox.SetItems(items)
+}
+
+// SetInboxReadError flags the inbox as unreadable.
+func (m *DetailModel) SetInboxReadError(err bool) {
+	m.inbox.SetReadError(err)
+}
+
 // SearchContent returns the searchable lines for the current detail mode.
 // The app uses this when search is activated on the detail pane.
 func (m DetailModel) SearchContent() []string {
@@ -186,6 +219,8 @@ func (m DetailModel) SearchContent() []string {
 		return m.taskDetail.SearchContent()
 	case ModeLogStream:
 		return m.logView.SearchContent()
+	case ModeInbox:
+		return m.inbox.SearchContent()
 	default:
 		return nil
 	}
@@ -200,6 +235,8 @@ func (m DetailModel) CopyTarget() string {
 		return m.taskDetail.TaskAddr()
 	case ModeLogStream:
 		return m.logView.SelectedLineJSON()
+	case ModeInbox:
+		return m.inbox.SelectedText()
 	default:
 		return ""
 	}
@@ -216,6 +253,8 @@ func (m DetailModel) View() string {
 		return m.taskDetail.View()
 	case ModeLogStream:
 		return m.logView.View()
+	case ModeInbox:
+		return m.inbox.View()
 	default:
 		return m.viewport.View()
 	}

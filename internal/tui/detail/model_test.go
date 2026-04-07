@@ -70,14 +70,17 @@ func TestSetMode_TaskDetail_RendersTaskView(t *testing.T) {
 	_ = m.View()
 }
 
-func TestSetMode_Inbox_ShowsPlaceholder(t *testing.T) {
+func TestSetMode_Inbox_ShowsInboxView(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeInbox)
 	v := m.View()
-	if !strings.Contains(v, "Coming in the next phase.") {
-		t.Errorf("expected placeholder text, got: %s", v)
+	if !strings.Contains(v, "INBOX") {
+		t.Errorf("expected INBOX header, got: %s", v)
+	}
+	if !strings.Contains(v, "The silence is temporary") {
+		t.Errorf("expected empty inbox message, got: %s", v)
 	}
 }
 
@@ -191,14 +194,14 @@ func TestView_DashboardMode(t *testing.T) {
 	}
 }
 
-func TestView_InboxMode_ShowsPlaceholder(t *testing.T) {
+func TestView_InboxMode_ShowsInboxView(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeInbox)
 	v := m.View()
-	if !strings.Contains(v, "Coming in the next phase.") {
-		t.Errorf("expected placeholder in inbox view, got: %s", v)
+	if !strings.Contains(v, "INBOX") {
+		t.Errorf("expected INBOX header, got: %s", v)
 	}
 }
 

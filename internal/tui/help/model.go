@@ -103,6 +103,7 @@ func (m *HelpOverlayModel) buildContent() {
 				{"q", "quit"},
 				{"Ctrl+C", "quit"},
 				{"d", "dashboard"},
+				{"i", "inbox"},
 				{"t", "toggle tree"},
 				{"Tab", "cycle focus"},
 				{"R", "refresh"},
@@ -129,6 +130,15 @@ func (m *HelpOverlayModel) buildContent() {
 				{"S", "stop all"},
 				{"< >", "switch instance"},
 				{"1-9", "select instance"},
+			},
+		},
+		{
+			title: "Inbox",
+			bindings: []binding{
+				{"i", "open inbox"},
+				{"a", "add item"},
+				{"Enter", "submit"},
+				{"Esc", "cancel"},
 			},
 		},
 		{
