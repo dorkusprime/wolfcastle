@@ -328,11 +328,11 @@ func (m *TreeModel) buildFlatList() {
 	}
 	m.flatList = m.flatList[:0]
 	for _, addr := range m.index.Root {
-		m.appendNode(addr)
+		m.appendNodeAtDepth(addr, 0)
 	}
 }
 
-func (m *TreeModel) appendNode(addr string) {
+func (m *TreeModel) appendNodeAtDepth(addr string, depth int) {
 	entry, ok := m.index.Nodes[addr]
 	if !ok {
 		return
@@ -349,7 +349,7 @@ func (m *TreeModel) appendNode(addr string) {
 	m.flatList = append(m.flatList, TreeRow{
 		Addr:       addr,
 		Name:       entry.Name,
-		Depth:      entry.DecompositionDepth,
+		Depth:      depth,
 		NodeType:   entry.Type,
 		Status:     entry.State,
 		Expandable: expandable,
@@ -360,10 +360,10 @@ func (m *TreeModel) appendNode(addr string) {
 		return
 	}
 
-	// Orchestrators: recurse into children.
+	// Orchestrators: recurse into children at depth+1.
 	if entry.Type == state.NodeOrchestrator {
 		for _, child := range entry.Children {
-			m.appendNode(child)
+			m.appendNodeAtDepth(child, depth+1)
 		}
 	}
 
@@ -374,7 +374,7 @@ func (m *TreeModel) appendNode(addr string) {
 				m.flatList = append(m.flatList, TreeRow{
 					Addr:   addr + "/" + task.ID,
 					Name:   task.Title,
-					Depth:  entry.DecompositionDepth + 1,
+					Depth:  depth + 1,
 					Status: task.State,
 					IsTask: true,
 				})

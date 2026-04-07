@@ -111,8 +111,8 @@ func (m *NodeDetailModel) rebuildContent() {
 	b.WriteString(body.Render(string(n.State)))
 	b.WriteByte('\n')
 
-	// Type and Depth
-	b.WriteString(body.Render(fmt.Sprintf("Type: %s    Depth: %d", n.Type, n.DecompositionDepth)))
+	// Type
+	b.WriteString(body.Render(fmt.Sprintf("Type: %s", n.Type)))
 	b.WriteByte('\n')
 
 	// Scope
