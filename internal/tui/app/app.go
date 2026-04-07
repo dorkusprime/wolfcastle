@@ -188,7 +188,11 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case key.Matches(msg, tui.GlobalKeyMap.Dashboard):
-			m.detail.SetMode(detail.ModeDashboard)
+			m.detail.SwitchToDashboard()
+			return m, nil
+
+		case key.Matches(msg, tui.GlobalKeyMap.LogStream) && m.focused != PaneTree:
+			m.detail.SwitchToLogView()
 			return m, nil
 
 		case key.Matches(msg, tui.GlobalKeyMap.ToggleTree):
@@ -230,6 +234,12 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Esc in detail pane (non-dashboard mode) returns to dashboard.
+		if msg.String() == "esc" && m.focused == PaneDetail && m.detail.Mode() != detail.ModeDashboard {
+			m.detail.SwitchToDashboard()
+			return m, nil
+		}
+
 		// n/N for search match navigation (when search has confirmed matches).
 		if m.search.HasMatches() {
 			prev := m.search.Current()
@@ -247,6 +257,10 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			t, cmd := m.tree.Update(msg)
 			m.tree = t
 			cmds = append(cmds, cmd)
+			// On Enter/l/right in tree, load detail for the selected row.
+			if key.Matches(msg, tui.TreeKeyMap.Expand) {
+				m.loadDetailForSelection()
+			}
 		case PaneDetail:
 			d, cmd := m.detail.Update(msg)
 			m.detail = d
@@ -329,6 +343,12 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case tui.LogLinesMsg:
+		d, dcmd := m.detail.Update(msg)
+		m.detail = d
+		cmds = append(cmds, dcmd)
+		return m, tea.Batch(cmds...)
+
+	case tui.NewLogFileMsg:
 		d, dcmd := m.detail.Update(msg)
 		m.detail = d
 		cmds = append(cmds, dcmd)
@@ -433,10 +453,14 @@ func (m TUIModel) renderLayout() string {
 
 func (m TUIModel) renderContent(contentHeight int) string {
 	if !m.treeVisible || m.width < 60 {
+		content := m.detail.View()
+		if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
+			content += "\n" + m.search.View()
+		}
 		detailStyle := m.borderStyle(PaneDetail).
 			Width(m.width - 2).
 			Height(contentHeight)
-		return detailStyle.Render(m.detail.View())
+		return detailStyle.Render(content)
 	}
 
 	treeWidth := m.width * 30 / 100
@@ -451,7 +475,7 @@ func (m TUIModel) renderContent(contentHeight int) string {
 	}
 
 	treeContent := m.tree.View()
-	if m.search.IsActive() && m.focused == PaneTree {
+	if m.search.IsActive() && m.search.PaneType() == int(PaneTree) {
 		treeContent += "\n" + m.search.View()
 	}
 
@@ -460,10 +484,15 @@ func (m TUIModel) renderContent(contentHeight int) string {
 		Height(contentHeight)
 	treePane := treePaneStyle.Render(treeContent)
 
+	detailContent := m.detail.View()
+	if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
+		detailContent += "\n" + m.search.View()
+	}
+
 	detailPaneStyle := m.borderStyle(PaneDetail).
 		Width(detailWidth).
 		Height(contentHeight)
-	detailPane := detailPaneStyle.Render(m.detail.View())
+	detailPane := detailPaneStyle.Render(detailContent)
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, treePane, detailPane)
 }
@@ -526,6 +555,12 @@ func (m *TUIModel) computeTreeSearchMatches() {
 		return
 	}
 
+	// When search was activated from the detail pane, match against detail content.
+	if m.search.PaneType() == int(PaneDetail) {
+		m.computeDetailSearchMatches(query)
+		return
+	}
+
 	var matches []search.SearchMatch
 	highlights := make(map[int]bool)
 	for i, row := range m.tree.FlatList() {
@@ -538,6 +573,19 @@ func (m *TUIModel) computeTreeSearchMatches() {
 	m.tree.SetSearchMatches(highlights)
 }
 
+func (m *TUIModel) computeDetailSearchMatches(query string) {
+	lines := m.detail.SearchContent()
+	var matches []search.SearchMatch
+	for i, line := range lines {
+		if strings.Contains(strings.ToLower(line), query) {
+			matches = append(matches, search.SearchMatch{Row: i})
+		}
+	}
+	m.search.SetMatches(matches)
+	// Clear tree highlights when searching detail.
+	m.tree.SetSearchMatches(nil)
+}
+
 func (m *TUIModel) jumpTreeToSearchMatch() {
 	match, ok := m.search.CurrentMatch()
 	if !ok {
@@ -547,14 +595,86 @@ func (m *TUIModel) jumpTreeToSearchMatch() {
 }
 
 func (m TUIModel) handleCopy() tea.Cmd {
-	addr := m.tree.SelectedAddr()
-	if addr == "" {
+	var text string
+
+	switch {
+	case m.focused == PaneDetail && m.detail.Mode() != detail.ModeDashboard:
+		text = m.detail.CopyTarget()
+	default:
+		text = m.tree.SelectedAddr()
+	}
+
+	if text == "" {
 		return nil
 	}
 	return func() tea.Msg {
-		_ = clipboard.WriteOSC52(os.Stdout, addr)
+		_ = clipboard.WriteOSC52(os.Stdout, text)
 		return tui.CopiedMsg{}
 	}
+}
+
+// loadDetailForSelection inspects the currently selected tree row and loads
+// the appropriate detail view: node detail for orchestrators and leaves,
+// task detail for tasks.
+func (m *TUIModel) loadDetailForSelection() {
+	row := m.tree.SelectedRow()
+	if row == nil {
+		return
+	}
+
+	idx := m.tree.Index()
+	if idx == nil {
+		return
+	}
+
+	if row.IsTask {
+		// Task addr format: "nodeAddr/taskID" where the last segment is the task ID.
+		lastSlash := strings.LastIndex(row.Addr, "/")
+		if lastSlash < 0 {
+			return
+		}
+		nodeAddr := row.Addr[:lastSlash]
+		taskID := row.Addr[lastSlash+1:]
+
+		ns := m.tree.CachedNode(nodeAddr)
+		if ns == nil {
+			return
+		}
+		for i := range ns.Tasks {
+			if ns.Tasks[i].ID == taskID {
+				m.detail.LoadTaskDetail(nodeAddr, taskID, &ns.Tasks[i])
+				return
+			}
+		}
+		return
+	}
+
+	// Node row: load node detail.
+	entry, ok := idx.Nodes[row.Addr]
+	if !ok {
+		return
+	}
+
+	ns := m.tree.CachedNode(row.Addr)
+	if ns == nil {
+		// If the node isn't cached yet, we can still show the index entry info
+		// by constructing a minimal NodeState from the index entry.
+		ns = &state.NodeState{
+			Name:               entry.Name,
+			Type:               entry.Type,
+			State:              entry.State,
+			DecompositionDepth: entry.DecompositionDepth,
+		}
+	}
+
+	isTarget := m.tree.SelectedAddr() == m.currentTarget()
+	m.detail.LoadNodeDetail(row.Addr, ns, &entry, isTarget)
+}
+
+func (m TUIModel) currentTarget() string {
+	// The header tracks the current target through daemon status. For now,
+	// return empty; the watcher will set this when target tracking lands.
+	return ""
 }
 
 func (m TUIModel) handleRefresh() tea.Cmd {

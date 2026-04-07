@@ -66,7 +66,7 @@ type CopiedMsg struct{}
 // Phase 2 placeholder messages
 
 type LogLinesMsg struct {
-	Lines []any // will be logrender.Record in Phase 2
+	Lines []string // raw JSON strings, one per log line
 }
 
 type NewLogFileMsg struct {

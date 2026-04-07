@@ -32,37 +32,42 @@ func TestSetMode_Dashboard(t *testing.T) {
 	}
 }
 
-func TestSetMode_NodeDetail_ShowsPlaceholder(t *testing.T) {
+func TestSetMode_NodeDetail_RendersNodeView(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeNodeDetail)
-	v := m.View()
-	if !strings.Contains(v, "Coming in the next phase.") {
-		t.Errorf("expected placeholder text, got: %s", v)
+	if m.mode != ModeNodeDetail {
+		t.Errorf("expected ModeNodeDetail, got %d", m.mode)
 	}
+	// Without loading data, the node detail view renders an empty viewport.
+	_ = m.View()
 }
 
-func TestSetMode_LogStream_ShowsPlaceholder(t *testing.T) {
+func TestSetMode_LogStream_RendersLogView(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
 	m.SetSize(80, 24)
-	m.SetMode(ModeLogStream)
+	m.SwitchToLogView()
+	if m.mode != ModeLogStream {
+		t.Errorf("expected ModeLogStream, got %d", m.mode)
+	}
 	v := m.View()
-	if !strings.Contains(v, "Coming in the next phase.") {
-		t.Errorf("expected placeholder text, got: %s", v)
+	if !strings.Contains(v, "TRANSMISSIONS") {
+		t.Errorf("expected TRANSMISSIONS header in log view, got: %s", v)
 	}
 }
 
-func TestSetMode_TaskDetail_ShowsPlaceholder(t *testing.T) {
+func TestSetMode_TaskDetail_RendersTaskView(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeTaskDetail)
-	v := m.View()
-	if !strings.Contains(v, "Coming in the next phase.") {
-		t.Errorf("expected placeholder text, got: %s", v)
+	if m.mode != ModeTaskDetail {
+		t.Errorf("expected ModeTaskDetail, got %d", m.mode)
 	}
+	// Without loading data, the task detail view renders an empty viewport.
+	_ = m.View()
 }
 
 func TestSetMode_Inbox_ShowsPlaceholder(t *testing.T) {
@@ -110,31 +115,31 @@ func TestUpdate_ForwardsDaemonStatusMsg(t *testing.T) {
 func TestUpdate_ForwardsLogLinesMsg(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
-	m, _ = m.Update(tui.LogLinesMsg{Lines: []any{"hello", "world"}})
+	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{"hello", "world"}})
 	if len(m.dashboard.recentActivity) != 2 {
 		t.Errorf("expected 2 activity entries, got %d", len(m.dashboard.recentActivity))
 	}
 }
 
-func TestUpdate_PlaceholderModeIgnoresStateMsg(t *testing.T) {
+func TestUpdate_NonDashboardModeIgnoresStateMsg(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
 	m.SetMode(ModeNodeDetail)
 	m, _ = m.Update(tui.StateUpdatedMsg{Index: &state.RootIndex{
 		Nodes: map[string]state.IndexEntry{"a": {State: state.StatusComplete}},
 	}})
-	// Dashboard should not have been updated
+	// Dashboard should not have been updated since we're in node detail mode
 	if m.dashboard.totalNodes != 0 {
-		t.Errorf("expected 0 total nodes in placeholder mode, got %d", m.dashboard.totalNodes)
+		t.Errorf("expected 0 total nodes in node detail mode, got %d", m.dashboard.totalNodes)
 	}
 }
 
-func TestUpdate_PlaceholderModeHandlesKeyPress(t *testing.T) {
+func TestUpdate_LogStreamModeHandlesKeyPress(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
 	m.SetSize(80, 24)
-	m.SetMode(ModeLogStream)
-	// Should not panic on key press in placeholder mode
+	m.SwitchToLogView()
+	// Should not panic on key press in log stream mode
 	m, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
 	if m.mode != ModeLogStream {
 		t.Errorf("expected ModeLogStream, got %d", m.mode)
@@ -186,14 +191,14 @@ func TestView_DashboardMode(t *testing.T) {
 	}
 }
 
-func TestView_PlaceholderMode(t *testing.T) {
+func TestView_InboxMode_ShowsPlaceholder(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
 	m.SetSize(80, 24)
-	m.SetMode(ModeNodeDetail)
+	m.SetMode(ModeInbox)
 	v := m.View()
 	if !strings.Contains(v, "Coming in the next phase.") {
-		t.Errorf("expected placeholder in non-dashboard view, got: %s", v)
+		t.Errorf("expected placeholder in inbox view, got: %s", v)
 	}
 }
 

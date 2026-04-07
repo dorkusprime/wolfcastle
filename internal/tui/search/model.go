@@ -110,6 +110,11 @@ func (m SearchModel) IsActive() bool {
 	return m.active
 }
 
+// PaneType returns which pane this search is bound to (0=tree, 1=detail).
+func (m SearchModel) PaneType() int {
+	return m.paneType
+}
+
 // HasMatches reports whether there are any search matches.
 func (m SearchModel) HasMatches() bool {
 	return len(m.matches) > 0

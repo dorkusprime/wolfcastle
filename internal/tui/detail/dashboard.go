@@ -60,10 +60,8 @@ func (m DashboardModel) Update(msg tea.Msg) (DashboardModel, tea.Cmd) {
 		m.branch = msg.Branch
 		m.daemonRunning = msg.IsRunning
 	case tui.LogLinesMsg:
-		for _, line := range msg.Lines {
-			if s, ok := line.(string); ok {
-				m.pushActivity(s)
-			}
+		for _, s := range msg.Lines {
+			m.pushActivity(s)
 		}
 	}
 	return m, nil

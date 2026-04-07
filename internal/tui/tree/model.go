@@ -288,6 +288,26 @@ func (m *TreeModel) SelectedAddr() string {
 	return ""
 }
 
+// SelectedRow returns a pointer to the TreeRow under the cursor, or nil if
+// the list is empty.
+func (m *TreeModel) SelectedRow() *TreeRow {
+	if m.cursor >= 0 && m.cursor < len(m.flatList) {
+		return &m.flatList[m.cursor]
+	}
+	return nil
+}
+
+// CachedNode returns the cached NodeState for the given address, or nil if
+// not cached.
+func (m *TreeModel) CachedNode(addr string) *state.NodeState {
+	return m.nodes[addr]
+}
+
+// Index returns the current root index, or nil if none has been set.
+func (m *TreeModel) Index() *state.RootIndex {
+	return m.index
+}
+
 // buildFlatList walks the index tree, respecting expand state, and produces
 // the ordered slice of TreeRows that the renderer will draw.
 func (m *TreeModel) buildFlatList() {

@@ -101,7 +101,7 @@ func TestDaemonStatusMsg_UpdatesFields(t *testing.T) {
 func TestLogLinesMsg_PushesActivity(t *testing.T) {
 	t.Parallel()
 	m := NewDashboardModel()
-	m, _ = m.Update(tui.LogLinesMsg{Lines: []any{"line one", "line two"}})
+	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{"line one", "line two"}})
 	if len(m.recentActivity) != 2 {
 		t.Errorf("expected 2 activity entries, got %d", len(m.recentActivity))
 	}
@@ -113,7 +113,7 @@ func TestLogLinesMsg_PushesActivity(t *testing.T) {
 func TestLogLinesMsg_CappedAtMax(t *testing.T) {
 	t.Parallel()
 	m := NewDashboardModel()
-	lines := make([]any, 15)
+	lines := make([]string, 15)
 	for i := range lines {
 		lines[i] = "line"
 	}
@@ -123,12 +123,12 @@ func TestLogLinesMsg_CappedAtMax(t *testing.T) {
 	}
 }
 
-func TestLogLinesMsg_SkipsNonString(t *testing.T) {
+func TestLogLinesMsg_AllStringsAccepted(t *testing.T) {
 	t.Parallel()
 	m := NewDashboardModel()
-	m, _ = m.Update(tui.LogLinesMsg{Lines: []any{42, "valid", nil}})
-	if len(m.recentActivity) != 1 {
-		t.Errorf("expected 1 activity entry (non-strings skipped), got %d", len(m.recentActivity))
+	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{"alpha", "bravo", "charlie"}})
+	if len(m.recentActivity) != 3 {
+		t.Errorf("expected 3 activity entries, got %d", len(m.recentActivity))
 	}
 }
 

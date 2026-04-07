@@ -244,11 +244,7 @@ func (w *Watcher) flush(paths map[string]bool) {
 		// Current log file was modified: read new lines.
 		case p == w.logFile:
 			if lines := w.readNewLogLines(); len(lines) > 0 {
-				coerced := make([]any, len(lines))
-				for i, l := range lines {
-					coerced[i] = l
-				}
-				w.program.Send(LogLinesMsg{Lines: coerced})
+				w.program.Send(LogLinesMsg{Lines: lines})
 			}
 		}
 	}
@@ -360,11 +356,7 @@ func (w *Watcher) pollTick() {
 			if info.Size() != w.logFileSize {
 				w.logFileSize = info.Size()
 				if lines := w.readNewLogLines(); len(lines) > 0 {
-					coerced := make([]any, len(lines))
-					for i, l := range lines {
-						coerced[i] = l
-					}
-					w.program.Send(LogLinesMsg{Lines: coerced})
+					w.program.Send(LogLinesMsg{Lines: lines})
 				}
 			}
 		}
