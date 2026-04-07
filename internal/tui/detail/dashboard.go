@@ -37,6 +37,10 @@ type DashboardModel struct {
 	openGaps        int
 	openEscalations int
 	recentActivity  []activityEntry
+	inboxItems      []state.InboxItem
+	lastActivity    time.Time
+	currentNode     string
+	currentTask     string
 	width           int
 	height          int
 }
@@ -59,6 +63,11 @@ func (m DashboardModel) Update(msg tea.Msg) (DashboardModel, tea.Cmd) {
 		m.daemonStatus = msg.Status
 		m.branch = msg.Branch
 		m.daemonRunning = msg.IsRunning
+		if !msg.LastActivity.IsZero() {
+			m.lastActivity = msg.LastActivity
+		}
+		m.currentNode = msg.CurrentNode
+		m.currentTask = msg.CurrentTask
 	case tui.LogLinesMsg:
 		for _, s := range msg.Lines {
 			m.pushActivity(s)
@@ -100,6 +109,19 @@ func (m *DashboardModel) pushActivity(text string) {
 	if len(m.recentActivity) > maxActivity {
 		m.recentActivity = m.recentActivity[len(m.recentActivity)-maxActivity:]
 	}
+}
+
+// SetInbox updates the dashboard's inbox item list.
+func (m *DashboardModel) SetInbox(items []state.InboxItem) {
+	m.inboxItems = items
+}
+
+// SetDaemonActivity updates the dashboard's last-activity and current
+// target/task fields from the daemon activity snapshot.
+func (m *DashboardModel) SetDaemonActivity(lastActivity time.Time, currentNode, currentTask string) {
+	m.lastActivity = lastActivity
+	m.currentNode = currentNode
+	m.currentTask = currentTask
 }
 
 // SetSize stores the available rendering dimensions.
@@ -164,6 +186,9 @@ func (m DashboardModel) renderFull() string {
 	b.WriteString(m.renderProgress())
 	b.WriteByte('\n')
 	b.WriteByte('\n')
+	b.WriteString(m.renderInboxSummary())
+	b.WriteByte('\n')
+	b.WriteByte('\n')
 	b.WriteString(m.renderActivity())
 	b.WriteByte('\n')
 	b.WriteByte('\n')
@@ -184,6 +209,18 @@ func (m DashboardModel) renderStatusBlock() string {
 	if m.daemonRunning && m.uptime > 0 {
 		b.WriteByte('\n')
 		b.WriteString(body.Render(fmt.Sprintf("Uptime: %s", formatDuration(m.uptime))))
+	}
+	if !m.lastActivity.IsZero() {
+		b.WriteByte('\n')
+		b.WriteString(body.Render(fmt.Sprintf("Last activity: %s", relativeTime(m.lastActivity))))
+	}
+	if m.currentNode != "" {
+		current := m.currentNode
+		if m.currentTask != "" {
+			current += "/" + m.currentTask
+		}
+		b.WriteByte('\n')
+		b.WriteString(body.Render(fmt.Sprintf("Current: %s", current)))
 	}
 	return b.String()
 }
@@ -266,6 +303,21 @@ func (m DashboardModel) renderAudit() string {
 	b.WriteString(body.Render(fmt.Sprintf("  %d open gap(s), %d escalation(s)", m.openGaps, m.openEscalations)))
 
 	return b.String()
+}
+
+func (m DashboardModel) renderInboxSummary() string {
+	body := tui.DashboardBodyStyle
+	newCount := 0
+	filedCount := 0
+	for _, item := range m.inboxItems {
+		switch item.Status {
+		case state.InboxNew:
+			newCount++
+		case state.InboxFiled:
+			filedCount++
+		}
+	}
+	return body.Render(fmt.Sprintf("Inbox: %d new, %d filed", newCount, filedCount))
 }
 
 // --- helpers ---

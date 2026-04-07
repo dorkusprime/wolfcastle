@@ -204,6 +204,12 @@ func (m *DetailModel) LoadInbox(items []state.InboxItem) {
 	m.inbox.SetItems(items)
 }
 
+// SetDashboardInbox updates the dashboard's cached inbox items for the
+// summary line, independent of the inbox detail view.
+func (m *DetailModel) SetDashboardInbox(items []state.InboxItem) {
+	m.dashboard.SetInbox(items)
+}
+
 // SetInboxReadError flags the inbox as unreadable.
 func (m *DetailModel) SetInboxReadError(err bool) {
 	m.inbox.SetReadError(err)

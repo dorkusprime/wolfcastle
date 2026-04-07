@@ -394,6 +394,30 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, tea.Batch(cmds...)
 
+	case tree.LoadNodeMsg:
+		// The tree fires this when expanding a leaf whose NodeState isn't
+		// cached. The command only carries the address; we do the actual
+		// disk read here and feed the result back as a NodeUpdatedMsg.
+		if msg.Node == nil && msg.Err == nil && m.store != nil {
+			store := m.store
+			addr := msg.Address
+			return m, func() tea.Msg {
+				ns, err := store.ReadNode(addr)
+				if err != nil {
+					return nil
+				}
+				return tui.NodeUpdatedMsg{Address: addr, Node: ns}
+			}
+		}
+		// If the msg already carries a node (e.g. from tests), forward it.
+		if msg.Node != nil {
+			t, tcmd := m.tree.Update(msg)
+			m.tree = t
+			cmds = append(cmds, tcmd)
+			return m, tea.Batch(cmds...)
+		}
+		return m, nil
+
 	case tui.InstancesUpdatedMsg:
 		m.instances = msg.Instances
 		h, hcmd := m.header.Update(header.InstancesUpdatedMsg{
@@ -602,6 +626,9 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(pollCmds...)
 
 	case tui.InboxUpdatedMsg:
+		if msg.Inbox != nil {
+			m.detail.SetDashboardInbox(msg.Inbox.Items)
+		}
 		d, dcmd := m.detail.Update(msg)
 		m.detail = d
 		cmds = append(cmds, dcmd)
@@ -1082,7 +1109,7 @@ func (m TUIModel) detectEntryState() tea.Cmd {
 			status = "draining"
 		}
 
-		return tui.DaemonStatusMsg{
+		msg := tui.DaemonStatusMsg{
 			Status:     status,
 			Branch:     branch,
 			Worktree:   worktreeDir,
@@ -1091,6 +1118,16 @@ func (m TUIModel) detectEntryState() tea.Cmd {
 			IsDraining: draining,
 			Instances:  instances,
 		}
+
+		// Read daemon activity snapshot for last-activity and current target.
+		wolfDir := filepath.Join(worktreeDir, ".wolfcastle")
+		if activity := daemon.LoadDaemonActivity(wolfDir); activity != nil {
+			msg.LastActivity = activity.LastActivityAt
+			msg.CurrentNode = activity.CurrentNode
+			msg.CurrentTask = activity.CurrentTask
+		}
+
+		return msg
 	}
 }
 

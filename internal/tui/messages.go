@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"time"
+
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/fsnotify/fsnotify"
@@ -18,13 +20,16 @@ type NodeUpdatedMsg struct {
 }
 
 type DaemonStatusMsg struct {
-	Status     string
-	Branch     string
-	Worktree   string
-	PID        int
-	IsRunning  bool
-	IsDraining bool
-	Instances  []instance.Entry
+	Status       string
+	Branch       string
+	Worktree     string
+	PID          int
+	IsRunning    bool
+	IsDraining   bool
+	Instances    []instance.Entry
+	LastActivity time.Time
+	CurrentNode  string
+	CurrentTask  string
 }
 
 type InstancesUpdatedMsg struct {

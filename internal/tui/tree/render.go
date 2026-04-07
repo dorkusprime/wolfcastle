@@ -72,11 +72,21 @@ func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool, 
 
 	glyph := statusGlyph(row.Status)
 
+	// Build optional task hint suffix for collapsed leaves with cached data.
+	var hint string
+	if row.TaskHint != "" {
+		hint = " " + lipgloss.NewStyle().Foreground(colorDim).Render(row.TaskHint)
+	}
+
 	// Calculate available space for the name. The layout is:
-	// {indent}{marker} {target}{name} {glyph}
+	// {indent}{marker} {target}{name} {glyph}{hint}
 	// Marker is 1 char, spaces around it are 1 each, glyph is 1 char,
 	// plus some padding.
-	overhead := len(indent) + 2 + len(target) + 2 // " " after marker, " " before glyph
+	hintLen := len(row.TaskHint)
+	if hintLen > 0 {
+		hintLen++ // account for the leading space
+	}
+	overhead := len(indent) + 2 + len(target) + 2 + hintLen // " " after marker, " " before glyph
 	maxName := width - overhead
 	if maxName < 4 {
 		maxName = 4
@@ -84,7 +94,7 @@ func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool, 
 
 	name := truncate(row.Name, maxName)
 
-	line := fmt.Sprintf("%s%s %s%s %s", indent, marker, target, name, glyph)
+	line := fmt.Sprintf("%s%s %s%s %s%s", indent, marker, target, name, glyph, hint)
 
 	if selected {
 		return styleSelected.Width(width).Render(line)

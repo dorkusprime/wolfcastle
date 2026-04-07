@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"fmt"
 	"time"
 
 	"charm.land/bubbles/v2/key"
@@ -42,6 +43,7 @@ type TreeRow struct {
 	IsTask     bool
 	Expandable bool
 	IsExpanded bool
+	TaskHint   string // e.g. "(5 tasks)" or "(3 tasks, 2 failures)" for collapsed leaves
 }
 
 // TreeModel is the sub-model that owns the project tree panel.
@@ -346,7 +348,7 @@ func (m *TreeModel) appendNodeAtDepth(addr string, depth int) {
 
 	isExpanded := m.expanded[addr]
 
-	m.flatList = append(m.flatList, TreeRow{
+	row := TreeRow{
 		Addr:       addr,
 		Name:       entry.Name,
 		Depth:      depth,
@@ -354,7 +356,16 @@ func (m *TreeModel) appendNodeAtDepth(addr string, depth int) {
 		Status:     entry.State,
 		Expandable: expandable,
 		IsExpanded: isExpanded,
-	})
+	}
+
+	// For collapsed leaf nodes, show a task count hint if we have cached data.
+	if !isExpanded && entry.Type == state.NodeLeaf {
+		if ns, ok := m.nodes[addr]; ok && len(ns.Tasks) > 0 {
+			row.TaskHint = taskHint(ns)
+		}
+	}
+
+	m.flatList = append(m.flatList, row)
 
 	if !isExpanded {
 		return
@@ -441,4 +452,21 @@ func (m *TreeModel) parentOf(addr string) int {
 		}
 	}
 	return -1
+}
+
+// taskHint returns a parenthetical summary like "(5 tasks)" or
+// "(3 tasks, 2 failures)" from a cached NodeState.
+func taskHint(ns *state.NodeState) string {
+	n := len(ns.Tasks)
+	if n == 0 {
+		return ""
+	}
+	failures := 0
+	for i := range ns.Tasks {
+		failures += ns.Tasks[i].FailureCount
+	}
+	if failures > 0 {
+		return fmt.Sprintf("(%d tasks, %d failures)", n, failures)
+	}
+	return fmt.Sprintf("(%d tasks)", n)
 }
