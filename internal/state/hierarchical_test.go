@@ -126,6 +126,24 @@ func TestDeriveParentStatus_OneBlocked(t *testing.T) {
 	}
 }
 
+func TestDeriveParentStatus_BlockedSupersededCountsAsComplete(t *testing.T) {
+	ns := NewNodeState("test", "Test", NodeLeaf)
+	ns.Tasks = []Task{
+		{ID: "task-0001", Description: "parent", State: StatusInProgress},
+		{ID: "task-0001.0001", Description: "child a", State: StatusComplete},
+		{ID: "task-0001.0002", Description: "child b", State: StatusBlocked, BlockedReason: "Superseded by node-level decomposition"},
+		{ID: "task-0001.0003", Description: "child c", State: StatusBlocked, BlockedReason: "Decomposed into subtasks: task-0001.0001"},
+	}
+
+	status, hasChildren := DeriveParentStatus(ns, "task-0001")
+	if !hasChildren {
+		t.Fatal("expected hasChildren=true")
+	}
+	if status != StatusComplete {
+		t.Errorf("expected complete (superseded/decomposed children should count as done), got %s", status)
+	}
+}
+
 func TestDeriveParentStatus_NoChildren(t *testing.T) {
 	ns := NewNodeState("test", "Test", NodeLeaf)
 	ns.Tasks = []Task{
