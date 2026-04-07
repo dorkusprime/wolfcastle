@@ -17,6 +17,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
@@ -336,7 +337,15 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.detail = d
 		cmds = append(cmds, dcmd)
 
-		// Track previous index for future diff-based notifications.
+		// Phase 5: diff against previous index to detect new nodes.
+		if msg.Index != nil && m.prevIndex != nil {
+			for addr := range msg.Index.Nodes {
+				if _, existed := m.prevIndex.Nodes[addr]; !existed {
+					cmd := m.notify.Push(fmt.Sprintf("New target acquired: %s", addr))
+					cmds = append(cmds, cmd)
+				}
+			}
+		}
 		m.prevIndex = msg.Index
 
 		m.clearErrorsByFilename("state.json")
@@ -384,8 +393,11 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tree = t
 		cmds = append(cmds, tcmd)
 
-		// Track previous node state for future diff-based notifications.
+		// Phase 5: diff against previous node state for toast notifications.
 		if msg.Node != nil {
+			if prev, ok := m.prevNodes[msg.Address]; ok {
+				cmds = append(cmds, m.diffNodeForToasts(msg.Address, prev, msg.Node)...)
+			}
 			cp := *msg.Node
 			m.prevNodes[msg.Address] = &cp
 		}
@@ -717,7 +729,11 @@ func (m TUIModel) renderContent(contentHeight int) string {
 		detailStyle := m.borderStyle(PaneDetail).
 			Width(m.width - 2).
 			Height(contentHeight)
-		return detailStyle.Render(content)
+		rendered := detailStyle.Render(content)
+		if m.notify.HasToasts() {
+			rendered = m.overlayToasts(rendered, m.width)
+		}
+		return rendered
 	}
 
 	treeWidth := m.width * 30 / 100
@@ -750,7 +766,11 @@ func (m TUIModel) renderContent(contentHeight int) string {
 		Height(contentHeight)
 	detailPane := detailPaneStyle.Render(detailContent)
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, treePane, detailPane)
+	joined := lipgloss.JoinHorizontal(lipgloss.Top, treePane, detailPane)
+	if m.notify.HasToasts() {
+		joined = m.overlayToasts(joined, m.width)
+	}
+	return joined
 }
 
 func (m TUIModel) borderStyle(pane FocusedPane) lipgloss.Style {
@@ -1433,7 +1453,8 @@ func (m *TUIModel) diffNodeForToasts(addr string, old, new *state.NodeState) []t
 }
 
 // overlayToasts places the notification toast stack in the upper-right
-// corner of the content, overwriting only the rightmost columns.
+// corner of the content using ANSI-aware truncation so styled content
+// isn't garbled.
 func (m TUIModel) overlayToasts(content string, width int) string {
 	m.notify.SetSize(width)
 	toastView := m.notify.View()
@@ -1452,22 +1473,15 @@ func (m TUIModel) overlayToasts(content string, width int) string {
 		if i >= len(contentLines) {
 			break
 		}
-		// Right-align: pad the toast to the right edge of the pane.
-		pad := width - tw
-		if pad < 0 {
-			pad = 0
+		// ANSI-aware truncation: cut the content line short to make
+		// room for the toast on the right, preserving escape sequences.
+		room := width - tw
+		if room < 0 {
+			room = 0
 		}
-		// Truncate content line to make room, then append toast.
-		cl := contentLines[i]
-		clw := lipgloss.Width(cl)
-		if clw > pad {
-			// Trim content to leave room for the toast.
-			runes := []rune(cl)
-			if pad < len(runes) {
-				cl = string(runes[:pad])
-			}
-		}
-		gap := pad - lipgloss.Width(cl)
+		cl := ansi.Truncate(contentLines[i], room, "")
+		// Pad the gap between truncated content and the toast.
+		gap := room - lipgloss.Width(cl)
 		if gap < 0 {
 			gap = 0
 		}
