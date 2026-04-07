@@ -210,6 +210,9 @@ func (m DashboardModel) renderProgress() string {
 
 	for _, r := range rows {
 		n := m.nodeCounts[r.status]
+		if n == 0 {
+			continue
+		}
 		glyph := lipgloss.NewStyle().Foreground(r.color).Render(r.glyph)
 		line := fmt.Sprintf("  %s %-12s %d/%d", glyph, r.label, n, m.totalNodes)
 		if r.bar && m.totalNodes > 0 {
