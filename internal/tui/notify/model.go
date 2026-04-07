@@ -63,6 +63,10 @@ func (m NotificationModel) Update(msg tea.Msg) (NotificationModel, tea.Cmd) {
 		if msg.Index >= 0 && msg.Index < len(m.toasts) {
 			m.toasts[msg.Index].dismissed = true
 		}
+		// Prune all dismissed toasts from the front of the slice.
+		for len(m.toasts) > 0 && m.toasts[0].dismissed {
+			m.toasts = m.toasts[1:]
+		}
 	}
 	return m, nil
 }

@@ -55,11 +55,12 @@ func TestToastDismissMsg_MarksDismissed(t *testing.T) {
 	m.Push("second")
 
 	m, _ = m.Update(ToastDismissMsg{Index: 0})
-	if !m.toasts[0].dismissed {
-		t.Error("toast 0 should be dismissed")
+	// After dismiss + pruning, only "second" remains.
+	if len(m.toasts) != 1 {
+		t.Fatalf("expected 1 toast after dismiss, got %d", len(m.toasts))
 	}
-	if m.toasts[1].dismissed {
-		t.Error("toast 1 should not be dismissed")
+	if m.toasts[0].text != "second" {
+		t.Errorf("expected remaining toast to be 'second', got %q", m.toasts[0].text)
 	}
 }
 
