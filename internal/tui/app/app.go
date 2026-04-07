@@ -265,23 +265,28 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.handleCopy()
 
 		case key.Matches(msg, tui.DaemonKeyMap.ToggleDaemon):
-			return m, m.handleToggleDaemon()
+			cmd := m.handleToggleDaemon()
+			return m, cmd
 
 		case key.Matches(msg, tui.DaemonKeyMap.StopAll):
-			return m, m.handleStopAll()
+			cmd := m.handleStopAll()
+			return m, cmd
 
 		case key.Matches(msg, tui.DaemonKeyMap.PrevInstance):
-			return m, m.handleSwitchInstance(-1)
+			cmd := m.handleSwitchInstance(-1)
+			return m, cmd
 
 		case key.Matches(msg, tui.DaemonKeyMap.NextInstance):
-			return m, m.handleSwitchInstance(1)
+			cmd := m.handleSwitchInstance(1)
+			return m, cmd
 		}
 
 		// Digit keys 1-9 for instance selection.
 		if ch := msg.String(); len(ch) == 1 && ch[0] >= '1' && ch[0] <= '9' {
 			idx := int(ch[0]-'0') - 1
 			if idx < len(m.instances) {
-				return m, m.switchInstance(m.instances[idx])
+				cmd := m.switchInstance(m.instances[idx])
+				return m, cmd
 			}
 		}
 
