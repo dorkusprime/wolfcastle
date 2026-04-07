@@ -686,11 +686,12 @@ func (m TUIModel) renderLayout() string {
 func (m TUIModel) renderContent(contentHeight int) string {
 	if !m.treeVisible || m.width < 60 {
 		content := m.detail.View()
-		if m.notify.HasToasts() {
-			content = m.overlayToasts(content, m.width-2)
-		}
 		if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
 			content += "\n" + m.search.View()
+		}
+		if m.notify.HasToasts() {
+			m.notify.SetSize(m.width - 2)
+			content = m.notify.View() + "\n" + content
 		}
 		detailStyle := m.borderStyle(PaneDetail).
 			Width(m.width - 2).
@@ -720,11 +721,13 @@ func (m TUIModel) renderContent(contentHeight int) string {
 	treePane := treePaneStyle.Render(treeContent)
 
 	detailContent := m.detail.View()
-	if m.notify.HasToasts() {
-		detailContent = m.overlayToasts(detailContent, detailWidth)
-	}
 	if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
 		detailContent += "\n" + m.search.View()
+	}
+	// Toast notifications render above the detail content, not overlaid.
+	if m.notify.HasToasts() {
+		m.notify.SetSize(detailWidth)
+		detailContent = m.notify.View() + "\n" + detailContent
 	}
 
 	detailPaneStyle := m.borderStyle(PaneDetail).
