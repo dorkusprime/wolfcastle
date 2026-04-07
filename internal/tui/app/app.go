@@ -81,6 +81,9 @@ type TUIModel struct {
 	prevIndex *state.RootIndex
 	prevNodes map[string]*state.NodeState
 
+	switching    bool // true while instance switch is in flight
+	switchLabel  string // label of the instance being switched to
+
 	entryState  EntryState
 	store       *state.Store
 	daemonRepo  *daemon.DaemonRepository
@@ -481,6 +484,8 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tui.InstanceSwitchedMsg:
+		m.switching = false
+		m.switchLabel = ""
 		m.header.SetStatusHint("")
 
 		// Reset tree: collapse all nodes, cursor to 0, then load new index.
@@ -599,6 +604,8 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case tui.WorktreeGoneMsg:
+		m.switching = false
+		m.switchLabel = ""
 		m.header.SetStatusHint("")
 		// Remove the gone instance from the list.
 		filtered := m.instances[:0]
@@ -721,6 +728,20 @@ func (m TUIModel) renderLayout() string {
 }
 
 func (m TUIModel) renderContent(contentHeight int) string {
+	// Loading screen while switching instances.
+	if m.switching {
+		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		frame := spinner[int(time.Now().UnixMilli()/80)%len(spinner)]
+		label := m.switchLabel
+		if label == "" {
+			label = "another instance"
+		}
+		loadingText := lipgloss.NewStyle().Foreground(tui.ColorYellow).Render(frame) +
+			" " +
+			lipgloss.NewStyle().Foreground(tui.ColorDimWhite).Render("Switching to "+label+"...")
+		return lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, loadingText)
+	}
+
 	if !m.treeVisible || m.width < 60 {
 		content := m.detail.View()
 		if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
@@ -1354,6 +1375,12 @@ func (m *TUIModel) handleSwitchInstance(delta int) tea.Cmd {
 }
 
 func (m *TUIModel) switchInstance(entry instance.Entry) tea.Cmd {
+	m.switching = true
+	label := filepath.Base(entry.Worktree)
+	if entry.Branch != "" && entry.Branch != label {
+		label += " (" + entry.Branch + ")"
+	}
+	m.switchLabel = label
 	m.header.SetStatusHint("Switching...")
 
 	// Find the index of this entry in our instances list.
