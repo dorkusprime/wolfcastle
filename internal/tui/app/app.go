@@ -119,7 +119,9 @@ func NewTUIModel(store *state.Store, daemonRepo *daemon.DaemonRepository, worktr
 
 	if store == nil {
 		m.entryState = StateWelcome
-		w := welcome.NewWelcomeModel(worktreeDir)
+		// Discover running instances for the sessions panel.
+		instances, _ := instance.List()
+		w := welcome.NewWelcomeModel(worktreeDir, instances)
 		m.welcome = &w
 	} else {
 		m.entryState = StateCold
@@ -530,6 +532,27 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.header.SetLoading(true)
 			cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
 		}
+		return m, tea.Batch(cmds...)
+
+	case welcome.ConnectInstanceMsg:
+		// User selected a running session from the welcome screen.
+		m.entryState = StateLive
+		m.welcome = nil
+		m.worktreeDir = msg.Entry.Worktree
+		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
+		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+		m.store = state.NewStore(wolfDir, 5*time.Second)
+		m.instances, _ = instance.List()
+		for i, inst := range m.instances {
+			if inst.PID == msg.Entry.PID {
+				m.activeInstanceIndex = i
+				break
+			}
+		}
+		m.header.SetInstances(m.instances, m.activeInstanceIndex)
+		m.header.SetLoading(true)
+		m.propagateSize()
+		cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
 		return m, tea.Batch(cmds...)
 
 	case tui.WorktreeGoneMsg:

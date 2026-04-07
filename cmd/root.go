@@ -115,12 +115,8 @@ func launchTUI() error {
 		}
 	}
 
-	// Step 3: If still nothing, check for any running instance anywhere.
-	if worktreeDir == "" {
-		if instances, listErr := wcInstance.List(); listErr == nil && len(instances) > 0 {
-			worktreeDir = instances[0].Worktree
-		}
-	}
+	// Step 3: No auto-connect to remote instances. The welcome screen
+	// shows running sessions and lets the user pick one.
 
 	// Initialize from the resolved worktree.
 	if worktreeDir != "" {
