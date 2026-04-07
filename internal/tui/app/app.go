@@ -487,6 +487,12 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.switching = false
 		m.switchLabel = ""
 		m.header.SetStatusHint("")
+		m.header.SetLoading(false)
+
+		// Reset diff state so the new instance's nodes don't appear as "new".
+		m.prevIndex = msg.Index
+		m.prevNodes = make(map[string]*state.NodeState)
+		m.notify = notify.NewNotificationModel()
 
 		// Reset tree: collapse all nodes, cursor to 0, then load new index.
 		m.tree.Reset()
@@ -593,6 +599,9 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// User selected a running session from the welcome screen.
 		m.entryState = StateLive
 		m.welcome = nil
+		m.prevIndex = nil
+		m.prevNodes = make(map[string]*state.NodeState)
+		m.notify = notify.NewNotificationModel()
 		m.worktreeDir = msg.Entry.Worktree
 		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
 		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
