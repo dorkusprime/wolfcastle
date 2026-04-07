@@ -18,6 +18,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -533,9 +534,10 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Err == nil && msg.Dir != "" {
 			m.entryState = StateCold
 			m.welcome = nil
+			m.worktreeDir = msg.Dir
 			wolfDir := filepath.Join(msg.Dir, ".wolfcastle")
-			m.store = state.NewStore(wolfDir, 5*time.Second)
 			m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+			m.store = storeFromWolfcastleDir(wolfDir)
 			m.header.SetLoading(true)
 			cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
 		}
@@ -548,7 +550,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.worktreeDir = msg.Entry.Worktree
 		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
 		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
-		m.store = state.NewStore(wolfDir, 5*time.Second)
+		m.store = storeFromWolfcastleDir(wolfDir)
 		m.instances, _ = instance.List()
 		for i, inst := range m.instances {
 			if inst.PID == msg.Entry.PID {
@@ -1091,6 +1093,23 @@ func isProcessRunning(pid int) bool {
 		return false
 	}
 	return p.Signal(syscall.Signal(0)) == nil
+}
+
+// storeFromWolfcastleDir loads config and identity from a .wolfcastle
+// directory and returns a Store pointed at the correct namespace path.
+// Returns nil if identity can't be resolved (the TUI will run without
+// node data in that case).
+func storeFromWolfcastleDir(wolfDir string) *state.Store {
+	repo := config.NewRepository(wolfDir)
+	cfg, err := repo.Load()
+	if err != nil {
+		return nil
+	}
+	id, err := config.IdentityFromConfig(cfg)
+	if err != nil {
+		return nil
+	}
+	return state.NewStore(id.ProjectsDir(wolfDir), state.DefaultLockTimeout)
 }
 
 func (m *TUIModel) startWatcher() tea.Cmd {
