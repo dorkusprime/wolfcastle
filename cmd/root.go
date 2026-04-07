@@ -56,9 +56,12 @@ All commands support --json for machine-readable output.`,
 		return launchTUI()
 	},
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Skip config loading for commands that don't need it
+		// Skip config loading for commands that don't need it.
+		// The TUI (root command with no subcommand) handles its own
+		// directory detection, including the welcome screen for missing
+		// .wolfcastle directories.
 		switch cmd.Name() {
-		case "init", "version", "help":
+		case "init", "version", "help", "wolfcastle":
 			return nil
 		}
 		return app.Init()
@@ -100,16 +103,18 @@ func launchTUI() error {
 	}
 
 	if worktreeDir != "" {
-		// Initialize store and daemon repo from the discovered .wolfcastle
 		wolfcastleDir := filepath.Join(worktreeDir, ".wolfcastle")
 		daemonRepo = wcDaemon.NewDaemonRepository(wolfcastleDir)
 
-		// Store needs the namespace dir. Try loading identity for the full path,
-		// but if identity isn't configured, the store remains nil and the TUI
-		// will run in cold-start mode without node data.
-		if app.State != nil {
+		// Try to initialize the app so we can get the Store with the
+		// correct namespace. If Init fails (e.g. no identity configured),
+		// fall back to cold-start without node data.
+		if initErr := app.Init(); initErr == nil && app.State != nil {
 			store = app.State
 		}
+	} else {
+		// No .wolfcastle/ found; welcome screen will use CWD
+		worktreeDir = cwd
 	}
 
 	model := tuiApp.NewTUIModel(store, daemonRepo, worktreeDir, Version)

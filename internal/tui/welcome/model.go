@@ -37,16 +37,31 @@ type WelcomeModel struct {
 	scrollTop    int
 }
 
-// NewWelcomeModel creates a WelcomeModel rooted at startDir. The path is
-// resolved to an absolute and the initial directory listing is loaded
-// immediately (dirs only, hidden dirs excluded except .wolfcastle).
+// NewWelcomeModel creates a WelcomeModel rooted at startDir's parent
+// directory, with startDir pre-selected in the listing. This ensures
+// there's always a navigable list on first render.
 func NewWelcomeModel(startDir string) WelcomeModel {
 	abs, err := filepath.Abs(startDir)
 	if err != nil {
 		abs = startDir
 	}
-	m := WelcomeModel{currentDir: abs}
+
+	// Start in the parent so the original CWD appears as a selectable entry.
+	parent := filepath.Dir(abs)
+	baseName := filepath.Base(abs)
+
+	m := WelcomeModel{currentDir: parent}
 	m.loadDir()
+
+	// Pre-select the original CWD in the parent listing.
+	for i, e := range m.entries {
+		if e.Name() == baseName {
+			m.cursor = i
+			m.scrollIntoCursor()
+			break
+		}
+	}
+
 	return m
 }
 
@@ -119,7 +134,7 @@ func (m WelcomeModel) handleKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
 		m.scrollIntoCursor()
 
 	case key.Matches(msg, tui.WelcomeKeyMap.Enter):
-		return m.handleEnter()
+		return m.handleEnter(msg)
 
 	case key.Matches(msg, tui.WelcomeKeyMap.Back):
 		parent := filepath.Dir(m.currentDir)
@@ -138,18 +153,28 @@ func (m WelcomeModel) handleKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m WelcomeModel) handleEnter() (WelcomeModel, tea.Cmd) {
-	// No entries: treat Enter as "confirm init in currentDir".
+func (m WelcomeModel) handleEnter(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
+	// Only the actual Enter key confirms init. l/right just navigate.
+	isConfirmKey := msg.String() == "enter"
+
+	// No entries: Enter confirms init in currentDir; l/right do nothing.
 	if len(m.entries) == 0 {
-		return m.startInit()
+		if isConfirmKey {
+			return m.startInit()
+		}
+		return m, nil
 	}
 
 	if m.cursor >= 0 && m.cursor < len(m.entries) {
 		entry := m.entries[m.cursor]
 		if entry.Name() == ".wolfcastle" {
-			// .wolfcastle is a confirmation target, not a navigation target.
-			return m.startInit()
+			// .wolfcastle is a confirmation target, only via Enter.
+			if isConfirmKey {
+				return m.startInit()
+			}
+			return m, nil
 		}
+		// Navigate into directory (Enter, l, or right all work here).
 		child := filepath.Join(m.currentDir, entry.Name())
 		m.currentDir = child
 		m.cursor = 0
@@ -261,51 +286,58 @@ func (m WelcomeModel) View() string {
 		return m.place(b.String())
 	}
 
-	// Current path prompt
-	b.WriteString(subtitleStyle.Render("Initialize in:"))
-	b.WriteString("\n")
-	b.WriteString(pathStyle.Render(fmt.Sprintf("> %s", m.currentDir)))
-
-	if len(m.entries) == 0 {
-		b.WriteString("    ")
-		b.WriteString(subtitleStyle.Render("[Enter to confirm]"))
-	}
+	// Current path as a breadcrumb trail
+	dimSlash := subtitleStyle.Render("/")
+	breadcrumb := dimSlash + pathStyle.Render(m.currentDir)
+	b.WriteString(breadcrumb)
 	b.WriteString("\n\n")
 
-	// Directory listing
+	// Directory listing with tree connectors
 	if len(m.entries) > 0 {
+		connectorStyle := subtitleStyle
 		visible := m.visibleEntries()
+
+		if m.scrollTop > 0 {
+			b.WriteString(subtitleStyle.Render(fmt.Sprintf("    (%d more above)", m.scrollTop)))
+			b.WriteString("\n")
+		}
+
 		for i, entry := range visible {
 			idx := m.scrollTop + i
+			isLast := idx == len(m.entries)-1
 			name := entry.Name()
+
+			// Tree connector
+			connector := "├── "
+			if isLast {
+				connector = "└── "
+			}
+
 			if idx == m.cursor {
-				line := fmt.Sprintf("  > %s/", name)
+				marker := pathStyle.Render("▸ ")
+				dirName := selectedStyle.Render(name + "/")
+				hint := ""
 				if name == ".wolfcastle" {
-					line = fmt.Sprintf("  > %s/    [Enter to confirm]", name)
+					hint = subtitleStyle.Render("  [Enter to init]")
 				}
-				b.WriteString(selectedStyle.Render(line))
+				b.WriteString(connectorStyle.Render(connector) + marker + dirName + hint)
 			} else {
-				line := fmt.Sprintf("    %s/", name)
-				b.WriteString(normalStyle.Render(line))
+				b.WriteString(connectorStyle.Render(connector) + normalStyle.Render(name+"/"))
 			}
 			b.WriteString("\n")
 		}
 
-		// Scroll indicators
-		if m.scrollTop > 0 {
-			b.WriteString(subtitleStyle.Render(fmt.Sprintf("  ... %d more above", m.scrollTop)))
-			b.WriteString("\n")
-		}
 		below := len(m.entries) - m.scrollTop - maxVisible
 		if below > 0 {
-			b.WriteString(subtitleStyle.Render(fmt.Sprintf("  ... %d more below", below)))
+			b.WriteString(subtitleStyle.Render(fmt.Sprintf("    (%d more below)", below)))
 			b.WriteString("\n")
 		}
-
-		b.WriteString("\n")
-		b.WriteString(subtitleStyle.Render("  (Use arrows to browse, Enter to select)"))
 	} else {
-		b.WriteString(subtitleStyle.Render("  (No subdirectories. Press Enter to initialize here.)"))
+		b.WriteString(subtitleStyle.Render("  (empty directory)"))
+		b.WriteString("\n")
+		b.WriteString(subtitleStyle.Render("  Press Enter to initialize wolfcastle here,"))
+		b.WriteString("\n")
+		b.WriteString(subtitleStyle.Render("  or h/← to go up."))
 	}
 
 	// Error display
@@ -313,6 +345,11 @@ func (m WelcomeModel) View() string {
 		b.WriteString("\n\n")
 		b.WriteString(errorStyle.Render(fmt.Sprintf("Init failed: %s", m.err)))
 	}
+
+	// Key hints
+	hintStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
+	b.WriteString("\n\n")
+	b.WriteString(hintStyle.Render("[j/k] navigate  [Enter] select  [h] back  [q] quit"))
 
 	return m.place(b.String())
 }
