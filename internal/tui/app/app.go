@@ -336,15 +336,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.detail = d
 		cmds = append(cmds, dcmd)
 
-		// Phase 5: diff against previous index to detect new nodes.
-		if msg.Index != nil && m.prevIndex != nil {
-			for addr := range msg.Index.Nodes {
-				if _, existed := m.prevIndex.Nodes[addr]; !existed {
-					cmd := m.notify.Push(fmt.Sprintf("New target acquired: %s", addr))
-					cmds = append(cmds, cmd)
-				}
-			}
-		}
+		// Track previous index for future diff-based notifications.
 		m.prevIndex = msg.Index
 
 		m.clearErrorsByFilename("state.json")
@@ -392,12 +384,8 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tree = t
 		cmds = append(cmds, tcmd)
 
-		// Phase 5: diff against previous node state for toast notifications.
+		// Track previous node state for future diff-based notifications.
 		if msg.Node != nil {
-			if prev, ok := m.prevNodes[msg.Address]; ok {
-				cmds = append(cmds, m.diffNodeForToasts(msg.Address, prev, msg.Node)...)
-			}
-			// Store a shallow copy of the node for future diffs.
 			cp := *msg.Node
 			m.prevNodes[msg.Address] = &cp
 		}
@@ -726,10 +714,6 @@ func (m TUIModel) renderContent(contentHeight int) string {
 		if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
 			content += "\n" + m.search.View()
 		}
-		if m.notify.HasToasts() {
-			m.notify.SetSize(m.width - 2)
-			content = m.notify.View() + "\n" + content
-		}
 		detailStyle := m.borderStyle(PaneDetail).
 			Width(m.width - 2).
 			Height(contentHeight)
@@ -761,12 +745,6 @@ func (m TUIModel) renderContent(contentHeight int) string {
 	if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
 		detailContent += "\n" + m.search.View()
 	}
-	// Toast notifications render above the detail content, not overlaid.
-	if m.notify.HasToasts() {
-		m.notify.SetSize(detailWidth)
-		detailContent = m.notify.View() + "\n" + detailContent
-	}
-
 	detailPaneStyle := m.borderStyle(PaneDetail).
 		Width(detailWidth).
 		Height(contentHeight)
