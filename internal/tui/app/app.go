@@ -8,8 +8,10 @@ package app
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"charm.land/bubbles/v2/key"
@@ -78,6 +80,12 @@ type TUIModel struct {
 	version     string
 
 	watcher *tui.Watcher
+
+	// Instance tracking (Phase 3)
+	instances          []instance.Entry
+	activeInstanceIndex int
+	daemonStarting     bool
+	daemonStopping     bool
 
 	errors []errorEntry
 }
@@ -226,6 +234,26 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, tui.GlobalKeyMap.Copy):
 			return m, m.handleCopy()
+
+		case key.Matches(msg, tui.DaemonKeyMap.ToggleDaemon):
+			return m, m.handleToggleDaemon()
+
+		case key.Matches(msg, tui.DaemonKeyMap.StopAll):
+			return m, m.handleStopAll()
+
+		case key.Matches(msg, tui.DaemonKeyMap.PrevInstance):
+			return m, m.handleSwitchInstance(-1)
+
+		case key.Matches(msg, tui.DaemonKeyMap.NextInstance):
+			return m, m.handleSwitchInstance(1)
+		}
+
+		// Digit keys 1-9 for instance selection.
+		if ch := msg.String(); len(ch) == 1 && ch[0] >= '1' && ch[0] <= '9' {
+			idx := int(ch[0]-'0') - 1
+			if idx < len(m.instances) {
+				return m, m.switchInstance(m.instances[idx])
+			}
 		}
 
 		// Esc clears the error bar when errors are visible.
@@ -323,11 +351,92 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case tui.InstancesUpdatedMsg:
+		m.instances = msg.Instances
 		h, hcmd := m.header.Update(header.InstancesUpdatedMsg{
 			Instances: msg.Instances,
 		})
 		m.header = h
 		cmds = append(cmds, hcmd)
+		m.header.SetInstances(msg.Instances, m.activeInstanceIndex)
+		return m, tea.Batch(cmds...)
+
+	case tui.DaemonStartedMsg:
+		m.daemonStarting = false
+		m.header.SetLoading(false)
+		m.entryState = StateLive
+		m.header.SetStatusHint("")
+		return m, m.handleRefresh()
+
+	case tui.DaemonStartFailedMsg:
+		m.daemonStarting = false
+		m.header.SetLoading(false)
+		m.header.SetStatusHint("")
+		errText := msg.Err.Error()
+		var displayMsg string
+		switch {
+		case strings.Contains(errText, "lock") || strings.Contains(errText, "already running"):
+			displayMsg = "Another daemon is running in this worktree."
+		case strings.Contains(errText, "not found") || strings.Contains(errText, "no such"):
+			displayMsg = "No project found. Run wolfcastle init."
+		default:
+			displayMsg = fmt.Sprintf("Daemon failed to start: %s", errText)
+		}
+		m.errors = append(m.errors, errorEntry{
+			filename: "daemon",
+			message:  displayMsg,
+		})
+		return m, nil
+
+	case tui.DaemonStoppedMsg:
+		m.daemonStopping = false
+		m.entryState = StateCold
+		m.header.SetStatusHint("")
+		return m, m.handleRefresh()
+
+	case tui.DaemonStopFailedMsg:
+		m.daemonStopping = false
+		m.header.SetStatusHint("")
+		m.errors = append(m.errors, errorEntry{
+			filename: "daemon",
+			message:  msg.Err.Error(),
+		})
+		return m, nil
+
+	case tui.InstanceSwitchedMsg:
+		m.header.SetStatusHint("")
+
+		// Reset tree: collapse all nodes, cursor to 0, then load new index.
+		m.tree.Reset()
+		m.tree.SetIndex(msg.Index)
+
+		// Reset detail pane to dashboard.
+		m.detail.SwitchToDashboard()
+
+		h, hcmd := m.header.Update(header.StateUpdatedMsg{Index: msg.Index})
+		m.header = h
+		cmds = append(cmds, hcmd)
+		m.header.SetInstances(m.instances, m.activeInstanceIndex)
+
+		// Update store and daemon repo for the new worktree.
+		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
+		m.store = state.NewStore(wolfDir, 5*time.Second)
+		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+		m.worktreeDir = msg.Entry.Worktree
+
+		// Restart watcher: stop old, create and start new.
+		if m.watcher != nil {
+			m.watcher.Stop()
+		}
+		logDir := ""
+		if m.daemonRepo != nil {
+			logDir = m.daemonRepo.LogDir()
+		}
+		instanceDir := ""
+		if dir, err := instanceRegistryDir(); err == nil {
+			instanceDir = dir
+		}
+		m.watcher = tui.NewWatcher(m.store, logDir, instanceDir)
+
 		return m, tea.Batch(cmds...)
 
 	case tui.SpinnerTickMsg:
@@ -388,6 +497,26 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
 		}
 		return m, tea.Batch(cmds...)
+
+	case tui.WorktreeGoneMsg:
+		m.header.SetStatusHint("")
+		// Remove the gone instance from the list.
+		filtered := m.instances[:0]
+		for _, inst := range m.instances {
+			if inst.PID != msg.Entry.PID || inst.Worktree != msg.Entry.Worktree {
+				filtered = append(filtered, inst)
+			}
+		}
+		m.instances = filtered
+		if m.activeInstanceIndex >= len(m.instances) && len(m.instances) > 0 {
+			m.activeInstanceIndex = len(m.instances) - 1
+		}
+		m.header.SetInstances(m.instances, m.activeInstanceIndex)
+		m.errors = append(m.errors, errorEntry{
+			filename: "instance",
+			message:  fmt.Sprintf("Worktree no longer exists: %s", msg.Entry.Worktree),
+		})
+		return m, nil
 
 	case tui.PollTickMsg:
 		m.tree.CleanCache()
@@ -841,6 +970,163 @@ func (m TUIModel) loadInitialState() tea.Cmd {
 			}
 		}
 		return tui.StateUpdatedMsg{Index: idx}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Daemon control (Phase 3)
+// ---------------------------------------------------------------------------
+
+func (m *TUIModel) handleToggleDaemon() tea.Cmd {
+	if m.daemonStarting || m.daemonStopping {
+		return nil
+	}
+	if m.entryState == StateLive {
+		return m.stopCurrentDaemon()
+	}
+	return m.startDaemon()
+}
+
+func (m *TUIModel) startDaemon() tea.Cmd {
+	m.daemonStarting = true
+	m.header.SetStatusHint("Starting daemon...")
+	m.header.SetLoading(true)
+	dir := m.worktreeDir
+	return func() tea.Msg {
+		cmd := exec.Command("wolfcastle", "start", "-d")
+		cmd.Dir = dir
+		if err := cmd.Run(); err != nil {
+			return tui.DaemonStartFailedMsg{Err: err}
+		}
+		// Re-read instances to find the new entry.
+		instances, _ := instance.List()
+		for _, inst := range instances {
+			if inst.Worktree == dir {
+				return tui.DaemonStartedMsg{Entry: inst}
+			}
+		}
+		return tui.DaemonStartedMsg{}
+	}
+}
+
+func (m *TUIModel) stopCurrentDaemon() tea.Cmd {
+	m.daemonStopping = true
+	m.header.SetStatusHint("Stopping daemon...")
+
+	// Find the PID of the current instance's daemon.
+	var pid int
+	if m.activeInstanceIndex < len(m.instances) {
+		pid = m.instances[m.activeInstanceIndex].PID
+	}
+	if pid == 0 {
+		// Fallback: try resolving from worktree dir.
+		if entry, err := instance.Resolve(m.worktreeDir); err == nil {
+			pid = entry.PID
+		}
+	}
+	if pid == 0 {
+		m.daemonStopping = false
+		m.header.SetStatusHint("")
+		return func() tea.Msg {
+			return tui.DaemonStopFailedMsg{Err: fmt.Errorf("no daemon PID found")}
+		}
+	}
+
+	return func() tea.Msg {
+		if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+			return tui.DaemonStopFailedMsg{Err: fmt.Errorf("sending SIGTERM to PID %d: %w", pid, err)}
+		}
+		// Wait up to 5 seconds for the process to exit.
+		deadline := time.Now().Add(5 * time.Second)
+		for time.Now().Before(deadline) {
+			if !daemon.IsProcessRunning(pid) {
+				return tui.DaemonStoppedMsg{}
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
+		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
+	}
+}
+
+func (m *TUIModel) handleStopAll() tea.Cmd {
+	if m.daemonStopping {
+		return nil
+	}
+	m.daemonStopping = true
+	m.header.SetStatusHint("Stopping all daemons...")
+	instances := make([]instance.Entry, len(m.instances))
+	copy(instances, m.instances)
+	return func() tea.Msg {
+		var lastErr error
+		for _, inst := range instances {
+			if err := syscall.Kill(inst.PID, syscall.SIGTERM); err != nil {
+				lastErr = fmt.Errorf("sending SIGTERM to PID %d: %w", inst.PID, err)
+			}
+		}
+		// Wait up to 5 seconds for all to exit.
+		deadline := time.Now().Add(5 * time.Second)
+		for time.Now().Before(deadline) {
+			allDead := true
+			for _, inst := range instances {
+				if daemon.IsProcessRunning(inst.PID) {
+					allDead = false
+					break
+				}
+			}
+			if allDead {
+				return tui.DaemonStoppedMsg{}
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
+		if lastErr != nil {
+			return tui.DaemonStopFailedMsg{Err: lastErr}
+		}
+		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
+	}
+}
+
+func (m *TUIModel) handleSwitchInstance(delta int) tea.Cmd {
+	if len(m.instances) < 2 {
+		return nil
+	}
+	next := (m.activeInstanceIndex + delta + len(m.instances)) % len(m.instances)
+	m.activeInstanceIndex = next
+	return m.switchInstance(m.instances[next])
+}
+
+func (m *TUIModel) switchInstance(entry instance.Entry) tea.Cmd {
+	m.header.SetStatusHint("Switching...")
+
+	// Find the index of this entry in our instances list.
+	for i, inst := range m.instances {
+		if inst.PID == entry.PID {
+			m.activeInstanceIndex = i
+			break
+		}
+	}
+	m.header.SetInstances(m.instances, m.activeInstanceIndex)
+
+	worktree := entry.Worktree
+	return func() tea.Msg {
+		// Verify the worktree directory exists.
+		info, err := os.Stat(worktree)
+		if err != nil || !info.IsDir() {
+			return tui.WorktreeGoneMsg{Entry: entry}
+		}
+
+		wolfDir := filepath.Join(worktree, ".wolfcastle")
+		store := state.NewStore(wolfDir, 5*time.Second)
+		idx, err := store.ReadIndex()
+		if err != nil {
+			return tui.ErrorMsg{
+				Filename: "state.json",
+				Message:  fmt.Sprintf("Failed to read state for %s", worktree),
+			}
+		}
+		return tui.InstanceSwitchedMsg{
+			Index: idx,
+			Entry: entry,
+		}
 	}
 }
 

@@ -254,6 +254,17 @@ func (m *TreeModel) SetSearchMatches(matches map[int]bool) {
 	m.searchMatches = matches
 }
 
+// Reset collapses all expanded nodes, clears the cursor back to row 0,
+// and rebuilds the flat list. Used when switching instances so the tree
+// doesn't carry stale expand state from the previous project.
+func (m *TreeModel) Reset() {
+	m.expanded = make(map[string]bool)
+	m.cursor = 0
+	m.scrollTop = 0
+	m.buildFlatList()
+	m.clampCursor()
+}
+
 // SetCursor moves the cursor to the given row index (clamped to bounds)
 // and scrolls it into view.
 func (m *TreeModel) SetCursor(row int) {

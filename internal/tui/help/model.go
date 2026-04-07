@@ -123,6 +123,15 @@ func (m *HelpOverlayModel) buildContent() {
 			},
 		},
 		{
+			title: "Daemon Control",
+			bindings: []binding{
+				{"s", "start/stop daemon"},
+				{"S", "stop all"},
+				{"< >", "switch instance"},
+				{"1-9", "select instance"},
+			},
+		},
+		{
 			title: "Search",
 			bindings: []binding{
 				{"Enter", "confirm search"},

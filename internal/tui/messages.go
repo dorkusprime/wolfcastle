@@ -73,6 +73,41 @@ type NewLogFileMsg struct {
 	Path string
 }
 
+// Phase 3 messages
+
+type SwitchInstanceMsg struct {
+	Entry instance.Entry
+}
+
+type InstanceSwitchedMsg struct {
+	Index *state.RootIndex
+	Entry instance.Entry
+}
+
+type DaemonStartMsg struct{}
+
+type DaemonStartedMsg struct {
+	Entry instance.Entry
+}
+
+type DaemonStartFailedMsg struct {
+	Err error
+}
+
+type DaemonStopMsg struct{}
+
+type DaemonStoppedMsg struct{}
+
+type DaemonStopAllMsg struct{}
+
+type DaemonStopFailedMsg struct {
+	Err error
+}
+
+type WorktreeGoneMsg struct {
+	Entry instance.Entry
+}
+
 // Phase 4 placeholder
 
 type InboxUpdatedMsg struct {

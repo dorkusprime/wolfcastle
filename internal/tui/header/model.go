@@ -97,6 +97,11 @@ type HeaderModel struct {
 	width           int
 	spinner         int  // index into spinnerFrames
 	loading         bool
+
+	// Instance tab bar (Phase 3)
+	instances   []instance.Entry
+	activeIndex int
+	statusHint  string // transient hint like "Starting daemon..."
 }
 
 // NewHeaderModel creates a HeaderModel with sensible zero-state defaults.
@@ -117,6 +122,19 @@ func (m *HeaderModel) SetSize(width int) {
 // SetLoading sets the loading spinner state.
 func (m *HeaderModel) SetLoading(loading bool) {
 	m.loading = loading
+}
+
+// SetInstances updates the instance list and active index for the tab bar.
+func (m *HeaderModel) SetInstances(entries []instance.Entry, activeIdx int) {
+	m.instances = entries
+	m.activeIndex = activeIdx
+	m.instanceCount = len(entries)
+}
+
+// SetStatusHint sets a transient status message (e.g. "Starting daemon...").
+// Pass an empty string to clear.
+func (m *HeaderModel) SetStatusHint(hint string) {
+	m.statusHint = hint
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +202,11 @@ func (m HeaderModel) View() string {
 	if m.loading {
 		rightParts = append(rightParts, string(spinnerFrames[m.spinner]))
 	}
-	rightParts = append(rightParts, m.daemonStatus)
+	if m.statusHint != "" {
+		rightParts = append(rightParts, m.statusHint)
+	} else {
+		rightParts = append(rightParts, m.daemonStatus)
+	}
 	if m.instanceCount > 1 {
 		rightParts = append(rightParts, fmt.Sprintf("[%d running]", m.instanceCount))
 	}
@@ -201,6 +223,12 @@ func (m HeaderModel) View() string {
 	left2 := m.renderNodeCounts(barStyle)
 	right2 := m.renderAuditSummary(barStyle)
 	line2 := composeLine(barStyle, left2, right2, m.width)
+
+	// Line 3 (optional): instance tab bar when wide enough and multiple instances exist.
+	if m.width > 100 && len(m.instances) > 1 {
+		tabBar := m.renderTabBar(barStyle, boldStyle)
+		return line1 + "\n" + line2 + "\n" + tabBar
+	}
 
 	return line1 + "\n" + line2
 }
@@ -280,6 +308,43 @@ func composeLine(base lipgloss.Style, left, right string, width int) string {
 	}
 	filler := base.Render(strings.Repeat(" ", gap))
 	return left + filler + right
+}
+
+// renderTabBar builds the instance tab bar: [feat/auth ●] [fix/login]
+func (m HeaderModel) renderTabBar(base, bold lipgloss.Style) string {
+	dimStyle := lipgloss.NewStyle().
+		Background(headerBg).
+		Foreground(clrDim)
+
+	activeStyle := lipgloss.NewStyle().
+		Background(headerBg).
+		Foreground(headerFg).
+		Bold(true)
+
+	dotStyle := lipgloss.NewStyle().
+		Background(headerBg).
+		Foreground(clrGreen)
+
+	var tabs []string
+	for i, inst := range m.instances {
+		label := inst.Branch
+		if label == "" {
+			label = fmt.Sprintf("pid:%d", inst.PID)
+		}
+		if i == m.activeIndex {
+			tabs = append(tabs, activeStyle.Render("["+label+" ")+dotStyle.Render("●")+activeStyle.Render("]"))
+		} else {
+			tabs = append(tabs, dimStyle.Render("["+label+"]"))
+		}
+	}
+
+	left := base.Render(strings.Join(tabs, " "))
+
+	// Count running instances on the right.
+	running := len(m.instances)
+	right := base.Render(fmt.Sprintf("%d running", running))
+
+	return composeLine(base, left, right, m.width)
 }
 
 // pluralize appends "s" when count != 1.

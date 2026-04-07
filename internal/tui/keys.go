@@ -46,6 +46,20 @@ var TreeKeyMap = TreeKeys{
 	Bottom:   key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "bottom")),
 }
 
+type DaemonKeys struct {
+	ToggleDaemon key.Binding
+	StopAll      key.Binding
+	PrevInstance key.Binding
+	NextInstance key.Binding
+}
+
+var DaemonKeyMap = DaemonKeys{
+	ToggleDaemon: key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "start/stop")),
+	StopAll:      key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "stop all")),
+	PrevInstance: key.NewBinding(key.WithKeys("<"), key.WithHelp("<", "prev instance")),
+	NextInstance: key.NewBinding(key.WithKeys(">"), key.WithHelp(">", "next instance")),
+}
+
 type SearchKeys struct {
 	Confirm   key.Binding
 	Cancel    key.Binding
