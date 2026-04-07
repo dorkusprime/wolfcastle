@@ -894,14 +894,19 @@ func (m *TUIModel) loadDetailForSelection() {
 	}
 
 	ns := m.tree.CachedNode(row.Addr)
+	if ns == nil && m.store != nil {
+		// Load the full node state from disk for detail view.
+		loaded, err := m.store.ReadNode(row.Addr)
+		if err == nil {
+			ns = loaded
+		}
+	}
 	if ns == nil {
-		// If the node isn't cached yet, we can still show the index entry info
-		// by constructing a minimal NodeState from the index entry.
+		// Last resort: minimal stub from the index entry.
 		ns = &state.NodeState{
-			Name:               entry.Name,
-			Type:               entry.Type,
-			State:              entry.State,
-			DecompositionDepth: entry.DecompositionDepth,
+			Name:  entry.Name,
+			Type:  entry.Type,
+			State: entry.State,
 		}
 	}
 
@@ -1399,8 +1404,8 @@ func (m *TUIModel) diffNodeForToasts(addr string, old, new *state.NodeState) []t
 	return cmds
 }
 
-// overlayToasts places the notification toast stack at the top of the given
-// content string, right-aligned within the specified width.
+// overlayToasts places the notification toast stack in the upper-right
+// corner of the content, overwriting only the rightmost columns.
 func (m TUIModel) overlayToasts(content string, width int) string {
 	m.notify.SetSize(width)
 	toastView := m.notify.View()
@@ -1411,13 +1416,34 @@ func (m TUIModel) overlayToasts(content string, width int) string {
 	contentLines := strings.Split(content, "\n")
 	toastLines := strings.Split(toastView, "\n")
 
-	// Overlay toast lines onto the first N lines of content.
 	for i, tl := range toastLines {
-		if i < len(contentLines) {
-			contentLines[i] = tl
-		} else {
-			contentLines = append(contentLines, tl)
+		tw := lipgloss.Width(tl)
+		if tw == 0 {
+			continue
 		}
+		if i >= len(contentLines) {
+			break
+		}
+		// Right-align: pad the toast to the right edge of the pane.
+		pad := width - tw
+		if pad < 0 {
+			pad = 0
+		}
+		// Truncate content line to make room, then append toast.
+		cl := contentLines[i]
+		clw := lipgloss.Width(cl)
+		if clw > pad {
+			// Trim content to leave room for the toast.
+			runes := []rune(cl)
+			if pad < len(runes) {
+				cl = string(runes[:pad])
+			}
+		}
+		gap := pad - lipgloss.Width(cl)
+		if gap < 0 {
+			gap = 0
+		}
+		contentLines[i] = cl + strings.Repeat(" ", gap) + tl
 	}
 
 	return strings.Join(contentLines, "\n")
