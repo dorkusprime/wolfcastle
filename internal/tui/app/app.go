@@ -698,6 +698,9 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View builds the full terminal output.
 func (m TUIModel) View() tea.View {
+	// Re-propagate size on every render so sub-models reflect any
+	// runtime layout changes (tab bar appearance, error bar visibility).
+	m.propagateSize()
 	rendered := m.renderLayout()
 	v := tea.NewView(rendered)
 	v.AltScreen = true
@@ -1070,11 +1073,13 @@ func (m *TUIModel) propagateSize() {
 		m.welcome.SetSize(m.width, m.height)
 	}
 
-	headerLines := 2
-	if m.width < 40 {
-		headerLines = 1
-	}
+	// Use the actual rendered header line count, not a hardcoded
+	// estimate, so the tab bar (3 lines instead of 2) is accounted for.
+	headerLines := strings.Count(m.header.View(), "\n") + 1
 	contentHeight := m.height - headerLines - 1
+	if errorBar := m.renderErrorBar(); errorBar != "" {
+		contentHeight -= strings.Count(errorBar, "\n") + 1
+	}
 	if contentHeight < 1 {
 		contentHeight = 1
 	}
