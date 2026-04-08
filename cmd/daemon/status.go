@@ -45,6 +45,10 @@ Examples:
   wolfcastle status --expand --detail
   wolfcastle status --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := resolveInstance(cmd, app); err != nil {
+				return err
+			}
+
 			showAll, _ := cmd.Flags().GetBool("all")
 			scopeNode, _ := cmd.Flags().GetString("node")
 			width, _ := cmd.Flags().GetInt("width")
@@ -201,7 +205,7 @@ func showTreeStatus(app *cmdutil.App, idx *state.RootIndex, scope string, opts t
 
 	total := len(details)
 
-	daemonStatus := getDaemonStatus(app.Daemon)
+	daemonStatus := getDaemonStatus(app.Daemon, filepath.Dir(app.Config.Root()))
 
 	if app.JSON {
 		// Build per-node detail for JSON consumers.
@@ -662,13 +666,21 @@ func taskGlyph(s state.NodeStatus) string {
 	}
 }
 
-// getDaemonStatus checks the instance registry and reports daemon status.
-func getDaemonStatus(repo *dmn.DaemonRepository) string {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "stopped"
+// getDaemonStatus checks the instance registry and reports daemon
+// status for the daemon owning repoDir. Pass the empty string to fall
+// back to the current working directory; the prior variadic shape
+// existed only for backward compat with old call sites and has been
+// retired in favor of an explicit, single signature.
+func getDaemonStatus(repo *dmn.DaemonRepository, repoDir string) string {
+	dir := repoDir
+	if dir == "" {
+		var err error
+		dir, err = os.Getwd()
+		if err != nil {
+			return "stopped"
+		}
 	}
-	entry, err := instance.Resolve(cwd)
+	entry, err := instance.Resolve(dir)
 	if err != nil {
 		return "stopped"
 	}

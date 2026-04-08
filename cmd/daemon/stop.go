@@ -49,12 +49,17 @@ Examples:
 				return nil
 			}
 
-			cwd, err := os.Getwd()
-			if err != nil {
-				return fmt.Errorf("resolving working directory: %w", err)
+			instancePath, _ := cmd.Flags().GetString("instance")
+			resolveDir := instancePath
+			if resolveDir == "" {
+				var err error
+				resolveDir, err = os.Getwd()
+				if err != nil {
+					return fmt.Errorf("resolving working directory: %w", err)
+				}
 			}
 
-			entry, err := instance.Resolve(cwd)
+			entry, err := instance.Resolve(resolveDir)
 			if err != nil {
 				return fmt.Errorf("no running instance found for this directory, check with 'wolfcastle status'")
 			}

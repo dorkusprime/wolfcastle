@@ -239,7 +239,7 @@ func TestGetDaemonStatus_CurrentProcessJSON(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
 	repo := dmn.NewDaemonRepository(tmp)
-	status := getDaemonStatus(repo)
+	status := getDaemonStatus(repo, "")
 	expected := fmt.Sprintf("running (PID %d)", pid)
 	if status != expected {
 		t.Errorf("expected %q, got %q", expected, status)

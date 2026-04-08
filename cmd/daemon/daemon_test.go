@@ -77,7 +77,7 @@ func TestGetDaemonStatus_NoInstance(t *testing.T) {
 	defer func() { instance.RegistryDirOverride = "" }()
 
 	repo := dmn.NewDaemonRepository(tmp)
-	status := getDaemonStatus(repo)
+	status := getDaemonStatus(repo, "")
 	if status != "stopped" {
 		t.Errorf("expected 'stopped', got %q", status)
 	}
@@ -97,7 +97,7 @@ func TestGetDaemonStatus_Running(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
 	repo := dmn.NewDaemonRepository(tmp)
-	status := getDaemonStatus(repo)
+	status := getDaemonStatus(repo, "")
 	if !strings.Contains(status, "running") {
 		t.Errorf("expected 'running' status, got %q", status)
 	}
@@ -122,7 +122,7 @@ func TestGetDaemonStatus_Draining(t *testing.T) {
 		t.Fatalf("writing drain file: %v", err)
 	}
 
-	status := getDaemonStatus(repo)
+	status := getDaemonStatus(repo, "")
 	if !strings.Contains(status, "draining") {
 		t.Errorf("expected 'draining' status, got %q", status)
 	}
@@ -479,7 +479,7 @@ func TestGetDaemonStatus_RunningProcess(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
 	repo := dmn.NewDaemonRepository(tmp)
-	status := getDaemonStatus(repo)
+	status := getDaemonStatus(repo, "")
 	if status == "stopped" {
 		t.Error("expected running status for own PID")
 	}

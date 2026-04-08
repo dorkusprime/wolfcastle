@@ -279,3 +279,174 @@ func TestCompareNamespace_UnreadableMdFile(t *testing.T) {
 		t.Errorf("expected no matches for unreadable file, got %d", len(matches))
 	}
 }
+
+// ---------------------------------------------------------------------------
+// app.go: InitFromDir — coverage for the new --instance entrypoint
+// ---------------------------------------------------------------------------
+
+// TestInitFromDir_MissingDirectory verifies that an absent .wolfcastle
+// produces a clear error and leaves the App unmutated.
+func TestInitFromDir_MissingDirectory(t *testing.T) {
+	tmp := t.TempDir()
+	a := &App{}
+	err := a.InitFromDir(filepath.Join(tmp, "no-such-worktree"))
+	if err == nil {
+		t.Fatal("expected error for missing .wolfcastle directory")
+	}
+	if a.Config != nil {
+		t.Error("Config should remain nil after a failed InitFromDir")
+	}
+}
+
+// TestInitFromDir_FileInsteadOfDirectory verifies that a .wolfcastle
+// path that exists but isn't a directory is rejected.
+func TestInitFromDir_FileInsteadOfDirectory(t *testing.T) {
+	tmp := t.TempDir()
+	// Create a regular file at .wolfcastle instead of a directory.
+	if err := os.WriteFile(filepath.Join(tmp, ".wolfcastle"), []byte("not a dir"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	a := &App{}
+	if err := a.InitFromDir(tmp); err == nil {
+		t.Fatal("expected error for .wolfcastle that is not a directory")
+	}
+}
+
+// TestInitFromDir_LoadConfigFails verifies that a malformed config
+// surfaces as an error rather than silently leaving the App in a
+// half-initialized state.
+func TestInitFromDir_LoadConfigFails(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	if err := os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Write invalid JSON so config.Load fails.
+	if err := os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), []byte("not json"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	a := &App{}
+	if err := a.InitFromDir(tmp); err == nil {
+		t.Fatal("expected error when config fails to load")
+	}
+}
+
+// TestInitFromDir_NoIdentityIsNotFatal verifies the documented
+// contract: identity-not-configured is acceptable, Config gets wired
+// up, but Identity and State stay nil for commands to surface a
+// clearer error via RequireIdentity.
+func TestInitFromDir_NoIdentityIsNotFatal(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	if err := os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	cfg := config.Defaults()
+	cfgData, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), cfgData, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	a := &App{}
+	if err := a.InitFromDir(tmp); err != nil {
+		t.Fatalf("InitFromDir should not fail when identity is missing: %v", err)
+	}
+	if a.Config == nil {
+		t.Error("Config should be wired up after successful InitFromDir")
+	}
+	if a.Daemon == nil {
+		t.Error("Daemon repository should be wired up after successful InitFromDir")
+	}
+	if a.Prompts == nil {
+		t.Error("Prompts repository should be wired up after successful InitFromDir")
+	}
+	if a.Git == nil {
+		t.Error("Git provider should be wired up after successful InitFromDir")
+	}
+	if a.Classes == nil {
+		t.Error("Classes repository should be wired up after successful InitFromDir")
+	}
+	if a.Identity != nil {
+		t.Error("Identity should remain nil when local config has no identity")
+	}
+	if a.State != nil {
+		t.Error("State should remain nil when identity is not configured")
+	}
+}
+
+// TestInitFromDir_WithIdentityWiresState verifies the happy path:
+// when identity is configured in the local tier, InitFromDir wires up
+// every repository AND populates Identity + State.
+func TestInitFromDir_WithIdentityWiresState(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	if err := os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(wcDir, "system", "local"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	cfgJSON := `{"identity": {"user": "tester", "machine": "box"}}`
+	if err := os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), []byte(cfgJSON), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	a := &App{}
+	if err := a.InitFromDir(tmp); err != nil {
+		t.Fatalf("InitFromDir failed: %v", err)
+	}
+	if a.Identity == nil {
+		t.Fatal("Identity should be populated when local config has one")
+	}
+	if a.State == nil {
+		t.Fatal("State should be populated when identity is configured")
+	}
+}
+
+// TestInitFromDir_PointsAtSpecifiedDirectoryNotCWD is the regression
+// for the whole reason InitFromDir exists: when called with a
+// directory that is NOT the current working directory, the resulting
+// App points at that directory's repositories, not the CWD's.
+func TestInitFromDir_PointsAtSpecifiedDirectoryNotCWD(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+
+	// Set up a .wolfcastle in a temp dir, then chdir somewhere else.
+	target := t.TempDir()
+	wcDir := filepath.Join(target, ".wolfcastle")
+	if err := os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	cfgJSON := `{"version": 1}`
+	if err := os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), []byte(cfgJSON), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	other := t.TempDir()
+	t.Chdir(other)
+
+	a := &App{}
+	if err := a.InitFromDir(target); err != nil {
+		t.Fatalf("InitFromDir(target) failed: %v", err)
+	}
+	if a.Config == nil {
+		t.Fatal("Config not wired")
+	}
+	gotRoot, err := filepath.EvalSymlinks(a.Config.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantRoot, err := filepath.EvalSymlinks(wcDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotRoot != wantRoot {
+		t.Errorf("Config root = %q, want %q (the App should point at the target, not the CWD)", gotRoot, wantRoot)
+	}
+}
