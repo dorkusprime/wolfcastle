@@ -5,7 +5,6 @@ package header
 import (
 	"fmt"
 	"image/color"
-	"path/filepath"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
 // ---------------------------------------------------------------------------
@@ -366,25 +366,9 @@ func (m HeaderModel) renderTabBar(base, bold lipgloss.Style) string {
 	return composeLine(base, left, right, m.width)
 }
 
-// instanceLabel builds a human-readable label for a tab. Uses the
-// worktree directory basename with branch in parens when the branch
-// differs from the directory name (e.g., "wc-tui-test (main)").
-// Falls back to branch or PID when the worktree is empty.
+// instanceLabel delegates to the shared tui.InstanceLabel.
 func instanceLabel(inst instance.Entry) string {
-	dir := filepath.Base(inst.Worktree)
-	branch := inst.Branch
-
-	if dir == "" || dir == "." {
-		if branch != "" {
-			return branch
-		}
-		return fmt.Sprintf("pid:%d", inst.PID)
-	}
-
-	if branch == "" || branch == dir {
-		return dir
-	}
-	return dir + " (" + branch + ")"
+	return tui.InstanceLabel(inst)
 }
 
 // pluralize appends "s" when count != 1.

@@ -1,9 +1,13 @@
 package tui
 
 import (
+	"fmt"
 	"image/color"
+	"path/filepath"
 
 	"charm.land/lipgloss/v2"
+
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 )
 
 // Color palette constants
@@ -132,4 +136,25 @@ func GlyphForAuditStatus(status string) string {
 		return lipgloss.NewStyle().Foreground(sg.Color).Render(sg.Glyph)
 	}
 	return "?"
+}
+
+// InstanceLabel builds a human-readable label for an instance. Uses the
+// worktree directory basename with branch in parens when the branch
+// differs from the directory name (e.g., "wc-tui-test (main)").
+// Falls back to branch or PID when the worktree is empty.
+func InstanceLabel(inst instance.Entry) string {
+	dir := filepath.Base(inst.Worktree)
+	branch := inst.Branch
+
+	if dir == "" || dir == "." {
+		if branch != "" {
+			return branch
+		}
+		return fmt.Sprintf("pid:%d", inst.PID)
+	}
+
+	if branch == "" || branch == dir {
+		return dir
+	}
+	return dir + " (" + branch + ")"
 }

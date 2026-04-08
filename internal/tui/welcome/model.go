@@ -340,13 +340,27 @@ func (m WelcomeModel) View() string {
 		return m.place(b.String())
 	}
 
+	// Compute a consistent panel width from the hints bar.
+	hints := m.renderHints()
+	panelWidth := lipgloss.Width(hints)
+	if panelWidth < 40 {
+		panelWidth = 40
+	}
+	// Border + padding consume 4 chars (left border + pad + pad + right border).
+	innerWidth := panelWidth - 4
+	if innerWidth < 20 {
+		innerWidth = 20
+	}
+
+	panelBase := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(tui.ColorDimGray).
+		Padding(0, 1).
+		Width(innerWidth)
+
 	// Sessions panel
 	if len(m.instances) > 0 {
-		sessionsBorder := lipgloss.RoundedBorder()
-		sessionsStyle := lipgloss.NewStyle().
-			Border(sessionsBorder).
-			BorderForeground(tui.ColorDimGray).
-			Padding(0, 1)
+		sessionsStyle := panelBase
 		if m.focus == panelSessions {
 			sessionsStyle = sessionsStyle.BorderForeground(tui.ColorRed)
 		}
@@ -355,11 +369,7 @@ func (m WelcomeModel) View() string {
 	}
 
 	// Directory browser panel
-	dirBorder := lipgloss.RoundedBorder()
-	dirStyle := lipgloss.NewStyle().
-		Border(dirBorder).
-		BorderForeground(tui.ColorDimGray).
-		Padding(0, 1)
+	dirStyle := panelBase
 	if m.focus == panelDirs {
 		dirStyle = dirStyle.BorderForeground(tui.ColorRed)
 	}
@@ -399,16 +409,13 @@ func (m WelcomeModel) renderSessions() string {
 
 	for i, inst := range m.instances {
 		pid := dimStyle.Render(fmt.Sprintf("PID %d", inst.PID))
-		branch := inst.Branch
-		if branch == "" {
-			branch = filepath.Base(inst.Worktree)
-		}
+		name := tui.InstanceLabel(inst)
 
 		if i == m.sessionCursor && m.focus == panelSessions {
-			line := fmt.Sprintf("  %s %s  %s", activeMarker, branch, pid)
+			line := fmt.Sprintf("  %s %s  %s", activeMarker, name, pid)
 			b.WriteString(selectedStyle.Render(line))
 		} else {
-			line := fmt.Sprintf("  %s %s  %s", activeMarker, branch, pid)
+			line := fmt.Sprintf("  %s %s  %s", activeMarker, name, pid)
 			b.WriteString(normalStyle.Render(line))
 		}
 		b.WriteString("\n")
