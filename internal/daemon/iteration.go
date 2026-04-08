@@ -342,12 +342,23 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 		}
 	}
 	if !isAudit && !d.Git.HasProgress(beforeHEAD) {
+		// No git-tracked changes this iteration. But if all declared
+		// deliverables exist, the work was likely done in a previous
+		// iteration (committed by the failure-path commit). Trust the
+		// agent's COMPLETE marker in that case.
+		if len(missing) > 0 || !hasDeliverables(ns, nav.TaskID) {
+			_ = d.Logger.Log(map[string]any{
+				"type": "no_progress",
+				"task": nav.TaskID,
+			})
+			d.log(map[string]any{"type": "task_event", "action": "no_progress", "task": nav.TaskID, "text": "No changes detected. Failing task."})
+			return false
+		}
 		_ = d.Logger.Log(map[string]any{
-			"type": "no_progress",
+			"type": "no_progress_but_deliverables_exist",
 			"task": nav.TaskID,
+			"text": "No new git changes, but all deliverables present. Accepting COMPLETE.",
 		})
-		d.log(map[string]any{"type": "task_event", "action": "no_progress", "task": nav.TaskID, "text": "No changes detected. Failing task."})
-		return false
 	}
 
 	_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringComplete})
