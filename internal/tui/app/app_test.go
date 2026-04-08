@@ -1189,6 +1189,67 @@ func TestDaemonStartFailedNotFoundError(t *testing.T) {
 	}
 }
 
+func TestDaemonStartFailedPrefersStderr(t *testing.T) {
+	m := newColdModel(t)
+	m.daemonStarting = true
+	result, _ := m.Update(tui.DaemonStartFailedMsg{
+		Err:    fmt.Errorf("exit status 1"),
+		Stderr: "Error: aborted: commit or stash changes first\n",
+	})
+	model := toModel(t, result)
+	if len(model.errors) == 0 {
+		t.Fatal("expected an error")
+	}
+	if !strings.Contains(model.errors[0].message, "Uncommitted changes") {
+		t.Errorf("stderr-derived message should mention uncommitted changes: %q", model.errors[0].message)
+	}
+	if strings.Contains(model.errors[0].message, "exit status 1") {
+		t.Errorf("should not surface bare exit code when stderr is available: %q", model.errors[0].message)
+	}
+}
+
+func TestDaemonStartFailedDedupesRepeatedFailures(t *testing.T) {
+	m := newColdModel(t)
+	for i := 0; i < 5; i++ {
+		m.daemonStarting = true
+		result, _ := m.Update(tui.DaemonStartFailedMsg{Err: fmt.Errorf("exit status 1")})
+		m = toModel(t, result)
+	}
+	if got := len(m.errors); got != 1 {
+		t.Errorf("repeated identical failures should dedupe to one entry, got %d", got)
+	}
+}
+
+func TestSanitizeErrorLine(t *testing.T) {
+	cases := map[string]string{
+		"plain":                   "plain",
+		"line one\nline two":      "line one line two",
+		"  trim me  ":             "trim me",
+		"a\r\nb\rc":               "a b c",
+		"too  many   spaces here": "too many spaces here",
+	}
+	for in, want := range cases {
+		if got := sanitizeErrorLine(in); got != want {
+			t.Errorf("sanitizeErrorLine(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestAppendErrorCaps(t *testing.T) {
+	m := newColdModel(t)
+	for i := 0; i < maxErrorEntries+5; i++ {
+		m.appendError("test", fmt.Sprintf("err %d", i))
+	}
+	if got := len(m.errors); got != maxErrorEntries {
+		t.Errorf("error queue should cap at %d, got %d", maxErrorEntries, got)
+	}
+	// Oldest should have been dropped; newest should be at the end.
+	last := m.errors[len(m.errors)-1].message
+	if !strings.HasSuffix(last, fmt.Sprintf("%d", maxErrorEntries+4)) {
+		t.Errorf("newest entry should be retained, got %q", last)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // diffNodeForToasts
 // ---------------------------------------------------------------------------
