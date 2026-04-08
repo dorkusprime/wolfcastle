@@ -2,8 +2,10 @@ package tui
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -1071,4 +1073,148 @@ func writeLeafState(t *testing.T, path string, tasks []testTask) *state.NodeStat
 		t.Fatal(err)
 	}
 	return ns
+}
+
+// ---------------------------------------------------------------------------
+// LoadInitialLogTail — covers the #4b fix
+// ---------------------------------------------------------------------------
+
+// TestLoadInitialLogTail_EmitsExistingContent stages a real log
+// file with several NDJSON lines, points the watcher at it, and
+// asserts a LogLinesMsg arrives in the events channel containing
+// the existing lines. Without the fix, the watcher seeded
+// logOffset = file size and emitted nothing on startup.
+func TestLoadInitialLogTail_EmitsExistingContent(t *testing.T) {
+	tmp := t.TempDir()
+	logDir := filepath.Join(tmp, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	logFile := filepath.Join(logDir, "0001-exec-20260408T07-30Z.jsonl")
+	content := []byte(`{"level":"info","msg":"line one"}` + "\n" +
+		`{"level":"info","msg":"line two"}` + "\n" +
+		`{"level":"warn","msg":"line three"}` + "\n")
+	if err := os.WriteFile(logFile, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stub a store so the watcher constructs cleanly. The test
+	// doesn't exercise per-node state, only the log path.
+	store := state.NewStore(tmp, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, logDir, "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	got := next()
+	envelope, ok := got.(WatcherMsg)
+	if !ok {
+		t.Fatalf("expected WatcherMsg, got %T", got)
+	}
+	logMsg, ok := envelope.Inner.(LogLinesMsg)
+	if !ok {
+		t.Fatalf("expected LogLinesMsg, got %T", envelope.Inner)
+	}
+	if len(logMsg.Lines) != 3 {
+		t.Errorf("expected 3 tail-loaded lines, got %d: %v", len(logMsg.Lines), logMsg.Lines)
+	}
+	if len(logMsg.Lines) >= 1 && logMsg.Lines[0] != `{"level":"info","msg":"line one"}` {
+		t.Errorf("first tail-loaded line content mismatch: %q", logMsg.Lines[0])
+	}
+}
+
+// TestLoadInitialLogTail_TrimsToMaxLines verifies that a file with
+// more than maxLines is trimmed to the last maxLines, not the first.
+func TestLoadInitialLogTail_TrimsToMaxLines(t *testing.T) {
+	tmp := t.TempDir()
+	logDir := filepath.Join(tmp, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	logFile := filepath.Join(logDir, "0001-exec-20260408T07-30Z.jsonl")
+
+	// Write 1000 lines.
+	var content []byte
+	for i := 0; i < 1000; i++ {
+		content = append(content, []byte(fmt.Sprintf(`{"n":%d}`+"\n", i))...)
+	}
+	if err := os.WriteFile(logFile, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	store := state.NewStore(tmp, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, logDir, "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	got := next()
+	envelope := got.(WatcherMsg)
+	logMsg := envelope.Inner.(LogLinesMsg)
+	if len(logMsg.Lines) != defaultLogTailLines {
+		t.Errorf("expected %d tail lines (defaultLogTailLines), got %d", defaultLogTailLines, len(logMsg.Lines))
+	}
+	// First line of tail should be the (1000 - 500)th = 500th
+	// (zero-indexed), so the JSON should contain `"n":500`.
+	if len(logMsg.Lines) > 0 && !strings.Contains(logMsg.Lines[0], `"n":500`) {
+		t.Errorf("tail should start at line 500, first line: %q", logMsg.Lines[0])
+	}
+}
+
+// TestLoadInitialLogTail_SkipsGzFiles confirms that the tail loader
+// silently skips .jsonl.gz files (the live log is always plain
+// .jsonl; .gz files are rotated archives).
+func TestLoadInitialLogTail_SkipsGzFiles(t *testing.T) {
+	tmp := t.TempDir()
+	logDir := filepath.Join(tmp, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Only an exec.jsonl.gz file (no live exec). LatestLogFile would
+	// fall back to lex-max which would still be the gz, so the
+	// watcher tries to tail-load it. The loader must skip rather than
+	// emit garbage.
+	gzFile := filepath.Join(logDir, "0001-exec-20260408T07-30Z.jsonl.gz")
+	if err := os.WriteFile(gzFile, []byte("not really gzipped"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	store := state.NewStore(tmp, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	events := make(chan tea.Msg, 8)
+	w := NewWatcher(store, logDir, "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	// Non-blocking poll: expect zero events from the tail loader
+	// since it should have skipped the .gz file.
+	select {
+	case msg := <-events:
+		// State updates from the index file watch are fine; what
+		// would be wrong is a LogLinesMsg containing gzip garbage.
+		if envelope, ok := msg.(WatcherMsg); ok {
+			if _, ok := envelope.Inner.(LogLinesMsg); ok {
+				t.Errorf("tail loader should have skipped the .gz file, but emitted a LogLinesMsg: %v", envelope.Inner)
+			}
+		}
+	default:
+		// No event = expected.
+	}
 }

@@ -443,6 +443,113 @@ func TestLatestLogFile_ErrorsOnMissingDirectory(t *testing.T) {
 	}
 }
 
+// TestLatestLogFile_PrefersExecOverHigherCounteredOtherTraces is the
+// regression test for the lex-sort bug. The directory contains exec
+// files at iterations 0279/0280 and inbox-init/intake files at
+// iterations 10166-10168. The exec stream is the canonical "what is
+// the daemon doing" log; intake/inbox-init are administrative
+// side-channels. LatestLogFile must return the highest exec
+// iteration, not the lex-max overall.
+func TestLatestLogFile_PrefersExecOverHigherCounteredOtherTraces(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	for _, name := range []string{
+		"0279-exec-20260408T14-42Z.jsonl.gz",
+		"10166-inbox-init-20260408T14-30Z.jsonl",
+		"10167-intake-20260408T14-37Z.jsonl",
+		"0280-exec-20260408T14-46Z.jsonl",
+		"10168-inbox-init-20260408T14-50Z.jsonl",
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := LatestLogFile(dir)
+	if err != nil {
+		t.Fatalf("LatestLogFile: %v", err)
+	}
+	want := filepath.Join(dir, "0280-exec-20260408T14-46Z.jsonl")
+	if got != want {
+		t.Errorf("LatestLogFile picked %q, want %q", got, want)
+	}
+}
+
+// TestLatestLogFile_PrefersPlainExecOverGzAtSameIteration verifies
+// the tie-breaker: when an exec iteration exists in both .jsonl
+// (live) and .jsonl.gz (rotated archive) form, the live file wins.
+func TestLatestLogFile_PrefersPlainExecOverGzAtSameIteration(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	for _, name := range []string{
+		"0042-exec-20260408T10-00Z.jsonl.gz",
+		"0042-exec-20260408T10-00Z.jsonl",
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := LatestLogFile(dir)
+	if err != nil {
+		t.Fatalf("LatestLogFile: %v", err)
+	}
+	if !strings.HasSuffix(got, ".jsonl") || strings.HasSuffix(got, ".jsonl.gz") {
+		t.Errorf("LatestLogFile should prefer plain .jsonl over .jsonl.gz at the same iteration, got %q", got)
+	}
+}
+
+// TestLatestLogFile_FallsBackToLexMaxWhenNoExec preserves the old
+// behavior for log dirs that have no exec files at all (a daemon
+// that has only ever processed inbox events).
+func TestLatestLogFile_FallsBackToLexMaxWhenNoExec(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	for _, name := range []string{
+		"10001-inbox-init-20260408T10-00Z.jsonl",
+		"10002-intake-20260408T10-01Z.jsonl",
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := LatestLogFile(dir)
+	if err != nil {
+		t.Fatalf("LatestLogFile: %v", err)
+	}
+	want := filepath.Join(dir, "10002-intake-20260408T10-01Z.jsonl")
+	if got != want {
+		t.Errorf("fallback should pick lex-max when no exec files exist; got %q, want %q", got, want)
+	}
+}
+
+// TestParseLogFilename_HandlesInboxInit confirms the prefix parser
+// correctly handles the hyphen-containing "inbox-init" trace name,
+// which is split across SplitN parts and needs special-casing.
+func TestParseLogFilename_HandlesInboxInit(t *testing.T) {
+	t.Parallel()
+	cases := map[string]struct {
+		iteration int
+		prefix    string
+	}{
+		"0279-exec-20260408T14-42Z.jsonl":        {279, "exec"},
+		"0042-exec-20260408T10-00Z.jsonl.gz":     {42, "exec"},
+		"10168-inbox-init-20260408T14-50Z.jsonl": {10168, "inbox-init"},
+		"10167-intake-20260408T14-37Z.jsonl":     {10167, "intake"},
+	}
+	for name, want := range cases {
+		gotIter, gotPrefix, ok := parseLogFilename(name)
+		if !ok {
+			t.Errorf("parseLogFilename(%q) returned !ok", name)
+			continue
+		}
+		if gotIter != want.iteration {
+			t.Errorf("parseLogFilename(%q) iteration = %d, want %d", name, gotIter, want.iteration)
+		}
+		if gotPrefix != want.prefix {
+			t.Errorf("parseLogFilename(%q) prefix = %q, want %q", name, gotPrefix, want.prefix)
+		}
+	}
+}
+
 // ── EnforceRetention Tests ────────────────────────────────────────
 
 func TestEnforceRetention_DeletesOldFilesByCount(t *testing.T) {

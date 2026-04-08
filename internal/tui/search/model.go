@@ -11,10 +11,15 @@ import (
 )
 
 // SearchMatch identifies a single match position within pane content.
+// Address is the tree address of the matching node or task and is the
+// identity that survives flat-list rebuilds (collapse/expand). Row is
+// retained for the detail-pane line-based search where addresses do
+// not apply.
 type SearchMatch struct {
-	Row    int
-	Col    int
-	Length int
+	Row     int
+	Col     int
+	Length  int
+	Address string
 }
 
 // SearchModel manages the search bar state, match navigation, and input

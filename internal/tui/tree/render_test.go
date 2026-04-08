@@ -358,7 +358,7 @@ func TestView_SearchMatchHighlighted(t *testing.T) {
 	m := NewTreeModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(60, 10)
-	m.SetSearchMatches(map[int]bool{1: true})
+	m.SetSearchAddresses(map[string]bool{"beta": true}, nil)
 
 	v := m.View()
 	// The view should contain Beta (the highlighted row).

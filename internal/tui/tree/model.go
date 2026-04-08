@@ -59,7 +59,14 @@ type TreeModel struct {
 	width         int
 	height        int
 	currentTarget string
-	searchMatches map[int]bool
+	// Search highlight sets keyed by tree address so collapse/expand
+	// operations don't invalidate them. searchLiteral marks rows whose
+	// own name matches the query; searchAncestor marks rows that are
+	// on the path to a literal match somewhere below them in the
+	// tree. A row can appear in both, in which case the literal
+	// treatment wins at render time.
+	searchLiteral  map[string]bool
+	searchAncestor map[string]bool
 }
 
 // NewTreeModel returns an initialized TreeModel with empty maps.
@@ -258,17 +265,32 @@ func (m *TreeModel) SetCurrentTarget(addr string) {
 	m.currentTarget = addr
 }
 
-// SetSearchMatches replaces the set of row indices that should be
-// highlighted as search matches. Pass nil to clear highlighting.
-func (m *TreeModel) SetSearchMatches(matches map[int]bool) {
-	m.searchMatches = matches
+// SetSearchAddresses replaces the literal-match and ancestor-of-match
+// highlight sets. Both maps are keyed by tree address so they survive
+// flat-list rebuilds (collapse/expand). Pass two nil maps to clear
+// all highlighting.
+func (m *TreeModel) SetSearchAddresses(literal, ancestor map[string]bool) {
+	m.searchLiteral = literal
+	m.searchAncestor = ancestor
 }
 
-// SearchMatches returns the row-index → highlighted map. Read-only
-// accessor used by wiring smoke tests to assert that stale highlight
-// state is not retained across operations like fold/unfold.
-func (m *TreeModel) SearchMatches() map[int]bool {
-	return m.searchMatches
+// SearchLiteralAddresses returns the literal-match address set.
+// Read-only accessor used by wiring smoke tests.
+func (m *TreeModel) SearchLiteralAddresses() map[string]bool {
+	return m.searchLiteral
+}
+
+// SearchAncestorAddresses returns the ancestor-of-match address set.
+// Read-only accessor used by wiring smoke tests.
+func (m *TreeModel) SearchAncestorAddresses() map[string]bool {
+	return m.searchAncestor
+}
+
+// HasSearchHighlights reports whether any search highlights are
+// currently active. Used by the Esc handler to decide whether to
+// clear highlights or fall through to other Esc semantics.
+func (m *TreeModel) HasSearchHighlights() bool {
+	return len(m.searchLiteral) > 0 || len(m.searchAncestor) > 0
 }
 
 // Reset collapses all expanded nodes, clears the cursor back to row 0,

@@ -701,23 +701,30 @@ func TestHandleExpand_EmptyList(t *testing.T) {
 	}
 }
 
-func TestSetSearchMatches(t *testing.T) {
+func TestSetSearchAddresses(t *testing.T) {
 	m := NewTreeModel()
 	m.SetIndex(simpleIndex())
 
-	matches := map[int]bool{0: true, 2: true}
-	m.SetSearchMatches(matches)
+	literal := map[string]bool{"alpha": true, "alpha/beta": true}
+	ancestor := map[string]bool{"root": true}
+	m.SetSearchAddresses(literal, ancestor)
 
-	if !m.searchMatches[0] || !m.searchMatches[2] {
-		t.Error("SetSearchMatches should store the provided map")
+	if !m.searchLiteral["alpha"] || !m.searchLiteral["alpha/beta"] {
+		t.Error("SetSearchAddresses should store the provided literal map")
 	}
-	if m.searchMatches[1] {
-		t.Error("row 1 should not be a search match")
+	if !m.searchAncestor["root"] {
+		t.Error("SetSearchAddresses should store the provided ancestor map")
+	}
+	if m.searchLiteral["alpha/gamma"] {
+		t.Error("alpha/gamma should not be a literal match")
 	}
 
-	m.SetSearchMatches(nil)
-	if m.searchMatches != nil {
-		t.Error("SetSearchMatches(nil) should clear the map")
+	m.SetSearchAddresses(nil, nil)
+	if m.searchLiteral != nil || m.searchAncestor != nil {
+		t.Error("SetSearchAddresses(nil, nil) should clear both maps")
+	}
+	if m.HasSearchHighlights() {
+		t.Error("HasSearchHighlights should report false after clear")
 	}
 }
 

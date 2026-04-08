@@ -413,13 +413,22 @@ func TestWiring_LogViewShowsExistingContent(t *testing.T) {
 	}
 
 	// Construct a model whose store and daemon repo point at the
-	// staged worktree, then switch the detail pane to log view.
+	// staged worktree, drive the production startup sequence (which
+	// is what triggers the watcher's tail-load), drain the events
+	// channel so the LogLinesMsg reaches the LogViewModel, then
+	// switch the detail pane to log view.
 	store := state.NewStore(filepath.Join(wcDir, "system", "projects", "default"), 0)
 	m := NewTUIModel(store, daemon.NewDaemonRepository(wcDir), tmp, "1.0.0")
 	m.entryState = StateLive
 	m.width = 120
 	m.height = 40
 	m.propagateSize()
+
+	if cmd := m.startWatcher(); cmd != nil {
+		_ = cmd()
+	}
+	drainNonBlocking(t, &m)
+
 	m.detail.SwitchToLogView()
 	m.focused = PaneDetail
 	m.syncFocus()
@@ -550,14 +559,32 @@ func TestWiring_SearchHighlightSurvivesFold(t *testing.T) {
 		}
 	}
 
-	// Smoke assertion: every row currently marked as a search hit
-	// must be a row whose name actually contains the query. A stale
-	// index from the pre-fold flat list will mark a row that has
-	// nothing to do with "frob".
-	matches := m.tree.SearchMatches()
-	for idx, row := range m.tree.FlatList() {
-		if matches[idx] && !strings.Contains(strings.ToLower(row.Name), "frob") {
-			t.Errorf("row %d (%q) is marked as a search hit but does not contain the query 'frob'; this is a stale highlight from before the fold", idx, row.Name)
+	// Smoke assertion: every row currently marked as a literal search
+	// hit must have a name that actually contains the query. The
+	// previous bug was a stale flat-list-index map that pointed at
+	// unrelated rows after collapse; the address-keyed map can't
+	// produce that failure mode by construction, but the assertion
+	// stays because it's the most direct expression of correctness.
+	literal := m.tree.SearchLiteralAddresses()
+	for addr := range literal {
+		// The address might point at a task (alpha/beta/task-0001),
+		// in which case we look up the task title from the cached
+		// node state. For node addresses we look up the index entry.
+		var name string
+		if cached := m.tree.CachedNode(strings.SplitN(addr, "/", 2)[0]); cached != nil {
+			for _, task := range cached.Tasks {
+				if addr == "alpha/beta/"+task.ID {
+					name = task.Title
+				}
+			}
+		}
+		if name == "" {
+			if entry, ok := m.tree.Index().Nodes[addr]; ok {
+				name = entry.Name
+			}
+		}
+		if name != "" && !strings.Contains(strings.ToLower(name), "frob") {
+			t.Errorf("address %q is marked as a literal search hit but its name %q does not contain the query 'frob'", addr, name)
 		}
 	}
 }
