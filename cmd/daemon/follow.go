@@ -242,14 +242,3 @@ func followJSON(ctx context.Context, logDir string, aliveCheck func() bool) erro
 	}
 	return nil
 }
-
-// isDaemonAlive checks the instance registry for a running daemon
-// in the current working directory.
-func isDaemonAlive() bool {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return false
-	}
-	_, err = instance.Resolve(cwd)
-	return err == nil
-}
