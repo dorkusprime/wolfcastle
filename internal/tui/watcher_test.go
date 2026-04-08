@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,26 +11,29 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// stubModel is a no-op tea.Model used to satisfy tea.NewProgram in tests.
-type stubModel struct{}
-
-func (stubModel) Init() tea.Cmd                         { return nil }
-func (m stubModel) Update(tea.Msg) (tea.Model, tea.Cmd) { return m, nil }
-func (stubModel) View() tea.View                        { return tea.View{} }
-
-// cancelledProgram returns a *tea.Program whose context is already cancelled,
-// so any call to program.Send returns immediately without blocking on the
-// internal msgs channel. This lets us exercise watcher code paths that
-// dispatch messages without spinning up a real Bubbletea runtime.
-func cancelledProgram() *tea.Program {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	return tea.NewProgram(stubModel{}, tea.WithContext(ctx))
+// drainEvents returns a buffered events channel large enough that the
+// watcher's non-blocking emit never drops messages during a test, plus
+// a helper that returns the next message (or fails after a timeout).
+// Tests that don't care about delivery just pass `nil` as the events
+// argument to NewWatcher; emit becomes a no-op in that case.
+func drainEvents(t *testing.T) (chan tea.Msg, func() tea.Msg) {
+	t.Helper()
+	ch := make(chan tea.Msg, 64)
+	next := func() tea.Msg {
+		select {
+		case msg := <-ch:
+			return msg
+		case <-time.After(2 * time.Second):
+			t.Fatal("timed out waiting for watcher event")
+			return nil
+		}
+	}
+	return ch, next
 }
 
 func TestNewWatcher_FieldsInitialized(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "/tmp/logs", "/tmp/instances")
+	w := NewWatcher(store, "/tmp/logs", "/tmp/instances", nil)
 
 	if w.store != store {
 		t.Fatal("store not set")
@@ -62,7 +64,7 @@ func TestReadNewLogLines_WithContent(t *testing.T) {
 	}
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, dir, "")
+	w := NewWatcher(store, dir, "", nil)
 	w.logFile = logFile
 	w.logOffset = 0
 
@@ -93,7 +95,7 @@ func TestReadNewLogLines_PartialLine(t *testing.T) {
 	}
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, dir, "")
+	w := NewWatcher(store, dir, "", nil)
 	w.logFile = logFile
 	w.logOffset = 0
 
@@ -117,7 +119,7 @@ func TestReadNewLogLines_LineBufPrepends(t *testing.T) {
 	}
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, dir, "")
+	w := NewWatcher(store, dir, "", nil)
 	w.logFile = logFile
 	w.logOffset = 0
 	// Simulate a leftover buffer from a previous read
@@ -141,7 +143,7 @@ func TestReadNewLogLines_EmptyFile(t *testing.T) {
 	}
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, dir, "")
+	w := NewWatcher(store, dir, "", nil)
 	w.logFile = logFile
 	w.logOffset = 0
 
@@ -153,7 +155,7 @@ func TestReadNewLogLines_EmptyFile(t *testing.T) {
 
 func TestReadNewLogLines_NoLogFile(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 	w.logFile = ""
 
 	lines := w.readNewLogLines()
@@ -164,7 +166,7 @@ func TestReadNewLogLines_NoLogFile(t *testing.T) {
 
 func TestReadNewLogLines_MissingFile(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 	w.logFile = "/nonexistent/path/test.jsonl"
 
 	lines := w.readNewLogLines()
@@ -176,7 +178,7 @@ func TestReadNewLogLines_MissingFile(t *testing.T) {
 func TestNodeAddrFromPath(t *testing.T) {
 	dir := t.TempDir()
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	tests := []struct {
 		name string
@@ -217,7 +219,7 @@ func TestNodeAddrFromPath(t *testing.T) {
 
 func TestStop_Idempotent(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	// First stop should work fine
 	w.Stop()
@@ -227,7 +229,7 @@ func TestStop_Idempotent(t *testing.T) {
 
 func TestStop_CancelsTimers(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	// Set up timers manually
 	w.debounce = time.AfterFunc(time.Hour, func() {})
@@ -247,7 +249,7 @@ func TestStop_CancelsTimers(t *testing.T) {
 
 func TestAddNodeWatch_NilWatcher(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 	w.watcher = nil
 
 	// Should not panic
@@ -256,7 +258,7 @@ func TestAddNodeWatch_NilWatcher(t *testing.T) {
 
 func TestRemoveNodeWatch_NilWatcher(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 	w.watcher = nil
 
 	// Should not panic
@@ -272,7 +274,7 @@ func TestReadNewLogLines_FromOffset(t *testing.T) {
 	}
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, dir, "")
+	w := NewWatcher(store, dir, "", nil)
 	w.logFile = logFile
 	// Start from after "first line\n" (11 bytes)
 	w.logOffset = 11
@@ -296,7 +298,7 @@ func TestReadNewLogLines_MultipleReads(t *testing.T) {
 	}
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, dir, "")
+	w := NewWatcher(store, dir, "", nil)
 	w.logFile = logFile
 	w.logOffset = 0
 
@@ -321,7 +323,7 @@ func TestReadNewLogLines_MultipleReads(t *testing.T) {
 
 func TestResetDebounce(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	w.mu.Lock()
 	w.resetDebounce()
@@ -342,7 +344,7 @@ func TestResetDebounce(t *testing.T) {
 
 func TestFlushFromTimer_EmptyPending(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	// Should not panic with empty pending set
 	w.flushFromTimer()
@@ -350,7 +352,7 @@ func TestFlushFromTimer_EmptyPending(t *testing.T) {
 
 func TestNewWatcher_DefaultUseFsnotify(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	if !w.useFsnotify {
 		t.Fatal("expected useFsnotify=true by default")
@@ -370,7 +372,7 @@ func TestAddNodeWatch_WithFsnotifyWatcher(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte("{}"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	// Create a real fsnotify watcher to exercise the non-nil path
 	fsw, err := newFsnotifyWatcher()
@@ -391,7 +393,7 @@ func TestRemoveNodeWatch_WithFsnotifyWatcher(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte("{}"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	fsw, err := newFsnotifyWatcher()
 	if err != nil {
@@ -408,7 +410,7 @@ func TestRemoveNodeWatch_WithFsnotifyWatcher(t *testing.T) {
 func TestAddNodeWatch_InvalidAddr(t *testing.T) {
 	dir := t.TempDir()
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	fsw, err := newFsnotifyWatcher()
 	if err != nil {
@@ -424,7 +426,7 @@ func TestAddNodeWatch_InvalidAddr(t *testing.T) {
 func TestRemoveNodeWatch_InvalidAddr(t *testing.T) {
 	dir := t.TempDir()
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	fsw, err := newFsnotifyWatcher()
 	if err != nil {
@@ -439,7 +441,7 @@ func TestRemoveNodeWatch_InvalidAddr(t *testing.T) {
 func TestStop_WithFsnotifyWatcher(t *testing.T) {
 	dir := t.TempDir()
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	fsw, err := newFsnotifyWatcher()
 	if err != nil {
@@ -463,7 +465,7 @@ func TestFlushFromTimer_WithPendingPaths(t *testing.T) {
 	// flushFromTimer clears pending and timers.
 	dir := t.TempDir()
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	// Add some pending paths and timers
 	w.mu.Lock()
@@ -493,7 +495,7 @@ func TestFlushFromTimer_WithPendingPaths(t *testing.T) {
 
 func TestResetDebounce_SubsequentCallResetsDebounce(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
 	w.mu.Lock()
 	w.resetDebounce()
@@ -524,7 +526,7 @@ func TestReadNewLogLines_SeekError(t *testing.T) {
 	_ = os.WriteFile(logFile, []byte("hello\n"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, dir, "")
+	w := NewWatcher(store, dir, "", nil)
 	w.logFile = logFile
 	w.logOffset = 99999 // way past end
 
@@ -550,10 +552,9 @@ func TestStart_Success(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl"), []byte("seed\n"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, logDir, instDir)
+	w := NewWatcher(store, logDir, instDir, nil)
 
-	prog := cancelledProgram()
-	if err := w.Start(prog); err != nil {
+	if err := w.Start(); err != nil {
 		t.Fatalf("Start returned error: %v", err)
 	}
 	defer w.Stop()
@@ -566,10 +567,9 @@ func TestStart_Success(t *testing.T) {
 func TestStart_NoLogDir(t *testing.T) {
 	dir := t.TempDir()
 	store := state.NewStore(dir, time.Second)
-	w := NewWatcher(store, "", "")
+	w := NewWatcher(store, "", "", nil)
 
-	prog := cancelledProgram()
-	if err := w.Start(prog); err != nil {
+	if err := w.Start(); err != nil {
 		t.Fatalf("Start returned error: %v", err)
 	}
 	defer w.Stop()
@@ -589,9 +589,8 @@ func TestStartPolling_SeedsFields(t *testing.T) {
 	// Initialize the store so the index file exists.
 	_ = store.MutateIndex(func(*state.RootIndex) error { return nil })
 
-	w := NewWatcher(store, logDir, instDir)
-	prog := cancelledProgram()
-	w.StartPolling(prog)
+	w := NewWatcher(store, logDir, instDir, nil)
+	w.StartPolling()
 	defer w.Stop()
 
 	if w.logFile == "" {
@@ -609,8 +608,7 @@ func TestPollTick_DetectsIndexChange(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := NewWatcher(store, "", "")
-	w.program = cancelledProgram()
+	w := NewWatcher(store, "", "", nil)
 
 	// Seed indexMtime to a known stale value so the next stat looks "new".
 	w.indexMtime = time.Unix(0, 0)
@@ -630,8 +628,7 @@ func TestPollTick_NewLogFileDetected(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := NewWatcher(store, logDir, "")
-	w.program = cancelledProgram()
+	w := NewWatcher(store, logDir, "", nil)
 
 	// No log file at startup. Then create one and call pollTick.
 	logFile := filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl")
@@ -657,8 +654,7 @@ func TestPollTick_LogFileGrows(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := NewWatcher(store, logDir, "")
-	w.program = cancelledProgram()
+	w := NewWatcher(store, logDir, "", nil)
 	w.logFile = logFile
 	if info, err := os.Stat(logFile); err == nil {
 		w.logOffset = info.Size()
@@ -684,8 +680,7 @@ func TestFlush_IndexPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := NewWatcher(store, "", "")
-	w.program = cancelledProgram()
+	w := NewWatcher(store, "", "", nil)
 
 	paths := map[string]bool{store.IndexPath(): true}
 	w.flush(paths) // should hit the index branch
@@ -703,8 +698,7 @@ func TestFlush_NodeStatePath(t *testing.T) {
 	_ = os.MkdirAll(nodeDir, 0o755)
 	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(`{"address":"alpha"}`), 0o644)
 
-	w := NewWatcher(store, "", "")
-	w.program = cancelledProgram()
+	w := NewWatcher(store, "", "", nil)
 
 	paths := map[string]bool{filepath.Join(nodeDir, "state.json"): true}
 	w.flush(paths)
@@ -722,8 +716,7 @@ func TestFlush_LogFilePath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := NewWatcher(store, logDir, "")
-	w.program = cancelledProgram()
+	w := NewWatcher(store, logDir, "", nil)
 	w.logFile = logFile
 	w.logOffset = 0
 
@@ -739,13 +732,90 @@ func TestStop_StopsRunningLoop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := NewWatcher(store, "", "")
-	prog := cancelledProgram()
-	if err := w.Start(prog); err != nil {
+	w := NewWatcher(store, "", "", nil)
+	if err := w.Start(); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
 
 	// Give the loop a tick to enter its select.
 	time.Sleep(10 * time.Millisecond)
 	w.Stop()
+}
+
+// TestPollTick_DeliversLogLinesThroughChannel is the regression test
+// for the release-blocker bug where the watcher was constructed but
+// never Started, so log lines never reached the model. It exercises
+// the full pipeline:
+//   - construct a watcher with an events channel
+//   - seed it pointing at a real log file
+//   - call pollTick after the file grows
+//   - assert a WatcherMsg lands on the channel and unwraps to a
+//     LogLinesMsg with the appended content
+//
+// If this test fails, log streaming is broken end-to-end and the TUI
+// will silently show "No transmissions" forever even when the daemon
+// is hammering the log file.
+func TestPollTick_DeliversLogLinesThroughChannel(t *testing.T) {
+	dir := t.TempDir()
+	logDir := filepath.Join(dir, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	logFile := filepath.Join(logDir, "wolfcastle-2026-04-08.jsonl")
+	if err := os.WriteFile(logFile, []byte("seed line\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	store := state.NewStore(dir, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, logDir, "", events)
+	w.logFile = logFile
+	if info, err := os.Stat(logFile); err == nil {
+		w.logOffset = info.Size()
+		w.logFileSize = info.Size()
+	}
+
+	// Append more bytes to the log file, simulating the daemon writing
+	// a new NDJSON record.
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteString(`{"level":"info","msg":"hello"}` + "\n"); err != nil {
+		t.Fatal(err)
+	}
+	_ = f.Close()
+
+	// Drive a single poll cycle and assert the new line propagates as
+	// a LogLinesMsg wrapped in a WatcherMsg envelope. pollTick may
+	// also emit other watcher events (e.g. StateUpdatedMsg if the
+	// index mtime moved); drain through them looking for LogLinesMsg.
+	w.pollTick()
+
+	var logMsg LogLinesMsg
+	found := false
+	for i := 0; i < 8 && !found; i++ {
+		got := next()
+		envelope, ok := got.(WatcherMsg)
+		if !ok {
+			t.Fatalf("expected WatcherMsg, got %T", got)
+		}
+		if l, ok := envelope.Inner.(LogLinesMsg); ok {
+			logMsg = l
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("never received a LogLinesMsg")
+	}
+	if len(logMsg.Lines) == 0 {
+		t.Fatal("expected at least one log line in the message")
+	}
+	if logMsg.Lines[0] != `{"level":"info","msg":"hello"}` {
+		t.Errorf("unexpected log line content: %q", logMsg.Lines[0])
+	}
 }

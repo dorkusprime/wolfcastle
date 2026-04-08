@@ -905,6 +905,57 @@ func TestNewLogFileMsgForwardsToDetail(t *testing.T) {
 	_ = toModel(t, result)
 }
 
+// TestWatcherMsgUnwrapsAndReschedules is the model-side regression for
+// the dead-watcher bug. The watcher emits everything inside a WatcherMsg
+// envelope and the model has exactly one handler that unwraps the inner
+// message, dispatches it through the existing typed handlers, and
+// reschedules the next channel drain. If either step is wrong the
+// watcher delivers exactly one event and goes silent forever — which
+// is exactly what was happening before the fix.
+func TestWatcherMsgUnwrapsAndReschedules(t *testing.T) {
+	m := newColdModel(t)
+	// Pre-stage an event in the channel so the rescheduled drain Cmd
+	// has something to read after the dispatch.
+	m.watcherEvents <- tui.WatcherMsg{Inner: tui.LogLinesMsg{Lines: []string{"second"}}}
+
+	result, cmd := m.Update(tui.WatcherMsg{Inner: tui.LogLinesMsg{Lines: []string{"first"}}})
+	model := toModel(t, result)
+	if cmd == nil {
+		t.Fatal("expected a Cmd from WatcherMsg handler so the channel drain keeps running")
+	}
+	// The first inner message should have been forwarded to the detail
+	// pane (LogViewModel). The model is responsible for that delivery,
+	// not the watcher itself, so the model state shouldn't have errors.
+	if len(model.errors) != 0 {
+		t.Errorf("WatcherMsg handler should not produce error entries, got %d", len(model.errors))
+	}
+	// Run the returned Cmd. tea.Batch may either return a BatchMsg of
+	// sub-Cmds (when several are non-nil) or flatten to a single Msg
+	// when only one is. Either way, the staged second WatcherMsg must
+	// be reachable.
+	found := false
+	queue := []tea.Cmd{cmd}
+	for len(queue) > 0 && !found {
+		c := queue[0]
+		queue = queue[1:]
+		if c == nil {
+			continue
+		}
+		next := c()
+		switch v := next.(type) {
+		case tea.BatchMsg:
+			queue = append(queue, v...)
+		case tui.WatcherMsg:
+			if logMsg, ok := v.Inner.(tui.LogLinesMsg); ok && len(logMsg.Lines) > 0 && logMsg.Lines[0] == "second" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("rescheduled drain Cmd did not deliver the next staged WatcherMsg")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Update: InboxUpdatedMsg
 // ---------------------------------------------------------------------------
