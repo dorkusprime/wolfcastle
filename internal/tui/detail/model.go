@@ -193,6 +193,19 @@ func (m *DetailModel) SwitchToDashboard() {
 	m.mode = ModeDashboard
 }
 
+// Reset clears all data from the detail sub-views, used when switching
+// instances. The dashboard shows a "loading..." placeholder until fresh
+// data arrives.
+func (m *DetailModel) Reset() {
+	m.dashboard.Reset()
+	m.nodeDetail = NewNodeDetailModel()
+	m.taskDetail = NewTaskDetailModel()
+	m.logView = NewLogViewModel()
+	m.inbox = NewInboxModel()
+	m.mode = ModeDashboard
+	m.SetSize(m.width, m.height)
+}
+
 // SwitchToInbox switches to inbox mode.
 func (m *DetailModel) SwitchToInbox() {
 	m.mode = ModeInbox

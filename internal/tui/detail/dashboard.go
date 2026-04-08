@@ -54,6 +54,20 @@ func NewDashboardModel() DashboardModel {
 	}
 }
 
+// Reset clears all data fields, preserving size. Used when switching
+// between instances so the previous instance's data isn't visible
+// while the new instance loads.
+func (m *DashboardModel) Reset() {
+	w, h := m.width, m.height
+	*m = DashboardModel{
+		daemonStatus: "loading...",
+		nodeCounts:   make(map[state.NodeStatus]int),
+		auditCounts:  make(map[state.AuditStatus]int),
+		width:        w,
+		height:       h,
+	}
+}
+
 // Update handles state, daemon, and log messages.
 func (m DashboardModel) Update(msg tea.Msg) (DashboardModel, tea.Cmd) {
 	switch msg := msg.(type) {

@@ -1395,6 +1395,14 @@ func (m *TUIModel) switchInstance(entry instance.Entry) tea.Cmd {
 	m.header.SetStatusHint("Switching...")
 	m.header.SetLoading(true)
 
+	// Clear stale data from the previous instance immediately so the
+	// user doesn't see old stats while the new instance loads.
+	m.tree.Reset()
+	m.detail.Reset()
+	m.notify = notify.NewNotificationModel()
+	m.prevIndex = nil
+	m.prevNodes = make(map[string]*state.NodeState)
+
 	// Find the index of this entry in our instances list.
 	for i, inst := range m.instances {
 		if inst.PID == entry.PID {

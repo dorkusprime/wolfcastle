@@ -190,7 +190,7 @@ func (m HeaderModel) Update(msg tea.Msg) (HeaderModel, tea.Cmd) {
 // View
 // ---------------------------------------------------------------------------
 
-// View renders the header bar.
+// View renders the header bar with top/bottom and left/right padding.
 func (m HeaderModel) View() string {
 	if m.width <= 0 {
 		return ""
@@ -201,6 +201,14 @@ func (m HeaderModel) View() string {
 		Foreground(headerFg)
 
 	boldStyle := barStyle.Bold(true)
+
+	// 2 cells of horizontal padding on each side keep text from touching
+	// the terminal edge. The compose width shrinks accordingly.
+	const hPad = 2
+	innerWidth := m.width - hPad*2
+	if innerWidth < 1 {
+		innerWidth = 1
+	}
 
 	version := strings.TrimPrefix(m.version, "v")
 	title := boldStyle.Render(fmt.Sprintf("WOLFCASTLE v%s", version))
@@ -220,25 +228,32 @@ func (m HeaderModel) View() string {
 	}
 	right1 := barStyle.Render(strings.Join(rightParts, " "))
 
-	line1 := composeLine(barStyle, title, right1, m.width)
+	line1 := composeLine(barStyle, title, right1, innerWidth)
+
+	// Pad each line with hPad cells of background on each side.
+	pad := barStyle.Render(strings.Repeat(" ", hPad))
+
+	wrap := func(line string) string {
+		return pad + line + pad
+	}
 
 	// Narrow terminals: single line only.
 	if m.width < 40 {
-		return line1
+		return wrap(line1)
 	}
 
 	// Line 2: node counts left, audit summary right.
 	left2 := m.renderNodeCounts(barStyle)
 	right2 := m.renderAuditSummary(barStyle)
-	line2 := composeLine(barStyle, left2, right2, m.width)
+	line2 := composeLine(barStyle, left2, right2, innerWidth)
 
 	// Line 3 (optional): instance tab bar when wide enough and multiple instances exist.
 	if m.width > 100 && len(m.instances) > 1 {
-		tabBar := m.renderTabBar(barStyle, boldStyle)
-		return line1 + "\n" + line2 + "\n" + tabBar
+		tabBar := m.renderTabBar(barStyle, boldStyle, innerWidth)
+		return wrap(line1) + "\n" + wrap(line2) + "\n" + wrap(tabBar)
 	}
 
-	return line1 + "\n" + line2
+	return wrap(line1) + "\n" + wrap(line2)
 }
 
 // ---------------------------------------------------------------------------
@@ -337,7 +352,7 @@ func composeLine(base lipgloss.Style, left, right string, width int) string {
 }
 
 // renderTabBar builds the instance tab bar: [feat/auth ●] [fix/login]
-func (m HeaderModel) renderTabBar(base, bold lipgloss.Style) string {
+func (m HeaderModel) renderTabBar(base, bold lipgloss.Style, width int) string {
 	dimStyle := lipgloss.NewStyle().
 		Background(headerBg).
 		Foreground(clrDim)
@@ -367,7 +382,7 @@ func (m HeaderModel) renderTabBar(base, bold lipgloss.Style) string {
 	running := len(m.instances)
 	right := base.Render(fmt.Sprintf("%d running", running))
 
-	return composeLine(base, left, right, m.width)
+	return composeLine(base, left, right, width)
 }
 
 // instanceLabel delegates to the shared tui.InstanceLabel.
