@@ -376,7 +376,8 @@ func (m HeaderModel) renderTabBar(base, bold lipgloss.Style, width int) string {
 		}
 	}
 
-	left := base.Render(strings.Join(tabs, " "))
+	// Join tabs with a styled space so the separator carries the bar background.
+	left := strings.Join(tabs, base.Render(" "))
 
 	// Count running instances on the right.
 	running := len(m.instances)

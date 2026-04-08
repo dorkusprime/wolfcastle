@@ -784,7 +784,8 @@ func (m TUIModel) renderContent(contentHeight int) string {
 
 	treePaneStyle := m.borderStyle(PaneTree).
 		Width(treeWidth).
-		Height(contentHeight)
+		Height(contentHeight).
+		MaxHeight(contentHeight)
 	treePane := treePaneStyle.Render(treeContent)
 
 	detailContent := m.detail.View()
@@ -793,7 +794,8 @@ func (m TUIModel) renderContent(contentHeight int) string {
 	}
 	detailPaneStyle := m.borderStyle(PaneDetail).
 		Width(detailWidth).
-		Height(contentHeight)
+		Height(contentHeight).
+		MaxHeight(contentHeight)
 	detailPane := detailPaneStyle.Render(detailContent)
 
 	joined := lipgloss.JoinHorizontal(lipgloss.Top, treePane, detailPane)
