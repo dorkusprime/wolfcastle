@@ -36,6 +36,16 @@ func checkDeliverables(repoDir string, ns *state.NodeState, taskID string) []str
 	return missing
 }
 
+// hasDeliverables reports whether the task declares any deliverables.
+func hasDeliverables(ns *state.NodeState, taskID string) bool {
+	for _, t := range ns.Tasks {
+		if t.ID == taskID {
+			return len(t.Deliverables) > 0
+		}
+	}
+	return false
+}
+
 // isGlob reports whether the path contains glob metacharacters.
 func isGlob(path string) bool {
 	return strings.ContainsAny(path, "*?[")

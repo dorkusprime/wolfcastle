@@ -342,12 +342,23 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 		}
 	}
 	if !isAudit && !d.Git.HasProgress(beforeHEAD) {
+		// No git-tracked changes this iteration. But if all declared
+		// deliverables exist, the work was likely done in a previous
+		// iteration (committed by the failure-path commit). Trust the
+		// agent's COMPLETE marker in that case.
+		if len(missing) > 0 || !hasDeliverables(ns, nav.TaskID) {
+			_ = d.Logger.Log(map[string]any{
+				"type": "no_progress",
+				"task": nav.TaskID,
+			})
+			d.log(map[string]any{"type": "task_event", "action": "no_progress", "task": nav.TaskID, "text": "No changes detected. Failing task."})
+			return false
+		}
 		_ = d.Logger.Log(map[string]any{
-			"type": "no_progress",
+			"type": "no_progress_but_deliverables_exist",
 			"task": nav.TaskID,
+			"text": "No new git changes, but all deliverables present. Accepting COMPLETE.",
 		})
-		d.log(map[string]any{"type": "task_event", "action": "no_progress", "task": nav.TaskID, "text": "No changes detected. Failing task."})
-		return false
 	}
 
 	_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringComplete})
@@ -961,7 +972,9 @@ func (d *Daemon) autoCompleteDecomposedParents(nodeAddr string) {
 			for _, sub := range ns.Tasks {
 				if sub.ID == subID {
 					found = true
-					if sub.State != state.StatusComplete {
+					// A child is "done" if it's complete, or if it's blocked
+					// with a superseded/decomposition reason (terminal state).
+					if sub.State != state.StatusComplete && !isTerminalBlock(sub) {
 						allComplete = false
 					}
 					break
@@ -1142,6 +1155,25 @@ func (d *Daemon) maybeWriteAuditReport(nodeAddr, taskID string) {
 	})
 }
 
+// isTerminalBlock returns true if a blocked task is in a terminal state
+// (superseded, decomposed, or otherwise done through a different path).
+// Used by autoCompleteDecomposedParents to decide if a child counts as "done".
+func isTerminalBlock(t state.Task) bool {
+	if t.State != state.StatusBlocked {
+		return false
+	}
+	reason := strings.ToLower(t.BlockedReason)
+	return strings.Contains(reason, "supersed") ||
+		strings.Contains(reason, "already done") ||
+		strings.Contains(reason, "already completed") ||
+		strings.Contains(reason, "no longer needed") ||
+		strings.Contains(reason, "replaced by") ||
+		strings.Contains(reason, "done in") ||
+		strings.Contains(reason, "done directly") ||
+		strings.Contains(reason, "decomposed into") ||
+		strings.Contains(reason, "decomposition")
+}
+
 // isSupersededBlock checks whether a blocked task was actually superseded
 // (work done via a different path). The model should use WOLFCASTLE_SKIP
 // for these, but sometimes uses BLOCKED instead. This catches the mistake.
@@ -1161,7 +1193,9 @@ func (d *Daemon) isSupersededBlock(nodeAddr, taskID string) bool {
 			strings.Contains(reason, "no longer needed") ||
 			strings.Contains(reason, "replaced by") ||
 			strings.Contains(reason, "done in") ||
-			strings.Contains(reason, "done directly")
+			strings.Contains(reason, "done directly") ||
+			strings.Contains(reason, "decomposed into") ||
+			strings.Contains(reason, "decomposition")
 	}
 	return false
 }
