@@ -6,9 +6,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/spf13/cobra"
+
+	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
+	dmn "github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
@@ -261,6 +266,151 @@ func TestMultiProcess_EnsureTiers(t *testing.T) {
 	// After regeneration, the base tier config should exist.
 	if _, err := os.Stat(baseCfg); err != nil {
 		t.Errorf("base config should exist after ensureTiers: %v", err)
+	}
+}
+
+// ensureTiers must be a no-op when the base tier already exists. This
+// covers the early-return branch and prevents an unnecessary call to
+// ScaffoldService.Reinit on every start.
+func TestEnsureTiers_NoOpWhenBaseTierPresent(t *testing.T) {
+	base := resolvedTempDir(t)
+	wcDir := filepath.Join(base, ".wolfcastle")
+	baseCfgDir := filepath.Join(wcDir, tierfs.SystemPrefix, tierfs.TierNames[0])
+	if err := os.MkdirAll(baseCfgDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	baseCfg := filepath.Join(baseCfgDir, "config.json")
+	if err := os.WriteFile(baseCfg, []byte(`{"version":1}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	mtimeBefore, err := os.Stat(baseCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ensureTiers(wcDir); err != nil {
+		t.Fatalf("ensureTiers should be a no-op: %v", err)
+	}
+
+	mtimeAfter, err := os.Stat(baseCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !mtimeBefore.ModTime().Equal(mtimeAfter.ModTime()) {
+		t.Error("base config was rewritten on a no-op call")
+	}
+}
+
+// ensureTiers must also be a no-op when .wolfcastle doesn't exist at
+// all. This is the "user hasn't run init" case — the daemon should
+// fall through to the normal config-load error rather than fabricate
+// an empty scaffold.
+func TestEnsureTiers_NoOpWhenWcDirMissing(t *testing.T) {
+	base := resolvedTempDir(t)
+	wcDir := filepath.Join(base, ".wolfcastle") // never created
+	if err := ensureTiers(wcDir); err != nil {
+		t.Errorf("ensureTiers on a missing .wolfcastle should be a no-op, got: %v", err)
+	}
+	if _, err := os.Stat(wcDir); !os.IsNotExist(err) {
+		t.Error("ensureTiers must not create .wolfcastle from nothing")
+	}
+}
+
+// resolveInstance is a no-op (returns nil) when --instance is unset,
+// leaving the App unchanged.
+func TestResolveInstance_NoFlagIsNoOp(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("instance", "", "")
+	app := &cmdutil.App{}
+	if err := resolveInstance(cmd, app); err != nil {
+		t.Errorf("expected nil error for empty --instance, got: %v", err)
+	}
+	if app.Config != nil {
+		t.Error("App.Config should remain nil when --instance is unset")
+	}
+}
+
+// resolveInstance forwards to InitFromDir and surfaces its error when
+// --instance points at a path with no .wolfcastle.
+func TestResolveInstance_ForwardsInitFromDirError(t *testing.T) {
+	tmp := t.TempDir()
+	cmd := &cobra.Command{}
+	cmd.Flags().String("instance", "", "")
+	if err := cmd.Flags().Set("instance", filepath.Join(tmp, "no-such-worktree")); err != nil {
+		t.Fatal(err)
+	}
+	app := &cmdutil.App{}
+	if err := resolveInstance(cmd, app); err == nil {
+		t.Error("expected error when --instance points at a missing worktree")
+	}
+}
+
+// resolveInstance with a valid --instance points the App at that
+// worktree's .wolfcastle directory.
+func TestResolveInstance_PointsAppAtTarget(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	if err := os.MkdirAll(filepath.Join(wcDir, "system", "base"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(wcDir, "system", "base", "config.json"), []byte(`{"version":1}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := &cobra.Command{}
+	cmd.Flags().String("instance", "", "")
+	if err := cmd.Flags().Set("instance", tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	app := &cmdutil.App{}
+	if err := resolveInstance(cmd, app); err != nil {
+		t.Fatalf("resolveInstance failed: %v", err)
+	}
+	if app.Config == nil {
+		t.Fatal("App.Config should be wired up after a successful resolveInstance")
+	}
+}
+
+// getDaemonStatus with an explicit repoDir resolves the instance from
+// that path instead of os.Getwd, which is the whole reason the
+// signature changed from variadic to required.
+func TestGetDaemonStatus_ExplicitRepoDir(t *testing.T) {
+	regDir := setupRegistry(t)
+	base := resolvedTempDir(t)
+
+	repo := filepath.Join(base, "explicit-repo")
+	if err := os.MkdirAll(repo, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Use this test process's PID as the "live" entry. IsProcessRunning
+	// returns true for the running test binary so the status string
+	// reads "running".
+	writeEntry(t, regDir, instance.Entry{
+		PID:       os.Getpid(),
+		Worktree:  repo,
+		Branch:    "main",
+		StartedAt: time.Now().UTC(),
+	})
+
+	repoObj := dmn.NewDaemonRepository(filepath.Join(repo, ".wolfcastle"))
+	status := getDaemonStatus(repoObj, repo)
+	if !strings.HasPrefix(status, "running") {
+		t.Errorf("expected status to start with 'running', got %q", status)
+	}
+}
+
+// getDaemonStatus with empty repoDir falls back to os.Getwd. We can't
+// easily change CWD without affecting other tests, so just verify the
+// function doesn't panic and returns the stopped status when the
+// registry has nothing matching the test's actual CWD.
+func TestGetDaemonStatus_EmptyRepoDirFallsBackToCWD(t *testing.T) {
+	_ = setupRegistry(t) // empty registry
+	repo := dmn.NewDaemonRepository(t.TempDir())
+	status := getDaemonStatus(repo, "")
+	if status != "stopped" {
+		t.Errorf("expected 'stopped' for an empty registry, got %q", status)
 	}
 }
 

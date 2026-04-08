@@ -76,11 +76,8 @@ Examples:
   wolfcastle log --session 1
   wolfcastle log --json | jq '.type'`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			instancePath, _ := cmd.Flags().GetString("instance")
-			if instancePath != "" {
-				if err := app.InitFromDir(instancePath); err != nil {
-					return err
-				}
+			if err := resolveInstance(cmd, app); err != nil {
+				return err
 			}
 
 			logDir := app.Daemon.LogDir()

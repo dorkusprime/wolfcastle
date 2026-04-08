@@ -48,14 +48,9 @@ Examples:
 			worktreeBranch, _ := cmd.Flags().GetString("worktree")
 			verbose, _ := cmd.Flags().GetBool("verbose")
 			exitWhenDone, _ := cmd.Flags().GetBool("exit-when-done")
-			instancePath, _ := cmd.Flags().GetString("instance")
 
-			// When --instance is set, use that worktree path for
-			// instance registry lookups instead of CWD.
-			if instancePath != "" {
-				if err := app.InitFromDir(instancePath); err != nil {
-					return err
-				}
+			if err := resolveInstance(cmd, app); err != nil {
+				return err
 			}
 
 			// Worktree-aware tier regeneration: if .wolfcastle/ exists

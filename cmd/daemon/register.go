@@ -53,3 +53,18 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(daemonRunCmd)
 }
+
+// resolveInstance reads the --instance flag from cmd and, when set,
+// re-initializes the App to point at that worktree's .wolfcastle.
+// Used by start, follow, and status — every daemon command that needs
+// the App's repositories pointed at a specific instance instead of the
+// default CWD-resolved one. stop is intentionally not a caller: it
+// only needs the worktree path to look up a PID via instance.Resolve,
+// not a fully reconfigured App.
+func resolveInstance(cmd *cobra.Command, app *cmdutil.App) error {
+	instancePath, _ := cmd.Flags().GetString("instance")
+	if instancePath == "" {
+		return nil
+	}
+	return app.InitFromDir(instancePath)
+}

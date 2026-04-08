@@ -45,11 +45,8 @@ Examples:
   wolfcastle status --expand --detail
   wolfcastle status --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			instancePath, _ := cmd.Flags().GetString("instance")
-			if instancePath != "" {
-				if err := app.InitFromDir(instancePath); err != nil {
-					return err
-				}
+			if err := resolveInstance(cmd, app); err != nil {
+				return err
 			}
 
 			showAll, _ := cmd.Flags().GetBool("all")
@@ -669,13 +666,14 @@ func taskGlyph(s state.NodeStatus) string {
 	}
 }
 
-// getDaemonStatus checks the instance registry and reports daemon status.
-// repoDir is the directory containing .wolfcastle (i.e., the worktree root).
-func getDaemonStatus(repo *dmn.DaemonRepository, repoDir ...string) string {
-	dir := ""
-	if len(repoDir) > 0 && repoDir[0] != "" {
-		dir = repoDir[0]
-	} else {
+// getDaemonStatus checks the instance registry and reports daemon
+// status for the daemon owning repoDir. Pass the empty string to fall
+// back to the current working directory; the prior variadic shape
+// existed only for backward compat with old call sites and has been
+// retired in favor of an explicit, single signature.
+func getDaemonStatus(repo *dmn.DaemonRepository, repoDir string) string {
+	dir := repoDir
+	if dir == "" {
 		var err error
 		dir, err = os.Getwd()
 		if err != nil {
