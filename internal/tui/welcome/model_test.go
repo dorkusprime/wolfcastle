@@ -152,7 +152,7 @@ func TestJumpToBottom(t *testing.T) {
 func TestEnterOnDirectory_Descends(t *testing.T) {
 	dir := setupTestDir(t, "target")
 	// Create a grandchild so "target" has contents
-	os.Mkdir(filepath.Join(dir, "target", "inner"), 0o755)
+	_ = os.Mkdir(filepath.Join(dir, "target", "inner"), 0o755)
 
 	m := NewWelcomeModel(dir, nil)
 	// Cursor is on "target". Enter should descend into it.
@@ -427,10 +427,10 @@ func TestView_KeyHints(t *testing.T) {
 
 func TestHiddenDirsFiltered_ExceptWolfcastle(t *testing.T) {
 	dir := t.TempDir()
-	os.Mkdir(filepath.Join(dir, ".git"), 0o755)
-	os.Mkdir(filepath.Join(dir, ".hidden"), 0o755)
-	os.Mkdir(filepath.Join(dir, ".wolfcastle"), 0o755)
-	os.Mkdir(filepath.Join(dir, "visible"), 0o755)
+	_ = os.Mkdir(filepath.Join(dir, ".git"), 0o755)
+	_ = os.Mkdir(filepath.Join(dir, ".hidden"), 0o755)
+	_ = os.Mkdir(filepath.Join(dir, ".wolfcastle"), 0o755)
+	_ = os.Mkdir(filepath.Join(dir, "visible"), 0o755)
 
 	m := NewWelcomeModel(dir, nil)
 
@@ -445,8 +445,8 @@ func TestHiddenDirsFiltered_ExceptWolfcastle(t *testing.T) {
 
 func TestOnlyDirsShown_NoFiles(t *testing.T) {
 	dir := t.TempDir()
-	os.Mkdir(filepath.Join(dir, "subdir"), 0o755)
-	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0o644)
+	_ = os.Mkdir(filepath.Join(dir, "subdir"), 0o755)
+	_ = os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0o644)
 
 	m := NewWelcomeModel(dir, nil)
 
@@ -503,7 +503,7 @@ func TestScrolling(t *testing.T) {
 	dir := t.TempDir()
 	for i := range 25 {
 		name := "d" + strings.Repeat("0", 2-len(intStr(i))) + intStr(i)
-		os.Mkdir(filepath.Join(dir, name), 0o755)
+		_ = os.Mkdir(filepath.Join(dir, name), 0o755)
 	}
 
 	m := NewWelcomeModel(dir, nil)
@@ -529,7 +529,7 @@ func TestView_ScrollIndicators(t *testing.T) {
 	dir := t.TempDir()
 	for i := range 25 {
 		name := "d" + strings.Repeat("0", 2-len(intStr(i))) + intStr(i)
-		os.Mkdir(filepath.Join(dir, name), 0o755)
+		_ = os.Mkdir(filepath.Join(dir, name), 0o755)
 	}
 
 	m := NewWelcomeModel(dir, nil)
@@ -760,7 +760,7 @@ func TestSessionKey_EnterConnects(t *testing.T) {
 	}
 	m := NewWelcomeModel(dir, entries)
 
-	m, cmd := m.Update(enterKey())
+	_, cmd := m.Update(enterKey())
 	if cmd == nil {
 		t.Fatal("expected non-nil cmd from Enter on session")
 	}
@@ -866,7 +866,7 @@ func TestPlace_ZeroDimensions(t *testing.T) {
 func TestSymlinkToDir_ShowsInList(t *testing.T) {
 	dir := t.TempDir()
 	realDir := filepath.Join(dir, "real")
-	os.Mkdir(realDir, 0o755)
+	_ = os.Mkdir(realDir, 0o755)
 	symlink := filepath.Join(dir, "linked")
 	err := os.Symlink(realDir, symlink)
 	if err != nil {

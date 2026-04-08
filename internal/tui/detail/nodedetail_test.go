@@ -485,7 +485,7 @@ func TestNodeDetail_Update_NonKeyMsg_Ignored(t *testing.T) {
 	t.Parallel()
 	m := NewNodeDetailModel()
 	type customMsg struct{}
-	m, _ = m.Update(customMsg{})
+	_, _ = m.Update(customMsg{})
 }
 
 func TestCountGaps(t *testing.T) {

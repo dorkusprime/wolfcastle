@@ -67,15 +67,14 @@ type TUIModel struct {
 	focused     FocusedPane
 	lastFocused FocusedPane
 
-	header        header.HeaderModel
-	tree          tree.TreeModel
-	detail        detail.DetailModel
-	footer        footer.FooterModel
-	welcome       *welcome.WelcomeModel
-	search        search.SearchModel
-	help          help.HelpOverlayModel
-	notify        notify.NotificationModel
-	overlayActive bool
+	header  header.HeaderModel
+	tree    tree.TreeModel
+	detail  detail.DetailModel
+	footer  footer.FooterModel
+	welcome *welcome.WelcomeModel
+	search  search.SearchModel
+	help    help.HelpOverlayModel
+	notify  notify.NotificationModel
 
 	// State diffing for toast notifications (Phase 5).
 	prevIndex *state.RootIndex
@@ -1327,6 +1326,7 @@ func (m *TUIModel) stopCurrentDaemon() tea.Cmd {
 			}
 			time.Sleep(200 * time.Millisecond)
 		}
+		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
 		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
 	}
 }
@@ -1364,6 +1364,7 @@ func (m *TUIModel) handleStopAll() tea.Cmd {
 		if lastErr != nil {
 			return tui.DaemonStopFailedMsg{Err: lastErr}
 		}
+		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
 		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
 	}
 }

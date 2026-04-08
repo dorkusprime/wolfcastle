@@ -307,8 +307,8 @@ func TestReadNewLogLines_MultipleReads(t *testing.T) {
 
 	// Append more content
 	f, _ := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0o644)
-	f.WriteString("line two\nline three\n")
-	f.Close()
+	_, _ = f.WriteString("line two\nline three\n")
+	_ = f.Close()
 
 	lines = w.readNewLogLines()
 	if len(lines) != 2 {
@@ -366,8 +366,8 @@ func TestAddNodeWatch_WithFsnotifyWatcher(t *testing.T) {
 	dir := t.TempDir()
 	// Create a node directory so the path resolves
 	nodeDir := filepath.Join(dir, "a", "b")
-	os.MkdirAll(nodeDir, 0o755)
-	os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte("{}"), 0o644)
+	_ = os.MkdirAll(nodeDir, 0o755)
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte("{}"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
 	w := NewWatcher(store, "", "")
@@ -377,7 +377,7 @@ func TestAddNodeWatch_WithFsnotifyWatcher(t *testing.T) {
 	if err != nil {
 		t.Skipf("fsnotify unavailable: %v", err)
 	}
-	defer fsw.Close()
+	defer func() { _ = fsw.Close() }()
 	w.watcher = fsw
 
 	// Should not panic, should add the watch
@@ -387,8 +387,8 @@ func TestAddNodeWatch_WithFsnotifyWatcher(t *testing.T) {
 func TestRemoveNodeWatch_WithFsnotifyWatcher(t *testing.T) {
 	dir := t.TempDir()
 	nodeDir := filepath.Join(dir, "a", "b")
-	os.MkdirAll(nodeDir, 0o755)
-	os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte("{}"), 0o644)
+	_ = os.MkdirAll(nodeDir, 0o755)
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte("{}"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
 	w := NewWatcher(store, "", "")
@@ -397,7 +397,7 @@ func TestRemoveNodeWatch_WithFsnotifyWatcher(t *testing.T) {
 	if err != nil {
 		t.Skipf("fsnotify unavailable: %v", err)
 	}
-	defer fsw.Close()
+	defer func() { _ = fsw.Close() }()
 	w.watcher = fsw
 
 	// Add first, then remove
@@ -414,7 +414,7 @@ func TestAddNodeWatch_InvalidAddr(t *testing.T) {
 	if err != nil {
 		t.Skipf("fsnotify unavailable: %v", err)
 	}
-	defer fsw.Close()
+	defer func() { _ = fsw.Close() }()
 	w.watcher = fsw
 
 	// Empty address returns an error from NodePath, should not panic
@@ -430,7 +430,7 @@ func TestRemoveNodeWatch_InvalidAddr(t *testing.T) {
 	if err != nil {
 		t.Skipf("fsnotify unavailable: %v", err)
 	}
-	defer fsw.Close()
+	defer func() { _ = fsw.Close() }()
 	w.watcher = fsw
 
 	w.RemoveNodeWatch("")
@@ -521,7 +521,7 @@ func TestReadNewLogLines_SeekError(t *testing.T) {
 	// will yield no data, same as an empty file.
 	dir := t.TempDir()
 	logFile := filepath.Join(dir, "test.jsonl")
-	os.WriteFile(logFile, []byte("hello\n"), 0o644)
+	_ = os.WriteFile(logFile, []byte("hello\n"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
 	w := NewWatcher(store, dir, "")
@@ -544,10 +544,10 @@ func TestStart_Success(t *testing.T) {
 	dir := t.TempDir()
 	logDir := filepath.Join(dir, "logs")
 	instDir := filepath.Join(dir, "instances")
-	os.MkdirAll(logDir, 0o755)
-	os.MkdirAll(instDir, 0o755)
+	_ = os.MkdirAll(logDir, 0o755)
+	_ = os.MkdirAll(instDir, 0o755)
 	// Pre-create a log file so the latest-log lookup succeeds.
-	os.WriteFile(filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl"), []byte("seed\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl"), []byte("seed\n"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
 	w := NewWatcher(store, logDir, instDir)
@@ -579,11 +579,11 @@ func TestStartPolling_SeedsFields(t *testing.T) {
 	dir := t.TempDir()
 	logDir := filepath.Join(dir, "logs")
 	instDir := filepath.Join(dir, "instances")
-	os.MkdirAll(logDir, 0o755)
-	os.MkdirAll(instDir, 0o755)
+	_ = os.MkdirAll(logDir, 0o755)
+	_ = os.MkdirAll(instDir, 0o755)
 
 	logFile := filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl")
-	os.WriteFile(logFile, []byte("hello\nworld\n"), 0o644)
+	_ = os.WriteFile(logFile, []byte("hello\nworld\n"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
 	// Initialize the store so the index file exists.
@@ -623,7 +623,7 @@ func TestPollTick_DetectsIndexChange(t *testing.T) {
 func TestPollTick_NewLogFileDetected(t *testing.T) {
 	dir := t.TempDir()
 	logDir := filepath.Join(dir, "logs")
-	os.MkdirAll(logDir, 0o755)
+	_ = os.MkdirAll(logDir, 0o755)
 
 	store := state.NewStore(dir, time.Second)
 	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
@@ -635,7 +635,7 @@ func TestPollTick_NewLogFileDetected(t *testing.T) {
 
 	// No log file at startup. Then create one and call pollTick.
 	logFile := filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl")
-	os.WriteFile(logFile, []byte("first\n"), 0o644)
+	_ = os.WriteFile(logFile, []byte("first\n"), 0o644)
 
 	w.pollTick()
 
@@ -647,10 +647,10 @@ func TestPollTick_NewLogFileDetected(t *testing.T) {
 func TestPollTick_LogFileGrows(t *testing.T) {
 	dir := t.TempDir()
 	logDir := filepath.Join(dir, "logs")
-	os.MkdirAll(logDir, 0o755)
+	_ = os.MkdirAll(logDir, 0o755)
 
 	logFile := filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl")
-	os.WriteFile(logFile, []byte("seed\n"), 0o644)
+	_ = os.WriteFile(logFile, []byte("seed\n"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
 	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
@@ -667,8 +667,8 @@ func TestPollTick_LogFileGrows(t *testing.T) {
 
 	// Append more bytes.
 	f, _ := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0o644)
-	f.WriteString("more\n")
-	f.Close()
+	_, _ = f.WriteString("more\n")
+	_ = f.Close()
 
 	w.pollTick()
 	// logFileSize should have advanced.
@@ -700,8 +700,8 @@ func TestFlush_NodeStatePath(t *testing.T) {
 
 	// Create a node directory with a state.json so ReadNode succeeds.
 	nodeDir := filepath.Join(dir, "alpha")
-	os.MkdirAll(nodeDir, 0o755)
-	os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(`{"address":"alpha"}`), 0o644)
+	_ = os.MkdirAll(nodeDir, 0o755)
+	_ = os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(`{"address":"alpha"}`), 0o644)
 
 	w := NewWatcher(store, "", "")
 	w.program = cancelledProgram()
@@ -713,9 +713,9 @@ func TestFlush_NodeStatePath(t *testing.T) {
 func TestFlush_LogFilePath(t *testing.T) {
 	dir := t.TempDir()
 	logDir := filepath.Join(dir, "logs")
-	os.MkdirAll(logDir, 0o755)
+	_ = os.MkdirAll(logDir, 0o755)
 	logFile := filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl")
-	os.WriteFile(logFile, []byte("appended line\n"), 0o644)
+	_ = os.WriteFile(logFile, []byte("appended line\n"), 0o644)
 
 	store := state.NewStore(dir, time.Second)
 	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {

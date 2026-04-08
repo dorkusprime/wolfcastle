@@ -172,7 +172,7 @@ func (m *HelpOverlayModel) buildContent() {
 		b.WriteString(sec.title)
 		b.WriteString("\n")
 		for _, kb := range sec.bindings {
-			b.WriteString(fmt.Sprintf("  %-12s%s\n", kb.key, kb.desc))
+			fmt.Fprintf(&b, "  %-12s%s\n", kb.key, kb.desc)
 		}
 	}
 

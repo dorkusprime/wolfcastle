@@ -691,7 +691,7 @@ func TestWindowSizeMsgUpdatesModel(t *testing.T) {
 func TestStateUpdatedMsgSetsTree(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"node-a", "node-b"},
+		Root: []string{"node-a", "node-b"},
 		Nodes: map[string]state.IndexEntry{
 			"node-a": {Name: "Node A", State: state.StatusComplete},
 			"node-b": {Name: "Node B", State: state.StatusInProgress},

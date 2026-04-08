@@ -437,7 +437,7 @@ func (w *Watcher) readNewLogLines() []string {
 	if err != nil {
 		return nil
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if _, err := f.Seek(offset, io.SeekStart); err != nil {
 		return nil

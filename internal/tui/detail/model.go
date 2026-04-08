@@ -3,7 +3,6 @@ package detail
 import (
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
@@ -34,12 +33,6 @@ type DetailModel struct {
 	height     int
 	focused    bool
 }
-
-var placeholderStyle = lipgloss.NewStyle().
-	Foreground(tui.ColorDimWhite).
-	Italic(true)
-
-const placeholderText = "Coming in the next phase."
 
 // NewDetailModel creates a DetailModel starting in dashboard mode.
 func NewDetailModel() DetailModel {

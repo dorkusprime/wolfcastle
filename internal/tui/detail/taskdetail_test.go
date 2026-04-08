@@ -542,7 +542,7 @@ func TestUpdate_Task_NonKeyMsg_Ignored(t *testing.T) {
 	t.Parallel()
 	m := NewTaskDetailModel()
 	type customMsg struct{}
-	m, _ = m.Update(customMsg{})
+	_, _ = m.Update(customMsg{})
 }
 
 func TestRebuildContent_NilTask(t *testing.T) {

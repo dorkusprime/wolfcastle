@@ -458,7 +458,7 @@ func (m *LogViewModel) LoadFromFile(path string, lastN int) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Read all lines into a ring buffer of size lastN.
 	var ring []string

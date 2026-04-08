@@ -292,9 +292,8 @@ func countOpenEscalations(escs []state.Escalation) int {
 
 // wrapIndent performs simple word-wrapping with an indent prefix on each line.
 func wrapIndent(text string, width int, indent string) string {
-	usable := width - len(indent)
-	if usable < 20 {
-		usable = 20
+	if width < 20+len(indent) {
+		width = 20 + len(indent)
 	}
 
 	words := strings.Fields(text)
