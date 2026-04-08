@@ -27,8 +27,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
@@ -372,6 +374,142 @@ drainLoop:
 	}
 	if !found {
 		t.Error("startWatcher did not trigger eager prefetch; no NodeUpdatedMsg for alpha arrived in the events channel")
+	}
+}
+
+// TestWiring_InstanceSwitchTriggersEagerPrefetch is the regression
+// test for the dead-wiring bug found in the debug log: the
+// InstanceSwitchedMsg handler used to inline tui.NewWatcher calls
+// without calling EagerPrefetchAndSubscribe, so users who switched
+// instances mid-session lost per-leaf cache freshness for the new
+// worktree. The fix routes both call sites through newWatcherFor;
+// this test exercises the InstanceSwitchedMsg path end-to-end so
+// any future regression that re-introduces an inline construction
+// is caught immediately.
+func TestWiring_InstanceSwitchTriggersEagerPrefetch(t *testing.T) {
+	// Set up a target worktree with a real config (so
+	// storeFromWolfcastleDir resolves an identity), a real index,
+	// and one leaf so the eager prefetch has something to find.
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+
+	// Local-tier config provides an identity, which makes
+	// storeFromWolfcastleDir return a non-nil store. Without this,
+	// the InstanceSwitchedMsg handler silently fails to construct
+	// a watcher and the test doesn't actually exercise the code
+	// path under test.
+	if err := os.MkdirAll(filepath.Join(wcDir, "system", "local"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cfgJSON := `{"identity": {"user": "tester", "machine": "box"}}`
+	if err := os.WriteFile(filepath.Join(wcDir, "system", "local", "config.json"), []byte(cfgJSON), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stage the index and leaf state under the namespace dir that
+	// id.ProjectsDir() will derive from the identity above:
+	// <wcDir>/system/projects/<user>-<machine>
+	storeDir := filepath.Join(wcDir, "system", "projects", "tester-box")
+	if err := os.MkdirAll(storeDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rootIndex := map[string]any{
+		"version": 1,
+		"root":    []string{"target"},
+		"nodes": map[string]any{
+			"target": map[string]any{
+				"name":    "target",
+				"type":    "leaf",
+				"state":   "in_progress",
+				"address": "target",
+			},
+		},
+	}
+	rootData, _ := json.Marshal(rootIndex)
+	if err := os.WriteFile(filepath.Join(storeDir, "state.json"), rootData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	leafDir := filepath.Join(storeDir, "target")
+	if err := os.MkdirAll(leafDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	leafState := map[string]any{
+		"version": 1,
+		"id":      "target",
+		"name":    "target",
+		"type":    "leaf",
+		"state":   "in_progress",
+		"tasks": []map[string]any{
+			{"id": "task-0001", "title": "switched", "description": "switched", "state": "in_progress", "failure_count": 0},
+		},
+	}
+	leafData, _ := json.Marshal(leafState)
+	if err := os.WriteFile(filepath.Join(leafDir, "state.json"), leafData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Build a model that's already in StateLive with a (different)
+	// store, then feed an InstanceSwitchedMsg pointing at the
+	// staged target. This is exactly what happens when a user
+	// presses < or > or a digit key to switch instances.
+	m := newColdModel(t)
+	m.entryState = StateLive
+
+	// Drain anything left in the events channel from newColdModel
+	// setup so we can assert against a fresh state below.
+	for {
+		select {
+		case <-m.watcherEvents:
+		default:
+			goto drained
+		}
+	}
+drained:
+
+	freshStore := state.NewStore(storeDir, 0)
+	freshIdx, err := freshStore.ReadIndex()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = freshStore // only used for the index read above
+	switchMsg := tui.InstanceSwitchedMsg{
+		Index: freshIdx,
+		Entry: instance.Entry{
+			Worktree:  tmp,
+			PID:       os.Getpid(),
+			Branch:    "main",
+			StartedAt: time.Now(),
+		},
+	}
+	result, _ := m.Update(switchMsg)
+	m = toModel(t, result)
+
+	// After the handler runs, the events channel should contain a
+	// WatcherMsg{NodeUpdatedMsg} for the target leaf because the
+	// new watcher's eager prefetch fired during construction.
+	found := false
+drainSwitchLoop:
+	for i := 0; i < 8; i++ {
+		select {
+		case msg := <-m.watcherEvents:
+			envelope, ok := msg.(tui.WatcherMsg)
+			if !ok {
+				continue
+			}
+			nu, ok := envelope.Inner.(tui.NodeUpdatedMsg)
+			if !ok {
+				continue
+			}
+			if nu.Address == "target" && nu.Node != nil && len(nu.Node.Tasks) == 1 {
+				found = true
+				break drainSwitchLoop
+			}
+		default:
+			break drainSwitchLoop
+		}
+	}
+	if !found {
+		t.Error("InstanceSwitchedMsg handler constructed a watcher without triggering eager prefetch; no NodeUpdatedMsg for target arrived in the events channel. The handler must route through newWatcherFor.")
 	}
 }
 
