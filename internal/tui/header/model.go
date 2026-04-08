@@ -242,10 +242,10 @@ func (m HeaderModel) View() string {
 		return wrap(line1)
 	}
 
-	// Line 2: node counts left, audit summary right.
+	// Line 2: node counts left, blank right (audit summary removed
+	// until daemon-side aggregation is wired up).
 	left2 := m.renderNodeCounts(barStyle)
-	right2 := m.renderAuditSummary(barStyle)
-	line2 := composeLine(barStyle, left2, right2, innerWidth)
+	line2 := composeLine(barStyle, left2, "", innerWidth)
 
 	// Line 3 (optional): instance tab bar when wide enough and multiple instances exist.
 	if m.width > 100 && len(m.instances) > 1 {
@@ -315,27 +315,6 @@ func (m HeaderModel) renderNodeCounts(base lipgloss.Style) string {
 		parts = append(parts, base.Render(fmt.Sprintf("%d", n))+glyph)
 	}
 	return strings.Join(parts, base.Render(" "))
-}
-
-// renderAuditSummary builds the "Audit: 5 passed, 2 gaps, 1 escalation" string.
-func (m HeaderModel) renderAuditSummary(base lipgloss.Style) string {
-	passed := m.auditCounts[state.AuditPassed]
-
-	var segments []string
-	if passed > 0 {
-		segments = append(segments, fmt.Sprintf("%d passed", passed))
-	}
-	if m.openGaps > 0 {
-		segments = append(segments, fmt.Sprintf("%d %s", m.openGaps, pluralize("gap", m.openGaps)))
-	}
-	if m.openEscalations > 0 {
-		segments = append(segments, fmt.Sprintf("%d %s", m.openEscalations, pluralize("escalation", m.openEscalations)))
-	}
-
-	if len(segments) == 0 {
-		return base.Render("Audit: no data")
-	}
-	return base.Render("Audit: " + strings.Join(segments, ", "))
 }
 
 // composeLine pads the gap between left and right content to fill width,
