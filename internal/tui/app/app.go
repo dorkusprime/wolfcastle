@@ -531,6 +531,9 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.watcher = tui.NewWatcher(m.store, logDir, instanceDir)
 
+		// Immediately probe daemon status and inbox so the dashboard
+		// populates without waiting for the next poll tick.
+		cmds = append(cmds, m.detectEntryState(), m.loadInbox())
 		return m, tea.Batch(cmds...)
 
 	case tui.SpinnerTickMsg:
