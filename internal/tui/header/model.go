@@ -237,13 +237,13 @@ func (m HeaderModel) View() string {
 		return pad + line + pad
 	}
 
-	// Single blank padding row below the header to separate it from
-	// the content area. Filled with the bar background color.
-	bottomPad := barStyle.Render(strings.Repeat(" ", m.width))
+	// Blank padding rows above and below the header to give it
+	// breathing room from the terminal edges and content area.
+	blank := barStyle.Render(strings.Repeat(" ", m.width))
 
-	// Narrow terminals: single line only (with bottom padding).
+	// Narrow terminals: single line only (with top + bottom padding).
 	if m.width < 40 {
-		return wrap(line1) + "\n" + bottomPad
+		return blank + "\n" + wrap(line1) + "\n" + blank
 	}
 
 	// Line 2: node counts left, audit summary right.
@@ -254,10 +254,10 @@ func (m HeaderModel) View() string {
 	// Line 3 (optional): instance tab bar when wide enough and multiple instances exist.
 	if m.width > 100 && len(m.instances) > 1 {
 		tabBar := m.renderTabBar(barStyle, boldStyle, innerWidth)
-		return wrap(line1) + "\n" + wrap(line2) + "\n" + wrap(tabBar) + "\n" + bottomPad
+		return blank + "\n" + wrap(line1) + "\n" + wrap(line2) + "\n" + wrap(tabBar) + "\n" + blank
 	}
 
-	return wrap(line1) + "\n" + wrap(line2) + "\n" + bottomPad
+	return blank + "\n" + wrap(line1) + "\n" + wrap(line2) + "\n" + blank
 }
 
 // ---------------------------------------------------------------------------
