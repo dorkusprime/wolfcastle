@@ -1203,7 +1203,7 @@ func TestRunWithSupervisor_SuccessfulRun(t *testing.T) {
 	idx.Nodes["my-node"] = entry
 	_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 	if err := d.RunWithSupervisor(ctx); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1265,7 +1265,7 @@ func TestRunWithSupervisor_MaxRestartsExceeded(t *testing.T) {
 	// Corrupt root index: Run will fail with a navigation error on every
 	// attempt, driving the supervisor through its restart budget.
 	corruptRootIndex(t, d)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 
 	err := d.RunWithSupervisor(ctx)
@@ -1306,7 +1306,7 @@ func TestRunWithSupervisor_RestartAndRecover(t *testing.T) {
 		_ = state.SaveRootIndex(filepath.Join(d.Store.Dir(), "state.json"), idx)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 
 	err := d.RunWithSupervisor(ctx)
@@ -1331,7 +1331,7 @@ func TestRunWithSupervisor_StateResetBetweenRestarts(t *testing.T) {
 		channels = append(channels, d.shutdown)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 
 	err := d.RunWithSupervisor(ctx)
@@ -1367,7 +1367,7 @@ func TestRunWithSupervisor_SleepCalledWithConfiguredDelay(t *testing.T) {
 	d.SleepFunc = func(dur time.Duration) { observedDelay = dur }
 
 	corruptRootIndex(t, d)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 
 	_ = d.RunWithSupervisor(ctx)
@@ -1425,7 +1425,7 @@ func TestRunWithSupervisor_NilSleepFuncDefaultsToTimeSleep(t *testing.T) {
 
 	// Corrupt root index: Run fails, restart 0 >= maxRestarts(0), returns error.
 	corruptRootIndex(t, d)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 
 	err := d.RunWithSupervisor(ctx)
