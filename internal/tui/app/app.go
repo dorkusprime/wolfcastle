@@ -24,7 +24,6 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
-	"github.com/dorkusprime/wolfcastle/internal/tui/clipboard"
 	"github.com/dorkusprime/wolfcastle/internal/tui/detail"
 	"github.com/dorkusprime/wolfcastle/internal/tui/footer"
 	"github.com/dorkusprime/wolfcastle/internal/tui/header"
@@ -913,10 +912,10 @@ func (m TUIModel) handleCopy() tea.Cmd {
 	if text == "" {
 		return nil
 	}
-	return func() tea.Msg {
-		_ = clipboard.WriteOSC52(os.Stdout, text)
-		return tui.CopiedMsg{}
-	}
+	return tea.Batch(
+		tea.SetClipboard(text),
+		func() tea.Msg { return tui.CopiedMsg{} },
+	)
 }
 
 // loadDetailForSelection inspects the currently selected tree row and loads
