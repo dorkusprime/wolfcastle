@@ -115,6 +115,21 @@ func TaskChildren(ns *NodeState, taskID string) bool {
 	return false
 }
 
+// isTerminalBlockReason returns true if a blocked-task reason indicates
+// the task is effectively done (superseded, decomposed, replaced).
+func isTerminalBlockReason(reason string) bool {
+	r := strings.ToLower(reason)
+	return strings.Contains(r, "supersed") ||
+		strings.Contains(r, "already done") ||
+		strings.Contains(r, "already completed") ||
+		strings.Contains(r, "no longer needed") ||
+		strings.Contains(r, "replaced by") ||
+		strings.Contains(r, "done in") ||
+		strings.Contains(r, "done directly") ||
+		strings.Contains(r, "decomposed into") ||
+		strings.Contains(r, "decomposition")
+}
+
 // DeriveParentStatus computes a parent task's status from its children.
 // Returns the derived status and true if the task has children, or the
 // task's own status and false if it has no children.
@@ -142,8 +157,12 @@ func DeriveParentStatus(ns *NodeState, taskID string) (NodeStatus, bool) {
 			anyInProgress = true
 			allComplete = false
 		case StatusBlocked:
-			anyBlocked = true
-			allComplete = false
+			if isTerminalBlockReason(t.BlockedReason) {
+				// Superseded or decomposed tasks are effectively complete.
+			} else {
+				anyBlocked = true
+				allComplete = false
+			}
 		default:
 			allComplete = false
 		}

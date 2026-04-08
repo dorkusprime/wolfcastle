@@ -83,7 +83,7 @@ func TestRunInboxWithPolling_ProcessesInbox(t *testing.T) {
 	}})
 
 	// Cancel after a short delay to let one poll cycle run
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
 	defer cancel()
 
 	d.runInboxWithPolling(ctx)
