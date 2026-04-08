@@ -213,6 +213,9 @@ func (m WelcomeModel) handleDirKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) 
 		m.scrollIntoCursor()
 	case key.Matches(msg, tui.WelcomeKeyMap.Enter):
 		return m.handleEnter(msg)
+	case msg.String() == "I":
+		// Init in the current directory regardless of contents.
+		return m.startInit()
 	case key.Matches(msg, tui.WelcomeKeyMap.Back):
 		parent := filepath.Dir(m.currentDir)
 		if parent != m.currentDir {
@@ -505,9 +508,9 @@ func (m WelcomeModel) renderDirBrowser() string {
 
 func (m WelcomeModel) renderHints() string {
 	hintStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
-	hints := "[j/k] navigate  [Enter] select  [h] back  [q] quit"
+	hints := "[j/k] navigate  [Enter] select  [I] init here  [h] back  [q] quit"
 	if len(m.instances) > 0 {
-		hints = "[Tab] switch panel  [j/k] navigate  [Enter] select  [h] back  [q] quit"
+		hints = "[Tab] panel  [j/k] navigate  [Enter] select  [I] init here  [h] back  [q] quit"
 	}
 	return hintStyle.Render(hints)
 }
