@@ -586,23 +586,15 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
 		m.worktreeDir = msg.Entry.Worktree
 
-		// Restart watcher: stop old, create and start new.
+		// Restart watcher: stop old, create+start+eager-prefetch new.
+		// MUST go through newWatcherFor so eager prefetch happens; if
+		// you inline tui.NewWatcher here you'll silently break the
+		// per-leaf cache freshness because no AddNodeWatch calls
+		// will be made for the new instance's leaves.
 		if m.watcher != nil {
 			m.watcher.Stop()
 		}
-		logDir := ""
-		if m.daemonRepo != nil {
-			logDir = m.daemonRepo.LogDir()
-		}
-		instanceDir := ""
-		if dir, err := instanceRegistryDir(); err == nil {
-			instanceDir = dir
-		}
-		w := tui.NewWatcher(m.store, logDir, instanceDir, m.watcherEvents)
-		if err := w.Start(); err != nil {
-			w.StartPolling()
-		}
-		m.watcher = w
+		m.watcher = newWatcherFor(m.store, m.daemonRepo, m.watcherEvents)
 
 		// Immediately probe daemon status and inbox so the dashboard
 		// populates without waiting for the next poll tick.
@@ -1416,31 +1408,51 @@ func (m *TUIModel) startWatcher() tea.Cmd {
 		if store == nil {
 			return nil
 		}
-		logDir := ""
-		instanceDir := ""
-		if repo != nil {
-			logDir = repo.LogDir()
-		}
-		if dir, err := instanceRegistryDir(); err == nil {
-			instanceDir = dir
-		}
-		w := tui.NewWatcher(store, logDir, instanceDir, events)
-		// Prefer fsnotify when available; fall back to mtime polling
-		// if the OS watcher cannot be initialized. Either path drives
-		// the same WatcherMsg envelope back through the model.
-		if err := w.Start(); err != nil {
-			w.StartPolling()
-		}
-		// Eagerly walk the index, populate the per-leaf cache, and
-		// add an fsnotify subscription for each leaf so the cache
-		// stays fresh as the daemon writes state.json updates.
-		// Without this, the per-task glyphs in the tree go stale
-		// the moment the daemon transitions a task, and search
-		// can't find tasks in unexpanded leaves.
-		_ = w.EagerPrefetchAndSubscribe()
-		m.watcher = w
+		m.watcher = newWatcherFor(store, repo, events)
 		return nil
 	}
+}
+
+// newWatcherFor is the single canonical entrypoint for constructing
+// and starting a Watcher. EVERY caller that touches m.watcher must
+// route through this helper, never call tui.NewWatcher directly.
+//
+// The helper does four things in order:
+//
+//  1. Resolve logDir and instanceDir from the daemon repo and the
+//     instance registry override.
+//  2. Construct the Watcher with the events channel.
+//  3. Start fsnotify (with polling fallback if fsnotify init fails).
+//  4. Walk the index and call EagerPrefetchAndSubscribe so the
+//     per-leaf cache is populated AND every leaf gets an fsnotify
+//     subscription. Without step 4 the leaf-level glyph in the tree
+//     stays in sync with the index file (which is watched), but the
+//     per-task glyphs go stale because no per-leaf state.json
+//     subscriptions exist.
+//
+// The instance-switch handler used to inline these four steps but
+// skip step 4, which silently broke task-level cache freshness for
+// any user who switched instances during a session. Routing through
+// this helper makes that class of bug structurally impossible: if
+// you forget to call newWatcherFor, you don't get a watcher at all.
+func newWatcherFor(store *state.Store, repo *daemon.DaemonRepository, events chan tea.Msg) *tui.Watcher {
+	if store == nil {
+		return nil
+	}
+	logDir := ""
+	if repo != nil {
+		logDir = repo.LogDir()
+	}
+	instanceDir := ""
+	if dir, err := instanceRegistryDir(); err == nil {
+		instanceDir = dir
+	}
+	w := tui.NewWatcher(store, logDir, instanceDir, events)
+	if err := w.Start(); err != nil {
+		w.StartPolling()
+	}
+	_ = w.EagerPrefetchAndSubscribe()
+	return w
 }
 
 func (m TUIModel) startPoller() tea.Cmd {
