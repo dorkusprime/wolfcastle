@@ -510,18 +510,21 @@ func (m WelcomeModel) renderHints() string {
 		dir = m.currentDir
 	}
 
-	var parts []string
+	// Line 1: movement
+	var move []string
+	move = append(move, "[j/↓] down", "[k/↑] up", "[l/Enter] open", "[h/←] back", "[g/G] top/bottom")
 	if len(m.instances) > 0 {
-		parts = append(parts, "[Tab] panel")
+		move = append(move, "[Tab] switch panel")
 	}
-	parts = append(parts,
-		"[↑/↓] navigate",
-		"[Enter/l] open",
-		"[h/←] back",
+
+	// Line 2: actions
+	actions := []string{
 		fmt.Sprintf("[I] init %s", dir),
 		"[q] quit",
-	)
-	return hintStyle.Render(strings.Join(parts, "  "))
+	}
+
+	return hintStyle.Render(strings.Join(move, "  ")) + "\n" +
+		hintStyle.Render(strings.Join(actions, "  "))
 }
 
 func (m WelcomeModel) visibleEntries() []os.DirEntry {
