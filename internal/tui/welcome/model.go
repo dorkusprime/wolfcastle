@@ -144,11 +144,11 @@ func (m WelcomeModel) handleKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
 		return m, nil
 	}
 
-	// Tab switches panel focus.
-	if msg.String() == "tab" {
-		if m.focus == panelSessions && len(m.entries) > 0 {
+	// Tab switches panel focus (both panels must exist to toggle).
+	if msg.String() == "tab" && len(m.instances) > 0 {
+		if m.focus == panelSessions {
 			m.focus = panelDirs
-		} else if m.focus == panelDirs && len(m.instances) > 0 {
+		} else {
 			m.focus = panelSessions
 		}
 		return m, nil
