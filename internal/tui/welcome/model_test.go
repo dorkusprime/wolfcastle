@@ -211,29 +211,34 @@ func TestEnterOnEmptyDir_StartsInit(t *testing.T) {
 	}
 }
 
-func TestEnterOnDotWolfcastle_StartsInit(t *testing.T) {
-	dir := setupTestDir(t, ".wolfcastle")
+func TestInitKey_StartsInitInCurrentDir(t *testing.T) {
+	dir := setupTestDir(t, "subdir")
 
 	m := NewWelcomeModel(dir, nil)
-	// .wolfcastle should be visible in the starting dir
-	found := false
-	for i, e := range m.entries {
-		if e.Name() == ".wolfcastle" {
-			m.dirCursor = i
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Fatal("expected .wolfcastle in entries")
-	}
 
-	m, cmd := m.Update(enterKey())
+	m, cmd := m.Update(initKey())
 	if !m.initializing {
-		t.Fatal("expected initializing=true after selecting .wolfcastle")
+		t.Fatal("expected initializing=true after pressing I")
 	}
 	if cmd == nil {
 		t.Fatal("expected non-nil command")
+	}
+}
+
+func TestEnterOnDotWolfcastle_DoesNotInit(t *testing.T) {
+	dir := setupTestDir(t, ".wolfcastle")
+
+	m := NewWelcomeModel(dir, nil)
+	for i, e := range m.entries {
+		if e.Name() == ".wolfcastle" {
+			m.dirCursor = i
+			break
+		}
+	}
+
+	m, _ = m.Update(enterKey())
+	if m.initializing {
+		t.Fatal("Enter on .wolfcastle should not trigger init, use I")
 	}
 }
 

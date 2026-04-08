@@ -229,21 +229,14 @@ func (m WelcomeModel) handleDirKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) 
 }
 
 func (m WelcomeModel) handleEnter(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
-	isConfirmKey := msg.String() == "enter"
-
 	if len(m.entries) == 0 {
-		if isConfirmKey {
-			return m.startInit()
-		}
 		return m, nil
 	}
 
 	if m.dirCursor >= 0 && m.dirCursor < len(m.entries) {
 		entry := m.entries[m.dirCursor]
 		if entry.Name() == ".wolfcastle" {
-			if isConfirmKey {
-				return m.startInit()
-			}
+			// .wolfcastle is not navigable. Use I to init.
 			return m, nil
 		}
 		child := filepath.Join(m.currentDir, entry.Name())
