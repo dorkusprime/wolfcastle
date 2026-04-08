@@ -544,8 +544,8 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, wcmd)
 		}
 
-		// Keep ticking while loading or switching so the spinner animates.
-		if m.switching || m.header.IsLoading() {
+		// Keep ticking while loading so the header spinner animates.
+		if m.header.IsLoading() {
 			cmds = append(cmds, tea.Tick(80*time.Millisecond, func(time.Time) tea.Msg {
 				return tui.SpinnerTickMsg{}
 			}))
@@ -749,22 +749,6 @@ func (m TUIModel) renderLayout() string {
 }
 
 func (m TUIModel) renderContent(contentHeight int) string {
-	if m.switching {
-		label := m.switchLabel
-		if label == "" {
-			label = "another instance"
-		}
-		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-		frame := spinner[int(time.Now().UnixMilli()/80)%len(spinner)]
-
-		title := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Render("WOLFCASTLE")
-		spin := lipgloss.NewStyle().Foreground(tui.ColorYellow).Render(frame)
-		msg := lipgloss.NewStyle().Foreground(tui.ColorDimWhite).Render("Switching to " + label + "...")
-		block := title + "\n\n" + spin + " " + msg
-
-		return lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, block)
-	}
-
 	if !m.treeVisible || m.width < 60 {
 		content := m.detail.View()
 		if m.search.IsActive() && m.search.PaneType() == int(PaneDetail) {
