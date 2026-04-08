@@ -3,6 +3,7 @@ package tui
 import (
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/fsnotify/fsnotify"
@@ -39,6 +40,16 @@ type InstancesUpdatedMsg struct {
 type WatcherEventMsg struct {
 	Path string
 	Op   fsnotify.Op
+}
+
+// WatcherMsg wraps every message produced by the filesystem Watcher.
+// This single envelope lets the model dispatch real-time events with
+// just one handler that unwraps Inner, processes it, and reschedules
+// the next channel drain. Without the wrapper, every watcher-sourced
+// message type would need its own rescheduling logic and we'd be one
+// missed call away from silently breaking real-time updates again.
+type WatcherMsg struct {
+	Inner tea.Msg
 }
 
 type PollTickMsg struct{}
@@ -97,7 +108,8 @@ type DaemonStartedMsg struct {
 }
 
 type DaemonStartFailedMsg struct {
-	Err error
+	Err    error
+	Stderr string
 }
 
 type DaemonStopMsg struct{}

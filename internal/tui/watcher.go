@@ -21,6 +21,11 @@ import (
 // registrations, and log output, translating raw filesystem events into
 // typed Bubbletea messages. It uses fsnotify where available and falls
 // back to polling when the OS watcher cannot be initialized.
+//
+// Events are delivered through an outbound channel rather than a direct
+// program.Send call so that the watcher does not need a *tea.Program
+// reference. The model owns the channel and drives delivery via a
+// recursive tea.Cmd that wraps each event in a WatcherMsg envelope.
 type Watcher struct {
 	watcher     *fsnotify.Watcher
 	store       *state.Store
@@ -31,7 +36,7 @@ type Watcher struct {
 	debounce    *time.Timer
 	maxSlide    *time.Timer
 	pending     map[string]bool
-	program     *tea.Program
+	events      chan<- tea.Msg
 	done        chan struct{}
 	mu          sync.Mutex
 	useFsnotify bool
@@ -44,31 +49,52 @@ type Watcher struct {
 }
 
 // NewWatcher creates a Watcher that will observe the given store's state
-// files, the instance registry directory, and log output. The watcher is
-// inert until Start or StartPolling is called.
-func NewWatcher(store *state.Store, logDir, instanceDir string) *Watcher {
+// files, the instance registry directory, and log output, and emit events
+// to the supplied channel. The watcher is inert until Start or
+// StartPolling is called.
+func NewWatcher(store *state.Store, logDir, instanceDir string, events chan<- tea.Msg) *Watcher {
 	return &Watcher{
 		store:       store,
 		logDir:      logDir,
 		instanceDir: instanceDir,
+		events:      events,
 		pending:     make(map[string]bool),
 		done:        make(chan struct{}),
 		useFsnotify: true,
 	}
 }
 
-// Start initializes the fsnotify watcher, adds watches on the relevant
-// paths, and launches the event-processing goroutine. If fsnotify cannot
-// be initialized, it logs to stderr and disables filesystem watching (the
-// caller should use StartPolling as the fallback).
-func (w *Watcher) Start(program *tea.Program) error {
-	w.program = program
+// emit performs a non-blocking send on the events channel, wrapping the
+// payload in a WatcherMsg envelope. The wrapper lets the model dispatch
+// every watcher-sourced event through a single Update branch that also
+// reschedules the next channel drain. If the consumer is slow and the
+// channel buffer is full the event is dropped rather than stalling the
+// watcher goroutine; the next mtime/poll cycle will resend an equivalent
+// state update.
+func (w *Watcher) emit(msg tea.Msg) {
+	if w.events == nil {
+		return
+	}
+	select {
+	case w.events <- WatcherMsg{Inner: msg}:
+	default:
+	}
+}
 
+// Start initializes the fsnotify watcher, adds watches on the relevant
+// paths, and launches the event-processing goroutine. Returns the
+// fsnotify init error if the OS watcher cannot be created, so the
+// caller can fall back to StartPolling. Returns an error and is a
+// no-op if the store is nil — defensive guard so tests can construct
+// the model without a fully wired backing store.
+func (w *Watcher) Start() error {
+	if w.store == nil {
+		return fmt.Errorf("watcher: store is nil")
+	}
 	fsw, err := fsnotify.NewWatcher()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "wolfcastle: fsnotify init failed: %v\n", err)
 		w.useFsnotify = false
-		return nil
+		return fmt.Errorf("fsnotify init: %w", err)
 	}
 	w.watcher = fsw
 
@@ -168,7 +194,7 @@ func (w *Watcher) flushFromTimer() {
 }
 
 // flush processes a batch of changed paths and dispatches the appropriate
-// Bubbletea messages. All program.Send calls happen without any lock held.
+// Bubbletea messages. All emit calls happen without any lock held.
 func (w *Watcher) flush(paths map[string]bool) {
 	indexPath := w.store.IndexPath()
 	indexDir := filepath.Dir(indexPath)
@@ -186,12 +212,12 @@ func (w *Watcher) flush(paths map[string]bool) {
 				sentIndex = true
 				idx, err := w.store.ReadIndex()
 				if err != nil {
-					w.program.Send(ErrorMsg{
+					w.emit(ErrorMsg{
 						Filename: "state.json",
 						Message:  "State corruption detected: state.json. Run wolfcastle doctor.",
 					})
 				} else {
-					w.program.Send(StateUpdatedMsg{Index: idx})
+					w.emit(StateUpdatedMsg{Index: idx})
 				}
 			}
 
@@ -200,7 +226,7 @@ func (w *Watcher) flush(paths map[string]bool) {
 			if !sentInstances {
 				sentInstances = true
 				if entries, err := instance.List(); err == nil {
-					w.program.Send(InstancesUpdatedMsg{Instances: entries})
+					w.emit(InstancesUpdatedMsg{Instances: entries})
 				}
 			}
 
@@ -212,12 +238,12 @@ func (w *Watcher) flush(paths map[string]bool) {
 				sentNodes[addr] = true
 				node, err := w.store.ReadNode(addr)
 				if err != nil {
-					w.program.Send(ErrorMsg{
+					w.emit(ErrorMsg{
 						Filename: addr + "/state.json",
 						Message:  fmt.Sprintf("Unreadable: %s/state.json. Run wolfcastle doctor.", addr),
 					})
 				} else {
-					w.program.Send(NodeUpdatedMsg{Address: addr, Node: node})
+					w.emit(NodeUpdatedMsg{Address: addr, Node: node})
 				}
 			}
 
@@ -238,13 +264,13 @@ func (w *Watcher) flush(paths map[string]bool) {
 						_ = w.watcher.Remove(oldFile)
 					}
 				}
-				w.program.Send(NewLogFileMsg{Path: latest})
+				w.emit(NewLogFileMsg{Path: latest})
 			}
 
 		// Current log file was modified: read new lines.
 		case p == w.logFile:
 			if lines := w.readNewLogLines(); len(lines) > 0 {
-				w.program.Send(LogLinesMsg{Lines: lines})
+				w.emit(LogLinesMsg{Lines: lines})
 			}
 		}
 	}
@@ -268,9 +294,11 @@ func (w *Watcher) nodeAddrFromPath(p string) string {
 
 // StartPolling launches a goroutine that checks for changes every two
 // seconds, serving as the fallback when fsnotify is unavailable.
-func (w *Watcher) StartPolling(program *tea.Program) {
-	w.program = program
-
+// No-op if the store is nil.
+func (w *Watcher) StartPolling() {
+	if w.store == nil {
+		return
+	}
 	// Seed initial mtime/size values so the first tick doesn't spuriously
 	// re-send everything.
 	if info, err := os.Stat(w.store.IndexPath()); err == nil {
@@ -315,12 +343,12 @@ func (w *Watcher) pollTick() {
 			w.indexMtime = info.ModTime()
 			idx, err := w.store.ReadIndex()
 			if err != nil {
-				w.program.Send(ErrorMsg{
+				w.emit(ErrorMsg{
 					Filename: "state.json",
 					Message:  "State corruption detected: state.json. Run wolfcastle doctor.",
 				})
 			} else {
-				w.program.Send(StateUpdatedMsg{Index: idx})
+				w.emit(StateUpdatedMsg{Index: idx})
 			}
 		}
 	}
@@ -331,7 +359,7 @@ func (w *Watcher) pollTick() {
 			if info.ModTime() != w.instanceMtime {
 				w.instanceMtime = info.ModTime()
 				if entries, err := instance.List(); err == nil {
-					w.program.Send(InstancesUpdatedMsg{Instances: entries})
+					w.emit(InstancesUpdatedMsg{Instances: entries})
 				}
 			}
 		}
@@ -346,7 +374,7 @@ func (w *Watcher) pollTick() {
 			w.logFileSize = 0
 			w.lineBuf = ""
 			w.mu.Unlock()
-			w.program.Send(NewLogFileMsg{Path: latest})
+			w.emit(NewLogFileMsg{Path: latest})
 		}
 	}
 
@@ -356,13 +384,16 @@ func (w *Watcher) pollTick() {
 			if info.Size() != w.logFileSize {
 				w.logFileSize = info.Size()
 				if lines := w.readNewLogLines(); len(lines) > 0 {
-					w.program.Send(LogLinesMsg{Lines: lines})
+					w.emit(LogLinesMsg{Lines: lines})
 				}
 			}
 		}
 	}
-
-	w.program.Send(PollTickMsg{})
+	// PollTickMsg is owned by the model's own tea.Tick scheduler; the
+	// watcher does not emit it. The model uses tea.Tick to drive
+	// detect-entry-state and pollState refreshes on a fixed cadence
+	// regardless of whether filesystem activity triggered a watcher
+	// event.
 }
 
 // AddNodeWatch adds an fsnotify watch on a specific node's state.json,

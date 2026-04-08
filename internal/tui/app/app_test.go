@@ -229,18 +229,26 @@ func TestDaemonStartFailedMsg(t *testing.T) {
 	m.daemonStarting = true
 	m.header.SetStatusHint("Starting daemon...")
 
-	result, _ := m.Update(tui.DaemonStartFailedMsg{Err: fmt.Errorf("lock contention")})
+	result, cmd := m.Update(tui.DaemonStartFailedMsg{Err: fmt.Errorf("lock contention")})
 	model := toModel(t, result)
 
 	if model.daemonStarting {
 		t.Error("daemonStarting should be cleared")
 	}
-	if len(model.errors) == 0 {
-		t.Fatal("expected an error entry")
+	if len(model.errors) != 0 {
+		t.Errorf("start failures should not push to the persistent error bar, got %d entries", len(model.errors))
 	}
-	// "lock" in the error triggers the specific message about another daemon.
-	if model.errors[0].message != "Another daemon is running in this worktree." {
-		t.Errorf("unexpected error message: %q", model.errors[0].message)
+	if cmd == nil {
+		t.Fatal("expected a notify.Push command for the toast")
+	}
+	// Drain the batch to find the notify push that contains the toast
+	// text. notify.Push returns a tea.Tick command; what we care about
+	// is that the model now has an active toast.
+	if !model.notify.HasToasts() {
+		t.Error("expected an active toast after start failure")
+	}
+	if !strings.Contains(model.notify.View(), "Another daemon") {
+		t.Errorf("toast should mention the lock-contention reason, got: %q", model.notify.View())
 	}
 }
 
@@ -897,6 +905,57 @@ func TestNewLogFileMsgForwardsToDetail(t *testing.T) {
 	_ = toModel(t, result)
 }
 
+// TestWatcherMsgUnwrapsAndReschedules is the model-side regression for
+// the dead-watcher bug. The watcher emits everything inside a WatcherMsg
+// envelope and the model has exactly one handler that unwraps the inner
+// message, dispatches it through the existing typed handlers, and
+// reschedules the next channel drain. If either step is wrong the
+// watcher delivers exactly one event and goes silent forever — which
+// is exactly what was happening before the fix.
+func TestWatcherMsgUnwrapsAndReschedules(t *testing.T) {
+	m := newColdModel(t)
+	// Pre-stage an event in the channel so the rescheduled drain Cmd
+	// has something to read after the dispatch.
+	m.watcherEvents <- tui.WatcherMsg{Inner: tui.LogLinesMsg{Lines: []string{"second"}}}
+
+	result, cmd := m.Update(tui.WatcherMsg{Inner: tui.LogLinesMsg{Lines: []string{"first"}}})
+	model := toModel(t, result)
+	if cmd == nil {
+		t.Fatal("expected a Cmd from WatcherMsg handler so the channel drain keeps running")
+	}
+	// The first inner message should have been forwarded to the detail
+	// pane (LogViewModel). The model is responsible for that delivery,
+	// not the watcher itself, so the model state shouldn't have errors.
+	if len(model.errors) != 0 {
+		t.Errorf("WatcherMsg handler should not produce error entries, got %d", len(model.errors))
+	}
+	// Run the returned Cmd. tea.Batch may either return a BatchMsg of
+	// sub-Cmds (when several are non-nil) or flatten to a single Msg
+	// when only one is. Either way, the staged second WatcherMsg must
+	// be reachable.
+	found := false
+	queue := []tea.Cmd{cmd}
+	for len(queue) > 0 && !found {
+		c := queue[0]
+		queue = queue[1:]
+		if c == nil {
+			continue
+		}
+		next := c()
+		switch v := next.(type) {
+		case tea.BatchMsg:
+			queue = append(queue, v...)
+		case tui.WatcherMsg:
+			if logMsg, ok := v.Inner.(tui.LogLinesMsg); ok && len(logMsg.Lines) > 0 && logMsg.Lines[0] == "second" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("rescheduled drain Cmd did not deliver the next staged WatcherMsg")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Update: InboxUpdatedMsg
 // ---------------------------------------------------------------------------
@@ -1168,11 +1227,11 @@ func TestDaemonStartFailedGenericError(t *testing.T) {
 	m.daemonStarting = true
 	result, _ := m.Update(tui.DaemonStartFailedMsg{Err: fmt.Errorf("something weird")})
 	model := toModel(t, result)
-	if len(model.errors) == 0 {
-		t.Fatal("expected an error")
+	if !model.notify.HasToasts() {
+		t.Fatal("expected a toast")
 	}
-	if !strings.Contains(model.errors[0].message, "Daemon failed to start") {
-		t.Errorf("generic error should say 'Daemon failed to start': %q", model.errors[0].message)
+	if !strings.Contains(model.notify.View(), "Daemon failed to start") {
+		t.Errorf("generic toast should say 'Daemon failed to start': %q", model.notify.View())
 	}
 }
 
@@ -1181,11 +1240,61 @@ func TestDaemonStartFailedNotFoundError(t *testing.T) {
 	m.daemonStarting = true
 	result, _ := m.Update(tui.DaemonStartFailedMsg{Err: fmt.Errorf("config not found")})
 	model := toModel(t, result)
-	if len(model.errors) == 0 {
-		t.Fatal("expected an error")
+	if !model.notify.HasToasts() {
+		t.Fatal("expected a toast")
 	}
-	if !strings.Contains(model.errors[0].message, "No project found") {
-		t.Errorf("not-found error should mention init: %q", model.errors[0].message)
+	if !strings.Contains(model.notify.View(), "No project found") {
+		t.Errorf("not-found toast should mention init: %q", model.notify.View())
+	}
+}
+
+func TestDaemonStartFailedPrefersStderr(t *testing.T) {
+	m := newColdModel(t)
+	m.daemonStarting = true
+	result, _ := m.Update(tui.DaemonStartFailedMsg{
+		Err:    fmt.Errorf("exit status 1"),
+		Stderr: "Error: aborted: commit or stash changes first\n",
+	})
+	model := toModel(t, result)
+	if !model.notify.HasToasts() {
+		t.Fatal("expected a toast for the failure")
+	}
+	view := model.notify.View()
+	if !strings.Contains(view, "Uncommitted changes") {
+		t.Errorf("toast should mention uncommitted changes, got: %q", view)
+	}
+	if strings.Contains(view, "exit status 1") {
+		t.Errorf("should not surface bare exit code when stderr is available, got: %q", view)
+	}
+}
+
+func TestSanitizeErrorLine(t *testing.T) {
+	cases := map[string]string{
+		"plain":                   "plain",
+		"line one\nline two":      "line one line two",
+		"  trim me  ":             "trim me",
+		"a\r\nb\rc":               "a b c",
+		"too  many   spaces here": "too many spaces here",
+	}
+	for in, want := range cases {
+		if got := sanitizeErrorLine(in); got != want {
+			t.Errorf("sanitizeErrorLine(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestAppendErrorCaps(t *testing.T) {
+	m := newColdModel(t)
+	for i := 0; i < maxErrorEntries+5; i++ {
+		m.appendError("test", fmt.Sprintf("err %d", i))
+	}
+	if got := len(m.errors); got != maxErrorEntries {
+		t.Errorf("error queue should cap at %d, got %d", maxErrorEntries, got)
+	}
+	// Oldest should have been dropped; newest should be at the end.
+	last := m.errors[len(m.errors)-1].message
+	if !strings.HasSuffix(last, fmt.Sprintf("%d", maxErrorEntries+4)) {
+		t.Errorf("newest entry should be retained, got %q", last)
 	}
 }
 

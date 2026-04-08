@@ -6,6 +6,7 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -89,7 +90,8 @@ type TUIModel struct {
 	worktreeDir string
 	version     string
 
-	watcher *tui.Watcher
+	watcher       *tui.Watcher
+	watcherEvents chan tea.Msg // owned by the model; passed to NewWatcher
 
 	// Instance tracking (Phase 3)
 	instances           []instance.Entry
@@ -119,6 +121,12 @@ func NewTUIModel(store *state.Store, daemonRepo *daemon.DaemonRepository, worktr
 		daemonRepo:  daemonRepo,
 		worktreeDir: worktreeDir,
 		version:     version,
+		// 256 is enough headroom that a brief render stall (the model
+		// taking a few ms to drain) does not cause the watcher to drop
+		// events. The watcher's emit is non-blocking; if the buffer
+		// fills, events are dropped and the next mtime/poll cycle
+		// resends an equivalent state update.
+		watcherEvents: make(chan tea.Msg, 256),
 	}
 
 	if store == nil {
@@ -144,10 +152,28 @@ func (m TUIModel) Init() tea.Cmd {
 
 	if m.store != nil {
 		m.header.SetLoading(true)
-		cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
+		cmds = append(cmds,
+			m.startWatcher(),
+			m.startPoller(),
+			m.loadInitialState(),
+			waitForWatcherEvent(m.watcherEvents),
+		)
 	}
 
 	return tea.Batch(cmds...)
+}
+
+// waitForWatcherEvent returns a tea.Cmd that blocks on the watcher's
+// event channel and returns the next message it receives. Each call
+// drains exactly one event; the WatcherMsg handler in Update reschedules
+// another waitForWatcherEvent so the drain loop is continuous.
+func waitForWatcherEvent(ch <-chan tea.Msg) tea.Cmd {
+	if ch == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		return <-ch
+	}
 }
 
 // Update is the central message router. Data messages are always broadcast
@@ -217,8 +243,13 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, tui.GlobalKeyMap.Quit):
 			return m, tea.Quit
 
-		case key.Matches(msg, tui.GlobalKeyMap.LogStream) && m.focused != PaneTree:
+		case key.Matches(msg, tui.GlobalKeyMap.LogStream):
+			// Switch the detail pane to the log stream view from any
+			// focus state. The binding is capital L so it doesn't
+			// collide with the tree pane's vi-style l = expand.
 			m.detail.SwitchToLogView()
+			m.focused = PaneDetail
+			m.syncFocus()
 			return m, nil
 
 		case key.Matches(msg, tui.GlobalKeyMap.Inbox):
@@ -324,6 +355,24 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 		return m, tea.Batch(cmds...)
+
+	// ---------------------------------------------------------------
+	// Watcher envelope: unwrap, recursively dispatch the inner message
+	// through Update so the existing typed handlers below run, then
+	// reschedule the channel drain so the next event keeps flowing.
+	// Without the reschedule the watcher's event channel would deliver
+	// exactly one message and then go silent.
+	// ---------------------------------------------------------------
+	case tui.WatcherMsg:
+		var inner tea.Cmd
+		if msg.Inner != nil {
+			updated, c := m.Update(msg.Inner)
+			if tm, ok := updated.(TUIModel); ok {
+				m = tm
+			}
+			inner = c
+		}
+		return m, tea.Batch(inner, waitForWatcherEvent(m.watcherEvents))
 
 	// ---------------------------------------------------------------
 	// Data messages: always broadcast regardless of overlay state
@@ -452,21 +501,32 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.daemonStarting = false
 		m.header.SetLoading(false)
 		m.header.SetStatusHint("")
-		errText := msg.Err.Error()
-		var displayMsg string
-		switch {
-		case strings.Contains(errText, "lock") || strings.Contains(errText, "already running"):
-			displayMsg = "Another daemon is running in this worktree."
-		case strings.Contains(errText, "not found") || strings.Contains(errText, "no such"):
-			displayMsg = "No project found. Run wolfcastle init."
-		default:
-			displayMsg = fmt.Sprintf("Daemon failed to start: %s", errText)
+		// Prefer the child's stderr (real reason) over the bare exec
+		// exit string. Fall back to the exit error if stderr was empty.
+		raw := strings.TrimSpace(msg.Stderr)
+		if raw == "" && msg.Err != nil {
+			raw = msg.Err.Error()
 		}
-		m.errors = append(m.errors, errorEntry{
-			filename: "daemon",
-			message:  displayMsg,
-		})
-		return m, nil
+		// Collapse to a single line so the toast renders cleanly
+		// regardless of how many lines stderr emitted.
+		raw = sanitizeErrorLine(raw)
+		var toastText string
+		switch {
+		case strings.Contains(raw, "already running"), strings.Contains(raw, "lock"):
+			toastText = "Another daemon is already running here."
+		case strings.Contains(raw, "no .wolfcastle"), strings.Contains(raw, "no such"), strings.Contains(raw, "config not found"):
+			toastText = "No project found. Run wolfcastle init."
+		case strings.Contains(raw, "identity not configured"):
+			toastText = "Identity not configured. Run wolfcastle init."
+		case strings.Contains(raw, "uncommitted changes"), strings.Contains(raw, "commit or stash"):
+			toastText = "Uncommitted changes. Commit or stash first."
+		case raw == "":
+			toastText = "Daemon failed to start."
+		default:
+			toastText = "Daemon failed to start: " + raw
+		}
+		cmds = append(cmds, m.notify.Push(toastText))
+		return m, tea.Batch(cmds...)
 
 	case tui.DaemonStoppedMsg:
 		m.daemonStopping = false
@@ -477,10 +537,14 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tui.DaemonStopFailedMsg:
 		m.daemonStopping = false
 		m.header.SetStatusHint("")
-		m.errors = append(m.errors, errorEntry{
-			filename: "daemon",
-			message:  msg.Err.Error(),
-		})
+		stopErr := ""
+		if msg.Err != nil {
+			stopErr = sanitizeErrorLine(msg.Err.Error())
+		}
+		if stopErr == "" {
+			stopErr = "Daemon failed to stop."
+		}
+		m.appendError("daemon", stopErr)
 		return m, nil
 
 	case tui.InstanceSwitchedMsg:
@@ -524,7 +588,11 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if dir, err := instanceRegistryDir(); err == nil {
 			instanceDir = dir
 		}
-		m.watcher = tui.NewWatcher(m.store, logDir, instanceDir)
+		w := tui.NewWatcher(m.store, logDir, instanceDir, m.watcherEvents)
+		if err := w.Start(); err != nil {
+			w.StartPolling()
+		}
+		m.watcher = w
 
 		// Immediately probe daemon status and inbox so the dashboard
 		// populates without waiting for the next poll tick.
@@ -564,10 +632,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tui.ErrorMsg:
 		m.header.SetLoading(false)
-		m.errors = append(m.errors, errorEntry{
-			filename: msg.Filename,
-			message:  msg.Message,
-		})
+		m.appendError(msg.Filename, sanitizeErrorLine(msg.Message))
 		return m, nil
 
 	case tui.ErrorClearedMsg:
@@ -636,10 +701,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.activeInstanceIndex = len(m.instances) - 1
 		}
 		m.header.SetInstances(m.instances, m.activeInstanceIndex)
-		m.errors = append(m.errors, errorEntry{
-			filename: "instance",
-			message:  fmt.Sprintf("Worktree no longer exists: %s", msg.Entry.Worktree),
-		})
+		m.appendError("instance", sanitizeErrorLine(fmt.Sprintf("Worktree no longer exists: %s", msg.Entry.Worktree)))
 		return m, nil
 
 	case tui.ToastMsg:
@@ -680,10 +742,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if strings.Contains(errText, "lock") || strings.Contains(errText, "timed out") {
 			errMsg = "Failed to write inbox. Another process may hold the lock."
 		}
-		m.errors = append(m.errors, errorEntry{
-			filename: "inbox",
-			message:  errMsg,
-		})
+		m.appendError("inbox", sanitizeErrorLine(errMsg))
 		return m, nil
 	}
 
@@ -726,8 +785,11 @@ func (m TUIModel) renderLayout() string {
 		errorLines := strings.Count(errorBar, "\n") + 1
 		contentHeight -= errorLines
 	}
-	if contentHeight < 1 {
-		contentHeight = 1
+	// Match the floor in propagateSize: panes need 2 rows for borders
+	// plus at least 1 inner row, otherwise lipgloss produces malformed
+	// output that leaves see-through gaps in the screen.
+	if contentHeight < 3 {
+		contentHeight = 3
 	}
 
 	contentView := m.renderContent(contentHeight)
@@ -1083,14 +1145,21 @@ func (m *TUIModel) propagateSize() {
 	if errorBar := m.renderErrorBar(); errorBar != "" {
 		contentHeight -= strings.Count(errorBar, "\n") + 1
 	}
-	if contentHeight < 1 {
-		contentHeight = 1
+	// Floor content height at the border budget (2 rows) + 1 inner row
+	// so sub-models never receive a non-positive inner height. Without
+	// this floor, a tall error bar shrinks contentHeight below 3 and
+	// `contentHeight - 2` lands at zero or negative, which produces
+	// malformed lipgloss output and leaves see-through gaps where the
+	// panes should be.
+	if contentHeight < 3 {
+		contentHeight = 3
 	}
+	innerHeight := contentHeight - 2
 
 	if !m.treeVisible || m.width < 60 {
 		m.tree.SetSize(0, 0)
 		// Sub-model gets the inner dimensions (full width minus 2 border cells).
-		m.detail.SetSize(m.width-2, contentHeight-2)
+		m.detail.SetSize(maxInt(m.width-2, 1), innerHeight)
 		return
 	}
 
@@ -1104,8 +1173,15 @@ func (m *TUIModel) propagateSize() {
 	}
 
 	// Sub-models receive inner dimensions; panes wrap with 2 border cells.
-	m.tree.SetSize(treeWidth-2, contentHeight-2)
-	m.detail.SetSize(detailWidth-2, contentHeight-2)
+	m.tree.SetSize(maxInt(treeWidth-2, 1), innerHeight)
+	m.detail.SetSize(maxInt(detailWidth-2, 1), innerHeight)
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // ---------------------------------------------------------------------------
@@ -1120,6 +1196,49 @@ func (m *TUIModel) clearErrorsByFilename(filename string) {
 		}
 	}
 	m.errors = filtered
+}
+
+// maxErrorEntries caps how many error rows can pile up in memory. The
+// error bar visually shows at most maxShow (3) plus a "+N more" line, so
+// any value above that is just protecting layout math from runaway growth.
+const maxErrorEntries = 8
+
+// appendError adds an error to the bar with two safety nets: it skips
+// the append if the most recent entry is identical (so spamming a key
+// that re-fails doesn't stack duplicates), and it caps the total number
+// of entries so the bar can't grow without bound and starve the panes
+// of vertical space.
+func (m *TUIModel) appendError(filename, message string) {
+	if n := len(m.errors); n > 0 {
+		last := m.errors[n-1]
+		if last.filename == filename && last.message == message {
+			return
+		}
+	}
+	m.errors = append(m.errors, errorEntry{filename: filename, message: message})
+	if len(m.errors) > maxErrorEntries {
+		m.errors = m.errors[len(m.errors)-maxErrorEntries:]
+	}
+}
+
+// sanitizeErrorLine collapses any error string into a single trimmed
+// line so it can't blow up the error bar's height (which is what made
+// the panes collapse on repeated start failures). Trailing context past
+// a reasonable cap is dropped.
+func sanitizeErrorLine(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", " ")
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	// Squash runs of whitespace.
+	for strings.Contains(s, "  ") {
+		s = strings.ReplaceAll(s, "  ", " ")
+	}
+	s = strings.TrimSpace(s)
+	const maxLen = 200
+	if len(s) > maxLen {
+		s = s[:maxLen-1] + "…"
+	}
+	return s
 }
 
 // ---------------------------------------------------------------------------
@@ -1206,6 +1325,7 @@ func storeFromWolfcastleDir(wolfDir string) *state.Store {
 func (m *TUIModel) startWatcher() tea.Cmd {
 	store := m.store
 	repo := m.daemonRepo
+	events := m.watcherEvents
 	return func() tea.Msg {
 		if store == nil {
 			return nil
@@ -1218,7 +1338,14 @@ func (m *TUIModel) startWatcher() tea.Cmd {
 		if dir, err := instanceRegistryDir(); err == nil {
 			instanceDir = dir
 		}
-		m.watcher = tui.NewWatcher(store, logDir, instanceDir)
+		w := tui.NewWatcher(store, logDir, instanceDir, events)
+		// Prefer fsnotify when available; fall back to mtime polling
+		// if the OS watcher cannot be initialized. Either path drives
+		// the same WatcherMsg envelope back through the model.
+		if err := w.Start(); err != nil {
+			w.StartPolling()
+		}
+		m.watcher = w
 		return nil
 	}
 }
@@ -1287,10 +1414,24 @@ func (m *TUIModel) startDaemon() tea.Cmd {
 	m.header.SetLoading(true)
 	dir := m.worktreeDir
 	return func() tea.Msg {
-		cmd := exec.Command("wolfcastle", "start", "-d")
+		// Re-exec the same binary that's running the TUI rather than
+		// trusting PATH, which may resolve to a different version (or
+		// nothing at all if the TUI was launched from a non-shell parent).
+		exe, err := os.Executable()
+		if err != nil {
+			exe = "wolfcastle"
+		}
+		cmd := exec.Command(exe, "start", "-d")
 		cmd.Dir = dir
-		if err := cmd.Run(); err != nil {
-			return tui.DaemonStartFailedMsg{Err: err}
+		// Capture stderr so we can surface the real failure reason
+		// instead of the bare "exit status 1" returned by exec.
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		if runErr := cmd.Run(); runErr != nil {
+			return tui.DaemonStartFailedMsg{
+				Err:    runErr,
+				Stderr: stderr.String(),
+			}
 		}
 		// Re-read instances to find the new entry.
 		instances, _ := instance.List()

@@ -889,6 +889,62 @@ func TestSymlinkToDir_ShowsInList(t *testing.T) {
 
 // ---------- Helpers ----------
 
+// TestRunInit_ScaffoldsRealProject is the regression test for the
+// release-blocker bug where runInit only created an empty .wolfcastle
+// directory. The daemon then refused to start because identity wasn't
+// configured. After the fix, runInit must produce a real scaffold:
+// the system tier, base config, custom config, and local identity all
+// have to be on disk.
+func TestRunInit_ScaffoldsRealProject(t *testing.T) {
+	tmp := t.TempDir()
+	m := WelcomeModel{currentDir: tmp}
+	cmd := m.runInit(tmp)
+	if cmd == nil {
+		t.Fatal("runInit returned nil cmd")
+	}
+	msg := cmd()
+	complete, ok := msg.(tui.InitCompleteMsg)
+	if !ok {
+		t.Fatalf("expected InitCompleteMsg, got %T", msg)
+	}
+	if complete.Err != nil {
+		t.Fatalf("runInit reported error: %v", complete.Err)
+	}
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	mustExist := []string{
+		"system/base/config.json",
+		"system/custom/config.json",
+		"system/local/config.json",
+		"system/base/prompts",
+	}
+	for _, rel := range mustExist {
+		full := filepath.Join(wcDir, rel)
+		if _, err := os.Stat(full); err != nil {
+			t.Errorf("expected scaffold artifact %s to exist after init: %v", rel, err)
+		}
+	}
+}
+
+// TestRunInit_AlreadyInitialized treats a pre-existing .wolfcastle as
+// a no-op success rather than blowing up. This matches the CLI's
+// "Already initialized" behavior so the user can press I in a worktree
+// that's already a project without seeing an error.
+func TestRunInit_AlreadyInitialized(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tmp, ".wolfcastle"), 0o755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	m := WelcomeModel{currentDir: tmp}
+	msg := m.runInit(tmp)()
+	complete, ok := msg.(tui.InitCompleteMsg)
+	if !ok {
+		t.Fatalf("expected InitCompleteMsg, got %T", msg)
+	}
+	if complete.Err != nil {
+		t.Errorf("re-init on existing dir should not error, got: %v", complete.Err)
+	}
+}
+
 func entryNames(entries []os.DirEntry) []string {
 	names := make([]string, len(entries))
 	for i, e := range entries {
