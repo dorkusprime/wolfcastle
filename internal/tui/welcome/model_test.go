@@ -9,6 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
@@ -554,6 +555,335 @@ func TestUnknownMsg_NoOp(t *testing.T) {
 	m, cmd := m.Update(unknownMsg{})
 	if m.dirCursor != origCursor || m.currentDir != origDir || cmd != nil {
 		t.Fatal("unknown message should be a no-op")
+	}
+}
+
+// ---------- SetInstances ----------
+
+func TestSetInstances(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
+
+	entries := []instance.Entry{
+		{PID: 1, Worktree: "/a", Branch: "main"},
+		{PID: 2, Worktree: "/b", Branch: "dev"},
+	}
+	m.SetInstances(entries)
+
+	if len(m.instances) != 2 {
+		t.Fatalf("expected 2 instances, got %d", len(m.instances))
+	}
+}
+
+func TestSetInstances_ClampsSessionCursor(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{
+		{PID: 1, Worktree: "/a", Branch: "main"},
+		{PID: 2, Worktree: "/b", Branch: "dev"},
+		{PID: 3, Worktree: "/c", Branch: "fix"},
+	}
+	m := NewWelcomeModel(dir, entries)
+	m.sessionCursor = 2
+
+	// Reduce to 1 instance; cursor should clamp.
+	m.SetInstances([]instance.Entry{{PID: 1, Worktree: "/a", Branch: "main"}})
+	if m.sessionCursor != 0 {
+		t.Fatalf("expected sessionCursor=0, got %d", m.sessionCursor)
+	}
+}
+
+func TestSetInstances_EmptyList(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{{PID: 1, Worktree: "/a", Branch: "main"}}
+	m := NewWelcomeModel(dir, entries)
+	m.sessionCursor = 0
+
+	m.SetInstances(nil)
+	if m.sessionCursor != 0 {
+		t.Fatalf("expected sessionCursor=0 on empty list, got %d", m.sessionCursor)
+	}
+}
+
+// ---------- InstancesUpdatedMsg ----------
+
+func TestInstancesUpdatedMsg(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
+
+	entries := []instance.Entry{{PID: 42, Worktree: "/x", Branch: "main"}}
+	m, _ = m.Update(tui.InstancesUpdatedMsg{Instances: entries})
+	if len(m.instances) != 1 {
+		t.Fatalf("expected 1 instance after update, got %d", len(m.instances))
+	}
+}
+
+// ---------- Session key handling ----------
+
+func tabKey() tea.KeyPressMsg {
+	return tea.KeyPressMsg{Code: tea.KeyTab}
+}
+
+func TestTabSwitchesFocus(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{{PID: 1, Worktree: "/a", Branch: "main"}}
+	m := NewWelcomeModel(dir, entries)
+
+	if m.focus != panelSessions {
+		t.Fatal("expected sessions panel focused initially")
+	}
+
+	m, _ = m.Update(tabKey())
+	if m.focus != panelDirs {
+		t.Fatal("expected dirs panel focused after tab")
+	}
+
+	m, _ = m.Update(tabKey())
+	if m.focus != panelSessions {
+		t.Fatal("expected sessions panel focused after second tab")
+	}
+}
+
+func TestTabIgnoredWithNoInstances(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
+
+	m, _ = m.Update(tabKey())
+	if m.focus != panelDirs {
+		t.Fatal("expected focus unchanged with no instances")
+	}
+}
+
+func TestSessionKey_MoveDown(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{
+		{PID: 1, Worktree: "/a", Branch: "a"},
+		{PID: 2, Worktree: "/b", Branch: "b"},
+		{PID: 3, Worktree: "/c", Branch: "c"},
+	}
+	m := NewWelcomeModel(dir, entries)
+
+	m, _ = m.Update(downKey())
+	if m.sessionCursor != 1 {
+		t.Fatalf("expected sessionCursor=1, got %d", m.sessionCursor)
+	}
+}
+
+func TestSessionKey_MoveDownClamps(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{
+		{PID: 1, Worktree: "/a", Branch: "a"},
+		{PID: 2, Worktree: "/b", Branch: "b"},
+	}
+	m := NewWelcomeModel(dir, entries)
+
+	for range 5 {
+		m, _ = m.Update(downKey())
+	}
+	if m.sessionCursor != 1 {
+		t.Fatalf("expected sessionCursor clamped at 1, got %d", m.sessionCursor)
+	}
+}
+
+func TestSessionKey_MoveUp(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{
+		{PID: 1, Worktree: "/a", Branch: "a"},
+		{PID: 2, Worktree: "/b", Branch: "b"},
+	}
+	m := NewWelcomeModel(dir, entries)
+
+	m, _ = m.Update(downKey())
+	m, _ = m.Update(upKey())
+	if m.sessionCursor != 0 {
+		t.Fatalf("expected sessionCursor=0, got %d", m.sessionCursor)
+	}
+}
+
+func TestSessionKey_MoveUpClampsAtZero(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{{PID: 1, Worktree: "/a", Branch: "a"}}
+	m := NewWelcomeModel(dir, entries)
+
+	m, _ = m.Update(upKey())
+	if m.sessionCursor != 0 {
+		t.Fatalf("expected sessionCursor=0, got %d", m.sessionCursor)
+	}
+}
+
+func TestSessionKey_Top(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{
+		{PID: 1, Worktree: "/a", Branch: "a"},
+		{PID: 2, Worktree: "/b", Branch: "b"},
+		{PID: 3, Worktree: "/c", Branch: "c"},
+	}
+	m := NewWelcomeModel(dir, entries)
+	m, _ = m.Update(bottomKey())
+	m, _ = m.Update(topKey())
+
+	if m.sessionCursor != 0 {
+		t.Fatalf("expected sessionCursor=0 after top, got %d", m.sessionCursor)
+	}
+}
+
+func TestSessionKey_Bottom(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{
+		{PID: 1, Worktree: "/a", Branch: "a"},
+		{PID: 2, Worktree: "/b", Branch: "b"},
+		{PID: 3, Worktree: "/c", Branch: "c"},
+	}
+	m := NewWelcomeModel(dir, entries)
+
+	m, _ = m.Update(bottomKey())
+	if m.sessionCursor != 2 {
+		t.Fatalf("expected sessionCursor=2, got %d", m.sessionCursor)
+	}
+}
+
+func TestSessionKey_BottomEmptyList(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, []instance.Entry{})
+	m.focus = panelSessions
+	m.instances = []instance.Entry{} // empty
+
+	m, _ = m.handleSessionKey(bottomKey())
+	if m.sessionCursor != 0 {
+		t.Fatalf("expected sessionCursor=0 with empty list, got %d", m.sessionCursor)
+	}
+}
+
+func TestSessionKey_EnterConnects(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{
+		{PID: 42, Worktree: "/some/path", Branch: "main"},
+	}
+	m := NewWelcomeModel(dir, entries)
+
+	m, cmd := m.Update(enterKey())
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd from Enter on session")
+	}
+	msg := cmd()
+	conn, ok := msg.(ConnectInstanceMsg)
+	if !ok {
+		t.Fatalf("expected ConnectInstanceMsg, got %T", msg)
+	}
+	if conn.Entry.PID != 42 {
+		t.Fatalf("expected PID=42, got %d", conn.Entry.PID)
+	}
+}
+
+func TestSessionKey_Quit(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{{PID: 1, Worktree: "/a", Branch: "a"}}
+	m := NewWelcomeModel(dir, entries)
+
+	_, cmd := m.Update(quitKey())
+	if cmd == nil {
+		t.Fatal("expected quit cmd from session panel")
+	}
+}
+
+// ---------- renderSessions ----------
+
+func TestRenderSessions_ShowsInstances(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{
+		{PID: 100, Worktree: "/path/to/main", Branch: "main"},
+		{PID: 200, Worktree: "/path/to/dev", Branch: "dev"},
+	}
+	m := NewWelcomeModel(dir, entries)
+	m.SetSize(80, 40)
+
+	view := m.View()
+	if !strings.Contains(view, "RUNNING SESSIONS") {
+		t.Fatal("expected RUNNING SESSIONS heading")
+	}
+	if !strings.Contains(view, "2 active") {
+		t.Fatal("expected '2 active' count")
+	}
+}
+
+func TestRenderSessions_DimmedWhenUnfocused(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{
+		{PID: 1, Worktree: "/a", Branch: "main"},
+	}
+	m := NewWelcomeModel(dir, entries)
+	m.SetSize(80, 40)
+
+	// Switch focus to dirs panel
+	m.focus = panelDirs
+	view := m.View()
+	// Still renders sessions panel even when unfocused.
+	if !strings.Contains(view, "RUNNING SESSIONS") {
+		t.Fatal("expected sessions panel when unfocused")
+	}
+}
+
+// ---------- renderHints ----------
+
+func TestRenderHints_WithInstances(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	entries := []instance.Entry{{PID: 1, Worktree: "/a", Branch: "a"}}
+	m := NewWelcomeModel(dir, entries)
+	m.SetSize(80, 40)
+
+	view := m.View()
+	if !strings.Contains(view, "switch panel") {
+		t.Fatal("expected 'switch panel' hint when instances exist")
+	}
+}
+
+func TestRenderHints_WithoutInstances(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
+	m.SetSize(80, 40)
+
+	view := m.View()
+	if strings.Contains(view, "switch panel") {
+		t.Fatal("should not show 'switch panel' hint without instances")
+	}
+}
+
+// ---------- place helper ----------
+
+func TestPlace_ZeroDimensions(t *testing.T) {
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
+	// Width/height both 0; place should use defaults.
+	m.SetSize(0, 0)
+
+	view := m.View()
+	if !strings.Contains(view, "WOLFCASTLE") {
+		t.Fatal("expected WOLFCASTLE in view even with zero dimensions")
+	}
+}
+
+// ---------- Symlink directory handling ----------
+
+func TestSymlinkToDir_ShowsInList(t *testing.T) {
+	dir := t.TempDir()
+	realDir := filepath.Join(dir, "real")
+	os.Mkdir(realDir, 0o755)
+	symlink := filepath.Join(dir, "linked")
+	err := os.Symlink(realDir, symlink)
+	if err != nil {
+		t.Skipf("symlink creation failed: %v", err)
+	}
+
+	m := NewWelcomeModel(dir, nil)
+	names := entryNames(m.entries)
+	found := false
+	for _, n := range names {
+		if n == "linked" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected 'linked' symlink in entries, got %v", names)
 	}
 }
 

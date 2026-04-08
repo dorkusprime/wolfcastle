@@ -2,6 +2,8 @@ package tui
 
 import (
 	"testing"
+
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 )
 
 func TestGlyphForStatus_Complete(t *testing.T) {
@@ -143,5 +145,78 @@ func TestGlyphForAuditStatus_AllStatusesReturnNonEmpty(t *testing.T) {
 		if g == "" {
 			t.Errorf("GlyphForAuditStatus(%q) returned empty string", status)
 		}
+	}
+}
+
+func TestInstanceLabel_DirAndBranchMatch(t *testing.T) {
+	t.Parallel()
+	inst := instance.Entry{
+		PID:      42,
+		Worktree: "/path/to/main",
+		Branch:   "main",
+	}
+	if got := InstanceLabel(inst); got != "main" {
+		t.Fatalf("expected 'main', got %q", got)
+	}
+}
+
+func TestInstanceLabel_DirDiffersFromBranch(t *testing.T) {
+	t.Parallel()
+	inst := instance.Entry{
+		PID:      42,
+		Worktree: "/path/to/wc-tui-test",
+		Branch:   "feat/tui",
+	}
+	if got := InstanceLabel(inst); got != "wc-tui-test (feat/tui)" {
+		t.Fatalf("expected 'wc-tui-test (feat/tui)', got %q", got)
+	}
+}
+
+func TestInstanceLabel_EmptyBranchUsesDir(t *testing.T) {
+	t.Parallel()
+	inst := instance.Entry{
+		PID:      42,
+		Worktree: "/path/to/somewhere",
+		Branch:   "",
+	}
+	if got := InstanceLabel(inst); got != "somewhere" {
+		t.Fatalf("expected 'somewhere', got %q", got)
+	}
+}
+
+func TestInstanceLabel_EmptyWorktreeFallbackBranch(t *testing.T) {
+	t.Parallel()
+	inst := instance.Entry{
+		PID:      42,
+		Worktree: "",
+		Branch:   "feat/something",
+	}
+	if got := InstanceLabel(inst); got != "feat/something" {
+		t.Fatalf("expected 'feat/something', got %q", got)
+	}
+}
+
+func TestInstanceLabel_EmptyWorktreeAndBranchFallbackPID(t *testing.T) {
+	t.Parallel()
+	inst := instance.Entry{
+		PID:      1234,
+		Worktree: "",
+		Branch:   "",
+	}
+	if got := InstanceLabel(inst); got != "pid:1234" {
+		t.Fatalf("expected 'pid:1234', got %q", got)
+	}
+}
+
+func TestInstanceLabel_DotWorktreeFallback(t *testing.T) {
+	t.Parallel()
+	// filepath.Base(".") == ".", which triggers the fallback branch.
+	inst := instance.Entry{
+		PID:      99,
+		Worktree: ".",
+		Branch:   "main",
+	}
+	if got := InstanceLabel(inst); got != "main" {
+		t.Fatalf("expected 'main', got %q", got)
 	}
 }

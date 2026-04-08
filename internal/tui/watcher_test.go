@@ -1,14 +1,33 @@
 package tui
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/fsnotify/fsnotify"
 )
+
+// stubModel is a no-op tea.Model used to satisfy tea.NewProgram in tests.
+type stubModel struct{}
+
+func (stubModel) Init() tea.Cmd                         { return nil }
+func (m stubModel) Update(tea.Msg) (tea.Model, tea.Cmd) { return m, nil }
+func (stubModel) View() tea.View                        { return tea.View{} }
+
+// cancelledProgram returns a *tea.Program whose context is already cancelled,
+// so any call to program.Send returns immediately without blocking on the
+// internal msgs channel. This lets us exercise watcher code paths that
+// dispatch messages without spinning up a real Bubbletea runtime.
+func cancelledProgram() *tea.Program {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	return tea.NewProgram(stubModel{}, tea.WithContext(ctx))
+}
 
 func TestNewWatcher_FieldsInitialized(t *testing.T) {
 	store := state.NewStore(t.TempDir(), time.Second)
@@ -519,4 +538,214 @@ func TestReadNewLogLines_SeekError(t *testing.T) {
 // the import used by the production code.
 func newFsnotifyWatcher() (*fsnotify.Watcher, error) {
 	return fsnotify.NewWatcher()
+}
+
+func TestStart_Success(t *testing.T) {
+	dir := t.TempDir()
+	logDir := filepath.Join(dir, "logs")
+	instDir := filepath.Join(dir, "instances")
+	os.MkdirAll(logDir, 0o755)
+	os.MkdirAll(instDir, 0o755)
+	// Pre-create a log file so the latest-log lookup succeeds.
+	os.WriteFile(filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl"), []byte("seed\n"), 0o644)
+
+	store := state.NewStore(dir, time.Second)
+	w := NewWatcher(store, logDir, instDir)
+
+	prog := cancelledProgram()
+	if err := w.Start(prog); err != nil {
+		t.Fatalf("Start returned error: %v", err)
+	}
+	defer w.Stop()
+
+	if w.watcher == nil {
+		t.Fatal("expected fsnotify watcher to be set after Start")
+	}
+}
+
+func TestStart_NoLogDir(t *testing.T) {
+	dir := t.TempDir()
+	store := state.NewStore(dir, time.Second)
+	w := NewWatcher(store, "", "")
+
+	prog := cancelledProgram()
+	if err := w.Start(prog); err != nil {
+		t.Fatalf("Start returned error: %v", err)
+	}
+	defer w.Stop()
+}
+
+func TestStartPolling_SeedsFields(t *testing.T) {
+	dir := t.TempDir()
+	logDir := filepath.Join(dir, "logs")
+	instDir := filepath.Join(dir, "instances")
+	os.MkdirAll(logDir, 0o755)
+	os.MkdirAll(instDir, 0o755)
+
+	logFile := filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl")
+	os.WriteFile(logFile, []byte("hello\nworld\n"), 0o644)
+
+	store := state.NewStore(dir, time.Second)
+	// Initialize the store so the index file exists.
+	_ = store.MutateIndex(func(*state.RootIndex) error { return nil })
+
+	w := NewWatcher(store, logDir, instDir)
+	prog := cancelledProgram()
+	w.StartPolling(prog)
+	defer w.Stop()
+
+	if w.logFile == "" {
+		t.Fatal("expected logFile to be seeded")
+	}
+	if w.logOffset == 0 {
+		t.Fatal("expected logOffset to be seeded with file size")
+	}
+}
+
+func TestPollTick_DetectsIndexChange(t *testing.T) {
+	dir := t.TempDir()
+	store := state.NewStore(dir, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	w := NewWatcher(store, "", "")
+	w.program = cancelledProgram()
+
+	// Seed indexMtime to a known stale value so the next stat looks "new".
+	w.indexMtime = time.Unix(0, 0)
+
+	// Should not panic; should send a message that gets dropped by the
+	// cancelled-context program.
+	w.pollTick()
+}
+
+func TestPollTick_NewLogFileDetected(t *testing.T) {
+	dir := t.TempDir()
+	logDir := filepath.Join(dir, "logs")
+	os.MkdirAll(logDir, 0o755)
+
+	store := state.NewStore(dir, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	w := NewWatcher(store, logDir, "")
+	w.program = cancelledProgram()
+
+	// No log file at startup. Then create one and call pollTick.
+	logFile := filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl")
+	os.WriteFile(logFile, []byte("first\n"), 0o644)
+
+	w.pollTick()
+
+	if w.logFile != logFile {
+		t.Fatalf("expected logFile=%q, got %q", logFile, w.logFile)
+	}
+}
+
+func TestPollTick_LogFileGrows(t *testing.T) {
+	dir := t.TempDir()
+	logDir := filepath.Join(dir, "logs")
+	os.MkdirAll(logDir, 0o755)
+
+	logFile := filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl")
+	os.WriteFile(logFile, []byte("seed\n"), 0o644)
+
+	store := state.NewStore(dir, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	w := NewWatcher(store, logDir, "")
+	w.program = cancelledProgram()
+	w.logFile = logFile
+	if info, err := os.Stat(logFile); err == nil {
+		w.logOffset = info.Size()
+		w.logFileSize = info.Size()
+	}
+
+	// Append more bytes.
+	f, _ := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0o644)
+	f.WriteString("more\n")
+	f.Close()
+
+	w.pollTick()
+	// logFileSize should have advanced.
+	if w.logFileSize == 0 {
+		t.Fatal("expected logFileSize to update after pollTick")
+	}
+}
+
+func TestFlush_IndexPath(t *testing.T) {
+	dir := t.TempDir()
+	store := state.NewStore(dir, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	w := NewWatcher(store, "", "")
+	w.program = cancelledProgram()
+
+	paths := map[string]bool{store.IndexPath(): true}
+	w.flush(paths) // should hit the index branch
+}
+
+func TestFlush_NodeStatePath(t *testing.T) {
+	dir := t.TempDir()
+	store := state.NewStore(dir, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a node directory with a state.json so ReadNode succeeds.
+	nodeDir := filepath.Join(dir, "alpha")
+	os.MkdirAll(nodeDir, 0o755)
+	os.WriteFile(filepath.Join(nodeDir, "state.json"), []byte(`{"address":"alpha"}`), 0o644)
+
+	w := NewWatcher(store, "", "")
+	w.program = cancelledProgram()
+
+	paths := map[string]bool{filepath.Join(nodeDir, "state.json"): true}
+	w.flush(paths)
+}
+
+func TestFlush_LogFilePath(t *testing.T) {
+	dir := t.TempDir()
+	logDir := filepath.Join(dir, "logs")
+	os.MkdirAll(logDir, 0o755)
+	logFile := filepath.Join(logDir, "wolfcastle-2026-04-06.jsonl")
+	os.WriteFile(logFile, []byte("appended line\n"), 0o644)
+
+	store := state.NewStore(dir, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	w := NewWatcher(store, logDir, "")
+	w.program = cancelledProgram()
+	w.logFile = logFile
+	w.logOffset = 0
+
+	paths := map[string]bool{logFile: true}
+	w.flush(paths)
+}
+
+func TestStop_StopsRunningLoop(t *testing.T) {
+	// Verify that Stop properly tears down a started watcher's goroutine.
+	dir := t.TempDir()
+	store := state.NewStore(dir, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	w := NewWatcher(store, "", "")
+	prog := cancelledProgram()
+	if err := w.Start(prog); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+
+	// Give the loop a tick to enter its select.
+	time.Sleep(10 * time.Millisecond)
+	w.Stop()
 }
