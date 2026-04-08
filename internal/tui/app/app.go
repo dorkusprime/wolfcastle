@@ -90,7 +90,8 @@ type TUIModel struct {
 	worktreeDir string
 	version     string
 
-	watcher *tui.Watcher
+	watcher       *tui.Watcher
+	watcherEvents chan tea.Msg // owned by the model; passed to NewWatcher
 
 	// Instance tracking (Phase 3)
 	instances           []instance.Entry
@@ -120,6 +121,12 @@ func NewTUIModel(store *state.Store, daemonRepo *daemon.DaemonRepository, worktr
 		daemonRepo:  daemonRepo,
 		worktreeDir: worktreeDir,
 		version:     version,
+		// 256 is enough headroom that a brief render stall (the model
+		// taking a few ms to drain) does not cause the watcher to drop
+		// events. The watcher's emit is non-blocking; if the buffer
+		// fills, events are dropped and the next mtime/poll cycle
+		// resends an equivalent state update.
+		watcherEvents: make(chan tea.Msg, 256),
 	}
 
 	if store == nil {
@@ -145,10 +152,28 @@ func (m TUIModel) Init() tea.Cmd {
 
 	if m.store != nil {
 		m.header.SetLoading(true)
-		cmds = append(cmds, m.startWatcher(), m.startPoller(), m.loadInitialState())
+		cmds = append(cmds,
+			m.startWatcher(),
+			m.startPoller(),
+			m.loadInitialState(),
+			waitForWatcherEvent(m.watcherEvents),
+		)
 	}
 
 	return tea.Batch(cmds...)
+}
+
+// waitForWatcherEvent returns a tea.Cmd that blocks on the watcher's
+// event channel and returns the next message it receives. Each call
+// drains exactly one event; the WatcherMsg handler in Update reschedules
+// another waitForWatcherEvent so the drain loop is continuous.
+func waitForWatcherEvent(ch <-chan tea.Msg) tea.Cmd {
+	if ch == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		return <-ch
+	}
 }
 
 // Update is the central message router. Data messages are always broadcast
@@ -218,8 +243,13 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, tui.GlobalKeyMap.Quit):
 			return m, tea.Quit
 
-		case key.Matches(msg, tui.GlobalKeyMap.LogStream) && m.focused != PaneTree:
+		case key.Matches(msg, tui.GlobalKeyMap.LogStream):
+			// Switch the detail pane to the log stream view from any
+			// focus state. The binding is capital L so it doesn't
+			// collide with the tree pane's vi-style l = expand.
 			m.detail.SwitchToLogView()
+			m.focused = PaneDetail
+			m.syncFocus()
 			return m, nil
 
 		case key.Matches(msg, tui.GlobalKeyMap.Inbox):
@@ -325,6 +355,24 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 		return m, tea.Batch(cmds...)
+
+	// ---------------------------------------------------------------
+	// Watcher envelope: unwrap, recursively dispatch the inner message
+	// through Update so the existing typed handlers below run, then
+	// reschedule the channel drain so the next event keeps flowing.
+	// Without the reschedule the watcher's event channel would deliver
+	// exactly one message and then go silent.
+	// ---------------------------------------------------------------
+	case tui.WatcherMsg:
+		var inner tea.Cmd
+		if msg.Inner != nil {
+			updated, c := m.Update(msg.Inner)
+			if tm, ok := updated.(TUIModel); ok {
+				m = tm
+			}
+			inner = c
+		}
+		return m, tea.Batch(inner, waitForWatcherEvent(m.watcherEvents))
 
 	// ---------------------------------------------------------------
 	// Data messages: always broadcast regardless of overlay state
@@ -540,7 +588,11 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if dir, err := instanceRegistryDir(); err == nil {
 			instanceDir = dir
 		}
-		m.watcher = tui.NewWatcher(m.store, logDir, instanceDir)
+		w := tui.NewWatcher(m.store, logDir, instanceDir, m.watcherEvents)
+		if err := w.Start(); err != nil {
+			w.StartPolling()
+		}
+		m.watcher = w
 
 		// Immediately probe daemon status and inbox so the dashboard
 		// populates without waiting for the next poll tick.
@@ -1273,6 +1325,7 @@ func storeFromWolfcastleDir(wolfDir string) *state.Store {
 func (m *TUIModel) startWatcher() tea.Cmd {
 	store := m.store
 	repo := m.daemonRepo
+	events := m.watcherEvents
 	return func() tea.Msg {
 		if store == nil {
 			return nil
@@ -1285,7 +1338,14 @@ func (m *TUIModel) startWatcher() tea.Cmd {
 		if dir, err := instanceRegistryDir(); err == nil {
 			instanceDir = dir
 		}
-		m.watcher = tui.NewWatcher(store, logDir, instanceDir)
+		w := tui.NewWatcher(store, logDir, instanceDir, events)
+		// Prefer fsnotify when available; fall back to mtime polling
+		// if the OS watcher cannot be initialized. Either path drives
+		// the same WatcherMsg envelope back through the model.
+		if err := w.Start(); err != nil {
+			w.StartPolling()
+		}
+		m.watcher = w
 		return nil
 	}
 }

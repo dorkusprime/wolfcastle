@@ -74,7 +74,7 @@ func (m FooterModel) View() string {
 	hints = append(hints,
 		hint{"<>", "switch"},
 		hint{"i", "inbox"},
-		hint{"l", "logs"},
+		hint{"L", "logs"},
 		hint{"t", "tree"},
 		hint{"/", "search"},
 		hint{"y", "copy"},

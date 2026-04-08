@@ -18,7 +18,7 @@ type GlobalKeys struct {
 var GlobalKeyMap = GlobalKeys{
 	Quit:       key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 	ForceQuit:  key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit")),
-	LogStream:  key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "logs")),
+	LogStream:  key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "logs")),
 	Inbox:      key.NewBinding(key.WithKeys("i"), key.WithHelp("i", "inbox")),
 	ToggleTree: key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "tree")),
 	CycleFocus: key.NewBinding(key.WithKeys("tab"), key.WithHelp("Tab", "focus")),
