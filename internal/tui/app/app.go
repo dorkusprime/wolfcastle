@@ -757,7 +757,7 @@ func (m TUIModel) renderContent(contentHeight int) string {
 			content += "\n" + m.search.View()
 		}
 		detailStyle := m.borderStyle(PaneDetail).
-			Width(m.width - 2).
+			Width(m.width).
 			Height(contentHeight)
 		rendered := detailStyle.Render(content)
 		if m.notify.HasToasts() {
@@ -766,13 +766,13 @@ func (m TUIModel) renderContent(contentHeight int) string {
 		return rendered
 	}
 
+	// In lipgloss v2, Width on a bordered style is the total rendered
+	// width including borders. The two panes must sum to m.width.
 	treeWidth := m.width * 30 / 100
 	if treeWidth < 24 {
 		treeWidth = 24
 	}
-
-	// Borders consume 2 cells per pane (left+right).
-	detailWidth := m.width - treeWidth - 4
+	detailWidth := m.width - treeWidth
 	if detailWidth < 10 {
 		detailWidth = 10
 	}
@@ -1079,7 +1079,8 @@ func (m *TUIModel) propagateSize() {
 
 	if !m.treeVisible || m.width < 60 {
 		m.tree.SetSize(0, 0)
-		m.detail.SetSize(m.width-2, contentHeight)
+		// Sub-model gets the inner dimensions (full width minus 2 border cells).
+		m.detail.SetSize(m.width-2, contentHeight-2)
 		return
 	}
 
@@ -1087,13 +1088,14 @@ func (m *TUIModel) propagateSize() {
 	if treeWidth < 24 {
 		treeWidth = 24
 	}
-	detailWidth := m.width - treeWidth - 4
+	detailWidth := m.width - treeWidth
 	if detailWidth < 10 {
 		detailWidth = 10
 	}
 
-	m.tree.SetSize(treeWidth, contentHeight)
-	m.detail.SetSize(detailWidth, contentHeight)
+	// Sub-models receive inner dimensions; panes wrap with 2 border cells.
+	m.tree.SetSize(treeWidth-2, contentHeight-2)
+	m.detail.SetSize(detailWidth-2, contentHeight-2)
 }
 
 // ---------------------------------------------------------------------------
