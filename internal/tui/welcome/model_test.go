@@ -30,59 +30,54 @@ func bottomKey() tea.KeyPressMsg { return keyPress('G') }
 func backKey() tea.KeyPressMsg   { return keyPress('h') }
 func quitKey() tea.KeyPressMsg   { return keyPress('q') }
 func lKey() tea.KeyPressMsg      { return keyPress('l') }
+func initKey() tea.KeyPressMsg   { return keyPress('I') }
 
-// setupTestDir creates a parent with a named child directory and returns both paths.
-// NewWelcomeModel(child, nil) will open in parent with child pre-selected.
-func setupTestDir(t *testing.T, childName string, siblings ...string) (parent, child string) {
+// setupTestDir creates a directory with the given subdirectories inside it.
+// NewWelcomeModel(dir, nil) will open in dir showing its subdirectories.
+func setupTestDir(t *testing.T, subdirs ...string) string {
 	t.Helper()
-	parent = t.TempDir()
-	child = filepath.Join(parent, childName)
-	if err := os.Mkdir(child, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	for _, s := range siblings {
-		if err := os.Mkdir(filepath.Join(parent, s), 0o755); err != nil {
+	dir := t.TempDir()
+	for _, s := range subdirs {
+		if err := os.Mkdir(filepath.Join(dir, s), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
-	return parent, child
+	return dir
 }
 
 // ---------- Construction ----------
 
-func TestNewWelcomeModel_StartsInParent(t *testing.T) {
-	parent, child := setupTestDir(t, "myproject", "other")
+func TestNewWelcomeModel_StartsInCWD(t *testing.T) {
+	dir := setupTestDir(t, "aaa", "bbb")
 
-	m := NewWelcomeModel(child, nil)
+	m := NewWelcomeModel(dir, nil)
 
-	if m.currentDir != parent {
-		t.Fatalf("expected currentDir=%q (parent), got %q", parent, m.currentDir)
+	if m.currentDir != dir {
+		t.Fatalf("expected currentDir=%q, got %q", dir, m.currentDir)
 	}
 	if len(m.entries) != 2 {
-		t.Fatalf("expected 2 entries in parent, got %d", len(m.entries))
+		t.Fatalf("expected 2 entries, got %d", len(m.entries))
 	}
 }
 
-func TestNewWelcomeModel_PreSelectsCWD(t *testing.T) {
-	_, child := setupTestDir(t, "target", "aaa", "zzz")
+func TestNewWelcomeModel_CursorStartsAtZero(t *testing.T) {
+	dir := setupTestDir(t, "aaa", "zzz")
 
-	m := NewWelcomeModel(child, nil)
+	m := NewWelcomeModel(dir, nil)
 
-	// "target" should be pre-selected (cursor points to it)
-	if m.dirCursor < 0 || m.dirCursor >= len(m.entries) {
-		t.Fatalf("cursor %d out of range [0, %d)", m.dirCursor, len(m.entries))
+	if m.dirCursor != 0 {
+		t.Fatalf("expected cursor at 0, got %d", m.dirCursor)
 	}
-	if m.entries[m.dirCursor].Name() != "target" {
-		t.Fatalf("expected cursor on 'target', got %q", m.entries[m.dirCursor].Name())
+	if m.entries[0].Name() != "aaa" {
+		t.Fatalf("expected first entry 'aaa', got %q", m.entries[0].Name())
 	}
 }
 
 // ---------- Cursor movement ----------
 
 func TestCursorDown(t *testing.T) {
-	_, child := setupTestDir(t, "aaa", "bbb", "ccc", "ddd", "eee")
-	m := NewWelcomeModel(child, nil)
-	// cursor starts on "aaa" (index 0)
+	dir := setupTestDir(t, "aaa", "bbb", "ccc", "ddd", "eee")
+	m := NewWelcomeModel(dir, nil)
 	start := m.dirCursor
 
 	m, _ = m.Update(downKey())
@@ -92,10 +87,10 @@ func TestCursorDown(t *testing.T) {
 }
 
 func TestCursorDown_Clamps(t *testing.T) {
-	_, child := setupTestDir(t, "aaa", "bbb")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "aaa", "bbb")
+	m := NewWelcomeModel(dir, nil)
 
-	// Move to last
+	// Move well past the end
 	for range len(m.entries) + 2 {
 		m, _ = m.Update(downKey())
 	}
@@ -105,8 +100,8 @@ func TestCursorDown_Clamps(t *testing.T) {
 }
 
 func TestCursorUp(t *testing.T) {
-	_, child := setupTestDir(t, "aaa", "bbb", "ccc", "ddd", "eee")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "aaa", "bbb", "ccc", "ddd", "eee")
+	m := NewWelcomeModel(dir, nil)
 
 	// Move down twice, then up
 	m, _ = m.Update(downKey())
@@ -119,8 +114,8 @@ func TestCursorUp(t *testing.T) {
 }
 
 func TestCursorUp_ClampsAtZero(t *testing.T) {
-	_, child := setupTestDir(t, "zzz", "aaa")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "aaa", "zzz")
+	m := NewWelcomeModel(dir, nil)
 
 	// Move to top first
 	m, _ = m.Update(topKey())
@@ -131,8 +126,8 @@ func TestCursorUp_ClampsAtZero(t *testing.T) {
 }
 
 func TestJumpToTop(t *testing.T) {
-	_, child := setupTestDir(t, "aaa", "bbb", "ccc", "ddd", "eee")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "aaa", "bbb", "ccc", "ddd", "eee")
+	m := NewWelcomeModel(dir, nil)
 
 	m, _ = m.Update(bottomKey())
 	m, _ = m.Update(topKey())
@@ -142,8 +137,8 @@ func TestJumpToTop(t *testing.T) {
 }
 
 func TestJumpToBottom(t *testing.T) {
-	_, child := setupTestDir(t, "aaa", "bbb", "ccc", "ddd", "eee")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "aaa", "bbb", "ccc", "ddd", "eee")
+	m := NewWelcomeModel(dir, nil)
 
 	m, _ = m.Update(bottomKey())
 	if m.dirCursor != len(m.entries)-1 {
@@ -154,14 +149,13 @@ func TestJumpToBottom(t *testing.T) {
 // ---------- Navigation ----------
 
 func TestEnterOnDirectory_Descends(t *testing.T) {
-	parent, _ := setupTestDir(t, "target")
+	dir := setupTestDir(t, "target")
 	// Create a grandchild so "target" has contents
-	grandchild := filepath.Join(parent, "target", "inner")
-	os.Mkdir(grandchild, 0o755)
+	os.Mkdir(filepath.Join(dir, "target", "inner"), 0o755)
 
-	m := NewWelcomeModel(filepath.Join(parent, "target"), nil)
-	// Cursor is on "target" in parent listing. Enter should descend.
-	targetDir := filepath.Join(parent, m.entries[m.dirCursor].Name())
+	m := NewWelcomeModel(dir, nil)
+	// Cursor is on "target". Enter should descend into it.
+	targetDir := filepath.Join(dir, "target")
 	m, _ = m.Update(enterKey())
 	if m.currentDir != targetDir {
 		t.Fatalf("expected currentDir=%q, got %q", targetDir, m.currentDir)
@@ -169,14 +163,11 @@ func TestEnterOnDirectory_Descends(t *testing.T) {
 }
 
 func TestLKey_DescendsButDoesNotInit(t *testing.T) {
-	parent := t.TempDir()
-	// Create an empty child (no subdirs) so enter would try init
-	child := filepath.Join(parent, "empty")
-	os.Mkdir(child, 0o755)
+	dir := setupTestDir(t, "empty")
 
-	m := NewWelcomeModel(child, nil)
-	// Cursor should be on "empty". l should descend into it.
-	m, _ = m.Update(enterKey()) // descend into empty
+	m := NewWelcomeModel(dir, nil)
+	// Cursor is on "empty". Enter descends into it.
+	m, _ = m.Update(enterKey())
 	// Now inside "empty" which has no entries. l should NOT init.
 	m, cmd := m.Update(lKey())
 	if m.initializing {
@@ -188,8 +179,8 @@ func TestLKey_DescendsButDoesNotInit(t *testing.T) {
 }
 
 func TestBack_GoesToParent(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	parentDir := m.currentDir
 
 	// Descend first, then back
@@ -204,16 +195,14 @@ func TestBack_GoesToParent(t *testing.T) {
 // ---------- Init flow ----------
 
 func TestEnterOnEmptyDir_StartsInit(t *testing.T) {
-	parent := t.TempDir()
-	child := filepath.Join(parent, "empty")
-	os.Mkdir(child, 0o755)
+	dir := setupTestDir(t, "empty")
 
-	m := NewWelcomeModel(child, nil)
-	// Descend into "empty" first
+	m := NewWelcomeModel(dir, nil)
+	// Descend into "empty"
 	m, _ = m.Update(enterKey())
 
-	// Now in empty dir, Enter should init
-	m, cmd := m.Update(enterKey())
+	// Now in empty dir, I key should init
+	m, cmd := m.Update(initKey())
 	if !m.initializing {
 		t.Fatal("expected initializing=true")
 	}
@@ -223,15 +212,10 @@ func TestEnterOnEmptyDir_StartsInit(t *testing.T) {
 }
 
 func TestEnterOnDotWolfcastle_StartsInit(t *testing.T) {
-	parent := t.TempDir()
-	child := filepath.Join(parent, "project")
-	os.Mkdir(child, 0o755)
-	os.Mkdir(filepath.Join(child, ".wolfcastle"), 0o755)
+	dir := setupTestDir(t, ".wolfcastle")
 
-	m := NewWelcomeModel(child, nil)
-	// Descend into "project"
-	m, _ = m.Update(enterKey())
-	// .wolfcastle should be visible
+	m := NewWelcomeModel(dir, nil)
+	// .wolfcastle should be visible in the starting dir
 	found := false
 	for i, e := range m.entries {
 		if e.Name() == ".wolfcastle" {
@@ -254,11 +238,11 @@ func TestEnterOnDotWolfcastle_StartsInit(t *testing.T) {
 }
 
 func TestInitCompleteMsg_Success(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	m.initializing = true
 
-	m, _ = m.Update(tui.InitCompleteMsg{Dir: child, Err: nil})
+	m, _ = m.Update(tui.InitCompleteMsg{Dir: dir, Err: nil})
 	if m.initializing {
 		t.Fatal("expected initializing=false after success")
 	}
@@ -268,12 +252,12 @@ func TestInitCompleteMsg_Success(t *testing.T) {
 }
 
 func TestInitCompleteMsg_Failure(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	m.initializing = true
 
 	testErr := errors.New("boom")
-	m, _ = m.Update(tui.InitCompleteMsg{Dir: child, Err: testErr})
+	m, _ = m.Update(tui.InitCompleteMsg{Dir: dir, Err: testErr})
 	if m.initializing {
 		t.Fatal("expected initializing=false")
 	}
@@ -285,8 +269,8 @@ func TestInitCompleteMsg_Failure(t *testing.T) {
 // ---------- Spinner ----------
 
 func TestSpinnerTickMsg_WhileInitializing(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	m.initializing = true
 	m.spinnerFrame = 0
 
@@ -300,8 +284,8 @@ func TestSpinnerTickMsg_WhileInitializing(t *testing.T) {
 }
 
 func TestSpinnerTickMsg_WhileNotInitializing(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	m.initializing = false
 
 	m, cmd := m.Update(tui.SpinnerTickMsg{})
@@ -316,8 +300,8 @@ func TestSpinnerTickMsg_WhileNotInitializing(t *testing.T) {
 // ---------- Window size ----------
 
 func TestWindowSizeMsg(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	if m.width != 120 || m.height != 40 {
@@ -326,8 +310,8 @@ func TestWindowSizeMsg(t *testing.T) {
 }
 
 func TestSetSize(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 
 	m.SetSize(100, 50)
 	if m.width != 100 || m.height != 50 {
@@ -338,8 +322,8 @@ func TestSetSize(t *testing.T) {
 // ---------- View rendering ----------
 
 func TestView_ShowsTitle(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	m.SetSize(80, 24)
 
 	view := m.View()
@@ -349,8 +333,8 @@ func TestView_ShowsTitle(t *testing.T) {
 }
 
 func TestView_ShowsTreeConnectors(t *testing.T) {
-	_, child := setupTestDir(t, "bbb", "aaa", "ccc")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "aaa", "bbb", "ccc")
+	m := NewWelcomeModel(dir, nil)
 	m.SetSize(80, 24)
 
 	view := m.View()
@@ -360,8 +344,8 @@ func TestView_ShowsTreeConnectors(t *testing.T) {
 }
 
 func TestView_WithError(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	m.SetSize(80, 24)
 	m.err = errors.New("test error")
 
@@ -372,8 +356,8 @@ func TestView_WithError(t *testing.T) {
 }
 
 func TestView_WhileInitializing(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	m.SetSize(80, 24)
 	m.initializing = true
 
@@ -384,24 +368,22 @@ func TestView_WhileInitializing(t *testing.T) {
 }
 
 func TestView_EmptyDir_ShowsHint(t *testing.T) {
-	parent := t.TempDir()
-	child := filepath.Join(parent, "empty")
-	os.Mkdir(child, 0o755)
+	dir := setupTestDir(t, "empty")
 
-	m := NewWelcomeModel(child, nil)
+	m := NewWelcomeModel(dir, nil)
 	// Descend into empty
 	m, _ = m.Update(enterKey())
 	m.SetSize(80, 24)
 
 	view := m.View()
-	if !strings.Contains(view, "empty directory") {
-		t.Fatal("expected empty directory hint")
+	if !strings.Contains(view, "no subdirectories") {
+		t.Fatal("expected 'no subdirectories' hint")
 	}
 }
 
 func TestView_WithEntries_ShowsDirNames(t *testing.T) {
-	_, child := setupTestDir(t, "target", "alpha", "beta")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "alpha", "beta", "target")
+	m := NewWelcomeModel(dir, nil)
 	m.SetSize(80, 24)
 
 	view := m.View()
@@ -414,8 +396,8 @@ func TestView_WithEntries_ShowsDirNames(t *testing.T) {
 }
 
 func TestView_SelectedEntryHasMarker(t *testing.T) {
-	_, child := setupTestDir(t, "target", "other")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target", "other")
+	m := NewWelcomeModel(dir, nil)
 	m.SetSize(80, 24)
 
 	view := m.View()
@@ -425,8 +407,8 @@ func TestView_SelectedEntryHasMarker(t *testing.T) {
 }
 
 func TestView_KeyHints(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	m.SetSize(80, 24)
 
 	view := m.View()
@@ -438,16 +420,14 @@ func TestView_KeyHints(t *testing.T) {
 // ---------- Filtering ----------
 
 func TestHiddenDirsFiltered_ExceptWolfcastle(t *testing.T) {
-	parent := t.TempDir()
-	os.Mkdir(filepath.Join(parent, ".git"), 0o755)
-	os.Mkdir(filepath.Join(parent, ".hidden"), 0o755)
-	os.Mkdir(filepath.Join(parent, ".wolfcastle"), 0o755)
-	os.Mkdir(filepath.Join(parent, "visible"), 0o755)
-	child := filepath.Join(parent, "visible")
+	dir := t.TempDir()
+	os.Mkdir(filepath.Join(dir, ".git"), 0o755)
+	os.Mkdir(filepath.Join(dir, ".hidden"), 0o755)
+	os.Mkdir(filepath.Join(dir, ".wolfcastle"), 0o755)
+	os.Mkdir(filepath.Join(dir, "visible"), 0o755)
 
-	m := NewWelcomeModel(child, nil)
+	m := NewWelcomeModel(dir, nil)
 
-	// m is in parent, should see .wolfcastle and visible
 	names := entryNames(m.entries)
 	if len(names) != 2 {
 		t.Fatalf("expected 2 entries, got %d: %v", len(names), names)
@@ -458,14 +438,12 @@ func TestHiddenDirsFiltered_ExceptWolfcastle(t *testing.T) {
 }
 
 func TestOnlyDirsShown_NoFiles(t *testing.T) {
-	parent := t.TempDir()
-	os.Mkdir(filepath.Join(parent, "subdir"), 0o755)
-	os.WriteFile(filepath.Join(parent, "file.txt"), []byte("hello"), 0o644)
-	child := filepath.Join(parent, "subdir")
+	dir := t.TempDir()
+	os.Mkdir(filepath.Join(dir, "subdir"), 0o755)
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0o644)
 
-	m := NewWelcomeModel(child, nil)
+	m := NewWelcomeModel(dir, nil)
 
-	// In parent, should see only subdir
 	if len(m.entries) != 1 {
 		t.Fatalf("expected 1 dir entry, got %d: %v", len(m.entries), entryNames(m.entries))
 	}
@@ -477,8 +455,8 @@ func TestOnlyDirsShown_NoFiles(t *testing.T) {
 // ---------- Quit ----------
 
 func TestQuitKey(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 
 	_, cmd := m.Update(quitKey())
 	if cmd == nil {
@@ -491,8 +469,8 @@ func TestQuitKey(t *testing.T) {
 }
 
 func TestQuitKey_DuringInit(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	m.initializing = true
 
 	_, cmd := m.Update(quitKey())
@@ -502,8 +480,8 @@ func TestQuitKey_DuringInit(t *testing.T) {
 }
 
 func TestKeysSwallowedDuringInit(t *testing.T) {
-	_, child := setupTestDir(t, "aaa", "bbb", "ccc")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "aaa", "bbb", "ccc")
+	m := NewWelcomeModel(dir, nil)
 	m.initializing = true
 	startCursor := m.dirCursor
 
@@ -516,15 +494,13 @@ func TestKeysSwallowedDuringInit(t *testing.T) {
 // ---------- Scrolling ----------
 
 func TestScrolling(t *testing.T) {
-	parent := t.TempDir()
+	dir := t.TempDir()
 	for i := range 25 {
 		name := "d" + strings.Repeat("0", 2-len(intStr(i))) + intStr(i)
-		os.Mkdir(filepath.Join(parent, name), 0o755)
+		os.Mkdir(filepath.Join(dir, name), 0o755)
 	}
-	// Pass one of the dirs as the "child"
-	child := filepath.Join(parent, "d00")
 
-	m := NewWelcomeModel(child, nil)
+	m := NewWelcomeModel(dir, nil)
 	if len(m.entries) != 25 {
 		t.Fatalf("expected 25 entries, got %d", len(m.entries))
 	}
@@ -544,14 +520,13 @@ func TestScrolling(t *testing.T) {
 }
 
 func TestView_ScrollIndicators(t *testing.T) {
-	parent := t.TempDir()
+	dir := t.TempDir()
 	for i := range 25 {
 		name := "d" + strings.Repeat("0", 2-len(intStr(i))) + intStr(i)
-		os.Mkdir(filepath.Join(parent, name), 0o755)
+		os.Mkdir(filepath.Join(dir, name), 0o755)
 	}
-	child := filepath.Join(parent, "d00")
 
-	m := NewWelcomeModel(child, nil)
+	m := NewWelcomeModel(dir, nil)
 	m.SetSize(80, 40)
 
 	// Jump to bottom so we have "more above"
@@ -565,8 +540,8 @@ func TestView_ScrollIndicators(t *testing.T) {
 // ---------- Unknown message ----------
 
 func TestUnknownMsg_NoOp(t *testing.T) {
-	_, child := setupTestDir(t, "target")
-	m := NewWelcomeModel(child, nil)
+	dir := setupTestDir(t, "target")
+	m := NewWelcomeModel(dir, nil)
 	origCursor := m.dirCursor
 	origDir := m.currentDir
 

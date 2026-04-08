@@ -66,18 +66,15 @@ func NewWelcomeModel(startDir string, instances []instance.Entry) WelcomeModel {
 		abs = startDir
 	}
 
-	parent := filepath.Dir(abs)
-	baseName := filepath.Base(abs)
-
 	m := WelcomeModel{
-		currentDir: parent,
+		currentDir: abs,
 		instances:  instances,
 	}
 	m.loadDir()
 
-	// Pre-select CWD in the parent listing.
+	// Pre-select the first entry.
 	for i, e := range m.entries {
-		if e.Name() == baseName {
+		if e.Name() == ".wolfcastle" {
 			m.dirCursor = i
 			m.scrollIntoCursor()
 			break
@@ -496,9 +493,9 @@ func (m WelcomeModel) renderDirBrowser() string {
 			b.WriteString("\n")
 		}
 	} else {
-		b.WriteString(subtitleStyle.Render("  (empty directory)"))
+		b.WriteString(subtitleStyle.Render("  (no subdirectories)"))
 		b.WriteString("\n")
-		b.WriteString(subtitleStyle.Render("  Press Enter to initialize wolfcastle here,"))
+		b.WriteString(subtitleStyle.Render("  Press I to initialize wolfcastle here,"))
 		b.WriteString("\n")
 		b.WriteString(subtitleStyle.Render("  or h/← to go up."))
 	}
