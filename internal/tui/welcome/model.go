@@ -505,11 +505,23 @@ func (m WelcomeModel) renderDirBrowser() string {
 
 func (m WelcomeModel) renderHints() string {
 	hintStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
-	hints := "[j/k] navigate  [Enter] select  [I] init here  [h] back  [q] quit"
-	if len(m.instances) > 0 {
-		hints = "[Tab] panel  [j/k] navigate  [Enter] select  [I] init here  [h] back  [q] quit"
+	dir := filepath.Base(m.currentDir)
+	if dir == "" || dir == "/" {
+		dir = m.currentDir
 	}
-	return hintStyle.Render(hints)
+
+	var parts []string
+	if len(m.instances) > 0 {
+		parts = append(parts, "[Tab] panel")
+	}
+	parts = append(parts,
+		"[↑/↓] navigate",
+		"[Enter/l] open",
+		"[h/←] back",
+		fmt.Sprintf("[I] init %s", dir),
+		"[q] quit",
+	)
+	return hintStyle.Render(strings.Join(parts, "  "))
 }
 
 func (m WelcomeModel) visibleEntries() []os.DirEntry {
