@@ -342,12 +342,28 @@ func (m WelcomeModel) View() string {
 
 	// Sessions panel
 	if len(m.instances) > 0 {
-		b.WriteString(m.renderSessions())
-		b.WriteString("\n\n")
+		sessionsBorder := lipgloss.RoundedBorder()
+		sessionsStyle := lipgloss.NewStyle().
+			Border(sessionsBorder).
+			BorderForeground(tui.ColorDimGray).
+			Padding(0, 1)
+		if m.focus == panelSessions {
+			sessionsStyle = sessionsStyle.BorderForeground(tui.ColorRed)
+		}
+		b.WriteString(sessionsStyle.Render(m.renderSessions()))
+		b.WriteString("\n")
 	}
 
 	// Directory browser panel
-	b.WriteString(m.renderDirBrowser())
+	dirBorder := lipgloss.RoundedBorder()
+	dirStyle := lipgloss.NewStyle().
+		Border(dirBorder).
+		BorderForeground(tui.ColorDimGray).
+		Padding(0, 1)
+	if m.focus == panelDirs {
+		dirStyle = dirStyle.BorderForeground(tui.ColorRed)
+	}
+	b.WriteString(dirStyle.Render(m.renderDirBrowser()))
 
 	// Error
 	if m.err != nil {
