@@ -41,14 +41,12 @@ func TestViewTabBarWideTerminal(t *testing.T) {
 	view := m.View()
 	lines := strings.Split(view, "\n")
 
-	// Padded view with tab bar:
-	// blankTop, line1, line2, tabBar, blankBot = 5 lines
-	if len(lines) != 5 {
-		t.Fatalf("expected 5 lines (padded with tab bar), got %d:\n%s", len(lines), view)
+	// View with tab bar: line1, line2, tabBar = 3 lines.
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 lines (with tab bar), got %d:\n%s", len(lines), view)
 	}
 
-	// Tab bar is at index 3 (blankTop, line1, line2, tabBar).
-	tabLine := lines[3]
+	tabLine := lines[2]
 	if !strings.Contains(tabLine, "feat/auth") {
 		t.Errorf("tab bar missing feat/auth: %q", tabLine)
 	}
@@ -68,9 +66,9 @@ func TestViewNoTabBarNarrowTerminal(t *testing.T) {
 	view := m.View()
 	lines := strings.Split(view, "\n")
 
-	// Padded view: blankTop, line1, line2, blankBot = 4 lines.
-	if len(lines) != 4 {
-		t.Errorf("expected 4 lines (padded, no tab bar), got %d:\n%s", len(lines), view)
+	// Two lines: line1, line2.
+	if len(lines) != 2 {
+		t.Errorf("expected 2 lines (no tab bar), got %d:\n%s", len(lines), view)
 	}
 
 	// Should still show the instance badge.
@@ -89,11 +87,10 @@ func TestActiveInstanceMarker(t *testing.T) {
 
 	view := m.View()
 	lines := strings.Split(view, "\n")
-	if len(lines) != 5 {
-		t.Fatalf("expected 5 lines, got %d", len(lines))
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 lines, got %d", len(lines))
 	}
-	// Tab bar is at index 3 (blankTop, line1, line2, tabBar, blankBot).
-	tabLine := lines[3]
+	tabLine := lines[2]
 
 	// Active instance (index 0, feat/auth) should have the ● marker.
 	if !strings.Contains(tabLine, "●") {
@@ -139,9 +136,8 @@ func TestViewNarrowTerminal(t *testing.T) {
 	m.SetSize(30) // < 40 triggers single-line mode
 	view := m.View()
 	lines := strings.Split(view, "\n")
-	// Padded narrow: blankTop, line1, blankBot = 3 lines.
-	if len(lines) != 3 {
-		t.Errorf("expected 3 lines for padded narrow terminal, got %d", len(lines))
+	if len(lines) != 1 {
+		t.Errorf("expected 1 line for narrow terminal, got %d", len(lines))
 	}
 }
 
@@ -323,11 +319,10 @@ func TestRenderTabBarSingleInstance(t *testing.T) {
 	}, 0)
 
 	// With only 1 instance, View should NOT produce a tab bar line.
-	// Padded: blankTop, line1, line2, blankBot = 4 lines.
 	view := m.View()
 	lines := strings.Split(view, "\n")
-	if len(lines) != 4 {
-		t.Errorf("single instance should produce 4 lines (no tab bar), got %d", len(lines))
+	if len(lines) != 2 {
+		t.Errorf("single instance should produce 2 lines (no tab bar), got %d", len(lines))
 	}
 }
 
