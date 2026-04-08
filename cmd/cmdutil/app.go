@@ -109,6 +109,7 @@ func (a *App) initFromInstance() (string, error) {
 		for _, inst := range instances {
 			lines = append(lines, fmt.Sprintf("  %s (%s, PID %d)", inst.Branch, inst.Worktree, inst.PID))
 		}
+		//nolint:staticcheck // user-facing CLI guidance, multi-sentence
 		return "", fmt.Errorf(
 			"no .wolfcastle directory found and no running instance owns this directory.\n\n"+
 				"Running instances:\n%s\n\n"+
