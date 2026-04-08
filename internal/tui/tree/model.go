@@ -270,6 +270,13 @@ func (m *TreeModel) SetSearchMatches(matches map[int]bool) {
 	m.searchMatches = matches
 }
 
+// SearchMatches returns the row-index → highlighted map. Read-only
+// accessor used by wiring smoke tests to assert that stale highlight
+// state is not retained across operations like fold/unfold.
+func (m *TreeModel) SearchMatches() map[int]bool {
+	return m.searchMatches
+}
+
 // Reset collapses all expanded nodes, clears the cursor back to row 0,
 // and rebuilds the flat list. Used when switching instances so the tree
 // doesn't carry stale expand state from the previous project.
