@@ -322,6 +322,16 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Esc clears persistent search highlights when the search
+		// bar is inactive but matches were left highlighted from a
+		// prior Confirm. The user can keep typing into the tree
+		// without dragging the old highlights along forever.
+		if msg.String() == "esc" && !m.search.IsActive() && (m.search.HasMatches() || m.tree.HasSearchHighlights()) {
+			m.search.Dismiss()
+			m.tree.SetSearchAddresses(nil, nil)
+			return m, nil
+		}
+
 		// Esc in detail pane (non-dashboard mode) returns to dashboard.
 		if msg.String() == "esc" && m.focused == PaneDetail && m.detail.Mode() != detail.ModeDashboard {
 			m.detail.SwitchToDashboard()
@@ -918,7 +928,7 @@ func (m *TUIModel) computeTreeSearchMatches() {
 	query := strings.ToLower(m.search.Query())
 	if query == "" {
 		m.search.SetMatches(nil)
-		m.tree.SetSearchMatches(nil)
+		m.tree.SetSearchAddresses(nil, nil)
 		return
 	}
 
@@ -928,16 +938,66 @@ func (m *TUIModel) computeTreeSearchMatches() {
 		return
 	}
 
+	// Walk the full tree (root index plus per-leaf cached node states)
+	// rather than the visible flat list. This is the structural change
+	// that lets search find tasks in collapsed leaves and that lets
+	// match highlights survive collapse/expand operations: matches are
+	// keyed by tree address, not by flat-list row index, and the
+	// highlight set is computed from the index even when the matching
+	// rows are not currently visible.
+	idx := m.tree.Index()
+	if idx == nil {
+		m.search.SetMatches(nil)
+		m.tree.SetSearchAddresses(nil, nil)
+		return
+	}
+
+	literal := make(map[string]bool)
 	var matches []search.SearchMatch
-	highlights := make(map[int]bool)
-	for i, row := range m.tree.FlatList() {
-		if strings.Contains(strings.ToLower(row.Name), query) {
-			matches = append(matches, search.SearchMatch{Row: i})
-			highlights[i] = true
+
+	for addr, entry := range idx.Nodes {
+		if strings.Contains(strings.ToLower(entry.Name), query) {
+			literal[addr] = true
+			matches = append(matches, search.SearchMatch{Address: addr})
+		}
+		if entry.Type != state.NodeLeaf {
+			continue
+		}
+		ns := m.tree.CachedNode(addr)
+		if ns == nil {
+			continue
+		}
+		for _, task := range ns.Tasks {
+			if strings.Contains(strings.ToLower(task.Title), query) {
+				taskAddr := addr + "/" + task.ID
+				literal[taskAddr] = true
+				matches = append(matches, search.SearchMatch{Address: taskAddr})
+			}
 		}
 	}
+
+	// Compute the ancestor closure: every address on the path from
+	// root down to a literal match. We strip trailing path segments
+	// one at a time and add each to the ancestor set, stopping at
+	// addresses that are themselves literal matches (those keep the
+	// stronger treatment via the literal set).
+	ancestor := make(map[string]bool)
+	for addr := range literal {
+		for {
+			slash := strings.LastIndex(addr, "/")
+			if slash < 0 {
+				break
+			}
+			addr = addr[:slash]
+			if literal[addr] {
+				continue
+			}
+			ancestor[addr] = true
+		}
+	}
+
 	m.search.SetMatches(matches)
-	m.tree.SetSearchMatches(highlights)
+	m.tree.SetSearchAddresses(literal, ancestor)
 }
 
 func (m *TUIModel) computeDetailSearchMatches(query string) {
@@ -950,7 +1010,7 @@ func (m *TUIModel) computeDetailSearchMatches(query string) {
 	}
 	m.search.SetMatches(matches)
 	// Clear tree highlights when searching detail.
-	m.tree.SetSearchMatches(nil)
+	m.tree.SetSearchAddresses(nil, nil)
 }
 
 func (m *TUIModel) jumpTreeToSearchMatch() {
@@ -958,7 +1018,33 @@ func (m *TUIModel) jumpTreeToSearchMatch() {
 	if !ok {
 		return
 	}
-	m.tree.SetCursor(match.Row)
+	// Address-keyed jumping. If the literal match is currently
+	// visible in the flat list, the cursor lands on it directly.
+	// If it isn't (the match is inside a collapsed branch), the
+	// cursor lands on the deepest visible ancestor on the path to
+	// the match. Pure-(a) search behavior: we never auto-expand
+	// during typing OR navigation; the user is expected to expand
+	// manually after seeing the highlighted path.
+	if match.Address == "" {
+		// Detail-pane match still uses Row.
+		m.tree.SetCursor(match.Row)
+		return
+	}
+	target := match.Address
+	for target != "" {
+		for i, row := range m.tree.FlatList() {
+			if row.Addr == target {
+				m.tree.SetCursor(i)
+				return
+			}
+		}
+		// Strip one segment and try again with the parent.
+		slash := strings.LastIndex(target, "/")
+		if slash < 0 {
+			return
+		}
+		target = target[:slash]
+	}
 }
 
 func (m TUIModel) handleCopy() tea.Cmd {
@@ -1345,6 +1431,13 @@ func (m *TUIModel) startWatcher() tea.Cmd {
 		if err := w.Start(); err != nil {
 			w.StartPolling()
 		}
+		// Eagerly walk the index, populate the per-leaf cache, and
+		// add an fsnotify subscription for each leaf so the cache
+		// stays fresh as the daemon writes state.json updates.
+		// Without this, the per-task glyphs in the tree go stale
+		// the moment the daemon transitions a task, and search
+		// can't find tasks in unexpanded leaves.
+		_ = w.EagerPrefetchAndSubscribe()
 		m.watcher = w
 		return nil
 	}

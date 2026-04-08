@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -223,25 +224,110 @@ func (l *Logger) CurrentLogPath() string {
 	return l.file.Name()
 }
 
-// LatestLogFile returns the path to the most recent log file. Both
-// plain .jsonl and compressed .jsonl.gz files are considered, but
-// uncompressed files take precedence when iteration numbers match.
+// LatestLogFile returns the path to the most recent log file from
+// the daemon's exec stream specifically. Files are named
+// <NNNN>-<prefix>-<timestamp>.jsonl[.gz] where prefix is one of
+// exec, intake, inbox-init, etc. The exec stream is the canonical
+// "what is the daemon doing" log; intake and inbox-init are
+// administrative side-channels.
+//
+// Selection rules:
+//
+//  1. Among exec files, pick the one with the highest iteration
+//     number. Plain .jsonl files take precedence over .jsonl.gz at
+//     the same iteration (the .jsonl is the live, uncompressed file
+//     and the .gz is the rotated archive).
+//  2. If no exec files exist at all, fall back to lex-max across
+//     all log files. This preserves the old behavior for log dirs
+//     that contain only intake or inbox-init files (e.g. a daemon
+//     that has only ever processed inbox events and never run an
+//     execute iteration).
+//
+// The previous implementation used sort.Strings across all log
+// files, which fails for log dirs that contain a mix of
+// counter-prefixed traces because lex order is dominated by the
+// leading-digit width: with exec at 0279 and inbox-init at 10168,
+// "10168" sorts after "0279" and the wrong file wins.
 func LatestLogFile(logDir string) (string, error) {
 	entries, err := os.ReadDir(logDir)
 	if err != nil {
 		return "", fmt.Errorf("reading log directory: %w", err)
 	}
-	var logs []string
-	for _, e := range entries {
-		if !e.IsDir() && isLogFile(e.Name()) {
-			logs = append(logs, e.Name())
-		}
+
+	type execFile struct {
+		name      string
+		iteration int
+		gz        bool
 	}
-	if len(logs) == 0 {
+	var execs []execFile
+	var allLogs []string
+
+	for _, e := range entries {
+		if e.IsDir() || !isLogFile(e.Name()) {
+			continue
+		}
+		allLogs = append(allLogs, e.Name())
+		iter, prefix, ok := parseLogFilename(e.Name())
+		if !ok || prefix != "exec" {
+			continue
+		}
+		execs = append(execs, execFile{
+			name:      e.Name(),
+			iteration: iter,
+			gz:        strings.HasSuffix(e.Name(), ".gz"),
+		})
+	}
+
+	if len(execs) > 0 {
+		// Sort by iteration descending, plain .jsonl before .jsonl.gz
+		// at the same iteration.
+		sort.Slice(execs, func(i, j int) bool {
+			if execs[i].iteration != execs[j].iteration {
+				return execs[i].iteration > execs[j].iteration
+			}
+			return !execs[i].gz && execs[j].gz
+		})
+		return filepath.Join(logDir, execs[0].name), nil
+	}
+
+	if len(allLogs) == 0 {
 		return "", fmt.Errorf("no log files found")
 	}
-	sort.Strings(logs)
-	return filepath.Join(logDir, logs[len(logs)-1]), nil
+	sort.Strings(allLogs)
+	return filepath.Join(logDir, allLogs[len(allLogs)-1]), nil
+}
+
+// parseLogFilename pulls the iteration number and trace prefix out
+// of a log filename of the form <NNNN>-<prefix>-<timestamp>.jsonl[.gz].
+// Returns ok=false for filenames that don't fit the pattern.
+func parseLogFilename(name string) (iteration int, prefix string, ok bool) {
+	// Strip the .jsonl[.gz] suffix.
+	base := name
+	switch {
+	case strings.HasSuffix(base, ".jsonl.gz"):
+		base = strings.TrimSuffix(base, ".jsonl.gz")
+	case strings.HasSuffix(base, ".jsonl"):
+		base = strings.TrimSuffix(base, ".jsonl")
+	default:
+		return 0, "", false
+	}
+	// Split into <NNNN>-<prefix>-<timestamp>.
+	parts := strings.SplitN(base, "-", 3)
+	if len(parts) < 3 {
+		return 0, "", false
+	}
+	n, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, "", false
+	}
+	// The prefix may itself contain a hyphen (inbox-init), in which
+	// case parts[1] is "inbox" and parts[2] starts with "init-...".
+	// Detect this by checking whether parts[2] starts with "init-".
+	prefix = parts[1]
+	if prefix == "inbox" && strings.HasPrefix(parts[2], "init-") {
+		prefix = "inbox-init"
+	}
+	return n, prefix, true
 }
 
 // isLogFile returns true for .jsonl and .jsonl.gz filenames.

@@ -117,14 +117,81 @@ func (w *Watcher) Start() error {
 	// If a log file already exists, watch it for appended lines.
 	if latest, err := logging.LatestLogFile(w.logDir); err == nil {
 		w.logFile = latest
-		if info, err := os.Stat(latest); err == nil {
-			w.logOffset = info.Size()
-		}
 		_ = fsw.Add(latest)
+		// Emit the tail of the file so the LogViewModel has content
+		// to show the moment the user switches to the log view.
+		// LoadInitialLogTail also sets logOffset = file size so the
+		// next incremental read picks up from the current end of
+		// file, not from the beginning.
+		w.LoadInitialLogTail(defaultLogTailLines)
 	}
 
 	go w.loop()
 	return nil
+}
+
+// defaultLogTailLines is the number of lines the watcher loads from
+// the existing log file at startup. The LogViewModel has its own
+// 10000-line cap so any value below that just controls how much
+// historical context the user sees on first switch.
+const defaultLogTailLines = 500
+
+// LoadInitialLogTail reads the last maxLines from the currently
+// seeded w.logFile and emits them as a LogLinesMsg via the events
+// channel, then advances w.logOffset to the end of file so the next
+// incremental read produces only new content.
+//
+// Skips files ending in .jsonl.gz; the live exec log is always the
+// plain .jsonl (rotated archives are .gz). If the latest file is
+// gz-only because the daemon has stopped between iterations, we
+// emit nothing rather than feeding gzipped binary into the
+// LogViewModel's NDJSON parser.
+func (w *Watcher) LoadInitialLogTail(maxLines int) {
+	w.mu.Lock()
+	logFile := w.logFile
+	w.mu.Unlock()
+
+	if logFile == "" || strings.HasSuffix(logFile, ".gz") {
+		return
+	}
+
+	f, err := os.Open(logFile)
+	if err != nil {
+		return
+	}
+	defer func() { _ = f.Close() }()
+
+	info, err := f.Stat()
+	if err != nil {
+		return
+	}
+
+	// Read every complete line from the file. For multi-megabyte
+	// logs this is wasteful but the daemon's per-iteration log
+	// files cap out around a few hundred KB in practice. If that
+	// ever becomes a real concern, replace this with a backwards
+	// chunked read that stops once it has gathered maxLines.
+	scanner := bufio.NewScanner(f)
+	// Allow long NDJSON lines that contain embedded prompts.
+	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	// Trim to the last maxLines.
+	if maxLines > 0 && len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
+	}
+
+	w.mu.Lock()
+	w.logOffset = info.Size()
+	w.lineBuf = ""
+	w.mu.Unlock()
+
+	if len(lines) > 0 {
+		w.emit(LogLinesMsg{Lines: lines})
+	}
 }
 
 // loop reads fsnotify events and errors, feeding them through the
@@ -313,8 +380,12 @@ func (w *Watcher) StartPolling() {
 		}
 	}
 	if w.logFile != "" {
+		// Tail-load existing content so the LogViewModel has
+		// something to show on first switch even when the daemon
+		// isn't writing right now. LoadInitialLogTail also seeds
+		// logOffset to file size for incremental polling reads.
+		w.LoadInitialLogTail(defaultLogTailLines)
 		if info, err := os.Stat(w.logFile); err == nil {
-			w.logOffset = info.Size()
 			w.logFileSize = info.Size()
 		}
 	}
@@ -397,7 +468,9 @@ func (w *Watcher) pollTick() {
 }
 
 // AddNodeWatch adds an fsnotify watch on a specific node's state.json,
-// typically called when the user expands a node in the tree view.
+// typically called from EagerPrefetchAndSubscribe at startup so that
+// subsequent state.json rewrites by the daemon trigger NodeUpdatedMsg
+// events into the channel.
 func (w *Watcher) AddNodeWatch(addr string) {
 	if w.watcher == nil {
 		return
@@ -409,6 +482,51 @@ func (w *Watcher) AddNodeWatch(addr string) {
 	// Watch the directory rather than the file itself, since atomic
 	// writes create a new inode.
 	_ = w.watcher.Add(filepath.Dir(p))
+}
+
+// EagerPrefetchAndSubscribe walks every leaf in the store's index,
+// reads its NodeState from disk, emits a NodeUpdatedMsg per leaf
+// (populating the model's tree cache via the events channel), and
+// adds an fsnotify subscription for each leaf so subsequent state
+// rewrites by the daemon flow through the same channel.
+//
+// This is the bootstrap step that makes per-task state visible
+// without requiring the user to manually expand each leaf, and
+// keeps the cache fresh for the rest of the session via fsnotify.
+// Failures to read individual leaves are tolerated: a corrupt or
+// in-flight state.json is logged-and-skipped, and the next watcher
+// event will retry on its own.
+//
+// Safe to call before or after Start/StartPolling. When called
+// before fsnotify init, the AddNodeWatch calls become no-ops and
+// only the eager-load half runs; when called after, both halves
+// run as intended.
+func (w *Watcher) EagerPrefetchAndSubscribe() error {
+	if w.store == nil {
+		return fmt.Errorf("watcher: store is nil")
+	}
+	idx, err := w.store.ReadIndex()
+	if err != nil {
+		return fmt.Errorf("reading index: %w", err)
+	}
+	if idx == nil {
+		return nil
+	}
+	for addr, entry := range idx.Nodes {
+		if entry.Type != state.NodeLeaf {
+			continue
+		}
+		node, err := w.store.ReadNode(addr)
+		if err != nil {
+			// Skip leaves whose state files are missing or corrupt.
+			// The next fsnotify event will retry on its own once
+			// the daemon writes a clean version.
+			continue
+		}
+		w.emit(NodeUpdatedMsg{Address: addr, Node: node})
+		w.AddNodeWatch(addr)
+	}
+	return nil
 }
 
 // RemoveNodeWatch removes the fsnotify watch for a node's state directory,

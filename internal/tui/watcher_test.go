@@ -1,8 +1,11 @@
 package tui
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -817,5 +820,401 @@ func TestPollTick_DeliversLogLinesThroughChannel(t *testing.T) {
 	}
 	if logMsg.Lines[0] != `{"level":"info","msg":"hello"}` {
 		t.Errorf("unexpected log line content: %q", logMsg.Lines[0])
+	}
+}
+
+// ---------------------------------------------------------------------------
+// EagerPrefetchAndSubscribe — covers the cache-freshness fix
+// ---------------------------------------------------------------------------
+//
+// These tests are the unit-level companion to the wiring smoke test
+// in internal/tui/app/wiring_smoke_test.go. The smoke test proves
+// the end-to-end path from watcher startup to rendered tree row is
+// wired correctly. These tests pin down the EagerPrefetch helper in
+// isolation so a future regression in just one branch (corrupt
+// file, missing store, etc.) is caught directly without having to
+// dig through the rendered output.
+
+// TestEagerPrefetchAndSubscribe_PopulatesCache writes a real index
+// with two leaves and a real state.json for each. After the eager
+// walk, the events channel must hold a NodeUpdatedMsg for each leaf
+// with content matching the on-disk file.
+func TestEagerPrefetchAndSubscribe_PopulatesCache(t *testing.T) {
+	tmp := t.TempDir()
+	store := newPopulatedStoreForTest(t, tmp, map[string][]testTask{
+		"alpha": {
+			{ID: "task-0001", Title: "first", State: state.StatusInProgress},
+		},
+		"beta": {
+			{ID: "task-0001", Title: "second", State: state.StatusComplete},
+		},
+	})
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, "", "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	if err := w.EagerPrefetchAndSubscribe(); err != nil {
+		t.Fatalf("EagerPrefetchAndSubscribe: %v", err)
+	}
+
+	seen := map[string]bool{}
+	for i := 0; i < 4 && len(seen) < 2; i++ {
+		msg := next()
+		envelope, ok := msg.(WatcherMsg)
+		if !ok {
+			continue
+		}
+		nu, ok := envelope.Inner.(NodeUpdatedMsg)
+		if !ok {
+			continue
+		}
+		seen[nu.Address] = true
+		if nu.Node == nil {
+			t.Errorf("event for %q carried nil node", nu.Address)
+		}
+	}
+	if !seen["alpha"] || !seen["beta"] {
+		t.Errorf("expected NodeUpdatedMsg for both alpha and beta, got %v", seen)
+	}
+}
+
+// TestEagerPrefetchAndSubscribe_SkipsCorruptLeaves: one leaf has
+// invalid JSON. The walk must skip it cleanly and emit events for
+// the other leaves.
+func TestEagerPrefetchAndSubscribe_SkipsCorruptLeaves(t *testing.T) {
+	tmp := t.TempDir()
+	store := newPopulatedStoreForTest(t, tmp, map[string][]testTask{
+		"alpha": {{ID: "task-0001", Title: "good", State: state.StatusComplete}},
+		"beta":  {{ID: "task-0001", Title: "good", State: state.StatusComplete}},
+	})
+	alphaPath, err := store.NodePath("alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(alphaPath, []byte("not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, "", "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	if err := w.EagerPrefetchAndSubscribe(); err != nil {
+		t.Errorf("EagerPrefetchAndSubscribe should tolerate corrupt leaves, got: %v", err)
+	}
+
+	betaSeen := false
+	for i := 0; i < 4; i++ {
+		msg := next()
+		envelope, ok := msg.(WatcherMsg)
+		if !ok {
+			continue
+		}
+		nu, ok := envelope.Inner.(NodeUpdatedMsg)
+		if !ok {
+			continue
+		}
+		if nu.Address == "beta" {
+			betaSeen = true
+			break
+		}
+		if nu.Address == "alpha" {
+			t.Errorf("alpha should have been skipped (corrupt state.json), but a NodeUpdatedMsg was emitted for it")
+		}
+	}
+	if !betaSeen {
+		t.Error("beta NodeUpdatedMsg was not emitted; corrupt-leaf handling broke the loop")
+	}
+}
+
+// TestEagerPrefetchAndSubscribe_NilStore is the defensive guard.
+func TestEagerPrefetchAndSubscribe_NilStore(t *testing.T) {
+	w := NewWatcher(nil, "", "", nil)
+	if err := w.EagerPrefetchAndSubscribe(); err == nil {
+		t.Error("expected error from EagerPrefetchAndSubscribe with nil store")
+	}
+}
+
+// TestEagerPrefetchAndSubscribe_AddsFsnotifySubscriptions is the
+// integration assertion for the AddNodeWatch wiring. After eager
+// prefetch, modifying a leaf's state.json on disk must fire a
+// fsnotify event delivered as a NodeUpdatedMsg. Without the
+// AddNodeWatch call inside EagerPrefetchAndSubscribe, fsnotify is
+// not subscribed to per-node directories and the modification goes
+// unnoticed.
+func TestEagerPrefetchAndSubscribe_AddsFsnotifySubscriptions(t *testing.T) {
+	tmp := t.TempDir()
+	store := newPopulatedStoreForTest(t, tmp, map[string][]testTask{
+		"alpha": {{ID: "task-0001", Title: "first", State: state.StatusNotStarted}},
+	})
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, "", "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	if err := w.EagerPrefetchAndSubscribe(); err != nil {
+		t.Fatalf("EagerPrefetchAndSubscribe: %v", err)
+	}
+
+	// Drain the initial NodeUpdatedMsg from the eager walk.
+	_ = next()
+
+	alphaPath, err := store.NodePath("alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeLeafState(t, alphaPath, []testTask{
+		{ID: "task-0001", Title: "first", State: state.StatusInProgress},
+	})
+
+	got := next()
+	envelope, ok := got.(WatcherMsg)
+	if !ok {
+		t.Fatalf("expected WatcherMsg from fsnotify, got %T", got)
+	}
+	nu, ok := envelope.Inner.(NodeUpdatedMsg)
+	if !ok {
+		t.Fatalf("expected NodeUpdatedMsg, got %T", envelope.Inner)
+	}
+	if nu.Address != "alpha" {
+		t.Errorf("expected event for alpha, got %q", nu.Address)
+	}
+	if nu.Node == nil || len(nu.Node.Tasks) == 0 || nu.Node.Tasks[0].State != state.StatusInProgress {
+		t.Errorf("event did not carry the new in_progress state; node = %+v", nu.Node)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Test helpers for the eager-prefetch tests
+// ---------------------------------------------------------------------------
+
+type testTask struct {
+	ID    string
+	Title string
+	State state.NodeStatus
+}
+
+// newPopulatedStoreForTest creates a state.Store rooted at tmp with
+// a real root index containing one leaf entry per key in leafTasks,
+// and writes a real state.json for each leaf with the given tasks.
+func newPopulatedStoreForTest(t *testing.T, tmp string, leafTasks map[string][]testTask) *state.Store {
+	t.Helper()
+	store := state.NewStore(tmp, time.Second)
+
+	idx := &state.RootIndex{
+		Version: 1,
+		Nodes:   make(map[string]state.IndexEntry),
+	}
+	for addr := range leafTasks {
+		idx.Root = append(idx.Root, addr)
+		idx.Nodes[addr] = state.IndexEntry{
+			Name:    addr,
+			Type:    state.NodeLeaf,
+			State:   state.StatusInProgress,
+			Address: addr,
+		}
+	}
+	if err := store.MutateIndex(func(ri *state.RootIndex) error {
+		*ri = *idx
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	for addr, tasks := range leafTasks {
+		nodePath, err := store.NodePath(addr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.MkdirAll(filepath.Dir(nodePath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeLeafState(t, nodePath, tasks)
+	}
+	return store
+}
+
+// writeLeafState marshals a NodeState with the given tasks and
+// writes it to the path. Used for both initial setup and the
+// fsnotify-driven update test.
+func writeLeafState(t *testing.T, path string, tasks []testTask) *state.NodeState {
+	t.Helper()
+	stateTasks := make([]state.Task, 0, len(tasks))
+	for _, task := range tasks {
+		stateTasks = append(stateTasks, state.Task{
+			ID:    task.ID,
+			Title: task.Title,
+			State: task.State,
+		})
+	}
+	ns := &state.NodeState{
+		Version: 1,
+		ID:      filepath.Base(filepath.Dir(path)),
+		Name:    filepath.Base(filepath.Dir(path)),
+		Type:    state.NodeLeaf,
+		State:   state.StatusInProgress,
+		Tasks:   stateTasks,
+	}
+	data, err := json.Marshal(ns)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return ns
+}
+
+// ---------------------------------------------------------------------------
+// LoadInitialLogTail — covers the #4b fix
+// ---------------------------------------------------------------------------
+
+// TestLoadInitialLogTail_EmitsExistingContent stages a real log
+// file with several NDJSON lines, points the watcher at it, and
+// asserts a LogLinesMsg arrives in the events channel containing
+// the existing lines. Without the fix, the watcher seeded
+// logOffset = file size and emitted nothing on startup.
+func TestLoadInitialLogTail_EmitsExistingContent(t *testing.T) {
+	tmp := t.TempDir()
+	logDir := filepath.Join(tmp, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	logFile := filepath.Join(logDir, "0001-exec-20260408T07-30Z.jsonl")
+	content := []byte(`{"level":"info","msg":"line one"}` + "\n" +
+		`{"level":"info","msg":"line two"}` + "\n" +
+		`{"level":"warn","msg":"line three"}` + "\n")
+	if err := os.WriteFile(logFile, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stub a store so the watcher constructs cleanly. The test
+	// doesn't exercise per-node state, only the log path.
+	store := state.NewStore(tmp, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, logDir, "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	got := next()
+	envelope, ok := got.(WatcherMsg)
+	if !ok {
+		t.Fatalf("expected WatcherMsg, got %T", got)
+	}
+	logMsg, ok := envelope.Inner.(LogLinesMsg)
+	if !ok {
+		t.Fatalf("expected LogLinesMsg, got %T", envelope.Inner)
+	}
+	if len(logMsg.Lines) != 3 {
+		t.Errorf("expected 3 tail-loaded lines, got %d: %v", len(logMsg.Lines), logMsg.Lines)
+	}
+	if len(logMsg.Lines) >= 1 && logMsg.Lines[0] != `{"level":"info","msg":"line one"}` {
+		t.Errorf("first tail-loaded line content mismatch: %q", logMsg.Lines[0])
+	}
+}
+
+// TestLoadInitialLogTail_TrimsToMaxLines verifies that a file with
+// more than maxLines is trimmed to the last maxLines, not the first.
+func TestLoadInitialLogTail_TrimsToMaxLines(t *testing.T) {
+	tmp := t.TempDir()
+	logDir := filepath.Join(tmp, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	logFile := filepath.Join(logDir, "0001-exec-20260408T07-30Z.jsonl")
+
+	// Write 1000 lines.
+	var content []byte
+	for i := 0; i < 1000; i++ {
+		content = append(content, []byte(fmt.Sprintf(`{"n":%d}`+"\n", i))...)
+	}
+	if err := os.WriteFile(logFile, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	store := state.NewStore(tmp, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, logDir, "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	got := next()
+	envelope := got.(WatcherMsg)
+	logMsg := envelope.Inner.(LogLinesMsg)
+	if len(logMsg.Lines) != defaultLogTailLines {
+		t.Errorf("expected %d tail lines (defaultLogTailLines), got %d", defaultLogTailLines, len(logMsg.Lines))
+	}
+	// First line of tail should be the (1000 - 500)th = 500th
+	// (zero-indexed), so the JSON should contain `"n":500`.
+	if len(logMsg.Lines) > 0 && !strings.Contains(logMsg.Lines[0], `"n":500`) {
+		t.Errorf("tail should start at line 500, first line: %q", logMsg.Lines[0])
+	}
+}
+
+// TestLoadInitialLogTail_SkipsGzFiles confirms that the tail loader
+// silently skips .jsonl.gz files (the live log is always plain
+// .jsonl; .gz files are rotated archives).
+func TestLoadInitialLogTail_SkipsGzFiles(t *testing.T) {
+	tmp := t.TempDir()
+	logDir := filepath.Join(tmp, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Only an exec.jsonl.gz file (no live exec). LatestLogFile would
+	// fall back to lex-max which would still be the gz, so the
+	// watcher tries to tail-load it. The loader must skip rather than
+	// emit garbage.
+	gzFile := filepath.Join(logDir, "0001-exec-20260408T07-30Z.jsonl.gz")
+	if err := os.WriteFile(gzFile, []byte("not really gzipped"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	store := state.NewStore(tmp, time.Second)
+	if err := store.MutateIndex(func(*state.RootIndex) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	events := make(chan tea.Msg, 8)
+	w := NewWatcher(store, logDir, "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	// Non-blocking poll: expect zero events from the tail loader
+	// since it should have skipped the .gz file.
+	select {
+	case msg := <-events:
+		// State updates from the index file watch are fine; what
+		// would be wrong is a LogLinesMsg containing gzip garbage.
+		if envelope, ok := msg.(WatcherMsg); ok {
+			if _, ok := envelope.Inner.(LogLinesMsg); ok {
+				t.Errorf("tail loader should have skipped the .gz file, but emitted a LogLinesMsg: %v", envelope.Inner)
+			}
+		}
+	default:
+		// No event = expected.
 	}
 }
