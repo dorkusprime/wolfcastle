@@ -20,6 +20,9 @@ Examples:
   wolfcastle inbox add "refactor the auth middleware"
   wolfcastle inbox add "investigate flaky test in CI"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := resolveInstance(cmd, app); err != nil {
+				return err
+			}
 			if len(args) < 1 {
 				return fmt.Errorf("missing required argument: <idea>")
 			}

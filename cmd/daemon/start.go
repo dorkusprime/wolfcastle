@@ -17,6 +17,8 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
+	"github.com/dorkusprime/wolfcastle/internal/project"
 	"github.com/dorkusprime/wolfcastle/internal/signals"
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 	"github.com/dorkusprime/wolfcastle/internal/validate"
@@ -46,6 +48,17 @@ Examples:
 			worktreeBranch, _ := cmd.Flags().GetString("worktree")
 			verbose, _ := cmd.Flags().GetBool("verbose")
 			exitWhenDone, _ := cmd.Flags().GetBool("exit-when-done")
+
+			if err := resolveInstance(cmd, app); err != nil {
+				return err
+			}
+
+			// Worktree-aware tier regeneration: if .wolfcastle/ exists
+			// but the base config is missing, regenerate gitignored tiers
+			// before loading config.
+			if err := ensureTiers(app.Config.Root()); err != nil {
+				return fmt.Errorf("regenerating tiers: %w", err)
+			}
 
 			cfg, err := app.Config.Load()
 			if err != nil {
@@ -366,4 +379,54 @@ func confirmContinue() bool {
 		return false
 	}
 	return response == "y" || response == "Y" || response == "yes"
+}
+
+// ensureTiers checks whether the .wolfcastle directory has its gitignored
+// tiers in place. When .wolfcastle/ exists (tracked content present) but
+// system/base/config.json is missing, the base and local tiers are
+// regenerated from embedded templates and a fresh identity detection.
+// This handles the common worktree case: git checkout brings .wolfcastle/
+// with tracked files, but gitignored tiers (base, local, logs) need
+// rebuilding before the daemon can start.
+func ensureTiers(wcDir string) error {
+	baseCfg := filepath.Join(wcDir, tierfs.SystemPrefix, tierfs.TierNames[0], "config.json")
+	if _, err := os.Stat(baseCfg); err == nil {
+		return nil // base tier present, nothing to do
+	}
+
+	// .wolfcastle/ itself must exist; if it doesn't, the user needs
+	// to run wolfcastle init, not a tier regeneration.
+	if _, err := os.Stat(wcDir); err != nil {
+		return nil
+	}
+
+	output.PrintHuman("Regenerating missing tiers in %s", wcDir)
+
+	cfgRepo := config.NewRepository(wcDir)
+	promptRepo := pipeline.NewPromptRepository(wcDir)
+	svc := project.NewScaffoldService(cfgRepo, promptRepo, nil, wcDir)
+
+	if err := svc.Reinit(); err != nil {
+		return fmt.Errorf("tier regeneration: %w", err)
+	}
+
+	// Ensure logs and projects directories exist.
+	for _, dir := range []string{
+		filepath.Join(wcDir, tierfs.SystemPrefix, "logs"),
+		filepath.Join(wcDir, tierfs.SystemPrefix, "projects"),
+	} {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("creating directory %s: %w", dir, err)
+		}
+	}
+
+	// Create the namespace projects directory for the detected identity.
+	identity := config.DetectIdentity()
+	nsDir := identity.ProjectsDir(wcDir)
+	if err := os.MkdirAll(nsDir, 0755); err != nil {
+		return fmt.Errorf("creating namespace directory: %w", err)
+	}
+
+	output.PrintHuman("Tiers regenerated. Identity: %s", identity.Namespace)
+	return nil
 }

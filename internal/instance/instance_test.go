@@ -393,6 +393,175 @@ func TestIsProcessRunning_SelfPID(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Multi-instance scenarios
+// ---------------------------------------------------------------------------
+
+func TestTwoInstances_BothDiscoverableViaList(t *testing.T) {
+	dir := setup(t)
+	regDir := filepath.Join(dir, "instances")
+
+	worktreeA := filepath.Join(dir, "repo-alpha")
+	worktreeB := filepath.Join(dir, "repo-beta")
+	_ = os.MkdirAll(worktreeA, 0755)
+	_ = os.MkdirAll(worktreeB, 0755)
+
+	// Register both under the current PID (both "live").
+	if err := Register(worktreeA, "feat/alpha"); err != nil {
+		t.Fatalf("Register A: %v", err)
+	}
+	if err := Register(worktreeB, "feat/beta"); err != nil {
+		t.Fatalf("Register B: %v", err)
+	}
+
+	// Both files should exist in the registry.
+	for _, wt := range []string{worktreeA, worktreeB} {
+		slug := Slug(wt)
+		if _, err := os.Stat(filepath.Join(regDir, slug+".json")); err != nil {
+			t.Errorf("expected registry file for %s", wt)
+		}
+	}
+
+	entries, err := List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 live entries, got %d", len(entries))
+	}
+
+	// Both worktrees should appear.
+	worktrees := map[string]bool{}
+	for _, e := range entries {
+		worktrees[e.Worktree] = true
+	}
+	if !worktrees[worktreeA] {
+		t.Error("worktreeA missing from List()")
+	}
+	if !worktrees[worktreeB] {
+		t.Error("worktreeB missing from List()")
+	}
+}
+
+func TestResolve_MultipleInstances_CorrectByCWD(t *testing.T) {
+	dir := setup(t)
+	regDir := filepath.Join(dir, "instances")
+	_ = os.MkdirAll(regDir, 0755)
+
+	worktreeA := filepath.Join(dir, "repo-alpha")
+	worktreeB := filepath.Join(dir, "repo-beta")
+	_ = os.MkdirAll(worktreeA, 0755)
+	_ = os.MkdirAll(worktreeB, 0755)
+
+	for _, wt := range []struct {
+		path   string
+		branch string
+	}{
+		{worktreeA, "feat/alpha"},
+		{worktreeB, "feat/beta"},
+	} {
+		entry := Entry{
+			PID:       os.Getpid(),
+			Worktree:  wt.path,
+			Branch:    wt.branch,
+			StartedAt: time.Now().UTC(),
+		}
+		data, _ := json.Marshal(entry)
+		_ = os.WriteFile(filepath.Join(regDir, Slug(wt.path)+".json"), data, 0644)
+	}
+
+	// Resolve from worktreeA should find alpha.
+	gotA, err := Resolve(worktreeA)
+	if err != nil {
+		t.Fatalf("Resolve(A): %v", err)
+	}
+	if gotA.Branch != "feat/alpha" {
+		t.Errorf("expected feat/alpha, got %q", gotA.Branch)
+	}
+
+	// Resolve from worktreeB should find beta.
+	gotB, err := Resolve(worktreeB)
+	if err != nil {
+		t.Fatalf("Resolve(B): %v", err)
+	}
+	if gotB.Branch != "feat/beta" {
+		t.Errorf("expected feat/beta, got %q", gotB.Branch)
+	}
+}
+
+func TestResolve_ExplicitPathOverride(t *testing.T) {
+	dir := setup(t)
+	regDir := filepath.Join(dir, "instances")
+	_ = os.MkdirAll(regDir, 0755)
+
+	// Register instance at an "other repo" path.
+	otherRepo := filepath.Join(dir, "other-repo")
+	_ = os.MkdirAll(otherRepo, 0755)
+
+	entry := Entry{
+		PID:       os.Getpid(),
+		Worktree:  otherRepo,
+		Branch:    "feat/other",
+		StartedAt: time.Now().UTC(),
+	}
+	data, _ := json.Marshal(entry)
+	_ = os.WriteFile(filepath.Join(regDir, Slug(otherRepo)+".json"), data, 0644)
+
+	// Resolve with the explicit path (simulating --instance flag).
+	// The caller's CWD is irrelevant; Resolve uses the path argument.
+	got, err := Resolve(otherRepo)
+	if err != nil {
+		t.Fatalf("Resolve(otherRepo): %v", err)
+	}
+	if got.Branch != "feat/other" {
+		t.Errorf("expected feat/other, got %q", got.Branch)
+	}
+	if got.Worktree != otherRepo {
+		t.Errorf("expected worktree %q, got %q", otherRepo, got.Worktree)
+	}
+}
+
+func TestRegister_OverwritesStalEntry(t *testing.T) {
+	dir := setup(t)
+	regDir := filepath.Join(dir, "instances")
+	_ = os.MkdirAll(regDir, 0755)
+
+	worktree := filepath.Join(dir, "repo")
+	_ = os.MkdirAll(worktree, 0755)
+
+	// Write a stale entry for this worktree with a dead PID.
+	stale := Entry{
+		PID:       999999999,
+		Worktree:  worktree,
+		Branch:    "old-branch",
+		StartedAt: time.Now().Add(-1 * time.Hour).UTC(),
+	}
+	data, _ := json.Marshal(stale)
+	slug := Slug(worktree)
+	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), data, 0644)
+
+	// Register overwrites with the current (live) process.
+	if err := Register(worktree, "feat/new"); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	// Read back the file and verify it now has our PID.
+	raw, err := os.ReadFile(filepath.Join(regDir, slug+".json"))
+	if err != nil {
+		t.Fatalf("reading instance file: %v", err)
+	}
+	var got Entry
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("unmarshaling: %v", err)
+	}
+	if got.PID != os.Getpid() {
+		t.Errorf("PID = %d, want %d (stale entry was not overwritten)", got.PID, os.Getpid())
+	}
+	if got.Branch != "feat/new" {
+		t.Errorf("Branch = %q, want %q", got.Branch, "feat/new")
+	}
+}
+
 func TestIsSubpath(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
