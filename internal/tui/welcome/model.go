@@ -387,12 +387,12 @@ func (m WelcomeModel) View() string {
 		b.WriteString(errorStyle.Render(fmt.Sprintf("Init failed: %s", m.err)))
 	}
 
-	// Key hints in a matching panel, centered text
-	hintPanel := panelBase.
-		BorderForeground(tui.ColorDimGray).
+	// Key hints centered, same width as panels (border adds 4, so use innerWidth+4)
+	hintBox := lipgloss.NewStyle().
+		Width(innerWidth + 4).
 		Align(lipgloss.Center)
 	b.WriteString("\n")
-	b.WriteString(hintPanel.Render(m.renderHints()))
+	b.WriteString(hintBox.Render(m.renderHints()))
 
 	return m.place(b.String())
 }
