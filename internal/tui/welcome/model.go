@@ -348,16 +348,13 @@ func (m WelcomeModel) View() string {
 		return m.place(b.String())
 	}
 
-	// Compute a consistent panel width from the hints bar.
-	hints := m.renderHints()
-	panelWidth := lipgloss.Width(hints)
-	if panelWidth < 40 {
-		panelWidth = 40
+	// All panels share the same inner width, derived from terminal width.
+	innerWidth := m.width*2/3 - 4
+	if innerWidth < 40 {
+		innerWidth = 40
 	}
-	// Border + padding consume 4 chars (left border + pad + pad + right border).
-	innerWidth := panelWidth - 4
-	if innerWidth < 20 {
-		innerWidth = 20
+	if innerWidth > 80 {
+		innerWidth = 80
 	}
 
 	panelBase := lipgloss.NewStyle().
@@ -390,9 +387,12 @@ func (m WelcomeModel) View() string {
 		b.WriteString(errorStyle.Render(fmt.Sprintf("Init failed: %s", m.err)))
 	}
 
-	// Key hints
-	b.WriteString("\n\n")
-	b.WriteString(m.renderHints())
+	// Key hints in a matching panel, centered text
+	hintPanel := panelBase.
+		BorderForeground(tui.ColorDimGray).
+		Align(lipgloss.Center)
+	b.WriteString("\n")
+	b.WriteString(hintPanel.Render(m.renderHints()))
 
 	return m.place(b.String())
 }
@@ -512,19 +512,22 @@ func (m WelcomeModel) renderHints() string {
 
 	// Line 1: movement
 	var move []string
-	move = append(move, "[j/↓] down", "[k/↑] up", "[l/Enter] open", "[h/←] back", "[g/G] top/bottom")
+	move = append(move, "[j/↓] down", "[k/↑] up", "[h/←] back")
 	if len(m.instances) > 0 {
 		move = append(move, "[Tab] switch panel")
 	}
 
 	// Line 2: actions
 	actions := []string{
+		"[l/Enter] open",
 		fmt.Sprintf("[I] init %s", dir),
 		"[q] quit",
 	}
 
-	return hintStyle.Render(strings.Join(move, "  ")) + "\n" +
-		hintStyle.Render(strings.Join(actions, "  "))
+	line1 := strings.Join(move, "  ")
+	line2 := strings.Join(actions, "  ")
+
+	return hintStyle.Render(line1) + "\n" + hintStyle.Render(line2)
 }
 
 func (m WelcomeModel) visibleEntries() []os.DirEntry {
