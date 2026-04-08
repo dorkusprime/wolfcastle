@@ -14,8 +14,8 @@ type copyFlashExpiredMsg struct{}
 
 // FooterModel renders a single-line key-hint bar at the bottom of the TUI.
 type FooterModel struct {
-	focusedPane   int  // 0=PaneTree, 1=PaneDetail
-	detailMode    int  // 0=Dashboard, 1=NodeDetail, 2=TaskDetail, 3=LogStream, 4=Inbox
+	focusedPane   int // 0=PaneTree, 1=PaneDetail
+	detailMode    int // 0=Dashboard, 1=NodeDetail, 2=TaskDetail, 3=LogStream, 4=Inbox
 	daemonRunning bool
 	width         int
 	copyFlash     bool

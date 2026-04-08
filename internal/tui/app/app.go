@@ -81,8 +81,8 @@ type TUIModel struct {
 	prevIndex *state.RootIndex
 	prevNodes map[string]*state.NodeState
 
-	switching    bool // true while instance switch is in flight
-	switchLabel  string // label of the instance being switched to
+	switching   bool   // true while instance switch is in flight
+	switchLabel string // label of the instance being switched to
 
 	entryState  EntryState
 	store       *state.Store
@@ -93,10 +93,10 @@ type TUIModel struct {
 	watcher *tui.Watcher
 
 	// Instance tracking (Phase 3)
-	instances          []instance.Entry
+	instances           []instance.Entry
 	activeInstanceIndex int
-	daemonStarting     bool
-	daemonStopping     bool
+	daemonStarting      bool
+	daemonStopping      bool
 
 	errors []errorEntry
 }
@@ -1172,14 +1172,7 @@ func (m TUIModel) detectEntryState() tea.Cmd {
 
 // isProcessRunning checks if a PID is alive (signal 0).
 func isProcessRunning(pid int) bool {
-	if pid <= 0 {
-		return false
-	}
-	p, err := os.FindProcess(pid)
-	if err != nil {
-		return false
-	}
-	return p.Signal(syscall.Signal(0)) == nil
+	return isProcessAlive(pid)
 }
 
 // storeFromWolfcastleDir loads config and identity from a .wolfcastle
@@ -1323,7 +1316,7 @@ func (m *TUIModel) stopCurrentDaemon() tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+		if err := killProcess(pid, syscall.SIGTERM); err != nil {
 			return tui.DaemonStopFailedMsg{Err: fmt.Errorf("sending SIGTERM to PID %d: %w", pid, err)}
 		}
 		// Wait up to 5 seconds for the process to exit.
@@ -1349,7 +1342,7 @@ func (m *TUIModel) handleStopAll() tea.Cmd {
 	return func() tea.Msg {
 		var lastErr error
 		for _, inst := range instances {
-			if err := syscall.Kill(inst.PID, syscall.SIGTERM); err != nil {
+			if err := killProcess(inst.PID, syscall.SIGTERM); err != nil {
 				lastErr = fmt.Errorf("sending SIGTERM to PID %d: %w", inst.PID, err)
 			}
 		}

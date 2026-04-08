@@ -48,18 +48,18 @@ type TreeRow struct {
 
 // TreeModel is the sub-model that owns the project tree panel.
 type TreeModel struct {
-	index          *state.RootIndex
-	nodes          map[string]*state.NodeState
-	cacheExpiry    map[string]time.Time
-	flatList       []TreeRow
-	cursor         int
-	scrollTop      int
-	expanded       map[string]bool
-	focused        bool
-	width          int
-	height         int
-	currentTarget  string
-	searchMatches  map[int]bool
+	index         *state.RootIndex
+	nodes         map[string]*state.NodeState
+	cacheExpiry   map[string]time.Time
+	flatList      []TreeRow
+	cursor        int
+	scrollTop     int
+	expanded      map[string]bool
+	focused       bool
+	width         int
+	height        int
+	currentTarget string
+	searchMatches map[int]bool
 }
 
 // NewTreeModel returns an initialized TreeModel with empty maps.

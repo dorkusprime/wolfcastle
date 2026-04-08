@@ -44,10 +44,10 @@ type WelcomeModel struct {
 	sessionCursor int
 
 	// Directory browser panel
-	currentDir   string
-	entries      []os.DirEntry
-	dirCursor    int
-	scrollTop    int
+	currentDir string
+	entries    []os.DirEntry
+	dirCursor  int
+	scrollTop  int
 
 	// Shared
 	focus        focusPanel

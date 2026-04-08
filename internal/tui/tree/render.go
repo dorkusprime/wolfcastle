@@ -11,14 +11,14 @@ import (
 
 // Colors and styles for the tree view.
 var (
-	colorSelected   = lipgloss.Color("236") // dark gray background
-	colorNormal     = lipgloss.Color("252") // light gray text
-	colorGreen      = lipgloss.Color("2")
-	colorYellow     = lipgloss.Color("3")
-	colorRed        = lipgloss.Color("1")
-	colorDim        = lipgloss.Color("240")
-	colorTargetMark  = lipgloss.Color("11")  // bright yellow
-	colorSearchMatch = lipgloss.Color("3")   // yellow background for search hits
+	colorSelected    = lipgloss.Color("236") // dark gray background
+	colorNormal      = lipgloss.Color("252") // light gray text
+	colorGreen       = lipgloss.Color("2")
+	colorYellow      = lipgloss.Color("3")
+	colorRed         = lipgloss.Color("1")
+	colorDim         = lipgloss.Color("240")
+	colorTargetMark  = lipgloss.Color("11") // bright yellow
+	colorSearchMatch = lipgloss.Color("3")  // yellow background for search hits
 
 	styleSelected = lipgloss.NewStyle().
 			Bold(true).

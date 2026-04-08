@@ -97,7 +97,7 @@ type HeaderModel struct {
 	openGaps        int
 	openEscalations int
 	width           int
-	spinner         int  // index into spinnerFrames
+	spinner         int // index into spinnerFrames
 	loading         bool
 
 	// Instance tab bar (Phase 3)
