@@ -283,7 +283,7 @@ func (m HeaderModel) renderNodeCounts(base lipgloss.Style) string {
 		return base.Render("0 nodes")
 	}
 
-	parts := []string{fmt.Sprintf("%d nodes:", m.totalNodes)}
+	parts := []string{base.Render(fmt.Sprintf("%d nodes:", m.totalNodes))}
 	for _, s := range statusOrder {
 		n := m.nodeCounts[s]
 		if n == 0 {
