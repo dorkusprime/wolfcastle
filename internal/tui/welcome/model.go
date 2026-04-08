@@ -292,7 +292,15 @@ func (m *WelcomeModel) loadDir() {
 
 	filtered := make([]os.DirEntry, 0, len(dirEntries))
 	for _, e := range dirEntries {
-		if !e.IsDir() {
+		isDir := e.IsDir()
+		// Follow symlinks: if it's a symlink, stat the target.
+		if !isDir && e.Type()&os.ModeSymlink != 0 {
+			target := filepath.Join(m.currentDir, e.Name())
+			if info, err := os.Stat(target); err == nil {
+				isDir = info.IsDir()
+			}
+		}
+		if !isDir {
 			continue
 		}
 		name := e.Name()
