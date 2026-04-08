@@ -237,9 +237,16 @@ func (m HeaderModel) View() string {
 		return pad + line + pad
 	}
 
-	// Narrow terminals: single line only.
+	// Half-line padding: upper/lower half blocks colored with the bar
+	// background as foreground on the terminal default background gives
+	// a visual half-line of bar color above and below the content.
+	halfStyle := lipgloss.NewStyle().Foreground(headerBg)
+	halfTop := halfStyle.Render(strings.Repeat("▄", m.width))
+	halfBot := halfStyle.Render(strings.Repeat("▀", m.width))
+
+	// Narrow terminals: single line only (with half-line padding).
 	if m.width < 40 {
-		return wrap(line1)
+		return halfTop + "\n" + wrap(line1) + "\n" + halfBot
 	}
 
 	// Line 2: node counts left, audit summary right.
@@ -250,10 +257,10 @@ func (m HeaderModel) View() string {
 	// Line 3 (optional): instance tab bar when wide enough and multiple instances exist.
 	if m.width > 100 && len(m.instances) > 1 {
 		tabBar := m.renderTabBar(barStyle, boldStyle, innerWidth)
-		return wrap(line1) + "\n" + wrap(line2) + "\n" + wrap(tabBar)
+		return halfTop + "\n" + wrap(line1) + "\n" + wrap(line2) + "\n" + wrap(tabBar) + "\n" + halfBot
 	}
 
-	return wrap(line1) + "\n" + wrap(line2)
+	return halfTop + "\n" + wrap(line1) + "\n" + wrap(line2) + "\n" + halfBot
 }
 
 // ---------------------------------------------------------------------------
