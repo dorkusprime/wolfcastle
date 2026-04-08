@@ -289,11 +289,17 @@ func (m HeaderModel) renderNodeCounts(base lipgloss.Style) string {
 		if n == 0 {
 			continue
 		}
-		glyph := statusGlyph[s]
-		coloredGlyph := lipgloss.NewStyle().Foreground(statusColor[s]).Render(glyph)
-		parts = append(parts, fmt.Sprintf("%d", n)+coloredGlyph)
+		// Style the glyph with the bar background AND the status foreground
+		// so the rendered fragment carries both attributes. Otherwise the
+		// reset code at the end of the glyph clears the background and the
+		// next space renders with the terminal default.
+		glyph := lipgloss.NewStyle().
+			Background(headerBg).
+			Foreground(statusColor[s]).
+			Render(statusGlyph[s])
+		parts = append(parts, base.Render(fmt.Sprintf("%d", n))+glyph)
 	}
-	return base.Render(strings.Join(parts, " "))
+	return strings.Join(parts, base.Render(" "))
 }
 
 // renderAuditSummary builds the "Audit: 5 passed, 2 gaps, 1 escalation" string.
