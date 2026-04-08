@@ -97,7 +97,8 @@ type DaemonStartedMsg struct {
 }
 
 type DaemonStartFailedMsg struct {
-	Err error
+	Err    error
+	Stderr string
 }
 
 type DaemonStopMsg struct{}
