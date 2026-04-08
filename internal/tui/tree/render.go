@@ -65,28 +65,21 @@ func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool, 
 		marker = " "
 	}
 
+	// Build the line with plain glyphs first, then style the entire
+	// thing in one pass. Pre-styled fragments contain ANSI reset codes
+	// that clear the background mid-line when wrapped in selected.
 	var target string
 	if isCurrentTarget {
-		target = lipgloss.NewStyle().Foreground(colorTargetMark).Bold(true).Render("▶ ")
+		target = "▶ "
 	}
 
-	glyph := statusGlyph(row.Status)
+	glyphRune := plainStatusGlyph(row.Status)
 
-	// Build optional task hint suffix for collapsed leaves with cached data.
-	var hint string
-	if row.TaskHint != "" {
-		hint = " " + lipgloss.NewStyle().Foreground(colorDim).Render(row.TaskHint)
-	}
-
-	// Calculate available space for the name. The layout is:
-	// {indent}{marker} {target}{name} {glyph}{hint}
-	// Marker is 1 char, spaces around it are 1 each, glyph is 1 char,
-	// plus some padding.
 	hintLen := len(row.TaskHint)
 	if hintLen > 0 {
 		hintLen++ // account for the leading space
 	}
-	overhead := len(indent) + 2 + len(target) + 2 + hintLen // " " after marker, " " before glyph
+	overhead := len(indent) + 2 + len(target) + 2 + hintLen
 	maxName := width - overhead
 	if maxName < 4 {
 		maxName = 4
@@ -94,7 +87,11 @@ func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool, 
 
 	name := truncate(row.Name, maxName)
 
-	line := fmt.Sprintf("%s%s %s%s %s%s", indent, marker, target, name, glyph, hint)
+	var hint string
+	if row.TaskHint != "" {
+		hint = " " + row.TaskHint
+	}
+	line := fmt.Sprintf("%s%s %s%s %s%s", indent, marker, target, name, glyphRune, hint)
 
 	if selected {
 		return styleSelected.Width(width).Render(line)
@@ -102,12 +99,27 @@ func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool, 
 	if searchHit {
 		return styleSearchMatch.Width(width).Render(line)
 	}
-	return styleNormal.Width(width).Render(line)
+	// Unselected: apply per-element coloring on top of styleNormal.
+	// Re-render the line piece-by-piece with foreground colors.
+	var coloredTarget string
+	if isCurrentTarget {
+		coloredTarget = lipgloss.NewStyle().Foreground(colorTargetMark).Bold(true).Render("▶ ")
+	}
+	coloredGlyph := statusGlyph(row.Status)
+	var coloredHint string
+	if row.TaskHint != "" {
+		coloredHint = " " + lipgloss.NewStyle().Foreground(colorDim).Render(row.TaskHint)
+	}
+	colored := fmt.Sprintf("%s%s %s%s %s%s", indent, marker, coloredTarget, name, coloredGlyph, coloredHint)
+	return styleNormal.Width(width).Render(colored)
 }
 
 func renderTaskRow(row TreeRow, width int, selected bool, searchHit bool) string {
 	indent := strings.Repeat("  ", row.Depth)
-	glyph := statusGlyph(row.Status)
+	// Plain glyph rune (un-styled). When the row is wrapped in
+	// styleSelected/styleSearchMatch the inner color escapes from a
+	// pre-styled glyph would reset the background mid-line.
+	glyphRune := plainStatusGlyph(row.Status)
 
 	// Extract the task ID from the address (last segment after /).
 	taskID := row.Addr
@@ -116,7 +128,7 @@ func renderTaskRow(row TreeRow, width int, selected bool, searchHit bool) string
 	}
 
 	// Layout: {indent}{glyph} {taskID}: {title}
-	prefix := fmt.Sprintf("%s%s %s: ", indent, glyph, taskID)
+	prefix := fmt.Sprintf("%s%s %s: ", indent, glyphRune, taskID)
 	maxTitle := width - len(prefix)
 	if maxTitle < 4 {
 		maxTitle = 4
@@ -132,6 +144,20 @@ func renderTaskRow(row TreeRow, width int, selected bool, searchHit bool) string
 		return styleSearchMatch.Width(width).Render(line)
 	}
 	return styleNormal.Width(width).Render(line)
+}
+
+// plainStatusGlyph returns the unstyled glyph rune for a status.
+func plainStatusGlyph(s state.NodeStatus) string {
+	switch s {
+	case state.StatusComplete:
+		return "●"
+	case state.StatusInProgress:
+		return "◐"
+	case state.StatusBlocked:
+		return "☢"
+	default:
+		return "◯"
+	}
 }
 
 // View renders the visible portion of the tree as a single string.
