@@ -24,6 +24,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
+	"github.com/dorkusprime/wolfcastle/internal/tui/clipboard"
 	"github.com/dorkusprime/wolfcastle/internal/tui/detail"
 	"github.com/dorkusprime/wolfcastle/internal/tui/footer"
 	"github.com/dorkusprime/wolfcastle/internal/tui/header"
@@ -912,9 +913,17 @@ func (m TUIModel) handleCopy() tea.Cmd {
 	if text == "" {
 		return nil
 	}
+	// Use the host clipboard tool (pbcopy/xclip/etc.) instead of OSC 52,
+	// which silently drops or truncates payloads under several common
+	// terminal and tmux configurations. tea.SetClipboard is kept as a
+	// best-effort fallback for terminals where the host tool isn't
+	// available.
 	return tea.Batch(
+		func() tea.Msg {
+			_ = clipboard.WriteSystem(text)
+			return tui.CopiedMsg{}
+		},
 		tea.SetClipboard(text),
-		func() tea.Msg { return tui.CopiedMsg{} },
 	)
 }
 
