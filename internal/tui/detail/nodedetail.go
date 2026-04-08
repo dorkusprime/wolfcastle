@@ -130,7 +130,7 @@ func (m *NodeDetailModel) rebuildContent() {
 		b.WriteString(heading.Render("Success Criteria:"))
 		b.WriteByte('\n')
 		for _, c := range n.SuccessCriteria {
-			b.WriteString(body.Render("  \u2022 " + c))
+			b.WriteString(body.Render(wrapBullet(c, wrapWidth)))
 			b.WriteByte('\n')
 		}
 	}
@@ -288,6 +288,39 @@ func countOpenEscalations(escs []state.Escalation) int {
 		}
 	}
 	return n
+}
+
+// wrapBullet renders a bullet item with hanging indent: the first line
+// starts with "  • " and continuation lines align with "    " so the
+// bullet glyph isn't repeated.
+func wrapBullet(text string, width int) string {
+	const firstPrefix = "  \u2022 "
+	const contPrefix = "    "
+	if width < 20 {
+		width = 20
+	}
+
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return firstPrefix
+	}
+
+	var lines []string
+	line := firstPrefix + words[0]
+	lineLen := len(firstPrefix) + len(words[0])
+
+	for _, w := range words[1:] {
+		if lineLen+1+len(w) > width {
+			lines = append(lines, line)
+			line = contPrefix + w
+			lineLen = len(contPrefix) + len(w)
+		} else {
+			line += " " + w
+			lineLen += 1 + len(w)
+		}
+	}
+	lines = append(lines, line)
+	return strings.Join(lines, "\n")
 }
 
 // wrapIndent performs simple word-wrapping with an indent prefix on each line.
