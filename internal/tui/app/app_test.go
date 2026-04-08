@@ -529,11 +529,11 @@ func TestHandleCopyFromTree(t *testing.T) {
 func TestHandleCopyFromDetailDashboard(t *testing.T) {
 	m := newColdModel(t)
 	m.focused = PaneDetail
-	// Default mode is ModeDashboard, which goes to default branch (tree addr).
+	// Detail-pane copy now grabs the rendered pane text, which is
+	// non-empty even for the default dashboard view.
 	cmd := m.handleCopy()
-	// No selection in tree, so nil.
-	if cmd != nil {
-		t.Error("copy from dashboard with no selection should return nil")
+	if cmd == nil {
+		t.Error("copy from focused detail pane should produce a command")
 	}
 }
 
@@ -1068,17 +1068,18 @@ func TestQuitKey(t *testing.T) {
 	}
 }
 
-func TestDashboardKey(t *testing.T) {
+// Esc from a non-dashboard detail mode returns to dashboard.
+func TestEscReturnsToDashboard(t *testing.T) {
 	m := newColdModel(t)
-	// First switch away from dashboard.
 	m.detail.SwitchToLogView()
+	m.focused = PaneDetail
 	if m.detail.Mode() == detail.ModeDashboard {
 		t.Fatal("should not be in dashboard after SwitchToLogView")
 	}
-	result, _ := m.Update(keyMsg("d"))
+	result, _ := m.Update(keyMsg("esc"))
 	model := toModel(t, result)
 	if model.detail.Mode() != detail.ModeDashboard {
-		t.Errorf("d key should switch to dashboard, mode = %d", model.detail.Mode())
+		t.Errorf("esc should return to dashboard, mode = %d", model.detail.Mode())
 	}
 }
 
@@ -1119,17 +1120,6 @@ func TestEscClearsErrors(t *testing.T) {
 	model := toModel(t, result)
 	if len(model.errors) != 0 {
 		t.Errorf("esc should clear errors, got %d", len(model.errors))
-	}
-}
-
-func TestEscReturnsToDashboard(t *testing.T) {
-	m := newColdModel(t)
-	m.focused = PaneDetail
-	m.detail.SwitchToLogView()
-	result, _ := m.Update(keyMsg("esc"))
-	model := toModel(t, result)
-	if model.detail.Mode() != detail.ModeDashboard {
-		t.Errorf("esc in detail non-dashboard should return to dashboard, mode = %d", model.detail.Mode())
 	}
 }
 

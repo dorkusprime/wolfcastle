@@ -12,7 +12,6 @@ func TestGlobalKeyMap_BindingsNonEmpty(t *testing.T) {
 	}{
 		{"Quit", GlobalKeyMap.Quit.Keys()},
 		{"ForceQuit", GlobalKeyMap.ForceQuit.Keys()},
-		{"Dashboard", GlobalKeyMap.Dashboard.Keys()},
 		{"ToggleTree", GlobalKeyMap.ToggleTree.Keys()},
 		{"CycleFocus", GlobalKeyMap.CycleFocus.Keys()},
 		{"Refresh", GlobalKeyMap.Refresh.Keys()},

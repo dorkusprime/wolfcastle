@@ -12,7 +12,7 @@ import (
 
 // Colors and styles for the tree view.
 var (
-	colorSelected    = lipgloss.Color("52") // dark red background (matches header)
+	colorSelected    = lipgloss.Color("52")  // dark red background (matches header)
 	colorNormal      = lipgloss.Color("252") // light gray text
 	colorGreen       = lipgloss.Color("2")
 	colorYellow      = lipgloss.Color("3")
@@ -21,12 +21,7 @@ var (
 	colorTargetMark  = lipgloss.Color("11") // bright yellow
 	colorSearchMatch = lipgloss.Color("3")  // yellow background for search hits
 
-	styleSelected = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("255")).
-			Background(colorSelected)
-	styleNormal      = lipgloss.NewStyle().Foreground(colorNormal)
-	styleSearchMatch = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(colorSearchMatch)
+	styleNormal = lipgloss.NewStyle().Foreground(colorNormal)
 )
 
 // Status glyphs, each pre-styled (no background, suitable for normal rows).

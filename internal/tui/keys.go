@@ -5,7 +5,6 @@ import "charm.land/bubbles/v2/key"
 type GlobalKeys struct {
 	Quit       key.Binding
 	ForceQuit  key.Binding
-	Dashboard  key.Binding
 	LogStream  key.Binding
 	Inbox      key.Binding
 	ToggleTree key.Binding
@@ -19,7 +18,6 @@ type GlobalKeys struct {
 var GlobalKeyMap = GlobalKeys{
 	Quit:       key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 	ForceQuit:  key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit")),
-	Dashboard:  key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "dash")),
 	LogStream:  key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "logs")),
 	Inbox:      key.NewBinding(key.WithKeys("i"), key.WithHelp("i", "inbox")),
 	ToggleTree: key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "tree")),

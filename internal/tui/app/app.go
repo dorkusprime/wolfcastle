@@ -217,10 +217,6 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, tui.GlobalKeyMap.Quit):
 			return m, tea.Quit
 
-		case key.Matches(msg, tui.GlobalKeyMap.Dashboard):
-			m.detail.SwitchToDashboard()
-			return m, nil
-
 		case key.Matches(msg, tui.GlobalKeyMap.LogStream) && m.focused != PaneTree:
 			m.detail.SwitchToLogView()
 			return m, nil
@@ -579,9 +575,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tui.CopiedMsg:
-		f, fcmd := m.footer.Update(msg)
-		m.footer = f
-		cmds = append(cmds, fcmd)
+		cmds = append(cmds, m.notify.Push("Copied."))
 		return m, tea.Batch(cmds...)
 
 	case tui.InitCompleteMsg:
@@ -908,10 +902,11 @@ func (m *TUIModel) jumpTreeToSearchMatch() {
 func (m TUIModel) handleCopy() tea.Cmd {
 	var text string
 
-	switch {
-	case m.focused == PaneDetail && m.detail.Mode() != detail.ModeDashboard:
-		text = m.detail.CopyTarget()
-	default:
+	switch m.focused {
+	case PaneDetail:
+		// Copy the entire visible detail pane content as plain text.
+		text = ansi.Strip(m.detail.View())
+	case PaneTree:
 		text = m.tree.SelectedAddr()
 	}
 
