@@ -327,9 +327,17 @@ func (m WelcomeModel) View() string {
 	subtitleStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
 	spinnerStyle := lipgloss.NewStyle().Foreground(tui.ColorYellow)
 
+	// Compute the content box width (mirrors place() logic) so we can
+	// center the title within it.
+	boxWidth := m.width - 4
+	if boxWidth < 40 {
+		boxWidth = 40
+	}
+
 	var b strings.Builder
 
-	b.WriteString(titleStyle.Render("WOLFCASTLE"))
+	title := titleStyle.Render("WOLFCASTLE")
+	b.WriteString(lipgloss.PlaceHorizontal(boxWidth, lipgloss.Center, title))
 	b.WriteString("\n\n")
 
 	if m.initializing {
