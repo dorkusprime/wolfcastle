@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0
+
+### Features
+- Interactive TUI: launching `wolfcastle` with no subcommand opens a full Bubbletea v2 terminal interface with a node tree, dashboard, log stream, node and task detail views, inbox, instance switcher, and notification toasts. The welcome screen lists running daemons alongside a directory browser for `init`. State refreshes via fsnotify with a 2-second polling fallback. (#228, #231, #232, #233, #234)
+- Multi-process architecture: per-worktree daemon locking replaces the global lock, so multiple daemons can run concurrently across separate worktrees. A new `internal/instance` registry under `~/.wolfcastle/instances/` routes commands by CWD with longest-prefix matching and prunes stale PIDs on read. (#227)
+
+### Bug Fixes
+- `DeriveParentStatus` treats blocked children with `superseded` or `decomposed` reasons as effectively complete, ending the retry-decompose loop on parents whose remaining children were intentionally cleared. (#230)
+- Daemon accepts COMPLETE results when deliverables exist on disk, even if the iteration produced no git progress. (#230)
+- Tasks that wrote deliverables to `.wolfcastle/docs/` no longer get stuck in infinite retry-decompose cycles. (#230)
+- `wolfcastle scope add` reports failures as errors instead of calling `os.Exit(1)`, so Cobra-managed cleanup runs and exit codes flow normally. (#224)
+- Atomic write helpers in `config` and `tierfs` now share `internal/fsutil.AtomicWriteFile`, fixing a missing temp-file cleanup on rename failure. (#224)
+
+### Quality
+- New `internal/fsutil` package with full test coverage for `AtomicWriteFile` (happy path, overwrite, parent creation, permission errors, rename failures). (#225)
+- Daemon test suite trimmed: hardcoded 1-second context timeouts in fifteen tests dropped to 200-300ms, cutting ~5 seconds off every full daemon test run. (#229)
+
 ## 0.4.3
 
 ### Bug Fixes
