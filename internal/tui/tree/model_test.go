@@ -484,8 +484,28 @@ func TestNodeUpdatedMsg_UpdatesCache(t *testing.T) {
 	if m.nodes["alpha"] != ns {
 		t.Error("NodeUpdatedMsg should cache the node state")
 	}
+	// Expanded nodes must NOT have a cache expiry timer; otherwise their
+	// tasks would vanish after 30s of polling, looking like an unexpected
+	// collapse.
+	if _, ok := m.cacheExpiry["alpha"]; ok {
+		t.Error("NodeUpdatedMsg should not set cache expiry for expanded nodes")
+	}
+}
+
+func TestNodeUpdatedMsg_SetsCacheExpiryWhenCollapsed(t *testing.T) {
+	m := NewTreeModel()
+	m.SetIndex(simpleIndex())
+	// Not expanded.
+
+	ns := &state.NodeState{
+		Tasks: []state.Task{
+			{ID: "t1", Title: "Task", State: state.StatusComplete},
+		},
+	}
+	m, _ = m.Update(NodeUpdatedMsg{Address: "alpha", Node: ns})
+
 	if _, ok := m.cacheExpiry["alpha"]; !ok {
-		t.Error("NodeUpdatedMsg should set cache expiry")
+		t.Error("NodeUpdatedMsg should set cache expiry for collapsed nodes")
 	}
 }
 

@@ -41,12 +41,11 @@ func TestViewTabBarWideTerminal(t *testing.T) {
 	view := m.View()
 	lines := strings.Split(view, "\n")
 
-	// Wide terminal with 2+ instances should produce 3 lines (including tab bar).
-	if len(lines) < 3 {
-		t.Fatalf("expected at least 3 lines for tab bar, got %d:\n%s", len(lines), view)
+	// View with tab bar: line1, line2, tabBar = 3 lines.
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 lines (with tab bar), got %d:\n%s", len(lines), view)
 	}
 
-	// Tab bar (line 3) should contain both branch names.
 	tabLine := lines[2]
 	if !strings.Contains(tabLine, "feat/auth") {
 		t.Errorf("tab bar missing feat/auth: %q", tabLine)
@@ -67,7 +66,7 @@ func TestViewNoTabBarNarrowTerminal(t *testing.T) {
 	view := m.View()
 	lines := strings.Split(view, "\n")
 
-	// Narrow terminal should produce exactly 2 lines (no tab bar).
+	// Two lines: line1, line2.
 	if len(lines) != 2 {
 		t.Errorf("expected 2 lines (no tab bar), got %d:\n%s", len(lines), view)
 	}
@@ -88,7 +87,7 @@ func TestActiveInstanceMarker(t *testing.T) {
 
 	view := m.View()
 	lines := strings.Split(view, "\n")
-	if len(lines) < 3 {
+	if len(lines) != 3 {
 		t.Fatalf("expected 3 lines, got %d", len(lines))
 	}
 	tabLine := lines[2]
@@ -322,8 +321,8 @@ func TestRenderTabBarSingleInstance(t *testing.T) {
 	// With only 1 instance, View should NOT produce a tab bar line.
 	view := m.View()
 	lines := strings.Split(view, "\n")
-	if len(lines) > 2 {
-		t.Errorf("single instance should not produce tab bar, got %d lines", len(lines))
+	if len(lines) != 2 {
+		t.Errorf("single instance should produce 2 lines (no tab bar), got %d", len(lines))
 	}
 }
 

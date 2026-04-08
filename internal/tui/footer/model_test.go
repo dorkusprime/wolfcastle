@@ -21,9 +21,6 @@ func TestNewFooterModel_ZeroValues(t *testing.T) {
 	if m.width != 0 {
 		t.Errorf("expected width 0, got %d", m.width)
 	}
-	if m.copyFlash {
-		t.Error("expected copyFlash false")
-	}
 }
 
 func TestView_RendersKeyHints(t *testing.T) {
@@ -37,49 +34,11 @@ func TestView_RendersKeyHints(t *testing.T) {
 	if !strings.Contains(v, "[Tab] focus") {
 		t.Errorf("expected [Tab] focus, got: %s", v)
 	}
-	if !strings.Contains(v, "[d] dash") {
-		t.Errorf("expected [d] dash, got: %s", v)
+	if !strings.Contains(v, "[<>] switch") {
+		t.Errorf("expected [<>] switch, got: %s", v)
 	}
 	if !strings.Contains(v, "[?] help") {
 		t.Errorf("expected [?] help, got: %s", v)
-	}
-}
-
-func TestCopiedMsg_SetsFlash(t *testing.T) {
-	t.Parallel()
-	m := NewFooterModel()
-	m.width = 200
-	m, cmd := m.Update(tui.CopiedMsg{})
-	if !m.copyFlash {
-		t.Error("expected copyFlash true after CopiedMsg")
-	}
-	if cmd == nil {
-		t.Error("expected tick cmd for flash expiry")
-	}
-	v := m.View()
-	if !strings.Contains(v, "Copied.") {
-		t.Errorf("expected 'Copied.' in view during flash, got: %s", v)
-	}
-}
-
-func TestCopyFlashExpired_ClearsFlash(t *testing.T) {
-	t.Parallel()
-	m := NewFooterModel()
-	m.width = 200
-	m, _ = m.Update(tui.CopiedMsg{})
-	if !m.copyFlash {
-		t.Fatal("precondition: copyFlash should be true")
-	}
-	m, _ = m.Update(copyFlashExpiredMsg{})
-	if m.copyFlash {
-		t.Error("expected copyFlash false after expiry")
-	}
-	v := m.View()
-	if strings.Contains(v, "Copied.") {
-		t.Errorf("should not show 'Copied.' after expiry, got: %s", v)
-	}
-	if !strings.Contains(v, "[q] quit") {
-		t.Errorf("expected key hints after flash expires, got: %s", v)
 	}
 }
 

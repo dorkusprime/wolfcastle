@@ -2,6 +2,7 @@ package tree
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 
 	lipgloss "charm.land/lipgloss/v2"
@@ -11,7 +12,7 @@ import (
 
 // Colors and styles for the tree view.
 var (
-	colorSelected    = lipgloss.Color("236") // dark gray background
+	colorSelected    = lipgloss.Color("52")  // dark red background (matches header)
 	colorNormal      = lipgloss.Color("252") // light gray text
 	colorGreen       = lipgloss.Color("2")
 	colorYellow      = lipgloss.Color("3")
@@ -20,15 +21,10 @@ var (
 	colorTargetMark  = lipgloss.Color("11") // bright yellow
 	colorSearchMatch = lipgloss.Color("3")  // yellow background for search hits
 
-	styleSelected = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("255")).
-			Background(colorSelected)
-	styleNormal      = lipgloss.NewStyle().Foreground(colorNormal)
-	styleSearchMatch = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(colorSearchMatch)
+	styleNormal = lipgloss.NewStyle().Foreground(colorNormal)
 )
 
-// Status glyphs, each pre-styled.
+// Status glyphs, each pre-styled (no background, suitable for normal rows).
 func statusGlyph(s state.NodeStatus) string {
 	switch s {
 	case state.StatusComplete:
@@ -39,6 +35,22 @@ func statusGlyph(s state.NodeStatus) string {
 		return lipgloss.NewStyle().Foreground(colorRed).Render("☢")
 	default:
 		return lipgloss.NewStyle().Foreground(colorDim).Render("◯")
+	}
+}
+
+// statusGlyphOnBg returns the colored glyph with an explicit background
+// so that wrapping in styleSelected/styleSearchMatch doesn't leave gaps.
+func statusGlyphOnBg(s state.NodeStatus, bg color.Color) string {
+	st := lipgloss.NewStyle().Background(bg).Bold(true)
+	switch s {
+	case state.StatusComplete:
+		return st.Foreground(colorGreen).Render("●")
+	case state.StatusInProgress:
+		return st.Foreground(colorYellow).Render("◐")
+	case state.StatusBlocked:
+		return st.Foreground(colorRed).Render("☢")
+	default:
+		return st.Foreground(lipgloss.Color("250")).Render("◯")
 	}
 }
 
@@ -65,49 +77,83 @@ func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool, 
 		marker = " "
 	}
 
-	var target string
+	targetText := ""
 	if isCurrentTarget {
-		target = lipgloss.NewStyle().Foreground(colorTargetMark).Bold(true).Render("▶ ")
+		targetText = "▶ "
 	}
 
-	glyph := statusGlyph(row.Status)
-
-	// Build optional task hint suffix for collapsed leaves with cached data.
-	var hint string
-	if row.TaskHint != "" {
-		hint = " " + lipgloss.NewStyle().Foreground(colorDim).Render(row.TaskHint)
-	}
-
-	// Calculate available space for the name. The layout is:
-	// {indent}{marker} {target}{name} {glyph}{hint}
-	// Marker is 1 char, spaces around it are 1 each, glyph is 1 char,
-	// plus some padding.
 	hintLen := len(row.TaskHint)
 	if hintLen > 0 {
-		hintLen++ // account for the leading space
+		hintLen++
 	}
-	overhead := len(indent) + 2 + len(target) + 2 + hintLen // " " after marker, " " before glyph
+	overhead := len(indent) + 2 + len(targetText) + 2 + hintLen
 	maxName := width - overhead
 	if maxName < 4 {
 		maxName = 4
 	}
-
 	name := truncate(row.Name, maxName)
 
-	line := fmt.Sprintf("%s%s %s%s %s%s", indent, marker, target, name, glyph, hint)
-
 	if selected {
-		return styleSelected.Width(width).Render(line)
+		bg := lipgloss.NewStyle().Background(colorSelected).Foreground(lipgloss.Color("255")).Bold(true)
+		var target string
+		if isCurrentTarget {
+			target = lipgloss.NewStyle().
+				Background(colorSelected).
+				Foreground(colorTargetMark).
+				Bold(true).
+				Render("▶ ")
+		}
+		glyph := statusGlyphOnBg(row.Status, colorSelected)
+		var hint string
+		if row.TaskHint != "" {
+			hint = lipgloss.NewStyle().
+				Background(colorSelected).
+				Foreground(lipgloss.Color("250")).
+				Render(" " + row.TaskHint)
+		}
+		text := bg.Render(indent+marker+" ") + target + bg.Render(name+" ") + glyph + hint
+		used := lipgloss.Width(text)
+		if used < width {
+			text += bg.Render(strings.Repeat(" ", width-used))
+		}
+		return text
 	}
+
 	if searchHit {
-		return styleSearchMatch.Width(width).Render(line)
+		bg := lipgloss.NewStyle().Background(colorSearchMatch).Foreground(lipgloss.Color("0"))
+		var target string
+		if isCurrentTarget {
+			target = bg.Bold(true).Render("▶ ")
+		}
+		glyph := statusGlyphOnBg(row.Status, colorSearchMatch)
+		var hint string
+		if row.TaskHint != "" {
+			hint = bg.Render(" " + row.TaskHint)
+		}
+		text := bg.Render(indent+marker+" ") + target + bg.Render(name+" ") + glyph + hint
+		used := lipgloss.Width(text)
+		if used < width {
+			text += bg.Render(strings.Repeat(" ", width-used))
+		}
+		return text
 	}
-	return styleNormal.Width(width).Render(line)
+
+	// Unselected: apply per-element coloring on top of styleNormal.
+	var coloredTarget string
+	if isCurrentTarget {
+		coloredTarget = lipgloss.NewStyle().Foreground(colorTargetMark).Bold(true).Render("▶ ")
+	}
+	coloredGlyph := statusGlyph(row.Status)
+	var coloredHint string
+	if row.TaskHint != "" {
+		coloredHint = " " + lipgloss.NewStyle().Foreground(colorDim).Render(row.TaskHint)
+	}
+	colored := fmt.Sprintf("%s%s %s%s %s%s", indent, marker, coloredTarget, name, coloredGlyph, coloredHint)
+	return styleNormal.Width(width).Render(colored)
 }
 
 func renderTaskRow(row TreeRow, width int, selected bool, searchHit bool) string {
 	indent := strings.Repeat("  ", row.Depth)
-	glyph := statusGlyph(row.Status)
 
 	// Extract the task ID from the address (last segment after /).
 	taskID := row.Addr
@@ -115,22 +161,40 @@ func renderTaskRow(row TreeRow, width int, selected bool, searchHit bool) string
 		taskID = row.Addr[idx+1:]
 	}
 
-	// Layout: {indent}{glyph} {taskID}: {title}
-	prefix := fmt.Sprintf("%s%s %s: ", indent, glyph, taskID)
-	maxTitle := width - len(prefix)
+	// Plain layout for width calculation (1 char glyph + spaces).
+	plainPrefix := fmt.Sprintf("%s  %s: ", indent, taskID)
+	maxTitle := width - len(plainPrefix)
 	if maxTitle < 4 {
 		maxTitle = 4
 	}
-
 	title := truncate(row.Name, maxTitle)
-	line := prefix + title
 
 	if selected {
-		return styleSelected.Width(width).Render(line)
+		// Render glyph with selected background so the color shows through.
+		glyph := statusGlyphOnBg(row.Status, colorSelected)
+		// Build the line: pad before/after glyph with the selected background.
+		bg := lipgloss.NewStyle().Background(colorSelected).Foreground(lipgloss.Color("255")).Bold(true)
+		text := bg.Render(indent) + glyph + bg.Render(" "+taskID+": "+title)
+		// Fill remaining width with selected background.
+		used := lipgloss.Width(text)
+		if used < width {
+			text += bg.Render(strings.Repeat(" ", width-used))
+		}
+		return text
 	}
 	if searchHit {
-		return styleSearchMatch.Width(width).Render(line)
+		glyph := statusGlyphOnBg(row.Status, colorSearchMatch)
+		bg := lipgloss.NewStyle().Background(colorSearchMatch).Foreground(lipgloss.Color("0"))
+		text := bg.Render(indent) + glyph + bg.Render(" "+taskID+": "+title)
+		used := lipgloss.Width(text)
+		if used < width {
+			text += bg.Render(strings.Repeat(" ", width-used))
+		}
+		return text
 	}
+
+	glyph := statusGlyph(row.Status)
+	line := fmt.Sprintf("%s%s %s: %s", indent, glyph, taskID, title)
 	return styleNormal.Width(width).Render(line)
 }
 

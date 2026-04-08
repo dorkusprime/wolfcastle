@@ -102,8 +102,8 @@ func (m *TaskDetailModel) rebuildContent() {
 		b.WriteByte('\n')
 	}
 
-	// Description
-	if t.Description != "" {
+	// Description (skip if identical to title to avoid duplicate)
+	if t.Description != "" && t.Description != t.Title {
 		b.WriteByte('\n')
 		b.WriteString(body.Render(wrapIndent(t.Description, wrapWidth, "")))
 		b.WriteByte('\n')
@@ -137,7 +137,7 @@ func (m *TaskDetailModel) rebuildContent() {
 		b.WriteString(heading.Render("Deliverables:"))
 		b.WriteByte('\n')
 		for _, d := range t.Deliverables {
-			b.WriteString(body.Render("  \u2022 " + d))
+			b.WriteString(body.Render(wrapBullet(d, wrapWidth)))
 			b.WriteByte('\n')
 		}
 	}
@@ -148,7 +148,7 @@ func (m *TaskDetailModel) rebuildContent() {
 		b.WriteString(heading.Render("Acceptance Criteria:"))
 		b.WriteByte('\n')
 		for _, c := range t.AcceptanceCriteria {
-			b.WriteString(body.Render("  \u2022 " + c))
+			b.WriteString(body.Render(wrapBullet(c, wrapWidth)))
 			b.WriteByte('\n')
 		}
 	}
@@ -159,7 +159,7 @@ func (m *TaskDetailModel) rebuildContent() {
 		b.WriteString(heading.Render("Constraints:"))
 		b.WriteByte('\n')
 		for _, c := range t.Constraints {
-			b.WriteString(body.Render("  \u2022 " + c))
+			b.WriteString(body.Render(wrapBullet(c, wrapWidth)))
 			b.WriteByte('\n')
 		}
 	}

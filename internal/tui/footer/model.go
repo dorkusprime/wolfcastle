@@ -2,7 +2,6 @@ package footer
 
 import (
 	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -10,16 +9,12 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
-type copyFlashExpiredMsg struct{}
-
 // FooterModel renders a single-line key-hint bar at the bottom of the TUI.
 type FooterModel struct {
 	focusedPane   int // 0=PaneTree, 1=PaneDetail
 	detailMode    int // 0=Dashboard, 1=NodeDetail, 2=TaskDetail, 3=LogStream, 4=Inbox
 	daemonRunning bool
 	width         int
-	copyFlash     bool
-	copyTimer     int
 }
 
 // NewFooterModel returns a zero-value footer ready for use.
@@ -32,16 +27,6 @@ func (m FooterModel) Update(msg tea.Msg) (FooterModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
-
-	case tui.CopiedMsg:
-		m.copyFlash = true
-		m.copyTimer = 0
-		return m, tea.Tick(2*time.Second, func(time.Time) tea.Msg {
-			return copyFlashExpiredMsg{}
-		})
-
-	case copyFlashExpiredMsg:
-		m.copyFlash = false
 
 	case tui.DaemonStatusMsg:
 		m.daemonRunning = msg.IsRunning
@@ -68,10 +53,6 @@ func (m *FooterModel) SetSize(width int) {
 func (m FooterModel) View() string {
 	style := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
 
-	if m.copyFlash {
-		return style.Render("Copied.")
-	}
-
 	// Build hints in priority order (highest priority first).
 	// When the line is too wide we drop from the tail.
 	type hint struct {
@@ -91,7 +72,9 @@ func (m FooterModel) View() string {
 		hints = append(hints, hint{"s", "start"})
 	}
 	hints = append(hints,
-		hint{"d", "dash"},
+		hint{"<>", "switch"},
+		hint{"i", "inbox"},
+		hint{"l", "logs"},
 		hint{"t", "tree"},
 		hint{"/", "search"},
 		hint{"y", "copy"},

@@ -217,10 +217,6 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, tui.GlobalKeyMap.Quit):
 			return m, tea.Quit
 
-		case key.Matches(msg, tui.GlobalKeyMap.Dashboard):
-			m.detail.SwitchToDashboard()
-			return m, nil
-
 		case key.Matches(msg, tui.GlobalKeyMap.LogStream) && m.focused != PaneTree:
 			m.detail.SwitchToLogView()
 			return m, nil
@@ -579,9 +575,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tui.CopiedMsg:
-		f, fcmd := m.footer.Update(msg)
-		m.footer = f
-		cmds = append(cmds, fcmd)
+		cmds = append(cmds, m.notify.Push("Copied."))
 		return m, tea.Batch(cmds...)
 
 	case tui.InitCompleteMsg:
@@ -698,6 +692,9 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View builds the full terminal output.
 func (m TUIModel) View() tea.View {
+	// Re-propagate size on every render so sub-models reflect any
+	// runtime layout changes (tab bar appearance, error bar visibility).
+	m.propagateSize()
 	rendered := m.renderLayout()
 	v := tea.NewView(rendered)
 	v.AltScreen = true
@@ -784,7 +781,8 @@ func (m TUIModel) renderContent(contentHeight int) string {
 
 	treePaneStyle := m.borderStyle(PaneTree).
 		Width(treeWidth).
-		Height(contentHeight)
+		Height(contentHeight).
+		MaxHeight(contentHeight)
 	treePane := treePaneStyle.Render(treeContent)
 
 	detailContent := m.detail.View()
@@ -793,7 +791,8 @@ func (m TUIModel) renderContent(contentHeight int) string {
 	}
 	detailPaneStyle := m.borderStyle(PaneDetail).
 		Width(detailWidth).
-		Height(contentHeight)
+		Height(contentHeight).
+		MaxHeight(contentHeight)
 	detailPane := detailPaneStyle.Render(detailContent)
 
 	joined := lipgloss.JoinHorizontal(lipgloss.Top, treePane, detailPane)
@@ -903,20 +902,29 @@ func (m *TUIModel) jumpTreeToSearchMatch() {
 func (m TUIModel) handleCopy() tea.Cmd {
 	var text string
 
-	switch {
-	case m.focused == PaneDetail && m.detail.Mode() != detail.ModeDashboard:
-		text = m.detail.CopyTarget()
-	default:
+	switch m.focused {
+	case PaneDetail:
+		// Copy the entire visible detail pane content as plain text.
+		text = ansi.Strip(m.detail.View())
+	case PaneTree:
 		text = m.tree.SelectedAddr()
 	}
 
 	if text == "" {
 		return nil
 	}
-	return func() tea.Msg {
-		_ = clipboard.WriteOSC52(os.Stdout, text)
-		return tui.CopiedMsg{}
-	}
+	// Use the host clipboard tool (pbcopy/xclip/etc.) instead of OSC 52,
+	// which silently drops or truncates payloads under several common
+	// terminal and tmux configurations. tea.SetClipboard is kept as a
+	// best-effort fallback for terminals where the host tool isn't
+	// available.
+	return tea.Batch(
+		func() tea.Msg {
+			_ = clipboard.WriteSystem(text)
+			return tui.CopiedMsg{}
+		},
+		tea.SetClipboard(text),
+	)
 }
 
 // loadDetailForSelection inspects the currently selected tree row and loads
@@ -1068,11 +1076,13 @@ func (m *TUIModel) propagateSize() {
 		m.welcome.SetSize(m.width, m.height)
 	}
 
-	headerLines := 2
-	if m.width < 40 {
-		headerLines = 1
-	}
+	// Use the actual rendered header line count, not a hardcoded
+	// estimate, so the tab bar (3 lines instead of 2) is accounted for.
+	headerLines := strings.Count(m.header.View(), "\n") + 1
 	contentHeight := m.height - headerLines - 1
+	if errorBar := m.renderErrorBar(); errorBar != "" {
+		contentHeight -= strings.Count(errorBar, "\n") + 1
+	}
 	if contentHeight < 1 {
 		contentHeight = 1
 	}
@@ -1394,6 +1404,14 @@ func (m *TUIModel) switchInstance(entry instance.Entry) tea.Cmd {
 	m.switchLabel = label
 	m.header.SetStatusHint("Switching...")
 	m.header.SetLoading(true)
+
+	// Clear stale data from the previous instance immediately so the
+	// user doesn't see old stats while the new instance loads.
+	m.tree.Reset()
+	m.detail.Reset()
+	m.notify = notify.NewNotificationModel()
+	m.prevIndex = nil
+	m.prevNodes = make(map[string]*state.NodeState)
 
 	// Find the index of this entry in our instances list.
 	for i, inst := range m.instances {

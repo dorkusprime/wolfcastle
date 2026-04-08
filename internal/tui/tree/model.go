@@ -108,7 +108,13 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 
 	case NodeUpdatedMsg:
 		m.nodes[msg.Address] = msg.Node
-		m.cacheExpiry[msg.Address] = time.Now().Add(30 * time.Second)
+		// Only start the eviction timer if the node is currently collapsed.
+		// Expanded nodes must stay cached so their tasks remain visible.
+		if !m.expanded[msg.Address] {
+			m.cacheExpiry[msg.Address] = time.Now().Add(30 * time.Second)
+		} else {
+			delete(m.cacheExpiry, msg.Address)
+		}
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -119,7 +125,11 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 			return m, nil
 		}
 		m.nodes[msg.Address] = msg.Node
-		m.cacheExpiry[msg.Address] = time.Now().Add(30 * time.Second)
+		if !m.expanded[msg.Address] {
+			m.cacheExpiry[msg.Address] = time.Now().Add(30 * time.Second)
+		} else {
+			delete(m.cacheExpiry, msg.Address)
+		}
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -176,6 +186,7 @@ func (m TreeModel) handleExpand() (TreeModel, tea.Cmd) {
 	if m.expanded[row.Addr] {
 		// Already expanded; collapse instead.
 		delete(m.expanded, row.Addr)
+		m.cacheExpiry[row.Addr] = time.Now().Add(30 * time.Second)
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -183,6 +194,9 @@ func (m TreeModel) handleExpand() (TreeModel, tea.Cmd) {
 	}
 
 	m.expanded[row.Addr] = true
+	// Clear any pending eviction so the cached node stays for as long
+	// as it's expanded.
+	delete(m.cacheExpiry, row.Addr)
 
 	// For leaf nodes we may need to load the NodeState from disk to get
 	// tasks. If the cache is stale or missing, fire a command.
