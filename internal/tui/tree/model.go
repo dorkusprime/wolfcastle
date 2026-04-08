@@ -108,13 +108,14 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 
 	case NodeUpdatedMsg:
 		m.nodes[msg.Address] = msg.Node
-		// Only start the eviction timer if the node is currently collapsed.
-		// Expanded nodes must stay cached so their tasks remain visible.
-		if !m.expanded[msg.Address] {
-			m.cacheExpiry[msg.Address] = time.Now().Add(30 * time.Second)
-		} else {
-			delete(m.cacheExpiry, msg.Address)
-		}
+		// No cache eviction. The watcher's per-leaf fsnotify
+		// subscription keeps every cached entry fresh, so there is
+		// no point in evicting collapsed nodes after a timer; doing
+		// so would erase the eager-prefetch state and break the
+		// active-task display, the search-in-collapsed-leaves
+		// feature, and any future feature that depends on cache
+		// freshness for non-visible nodes.
+		delete(m.cacheExpiry, msg.Address)
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -125,11 +126,7 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 			return m, nil
 		}
 		m.nodes[msg.Address] = msg.Node
-		if !m.expanded[msg.Address] {
-			m.cacheExpiry[msg.Address] = time.Now().Add(30 * time.Second)
-		} else {
-			delete(m.cacheExpiry, msg.Address)
-		}
+		delete(m.cacheExpiry, msg.Address)
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -184,9 +181,9 @@ func (m TreeModel) handleExpand() (TreeModel, tea.Cmd) {
 	}
 
 	if m.expanded[row.Addr] {
-		// Already expanded; collapse instead.
+		// Already expanded; collapse instead. Cache stays populated
+		// because the watcher is keeping it fresh; no eviction.
 		delete(m.expanded, row.Addr)
-		m.cacheExpiry[row.Addr] = time.Now().Add(30 * time.Second)
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -194,9 +191,6 @@ func (m TreeModel) handleExpand() (TreeModel, tea.Cmd) {
 	}
 
 	m.expanded[row.Addr] = true
-	// Clear any pending eviction so the cached node stays for as long
-	// as it's expanded.
-	delete(m.cacheExpiry, row.Addr)
 
 	// For leaf nodes we may need to load the NodeState from disk to get
 	// tasks. If the cache is stale or missing, fire a command.
@@ -224,7 +218,7 @@ func (m TreeModel) handleCollapse() TreeModel {
 
 	if m.expanded[row.Addr] {
 		delete(m.expanded, row.Addr)
-		m.cacheExpiry[row.Addr] = time.Now().Add(30 * time.Second)
+		// Cache stays populated; the watcher keeps it fresh.
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()

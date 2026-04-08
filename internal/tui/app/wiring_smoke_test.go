@@ -27,12 +27,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
+	"github.com/dorkusprime/wolfcastle/internal/tui/tree"
 )
 
 // ---------------------------------------------------------------------------
@@ -96,91 +96,282 @@ func smokeLeafState(addr, name string, taskTitles ...string) *state.NodeState {
 	}
 }
 
-// renderTree returns the tree pane's rendered string from a fully
-// propagated model.
-func renderTree(m TUIModel) string {
-	m.propagateSize()
-	return m.tree.View()
-}
-
 // ---------------------------------------------------------------------------
-// Issue #3: active task highlight reaches the rendered tree
+// Issue #3: per-node task cache stays fresh during a session
 // ---------------------------------------------------------------------------
-
-// TestWiring_ActiveTargetReachesTreeRender feeds a DaemonStatusMsg
-// with CurrentNode set, then asserts the rendered tree visually
-// distinguishes that node from its sibling. The minimum signal is
-// "the row containing the current target renders differently from
-// the row of an unrelated sibling."
 //
-// Should fail today: nothing in app.Update pipes
-// DaemonStatusMsg.CurrentNode into m.tree.SetCurrentTarget, so the
-// tree renders both rows identically.
-func TestWiring_ActiveTargetReachesTreeRender(t *testing.T) {
-	m := newColdModel(t)
-	idx := smokeIndex()
+// The original framing of #3 was a "missing active-task highlight," but
+// digging into a real session showed something deeper: the leaf-level
+// glyph (◐) does update via the index file watcher, but the per-task
+// glyphs underneath stay frozen at whatever the cache held when the
+// leaf was first expanded. The actual gap is that the watcher only
+// subscribes to the index/instance/log directories, never to per-node
+// state.json files. Address-keyed task content reads from the cache,
+// the cache is loaded lazily on first expand, and nothing ever
+// refreshes it for the rest of the session. AddNodeWatch and
+// RemoveNodeWatch exist on the Watcher class but are never called.
+//
+// The fix is to (a) eagerly walk every leaf in the index at watcher
+// startup, populating the cache with the on-disk task state, and
+// (b) call AddNodeWatch for each leaf so subsequent state.json
+// rewrites by the daemon trigger NodeUpdatedMsg events. This shares
+// the leaf-walking code path with #2's eager prefetch for search.
 
-	// Seed the index so the tree has rows.
-	result, _ := m.Update(tui.StateUpdatedMsg{Index: idx})
-	m = toModel(t, result)
+// TestWiring_TaskCacheReflectsStateFile is the smoke test for #3.
+// It writes a real state.json with one task in_progress and one
+// task complete, runs the watcher startup path that should eagerly
+// populate the cache, and asserts the rendered tree shows each task
+// with the glyph for its actual on-disk state — not the not_started
+// glyph that stale cache would produce.
+//
+// Should fail today: the eager prefetch does not exist, so the cache
+// for the leaf is empty and the tree renders the leaf with no task
+// rows at all (or with stale task rows if some other path populated
+// them earlier).
+func TestWiring_TaskCacheReflectsStateFile(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	storeDir := filepath.Join(wcDir, "system", "projects", "default")
+	if err := os.MkdirAll(storeDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
 
-	// Expand alpha so its children (beta and gamma) become visible
-	// rows. The smoke test cares about the highlight state of the
-	// children, not the parent.
+	// Write the root index pointing at one leaf.
+	rootIndex := map[string]any{
+		"version": 1,
+		"root":    []string{"alpha"},
+		"nodes": map[string]any{
+			"alpha": map[string]any{
+				"name":    "alpha",
+				"type":    "leaf",
+				"state":   "in_progress",
+				"address": "alpha",
+			},
+		},
+	}
+	rootData, _ := json.Marshal(rootIndex)
+	if err := os.WriteFile(filepath.Join(storeDir, "state.json"), rootData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Write the leaf state.json with one in_progress and one complete
+	// task. This is the on-disk truth that the cache must reflect.
+	leafDir := filepath.Join(storeDir, "alpha")
+	if err := os.MkdirAll(leafDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	leafState := map[string]any{
+		"version": 1,
+		"id":      "alpha",
+		"name":    "alpha",
+		"type":    "leaf",
+		"state":   "in_progress",
+		"tasks": []map[string]any{
+			{
+				"id":            "task-0001",
+				"title":         "first task",
+				"description":   "first task",
+				"state":         "complete",
+				"failure_count": 0,
+			},
+			{
+				"id":            "task-0002",
+				"title":         "second task",
+				"description":   "second task",
+				"state":         "in_progress",
+				"failure_count": 0,
+			},
+		},
+	}
+	leafData, _ := json.Marshal(leafState)
+	if err := os.WriteFile(filepath.Join(leafDir, "state.json"), leafData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Construct the model and drive the same startup sequence Init()
+	// would, except for the blocking waitForWatcherEvent drain. The
+	// eager prefetch fix should populate m.tree's node cache for
+	// alpha so the rendered tree knows the task states without the
+	// user having to expand the leaf manually first.
+	store := state.NewStore(storeDir, 0)
+	m := NewTUIModel(store, daemon.NewDaemonRepository(wcDir), tmp, "1.0.0")
+	m.entryState = StateLive
+	m.width = 120
+	m.height = 40
+	m.propagateSize()
+
+	// Run startWatcher: the watcher gets created and (after the fix)
+	// eagerly walks the leaves into the cache via the events channel.
+	if cmd := m.startWatcher(); cmd != nil {
+		_ = cmd()
+	}
+	// Run loadInitialState to seed the index so the tree has rows.
+	if cmd := m.loadInitialState(); cmd != nil {
+		msg := cmd()
+		if msg != nil {
+			updated, _ := m.Update(msg)
+			m = toModel(t, updated)
+		}
+	}
+	// Drain whatever the watcher's eager prefetch deposited into the
+	// events channel without blocking. After the fix, this should
+	// include one NodeUpdatedMsg per leaf.
+	drainNonBlocking(t, &m)
+
+	// Expand alpha so its task rows enter the flat list. After the
+	// fix, the tasks should already be in the cache so expand
+	// produces fresh rows immediately.
 	m.tree.SetCursor(0)
 	tm, _ := m.tree.Update(keyMsg("enter"))
 	m.tree = tm
 
-	// Tell the model the daemon is currently working on alpha/beta.
-	// This is the message detectEntryState produces in real runs.
-	result, _ = m.Update(tui.DaemonStatusMsg{
-		IsRunning:    true,
-		CurrentNode:  "alpha/beta",
-		CurrentTask:  "task-0001",
-		LastActivity: time.Now(),
-	})
-	m = toModel(t, result)
-
-	rendered := renderTree(m)
-	if rendered == "" {
-		t.Fatal("tree rendered empty; cannot assert highlight")
-	}
-
-	// Beta and gamma have identical statuses, so any difference in
-	// their rendered styling must come from one of them being the
-	// daemon's current target. Rename both to the same placeholder
-	// so the literal name is not the source of the difference, then
-	// strip whitespace padding (which depends on name length) so
-	// only style/decoration bytes remain.
-	lines := strings.Split(rendered, "\n")
-	var betaLine, gammaLine string
-	for _, line := range lines {
-		if strings.Contains(line, "beta") && betaLine == "" {
-			betaLine = line
+	// Find the task rows in the flat list.
+	var task1Row, task2Row *tree.TreeRow
+	for i := range m.tree.FlatList() {
+		row := &m.tree.FlatList()[i]
+		if strings.Contains(row.Addr, "task-0001") {
+			task1Row = row
 		}
-		if strings.Contains(line, "gamma") && gammaLine == "" {
-			gammaLine = line
+		if strings.Contains(row.Addr, "task-0002") {
+			task2Row = row
 		}
 	}
-	if betaLine == "" || gammaLine == "" {
-		t.Fatalf("tree rendering missing expected rows; got:\n%s", rendered)
+	if task1Row == nil || task2Row == nil {
+		t.Fatalf("expected both task rows to be present after expand; got flat list: %+v", m.tree.FlatList())
 	}
 
-	normalize := func(s string) string {
-		// Replace the literal name with a placeholder so name length
-		// doesn't affect padding.
-		s = strings.ReplaceAll(s, "beta", "X")
-		s = strings.ReplaceAll(s, "gamma", "X")
-		// Collapse runs of spaces so trailing-padding differences
-		// don't matter.
-		for strings.Contains(s, "  ") {
-			s = strings.ReplaceAll(s, "  ", " ")
+	// The smoke assertion: each task row's Status field reflects the
+	// on-disk state, not the not_started default that an empty cache
+	// would produce.
+	if task1Row.Status != state.StatusComplete {
+		t.Errorf("task-0001 should be StatusComplete (matches state.json), got %v; cache is stale or never loaded", task1Row.Status)
+	}
+	if task2Row.Status != state.StatusInProgress {
+		t.Errorf("task-0002 should be StatusInProgress (matches state.json), got %v; cache is stale or never loaded", task2Row.Status)
+	}
+}
+
+// drainNonBlocking pops every message currently sitting in the
+// model's watcherEvents channel and dispatches each one through
+// Update so eager-loaded watcher events reach the tree cache. It
+// uses a non-blocking select so it can be called safely even when
+// the channel is empty (no production goroutine, just whatever the
+// startWatcher cmd already put there before returning).
+func drainNonBlocking(t *testing.T, m *TUIModel) {
+	t.Helper()
+	for i := 0; i < 256; i++ {
+		select {
+		case msg := <-m.watcherEvents:
+			updated, _ := m.Update(msg)
+			if tm, ok := updated.(TUIModel); ok {
+				*m = tm
+			}
+		default:
+			return
 		}
-		return strings.TrimSpace(s)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Model-level wiring test for #3 (startWatcher → eager prefetch)
+// ---------------------------------------------------------------------------
+
+// TestStartWatcher_TriggersEagerPrefetch is the model-level
+// companion to TestEagerPrefetchAndSubscribe_PopulatesCache. The
+// watcher unit test proves the eager-prefetch helper works in
+// isolation; this test proves the production wiring (startWatcher
+// cmd → NewWatcher → Start → EagerPrefetchAndSubscribe) actually
+// invokes it. Without this, someone could rip the
+// EagerPrefetchAndSubscribe call out of startWatcher and the
+// helper's unit tests would still pass while the cache went stale
+// in real use.
+func TestStartWatcher_TriggersEagerPrefetch(t *testing.T) {
+	tmp := t.TempDir()
+	wcDir := filepath.Join(tmp, ".wolfcastle")
+	storeDir := filepath.Join(wcDir, "system", "projects", "default")
+	if err := os.MkdirAll(storeDir, 0o755); err != nil {
+		t.Fatal(err)
 	}
 
-	if normalize(betaLine) == normalize(gammaLine) {
-		t.Errorf("active target alpha/beta should render differently from sibling alpha/gamma, but both rows look identical after name and whitespace normalization\nbeta:  %q\ngamma: %q", betaLine, gammaLine)
+	// Stage the index pointing at one leaf.
+	rootIndex := map[string]any{
+		"version": 1,
+		"root":    []string{"alpha"},
+		"nodes": map[string]any{
+			"alpha": map[string]any{
+				"name":    "alpha",
+				"type":    "leaf",
+				"state":   "in_progress",
+				"address": "alpha",
+			},
+		},
+	}
+	rootData, _ := json.Marshal(rootIndex)
+	if err := os.WriteFile(filepath.Join(storeDir, "state.json"), rootData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stage the leaf state with a known set of tasks.
+	leafDir := filepath.Join(storeDir, "alpha")
+	if err := os.MkdirAll(leafDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	leafState := map[string]any{
+		"version": 1,
+		"id":      "alpha",
+		"name":    "alpha",
+		"type":    "leaf",
+		"state":   "in_progress",
+		"tasks": []map[string]any{
+			{"id": "task-0001", "title": "wired", "description": "wired", "state": "complete", "failure_count": 0},
+		},
+	}
+	leafData, _ := json.Marshal(leafState)
+	if err := os.WriteFile(filepath.Join(leafDir, "state.json"), leafData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Construct the model and run startWatcher cmd.
+	store := state.NewStore(storeDir, 0)
+	m := NewTUIModel(store, daemon.NewDaemonRepository(wcDir), tmp, "1.0.0")
+	m.entryState = StateLive
+	m.width = 120
+	m.height = 40
+	m.propagateSize()
+
+	cmd := m.startWatcher()
+	if cmd == nil {
+		t.Fatal("startWatcher returned nil cmd")
+	}
+	if msg := cmd(); msg != nil {
+		t.Fatalf("startWatcher cmd should return nil msg, got %T", msg)
+	}
+
+	// At this point the watcher should have eagerly prefetched
+	// alpha's state into the events channel. Drain and assert.
+	found := false
+drainLoop:
+	for i := 0; i < 8; i++ {
+		select {
+		case msg := <-m.watcherEvents:
+			envelope, ok := msg.(tui.WatcherMsg)
+			if !ok {
+				continue
+			}
+			nu, ok := envelope.Inner.(tui.NodeUpdatedMsg)
+			if !ok {
+				continue
+			}
+			if nu.Address == "alpha" && nu.Node != nil && len(nu.Node.Tasks) == 1 {
+				found = true
+				break drainLoop
+			}
+		default:
+			break drainLoop
+		}
+	}
+	if !found {
+		t.Error("startWatcher did not trigger eager prefetch; no NodeUpdatedMsg for alpha arrived in the events channel")
 	}
 }
 

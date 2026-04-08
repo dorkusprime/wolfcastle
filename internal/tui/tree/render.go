@@ -54,6 +54,27 @@ func statusGlyphOnBg(s state.NodeStatus, bg color.Color) string {
 	}
 }
 
+// taskStatusGlyph returns the glyph for a task row. Tasks use the
+// arrow indicator → for in_progress to match the wolfcastle status
+// screen, which is the canonical representation of "the daemon is
+// hammering on this." Other states fall through to the regular
+// statusGlyph.
+func taskStatusGlyph(s state.NodeStatus) string {
+	if s == state.StatusInProgress {
+		return lipgloss.NewStyle().Foreground(colorYellow).Render("→")
+	}
+	return statusGlyph(s)
+}
+
+// taskStatusGlyphOnBg is the background-aware variant of
+// taskStatusGlyph for selected/search-highlighted task rows.
+func taskStatusGlyphOnBg(s state.NodeStatus, bg color.Color) string {
+	if s == state.StatusInProgress {
+		return lipgloss.NewStyle().Background(bg).Bold(true).Foreground(colorYellow).Render("→")
+	}
+	return statusGlyphOnBg(s, bg)
+}
+
 // RenderRow produces a single styled line for the given TreeRow.
 func RenderRow(row TreeRow, width int, selected bool, isCurrentTarget bool, searchHit ...bool) string {
 	hit := len(searchHit) > 0 && searchHit[0]
@@ -171,7 +192,9 @@ func renderTaskRow(row TreeRow, width int, selected bool, searchHit bool) string
 
 	if selected {
 		// Render glyph with selected background so the color shows through.
-		glyph := statusGlyphOnBg(row.Status, colorSelected)
+		// Tasks use the arrow indicator → for in_progress to match
+		// the wolfcastle status screen.
+		glyph := taskStatusGlyphOnBg(row.Status, colorSelected)
 		// Build the line: pad before/after glyph with the selected background.
 		bg := lipgloss.NewStyle().Background(colorSelected).Foreground(lipgloss.Color("255")).Bold(true)
 		text := bg.Render(indent) + glyph + bg.Render(" "+taskID+": "+title)
@@ -183,7 +206,7 @@ func renderTaskRow(row TreeRow, width int, selected bool, searchHit bool) string
 		return text
 	}
 	if searchHit {
-		glyph := statusGlyphOnBg(row.Status, colorSearchMatch)
+		glyph := taskStatusGlyphOnBg(row.Status, colorSearchMatch)
 		bg := lipgloss.NewStyle().Background(colorSearchMatch).Foreground(lipgloss.Color("0"))
 		text := bg.Render(indent) + glyph + bg.Render(" "+taskID+": "+title)
 		used := lipgloss.Width(text)
@@ -193,7 +216,7 @@ func renderTaskRow(row TreeRow, width int, selected bool, searchHit bool) string
 		return text
 	}
 
-	glyph := statusGlyph(row.Status)
+	glyph := taskStatusGlyph(row.Status)
 	line := fmt.Sprintf("%s%s %s: %s", indent, glyph, taskID, title)
 	return styleNormal.Width(width).Render(line)
 }

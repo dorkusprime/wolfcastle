@@ -492,10 +492,17 @@ func TestNodeUpdatedMsg_UpdatesCache(t *testing.T) {
 	}
 }
 
-func TestNodeUpdatedMsg_SetsCacheExpiryWhenCollapsed(t *testing.T) {
+// TestNodeUpdatedMsg_DoesNotSetCacheExpiryWhenCollapsed is the
+// regression for the cache-eviction removal. The eager prefetch
+// path populates the cache for every leaf at TUI startup so search
+// can walk task content even when the leaf is collapsed; if the
+// 30-second eviction timer were still set on collapsed entries,
+// the eager-loaded state would silently disappear after the next
+// poll tick and the active-task display would go stale again.
+func TestNodeUpdatedMsg_DoesNotSetCacheExpiryWhenCollapsed(t *testing.T) {
 	m := NewTreeModel()
 	m.SetIndex(simpleIndex())
-	// Not expanded.
+	// Deliberately NOT expanded.
 
 	ns := &state.NodeState{
 		Tasks: []state.Task{
@@ -504,8 +511,43 @@ func TestNodeUpdatedMsg_SetsCacheExpiryWhenCollapsed(t *testing.T) {
 	}
 	m, _ = m.Update(NodeUpdatedMsg{Address: "alpha", Node: ns})
 
-	if _, ok := m.cacheExpiry["alpha"]; !ok {
-		t.Error("NodeUpdatedMsg should set cache expiry for collapsed nodes")
+	if _, ok := m.cacheExpiry["alpha"]; ok {
+		t.Error("NodeUpdatedMsg must not set a cache expiry timer for collapsed nodes; the watcher's per-leaf subscription keeps the cache fresh and eager prefetch needs the entries to persist")
+	}
+	if _, ok := m.nodes["alpha"]; !ok {
+		t.Error("NodeUpdatedMsg should still cache the node state for collapsed nodes")
+	}
+}
+
+// TestHandleCollapse_DoesNotSetCacheExpiry is the regression for
+// the same eviction removal on the collapse path. Collapsing a
+// previously-expanded leaf should NOT start an eviction timer.
+func TestHandleCollapse_DoesNotSetCacheExpiry(t *testing.T) {
+	m := NewTreeModel()
+	m.SetFocused(true)
+	m.SetIndex(orchestratorIndex())
+	m.SetSize(80, 20)
+
+	// Expand the orchestrator first so a collapse is possible.
+	m.expanded["parent"] = true
+	m.buildFlatList()
+
+	// Find parent's row index and put the cursor on it.
+	for i, row := range m.flatList {
+		if row.Addr == "parent" {
+			m.cursor = i
+			break
+		}
+	}
+
+	// Collapse via the handler.
+	m = m.handleCollapse()
+
+	if _, ok := m.cacheExpiry["parent"]; ok {
+		t.Error("handleCollapse must not set a cache expiry timer; the cache is now permanent for the session")
+	}
+	if m.expanded["parent"] {
+		t.Error("handleCollapse should mark parent as collapsed")
 	}
 }
 
@@ -732,21 +774,25 @@ func TestCleanCache_EmptyIsNoop(t *testing.T) {
 	m.CleanCache()
 }
 
-func TestCollapse_SetsCacheExpiry(t *testing.T) {
+// TestCollapse_DoesNotSetCacheExpiry replaces the original test that
+// asserted the opposite. The eviction-on-collapse behavior has been
+// removed: the watcher's per-leaf fsnotify subscription keeps every
+// cached entry fresh, so eviction is no longer necessary, and the
+// eager-prefetch path needs collapsed entries to persist so search
+// can walk task content even when the leaf is folded.
+func TestCollapse_DoesNotSetCacheExpiry(t *testing.T) {
 	m := NewTreeModel()
 	m.SetFocused(true)
 	m.expanded["parent"] = true
 	m.SetIndex(orchestratorIndex())
 	m.SetSize(80, 20)
 
-	before := time.Now()
 	m, _ = m.Update(specialKey(tea.KeyEscape))
 
-	exp, ok := m.cacheExpiry["parent"]
-	if !ok {
-		t.Fatal("collapse should set cache expiry for the collapsed node")
+	if _, ok := m.cacheExpiry["parent"]; ok {
+		t.Error("collapse must not set a cache expiry timer; entries are kept until session end and refreshed by the watcher")
 	}
-	if exp.Before(before) {
-		t.Error("cache expiry should be in the future")
+	if m.expanded["parent"] {
+		t.Error("collapse should mark the node as collapsed")
 	}
 }

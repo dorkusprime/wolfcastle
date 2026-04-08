@@ -397,7 +397,9 @@ func (w *Watcher) pollTick() {
 }
 
 // AddNodeWatch adds an fsnotify watch on a specific node's state.json,
-// typically called when the user expands a node in the tree view.
+// typically called from EagerPrefetchAndSubscribe at startup so that
+// subsequent state.json rewrites by the daemon trigger NodeUpdatedMsg
+// events into the channel.
 func (w *Watcher) AddNodeWatch(addr string) {
 	if w.watcher == nil {
 		return
@@ -409,6 +411,51 @@ func (w *Watcher) AddNodeWatch(addr string) {
 	// Watch the directory rather than the file itself, since atomic
 	// writes create a new inode.
 	_ = w.watcher.Add(filepath.Dir(p))
+}
+
+// EagerPrefetchAndSubscribe walks every leaf in the store's index,
+// reads its NodeState from disk, emits a NodeUpdatedMsg per leaf
+// (populating the model's tree cache via the events channel), and
+// adds an fsnotify subscription for each leaf so subsequent state
+// rewrites by the daemon flow through the same channel.
+//
+// This is the bootstrap step that makes per-task state visible
+// without requiring the user to manually expand each leaf, and
+// keeps the cache fresh for the rest of the session via fsnotify.
+// Failures to read individual leaves are tolerated: a corrupt or
+// in-flight state.json is logged-and-skipped, and the next watcher
+// event will retry on its own.
+//
+// Safe to call before or after Start/StartPolling. When called
+// before fsnotify init, the AddNodeWatch calls become no-ops and
+// only the eager-load half runs; when called after, both halves
+// run as intended.
+func (w *Watcher) EagerPrefetchAndSubscribe() error {
+	if w.store == nil {
+		return fmt.Errorf("watcher: store is nil")
+	}
+	idx, err := w.store.ReadIndex()
+	if err != nil {
+		return fmt.Errorf("reading index: %w", err)
+	}
+	if idx == nil {
+		return nil
+	}
+	for addr, entry := range idx.Nodes {
+		if entry.Type != state.NodeLeaf {
+			continue
+		}
+		node, err := w.store.ReadNode(addr)
+		if err != nil {
+			// Skip leaves whose state files are missing or corrupt.
+			// The next fsnotify event will retry on its own once
+			// the daemon writes a clean version.
+			continue
+		}
+		w.emit(NodeUpdatedMsg{Address: addr, Node: node})
+		w.AddNodeWatch(addr)
+	}
+	return nil
 }
 
 // RemoveNodeWatch removes the fsnotify watch for a node's state directory,

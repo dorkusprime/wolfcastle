@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
+
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -401,5 +403,80 @@ func TestRenderRow_DepthIndentation(t *testing.T) {
 	// We check that the two rows differ, confirming depth affects layout.
 	if shallow == deep {
 		t.Error("different depths should produce different output")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Task glyph aligns with the wolfcastle status screen
+// ---------------------------------------------------------------------------
+//
+// Task rows render their state with a different glyph from node
+// rows so the in_progress task shows the same → arrow that the
+// wolfcastle status CLI uses. The change is scoped to task rows
+// only — node rows continue to use ◐ for in_progress because the
+// status propagation up to leaves and orchestrators reads better
+// with the half-circle glyph.
+
+func TestTaskStatusGlyph_InProgressShowsArrow(t *testing.T) {
+	got := taskStatusGlyph(state.StatusInProgress)
+	if !strings.Contains(got, "→") {
+		t.Errorf("taskStatusGlyph(StatusInProgress) = %q, want a string containing →", got)
+	}
+}
+
+func TestTaskStatusGlyph_OtherStatesPassThrough(t *testing.T) {
+	cases := map[state.NodeStatus]string{
+		state.StatusComplete:   "●",
+		state.StatusBlocked:    "☢",
+		state.StatusNotStarted: "◯",
+	}
+	for st, want := range cases {
+		got := taskStatusGlyph(st)
+		if !strings.Contains(got, want) {
+			t.Errorf("taskStatusGlyph(%v) = %q, want a string containing %q", st, got, want)
+		}
+	}
+}
+
+// TestStatusGlyph_NodeRowsUnchangedForInProgress is the regression
+// test for the deliberate scope-narrowing decision: the cosmetic
+// change to → applies only to task rows, not to node rows. If
+// someone later edits statusGlyph itself instead of taskStatusGlyph,
+// this test catches it.
+func TestStatusGlyph_NodeRowsUnchangedForInProgress(t *testing.T) {
+	got := statusGlyph(state.StatusInProgress)
+	if !strings.Contains(got, "◐") {
+		t.Errorf("statusGlyph(StatusInProgress) = %q, want a string containing ◐ (node rows must keep the half-circle glyph)", got)
+	}
+	if strings.Contains(got, "→") {
+		t.Errorf("statusGlyph(StatusInProgress) = %q, must not contain → (that glyph is reserved for task rows)", got)
+	}
+}
+
+func TestTaskStatusGlyphOnBg_InProgressShowsArrow(t *testing.T) {
+	bg := lipgloss.Color("236")
+	got := taskStatusGlyphOnBg(state.StatusInProgress, bg)
+	if !strings.Contains(got, "→") {
+		t.Errorf("taskStatusGlyphOnBg(StatusInProgress, bg) = %q, want a string containing →", got)
+	}
+}
+
+// TestRenderTaskRow_InProgressUsesArrow exercises the actual task
+// row rendering path (not just the glyph helper) to confirm the
+// new glyph reaches the rendered output.
+func TestRenderTaskRow_InProgressUsesArrow(t *testing.T) {
+	row := TreeRow{
+		Addr:   "alpha/task-0001",
+		Name:   "deploy frobnicator",
+		Depth:  1,
+		Status: state.StatusInProgress,
+		IsTask: true,
+	}
+	rendered := RenderRow(row, 80, false, false)
+	if !strings.Contains(rendered, "→") {
+		t.Errorf("rendered task row should contain →, got %q", rendered)
+	}
+	if strings.Contains(rendered, "◐") {
+		t.Errorf("rendered task row must not contain the node-style ◐ glyph, got %q", rendered)
 	}
 }

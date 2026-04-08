@@ -1345,6 +1345,13 @@ func (m *TUIModel) startWatcher() tea.Cmd {
 		if err := w.Start(); err != nil {
 			w.StartPolling()
 		}
+		// Eagerly walk the index, populate the per-leaf cache, and
+		// add an fsnotify subscription for each leaf so the cache
+		// stays fresh as the daemon writes state.json updates.
+		// Without this, the per-task glyphs in the tree go stale
+		// the moment the daemon transitions a task, and search
+		// can't find tasks in unexpanded leaves.
+		_ = w.EagerPrefetchAndSubscribe()
 		m.watcher = w
 		return nil
 	}
