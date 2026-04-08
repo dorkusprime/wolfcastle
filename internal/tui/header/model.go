@@ -202,7 +202,8 @@ func (m HeaderModel) View() string {
 
 	boldStyle := barStyle.Bold(true)
 
-	title := boldStyle.Render(fmt.Sprintf("WOLFCASTLE v%s", m.version))
+	version := strings.TrimPrefix(m.version, "v")
+	title := boldStyle.Render(fmt.Sprintf("WOLFCASTLE v%s", version))
 
 	// Build right side of line 1: optional spinner, daemon status, instance badge.
 	rightParts := []string{}
@@ -282,20 +283,17 @@ func (m HeaderModel) renderNodeCounts(base lipgloss.Style) string {
 		return base.Render("0 nodes")
 	}
 
-	parts := []string{base.Render(fmt.Sprintf("%d nodes:", m.totalNodes))}
+	parts := []string{fmt.Sprintf("%d nodes:", m.totalNodes)}
 	for _, s := range statusOrder {
 		n := m.nodeCounts[s]
 		if n == 0 {
 			continue
 		}
 		glyph := statusGlyph[s]
-		colored := lipgloss.NewStyle().
-			Background(headerBg).
-			Foreground(statusColor[s]).
-			Render(glyph)
-		parts = append(parts, base.Render(fmt.Sprintf("%d", n))+colored)
+		coloredGlyph := lipgloss.NewStyle().Foreground(statusColor[s]).Render(glyph)
+		parts = append(parts, fmt.Sprintf("%d", n)+coloredGlyph)
 	}
-	return strings.Join(parts, " ")
+	return base.Render(strings.Join(parts, " "))
 }
 
 // renderAuditSummary builds the "Audit: 5 passed, 2 gaps, 1 escalation" string.
