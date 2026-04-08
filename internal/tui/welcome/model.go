@@ -16,7 +16,10 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/instance"
+	"github.com/dorkusprime/wolfcastle/internal/pipeline"
+	"github.com/dorkusprime/wolfcastle/internal/project"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
@@ -264,8 +267,20 @@ func (m WelcomeModel) startInit() (WelcomeModel, tea.Cmd) {
 
 func (m WelcomeModel) runInit(dir string) tea.Cmd {
 	return func() tea.Msg {
-		err := os.MkdirAll(filepath.Join(dir, ".wolfcastle"), 0o755)
-		return tui.InitCompleteMsg{Dir: dir, Err: err}
+		wcDir := filepath.Join(dir, ".wolfcastle")
+		// If the directory already exists, treat init as a no-op success
+		// so the user can press I in a worktree that's already been
+		// initialized without seeing an error.
+		if _, statErr := os.Stat(wcDir); statErr == nil {
+			return tui.InitCompleteMsg{Dir: dir, Err: nil}
+		}
+		cfgRepo := config.NewRepository(wcDir)
+		promptRepo := pipeline.NewPromptRepository(wcDir)
+		svc := project.NewScaffoldService(cfgRepo, promptRepo, nil, wcDir)
+		if err := svc.Init(config.DetectIdentity()); err != nil {
+			return tui.InitCompleteMsg{Dir: dir, Err: err}
+		}
+		return tui.InitCompleteMsg{Dir: dir, Err: nil}
 	}
 }
 

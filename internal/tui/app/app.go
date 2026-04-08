@@ -459,25 +459,26 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if raw == "" && msg.Err != nil {
 			raw = msg.Err.Error()
 		}
-		// Sanitize: collapse newlines so a multi-line stderr can't
-		// inflate the error bar (which is what made the panes collapse
-		// when start aborted on a dirty tree).
+		// Collapse to a single line so the toast renders cleanly
+		// regardless of how many lines stderr emitted.
 		raw = sanitizeErrorLine(raw)
-		var displayMsg string
+		var toastText string
 		switch {
 		case strings.Contains(raw, "already running"), strings.Contains(raw, "lock"):
-			displayMsg = "Another daemon is running in this worktree."
+			toastText = "Another daemon is already running here."
 		case strings.Contains(raw, "no .wolfcastle"), strings.Contains(raw, "no such"), strings.Contains(raw, "config not found"):
-			displayMsg = "No project found. Run wolfcastle init."
+			toastText = "No project found. Run wolfcastle init."
+		case strings.Contains(raw, "identity not configured"):
+			toastText = "Identity not configured. Run wolfcastle init."
 		case strings.Contains(raw, "uncommitted changes"), strings.Contains(raw, "commit or stash"):
-			displayMsg = "Uncommitted changes. Commit/stash, or set git.auto_commit=false."
+			toastText = "Uncommitted changes. Commit or stash first."
 		case raw == "":
-			displayMsg = "Daemon failed to start."
+			toastText = "Daemon failed to start."
 		default:
-			displayMsg = "Daemon failed to start: " + raw
+			toastText = "Daemon failed to start: " + raw
 		}
-		m.appendError("daemon", displayMsg)
-		return m, nil
+		cmds = append(cmds, m.notify.Push(toastText))
+		return m, tea.Batch(cmds...)
 
 	case tui.DaemonStoppedMsg:
 		m.daemonStopping = false
