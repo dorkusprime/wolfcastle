@@ -5,7 +5,11 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dorkusprime/wolfcastle/cmd/audit"
 	"github.com/dorkusprime/wolfcastle/cmd/cmdutil"
@@ -17,8 +21,12 @@ import (
 	"github.com/dorkusprime/wolfcastle/cmd/project"
 	"github.com/dorkusprime/wolfcastle/cmd/task"
 	"github.com/dorkusprime/wolfcastle/internal/clock"
+	wcDaemon "github.com/dorkusprime/wolfcastle/internal/daemon"
+	wcInstance "github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
+	"github.com/dorkusprime/wolfcastle/internal/state"
+	tuiApp "github.com/dorkusprime/wolfcastle/internal/tui/app"
 	"github.com/spf13/cobra"
 )
 
@@ -45,10 +53,16 @@ Use "wolfcastle [command] --help" for more information about a command.
 All commands support --json for machine-readable output.`,
 	SilenceErrors: true,
 	SilenceUsage:  true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return launchTUI()
+	},
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Skip config loading for commands that don't need it
+		// Skip config loading for commands that don't need it.
+		// The TUI (root command with no subcommand) handles its own
+		// directory detection, including the welcome screen for missing
+		// .wolfcastle directories.
 		switch cmd.Name() {
-		case "init", "version", "help":
+		case "init", "version", "help", "wolfcastle":
 			return nil
 		}
 		return app.Init()
@@ -57,6 +71,76 @@ All commands support --json for machine-readable output.`,
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&app.JSON, "json", false, "Output in JSON format")
+}
+
+// launchTUI starts the Bubbletea TUI program. Resolution order:
+//
+//  1. Walk CWD upward for .wolfcastle/ (local project)
+//  2. instance.Resolve(cwd) (running daemon owns this directory)
+//  3. instance.List() (any running daemons anywhere)
+//  4. Welcome screen (nothing found)
+//
+// Steps 2 and 3 let the TUI manage running instances from any directory.
+func launchTUI() error {
+	var (
+		store       *state.Store
+		daemonRepo  *wcDaemon.DaemonRepository
+		worktreeDir string
+	)
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("getwd: %w", err)
+	}
+
+	// Step 1: Walk CWD upward looking for .wolfcastle/
+	dir := cwd
+	for {
+		candidate := filepath.Join(dir, ".wolfcastle")
+		if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+			worktreeDir = dir
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	// Step 2: If no local .wolfcastle, try instance resolution for CWD.
+	if worktreeDir == "" {
+		if entry, resolveErr := wcInstance.Resolve(cwd); resolveErr == nil {
+			worktreeDir = entry.Worktree
+		}
+	}
+
+	// Step 3: No auto-connect to remote instances. The welcome screen
+	// shows running sessions and lets the user pick one.
+
+	// Initialize from the resolved worktree.
+	if worktreeDir != "" {
+		wolfcastleDir := filepath.Join(worktreeDir, ".wolfcastle")
+		if info, statErr := os.Stat(wolfcastleDir); statErr == nil && info.IsDir() {
+			daemonRepo = wcDaemon.NewDaemonRepository(wolfcastleDir)
+
+			// Try full app init for Store access. Failure is non-fatal;
+			// the TUI runs in cold-start mode without node data.
+			if initErr := app.Init(); initErr == nil && app.State != nil {
+				store = app.State
+			}
+		}
+	}
+
+	// Step 4: No worktree found at all; welcome screen uses CWD.
+	if worktreeDir == "" {
+		worktreeDir = cwd
+	}
+
+	model := tuiApp.NewTUIModel(store, daemonRepo, worktreeDir, Version)
+	p := tea.NewProgram(model)
+	_, err = p.Run()
+	return err
 }
 
 // setupCommands registers all subcommand groups and wires up

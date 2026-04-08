@@ -14,6 +14,7 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
 	"github.com/dorkusprime/wolfcastle/internal/git"
+	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
@@ -60,12 +61,68 @@ func (a *App) FindWolfcastleDir() (string, error) {
 // repositories, loads config, and extracts identity. If identity is
 // not configured, Identity and State remain nil; commands that need
 // them call RequireIdentity().
+//
+// When the local directory has no .wolfcastle, Init falls back to
+// instance resolution: if a running daemon owns CWD (or an ancestor),
+// its worktree provides the context. This lets commands work from
+// anywhere inside a project tree that has a running daemon.
 func (a *App) Init() error {
 	root, err := a.FindWolfcastleDir()
 	if err != nil {
-		return err
+		// Fallback: check if a running instance owns CWD.
+		root, err = a.initFromInstance()
+		if err != nil {
+			return err
+		}
 	}
 
+	return a.initFromRoot(root)
+}
+
+// initFromInstance resolves a running daemon instance for CWD and
+// returns its .wolfcastle path. This enables commands to work from
+// any subdirectory of a project with a running daemon, even when
+// .wolfcastle isn't in the immediate CWD.
+//
+// When no instance matches CWD but instances are running elsewhere,
+// the error lists them so the user knows where to go.
+func (a *App) initFromInstance() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	entry, resolveErr := instance.Resolve(cwd)
+	if resolveErr == nil {
+		root := filepath.Join(entry.Worktree, ".wolfcastle")
+		if info, statErr := os.Stat(root); statErr == nil && info.IsDir() {
+			return root, nil
+		}
+		return "", fmt.Errorf("instance worktree %s has no .wolfcastle directory", entry.Worktree)
+	}
+
+	// No instance owns CWD. Check if any instances are running at all
+	// and surface them in the error message per the multi-process spec.
+	instances, listErr := instance.List()
+	if listErr == nil && len(instances) > 0 {
+		var lines []string
+		for _, inst := range instances {
+			lines = append(lines, fmt.Sprintf("  %s (%s, PID %d)", inst.Branch, inst.Worktree, inst.PID))
+		}
+		//nolint:staticcheck // user-facing CLI guidance, multi-sentence
+		return "", fmt.Errorf(
+			"no .wolfcastle directory found and no running instance owns this directory.\n\n"+
+				"Running instances:\n%s\n\n"+
+				"Run from inside one of those worktrees, or start a daemon here with 'wolfcastle start'.",
+			strings.Join(lines, "\n"),
+		)
+	}
+
+	return "", fmt.Errorf("no .wolfcastle directory found. Run 'wolfcastle init' first")
+}
+
+// initFromRoot completes initialization given a resolved .wolfcastle path.
+func (a *App) initFromRoot(root string) error {
 	// Create repositories.
 	a.Config = config.NewRepository(root)
 	a.Prompts = pipeline.NewPromptRepository(root)
