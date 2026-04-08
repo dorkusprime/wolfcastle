@@ -102,8 +102,8 @@ func (m *TaskDetailModel) rebuildContent() {
 		b.WriteByte('\n')
 	}
 
-	// Description
-	if t.Description != "" {
+	// Description (skip if identical to title to avoid duplicate)
+	if t.Description != "" && t.Description != t.Title {
 		b.WriteByte('\n')
 		b.WriteString(body.Render(wrapIndent(t.Description, wrapWidth, "")))
 		b.WriteByte('\n')
