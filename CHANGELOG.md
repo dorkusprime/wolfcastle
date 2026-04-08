@@ -21,7 +21,7 @@
 
 ### Quality
 - New `internal/fsutil` package with full test coverage for `AtomicWriteFile` (happy path, overwrite, parent creation, permission errors, rename failures). (#225)
-- 633 lines of multi-process tests covering two-worktree coexistence, deep-subdirectory CWD routing, prefix-boundary cross-match prevention, `--instance` overriding CWD end-to-end, tier regeneration from a partial scaffold, and `stop --all` with mixed live/stale entries. (#239)
+- Comprehensive multi-process tests covering two-worktree coexistence, deep-subdirectory CWD routing, prefix-boundary cross-match prevention, `--instance` overriding CWD end-to-end, tier regeneration from a partial scaffold, `stop --all` with mixed live/stale entries, and full coverage for the new `App.InitFromDir` and `resolveInstance` helpers. (#239)
 - Daemon test suite trimmed: hardcoded 1-second context timeouts in fifteen tests dropped to 200-300ms, cutting ~5 seconds off every full daemon test run. (#229)
 
 ## 0.4.3
