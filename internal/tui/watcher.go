@@ -41,6 +41,16 @@ type Watcher struct {
 	mu          sync.Mutex
 	useFsnotify bool
 
+	// subscribed tracks which leaf addresses already have an
+	// fsnotify subscription via AddNodeWatch + an initial cache
+	// load via NodeUpdatedMsg. EagerPrefetchAndSubscribe consults
+	// this set so it can be called repeatedly without re-emitting
+	// load events for already-subscribed leaves. The set is what
+	// makes the function idempotent and lets the watcher pick up
+	// leaves that the daemon adds to the index after startup
+	// (decomposition, planning passes, etc).
+	subscribed map[string]bool
+
 	// polling state
 	indexMtime    time.Time
 	instanceMtime time.Time
@@ -61,6 +71,7 @@ func NewWatcher(store *state.Store, logDir, instanceDir string, events chan<- te
 		pending:     make(map[string]bool),
 		done:        make(chan struct{}),
 		useFsnotify: true,
+		subscribed:  make(map[string]bool),
 	}
 }
 
@@ -285,6 +296,14 @@ func (w *Watcher) flush(paths map[string]bool) {
 					})
 				} else {
 					w.emit(StateUpdatedMsg{Index: idx})
+					// The index just changed. The daemon may have
+					// added new leaves via decomposition; subscribe
+					// to any that don't already have an fsnotify
+					// watch and load their initial state into the
+					// model's cache. EagerPrefetchAndSubscribe is
+					// idempotent (consults w.subscribed), so this
+					// is safe to call after every index update.
+					_ = w.EagerPrefetchAndSubscribe()
 				}
 			}
 
@@ -497,6 +516,16 @@ func (w *Watcher) AddNodeWatch(addr string) {
 // in-flight state.json is logged-and-skipped, and the next watcher
 // event will retry on its own.
 //
+// **Idempotent.** The function consults w.subscribed and skips any
+// address that already has a subscription, so it's safe to call
+// repeatedly. The flush handler invokes it after every index update
+// so leaves added by daemon decomposition (which appear in the
+// index after watcher startup) get subscribed and cached the moment
+// they show up. Without this re-call, eager prefetch would only
+// cover leaves that existed at TUI launch — newly-decomposed leaves
+// would have no fsnotify subscription and their tasks would never
+// reach the cache.
+//
 // Safe to call before or after Start/StartPolling. When called
 // before fsnotify init, the AddNodeWatch calls become no-ops and
 // only the eager-load half runs; when called after, both halves
@@ -516,15 +545,25 @@ func (w *Watcher) EagerPrefetchAndSubscribe() error {
 		if entry.Type != state.NodeLeaf {
 			continue
 		}
+		w.mu.Lock()
+		alreadySubscribed := w.subscribed[addr]
+		w.mu.Unlock()
+		if alreadySubscribed {
+			continue
+		}
 		node, err := w.store.ReadNode(addr)
 		if err != nil {
 			// Skip leaves whose state files are missing or corrupt.
 			// The next fsnotify event will retry on its own once
-			// the daemon writes a clean version.
+			// the daemon writes a clean version. Don't mark as
+			// subscribed yet so a retry happens.
 			continue
 		}
 		w.emit(NodeUpdatedMsg{Address: addr, Node: node})
 		w.AddNodeWatch(addr)
+		w.mu.Lock()
+		w.subscribed[addr] = true
+		w.mu.Unlock()
 	}
 	return nil
 }
