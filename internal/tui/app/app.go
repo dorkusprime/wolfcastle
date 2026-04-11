@@ -68,13 +68,13 @@ type TUIModel struct {
 	focused     FocusedPane
 	lastFocused FocusedPane
 
-	header  header.HeaderModel
+	header  header.Model
 	tree    tree.Model
-	detail  detail.DetailModel
-	footer  footer.FooterModel
-	welcome *welcome.WelcomeModel
-	search  search.SearchModel
-	help    help.HelpOverlayModel
+	detail  detail.Model
+	footer  footer.Model
+	welcome *welcome.Model
+	search  search.Model
+	help    help.Model
 	notify  notify.NotificationModel
 
 	// State diffing for toast notifications (Phase 5).
@@ -112,12 +112,12 @@ func NewTUIModel(store *state.Store, daemonRepo *daemon.Repository, worktreeDir,
 	m := TUIModel{
 		treeVisible: true,
 		focused:     PaneTree,
-		header:      header.NewHeaderModel(version),
+		header:      header.NewModel(version),
 		tree:        tree.NewModel(),
-		detail:      detail.NewDetailModel(),
-		footer:      footer.NewFooterModel(),
-		search:      search.NewSearchModel(),
-		help:        help.NewHelpOverlayModel(),
+		detail:      detail.NewModel(),
+		footer:      footer.NewModel(),
+		search:      search.NewModel(),
+		help:        help.NewModel(),
 		notify:      notify.NewNotificationModel(),
 		prevNodes:   make(map[string]*state.NodeState),
 		store:       store,
@@ -136,7 +136,7 @@ func NewTUIModel(store *state.Store, daemonRepo *daemon.Repository, worktreeDir,
 		m.entryState = StateWelcome
 		// Discover running instances for the sessions panel.
 		instances, _ := instance.List()
-		w := welcome.NewWelcomeModel(worktreeDir, instances)
+		w := welcome.NewModel(worktreeDir, instances)
 		m.welcome = &w
 	} else {
 		m.entryState = StateCold
@@ -985,12 +985,12 @@ func (m *TUIModel) computeTreeSearchMatches() {
 	}
 
 	literal := make(map[string]bool)
-	var matches []search.SearchMatch
+	var matches []search.Match
 
 	for addr, entry := range idx.Nodes {
 		if strings.Contains(strings.ToLower(entry.Name), query) {
 			literal[addr] = true
-			matches = append(matches, search.SearchMatch{Address: addr})
+			matches = append(matches, search.Match{Address: addr})
 		}
 		if entry.Type != state.NodeLeaf {
 			continue
@@ -1003,7 +1003,7 @@ func (m *TUIModel) computeTreeSearchMatches() {
 			if strings.Contains(strings.ToLower(task.Title), query) {
 				taskAddr := addr + "/" + task.ID
 				literal[taskAddr] = true
-				matches = append(matches, search.SearchMatch{Address: taskAddr})
+				matches = append(matches, search.Match{Address: taskAddr})
 			}
 		}
 	}
@@ -1034,10 +1034,10 @@ func (m *TUIModel) computeTreeSearchMatches() {
 
 func (m *TUIModel) computeDetailSearchMatches(query string) {
 	lines := m.detail.SearchContent()
-	var matches []search.SearchMatch
+	var matches []search.Match
 	for i, line := range lines {
 		if strings.Contains(strings.ToLower(line), query) {
-			matches = append(matches, search.SearchMatch{Row: i})
+			matches = append(matches, search.Match{Row: i})
 		}
 	}
 	m.search.SetMatches(matches)
@@ -1625,7 +1625,6 @@ func (m *TUIModel) stopCurrentDaemon() tea.Cmd {
 			}
 			time.Sleep(200 * time.Millisecond)
 		}
-		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
 		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("daemon not responding, try wolfcastle stop --force")}
 	}
 }
@@ -1663,7 +1662,6 @@ func (m *TUIModel) handleStopAll() tea.Cmd {
 		if lastErr != nil {
 			return tui.DaemonStopFailedMsg{Err: lastErr}
 		}
-		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
 		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("daemon not responding, try wolfcastle stop --force")}
 	}
 }

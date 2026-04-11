@@ -10,9 +10,9 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
-func TestNewDetailModel_StartsInDashboardMode(t *testing.T) {
+func TestNewModel_StartsInDashboardMode(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	if m.mode != ModeDashboard {
 		t.Errorf("expected ModeDashboard (%d), got %d", ModeDashboard, m.mode)
 	}
@@ -20,7 +20,7 @@ func TestNewDetailModel_StartsInDashboardMode(t *testing.T) {
 
 func TestSetMode_Dashboard(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetMode(ModeDashboard)
 	if m.mode != ModeDashboard {
 		t.Errorf("expected ModeDashboard, got %d", m.mode)
@@ -34,7 +34,7 @@ func TestSetMode_Dashboard(t *testing.T) {
 
 func TestSetMode_NodeDetail_RendersNodeView(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeNodeDetail)
 	if m.mode != ModeNodeDetail {
@@ -46,7 +46,7 @@ func TestSetMode_NodeDetail_RendersNodeView(t *testing.T) {
 
 func TestSetMode_LogStream_RendersLogView(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SwitchToLogView()
 	if m.mode != ModeLogStream {
@@ -60,7 +60,7 @@ func TestSetMode_LogStream_RendersLogView(t *testing.T) {
 
 func TestSetMode_TaskDetail_RendersTaskView(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeTaskDetail)
 	if m.mode != ModeTaskDetail {
@@ -72,7 +72,7 @@ func TestSetMode_TaskDetail_RendersTaskView(t *testing.T) {
 
 func TestSetMode_Inbox_ShowsInboxView(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeInbox)
 	v := m.View()
@@ -86,7 +86,7 @@ func TestSetMode_Inbox_ShowsInboxView(t *testing.T) {
 
 func TestUpdate_ForwardsStateUpdatedMsg(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	idx := &state.RootIndex{
 		Nodes: map[string]state.IndexEntry{
 			"a": {State: state.StatusComplete},
@@ -101,7 +101,7 @@ func TestUpdate_ForwardsStateUpdatedMsg(t *testing.T) {
 
 func TestUpdate_ForwardsDaemonStatusMsg(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m, _ = m.Update(tui.DaemonStatusMsg{
 		Status:    "on patrol",
 		Branch:    "main",
@@ -117,7 +117,7 @@ func TestUpdate_ForwardsDaemonStatusMsg(t *testing.T) {
 
 func TestUpdate_ForwardsLogLinesMsg(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{
 		`{"type":"stage_start","stage":"intake","node":"alpha"}`,
 		`{"type":"stage_complete","stage":"exec","node":"alpha","exit_code":0}`,
@@ -129,7 +129,7 @@ func TestUpdate_ForwardsLogLinesMsg(t *testing.T) {
 
 func TestUpdate_NonDashboardModeIgnoresStateMsg(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetMode(ModeNodeDetail)
 	m, _ = m.Update(tui.StateUpdatedMsg{Index: &state.RootIndex{
 		Nodes: map[string]state.IndexEntry{"a": {State: state.StatusComplete}},
@@ -142,7 +142,7 @@ func TestUpdate_NonDashboardModeIgnoresStateMsg(t *testing.T) {
 
 func TestUpdate_LogStreamModeHandlesKeyPress(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SwitchToLogView()
 	// Should not panic on key press in log stream mode
@@ -154,7 +154,7 @@ func TestUpdate_LogStreamModeHandlesKeyPress(t *testing.T) {
 
 func TestUpdate_DashboardModeHandlesKeyPress(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	// Should not panic on key press in dashboard mode
 	m, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
@@ -165,7 +165,7 @@ func TestUpdate_DashboardModeHandlesKeyPress(t *testing.T) {
 
 func TestSetSize_PropagatesDimensions(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(100, 50)
 	if m.width != 100 || m.height != 50 {
 		t.Errorf("expected 100x50, got %dx%d", m.width, m.height)
@@ -177,7 +177,7 @@ func TestSetSize_PropagatesDimensions(t *testing.T) {
 
 func TestSetFocused(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetFocused(true)
 	if !m.focused {
 		t.Error("expected focused to be true")
@@ -190,7 +190,7 @@ func TestSetFocused(t *testing.T) {
 
 func TestView_DashboardMode(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	v := m.View()
 	if !strings.Contains(v, "MISSION BRIEFING") {
 		t.Errorf("expected MISSION BRIEFING in dashboard view, got: %s", v)
@@ -199,7 +199,7 @@ func TestView_DashboardMode(t *testing.T) {
 
 func TestView_InboxMode_ShowsInboxView(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeInbox)
 	v := m.View()
@@ -210,7 +210,7 @@ func TestView_InboxMode_ShowsInboxView(t *testing.T) {
 
 func TestUpdate_UnhandledMsgReturnsSelf(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m2, cmd := m.Update(tea.FocusMsg{})
 	if cmd != nil {
 		t.Error("expected nil cmd for unhandled msg")

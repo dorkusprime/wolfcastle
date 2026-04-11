@@ -82,11 +82,11 @@ var statusOrder = []state.NodeStatus{
 }
 
 // ---------------------------------------------------------------------------
-// HeaderModel
+// Model
 // ---------------------------------------------------------------------------
 
-// HeaderModel is the sub-model for the TUI top bar.
-type HeaderModel struct {
+// Model is the sub-model for the TUI top bar.
+type Model struct {
 	version         string
 	daemonStatus    string
 	branch          string
@@ -106,9 +106,9 @@ type HeaderModel struct {
 	statusHint  string // transient hint like "Starting daemon..."
 }
 
-// NewHeaderModel creates a HeaderModel with sensible zero-state defaults.
-func NewHeaderModel(version string) HeaderModel {
-	return HeaderModel{
+// NewModel creates a Model with sensible zero-state defaults.
+func NewModel(version string) Model {
+	return Model{
 		version:      version,
 		daemonStatus: "standing down",
 		nodeCounts:   make(map[state.NodeStatus]int),
@@ -117,22 +117,22 @@ func NewHeaderModel(version string) HeaderModel {
 }
 
 // SetSize updates the available width.
-func (m *HeaderModel) SetSize(width int) {
+func (m *Model) SetSize(width int) {
 	m.width = width
 }
 
 // SetLoading sets the loading spinner state.
-func (m *HeaderModel) SetLoading(loading bool) {
+func (m *Model) SetLoading(loading bool) {
 	m.loading = loading
 }
 
 // IsLoading returns true when the loading spinner is active.
-func (m HeaderModel) IsLoading() bool {
+func (m Model) IsLoading() bool {
 	return m.loading
 }
 
 // SetInstances updates the instance list and active index for the tab bar.
-func (m *HeaderModel) SetInstances(entries []instance.Entry, activeIdx int) {
+func (m *Model) SetInstances(entries []instance.Entry, activeIdx int) {
 	m.instances = entries
 	m.activeIndex = activeIdx
 	m.instanceCount = len(entries)
@@ -140,7 +140,7 @@ func (m *HeaderModel) SetInstances(entries []instance.Entry, activeIdx int) {
 
 // SetStatusHint sets a transient status message (e.g. "Starting daemon...").
 // Pass an empty string to clear.
-func (m *HeaderModel) SetStatusHint(hint string) {
+func (m *Model) SetStatusHint(hint string) {
 	m.statusHint = hint
 }
 
@@ -149,7 +149,7 @@ func (m *HeaderModel) SetStatusHint(hint string) {
 // ---------------------------------------------------------------------------
 
 // Update processes messages relevant to the header.
-func (m HeaderModel) Update(msg tea.Msg) (HeaderModel, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case DaemonStatusMsg:
@@ -191,7 +191,7 @@ func (m HeaderModel) Update(msg tea.Msg) (HeaderModel, tea.Cmd) {
 // ---------------------------------------------------------------------------
 
 // View renders the header bar with top/bottom and left/right padding.
-func (m HeaderModel) View() string {
+func (m Model) View() string {
 	if m.width <= 0 {
 		return ""
 	}
@@ -293,7 +293,7 @@ func daemonStatusString(msg DaemonStatusMsg) string {
 }
 
 // renderNodeCounts builds the "12 nodes: 4● 3◐ 3◯ 2☢" string.
-func (m HeaderModel) renderNodeCounts(base lipgloss.Style) string {
+func (m Model) renderNodeCounts(base lipgloss.Style) string {
 	if m.totalNodes == 0 {
 		return base.Render("0 nodes")
 	}
@@ -331,7 +331,7 @@ func composeLine(base lipgloss.Style, left, right string, width int) string {
 }
 
 // renderTabBar builds the instance tab bar: [feat/auth ●] [fix/login]
-func (m HeaderModel) renderTabBar(base, bold lipgloss.Style, width int) string {
+func (m Model) renderTabBar(base, bold lipgloss.Style, width int) string {
 	dimStyle := lipgloss.NewStyle().
 		Background(headerBg).
 		Foreground(clrDim)

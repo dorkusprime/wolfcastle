@@ -11,10 +11,10 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
-// TaskDetailModel renders detailed information about a single task, including
+// TaskModel renders detailed information about a single task, including
 // description, body, deliverables, acceptance criteria, constraints, and
 // failure information.
-type TaskDetailModel struct {
+type TaskModel struct {
 	addr     string
 	taskID   string
 	task     *state.Task
@@ -23,15 +23,15 @@ type TaskDetailModel struct {
 	height   int
 }
 
-// NewTaskDetailModel creates a TaskDetailModel with an empty viewport.
-func NewTaskDetailModel() TaskDetailModel {
-	return TaskDetailModel{
+// NewTaskModel creates a TaskModel with an empty viewport.
+func NewTaskModel() TaskModel {
+	return TaskModel{
 		viewport: viewport.New(),
 	}
 }
 
 // Load populates the model with task data and rebuilds the viewport content.
-func (m *TaskDetailModel) Load(addr, taskID string, task *state.Task) {
+func (m *TaskModel) Load(addr, taskID string, task *state.Task) {
 	m.addr = addr
 	m.taskID = taskID
 	m.task = task
@@ -39,7 +39,7 @@ func (m *TaskDetailModel) Load(addr, taskID string, task *state.Task) {
 }
 
 // SetSize stores the available rendering area and propagates to the viewport.
-func (m *TaskDetailModel) SetSize(width, height int) {
+func (m *TaskModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 	m.viewport.SetWidth(width)
@@ -48,12 +48,12 @@ func (m *TaskDetailModel) SetSize(width, height int) {
 }
 
 // TaskAddr returns the fully qualified task address for clipboard copy.
-func (m TaskDetailModel) TaskAddr() string {
+func (m TaskModel) TaskAddr() string {
 	return m.addr + "/" + m.taskID
 }
 
 // Update forwards key events to the viewport for scrolling.
-func (m TaskDetailModel) Update(msg tea.Msg) (TaskDetailModel, tea.Cmd) {
+func (m TaskModel) Update(msg tea.Msg) (TaskModel, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyPressMsg:
 		var cmd tea.Cmd
@@ -64,16 +64,16 @@ func (m TaskDetailModel) Update(msg tea.Msg) (TaskDetailModel, tea.Cmd) {
 }
 
 // View renders the viewport.
-func (m TaskDetailModel) View() string {
+func (m TaskModel) View() string {
 	return m.viewport.View()
 }
 
 // SearchContent returns the viewport content split into lines for search.
-func (m TaskDetailModel) SearchContent() []string {
+func (m TaskModel) SearchContent() []string {
 	return strings.Split(m.viewport.GetContent(), "\n")
 }
 
-func (m *TaskDetailModel) rebuildContent() {
+func (m *TaskModel) rebuildContent() {
 	if m.task == nil {
 		return
 	}

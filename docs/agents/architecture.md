@@ -16,7 +16,6 @@ wolfcastle/
 │   ├── project/             # create
 │   ├── orchestrator/        # criteria (planning pipeline support)
 │   ├── task/                # add, amend, claim, complete, block, unblock, deliverable
-│   └── tui/                 # TUI launch command
 ├── internal/                # Core logic (not importable outside the module)
 │   ├── archive/             # Archive entry rollup (Markdown generation)
 │   ├── clock/               # Time abstraction for deterministic testing (ADR-052)
@@ -90,7 +89,7 @@ User input → cmd/ → internal/ → filesystem (.wolfcastle/)
 
 Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
-- `tui` → `config`, `daemon`, `instance`, `logging`, `logrender`, `output`, `state`, `tree`
+- `tui` → `config`, `daemon`, `instance`, `logging`, `logrender`, `pipeline`, `project`, `state`
 - `daemon` → `archive`, `clock`, `config`, `errors`, `git`, `instance`, `invoke`, `knowledge`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
 - `validate` → `config`, `invoke`, `pipeline`, `state`, `tree`
 - `pipeline` → `config`, `invoke`, `knowledge`, `state`, `tierfs`

@@ -32,7 +32,7 @@ The welcome screen is a launcher. Once you select a session or navigate into an 
 |-----|--------|
 | `j` / `↓` | Move down |
 | `k` / `↑` | Move up |
-| `Enter` / `l` | Select session or navigate into directory |
+| `Enter` / `l` / `→` | Select session or navigate into directory |
 | `h` / `←` / `Backspace` | Go up one directory |
 | `g` | Jump to top |
 | `G` | Jump to bottom |
@@ -367,7 +367,7 @@ The complete set, organized by context. Press `?` to see this in the TUI itself.
 |-----|--------|
 | `j` / `↓` | Move down |
 | `k` / `↑` | Move up |
-| `Enter` / `l` | Select / navigate into |
+| `Enter` / `l` / `→` | Select / navigate into |
 | `h` / `←` / `Backspace` | Go up one level |
 | `g` | Jump to top |
 | `G` | Jump to bottom |

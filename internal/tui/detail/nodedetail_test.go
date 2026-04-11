@@ -8,9 +8,9 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-func TestNewNodeDetailModel_Defaults(t *testing.T) {
+func TestNewNodeModel_Defaults(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	if m.addr != "" {
 		t.Errorf("addr should be empty, got %q", m.addr)
 	}
@@ -57,7 +57,7 @@ func makeLeafNode() *state.NodeState {
 
 func TestLoad_OrchestratorNode(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 	node := makeOrchestratorNode()
 	m.Load("root", node, nil, false)
@@ -82,7 +82,7 @@ func TestLoad_OrchestratorNode(t *testing.T) {
 
 func TestLoad_LeafNode(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 	node := makeLeafNode()
 	m.Load("root/leaf-1", node, nil, false)
@@ -108,7 +108,7 @@ func TestLoad_LeafNode(t *testing.T) {
 
 func TestLoad_WithAuditData(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 
 	started := time.Now().Add(-5 * time.Minute)
@@ -157,7 +157,7 @@ func TestLoad_WithAuditData(t *testing.T) {
 
 func TestLoad_WithScope(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 
 	node := &state.NodeState{
@@ -181,7 +181,7 @@ func TestLoad_WithScope(t *testing.T) {
 
 func TestLoad_WithCriteria(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 
 	node := &state.NodeState{
@@ -208,7 +208,7 @@ func TestLoad_WithCriteria(t *testing.T) {
 
 func TestLoad_WithSpecs(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 
 	node := &state.NodeState{
@@ -232,7 +232,7 @@ func TestLoad_WithSpecs(t *testing.T) {
 
 func TestLoad_IsTarget(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 
 	node := &state.NodeState{
@@ -252,7 +252,7 @@ func TestLoad_IsTarget(t *testing.T) {
 
 func TestLoad_NotTarget(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 
 	node := &state.NodeState{
@@ -272,7 +272,7 @@ func TestLoad_NotTarget(t *testing.T) {
 
 func TestSetReadError(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 	m.SetReadError("root/broken")
 
@@ -290,7 +290,7 @@ func TestSetReadError(t *testing.T) {
 
 func TestAddr(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 	node := makeOrchestratorNode()
 	m.Load("root/proj", node, nil, false)
@@ -302,7 +302,7 @@ func TestAddr(t *testing.T) {
 
 func TestSetSize_Propagates(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(120, 50)
 
 	if m.width != 120 {
@@ -391,7 +391,7 @@ func TestRelativeTime_Future(t *testing.T) {
 
 func TestEmptySections_Omitted(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 
 	// A minimal node with no scope, criteria, children, tasks, audit, specs
@@ -424,7 +424,7 @@ func TestEmptySections_Omitted(t *testing.T) {
 
 func TestAudit_InProgress_ShowsInProgress(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 
 	started := time.Now().Add(-10 * time.Minute)
@@ -449,7 +449,7 @@ func TestAudit_InProgress_ShowsInProgress(t *testing.T) {
 
 func TestAudit_NoSummary_ShowsNoneYet(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 
 	node := &state.NodeState{
@@ -472,7 +472,7 @@ func TestAudit_NoSummary_ShowsNoneYet(t *testing.T) {
 
 func TestUpdate_PassesToViewport(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 	node := makeOrchestratorNode()
 	m.Load("root", node, nil, false)
@@ -483,7 +483,7 @@ func TestUpdate_PassesToViewport(t *testing.T) {
 
 func TestNodeDetail_Update_NonKeyMsg_Ignored(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	type customMsg struct{}
 	_, _ = m.Update(customMsg{})
 }
@@ -562,7 +562,7 @@ func TestWrapIndent_NarrowWidth(t *testing.T) {
 
 func TestRebuildContent_NilNode(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 	// rebuildContent with nil node should not panic
 	m.rebuildContent()
@@ -570,7 +570,7 @@ func TestRebuildContent_NilNode(t *testing.T) {
 
 func TestRebuildContent_ReadError(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	m.SetSize(80, 40)
 	m.readErr = true
 	// rebuildContent with readErr should bail early without panic
@@ -579,7 +579,7 @@ func TestRebuildContent_ReadError(t *testing.T) {
 
 func TestSetSize_SmallWidth(t *testing.T) {
 	t.Parallel()
-	m := NewNodeDetailModel()
+	m := NewNodeModel()
 	node := makeOrchestratorNode()
 	node.Scope = "Some scope text that needs wrapping"
 	m.SetSize(10, 40)
