@@ -1,4 +1,4 @@
-# Blocked task with failure count and block reason
+# Blocked task with failure count and block reason (uses task-blocked stage)
 Set Shell "bash"
 Set Width 1200
 Set Height 800
@@ -20,23 +20,9 @@ Sleep 1s
 Type "l"
 Sleep 1s
 
-# Move to backend (first child) and expand
+# Move to payments (only child) and enter it
 Type "j"
 Sleep 500ms
-Type "l"
-Sleep 1s
-
-# Move down past api, auth, database to payments (blocked)
-Type "j"
-Sleep 500ms
-Type "j"
-Sleep 500ms
-Type "j"
-Sleep 500ms
-Type "j"
-Sleep 500ms
-
-# Enter payments leaf to see tasks
 Type "l"
 Sleep 1s
 

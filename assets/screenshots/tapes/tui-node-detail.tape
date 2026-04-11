@@ -1,4 +1,4 @@
-# Node detail view: press Enter on a tree node
+# Node detail view: backend orchestrator showing children and states
 Set Shell "bash"
 Set Width 1200
 Set Height 800
@@ -16,11 +16,15 @@ Down
 Up
 Sleep 1s
 
-# Expand warzone, then select backend orchestrator to show node detail
+# Expand warzone
 Type "l"
 Sleep 1s
+
+# Move to backend orchestrator
 Type "j"
 Sleep 500ms
+
+# Enter backend to show its node detail (children list with states)
 Type "l"
 Sleep 1s
 

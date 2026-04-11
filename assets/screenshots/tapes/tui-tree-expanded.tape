@@ -1,4 +1,4 @@
-# Tree pane with multi-level expanded nodes, mix of glyphs
+# Tree pane with multi-level expanded nodes, dashboard in detail pane
 Set Shell "bash"
 Set Width 1200
 Set Height 800
@@ -26,16 +26,8 @@ Sleep 500ms
 Type "l"
 Sleep 1s
 
-# Move down to frontend and expand it
-Type "j"
-Sleep 500ms
-Type "j"
-Sleep 500ms
-Type "j"
-Sleep 500ms
-Type "j"
-Sleep 500ms
-Type "l"
+# Return to dashboard so detail pane shows the mission briefing
+Type "d"
 Sleep 1s
 
 Screenshot tui-tree-expanded.png

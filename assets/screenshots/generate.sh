@@ -123,7 +123,7 @@ cat > "$NS_MAIN/state.json" << 'STATEEOF'
       "state": "in_progress",
       "address": "warzone/backend",
       "parent": "warzone",
-      "children": ["warzone/backend/api", "warzone/backend/auth", "warzone/backend/database", "warzone/backend/payments"]
+      "children": ["warzone/backend/api", "warzone/backend/auth", "warzone/backend/database"]
     },
     "warzone/backend/api": {
       "name": "api",
@@ -144,13 +144,6 @@ cat > "$NS_MAIN/state.json" << 'STATEEOF'
       "type": "leaf",
       "state": "not_started",
       "address": "warzone/backend/database",
-      "parent": "warzone/backend"
-    },
-    "warzone/backend/payments": {
-      "name": "payments",
-      "type": "leaf",
-      "state": "blocked",
-      "address": "warzone/backend/payments",
       "parent": "warzone/backend"
     },
     "warzone/frontend": {
@@ -200,10 +193,6 @@ create_node "$NS_MAIN" "warzone/backend/auth" "auth" "leaf" "in_progress" '[
 ]'
 create_node "$NS_MAIN" "warzone/backend/database" "database" "leaf" "not_started" '[
   {"id":"task-1","title":"Schema migration framework","state":"not_started","class":"coding/go"},
-  {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
-]'
-create_node "$NS_MAIN" "warzone/backend/payments" "payments" "leaf" "blocked" '[
-  {"id":"task-1","title":"Integrate Stripe payment flow","state":"blocked","class":"coding/go","block_reason":"Waiting for Stripe webhook secret from ops team","failure_count":3,"last_failure_type":"dependency"},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
 ]'
 create_node "$NS_MAIN" "warzone/frontend" "frontend" "orchestrator" "in_progress"
@@ -465,6 +454,46 @@ echo "Blocked staging:  $STAGE_BLOCKED"
 STAGE_WELCOME="$(make_stage welcome)"
 echo "Welcome staging:  $STAGE_WELCOME"
 
+# ---------------------------------------------------------------------------
+# STAGE_TASK_BLOCKED: small tree with one blocked task showing rich data
+# ---------------------------------------------------------------------------
+STAGE_TASK_BLOCKED="$(make_stage task-blocked)"
+NS_TASK_BLOCKED="$(init_stage "$STAGE_TASK_BLOCKED")"
+
+cat > "$NS_TASK_BLOCKED/state.json" << 'STATEEOF'
+{
+  "version": 1,
+  "root_id": "warzone",
+  "root_name": "warzone",
+  "root": ["warzone"],
+  "root_state": "blocked",
+  "nodes": {
+    "warzone": {
+      "name": "warzone",
+      "type": "orchestrator",
+      "state": "blocked",
+      "address": "warzone",
+      "children": ["warzone/payments"]
+    },
+    "warzone/payments": {
+      "name": "payments",
+      "type": "leaf",
+      "state": "blocked",
+      "address": "warzone/payments",
+      "parent": "warzone"
+    }
+  }
+}
+STATEEOF
+
+create_node "$NS_TASK_BLOCKED" "warzone" "warzone" "orchestrator" "blocked"
+create_node "$NS_TASK_BLOCKED" "warzone/payments" "payments" "leaf" "blocked" '[
+  {"id":"task-1","title":"Integrate Stripe payment flow","state":"blocked","class":"coding/go","block_reason":"Waiting for Stripe webhook secret from ops team","failure_count":3,"last_failure_type":"dependency"},
+  {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
+]'
+
+echo "Task-blocked staging: $STAGE_TASK_BLOCKED"
+
 echo ""
 
 # ---------------------------------------------------------------------------
@@ -472,10 +501,11 @@ echo ""
 # ---------------------------------------------------------------------------
 stage_for_tape() {
     case "$1" in
-        tui-all-complete)    echo "$STAGE_COMPLETE" ;;
-        tui-all-blocked)     echo "$STAGE_BLOCKED" ;;
+        tui-all-complete)     echo "$STAGE_COMPLETE" ;;
+        tui-all-blocked)      echo "$STAGE_BLOCKED" ;;
         tui-welcome-sessions) echo "$STAGE_WELCOME" ;;
-        *)                   echo "$STAGE_MAIN" ;;
+        tui-task-blocked)     echo "$STAGE_TASK_BLOCKED" ;;
+        *)                    echo "$STAGE_MAIN" ;;
     esac
 }
 
