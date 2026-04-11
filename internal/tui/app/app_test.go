@@ -2483,3 +2483,23 @@ func TestOnlyOneModalAtATime(t *testing.T) {
 		t.Error("second modal should not open while first is active")
 	}
 }
+
+func TestDashboardKeySwitch(t *testing.T) {
+	m := newColdModel(t)
+	// Start in some non-dashboard detail mode.
+	m.detail.SetMode(detail.ModeNodeDetail)
+	m.focused = PaneTree
+
+	result, cmd := m.Update(keyMsg("d"))
+	model := toModel(t, result)
+
+	if model.detail.Mode() != detail.ModeDashboard {
+		t.Errorf("expected ModeDashboard after pressing d, got %d", model.detail.Mode())
+	}
+	if model.focused != PaneDetail {
+		t.Errorf("expected focus on PaneDetail after pressing d, got %d", model.focused)
+	}
+	if cmd != nil {
+		t.Error("dashboard switch should not produce a command")
+	}
+}

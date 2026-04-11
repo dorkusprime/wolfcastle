@@ -781,6 +781,109 @@ func TestCleanCache_EmptyIsNoop(t *testing.T) {
 	m.CleanCache()
 }
 
+func TestSearchLiteralAddresses(t *testing.T) {
+	m := NewModel()
+	literal := map[string]bool{"alpha": true, "beta": true}
+	ancestor := map[string]bool{"root": true}
+	m.SetSearchAddresses(literal, ancestor)
+
+	got := m.SearchLiteralAddresses()
+	if got == nil || !got["alpha"] || !got["beta"] {
+		t.Errorf("SearchLiteralAddresses returned unexpected value: %v", got)
+	}
+}
+
+func TestSearchAncestorAddresses(t *testing.T) {
+	m := NewModel()
+	literal := map[string]bool{"alpha": true}
+	ancestor := map[string]bool{"root": true, "mid": true}
+	m.SetSearchAddresses(literal, ancestor)
+
+	got := m.SearchAncestorAddresses()
+	if got == nil || !got["root"] || !got["mid"] {
+		t.Errorf("SearchAncestorAddresses returned unexpected value: %v", got)
+	}
+}
+
+func TestReset(t *testing.T) {
+	m := NewModel()
+	m.SetFocused(true)
+	m.SetIndex(simpleIndex())
+	m.SetSize(80, 20)
+	m.expanded["alpha"] = true
+	m.cursor = 2
+	m.scrollTop = 1
+
+	m.Reset()
+
+	if len(m.expanded) != 0 {
+		t.Errorf("expected expanded map to be empty after Reset, got %d entries", len(m.expanded))
+	}
+	if m.cursor != 0 {
+		t.Errorf("expected cursor 0 after Reset, got %d", m.cursor)
+	}
+	if m.scrollTop != 0 {
+		t.Errorf("expected scrollTop 0 after Reset, got %d", m.scrollTop)
+	}
+}
+
+func TestSelectedRow(t *testing.T) {
+	m := NewModel()
+	m.SetIndex(simpleIndex())
+
+	row := m.SelectedRow()
+	if row == nil {
+		t.Fatal("SelectedRow should not return nil when list is non-empty")
+	}
+	if row.Addr != "alpha" {
+		t.Errorf("expected row addr 'alpha', got %q", row.Addr)
+	}
+
+	m.cursor = 1
+	row = m.SelectedRow()
+	if row == nil || row.Addr != "beta" {
+		t.Errorf("expected row addr 'beta', got %v", row)
+	}
+}
+
+func TestSelectedRow_Empty(t *testing.T) {
+	m := NewModel()
+	row := m.SelectedRow()
+	if row != nil {
+		t.Error("SelectedRow should return nil for empty list")
+	}
+}
+
+func TestCachedNode(t *testing.T) {
+	m := NewModel()
+	ns := &state.NodeState{
+		Tasks: []state.Task{{ID: "t1", Title: "T1", State: state.StatusComplete}},
+	}
+	m.nodes["alpha"] = ns
+
+	got := m.CachedNode("alpha")
+	if got != ns {
+		t.Error("CachedNode should return the cached node state")
+	}
+
+	got = m.CachedNode("nonexistent")
+	if got != nil {
+		t.Error("CachedNode should return nil for uncached addresses")
+	}
+}
+
+func TestIndex(t *testing.T) {
+	m := NewModel()
+	if m.Index() != nil {
+		t.Error("Index should return nil before SetIndex")
+	}
+	idx := simpleIndex()
+	m.SetIndex(idx)
+	if m.Index() != idx {
+		t.Error("Index should return the set index")
+	}
+}
+
 // TestCollapse_DoesNotSetCacheExpiry replaces the original test that
 // asserted the opposite. The eviction-on-collapse behavior has been
 // removed: the watcher's per-leaf fsnotify subscription keeps every

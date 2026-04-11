@@ -334,6 +334,17 @@ func TestViewInactiveNoMatches(t *testing.T) {
 	}
 }
 
+func TestPaneType(t *testing.T) {
+	m := NewModel()
+	if m.PaneType() != 0 {
+		t.Errorf("default PaneType = %d, want 0", m.PaneType())
+	}
+	m.Activate(1)
+	if m.PaneType() != 1 {
+		t.Errorf("PaneType after Activate(1) = %d, want 1", m.PaneType())
+	}
+}
+
 func TestViewInactiveWithConfirmedMatches(t *testing.T) {
 	m := NewModel()
 	m.Activate(0)
