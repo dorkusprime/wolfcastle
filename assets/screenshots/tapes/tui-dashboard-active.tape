@@ -11,10 +11,13 @@ Set TypingSpeed 0
 
 Type "wolfcastle"
 Enter
-Sleep 8s
-Down
-Up
-Sleep 1s
+Sleep 10s
+
+# Sync alt-screen: open and close help overlay to force full redraws
+Type "R"
+Sleep 2s
+Type "R"
+Sleep 2s
 
 # Switch to dashboard view
 Type "d"

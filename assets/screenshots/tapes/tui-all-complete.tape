@@ -11,12 +11,12 @@ Set TypingSpeed 0
 
 Type "wolfcastle"
 Enter
-Sleep 8s
+Sleep 10s
 
-# Nudge cursor to sync alt-screen buffer
-Down
-Sleep 500ms
-Up
+# Sync alt-screen with refresh
+Type "R"
+Sleep 1s
+Type "R"
 Sleep 1s
 
 Screenshot tui-all-complete.png

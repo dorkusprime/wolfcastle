@@ -11,9 +11,11 @@ Set TypingSpeed 0
 
 Type "wolfcastle"
 Enter
-Sleep 8s
-Down
-Up
+Sleep 10s
+# Sync alt-screen with refresh
+Type "R"
+Sleep 2s
+Type "R"
 Sleep 1s
 
 # Expand warzone

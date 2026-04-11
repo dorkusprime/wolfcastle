@@ -1,4 +1,4 @@
-# Welcome screen with sessions panel (no .wolfcastle/ directory)
+# Welcome screen with directory browser (no .wolfcastle/ directory)
 Set Shell "bash"
 Set Width 1200
 Set Height 800
@@ -11,9 +11,14 @@ Set TypingSpeed 0
 
 Type "wolfcastle"
 Enter
-Sleep 8s
-Down
-Up
+Sleep 10s
+
+# Sync alt-screen by navigating the directory browser
+Type "j"
+Sleep 1s
+Type "k"
+Sleep 1s
+Type "j"
 Sleep 1s
 
 Screenshot tui-welcome-sessions.png
