@@ -4,7 +4,7 @@ Set Shell "bash"
 Set Width 1200
 Set Height 800
 Set FontSize 16
-Set FontFamily "JetBrains Mono"
+Set FontFamily "Bitstream Vera Sans Mono"
 Set Padding 20
 Set Theme "Dracula"
 Set WindowBar Colorful
