@@ -246,8 +246,37 @@ cat > "$LOG_DIR/0001-exec-20260411T08-00Z.jsonl" << 'LOGEOF'
 {"type":"intake_end","timestamp":"2026-04-11T08:05:15Z","level":"info","trace":"intake","text":"intake complete: 1 filed, 2 deferred"}
 LOGEOF
 
+# Register a fake daemon instance so the TUI shows "hunting" in the header.
+# We start a background sleep process and register its PID, so isProcessRunning
+# returns true during the VHS run.
+sleep 9999 &
+FAKE_DAEMON_PID=$!
+INSTANCE_DIR="$HOME/.wolfcastle/instances"
+mkdir -p "$INSTANCE_DIR"
+RESOLVED_STAGE="$(cd "$STAGE_MAIN" && pwd -P)"
+SLUG="$(echo "$RESOLVED_STAGE" | tr '/' '-' | sed 's/^-//')"
+cat > "$INSTANCE_DIR/${SLUG}.json" << EOF
+{
+  "pid": $FAKE_DAEMON_PID,
+  "worktree": "$RESOLVED_STAGE",
+  "branch": "main",
+  "started_at": "2026-04-11T08:00:00Z"
+}
+EOF
+# Clean up the fake instance and process on exit.
+original_cleanup="$(declare -f cleanup)"
+cleanup() {
+    kill $FAKE_DAEMON_PID 2>/dev/null
+    rm -f "$INSTANCE_DIR/${SLUG}.json"
+    for d in "${cleanup_dirs[@]}"; do
+        [[ -n "$d" ]] && rm -rf "$d"
+    done
+}
+trap cleanup EXIT
+
 echo "Main staging:    $STAGE_MAIN"
 echo "Main namespace:  $NS_MAIN"
+echo "Fake daemon PID: $FAKE_DAEMON_PID"
 
 # ---------------------------------------------------------------------------
 # STAGE_COMPLETE: all nodes in "complete" state
@@ -476,9 +505,15 @@ create_node "$NS_BLOCKED" "warzone/infra" "infra" "leaf" "blocked" '[
 echo "Blocked staging:  $STAGE_BLOCKED"
 
 # ---------------------------------------------------------------------------
-# STAGE_WELCOME: empty directory, no .wolfcastle/ (welcome screen)
+# STAGE_WELCOME: directory with subdirectories but no .wolfcastle/ (welcome screen)
 # ---------------------------------------------------------------------------
 STAGE_WELCOME="$(make_stage welcome)"
+# Create realistic-looking project directories so the browser has content.
+mkdir -p "$STAGE_WELCOME/my-saas-app"
+mkdir -p "$STAGE_WELCOME/my-saas-app/.wolfcastle"
+mkdir -p "$STAGE_WELCOME/internal-tools"
+mkdir -p "$STAGE_WELCOME/design-system"
+mkdir -p "$STAGE_WELCOME/docs"
 echo "Welcome staging:  $STAGE_WELCOME"
 
 # ---------------------------------------------------------------------------
@@ -549,12 +584,25 @@ for tape in "$TAPE_DIR"/*.tape; do
     # Pick the right staging directory.
     stage="$(stage_for_tape "$name")"
 
+    # Clean stale lock files from previous VHS runs.
+    find "$stage" -name '.lock' -delete 2>/dev/null
+
     echo "Recording: $name (from $stage)"
-    (cd "$stage" && vhs "$tape" 2>&1) || {
-        echo "  FAILED: $name" >&2
-        FAILED=$((FAILED + 1))
-        continue
-    }
+
+    # VHS + Bubbletea alt-screen capture is non-deterministic.
+    # Retry up to 3 times if the screenshot is too small (blank capture).
+    for attempt in 1 2 3; do
+        find "$stage" -name '.lock' -delete 2>/dev/null
+        (cd "$stage" && vhs "$tape" 2>&1) || {
+            echo "  attempt $attempt: vhs failed" >&2
+            continue
+        }
+        if [[ -f "$stage/$name.png" ]] && [[ $(wc -c < "$stage/$name.png") -gt 20000 ]]; then
+            break
+        fi
+        echo "  attempt $attempt: screenshot too small, retrying..." >&2
+        sleep 1
+    done
 
     # VHS writes the screenshot relative to cwd (the staging dir).
     if [[ -f "$stage/$name.png" ]]; then

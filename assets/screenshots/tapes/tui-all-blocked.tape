@@ -13,10 +13,10 @@ Type "wolfcastle"
 Enter
 Sleep 10s
 
-# Force a re-render by pressing d (dashboard)
-Type "d"
-Sleep 3s
-Type "d"
+# Sync alt-screen: open and close help overlay to force full redraws
+Type "R"
+Sleep 2s
+Type "R"
 Sleep 2s
 
 Screenshot tui-all-blocked.png
