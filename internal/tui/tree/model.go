@@ -1,4 +1,6 @@
-// Package tree implements the project tree pane, rendering hierarchical node navigation with expand/collapse and search highlighting.
+// Package tree implements the left-pane tree view that displays the
+// project node hierarchy with expandable sections, cursor navigation,
+// and search highlighting.
 package tree
 
 import (

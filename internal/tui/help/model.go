@@ -1,4 +1,5 @@
-// Package help implements the scrollable key-binding help overlay for the TUI.
+// Package help renders the scrollable full-screen help overlay listing all key
+// bindings grouped by context.
 package help
 
 import (

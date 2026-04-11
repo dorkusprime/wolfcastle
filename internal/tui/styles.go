@@ -124,7 +124,7 @@ type StatusGlyph struct {
 	Color color.Color
 }
 
-// NodeStatusGlyphs maps node statuses (complete, in_progress, etc.) to their display glyphs and colors.
+// NodeStatusGlyphs maps each node lifecycle status to its display glyph and color.
 var NodeStatusGlyphs = map[string]StatusGlyph{
 	string(state.StatusComplete):   {Glyph: "●", Color: ColorGreen},
 	string(state.StatusInProgress): {Glyph: "◐", Color: ColorYellow},
@@ -132,7 +132,7 @@ var NodeStatusGlyphs = map[string]StatusGlyph{
 	string(state.StatusBlocked):    {Glyph: "☢", Color: ColorRed},
 }
 
-// AuditStatusGlyphs maps audit statuses (passed, failed, etc.) to their display glyphs and colors.
+// AuditStatusGlyphs maps each audit lifecycle status to its display glyph and color.
 var AuditStatusGlyphs = map[string]StatusGlyph{
 	string(state.AuditPassed):     {Glyph: "⏸", Color: ColorGreen},
 	string(state.AuditInProgress): {Glyph: "◐", Color: ColorYellow},

@@ -9,11 +9,14 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// Phase 1 messages
-
-// StateUpdatedMsg signals that the project tree root index has changed on disk.
+// StateUpdatedMsg signals that the root index has been reloaded from disk.
+// Worktree identifies which instance produced this read; the handler
+// discards messages whose Worktree doesn't match the current worktreeDir
+// to prevent stale in-flight reads from overwriting a freshly-switched
+// context.
 type StateUpdatedMsg struct {
-	Index *state.RootIndex
+	Index    *state.RootIndex
+	Worktree string
 }
 
 // NodeUpdatedMsg signals that a single node's state file has been refreshed.
@@ -36,12 +39,12 @@ type DaemonStatusMsg struct {
 	CurrentTask  string
 }
 
-// InstancesUpdatedMsg signals that the set of registered daemon instances changed.
+// InstancesUpdatedMsg signals that the instance registry has been refreshed.
 type InstancesUpdatedMsg struct {
 	Instances []instance.Entry
 }
 
-// WatcherEventMsg carries a raw filesystem event from the watcher.
+// WatcherEventMsg wraps a single filesystem event from the state watcher.
 type WatcherEventMsg struct {
 	Path string
 	Op   fsnotify.Op
@@ -94,8 +97,6 @@ type CopyMsg struct {
 // CopiedMsg confirms that a clipboard copy operation completed.
 type CopiedMsg struct{}
 
-// Phase 2 placeholder messages
-
 // LogLinesMsg delivers one or more new log lines from the active log file.
 type LogLinesMsg struct {
 	Lines []string // raw JSON strings, one per log line
@@ -106,9 +107,7 @@ type NewLogFileMsg struct {
 	Path string
 }
 
-// Phase 3 messages
-
-// SwitchInstanceMsg requests switching the active daemon instance.
+// SwitchInstanceMsg requests switching the TUI to a different daemon instance.
 type SwitchInstanceMsg struct {
 	Entry instance.Entry
 }
@@ -152,8 +151,6 @@ type WorktreeGoneMsg struct {
 	Entry instance.Entry
 }
 
-// Phase 4: Inbox
-
 // InboxUpdatedMsg signals that the inbox file was reloaded from disk.
 type InboxUpdatedMsg struct {
 	Inbox *state.InboxFile
@@ -172,12 +169,8 @@ type AddInboxItemCmd struct {
 	Text string
 }
 
-// Modal messages
-
 // DaemonConfirmedMsg signals that the user confirmed a daemon action in a modal dialog.
 type DaemonConfirmedMsg struct{}
-
-// Phase 5 messages
 
 // ToastMsg requests that a transient notification toast be displayed.
 type ToastMsg struct {

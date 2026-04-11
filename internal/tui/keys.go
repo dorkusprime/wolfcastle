@@ -1,4 +1,5 @@
-// Package tui provides shared types, messages, key bindings, and styles for the Wolfcastle terminal UI.
+// Package tui provides shared types, key bindings, messages, styles, and
+// the filesystem watcher used across all TUI components.
 package tui
 
 import "charm.land/bubbles/v2/key"
@@ -53,7 +54,7 @@ var TreeKeyMap = TreeKeys{
 	Bottom:   key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "bottom")),
 }
 
-// DaemonKeys defines key bindings for daemon control actions.
+// DaemonKeys defines key bindings for daemon start/stop and instance switching.
 type DaemonKeys struct {
 	ToggleDaemon key.Binding
 	StopAll      key.Binding
@@ -99,7 +100,7 @@ var HelpKeyMap = HelpKeys{
 	ScrollUp:   key.NewBinding(key.WithKeys("k", "up"), key.WithHelp("k/↑", "up")),
 }
 
-// WelcomeKeys defines key bindings for the welcome/init screen.
+// WelcomeKeys defines key bindings for the welcome/project picker screen.
 type WelcomeKeys struct {
 	MoveDown key.Binding
 	MoveUp   key.Binding

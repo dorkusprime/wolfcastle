@@ -1,4 +1,5 @@
-// Package search implements the interactive search bar and match navigation for TUI panes.
+// Package search implements the interactive search bar and match navigation,
+// filtering the tree view by node and task names.
 package search
 
 import (

@@ -1,4 +1,5 @@
-// Package footer implements the single-line key-hint bar displayed at the bottom of the TUI.
+// Package footer renders the single-line key-hint bar at the bottom of the TUI,
+// showing context-sensitive key hints and daemon status.
 package footer
 
 import (
@@ -64,6 +65,7 @@ func (m Model) View() string {
 	hints := []hint{
 		{"q", "quit"},
 		{"Tab", "focus"},
+		{"d", "dashboard"},
 	}
 
 	// Mode-specific bindings

@@ -24,7 +24,7 @@ wolfcastle/
 │   ├── errors/              # Typed error categories (ADR-065)
 │   ├── fsutil/              # Filesystem helpers (atomic writes, path resolution)
 │   ├── git/                 # Git operations behind Provider interface
-│   ├── instance/            # Per-worktree instance registry and routing (ADR-099, ADR-100)
+│   ├── instance/            # Multi-process instance registry and CWD routing (ADR-099, ADR-100)
 │   ├── invoke/              # Model CLI invocation (buffered + streaming)
 │   ├── knowledge/           # Per-namespace codebase knowledge files
 │   ├── logging/             # Per-iteration NDJSON logging
@@ -38,7 +38,7 @@ wolfcastle/
 │   ├── testutil/            # Shared test helpers
 │   ├── tierfs/              # Three-tier file resolution (ADR-063)
 │   ├── tree/                # Tree addressing, slug generation, resolver
-│   ├── tui/                 # TUI application (Bubbletea v2 models and views)
+│   ├── tui/                 # Terminal UI (Bubbletea v2, ADR-048)
 │   └── validate/            # Structural validation engine and auto-fix
 ├── docs/
 │   ├── decisions/           # ADRs (001-101)
@@ -100,6 +100,9 @@ Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/`
 - `logging` → `output`
 - `invoke` → `config`
 - `tree` → `config`
+- `instance` → (standalone)
+- `fsutil` → (standalone)
+- `tui` → `config`, `output`, `state`, `tree`
 - `knowledge` → (standalone)
 - `logrender` → (standalone)
 - `selfupdate` → (standalone)

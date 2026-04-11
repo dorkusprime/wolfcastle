@@ -114,8 +114,8 @@ Registered at root level (not grouped under a parent):
 | Subcommand | Purpose |
 |------------|---------|
 | `show` | Display configuration, optionally filtered by tier or section |
-| `set` | Set a configuration value in the local tier |
-| `unset` | Remove a configuration value from the local tier |
+| `set` | Set a configuration value (default: local tier, supports --tier custom) |
+| `unset` | Remove a configuration value (default: local tier, supports --tier custom) |
 | `append` | Append to a configuration list value |
 | `remove` | Remove an item from a configuration list |
 | `validate` | Validate the configuration files |
@@ -127,6 +127,15 @@ Registered at root level (not grouped under a parent):
 | `add` | Capture an idea or task into the inbox |
 | `list` | Review inbox items |
 | `clear` | Clear inbox items |
+
+### knowledge
+
+| Subcommand | Purpose |
+|------------|---------|
+| `add` | Add a knowledge entry to the codebase knowledge file |
+| `show` | Display codebase knowledge for the current namespace |
+| `edit` | Open the knowledge file in $EDITOR |
+| `prune` | Open the knowledge file for pruning, report token count |
 
 ### orchestrator
 

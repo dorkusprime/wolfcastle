@@ -6,7 +6,7 @@ Wolfcastle is Ralph on steroids. It's what happens when you give an action hero 
 
 - **Language:** Go 1.26+, single module `github.com/dorkusprime/wolfcastle`
 - **Framework:** [Cobra](https://github.com/spf13/cobra) for CLI
-- **Dependencies:** Cobra/pflag + chzyer/readline + fsnotify/fsnotify + Bubbletea v2/Lipgloss v2/Bubbles v2 + atotto/clipboard (ADR-048, ADR-101)
+- **Dependencies:** Cobra/pflag, Bubbletea v2/Lipgloss v2/Bubbles v2 (TUI), chzyer/readline, fsnotify/fsnotify, atotto/clipboard (ADR-048, ADR-101)
 - **Build:** `make build` / `go build ./...`
 - **Test:** `make test` / `go test ./...`
 - **Lint:** `make lint` (runs `go vet` + `gofmt`), `golangci-lint run` (full lint suite per ADR-049)

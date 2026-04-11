@@ -318,11 +318,15 @@ func TestRenderTabBarSingleInstance(t *testing.T) {
 		{PID: 100, Branch: "main"},
 	}, 0)
 
-	// With only 1 instance, View should NOT produce a tab bar line.
+	// Even with 1 instance, the tab bar should be visible so the user
+	// always sees which instance is active.
 	view := m.View()
 	lines := strings.Split(view, "\n")
-	if len(lines) != 2 {
-		t.Errorf("single instance should produce 2 lines (no tab bar), got %d", len(lines))
+	if len(lines) != 3 {
+		t.Errorf("single instance should produce 3 lines (with tab bar), got %d", len(lines))
+	}
+	if !strings.Contains(view, "main") {
+		t.Errorf("tab bar should show the instance branch: %q", view)
 	}
 }
 
