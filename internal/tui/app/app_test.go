@@ -1769,7 +1769,7 @@ func TestStateUpdatedMsg_DiscardsStale(t *testing.T) {
 	m.worktreeDir = "/current"
 
 	idx := &state.RootIndex{
-		Root:  []string{"stale"},
+		Root: []string{"stale"},
 		Nodes: map[string]state.IndexEntry{
 			"stale": {Name: "stale", Type: state.NodeLeaf, State: state.StatusComplete, Address: "stale"},
 		},
@@ -1786,7 +1786,7 @@ func TestStateUpdatedMsg_AcceptsMatchingWorktree(t *testing.T) {
 	m.worktreeDir = "/current"
 
 	idx := &state.RootIndex{
-		Root:  []string{"fresh"},
+		Root: []string{"fresh"},
 		Nodes: map[string]state.IndexEntry{
 			"fresh": {Name: "fresh", Type: state.NodeLeaf, State: state.StatusComplete, Address: "fresh"},
 		},
@@ -1802,7 +1802,7 @@ func TestStateUpdatedMsg_AcceptsEmptyWorktree(t *testing.T) {
 	m := newColdModel(t)
 
 	idx := &state.RootIndex{
-		Root:  []string{"watcher"},
+		Root: []string{"watcher"},
 		Nodes: map[string]state.IndexEntry{
 			"watcher": {Name: "watcher", Type: state.NodeLeaf, State: state.StatusComplete, Address: "watcher"},
 		},

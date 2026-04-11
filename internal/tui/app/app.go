@@ -597,7 +597,6 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.store = storeFromWolfcastleDir(wolfDir)
 		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
 
-
 		m.tree.Reset()
 		m.detail.Reset()
 		m.detail.SwitchToDashboard()
