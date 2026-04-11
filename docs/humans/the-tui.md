@@ -236,8 +236,6 @@ Press `s` to open the daemon control modal. If no daemon is running, the modal o
 
 `S` (capital) stops all running daemons across all instances. Use this when you want a clean shutdown of everything.
 
-![Stop daemon](../../assets/screenshots/tui-daemon-stop.png)
-
 | Key | Action |
 |-----|--------|
 | `s` | Start/stop daemon (opens confirmation modal) |
@@ -246,8 +244,6 @@ Press `s` to open the daemon control modal. If no daemon is running, the modal o
 | `Esc` | Cancel |
 
 ## Instance Switching
-
-![Multiple instances](../../assets/screenshots/tui-multi-instance.png)
 
 When multiple Wolfcastle daemons are running (different branches, different worktrees), the header bar shows each as a tab. The active instance is highlighted.
 
@@ -278,8 +274,6 @@ Matches highlight in yellow. Ancestor nodes of matching nodes (nodes that contai
 | `N` | Previous match |
 
 ## Notifications
-
-![Toast notification](../../assets/screenshots/tui-toast.png)
 
 Toast notifications appear in the upper right corner of the terminal. They announce events: task completions, blocks, audit results, daemon state changes. Each toast auto-dismisses after 3 seconds. Up to 5 toasts can stack. Long text is front-truncated to keep the meaningful part visible, with a maximum width of 60 characters.
 

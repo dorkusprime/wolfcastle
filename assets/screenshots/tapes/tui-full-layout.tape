@@ -1,4 +1,4 @@
-# Hero screenshot: deeply expanded tree with rich detail pane
+# Hero screenshot: expanded tree with task detail showing rich data
 Set Shell "bash"
 Set Width 1200
 Set Height 800
@@ -16,7 +16,7 @@ Down
 Up
 Sleep 1s
 
-# Expand warzone (top-level orchestrator)
+# Expand warzone
 Type "l"
 Sleep 1s
 
@@ -26,19 +26,7 @@ Sleep 500ms
 Type "l"
 Sleep 1s
 
-# Move to frontend and expand it
-Type "G"
-Sleep 500ms
-Type "k"
-Sleep 500ms
-Type "k"
-Sleep 500ms
-Type "l"
-Sleep 1s
-
-# Navigate to auth (the in-progress leaf with rich data)
-# Tree: warzone, backend, api, auth, database, payments, frontend, components, routing, infra
-# auth is the 4th row (index 3 from top).
+# Navigate to auth (row 3 from top: warzone, backend, api, auth)
 Type "g"
 Sleep 500ms
 Type "j"
@@ -48,7 +36,15 @@ Sleep 200ms
 Type "j"
 Sleep 200ms
 
-# Enter auth leaf to show its detail (tasks, scope, description)
+# Expand auth leaf to show its task rows in the tree
+Type "l"
+Sleep 1s
+
+# Move down to the first task row "Add OAuth2 PKCE flow"
+Type "j"
+Sleep 500ms
+
+# Enter the task to show task detail (description, deliverables, scope)
 Type "l"
 Sleep 1s
 

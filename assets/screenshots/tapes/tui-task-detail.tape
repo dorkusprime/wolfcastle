@@ -1,4 +1,4 @@
-# Task detail: navigate into a leaf, then into a task
+# Task detail: navigate into a leaf, expand tasks, enter a task
 Set Shell "bash"
 Set Width 1200
 Set Height 800
@@ -16,22 +16,35 @@ Down
 Up
 Sleep 1s
 
-# Expand warzone > backend > auth (in_progress leaf with tasks)
+# Expand warzone
 Type "l"
 Sleep 1s
+
+# Move to backend and expand
 Type "j"
 Sleep 500ms
 Type "l"
 Sleep 1s
-# Move to auth (skip api which is first child)
-Type "j"
+
+# Navigate to auth (skip api)
+Type "g"
 Sleep 500ms
 Type "j"
-Sleep 500ms
-# Enter auth leaf to see tasks
+Sleep 200ms
+Type "j"
+Sleep 200ms
+Type "j"
+Sleep 200ms
+
+# Expand auth leaf to show task rows
 Type "l"
 Sleep 1s
-# Enter the first task
+
+# Move down to first task "Add OAuth2 PKCE flow"
+Type "j"
+Sleep 500ms
+
+# Enter task detail
 Type "l"
 Sleep 1s
 
