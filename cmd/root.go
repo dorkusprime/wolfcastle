@@ -84,7 +84,7 @@ func init() {
 func launchTUI() error {
 	var (
 		store       *state.Store
-		daemonRepo  *wcDaemon.DaemonRepository
+		daemonRepo  *wcDaemon.Repository
 		worktreeDir string
 	)
 
@@ -122,7 +122,7 @@ func launchTUI() error {
 	if worktreeDir != "" {
 		wolfcastleDir := filepath.Join(worktreeDir, ".wolfcastle")
 		if info, statErr := os.Stat(wolfcastleDir); statErr == nil && info.IsDir() {
-			daemonRepo = wcDaemon.NewDaemonRepository(wolfcastleDir)
+			daemonRepo = wcDaemon.NewRepository(wolfcastleDir)
 
 			// Try full app init for Store access. Failure is non-fatal;
 			// the TUI runs in cold-start mode without node data.

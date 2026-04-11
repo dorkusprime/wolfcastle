@@ -1500,8 +1500,8 @@ func TestJumpTreeToSearchMatch_WithRowMatch(t *testing.T) {
 	m.tree.SetIndex(idx)
 	// Activate search and set a match with an address.
 	m.search.Activate(int(PaneTree))
-	m.search.SetMatches([]search.SearchMatch{{Row: 1, Address: "beta"}})
-	m.search.SetMatches([]search.SearchMatch{{Row: 0, Address: "alpha"}, {Row: 1, Address: "beta"}})
+	m.search.SetMatches([]search.Match{{Row: 1, Address: "beta"}})
+	m.search.SetMatches([]search.Match{{Row: 0, Address: "alpha"}, {Row: 1, Address: "beta"}})
 	m.jumpTreeToSearchMatch()
 }
 
@@ -1872,7 +1872,7 @@ func TestEscClearsSearchHighlights(t *testing.T) {
 	}
 	m.tree.SetIndex(idx)
 	// Set up search state with matches but search bar inactive.
-	m.search.SetMatches([]search.SearchMatch{{Row: 0, Address: "alpha"}})
+	m.search.SetMatches([]search.Match{{Row: 0, Address: "alpha"}})
 	m.tree.SetSearchAddresses(map[string]bool{"alpha": true}, nil)
 
 	result, _ := m.Update(keyMsg("esc"))
@@ -1905,7 +1905,7 @@ func TestSearchMatchNavigation(t *testing.T) {
 	}
 	m.tree.SetIndex(idx)
 	m.search.Activate(int(PaneTree))
-	m.search.SetMatches([]search.SearchMatch{
+	m.search.SetMatches([]search.Match{
 		{Row: 0, Address: "alpha"},
 		{Row: 1, Address: "beta"},
 	})
@@ -1964,7 +1964,7 @@ func TestComputeTreeSearchMatches_EmptyQuery(t *testing.T) {
 	m := newColdModel(t)
 	m.search.Activate(int(PaneTree))
 	// Set some pre-existing matches.
-	m.search.SetMatches([]search.SearchMatch{{Address: "x"}})
+	m.search.SetMatches([]search.Match{{Address: "x"}})
 	// Empty query should clear them.
 	m.computeTreeSearchMatches()
 	if m.search.HasMatches() {
@@ -2026,7 +2026,7 @@ func TestJumpTreeToSearchMatch_DetailMatch(t *testing.T) {
 	m.tree.SetIndex(idx)
 	// Set a match with empty Address (detail pane match, row-based).
 	m.search.Activate(int(PaneDetail))
-	m.search.SetMatches([]search.SearchMatch{{Row: 0, Address: ""}})
+	m.search.SetMatches([]search.Match{{Row: 0, Address: ""}})
 	m.jumpTreeToSearchMatch()
 }
 
@@ -2043,7 +2043,7 @@ func TestJumpTreeToSearchMatch_AddressWithFallback(t *testing.T) {
 	// Match on "parent/child/task-0001" which doesn't exist in flat list.
 	// Should fall back to "parent/child" then "parent".
 	m.search.Activate(int(PaneTree))
-	m.search.SetMatches([]search.SearchMatch{{Address: "parent/child/task-0001"}})
+	m.search.SetMatches([]search.Match{{Address: "parent/child/task-0001"}})
 	m.jumpTreeToSearchMatch()
 }
 
@@ -2058,7 +2058,7 @@ func TestJumpTreeToSearchMatch_NoFallbackFound(t *testing.T) {
 	m.tree.SetIndex(idx)
 	// Match on an address that doesn't exist at any level.
 	m.search.Activate(int(PaneTree))
-	m.search.SetMatches([]search.SearchMatch{{Address: "nonexistent"}})
+	m.search.SetMatches([]search.Match{{Address: "nonexistent"}})
 	m.jumpTreeToSearchMatch()
 	// Should be a no-op (no panic).
 }
@@ -2481,5 +2481,25 @@ func TestOnlyOneModalAtATime(t *testing.T) {
 	model = toModel(t, result)
 	if model.activeModal != ModalInbox {
 		t.Error("second modal should not open while first is active")
+	}
+}
+
+func TestDashboardKeySwitch(t *testing.T) {
+	m := newColdModel(t)
+	// Start in some non-dashboard detail mode.
+	m.detail.SetMode(detail.ModeNodeDetail)
+	m.focused = PaneTree
+
+	result, cmd := m.Update(keyMsg("d"))
+	model := toModel(t, result)
+
+	if model.detail.Mode() != detail.ModeDashboard {
+		t.Errorf("expected ModeDashboard after pressing d, got %d", model.detail.Mode())
+	}
+	if model.focused != PaneDetail {
+		t.Errorf("expected focus on PaneDetail after pressing d, got %d", model.focused)
+	}
+	if cmd != nil {
+		t.Error("dashboard switch should not produce a command")
 	}
 }

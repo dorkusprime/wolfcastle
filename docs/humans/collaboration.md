@@ -13,7 +13,7 @@ Multiple engineers work on the same repo simultaneously. No merge conflicts. No 
 
 Each engineer reads and writes only their own namespace. Everyone can see everyone else's work (the `projects/` directory is committed), but nobody steps on anyone else's [state](how-it-works.md#distributed-state).
 
-[`wolfcastle status`](cli.md#commands) shows your tree. `wolfcastle status --all` aggregates across all engineers at runtime. No shared index file. No merge conflicts.
+The [TUI](the-tui.md) header shows all running instances as tabs. Press `<` or `>` to switch between them, or `1`-`9` to jump directly. The [welcome screen](the-tui.md#the-welcome-screen) lists all active sessions across your machine, letting you reconnect to any of them. From the command line, [`wolfcastle status`](cli.md#commands) shows your tree and `wolfcastle status --all` aggregates across all engineers at runtime. No shared index file. No merge conflicts.
 
 ### Overlap Advisory
 

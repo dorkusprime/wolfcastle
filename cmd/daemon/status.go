@@ -671,7 +671,7 @@ func taskGlyph(s state.NodeStatus) string {
 // back to the current working directory; the prior variadic shape
 // existed only for backward compat with old call sites and has been
 // retired in favor of an explicit, single signature.
-func getDaemonStatus(repo *dmn.DaemonRepository, repoDir string) string {
+func getDaemonStatus(repo *dmn.Repository, repoDir string) string {
 	dir := repoDir
 	if dir == "" {
 		var err error

@@ -15,14 +15,14 @@ wolfcastle/
 │   ├── knowledge/           # add, show, edit, prune
 │   ├── project/             # create
 │   ├── orchestrator/        # criteria (planning pipeline support)
-│   └── task/                # add, amend, claim, complete, block, unblock, deliverable
+│   ├── task/                # add, amend, claim, complete, block, unblock, deliverable
 ├── internal/                # Core logic (not importable outside the module)
 │   ├── archive/             # Archive entry rollup (Markdown generation)
 │   ├── clock/               # Time abstraction for deterministic testing (ADR-052)
 │   ├── config/              # Config loading, merging, validation, types
 │   ├── daemon/              # Daemon loop, pipeline execution, marker parsing
 │   ├── errors/              # Typed error categories (ADR-065)
-│   ├── fsutil/              # Atomic file writes (temp + rename)
+│   ├── fsutil/              # Filesystem helpers (atomic writes, path resolution)
 │   ├── git/                 # Git operations behind Provider interface
 │   ├── instance/            # Multi-process instance registry and CWD routing (ADR-099, ADR-100)
 │   ├── invoke/              # Model CLI invocation (buffered + streaming)
@@ -89,7 +89,8 @@ User input → cmd/ → internal/ → filesystem (.wolfcastle/)
 
 Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
-- `daemon` → `archive`, `clock`, `config`, `errors`, `git`, `invoke`, `knowledge`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
+- `tui` → `config`, `daemon`, `instance`, `logging`, `logrender`, `pipeline`, `project`, `state`
+- `daemon` → `archive`, `clock`, `config`, `errors`, `git`, `instance`, `invoke`, `knowledge`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
 - `validate` → `config`, `invoke`, `pipeline`, `state`, `tree`
 - `pipeline` → `config`, `invoke`, `knowledge`, `state`, `tierfs`
 - `archive` → `clock`, `config`, `state`
@@ -110,4 +111,6 @@ Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/`
 - `tierfs` → (standalone)
 - `signals` → (standalone)
 - `output` → (standalone)
+- `instance` → `config` (ADR-099, ADR-100)
+- `fsutil` → (standalone)
 - `errors` → (standalone)

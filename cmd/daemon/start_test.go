@@ -238,7 +238,7 @@ func TestGetDaemonStatus_CurrentProcessJSON(t *testing.T) {
 	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, cwd)
 	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
-	repo := dmn.NewDaemonRepository(tmp)
+	repo := dmn.NewRepository(tmp)
 	status := getDaemonStatus(repo, "")
 	expected := fmt.Sprintf("running (PID %d)", pid)
 	if status != expected {

@@ -86,7 +86,7 @@ func TestTaskStatusGlyphOnBg_NotStarted(t *testing.T) {
 
 func TestRenderTaskRow_AncestorHit(t *testing.T) {
 	t.Parallel()
-	row := TreeRow{
+	row := Row{
 		Addr:   "node/t-001",
 		Name:   "A Task",
 		Depth:  1,
@@ -102,7 +102,7 @@ func TestRenderTaskRow_AncestorHit(t *testing.T) {
 
 func TestRenderNodeRow_AncestorHit(t *testing.T) {
 	t.Parallel()
-	row := TreeRow{
+	row := Row{
 		Addr:       "a",
 		Name:       "Node",
 		Depth:      0,
@@ -123,7 +123,7 @@ func TestRenderNodeRow_AncestorHit(t *testing.T) {
 
 func TestRenderTaskRow_Selected_Complete(t *testing.T) {
 	t.Parallel()
-	row := TreeRow{
+	row := Row{
 		Addr:   "node/t-002",
 		Name:   "Complete task",
 		Depth:  1,
@@ -138,7 +138,7 @@ func TestRenderTaskRow_Selected_Complete(t *testing.T) {
 
 func TestRenderTaskRow_Selected_Blocked(t *testing.T) {
 	t.Parallel()
-	row := TreeRow{
+	row := Row{
 		Addr:   "node/t-003",
 		Name:   "Blocked task",
 		Depth:  1,
@@ -157,7 +157,7 @@ func TestRenderTaskRow_Selected_Blocked(t *testing.T) {
 
 func TestRenderNodeRow_WithTaskHint(t *testing.T) {
 	t.Parallel()
-	row := TreeRow{
+	row := Row{
 		Addr:       "alpha",
 		Name:       "Alpha Node",
 		Depth:      0,

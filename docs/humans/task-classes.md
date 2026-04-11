@@ -2,7 +2,7 @@
 
 Task classes are behavioral prompts that shape how the execution agent approaches work. A Go coding task calls for different instincts than a security review or a research pass, and classes encode that difference. When a task carries a class, the agent receives a class-specific prompt that tells it how to think about the problem: what idioms to follow, what tools to reach for, what quality standards to enforce.
 
-Classes do not restrict capabilities. A `coding/go` task can still search the web. A `research` task can still write files. The prompt shapes the agent's priorities and judgment; it does not gate its toolbox. Terminal markers, deliverable verification, and state transitions all work identically regardless of class.
+Classes do not restrict capabilities. A `coding/go` task can still search the web. A `research` task can still write files. The prompt shapes the agent's priorities and judgment; it does not gate its toolbox. Terminal markers, deliverable verification, and state transitions all work identically regardless of class. A task's class is visible in the [TUI task detail](the-tui.md#task-detail) view (press `Enter` on a task in the tree).
 
 Every task receives two layers of guidance:
 

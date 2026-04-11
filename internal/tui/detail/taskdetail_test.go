@@ -36,9 +36,9 @@ func makeMinimalTask() *state.Task {
 	}
 }
 
-func TestNewTaskDetailModel_Defaults(t *testing.T) {
+func TestNewTaskModel_Defaults(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	if m.addr != "" {
 		t.Errorf("addr should be empty, got %q", m.addr)
 	}
@@ -52,7 +52,7 @@ func TestNewTaskDetailModel_Defaults(t *testing.T) {
 
 func TestLoad_FullTask(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := makeFullTask()
 	m.Load("root/leaf", "task-0001", task)
@@ -148,7 +148,7 @@ func TestLoad_FullTask(t *testing.T) {
 
 func TestLoad_MinimalTask(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := makeMinimalTask()
 	m.Load("root/leaf", "task-0002", task)
@@ -192,7 +192,7 @@ func TestLoad_MinimalTask(t *testing.T) {
 
 func TestTaskAddr(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.Load("root/leaf", "task-0001", makeFullTask())
 
 	got := m.TaskAddr()
@@ -203,7 +203,7 @@ func TestTaskAddr(t *testing.T) {
 
 func TestBlockReason_None(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -220,7 +220,7 @@ func TestBlockReason_None(t *testing.T) {
 
 func TestBlockReason_Present(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:            "t1",
@@ -238,7 +238,7 @@ func TestBlockReason_Present(t *testing.T) {
 
 func TestFailureCount(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:           "t1",
@@ -256,7 +256,7 @@ func TestFailureCount(t *testing.T) {
 
 func TestLastFailureType(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:              "t1",
@@ -274,7 +274,7 @@ func TestLastFailureType(t *testing.T) {
 
 func TestNeedsDecomposition_Yes(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:                 "t1",
@@ -292,7 +292,7 @@ func TestNeedsDecomposition_Yes(t *testing.T) {
 
 func TestNeedsDecomposition_No(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -309,7 +309,7 @@ func TestNeedsDecomposition_No(t *testing.T) {
 
 func TestIsAudit_Yes(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -327,7 +327,7 @@ func TestIsAudit_Yes(t *testing.T) {
 
 func TestIsAudit_No(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -344,7 +344,7 @@ func TestIsAudit_No(t *testing.T) {
 
 func TestDeliverables_Bulleted(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:           "t1",
@@ -368,7 +368,7 @@ func TestDeliverables_Bulleted(t *testing.T) {
 
 func TestAcceptanceCriteria_Bulleted(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:                 "t1",
@@ -386,7 +386,7 @@ func TestAcceptanceCriteria_Bulleted(t *testing.T) {
 
 func TestConstraints_Bulleted(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -404,7 +404,7 @@ func TestConstraints_Bulleted(t *testing.T) {
 
 func TestReferences_Listed(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -425,7 +425,7 @@ func TestReferences_Listed(t *testing.T) {
 
 func TestBody_Present(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -446,7 +446,7 @@ func TestBody_Present(t *testing.T) {
 
 func TestClassAndType(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -468,7 +468,7 @@ func TestClassAndType(t *testing.T) {
 
 func TestClassAndType_OnlyClass(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -486,7 +486,7 @@ func TestClassAndType_OnlyClass(t *testing.T) {
 
 func TestClassAndType_Neither(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -503,7 +503,7 @@ func TestClassAndType_Neither(t *testing.T) {
 
 func TestSetSize_Propagates_Task(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(100, 30)
 
 	if m.width != 100 {
@@ -516,7 +516,7 @@ func TestSetSize_Propagates_Task(t *testing.T) {
 
 func TestSetSize_SmallWidth_Task(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(10, 30)
 	task := makeFullTask()
 	m.Load("root/leaf", "task-0001", task)
@@ -530,7 +530,7 @@ func TestSetSize_SmallWidth_Task(t *testing.T) {
 
 func TestUpdate_Task_PassesToViewport(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	m.Load("root", "t1", makeFullTask())
 
@@ -540,14 +540,14 @@ func TestUpdate_Task_PassesToViewport(t *testing.T) {
 
 func TestUpdate_Task_NonKeyMsg_Ignored(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	type customMsg struct{}
 	_, _ = m.Update(customMsg{})
 }
 
 func TestRebuildContent_NilTask(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	// rebuildContent with nil task should not panic
 	m.rebuildContent()
@@ -565,7 +565,7 @@ func TestBoolYesNo(t *testing.T) {
 
 func TestTitle_Present(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",
@@ -583,7 +583,7 @@ func TestTitle_Present(t *testing.T) {
 
 func TestTitle_Empty(t *testing.T) {
 	t.Parallel()
-	m := NewTaskDetailModel()
+	m := NewTaskModel()
 	m.SetSize(80, 40)
 	task := &state.Task{
 		ID:          "t1",

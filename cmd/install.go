@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/dorkusprime/wolfcastle/internal/output"
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
@@ -128,10 +127,6 @@ All commands support ` + "`--json`" + ` for structured output.
 		}
 	}
 	return nil
-}
-
-func canSymlink() bool {
-	return runtime.GOOS != "windows"
 }
 
 func copyDir(src, dst string) error {

@@ -362,10 +362,10 @@ func detectLineMarker(line string, result *Result) {
 
 // --- Legacy API for backward compatibility ---
 
-// InvokeSimple runs a model CLI command with the given prompt piped to stdin.
+// Simple runs a model CLI command with the given prompt piped to stdin.
 // It captures all output and returns it when the command finishes.
 // This is a convenience wrapper around ProcessInvoker for callers that
 // do not need streaming or line callbacks.
-func InvokeSimple(ctx context.Context, model config.ModelDef, prompt string, workDir string) (*Result, error) {
+func Simple(ctx context.Context, model config.ModelDef, prompt string, workDir string) (*Result, error) {
 	return NewProcessInvoker().Invoke(ctx, model, prompt, workDir, nil, nil)
 }

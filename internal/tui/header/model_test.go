@@ -11,7 +11,7 @@ import (
 )
 
 func TestSetInstances(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 
 	entries := []instance.Entry{
 		{PID: 100, Worktree: "/a", Branch: "feat/auth"},
@@ -31,7 +31,7 @@ func TestSetInstances(t *testing.T) {
 }
 
 func TestViewTabBarWideTerminal(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(120)
 	m.SetInstances([]instance.Entry{
 		{PID: 100, Branch: "feat/auth"},
@@ -56,7 +56,7 @@ func TestViewTabBarWideTerminal(t *testing.T) {
 }
 
 func TestViewNoTabBarNarrowTerminal(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(80) // <= 100: no tab bar
 	m.SetInstances([]instance.Entry{
 		{PID: 100, Branch: "feat/auth"},
@@ -78,7 +78,7 @@ func TestViewNoTabBarNarrowTerminal(t *testing.T) {
 }
 
 func TestActiveInstanceMarker(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(120)
 	m.SetInstances([]instance.Entry{
 		{PID: 100, Branch: "feat/auth"},
@@ -107,7 +107,7 @@ func TestActiveInstanceMarker(t *testing.T) {
 }
 
 func TestSetLoadingAndIsLoading(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	if m.IsLoading() {
 		t.Error("new model should not be loading")
 	}
@@ -124,7 +124,7 @@ func TestSetLoadingAndIsLoading(t *testing.T) {
 }
 
 func TestViewZeroWidth(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	// Width 0 should return empty string.
 	if v := m.View(); v != "" {
 		t.Errorf("expected empty view for zero width, got %q", v)
@@ -132,7 +132,7 @@ func TestViewZeroWidth(t *testing.T) {
 }
 
 func TestViewNarrowTerminal(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(30) // < 40 triggers single-line mode
 	view := m.View()
 	lines := strings.Split(view, "\n")
@@ -142,7 +142,7 @@ func TestViewNarrowTerminal(t *testing.T) {
 }
 
 func TestViewContainsVersion(t *testing.T) {
-	m := NewHeaderModel("2.3.4")
+	m := NewModel("2.3.4")
 	m.SetSize(120)
 	view := m.View()
 	if !strings.Contains(view, "2.3.4") {
@@ -151,7 +151,7 @@ func TestViewContainsVersion(t *testing.T) {
 }
 
 func TestViewShowsLoadingSpinner(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(120)
 	m.SetLoading(true)
 	view := m.View()
@@ -162,7 +162,7 @@ func TestViewShowsLoadingSpinner(t *testing.T) {
 }
 
 func TestUpdateDaemonStatusMsg(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(120)
 
 	msg := DaemonStatusMsg{
@@ -188,7 +188,7 @@ func TestUpdateDaemonStatusMsg(t *testing.T) {
 }
 
 func TestUpdateStateUpdatedMsg(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(120)
 
 	idx := &state.RootIndex{
@@ -214,7 +214,7 @@ func TestUpdateStateUpdatedMsg(t *testing.T) {
 }
 
 func TestUpdateStateUpdatedMsgNilIndex(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(120)
 	m, _ = m.Update(StateUpdatedMsg{Index: nil})
 	if m.totalNodes != 0 {
@@ -223,7 +223,7 @@ func TestUpdateStateUpdatedMsgNilIndex(t *testing.T) {
 }
 
 func TestUpdateInstancesUpdatedMsg(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m, _ = m.Update(InstancesUpdatedMsg{Instances: []instance.Entry{{PID: 1}, {PID: 2}, {PID: 3}}})
 	if m.instanceCount != 3 {
 		t.Errorf("instanceCount = %d, want 3", m.instanceCount)
@@ -231,7 +231,7 @@ func TestUpdateInstancesUpdatedMsg(t *testing.T) {
 }
 
 func TestUpdateSpinnerTickMsg(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	if m.spinner != 0 {
 		t.Fatalf("initial spinner = %d, want 0", m.spinner)
 	}
@@ -249,7 +249,7 @@ func TestUpdateSpinnerTickMsg(t *testing.T) {
 }
 
 func TestUpdateWindowSizeMsg(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 200, Height: 50})
 	if m.width != 200 {
 		t.Errorf("width = %d, want 200", m.width)
@@ -312,7 +312,7 @@ func TestPluralize(t *testing.T) {
 }
 
 func TestRenderTabBarSingleInstance(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(120)
 	m.SetInstances([]instance.Entry{
 		{PID: 100, Branch: "main"},
@@ -331,7 +331,7 @@ func TestRenderTabBarSingleInstance(t *testing.T) {
 }
 
 func TestRenderNodeCountsZero(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(120)
 	view := m.View()
 	if !strings.Contains(view, "0 nodes") {
@@ -340,7 +340,7 @@ func TestRenderNodeCountsZero(t *testing.T) {
 }
 
 func TestSetStatusHintReplacesStatus(t *testing.T) {
-	m := NewHeaderModel("1.0.0")
+	m := NewModel("1.0.0")
 	m.SetSize(120)
 
 	// Default should show daemon status text.

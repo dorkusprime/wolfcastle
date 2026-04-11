@@ -196,7 +196,7 @@ func TestWiring_TaskCacheReflectsStateFile(t *testing.T) {
 	// alpha so the rendered tree knows the task states without the
 	// user having to expand the leaf manually first.
 	store := state.NewStore(storeDir, 0)
-	m := NewTUIModel(store, daemon.NewDaemonRepository(wcDir), tmp, "1.0.0")
+	m := NewTUIModel(store, daemon.NewRepository(wcDir), tmp, "1.0.0")
 	m.entryState = StateLive
 	m.width = 120
 	m.height = 40
@@ -228,7 +228,7 @@ func TestWiring_TaskCacheReflectsStateFile(t *testing.T) {
 	m.tree = tm
 
 	// Find the task rows in the flat list.
-	var task1Row, task2Row *tree.TreeRow
+	var task1Row, task2Row *tree.Row
 	for i := range m.tree.FlatList() {
 		row := &m.tree.FlatList()[i]
 		if strings.Contains(row.Addr, "task-0001") {
@@ -335,7 +335,7 @@ func TestStartWatcher_TriggersEagerPrefetch(t *testing.T) {
 
 	// Construct the model and run startWatcher cmd.
 	store := state.NewStore(storeDir, 0)
-	m := NewTUIModel(store, daemon.NewDaemonRepository(wcDir), tmp, "1.0.0")
+	m := NewTUIModel(store, daemon.NewRepository(wcDir), tmp, "1.0.0")
 	m.entryState = StateLive
 	m.width = 120
 	m.height = 40
@@ -559,7 +559,7 @@ func TestWiring_LogViewShowsExistingContent(t *testing.T) {
 	// channel so the LogLinesMsg reaches the LogViewModel, then
 	// switch the detail pane to log view.
 	store := state.NewStore(filepath.Join(wcDir, "system", "projects", "default"), 0)
-	m := NewTUIModel(store, daemon.NewDaemonRepository(wcDir), tmp, "1.0.0")
+	m := NewTUIModel(store, daemon.NewRepository(wcDir), tmp, "1.0.0")
 	m.entryState = StateLive
 	m.width = 120
 	m.height = 40

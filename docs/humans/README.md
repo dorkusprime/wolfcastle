@@ -2,11 +2,15 @@
 
 The field manual. Everything you need to operate the weapon.
 
-Start with [How It Works](how-it-works.md) if you want the full picture. Start with the [CLI Reference](cli.md) if you want to hit things.
+Start with the [TUI Guide](the-tui.md) to learn the interface. Start with [How It Works](how-it-works.md) if you want the full picture.
+
+## [TUI Guide](the-tui.md)
+
+The primary interface. Launching, navigation, keybindings, and every screen explained. Bare `wolfcastle` opens the TUI; everything the daemon does is visible here in real time.
 
 ## [How It Works](how-it-works.md)
 
-The core of the machine. Work enters through your coding agent, the inbox, or direct CLI commands. It lands in a project tree built from orchestrator nodes (containers) and leaf nodes (where tasks live). A daemon runs a pipeline of stages in a loop, each invoking a model with a specific role. When a model executes a task, it follows a ten-phase protocol and communicates only through deterministic script calls. State is JSON on disk, propagates upward from children to parents, and every mutation is atomic.
+The core of the machine. Work enters through your coding agent, the inbox, or direct CLI commands. It lands in a project tree built from orchestrator nodes (containers) and leaf nodes (where tasks live). A daemon runs a pipeline of stages in a loop, each invoking a model with a specific role. When a model executes a task, it follows a nine-phase protocol and communicates only through deterministic script calls. State is JSON on disk, propagates upward from children to parents, and every mutation is atomic.
 
 ## [Configuration Quickstart](config-quickstart.md)
 
@@ -34,7 +38,7 @@ Every leaf gets verified by an automatic audit task that reviews breadcrumbs aga
 
 ## [Parallel Execution](parallel-execution.md)
 
-Run multiple tasks concurrently with file-level scope locks. Configure the worker pool, monitor active workers and scope conflicts through `wolfcastle status`, and diagnose contention when tasks keep yielding on the same files.
+Run multiple tasks concurrently with file-level scope locks. Configure the worker pool, monitor active workers and scope conflicts through the TUI dashboard or `wolfcastle status`, and diagnose contention when tasks keep yielding on the same files.
 
 ## [Collaboration](collaboration.md)
 
@@ -42,4 +46,4 @@ Each engineer gets their own namespace under `.wolfcastle/system/projects/`. No 
 
 ## [CLI Reference](cli.md)
 
-63 commands across lifecycle, task management, auditing, diagnostics, and documentation. Every command accepts `--json` and `--node` for tree addressing. Covers the inbox, installation channels, project directory layout, and new engineer setup.
+63 commands for scripting, automation, and agent integration. Every command accepts `--json` and `--node` for tree addressing. Covers the inbox, installation channels, project directory layout, and new engineer setup.

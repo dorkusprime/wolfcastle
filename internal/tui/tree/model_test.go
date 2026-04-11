@@ -19,8 +19,8 @@ func specialKey(code rune) tea.KeyPressMsg {
 	return tea.KeyPressMsg{Code: code}
 }
 
-func TestNewTreeModel(t *testing.T) {
-	m := NewTreeModel()
+func TestNewModel(t *testing.T) {
+	m := NewModel()
 
 	if m.nodes == nil {
 		t.Error("nodes map should be initialized")
@@ -77,7 +77,7 @@ func orchestratorIndex() *state.RootIndex {
 }
 
 func TestSetIndex_SimpleFlatList(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 
 	if len(m.flatList) != 3 {
@@ -93,7 +93,7 @@ func TestSetIndex_SimpleFlatList(t *testing.T) {
 }
 
 func TestSetIndex_OrchestratorCollapsed(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(orchestratorIndex())
 
 	// Orchestrator collapsed: only the parent should appear.
@@ -109,7 +109,7 @@ func TestSetIndex_OrchestratorCollapsed(t *testing.T) {
 }
 
 func TestSetIndex_OrchestratorExpanded(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.expanded["parent"] = true
 	m.SetIndex(orchestratorIndex())
 
@@ -125,7 +125,7 @@ func TestSetIndex_OrchestratorExpanded(t *testing.T) {
 }
 
 func TestCursorDown(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -137,7 +137,7 @@ func TestCursorDown(t *testing.T) {
 }
 
 func TestCursorDown_ClampsAtBottom(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -152,7 +152,7 @@ func TestCursorDown_ClampsAtBottom(t *testing.T) {
 }
 
 func TestCursorUp(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -165,7 +165,7 @@ func TestCursorUp(t *testing.T) {
 }
 
 func TestCursorUp_ClampsAt0(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -177,7 +177,7 @@ func TestCursorUp_ClampsAt0(t *testing.T) {
 }
 
 func TestJumpTop(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -190,7 +190,7 @@ func TestJumpTop(t *testing.T) {
 }
 
 func TestJumpBottom(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -203,7 +203,7 @@ func TestJumpBottom(t *testing.T) {
 }
 
 func TestExpandOrchestrator(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(orchestratorIndex())
 	m.SetSize(80, 20)
@@ -220,7 +220,7 @@ func TestExpandOrchestrator(t *testing.T) {
 }
 
 func TestCollapseOrchestrator(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.expanded["parent"] = true
 	m.SetIndex(orchestratorIndex())
@@ -239,7 +239,7 @@ func TestCollapseOrchestrator(t *testing.T) {
 }
 
 func TestCollapse_AlreadyCollapsed_JumpsToParent(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.expanded["parent"] = true
 	m.SetIndex(orchestratorIndex())
@@ -256,7 +256,7 @@ func TestCollapse_AlreadyCollapsed_JumpsToParent(t *testing.T) {
 }
 
 func TestExpandLeaf_FiresLoadNodeCmd(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -279,7 +279,7 @@ func TestExpandLeaf_FiresLoadNodeCmd(t *testing.T) {
 }
 
 func TestExpandLeaf_CachedNode_NoCmd(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -310,7 +310,7 @@ func TestExpandLeaf_CachedNode_NoCmd(t *testing.T) {
 }
 
 func TestLoadNodeMsg_TasksAppear(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -340,7 +340,7 @@ func TestLoadNodeMsg_TasksAppear(t *testing.T) {
 }
 
 func TestLoadNodeMsg_Error_Ignored(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -361,7 +361,7 @@ type testError struct{}
 func (e *testError) Error() string { return "test error" }
 
 func TestSetFocused(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	if !m.focused {
 		t.Error("SetFocused(true) should set focused")
@@ -373,7 +373,7 @@ func TestSetFocused(t *testing.T) {
 }
 
 func TestSetCurrentTarget(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetCurrentTarget("some/addr")
 	if m.currentTarget != "some/addr" {
 		t.Errorf("currentTarget = %q, want %q", m.currentTarget, "some/addr")
@@ -381,7 +381,7 @@ func TestSetCurrentTarget(t *testing.T) {
 }
 
 func TestSelectedAddr(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 
 	addr := m.SelectedAddr()
@@ -397,7 +397,7 @@ func TestSelectedAddr(t *testing.T) {
 }
 
 func TestSelectedAddr_Empty(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	addr := m.SelectedAddr()
 	if addr != "" {
 		t.Errorf("SelectedAddr on empty list = %q, want empty", addr)
@@ -405,7 +405,7 @@ func TestSelectedAddr_Empty(t *testing.T) {
 }
 
 func TestScrollIntoCursor(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 2) // only 2 visible rows
 
@@ -426,7 +426,7 @@ func TestScrollIntoCursor(t *testing.T) {
 }
 
 func TestScrollIntoCursor_ZeroHeight(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 0)
 
@@ -436,7 +436,7 @@ func TestScrollIntoCursor_ZeroHeight(t *testing.T) {
 }
 
 func TestUnfocused_IgnoresKeys(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(false)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -448,7 +448,7 @@ func TestUnfocused_IgnoresKeys(t *testing.T) {
 }
 
 func TestStateUpdatedMsg_RebuildsFlatList(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 
 	if len(m.flatList) != 3 {
@@ -470,7 +470,7 @@ func TestStateUpdatedMsg_RebuildsFlatList(t *testing.T) {
 }
 
 func TestNodeUpdatedMsg_UpdatesCache(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.expanded["alpha"] = true
 
@@ -500,7 +500,7 @@ func TestNodeUpdatedMsg_UpdatesCache(t *testing.T) {
 // the eager-loaded state would silently disappear after the next
 // poll tick and the active-task display would go stale again.
 func TestNodeUpdatedMsg_DoesNotSetCacheExpiryWhenCollapsed(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	// Deliberately NOT expanded.
 
@@ -523,7 +523,7 @@ func TestNodeUpdatedMsg_DoesNotSetCacheExpiryWhenCollapsed(t *testing.T) {
 // the same eviction removal on the collapse path. Collapsing a
 // previously-expanded leaf should NOT start an eviction timer.
 func TestHandleCollapse_DoesNotSetCacheExpiry(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(orchestratorIndex())
 	m.SetSize(80, 20)
@@ -552,7 +552,7 @@ func TestHandleCollapse_DoesNotSetCacheExpiry(t *testing.T) {
 }
 
 func TestExpandToggle_AlreadyExpanded(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(orchestratorIndex())
 	m.SetSize(80, 20)
@@ -571,7 +571,7 @@ func TestExpandToggle_AlreadyExpanded(t *testing.T) {
 }
 
 func TestExpandTask_Noop(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
@@ -600,7 +600,7 @@ func TestExpandTask_Noop(t *testing.T) {
 }
 
 func TestBuildFlatList_NilIndex(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.buildFlatList()
 
 	if m.flatList != nil {
@@ -609,7 +609,7 @@ func TestBuildFlatList_NilIndex(t *testing.T) {
 }
 
 func TestClampCursor_EmptyList(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.cursor = 5
 	m.clampCursor()
 	if m.cursor != 0 {
@@ -618,7 +618,7 @@ func TestClampCursor_EmptyList(t *testing.T) {
 }
 
 func TestClampCursor_BeyondEnd(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.cursor = 100
 	m.clampCursor()
@@ -628,7 +628,7 @@ func TestClampCursor_BeyondEnd(t *testing.T) {
 }
 
 func TestClampCursor_Negative(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.cursor = -5
 	m.clampCursor()
@@ -638,7 +638,7 @@ func TestClampCursor_Negative(t *testing.T) {
 }
 
 func TestFlatList_Accessor(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 
 	fl := m.FlatList()
@@ -648,7 +648,7 @@ func TestFlatList_Accessor(t *testing.T) {
 }
 
 func TestSetSize(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetSize(60, 25)
 	if m.width != 60 {
 		t.Errorf("width = %d, want 60", m.width)
@@ -659,7 +659,7 @@ func TestSetSize(t *testing.T) {
 }
 
 func TestParentOf_TaskRow(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.expanded["alpha"] = true
 	m.nodes["alpha"] = &state.NodeState{
@@ -675,7 +675,7 @@ func TestParentOf_TaskRow(t *testing.T) {
 }
 
 func TestParentOf_NilIndex(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	idx := m.parentOf("anything")
 	if idx != -1 {
 		t.Errorf("parentOf with nil index = %d, want -1", idx)
@@ -683,7 +683,7 @@ func TestParentOf_NilIndex(t *testing.T) {
 }
 
 func TestHandleCollapse_EmptyList(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 
 	// Should not panic.
@@ -691,7 +691,7 @@ func TestHandleCollapse_EmptyList(t *testing.T) {
 }
 
 func TestHandleExpand_EmptyList(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 
 	// Should not panic.
@@ -702,7 +702,7 @@ func TestHandleExpand_EmptyList(t *testing.T) {
 }
 
 func TestSetSearchAddresses(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 
 	literal := map[string]bool{"alpha": true, "alpha/beta": true}
@@ -729,7 +729,7 @@ func TestSetSearchAddresses(t *testing.T) {
 }
 
 func TestSetCursor(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(80, 20)
 
@@ -751,7 +751,7 @@ func TestSetCursor(t *testing.T) {
 }
 
 func TestCleanCache_RemovesExpired(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 
 	// Add a node with an already-expired cache entry.
@@ -776,9 +776,112 @@ func TestCleanCache_RemovesExpired(t *testing.T) {
 }
 
 func TestCleanCache_EmptyIsNoop(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	// Should not panic on empty maps.
 	m.CleanCache()
+}
+
+func TestSearchLiteralAddresses(t *testing.T) {
+	m := NewModel()
+	literal := map[string]bool{"alpha": true, "beta": true}
+	ancestor := map[string]bool{"root": true}
+	m.SetSearchAddresses(literal, ancestor)
+
+	got := m.SearchLiteralAddresses()
+	if got == nil || !got["alpha"] || !got["beta"] {
+		t.Errorf("SearchLiteralAddresses returned unexpected value: %v", got)
+	}
+}
+
+func TestSearchAncestorAddresses(t *testing.T) {
+	m := NewModel()
+	literal := map[string]bool{"alpha": true}
+	ancestor := map[string]bool{"root": true, "mid": true}
+	m.SetSearchAddresses(literal, ancestor)
+
+	got := m.SearchAncestorAddresses()
+	if got == nil || !got["root"] || !got["mid"] {
+		t.Errorf("SearchAncestorAddresses returned unexpected value: %v", got)
+	}
+}
+
+func TestReset(t *testing.T) {
+	m := NewModel()
+	m.SetFocused(true)
+	m.SetIndex(simpleIndex())
+	m.SetSize(80, 20)
+	m.expanded["alpha"] = true
+	m.cursor = 2
+	m.scrollTop = 1
+
+	m.Reset()
+
+	if len(m.expanded) != 0 {
+		t.Errorf("expected expanded map to be empty after Reset, got %d entries", len(m.expanded))
+	}
+	if m.cursor != 0 {
+		t.Errorf("expected cursor 0 after Reset, got %d", m.cursor)
+	}
+	if m.scrollTop != 0 {
+		t.Errorf("expected scrollTop 0 after Reset, got %d", m.scrollTop)
+	}
+}
+
+func TestSelectedRow(t *testing.T) {
+	m := NewModel()
+	m.SetIndex(simpleIndex())
+
+	row := m.SelectedRow()
+	if row == nil {
+		t.Fatal("SelectedRow should not return nil when list is non-empty")
+	}
+	if row.Addr != "alpha" {
+		t.Errorf("expected row addr 'alpha', got %q", row.Addr)
+	}
+
+	m.cursor = 1
+	row = m.SelectedRow()
+	if row == nil || row.Addr != "beta" {
+		t.Errorf("expected row addr 'beta', got %v", row)
+	}
+}
+
+func TestSelectedRow_Empty(t *testing.T) {
+	m := NewModel()
+	row := m.SelectedRow()
+	if row != nil {
+		t.Error("SelectedRow should return nil for empty list")
+	}
+}
+
+func TestCachedNode(t *testing.T) {
+	m := NewModel()
+	ns := &state.NodeState{
+		Tasks: []state.Task{{ID: "t1", Title: "T1", State: state.StatusComplete}},
+	}
+	m.nodes["alpha"] = ns
+
+	got := m.CachedNode("alpha")
+	if got != ns {
+		t.Error("CachedNode should return the cached node state")
+	}
+
+	got = m.CachedNode("nonexistent")
+	if got != nil {
+		t.Error("CachedNode should return nil for uncached addresses")
+	}
+}
+
+func TestIndex(t *testing.T) {
+	m := NewModel()
+	if m.Index() != nil {
+		t.Error("Index should return nil before SetIndex")
+	}
+	idx := simpleIndex()
+	m.SetIndex(idx)
+	if m.Index() != idx {
+		t.Error("Index should return the set index")
+	}
 }
 
 // TestCollapse_DoesNotSetCacheExpiry replaces the original test that
@@ -788,7 +891,7 @@ func TestCleanCache_EmptyIsNoop(t *testing.T) {
 // eager-prefetch path needs collapsed entries to persist so search
 // can walk task content even when the leaf is folded.
 func TestCollapse_DoesNotSetCacheExpiry(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetFocused(true)
 	m.expanded["parent"] = true
 	m.SetIndex(orchestratorIndex())

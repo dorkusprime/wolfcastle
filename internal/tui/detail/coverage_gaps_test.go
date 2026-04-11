@@ -420,7 +420,7 @@ func TestEnsureVisible_CursorBelowViewport(t *testing.T) {
 
 func TestUpdate_NodeDetailMode_KeyPress(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeNodeDetail)
 	node := makeOrchestratorNode()
@@ -433,7 +433,7 @@ func TestUpdate_NodeDetailMode_KeyPress(t *testing.T) {
 
 func TestUpdate_InboxMsgForwarded_WhenNotInInboxMode(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	// In dashboard mode, InboxUpdatedMsg should still reach the inbox sub-model
 	inbox := &state.InboxFile{
@@ -451,7 +451,7 @@ func TestUpdate_InboxMsgForwarded_WhenNotInInboxMode(t *testing.T) {
 
 func TestUpdate_LogLinesMsg_ForwardedToLogView_WhenInDashboard(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	// In dashboard mode, LogLinesMsg should still reach the log view sub-model
 	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{
@@ -464,7 +464,7 @@ func TestUpdate_LogLinesMsg_ForwardedToLogView_WhenInDashboard(t *testing.T) {
 
 func TestUpdate_NewLogFileMsg_ForwardedToLogView_WhenInDashboard(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	// Pre-add a line so the separator has something to follow
 	m.logView.AppendLines([]string{
@@ -482,7 +482,7 @@ func TestUpdate_NewLogFileMsg_ForwardedToLogView_WhenInDashboard(t *testing.T) {
 
 func TestUpdate_NodeDetailMode_NonKeyMsg_NoOp(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeNodeDetail)
 	type customMsg struct{}
@@ -494,7 +494,7 @@ func TestUpdate_NodeDetailMode_NonKeyMsg_NoOp(t *testing.T) {
 
 func TestUpdate_TaskDetailMode_NonKeyMsg_NoOp(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeTaskDetail)
 	type customMsg struct{}
@@ -510,7 +510,7 @@ func TestUpdate_TaskDetailMode_NonKeyMsg_NoOp(t *testing.T) {
 
 func TestUpdate_InboxMode_ReceivesInboxMsg(t *testing.T) {
 	t.Parallel()
-	m := NewDetailModel()
+	m := NewModel()
 	m.SetSize(80, 24)
 	m.SetMode(ModeInbox)
 	inbox := &state.InboxFile{

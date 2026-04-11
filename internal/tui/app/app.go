@@ -68,13 +68,13 @@ type TUIModel struct {
 	focused     FocusedPane
 	lastFocused FocusedPane
 
-	header  header.HeaderModel
-	tree    tree.TreeModel
-	detail  detail.DetailModel
-	footer  footer.FooterModel
-	welcome *welcome.WelcomeModel
-	search  search.SearchModel
-	help    help.HelpOverlayModel
+	header  header.Model
+	tree    tree.Model
+	detail  detail.Model
+	footer  footer.Model
+	welcome *welcome.Model
+	search  search.Model
+	help    help.Model
 	notify  notify.NotificationModel
 
 	// State diffing for toast notifications (Phase 5).
@@ -89,7 +89,7 @@ type TUIModel struct {
 
 	entryState  EntryState
 	store       *state.Store
-	daemonRepo  *daemon.DaemonRepository
+	daemonRepo  *daemon.Repository
 	worktreeDir string // tracks the currently-viewed instance's worktree
 	originalCWD string // the directory the TUI was launched from; never mutated
 	version     string
@@ -109,16 +109,16 @@ type TUIModel struct {
 // NewTUIModel creates a fully wired TUIModel. When store is nil (no
 // .wolfcastle directory found), the model opens in welcome mode so the
 // user can pick a directory and initialize.
-func NewTUIModel(store *state.Store, daemonRepo *daemon.DaemonRepository, worktreeDir, version string) TUIModel {
+func NewTUIModel(store *state.Store, daemonRepo *daemon.Repository, worktreeDir, version string) TUIModel {
 	m := TUIModel{
 		treeVisible: true,
 		focused:     PaneTree,
-		header:      header.NewHeaderModel(version),
-		tree:        tree.NewTreeModel(),
-		detail:      detail.NewDetailModel(),
-		footer:      footer.NewFooterModel(),
-		search:      search.NewSearchModel(),
-		help:        help.NewHelpOverlayModel(),
+		header:      header.NewModel(version),
+		tree:        tree.NewModel(),
+		detail:      detail.NewModel(),
+		footer:      footer.NewModel(),
+		search:      search.NewModel(),
+		help:        help.NewModel(),
 		notify:      notify.NewNotificationModel(),
 		prevNodes:   make(map[string]*state.NodeState),
 		store:       store,
@@ -138,7 +138,7 @@ func NewTUIModel(store *state.Store, daemonRepo *daemon.DaemonRepository, worktr
 		m.entryState = StateWelcome
 		// Discover running instances for the sessions panel.
 		instances, _ := instance.List()
-		w := welcome.NewWelcomeModel(worktreeDir, instances)
+		w := welcome.NewModel(worktreeDir, instances)
 		m.welcome = &w
 	} else {
 		m.entryState = StateCold
@@ -255,6 +255,8 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, tui.GlobalKeyMap.Dashboard):
 			m.detail.SwitchToDashboard()
+			m.focused = PaneDetail
+			m.syncFocus()
 			return m, nil
 
 		case key.Matches(msg, tui.GlobalKeyMap.LogStream):
@@ -595,7 +597,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.worktreeDir = m.originalCWD
 		wolfDir := filepath.Join(m.originalCWD, ".wolfcastle")
 		m.store = storeFromWolfcastleDir(wolfDir)
-		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+		m.daemonRepo = daemon.NewRepository(wolfDir)
 
 		m.tree.Reset()
 		m.detail.Reset()
@@ -651,7 +653,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Update store and daemon repo for the new worktree.
 		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
 		m.store = storeFromWolfcastleDir(wolfDir)
-		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+		m.daemonRepo = daemon.NewRepository(wolfDir)
 		m.worktreeDir = msg.Entry.Worktree
 
 		// Restart watcher: stop old, create+start+eager-prefetch new.
@@ -722,7 +724,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.welcome = nil
 			m.worktreeDir = msg.Dir
 			wolfDir := filepath.Join(msg.Dir, ".wolfcastle")
-			m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+			m.daemonRepo = daemon.NewRepository(wolfDir)
 			m.store = storeFromWolfcastleDir(wolfDir)
 			m.header.SetLoading(true)
 			cmds = append(cmds, m.detectEntryState(), m.startWatcher(), m.startPoller(), m.loadInitialState())
@@ -738,7 +740,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notify = notify.NewNotificationModel()
 		m.worktreeDir = msg.Entry.Worktree
 		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
-		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+		m.daemonRepo = daemon.NewRepository(wolfDir)
 		m.store = storeFromWolfcastleDir(wolfDir)
 		m.instances, _ = instance.List()
 		for i, inst := range m.instances {
@@ -1013,12 +1015,12 @@ func (m *TUIModel) computeTreeSearchMatches() {
 	}
 
 	literal := make(map[string]bool)
-	var matches []search.SearchMatch
+	var matches []search.Match
 
 	for addr, entry := range idx.Nodes {
 		if strings.Contains(strings.ToLower(entry.Name), query) {
 			literal[addr] = true
-			matches = append(matches, search.SearchMatch{Address: addr})
+			matches = append(matches, search.Match{Address: addr})
 		}
 		if entry.Type != state.NodeLeaf {
 			continue
@@ -1031,7 +1033,7 @@ func (m *TUIModel) computeTreeSearchMatches() {
 			if strings.Contains(strings.ToLower(task.Title), query) {
 				taskAddr := addr + "/" + task.ID
 				literal[taskAddr] = true
-				matches = append(matches, search.SearchMatch{Address: taskAddr})
+				matches = append(matches, search.Match{Address: taskAddr})
 			}
 		}
 	}
@@ -1062,10 +1064,10 @@ func (m *TUIModel) computeTreeSearchMatches() {
 
 func (m *TUIModel) computeDetailSearchMatches(query string) {
 	lines := m.detail.SearchContent()
-	var matches []search.SearchMatch
+	var matches []search.Match
 	for i, line := range lines {
 		if strings.Contains(strings.ToLower(line), query) {
-			matches = append(matches, search.SearchMatch{Row: i})
+			matches = append(matches, search.Match{Row: i})
 		}
 	}
 	m.search.SetMatches(matches)
@@ -1525,7 +1527,7 @@ func (m *TUIModel) stopAndDrainWatcher() {
 	}
 }
 
-func newWatcherFor(store *state.Store, repo *daemon.DaemonRepository, events chan tea.Msg) *tui.Watcher {
+func newWatcherFor(store *state.Store, repo *daemon.Repository, events chan tea.Msg) *tui.Watcher {
 	if store == nil {
 		return nil
 	}
@@ -1676,8 +1678,7 @@ func (m *TUIModel) stopCurrentDaemon() tea.Cmd {
 			}
 			time.Sleep(200 * time.Millisecond)
 		}
-		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
-		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
+		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("daemon not responding, try wolfcastle stop --force")}
 	}
 }
 
@@ -1714,8 +1715,7 @@ func (m *TUIModel) handleStopAll() tea.Cmd {
 		if lastErr != nil {
 			return tui.DaemonStopFailedMsg{Err: lastErr}
 		}
-		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
-		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
+		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("daemon not responding, try wolfcastle stop --force")}
 	}
 }
 

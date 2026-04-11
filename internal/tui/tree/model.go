@@ -1,5 +1,6 @@
 // Package tree implements the left-pane tree view that displays the
-// project node hierarchy with expandable sections and cursor navigation.
+// project node hierarchy with expandable sections, cursor navigation,
+// and search highlighting.
 package tree
 
 import (
@@ -40,8 +41,8 @@ type LoadNodeMsg struct {
 	Err     error
 }
 
-// TreeRow is a single visible line in the flattened tree view.
-type TreeRow struct {
+// Row is a single visible line in the flattened tree view.
+type Row struct {
 	Addr       string
 	Name       string
 	Depth      int
@@ -53,12 +54,12 @@ type TreeRow struct {
 	TaskHint   string // e.g. "(5 tasks)" or "(3 tasks, 2 failures)" for collapsed leaves
 }
 
-// TreeModel is the sub-model that owns the project tree panel.
-type TreeModel struct {
+// Model is the sub-model that owns the project tree panel.
+type Model struct {
 	index         *state.RootIndex
 	nodes         map[string]*state.NodeState
 	cacheExpiry   map[string]time.Time
-	flatList      []TreeRow
+	flatList      []Row
 	cursor        int
 	scrollTop     int
 	expanded      map[string]bool
@@ -76,9 +77,9 @@ type TreeModel struct {
 	searchAncestor map[string]bool
 }
 
-// NewTreeModel returns an initialized TreeModel with empty maps.
-func NewTreeModel() TreeModel {
-	return TreeModel{
+// NewModel returns an initialized Model with empty maps.
+func NewModel() Model {
+	return Model{
 		nodes:       make(map[string]*state.NodeState),
 		cacheExpiry: make(map[string]time.Time),
 		expanded:    make(map[string]bool),
@@ -105,7 +106,7 @@ var keys = struct {
 
 // Update processes incoming messages and returns the updated model plus any
 // commands that should fire next.
-func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		if !m.focused {
@@ -150,7 +151,7 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m TreeModel) handleKey(msg tea.KeyPressMsg) (TreeModel, tea.Cmd) {
+func (m Model) handleKey(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, keys.MoveDown):
 		if m.cursor < len(m.flatList)-1 {
@@ -184,7 +185,7 @@ func (m TreeModel) handleKey(msg tea.KeyPressMsg) (TreeModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m TreeModel) handleExpand() (TreeModel, tea.Cmd) {
+func (m Model) handleExpand() (Model, tea.Cmd) {
 	if len(m.flatList) == 0 {
 		return m, nil
 	}
@@ -224,7 +225,7 @@ func (m TreeModel) handleExpand() (TreeModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m TreeModel) handleCollapse() (TreeModel, tea.Cmd) {
+func (m Model) handleCollapse() (Model, tea.Cmd) {
 	if len(m.flatList) == 0 {
 		return m, func() tea.Msg { return CollapseAtRootMsg{} }
 	}
@@ -253,18 +254,18 @@ func (m TreeModel) handleCollapse() (TreeModel, tea.Cmd) {
 }
 
 // SetSize updates the viewport dimensions.
-func (m *TreeModel) SetSize(width, height int) {
+func (m *Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 }
 
 // SetFocused marks whether the tree panel currently owns keyboard input.
-func (m *TreeModel) SetFocused(focused bool) {
+func (m *Model) SetFocused(focused bool) {
 	m.focused = focused
 }
 
 // SetIndex replaces the root index and rebuilds the flat list.
-func (m *TreeModel) SetIndex(index *state.RootIndex) {
+func (m *Model) SetIndex(index *state.RootIndex) {
 	m.index = index
 	m.buildFlatList()
 	m.clampCursor()
@@ -272,7 +273,7 @@ func (m *TreeModel) SetIndex(index *state.RootIndex) {
 }
 
 // SetCurrentTarget sets the address of the node the daemon is working on.
-func (m *TreeModel) SetCurrentTarget(addr string) {
+func (m *Model) SetCurrentTarget(addr string) {
 	m.currentTarget = addr
 }
 
@@ -280,34 +281,34 @@ func (m *TreeModel) SetCurrentTarget(addr string) {
 // highlight sets. Both maps are keyed by tree address so they survive
 // flat-list rebuilds (collapse/expand). Pass two nil maps to clear
 // all highlighting.
-func (m *TreeModel) SetSearchAddresses(literal, ancestor map[string]bool) {
+func (m *Model) SetSearchAddresses(literal, ancestor map[string]bool) {
 	m.searchLiteral = literal
 	m.searchAncestor = ancestor
 }
 
 // SearchLiteralAddresses returns the literal-match address set.
 // Read-only accessor used by wiring smoke tests.
-func (m *TreeModel) SearchLiteralAddresses() map[string]bool {
+func (m *Model) SearchLiteralAddresses() map[string]bool {
 	return m.searchLiteral
 }
 
 // SearchAncestorAddresses returns the ancestor-of-match address set.
 // Read-only accessor used by wiring smoke tests.
-func (m *TreeModel) SearchAncestorAddresses() map[string]bool {
+func (m *Model) SearchAncestorAddresses() map[string]bool {
 	return m.searchAncestor
 }
 
 // HasSearchHighlights reports whether any search highlights are
 // currently active. Used by the Esc handler to decide whether to
 // clear highlights or fall through to other Esc semantics.
-func (m *TreeModel) HasSearchHighlights() bool {
+func (m *Model) HasSearchHighlights() bool {
 	return len(m.searchLiteral) > 0 || len(m.searchAncestor) > 0
 }
 
 // Reset collapses all expanded nodes, clears the cursor back to row 0,
 // and rebuilds the flat list. Used when switching instances so the tree
 // doesn't carry stale expand state from the previous project.
-func (m *TreeModel) Reset() {
+func (m *Model) Reset() {
 	m.expanded = make(map[string]bool)
 	m.cursor = 0
 	m.scrollTop = 0
@@ -317,14 +318,14 @@ func (m *TreeModel) Reset() {
 
 // SetCursor moves the cursor to the given row index (clamped to bounds)
 // and scrolls it into view.
-func (m *TreeModel) SetCursor(row int) {
+func (m *Model) SetCursor(row int) {
 	m.cursor = row
 	m.clampCursor()
 	m.scrollIntoCursor()
 }
 
 // CleanCache removes cached node entries whose expiry time has passed.
-func (m *TreeModel) CleanCache() {
+func (m *Model) CleanCache() {
 	now := time.Now()
 	for addr, exp := range m.cacheExpiry {
 		if now.After(exp) {
@@ -336,22 +337,22 @@ func (m *TreeModel) CleanCache() {
 
 // FlatList returns the current flattened tree rows. The returned slice
 // should be treated as read-only.
-func (m *TreeModel) FlatList() []TreeRow {
+func (m *Model) FlatList() []Row {
 	return m.flatList
 }
 
 // SelectedAddr returns the address of the row under the cursor, or empty
 // if the list is empty.
-func (m *TreeModel) SelectedAddr() string {
+func (m *Model) SelectedAddr() string {
 	if m.cursor >= 0 && m.cursor < len(m.flatList) {
 		return m.flatList[m.cursor].Addr
 	}
 	return ""
 }
 
-// SelectedRow returns a pointer to the TreeRow under the cursor, or nil if
+// SelectedRow returns a pointer to the Row under the cursor, or nil if
 // the list is empty.
-func (m *TreeModel) SelectedRow() *TreeRow {
+func (m *Model) SelectedRow() *Row {
 	if m.cursor >= 0 && m.cursor < len(m.flatList) {
 		return &m.flatList[m.cursor]
 	}
@@ -360,18 +361,18 @@ func (m *TreeModel) SelectedRow() *TreeRow {
 
 // CachedNode returns the cached NodeState for the given address, or nil if
 // not cached.
-func (m *TreeModel) CachedNode(addr string) *state.NodeState {
+func (m *Model) CachedNode(addr string) *state.NodeState {
 	return m.nodes[addr]
 }
 
 // Index returns the current root index, or nil if none has been set.
-func (m *TreeModel) Index() *state.RootIndex {
+func (m *Model) Index() *state.RootIndex {
 	return m.index
 }
 
 // buildFlatList walks the index tree, respecting expand state, and produces
-// the ordered slice of TreeRows that the renderer will draw.
-func (m *TreeModel) buildFlatList() {
+// the ordered slice of Rows that the renderer will draw.
+func (m *Model) buildFlatList() {
 	if m.index == nil {
 		m.flatList = nil
 		return
@@ -382,7 +383,7 @@ func (m *TreeModel) buildFlatList() {
 	}
 }
 
-func (m *TreeModel) appendNodeAtDepth(addr string, depth int) {
+func (m *Model) appendNodeAtDepth(addr string, depth int) {
 	entry, ok := m.index.Nodes[addr]
 	if !ok {
 		return
@@ -396,7 +397,7 @@ func (m *TreeModel) appendNodeAtDepth(addr string, depth int) {
 
 	isExpanded := m.expanded[addr]
 
-	row := TreeRow{
+	row := Row{
 		Addr:       addr,
 		Name:       entry.Name,
 		Depth:      depth,
@@ -430,7 +431,7 @@ func (m *TreeModel) appendNodeAtDepth(addr string, depth int) {
 	if entry.Type == state.NodeLeaf {
 		if ns, ok := m.nodes[addr]; ok {
 			for _, task := range ns.Tasks {
-				m.flatList = append(m.flatList, TreeRow{
+				m.flatList = append(m.flatList, Row{
 					Addr:   addr + "/" + task.ID,
 					Name:   task.Title,
 					Depth:  depth + 1,
@@ -443,7 +444,7 @@ func (m *TreeModel) appendNodeAtDepth(addr string, depth int) {
 }
 
 // scrollIntoCursor adjusts scrollTop so the cursor row is visible.
-func (m *TreeModel) scrollIntoCursor() {
+func (m *Model) scrollIntoCursor() {
 	if m.height <= 0 {
 		return
 	}
@@ -456,7 +457,7 @@ func (m *TreeModel) scrollIntoCursor() {
 }
 
 // clampCursor keeps the cursor within bounds after the flat list changes.
-func (m *TreeModel) clampCursor() {
+func (m *Model) clampCursor() {
 	if len(m.flatList) == 0 {
 		m.cursor = 0
 		return
@@ -471,7 +472,7 @@ func (m *TreeModel) clampCursor() {
 
 // parentOf finds the flatList index of the parent node for the given
 // address. Returns -1 if no parent is found.
-func (m *TreeModel) parentOf(addr string) int {
+func (m *Model) parentOf(addr string) int {
 	if m.index == nil {
 		return -1
 	}

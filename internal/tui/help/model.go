@@ -1,4 +1,4 @@
-// Package help renders the full-screen help overlay listing all key
+// Package help renders the scrollable full-screen help overlay listing all key
 // bindings grouped by context.
 package help
 
@@ -13,8 +13,8 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
-// HelpOverlayModel renders a scrollable help overlay listing key bindings.
-type HelpOverlayModel struct {
+// Model renders a scrollable help overlay listing key bindings.
+type Model struct {
 	active  bool
 	scroll  int
 	width   int
@@ -23,13 +23,13 @@ type HelpOverlayModel struct {
 	lines   int    // total lines in content
 }
 
-// NewHelpOverlayModel returns a help overlay ready for use.
-func NewHelpOverlayModel() HelpOverlayModel {
-	return HelpOverlayModel{}
+// NewModel returns a help overlay ready for use.
+func NewModel() Model {
+	return Model{}
 }
 
 // Update handles messages relevant to the help overlay.
-func (m HelpOverlayModel) Update(msg tea.Msg) (HelpOverlayModel, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		if !m.active {
@@ -67,7 +67,7 @@ func (m HelpOverlayModel) Update(msg tea.Msg) (HelpOverlayModel, tea.Cmd) {
 
 // Toggle flips the overlay between active and inactive. When activating,
 // the scroll position resets and the content is rebuilt.
-func (m *HelpOverlayModel) Toggle() {
+func (m *Model) Toggle() {
 	m.active = !m.active
 	if m.active {
 		m.scroll = 0
@@ -76,19 +76,19 @@ func (m *HelpOverlayModel) Toggle() {
 }
 
 // IsActive reports whether the overlay is currently visible.
-func (m HelpOverlayModel) IsActive() bool {
+func (m Model) IsActive() bool {
 	return m.active
 }
 
 // SetSize updates the terminal dimensions and rebuilds the content.
-func (m *HelpOverlayModel) SetSize(width, height int) {
+func (m *Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 	m.buildContent()
 }
 
 // buildContent generates the formatted help text from the key binding groups.
-func (m *HelpOverlayModel) buildContent() {
+func (m *Model) buildContent() {
 	type binding struct {
 		key  string
 		desc string
@@ -148,10 +148,15 @@ func (m *HelpOverlayModel) buildContent() {
 			title: "Log Stream",
 			bindings: []binding{
 				{"L", "open log stream"},
+				{"f", "toggle follow"},
+				{"L", "cycle level filter"},
+				{"T", "cycle trace filter"},
 				{"j / \u2193", "scroll down"},
 				{"k / \u2191", "scroll up"},
 				{"g", "jump to top"},
 				{"G", "jump to bottom"},
+				{"Ctrl+D", "half page down"},
+				{"Ctrl+U", "half page up"},
 			},
 		},
 		{
@@ -183,7 +188,7 @@ func (m *HelpOverlayModel) buildContent() {
 }
 
 // View renders the help overlay centered on the terminal.
-func (m HelpOverlayModel) View() string {
+func (m Model) View() string {
 	if !m.active {
 		return ""
 	}
@@ -257,7 +262,7 @@ func (m HelpOverlayModel) View() string {
 }
 
 // maxScroll returns the highest valid scroll offset.
-func (m HelpOverlayModel) maxScroll() int {
+func (m Model) maxScroll() int {
 	overlayH := m.height * 80 / 100
 	if overlayH < 20 {
 		overlayH = 20

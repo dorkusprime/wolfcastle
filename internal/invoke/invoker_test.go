@@ -30,8 +30,8 @@ func shModel(script string) config.ModelDef {
 	return config.ModelDef{Command: "sh", Args: []string{"-c", script}}
 }
 
-func TestInvokeSimple_BasicOutput_Echo(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), echoModel("hello", "world"), "", ".")
+func TestSimple_BasicOutput_Echo(t *testing.T) {
+	result, err := Simple(context.Background(), echoModel("hello", "world"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -44,8 +44,8 @@ func TestInvokeSimple_BasicOutput_Echo(t *testing.T) {
 	}
 }
 
-func TestInvokeSimple_StdinPiped(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), catModel(), "prompt text here", ".")
+func TestSimple_StdinPiped(t *testing.T) {
+	result, err := Simple(context.Background(), catModel(), "prompt text here", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -55,8 +55,8 @@ func TestInvokeSimple_StdinPiped(t *testing.T) {
 	}
 }
 
-func TestInvokeSimple_NonZeroExitCode(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), shModel("exit 42"), "", ".")
+func TestSimple_NonZeroExitCode(t *testing.T) {
+	result, err := Simple(context.Background(), shModel("exit 42"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -65,8 +65,8 @@ func TestInvokeSimple_NonZeroExitCode(t *testing.T) {
 	}
 }
 
-func TestInvokeSimple_StderrCaptured(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), shModel("echo error-text >&2"), "", ".")
+func TestSimple_StderrCaptured(t *testing.T) {
+	result, err := Simple(context.Background(), shModel("echo error-text >&2"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -75,8 +75,8 @@ func TestInvokeSimple_StderrCaptured(t *testing.T) {
 	}
 }
 
-func TestInvokeSimple_CommandNotFound(t *testing.T) {
-	_, err := InvokeSimple(context.Background(), config.ModelDef{Command: "nonexistent-command-xyz"}, "", ".")
+func TestSimple_CommandNotFound(t *testing.T) {
+	_, err := Simple(context.Background(), config.ModelDef{Command: "nonexistent-command-xyz"}, "", ".")
 	if err == nil {
 		t.Fatal("expected error for missing command")
 	}
@@ -85,9 +85,9 @@ func TestInvokeSimple_CommandNotFound(t *testing.T) {
 	}
 }
 
-func TestInvokeSimple_WorkingDirectory(t *testing.T) {
+func TestSimple_WorkingDirectory(t *testing.T) {
 	dir := t.TempDir()
-	result, err := InvokeSimple(context.Background(), shModel("pwd"), "", dir)
+	result, err := Simple(context.Background(), shModel("pwd"), "", dir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -100,10 +100,10 @@ func TestInvokeSimple_WorkingDirectory(t *testing.T) {
 	}
 }
 
-func TestInvokeSimple_ContextCancelled(t *testing.T) {
+func TestSimple_ContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
-	_, err := InvokeSimple(ctx, shModel("sleep 10"), "", ".")
+	_, err := Simple(ctx, shModel("sleep 10"), "", ".")
 	if err == nil {
 		t.Fatal("expected error for cancelled context")
 	}
@@ -181,7 +181,7 @@ func TestProcessInvoker_Streaming_StderrCaptured(t *testing.T) {
 // --- Marker detection tests ---
 
 func TestMarkerDetection_Complete(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), echoModel("WOLFCASTLE_COMPLETE"), "", ".")
+	result, err := Simple(context.Background(), echoModel("WOLFCASTLE_COMPLETE"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestMarkerDetection_Complete(t *testing.T) {
 }
 
 func TestMarkerDetection_Yield(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), echoModel("WOLFCASTLE_YIELD"), "", ".")
+	result, err := Simple(context.Background(), echoModel("WOLFCASTLE_YIELD"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestMarkerDetection_Yield(t *testing.T) {
 }
 
 func TestMarkerDetection_Blocked(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), shModel("echo 'WOLFCASTLE_BLOCKED: missing dependency'"), "", ".")
+	result, err := Simple(context.Background(), shModel("echo 'WOLFCASTLE_BLOCKED: missing dependency'"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -211,7 +211,7 @@ func TestMarkerDetection_Blocked(t *testing.T) {
 }
 
 func TestMarkerDetection_Summary(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), shModel("echo 'WOLFCASTLE_SUMMARY: Implemented the feature'"), "", ".")
+	result, err := Simple(context.Background(), shModel("echo 'WOLFCASTLE_SUMMARY: Implemented the feature'"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -223,7 +223,7 @@ func TestMarkerDetection_Summary(t *testing.T) {
 func TestMarkerDetection_SummaryWithComplete(t *testing.T) {
 	script := `echo "WOLFCASTLE_SUMMARY: Task done successfully"
 echo "WOLFCASTLE_COMPLETE"`
-	result, err := InvokeSimple(context.Background(), shModel(script), "", ".")
+	result, err := Simple(context.Background(), shModel(script), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -238,7 +238,7 @@ echo "WOLFCASTLE_COMPLETE"`
 func TestMarkerDetection_FirstTerminalMarkerWins(t *testing.T) {
 	script := `echo "WOLFCASTLE_YIELD"
 echo "WOLFCASTLE_COMPLETE"`
-	result, err := InvokeSimple(context.Background(), shModel(script), "", ".")
+	result, err := Simple(context.Background(), shModel(script), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -248,7 +248,7 @@ echo "WOLFCASTLE_COMPLETE"`
 }
 
 func TestMarkerDetection_Skip(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), echoModel("WOLFCASTLE_SKIP reason here"), "", ".")
+	result, err := Simple(context.Background(), echoModel("WOLFCASTLE_SKIP reason here"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -258,7 +258,7 @@ func TestMarkerDetection_Skip(t *testing.T) {
 }
 
 func TestMarkerDetection_Continue(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), echoModel("WOLFCASTLE_CONTINUE"), "", ".")
+	result, err := Simple(context.Background(), echoModel("WOLFCASTLE_CONTINUE"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -268,7 +268,7 @@ func TestMarkerDetection_Continue(t *testing.T) {
 }
 
 func TestMarkerDetection_NoMarker(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), echoModel("just some output"), "", ".")
+	result, err := Simple(context.Background(), echoModel("just some output"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -278,7 +278,7 @@ func TestMarkerDetection_NoMarker(t *testing.T) {
 }
 
 func TestMarkerDetection_EmptySummaryIgnored(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), shModel("echo 'WOLFCASTLE_SUMMARY:'"), "", ".")
+	result, err := Simple(context.Background(), shModel("echo 'WOLFCASTLE_SUMMARY:'"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -381,10 +381,10 @@ func TestProcessInvoker_StreamingCommandNotFound(t *testing.T) {
 	}
 }
 
-// --- InvokeSimple tests ---
+// --- Simple tests ---
 
-func TestInvokeSimple_BasicOutput(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), echoModel("simple"), "", ".")
+func TestSimple_BasicOutput(t *testing.T) {
+	result, err := Simple(context.Background(), echoModel("simple"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -460,8 +460,8 @@ echo "WOLFCASTLE_COMPLETE"
 
 // --- Empty output test ---
 
-func TestInvokeSimple_EmptyOutput(t *testing.T) {
-	result, err := InvokeSimple(context.Background(), shModel("true"), "", ".")
+func TestSimple_EmptyOutput(t *testing.T) {
+	result, err := Simple(context.Background(), shModel("true"), "", ".")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

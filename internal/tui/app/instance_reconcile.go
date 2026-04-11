@@ -49,7 +49,7 @@ func (m *TUIModel) reconcileActiveInstance(newInstances []instance.Entry) tea.Cm
 			m.worktreeDir = m.originalCWD
 			wolfDir := m.originalCWD + "/.wolfcastle"
 			m.store = storeFromWolfcastleDir(wolfDir)
-			m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+			m.daemonRepo = daemon.NewRepository(wolfDir)
 
 			m.tree.Reset()
 			m.detail.Reset()

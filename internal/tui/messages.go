@@ -19,13 +19,13 @@ type StateUpdatedMsg struct {
 	Worktree string
 }
 
-// NodeUpdatedMsg signals that a single node's state has changed.
+// NodeUpdatedMsg signals that a single node's state file has been refreshed.
 type NodeUpdatedMsg struct {
 	Address string
 	Node    *state.NodeState
 }
 
-// DaemonStatusMsg carries a snapshot of the daemon's current state.
+// DaemonStatusMsg carries a snapshot of daemon process status for display.
 type DaemonStatusMsg struct {
 	Status       string
 	Branch       string
@@ -60,19 +60,19 @@ type WatcherMsg struct {
 	Inner tea.Msg
 }
 
-// PollTickMsg triggers a periodic state refresh.
+// PollTickMsg triggers a periodic state-refresh cycle from the model's tick scheduler.
 type PollTickMsg struct{}
 
-// SpinnerTickMsg advances the loading spinner animation.
+// SpinnerTickMsg advances the spinner animation by one frame.
 type SpinnerTickMsg struct{}
 
-// ErrorMsg reports a file-scoped error to the TUI.
+// ErrorMsg reports a file-level error to be displayed in the error bar.
 type ErrorMsg struct {
 	Filename string
 	Message  string
 }
 
-// ErrorClearedMsg signals that a previously reported error has been resolved.
+// ErrorClearedMsg signals that a previously reported file error has been resolved.
 type ErrorClearedMsg struct {
 	Filename string
 }
@@ -80,13 +80,13 @@ type ErrorClearedMsg struct {
 // InitStartedMsg signals that project initialization has begun.
 type InitStartedMsg struct{}
 
-// InitCompleteMsg signals that project initialization has finished.
+// InitCompleteMsg signals that project initialization finished, possibly with an error.
 type InitCompleteMsg struct {
 	Dir string
 	Err error
 }
 
-// ToggleHelpMsg requests the help overlay to toggle visibility.
+// ToggleHelpMsg toggles the help overlay on or off.
 type ToggleHelpMsg struct{}
 
 // CopyMsg requests that the given text be copied to the clipboard.
@@ -94,15 +94,15 @@ type CopyMsg struct {
 	Text string
 }
 
-// CopiedMsg confirms that text was successfully copied to the clipboard.
+// CopiedMsg confirms that a clipboard copy operation completed.
 type CopiedMsg struct{}
 
-// LogLinesMsg delivers new log output lines to the log viewer.
+// LogLinesMsg delivers one or more new log lines from the active log file.
 type LogLinesMsg struct {
 	Lines []string // raw JSON strings, one per log line
 }
 
-// NewLogFileMsg signals that the daemon started writing to a new log file.
+// NewLogFileMsg signals that the daemon rotated to a new log file.
 type NewLogFileMsg struct {
 	Path string
 }
@@ -112,51 +112,51 @@ type SwitchInstanceMsg struct {
 	Entry instance.Entry
 }
 
-// InstanceSwitchedMsg confirms that the TUI switched to a new instance.
+// InstanceSwitchedMsg confirms that the active instance was changed successfully.
 type InstanceSwitchedMsg struct {
 	Index *state.RootIndex
 	Entry instance.Entry
 }
 
-// DaemonStartMsg requests starting a new daemon process.
+// DaemonStartMsg requests that a daemon process be started for the current worktree.
 type DaemonStartMsg struct{}
 
-// DaemonStartedMsg confirms that a daemon process was launched.
+// DaemonStartedMsg confirms that a daemon process launched successfully.
 type DaemonStartedMsg struct {
 	Entry instance.Entry
 }
 
-// DaemonStartFailedMsg reports that daemon startup failed.
+// DaemonStartFailedMsg reports that a daemon start attempt failed.
 type DaemonStartFailedMsg struct {
 	Err    error
 	Stderr string
 }
 
-// DaemonStopMsg requests stopping the current daemon process.
+// DaemonStopMsg requests that the current daemon process be stopped.
 type DaemonStopMsg struct{}
 
-// DaemonStoppedMsg confirms that the daemon was stopped.
+// DaemonStoppedMsg confirms that the daemon process was stopped.
 type DaemonStoppedMsg struct{}
 
-// DaemonStopAllMsg requests stopping all running daemon instances.
+// DaemonStopAllMsg requests that all running daemon instances be stopped.
 type DaemonStopAllMsg struct{}
 
-// DaemonStopFailedMsg reports that stopping the daemon failed.
+// DaemonStopFailedMsg reports that a daemon stop attempt failed.
 type DaemonStopFailedMsg struct {
 	Err error
 }
 
-// WorktreeGoneMsg signals that the watched worktree no longer exists.
+// WorktreeGoneMsg signals that a registered instance's worktree no longer exists.
 type WorktreeGoneMsg struct {
 	Entry instance.Entry
 }
 
-// InboxUpdatedMsg signals that the inbox file was reloaded.
+// InboxUpdatedMsg signals that the inbox file was reloaded from disk.
 type InboxUpdatedMsg struct {
 	Inbox *state.InboxFile
 }
 
-// InboxItemAddedMsg confirms a new item was added to the inbox.
+// InboxItemAddedMsg confirms that an inbox item was written successfully.
 type InboxItemAddedMsg struct{}
 
 // InboxAddFailedMsg reports that adding an inbox item failed.
@@ -164,15 +164,15 @@ type InboxAddFailedMsg struct {
 	Err error
 }
 
-// AddInboxItemCmd is a command message that triggers inbox item creation.
+// AddInboxItemCmd is a command message requesting a new inbox item be persisted.
 type AddInboxItemCmd struct {
 	Text string
 }
 
-// DaemonConfirmedMsg signals that the user confirmed a daemon action in the modal.
+// DaemonConfirmedMsg signals that the user confirmed a daemon action in a modal dialog.
 type DaemonConfirmedMsg struct{}
 
-// ToastMsg triggers a timed notification in the TUI.
+// ToastMsg requests that a transient notification toast be displayed.
 type ToastMsg struct {
 	Text string
 }

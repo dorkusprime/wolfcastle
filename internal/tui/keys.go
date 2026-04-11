@@ -4,7 +4,7 @@ package tui
 
 import "charm.land/bubbles/v2/key"
 
-// GlobalKeys defines key bindings available in every TUI view.
+// GlobalKeys defines key bindings available in every TUI context.
 type GlobalKeys struct {
 	Quit       key.Binding
 	ForceQuit  key.Binding
@@ -34,7 +34,7 @@ var GlobalKeyMap = GlobalKeys{
 	Copy:       key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy")),
 }
 
-// TreeKeys defines key bindings for the tree navigation panel.
+// TreeKeys defines key bindings for navigating the project tree pane.
 type TreeKeys struct {
 	MoveDown key.Binding
 	MoveUp   key.Binding
@@ -44,7 +44,7 @@ type TreeKeys struct {
 	Bottom   key.Binding
 }
 
-// TreeKeyMap is the default set of tree key bindings.
+// TreeKeyMap is the default set of tree navigation key bindings.
 var TreeKeyMap = TreeKeys{
 	MoveDown: key.NewBinding(key.WithKeys("j", "down"), key.WithHelp("j/↓", "down")),
 	MoveUp:   key.NewBinding(key.WithKeys("k", "up"), key.WithHelp("k/↑", "up")),
@@ -62,7 +62,7 @@ type DaemonKeys struct {
 	NextInstance key.Binding
 }
 
-// DaemonKeyMap is the default set of daemon key bindings.
+// DaemonKeyMap is the default set of daemon control key bindings.
 var DaemonKeyMap = DaemonKeys{
 	ToggleDaemon: key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "start/stop")),
 	StopAll:      key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "stop all")),
@@ -70,7 +70,7 @@ var DaemonKeyMap = DaemonKeys{
 	NextInstance: key.NewBinding(key.WithKeys(">"), key.WithHelp(">", "next instance")),
 }
 
-// SearchKeys defines key bindings for the search overlay.
+// SearchKeys defines key bindings for the search bar and match navigation.
 type SearchKeys struct {
 	Confirm   key.Binding
 	Cancel    key.Binding
@@ -78,7 +78,7 @@ type SearchKeys struct {
 	PrevMatch key.Binding
 }
 
-// SearchKeyMap is the default set of search key bindings.
+// SearchKeyMap is the default set of search navigation key bindings.
 var SearchKeyMap = SearchKeys{
 	Confirm:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("Enter", "confirm")),
 	Cancel:    key.NewBinding(key.WithKeys("esc"), key.WithHelp("Esc", "cancel")),
@@ -93,7 +93,7 @@ type HelpKeys struct {
 	ScrollUp   key.Binding
 }
 
-// HelpKeyMap is the default set of help key bindings.
+// HelpKeyMap is the default set of help overlay key bindings.
 var HelpKeyMap = HelpKeys{
 	Dismiss:    key.NewBinding(key.WithKeys("?", "esc"), key.WithHelp("?/Esc", "close")),
 	ScrollDown: key.NewBinding(key.WithKeys("j", "down"), key.WithHelp("j/↓", "down")),

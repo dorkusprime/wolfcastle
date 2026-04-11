@@ -16,8 +16,8 @@ Start here if you want to modify Wolfcastle.
 
 ## [Architecture Decisions](decisions/)
 
-100 ADRs documenting every major design choice. Each records the context, decision, and consequences so future contributors understand why the system is built the way it is. ADRs are the authoritative source; specs defer to them on conflict.
+101 ADRs documenting every major design choice. Each records the context, decision, and consequences so future contributors understand why the system is built the way it is. ADRs are the authoritative source; specs defer to them on conflict.
 
 ## [Specifications](specs/)
 
-44 living specs that describe the current system in detail: state machine, config schema, tree addressing, pipeline contracts, audit propagation, archive format, CLI commands, validation engine, CI/CD, testing, and more. Specs track implementation, not aspirations.
+45 living specs that describe the current system in detail: state machine, config schema, tree addressing, pipeline contracts, audit propagation, archive format, CLI commands, validation engine, CI/CD, testing, and more. Specs track implementation, not aspirations.

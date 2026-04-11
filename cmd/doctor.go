@@ -59,7 +59,7 @@ Examples:
 		nodeLoader := validate.RecoveringNodeLoader(projectsDir, func(addr string, report *validate.RecoveryReport) {
 			recoveredNodes = append(recoveredNodes, validate.RecoveredNode{Address: addr, Report: report})
 		})
-		engine := validate.NewEngine(projectsDir, nodeLoader, daemon.NewDaemonRepository(root))
+		engine := validate.NewEngine(projectsDir, nodeLoader, daemon.NewRepository(root))
 		report := engine.ValidateAll(idx)
 
 		// Inject MALFORMED_JSON issues for any nodes that required recovery.
@@ -91,7 +91,7 @@ Examples:
 		}
 
 		// Apply deterministic fixes
-		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, projectsDir, indexPath, daemon.NewDaemonRepository(root))
+		fixes, postFixWarnings, fixErr := validate.ApplyDeterministicFixes(idx, report.Issues, projectsDir, indexPath, daemon.NewRepository(root))
 
 		if !app.JSON {
 			if len(fixes) == 0 {
