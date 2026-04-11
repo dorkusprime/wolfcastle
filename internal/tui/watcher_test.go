@@ -1111,6 +1111,7 @@ func TestEagerPrefetchAndSubscribe_PicksUpLeavesAddedAfterStartup(t *testing.T) 
 	}
 
 	betaSeen := false
+drain:
 	for i := 0; i < 4; i++ {
 		select {
 		case msg := <-events:
@@ -1130,12 +1131,10 @@ func TestEagerPrefetchAndSubscribe_PicksUpLeavesAddedAfterStartup(t *testing.T) 
 				if nu.Node == nil || len(nu.Node.Tasks) == 0 || nu.Node.Tasks[0].Title != "beta brand-new task" {
 					t.Errorf("beta event did not carry the freshly-written task content; node = %+v", nu.Node)
 				}
+				break drain
 			}
 		case <-time.After(50 * time.Millisecond):
-			break
-		}
-		if betaSeen {
-			break
+			break drain
 		}
 	}
 	if !betaSeen {

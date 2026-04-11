@@ -133,7 +133,7 @@ func TestLogLinesMsg_SkipsNoiseAndUnparseable(t *testing.T) {
 	t.Parallel()
 	m := NewDashboardModel()
 	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{
-		"alpha",                                       // not JSON, dropped
+		"alpha", // not JSON, dropped
 		`{"type":"assistant","text":"yammering"}`,     // assistant chatter, dropped
 		`{"type":"stage_start","stage":"intake"}`,     // kept
 		`{"type":"unknown_thing","field":"whatever"}`, // unknown type, dropped
