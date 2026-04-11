@@ -193,8 +193,9 @@ create_node "$NS_MAIN" "warzone/backend/api" "api" "leaf" "complete" '[
   {"id":"audit","title":"Audit","state":"complete","is_audit":true}
 ]'
 create_node "$NS_MAIN" "warzone/backend/auth" "auth" "leaf" "in_progress" '[
-  {"id":"task-1","title":"Add OAuth2 PKCE flow","state":"in_progress","class":"coding/go","description":"Implement the authorization code flow with PKCE for public clients"},
-  {"id":"task-2","title":"Session token rotation","state":"not_started","class":"coding/go"},
+  {"id":"task-1","title":"Add OAuth2 PKCE flow","state":"in_progress","class":"coding/go","description":"Implement the authorization code flow with PKCE for public clients. The auth service needs a /authorize endpoint that generates code challenges, a /token endpoint that verifies code verifiers, and JWKS rotation for signing tokens.","scope":["internal/auth/","internal/token/","cmd/auth/"],"deliverables":["PKCE authorize endpoint","Token exchange endpoint","JWKS key rotation"],"acceptance_criteria":["All OAuth2 PKCE conformance tests pass","Token lifetime configurable via config","Refresh token rotation on every use"]},
+  {"id":"task-2","title":"Session token rotation","state":"not_started","class":"coding/go","description":"Rotate session tokens on each request to prevent replay attacks"},
+  {"id":"task-3","title":"Rate limit auth endpoints","state":"not_started","class":"coding/go","description":"Add per-IP rate limiting to /authorize and /token"},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
 ]'
 create_node "$NS_MAIN" "warzone/backend/database" "database" "leaf" "not_started" '[
