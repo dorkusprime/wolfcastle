@@ -219,6 +219,33 @@ cat > "$NS_MAIN/inbox.json" << 'INBOXEOF'
 }
 INBOXEOF
 
+# Write realistic log data so the log stream has content.
+LOG_DIR="$STAGE_MAIN/.wolfcastle/system/logs"
+mkdir -p "$LOG_DIR"
+cat > "$LOG_DIR/0001-exec-20260411T08-00Z.jsonl" << 'LOGEOF'
+{"type":"daemon_lifecycle","timestamp":"2026-04-11T08:00:01Z","level":"info","trace":"exec","event":"start","text":"daemon started on branch main"}
+{"type":"iteration_header","timestamp":"2026-04-11T08:00:02Z","level":"info","trace":"exec","iteration":1,"node":"warzone/backend/api","task":"task-1","text":"claiming task: Implement REST endpoints"}
+{"type":"stage_start","timestamp":"2026-04-11T08:00:03Z","level":"info","trace":"exec","stage":"execute","node":"warzone/backend/api","task":"task-1"}
+{"type":"model_invoke","timestamp":"2026-04-11T08:00:04Z","level":"debug","trace":"exec","stage":"execute","text":"invoking model: claude -p --model claude-sonnet-4-20250514","node":"warzone/backend/api"}
+{"type":"breadcrumb","timestamp":"2026-04-11T08:01:30Z","level":"info","trace":"exec","node":"warzone/backend/api","task":"task-1","text":"implemented GET /api/donuts, POST /api/donuts, DELETE /api/donuts/:id"}
+{"type":"breadcrumb","timestamp":"2026-04-11T08:01:45Z","level":"info","trace":"exec","node":"warzone/backend/api","task":"task-1","text":"added integration tests for all CRUD endpoints, 100% pass rate"}
+{"type":"marker","timestamp":"2026-04-11T08:02:00Z","level":"info","trace":"exec","marker":"WOLFCASTLE_COMPLETE","node":"warzone/backend/api","task":"task-1","text":"task complete"}
+{"type":"commit","timestamp":"2026-04-11T08:02:05Z","level":"info","trace":"exec","text":"committed: wolfcastle: warzone/backend/api/task-1 complete","node":"warzone/backend/api"}
+{"type":"stage_end","timestamp":"2026-04-11T08:02:06Z","level":"info","trace":"exec","stage":"execute","duration_ms":123000,"exit_code":0}
+{"type":"iteration_header","timestamp":"2026-04-11T08:02:10Z","level":"info","trace":"exec","iteration":2,"node":"warzone/backend/auth","task":"task-1","text":"claiming task: Add OAuth2 PKCE flow"}
+{"type":"stage_start","timestamp":"2026-04-11T08:02:11Z","level":"info","trace":"exec","stage":"execute","node":"warzone/backend/auth","task":"task-1"}
+{"type":"model_invoke","timestamp":"2026-04-11T08:02:12Z","level":"debug","trace":"exec","stage":"execute","text":"invoking model: claude -p --model claude-sonnet-4-20250514","node":"warzone/backend/auth"}
+{"type":"breadcrumb","timestamp":"2026-04-11T08:04:00Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"scaffolded /authorize and /token endpoints with PKCE challenge verification"}
+{"type":"validation","timestamp":"2026-04-11T08:04:15Z","level":"warn","trace":"exec","node":"warzone/backend/auth","text":"test coverage at 78%, below 80% threshold"}
+{"type":"breadcrumb","timestamp":"2026-04-11T08:04:30Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"added JWKS rotation with configurable key lifetime (default 24h)"}
+{"type":"validation","timestamp":"2026-04-11T08:04:45Z","level":"info","trace":"exec","node":"warzone/backend/auth","text":"test coverage now 91%, all OAuth2 conformance tests pass"}
+{"type":"marker","timestamp":"2026-04-11T08:05:00Z","level":"info","trace":"exec","marker":"WOLFCASTLE_YIELD","node":"warzone/backend/auth","task":"task-1","text":"yielding for next iteration"}
+{"type":"stage_end","timestamp":"2026-04-11T08:05:01Z","level":"info","trace":"exec","stage":"execute","duration_ms":170000,"exit_code":0}
+{"type":"intake_start","timestamp":"2026-04-11T08:05:05Z","level":"info","trace":"intake","text":"processing inbox: 3 items pending"}
+{"type":"intake_item","timestamp":"2026-04-11T08:05:10Z","level":"info","trace":"intake","text":"filed: Add rate limiting to the API → warzone/backend/api"}
+{"type":"intake_end","timestamp":"2026-04-11T08:05:15Z","level":"info","trace":"intake","text":"intake complete: 1 filed, 2 deferred"}
+LOGEOF
+
 echo "Main staging:    $STAGE_MAIN"
 echo "Main namespace:  $NS_MAIN"
 
