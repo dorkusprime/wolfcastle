@@ -1,3 +1,5 @@
+// Package clipboard provides clipboard copy via OSC 52 escape sequences
+// with a system-clipboard fallback.
 package clipboard
 
 import (

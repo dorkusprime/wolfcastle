@@ -242,7 +242,7 @@ func (m LogViewModel) View() string {
 	// Error / empty states
 	if m.readErr {
 		body := tui.DashboardBodyStyle.Render(
-			"Transmissions intercepted. Unable to read log file.",
+			"Unable to read log file. Check that the daemon has been started at least once, or run wolfcastle doctor.",
 		)
 		b.WriteString(body)
 		return b.String()

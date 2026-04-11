@@ -1,3 +1,5 @@
+// Package search implements the incremental search overlay that filters
+// the tree view by node and task names.
 package search
 
 import (

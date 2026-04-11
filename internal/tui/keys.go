@@ -1,10 +1,14 @@
+// Package tui provides shared types, key bindings, messages, styles, and
+// the filesystem watcher used across all TUI components.
 package tui
 
 import "charm.land/bubbles/v2/key"
 
+// GlobalKeys defines key bindings available in every TUI view.
 type GlobalKeys struct {
 	Quit       key.Binding
 	ForceQuit  key.Binding
+	Dashboard  key.Binding
 	LogStream  key.Binding
 	Inbox      key.Binding
 	ToggleTree key.Binding
@@ -15,9 +19,11 @@ type GlobalKeys struct {
 	Copy       key.Binding
 }
 
+// GlobalKeyMap is the default set of global key bindings.
 var GlobalKeyMap = GlobalKeys{
 	Quit:       key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 	ForceQuit:  key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit")),
+	Dashboard:  key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "dashboard")),
 	LogStream:  key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "logs")),
 	Inbox:      key.NewBinding(key.WithKeys("i"), key.WithHelp("i", "inbox")),
 	ToggleTree: key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "tree")),
@@ -28,6 +34,7 @@ var GlobalKeyMap = GlobalKeys{
 	Copy:       key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy")),
 }
 
+// TreeKeys defines key bindings for the tree navigation panel.
 type TreeKeys struct {
 	MoveDown key.Binding
 	MoveUp   key.Binding
@@ -37,6 +44,7 @@ type TreeKeys struct {
 	Bottom   key.Binding
 }
 
+// TreeKeyMap is the default set of tree key bindings.
 var TreeKeyMap = TreeKeys{
 	MoveDown: key.NewBinding(key.WithKeys("j", "down"), key.WithHelp("j/↓", "down")),
 	MoveUp:   key.NewBinding(key.WithKeys("k", "up"), key.WithHelp("k/↑", "up")),
@@ -46,6 +54,7 @@ var TreeKeyMap = TreeKeys{
 	Bottom:   key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "bottom")),
 }
 
+// DaemonKeys defines key bindings for daemon start/stop and instance switching.
 type DaemonKeys struct {
 	ToggleDaemon key.Binding
 	StopAll      key.Binding
@@ -53,6 +62,7 @@ type DaemonKeys struct {
 	NextInstance key.Binding
 }
 
+// DaemonKeyMap is the default set of daemon key bindings.
 var DaemonKeyMap = DaemonKeys{
 	ToggleDaemon: key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "start/stop")),
 	StopAll:      key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "stop all")),
@@ -60,6 +70,7 @@ var DaemonKeyMap = DaemonKeys{
 	NextInstance: key.NewBinding(key.WithKeys(">"), key.WithHelp(">", "next instance")),
 }
 
+// SearchKeys defines key bindings for the search overlay.
 type SearchKeys struct {
 	Confirm   key.Binding
 	Cancel    key.Binding
@@ -67,6 +78,7 @@ type SearchKeys struct {
 	PrevMatch key.Binding
 }
 
+// SearchKeyMap is the default set of search key bindings.
 var SearchKeyMap = SearchKeys{
 	Confirm:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("Enter", "confirm")),
 	Cancel:    key.NewBinding(key.WithKeys("esc"), key.WithHelp("Esc", "cancel")),
@@ -74,18 +86,21 @@ var SearchKeyMap = SearchKeys{
 	PrevMatch: key.NewBinding(key.WithKeys("N"), key.WithHelp("N", "prev")),
 }
 
+// HelpKeys defines key bindings for the help overlay.
 type HelpKeys struct {
 	Dismiss    key.Binding
 	ScrollDown key.Binding
 	ScrollUp   key.Binding
 }
 
+// HelpKeyMap is the default set of help key bindings.
 var HelpKeyMap = HelpKeys{
 	Dismiss:    key.NewBinding(key.WithKeys("?", "esc"), key.WithHelp("?/Esc", "close")),
 	ScrollDown: key.NewBinding(key.WithKeys("j", "down"), key.WithHelp("j/↓", "down")),
 	ScrollUp:   key.NewBinding(key.WithKeys("k", "up"), key.WithHelp("k/↑", "up")),
 }
 
+// WelcomeKeys defines key bindings for the welcome/project picker screen.
 type WelcomeKeys struct {
 	MoveDown key.Binding
 	MoveUp   key.Binding
@@ -96,6 +111,7 @@ type WelcomeKeys struct {
 	Quit     key.Binding
 }
 
+// WelcomeKeyMap is the default set of welcome screen key bindings.
 var WelcomeKeyMap = WelcomeKeys{
 	MoveDown: key.NewBinding(key.WithKeys("j", "down"), key.WithHelp("j/↓", "down")),
 	MoveUp:   key.NewBinding(key.WithKeys("k", "up"), key.WithHelp("k/↑", "up")),

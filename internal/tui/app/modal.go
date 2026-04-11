@@ -131,6 +131,11 @@ func (m TUIModel) renderInboxModal(contentHeight int) string {
 	inbox.SetFocused(true)
 
 	content := inbox.View()
+
+	// Add dismiss hint below the inbox content.
+	hint := strings.Repeat(" ", 2) + tui.ModalDimStyle.Render("[Esc] Close")
+	content += "\n" + hint
+
 	box := tui.ModalOverlayStyle.
 		Width(overlayW).
 		Height(overlayH).

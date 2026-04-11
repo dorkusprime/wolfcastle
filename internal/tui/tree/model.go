@@ -1,3 +1,5 @@
+// Package tree implements the left-pane tree view that displays the
+// project node hierarchy with expandable sections and cursor navigation.
 package tree
 
 import (
