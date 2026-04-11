@@ -81,6 +81,9 @@ type TUIModel struct {
 	prevIndex *state.RootIndex
 	prevNodes map[string]*state.NodeState
 
+	activeModal ActiveModal
+	daemonModal DaemonModalModel
+
 	switching   bool   // true while instance switch is in flight
 	switchLabel string // label of the instance being switched to
 
@@ -227,6 +230,11 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		// Modal overlay absorbs all keys while active.
+		if m.activeModal != ModalNone {
+			return m.updateActiveModal(msg)
+		}
+
 		// Active search bar captures input.
 		if m.search.IsActive() {
 			prevQuery := m.search.Query()
@@ -244,18 +252,11 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case key.Matches(msg, tui.GlobalKeyMap.LogStream):
-			// Switch the detail pane to the log stream view from any
-			// focus state. The binding is capital L so it doesn't
-			// collide with the tree pane's vi-style l = expand.
-			m.detail.SwitchToLogView()
-			m.focused = PaneDetail
-			m.syncFocus()
+			m.activeModal = ModalLog
 			return m, nil
 
 		case key.Matches(msg, tui.GlobalKeyMap.Inbox):
-			m.detail.SwitchToInbox()
-			m.focused = PaneDetail
-			m.syncFocus()
+			m.activeModal = ModalInbox
 			return m, m.loadInbox()
 
 		case key.Matches(msg, tui.GlobalKeyMap.ToggleTree):
@@ -291,8 +292,27 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.handleCopy()
 
 		case key.Matches(msg, tui.DaemonKeyMap.ToggleDaemon):
-			cmd := m.handleToggleDaemon()
-			return m, cmd
+			if m.daemonStarting || m.daemonStopping {
+				return m, nil
+			}
+			action := "start"
+			isRunning := m.entryState == StateLive
+			if isRunning {
+				action = "stop"
+			}
+			var pid int
+			var branch, worktree string
+			var isDraining bool
+			if len(m.instances) > 0 && m.activeInstanceIndex < len(m.instances) {
+				inst := m.instances[m.activeInstanceIndex]
+				pid = inst.PID
+				branch = inst.Branch
+				worktree = inst.Worktree
+			}
+			m.daemonModal.Open(action, isRunning, isDraining, pid, branch, worktree)
+			m.daemonModal.SetSize(m.width, m.height)
+			m.activeModal = ModalDaemon
+			return m, nil
 
 		case key.Matches(msg, tui.DaemonKeyMap.StopAll):
 			cmd := m.handleStopAll()
@@ -466,6 +486,13 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, tea.Batch(cmds...)
 
+	case tree.CollapseAtRootMsg:
+		// User pressed h/left/esc at the top-level tree root. Show the
+		// dashboard in the detail pane but keep focus on the tree so
+		// navigation isn't interrupted.
+		m.detail.SwitchToDashboard()
+		return m, nil
+
 	case tree.LoadNodeMsg:
 		// The tree fires this when expanding a leaf whose NodeState isn't
 		// cached. The command only carries the address; we do the actual
@@ -499,6 +526,11 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, hcmd)
 		m.header.SetInstances(msg.Instances, m.activeInstanceIndex)
 		return m, tea.Batch(cmds...)
+
+	case tui.DaemonConfirmedMsg:
+		m.closeModal()
+		cmd := m.handleToggleDaemon()
+		return m, cmd
 
 	case tui.DaemonStartedMsg:
 		m.daemonStarting = false
@@ -798,6 +830,8 @@ func (m TUIModel) renderLayout() string {
 
 	if m.help.IsActive() {
 		contentView = m.help.View()
+	} else if m.activeModal != ModalNone {
+		contentView = m.renderActiveModal(contentHeight)
 	}
 
 	var parts []string
@@ -1210,6 +1244,7 @@ func (m *TUIModel) propagateSize() {
 	m.header.SetSize(m.width)
 	m.footer.SetSize(m.width)
 	m.help.SetSize(m.width, m.height)
+	m.daemonModal.SetSize(m.width, m.height)
 	m.notify.SetSize(m.width)
 
 	if m.welcome != nil {

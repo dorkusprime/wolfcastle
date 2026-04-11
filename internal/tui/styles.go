@@ -85,7 +85,7 @@ var (
 var SpinnerStyle = lipgloss.NewStyle().
 	Foreground(ColorYellow)
 
-// Help overlay styles
+// Overlay styles (shared by help and modals)
 var (
 	HelpOverlayStyle = lipgloss.NewStyle().
 				Background(ColorOverlayBg).
@@ -95,6 +95,21 @@ var (
 	HelpTitleStyle = lipgloss.NewStyle().
 			Foreground(ColorWhite).
 			Bold(true)
+
+	ModalOverlayStyle = lipgloss.NewStyle().
+				Background(ColorOverlayBg).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(ColorDimWhite)
+
+	ModalTitleStyle = lipgloss.NewStyle().
+			Foreground(ColorWhite).
+			Bold(true)
+
+	ModalDimStyle = lipgloss.NewStyle().
+			Foreground(ColorDimWhite)
+
+	ModalAccentStyle = lipgloss.NewStyle().
+				Foreground(ColorYellow)
 )
 
 // Current target indicator

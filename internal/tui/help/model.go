@@ -103,8 +103,8 @@ func (m *HelpOverlayModel) buildContent() {
 				{"q", "quit"},
 				{"Ctrl+C", "quit"},
 				{"d", "dashboard"},
-				{"L", "log stream"},
-				{"i", "inbox"},
+				{"L", "log stream (modal)"},
+				{"i", "inbox (modal)"},
 				{"t", "toggle tree"},
 				{"Tab", "cycle focus"},
 				{"R", "refresh"},
@@ -127,7 +127,7 @@ func (m *HelpOverlayModel) buildContent() {
 		{
 			title: "Daemon Control",
 			bindings: []binding{
-				{"s", "start/stop daemon"},
+				{"s", "start/stop daemon (modal)"},
 				{"S", "stop all daemons"},
 				{"< >", "switch instance"},
 				{"1-9", "select instance"},

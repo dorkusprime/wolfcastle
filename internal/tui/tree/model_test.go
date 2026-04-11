@@ -541,7 +541,7 @@ func TestHandleCollapse_DoesNotSetCacheExpiry(t *testing.T) {
 	}
 
 	// Collapse via the handler.
-	m = m.handleCollapse()
+	m, _ = m.handleCollapse()
 
 	if _, ok := m.cacheExpiry["parent"]; ok {
 		t.Error("handleCollapse must not set a cache expiry timer; the cache is now permanent for the session")
