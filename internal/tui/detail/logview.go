@@ -148,9 +148,13 @@ func (m *LogViewModel) AppendLines(rawLines []string) {
 		if err != nil {
 			continue
 		}
+		rendered := m.renderLine(rec)
+		if rendered == "" {
+			continue
+		}
 		m.lines = append(m.lines, logLine{
 			record:   rec,
-			rendered: m.renderLine(rec),
+			rendered: rendered,
 			rawJSON:  raw,
 		})
 	}
@@ -291,12 +295,20 @@ func (m LogViewModel) followIndicator() string {
 	return lipgloss.NewStyle().Foreground(tui.ColorYellow).Render("[paused]")
 }
 
-// renderLine produces a single styled line from a parsed record.
+// renderLine produces a single styled line from a parsed record. Returns the
+// empty string when the record has no human-readable content (e.g., an
+// assistant envelope that contains only tool-use plumbing); callers should
+// skip empty results rather than emit blank lines.
 func (m LogViewModel) renderLine(rec logrender.Record) string {
+	content := renderContent(rec)
+	if content == "" {
+		return ""
+	}
+
 	var b strings.Builder
 
 	// Timestamp
-	ts := rec.Timestamp.Format("15:04:05")
+	ts := rec.Timestamp.Local().Format("15:04:05")
 	b.WriteString(lipgloss.NewStyle().Foreground(tui.ColorDimWhite).Render(ts))
 	b.WriteByte(' ')
 
@@ -308,8 +320,6 @@ func (m LogViewModel) renderLine(rec logrender.Record) string {
 		b.WriteByte(' ')
 	}
 
-	// Content varies by record type
-	content := renderContent(rec)
 	b.WriteString(content)
 
 	// Apply level-based tint to the whole line
@@ -344,7 +354,11 @@ func renderContent(rec logrender.Record) string {
 			fmt.Sprintf("[%s] Error: %s", rec.Stage, rec.Error),
 		)
 	case "assistant":
-		return lipgloss.NewStyle().Foreground(tui.ColorWhite).Render(rec.Text)
+		text := extractAssistantContent(rec.Text)
+		if text == "" {
+			return ""
+		}
+		return lipgloss.NewStyle().Foreground(tui.ColorWhite).Render(text)
 	case "failure_increment":
 		return lipgloss.NewStyle().Foreground(tui.ColorYellow).Render(
 			fmt.Sprintf("[failure] %s failure #%d", nodeTask, rec.Counter),
@@ -362,11 +376,76 @@ func renderContent(rec logrender.Record) string {
 			fmt.Sprintf("[lifecycle] %s", rec.Event),
 		)
 	default:
-		rawBytes, _ := json.Marshal(rec.Raw)
+		// Unknown record type. Render a compact tag rather than dumping the
+		// raw JSON envelope, which would otherwise flood the viewport.
+		if rec.Type == "" {
+			return ""
+		}
 		return lipgloss.NewStyle().Foreground(tui.ColorDimWhite).Render(
-			fmt.Sprintf("[%s] %s", rec.Type, string(rawBytes)),
+			fmt.Sprintf("[%s]", rec.Type),
 		)
 	}
+}
+
+// extractAssistantContent pulls a one-line summary from a Claude API JSON
+// envelope embedded in an assistant record's `text` field. It joins text
+// content blocks, abbreviates thinking blocks, and tags tool_use blocks by
+// name. Plain (non-JSON) input passes through unchanged. Returns the empty
+// string only when there is genuinely nothing human-readable to show.
+func extractAssistantContent(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	var envelope struct {
+		Type    string `json:"type"`
+		Subtype string `json:"subtype"`
+		Message struct {
+			Content []struct {
+				Type     string `json:"type"`
+				Text     string `json:"text"`
+				Thinking string `json:"thinking"`
+				Name     string `json:"name"`
+			} `json:"content"`
+		} `json:"message"`
+	}
+	if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
+		// Not JSON; treat as plain text and pass through (truncated).
+		return truncate(raw, 240)
+	}
+
+	// System frames (init, etc.) carry no operator-facing content.
+	if envelope.Type == "system" {
+		return ""
+	}
+
+	var parts []string
+	for _, c := range envelope.Message.Content {
+		switch c.Type {
+		case "text":
+			if c.Text != "" {
+				parts = append(parts, truncate(c.Text, 240))
+			}
+		case "thinking":
+			if c.Thinking != "" {
+				parts = append(parts, "[thinking] "+truncate(c.Thinking, 200))
+			}
+		case "tool_use":
+			if c.Name != "" {
+				parts = append(parts, "[tool: "+c.Name+"]")
+			}
+		case "tool_result":
+			parts = append(parts, "[tool result]")
+		}
+	}
+	return strings.Join(parts, " | ")
+}
+
+func truncate(s string, max int) string {
+	s = strings.ReplaceAll(s, "\n", " ")
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "…"
 }
 
 func applyLevelTint(level, s string) string {
@@ -486,9 +565,13 @@ func (m *LogViewModel) LoadFromFile(path string, lastN int) error {
 		if err != nil {
 			continue
 		}
+		rendered := m.renderLine(rec)
+		if rendered == "" {
+			continue
+		}
 		m.lines = append(m.lines, logLine{
 			record:   rec,
-			rendered: m.renderLine(rec),
+			rendered: rendered,
 			rawJSON:  raw,
 		})
 	}

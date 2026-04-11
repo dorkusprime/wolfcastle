@@ -101,12 +101,18 @@ func TestDaemonStatusMsg_UpdatesFields(t *testing.T) {
 func TestLogLinesMsg_PushesActivity(t *testing.T) {
 	t.Parallel()
 	m := NewDashboardModel()
-	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{"line one", "line two"}})
+	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{
+		`{"type":"stage_start","stage":"intake","node":"alpha"}`,
+		`{"type":"stage_complete","stage":"exec","node":"alpha","task":"task-0001","exit_code":0}`,
+	}})
 	if len(m.recentActivity) != 2 {
-		t.Errorf("expected 2 activity entries, got %d", len(m.recentActivity))
+		t.Fatalf("expected 2 activity entries, got %d", len(m.recentActivity))
 	}
-	if m.recentActivity[0].text != "line one" {
-		t.Errorf("expected 'line one', got %q", m.recentActivity[0].text)
+	if !strings.Contains(m.recentActivity[0].text, "intake") {
+		t.Errorf("expected first entry to mention intake stage, got %q", m.recentActivity[0].text)
+	}
+	if !strings.Contains(m.recentActivity[1].text, "exit=0") {
+		t.Errorf("expected second entry to include exit code, got %q", m.recentActivity[1].text)
 	}
 }
 
@@ -115,7 +121,7 @@ func TestLogLinesMsg_CappedAtMax(t *testing.T) {
 	m := NewDashboardModel()
 	lines := make([]string, 15)
 	for i := range lines {
-		lines[i] = "line"
+		lines[i] = `{"type":"stage_start","stage":"exec","node":"alpha"}`
 	}
 	m, _ = m.Update(tui.LogLinesMsg{Lines: lines})
 	if len(m.recentActivity) != maxActivity {
@@ -123,12 +129,17 @@ func TestLogLinesMsg_CappedAtMax(t *testing.T) {
 	}
 }
 
-func TestLogLinesMsg_AllStringsAccepted(t *testing.T) {
+func TestLogLinesMsg_SkipsNoiseAndUnparseable(t *testing.T) {
 	t.Parallel()
 	m := NewDashboardModel()
-	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{"alpha", "bravo", "charlie"}})
-	if len(m.recentActivity) != 3 {
-		t.Errorf("expected 3 activity entries, got %d", len(m.recentActivity))
+	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{
+		"alpha",                                       // not JSON, dropped
+		`{"type":"assistant","text":"yammering"}`,     // assistant chatter, dropped
+		`{"type":"stage_start","stage":"intake"}`,     // kept
+		`{"type":"unknown_thing","field":"whatever"}`, // unknown type, dropped
+	}})
+	if len(m.recentActivity) != 1 {
+		t.Errorf("expected 1 activity entry (only the stage_start should survive), got %d", len(m.recentActivity))
 	}
 }
 
@@ -461,12 +472,14 @@ func TestView_ActivityWithTimestamps(t *testing.T) {
 	m.nodeCounts[state.StatusInProgress] = 1
 	m.totalNodes = 1
 	m.daemonRunning = true
+	ts := time.Date(2026, 1, 1, 14, 30, 0, 0, time.UTC)
 	m.recentActivity = []activityEntry{
-		{timestamp: time.Date(2026, 1, 1, 14, 30, 0, 0, time.UTC), text: "task completed"},
+		{timestamp: ts, text: "task completed"},
 	}
 	v := m.View()
-	if !strings.Contains(v, "14:30") {
-		t.Errorf("expected timestamp in activity, got: %s", v)
+	localHHMM := ts.Local().Format("15:04")
+	if !strings.Contains(v, localHHMM) {
+		t.Errorf("expected local timestamp %s in activity, got: %s", localHHMM, v)
 	}
 	if !strings.Contains(v, "task completed") {
 		t.Errorf("expected activity text, got: %s", v)

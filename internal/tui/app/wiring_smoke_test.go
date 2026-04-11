@@ -536,13 +536,16 @@ func TestWiring_LogViewShowsExistingContent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Stage a real .jsonl file with one valid record. The exact
-	// schema doesn't matter for this test — only that the log view
-	// has SOMETHING to render.
+	// Stage a real .jsonl file with one valid record. Use a recognized
+	// record type so the renderer produces a non-empty line; the
+	// log view filters out empty-rendered records (e.g., assistant
+	// envelopes with no human-readable content).
 	rec := map[string]any{
-		"ts":    "2026-04-08T07:30:00Z",
-		"level": "info",
-		"msg":   "wiring smoke test record",
+		"timestamp": "2026-04-08T07:30:00Z",
+		"level":     "info",
+		"type":      "stage_start",
+		"stage":     "exec",
+		"node":      "wiring-smoke",
 	}
 	data, _ := json.Marshal(rec)
 	logFile := filepath.Join(logDir, "0001-exec-20260408T07-30Z.jsonl")

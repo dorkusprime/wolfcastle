@@ -190,7 +190,7 @@ func (m *NodeDetailModel) rebuildContent() {
 			b.WriteString(body.Render(fmt.Sprintf("  Breadcrumbs: %d", len(audit.Breadcrumbs))))
 			b.WriteByte('\n')
 			for _, bc := range audit.Breadcrumbs {
-				b.WriteString(body.Render(fmt.Sprintf("    [%s] %s: %s", bc.Timestamp.Format("15:04:05"), bc.Task, bc.Text)))
+				b.WriteString(body.Render(fmt.Sprintf("    [%s] %s: %s", bc.Timestamp.Local().Format("15:04:05"), bc.Task, bc.Text)))
 				b.WriteByte('\n')
 			}
 		}
@@ -253,14 +253,14 @@ func relativeTime(t time.Time) string {
 		return fmt.Sprintf("%dm ago", m)
 	case d < 24*time.Hour:
 		h := int(d.Hours())
-		exact := t.Format("15:04:05")
+		exact := t.Local().Format("15:04:05")
 		if h == 1 {
 			return fmt.Sprintf("1h ago (%s)", exact)
 		}
 		return fmt.Sprintf("%dh ago (%s)", h, exact)
 	default:
 		days := int(d.Hours()) / 24
-		exact := t.Format("15:04:05")
+		exact := t.Local().Format("15:04:05")
 		if days == 1 {
 			return fmt.Sprintf("1d ago (%s)", exact)
 		}
