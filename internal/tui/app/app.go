@@ -322,6 +322,16 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Esc clears persistent search highlights when the search
+		// bar is inactive but matches were left highlighted from a
+		// prior Confirm. The user can keep typing into the tree
+		// without dragging the old highlights along forever.
+		if msg.String() == "esc" && !m.search.IsActive() && (m.search.HasMatches() || m.tree.HasSearchHighlights()) {
+			m.search.Dismiss()
+			m.tree.SetSearchAddresses(nil, nil)
+			return m, nil
+		}
+
 		// Esc in detail pane (non-dashboard mode) returns to dashboard.
 		if msg.String() == "esc" && m.focused == PaneDetail && m.detail.Mode() != detail.ModeDashboard {
 			m.detail.SwitchToDashboard()
@@ -576,23 +586,15 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
 		m.worktreeDir = msg.Entry.Worktree
 
-		// Restart watcher: stop old, create and start new.
+		// Restart watcher: stop old, create+start+eager-prefetch new.
+		// MUST go through newWatcherFor so eager prefetch happens; if
+		// you inline tui.NewWatcher here you'll silently break the
+		// per-leaf cache freshness because no AddNodeWatch calls
+		// will be made for the new instance's leaves.
 		if m.watcher != nil {
 			m.watcher.Stop()
 		}
-		logDir := ""
-		if m.daemonRepo != nil {
-			logDir = m.daemonRepo.LogDir()
-		}
-		instanceDir := ""
-		if dir, err := instanceRegistryDir(); err == nil {
-			instanceDir = dir
-		}
-		w := tui.NewWatcher(m.store, logDir, instanceDir, m.watcherEvents)
-		if err := w.Start(); err != nil {
-			w.StartPolling()
-		}
-		m.watcher = w
+		m.watcher = newWatcherFor(m.store, m.daemonRepo, m.watcherEvents)
 
 		// Immediately probe daemon status and inbox so the dashboard
 		// populates without waiting for the next poll tick.
@@ -918,7 +920,7 @@ func (m *TUIModel) computeTreeSearchMatches() {
 	query := strings.ToLower(m.search.Query())
 	if query == "" {
 		m.search.SetMatches(nil)
-		m.tree.SetSearchMatches(nil)
+		m.tree.SetSearchAddresses(nil, nil)
 		return
 	}
 
@@ -928,16 +930,66 @@ func (m *TUIModel) computeTreeSearchMatches() {
 		return
 	}
 
+	// Walk the full tree (root index plus per-leaf cached node states)
+	// rather than the visible flat list. This is the structural change
+	// that lets search find tasks in collapsed leaves and that lets
+	// match highlights survive collapse/expand operations: matches are
+	// keyed by tree address, not by flat-list row index, and the
+	// highlight set is computed from the index even when the matching
+	// rows are not currently visible.
+	idx := m.tree.Index()
+	if idx == nil {
+		m.search.SetMatches(nil)
+		m.tree.SetSearchAddresses(nil, nil)
+		return
+	}
+
+	literal := make(map[string]bool)
 	var matches []search.SearchMatch
-	highlights := make(map[int]bool)
-	for i, row := range m.tree.FlatList() {
-		if strings.Contains(strings.ToLower(row.Name), query) {
-			matches = append(matches, search.SearchMatch{Row: i})
-			highlights[i] = true
+
+	for addr, entry := range idx.Nodes {
+		if strings.Contains(strings.ToLower(entry.Name), query) {
+			literal[addr] = true
+			matches = append(matches, search.SearchMatch{Address: addr})
+		}
+		if entry.Type != state.NodeLeaf {
+			continue
+		}
+		ns := m.tree.CachedNode(addr)
+		if ns == nil {
+			continue
+		}
+		for _, task := range ns.Tasks {
+			if strings.Contains(strings.ToLower(task.Title), query) {
+				taskAddr := addr + "/" + task.ID
+				literal[taskAddr] = true
+				matches = append(matches, search.SearchMatch{Address: taskAddr})
+			}
 		}
 	}
+
+	// Compute the ancestor closure: every address on the path from
+	// root down to a literal match. We strip trailing path segments
+	// one at a time and add each to the ancestor set, stopping at
+	// addresses that are themselves literal matches (those keep the
+	// stronger treatment via the literal set).
+	ancestor := make(map[string]bool)
+	for addr := range literal {
+		for {
+			slash := strings.LastIndex(addr, "/")
+			if slash < 0 {
+				break
+			}
+			addr = addr[:slash]
+			if literal[addr] {
+				continue
+			}
+			ancestor[addr] = true
+		}
+	}
+
 	m.search.SetMatches(matches)
-	m.tree.SetSearchMatches(highlights)
+	m.tree.SetSearchAddresses(literal, ancestor)
 }
 
 func (m *TUIModel) computeDetailSearchMatches(query string) {
@@ -950,7 +1002,7 @@ func (m *TUIModel) computeDetailSearchMatches(query string) {
 	}
 	m.search.SetMatches(matches)
 	// Clear tree highlights when searching detail.
-	m.tree.SetSearchMatches(nil)
+	m.tree.SetSearchAddresses(nil, nil)
 }
 
 func (m *TUIModel) jumpTreeToSearchMatch() {
@@ -958,7 +1010,33 @@ func (m *TUIModel) jumpTreeToSearchMatch() {
 	if !ok {
 		return
 	}
-	m.tree.SetCursor(match.Row)
+	// Address-keyed jumping. If the literal match is currently
+	// visible in the flat list, the cursor lands on it directly.
+	// If it isn't (the match is inside a collapsed branch), the
+	// cursor lands on the deepest visible ancestor on the path to
+	// the match. Pure-(a) search behavior: we never auto-expand
+	// during typing OR navigation; the user is expected to expand
+	// manually after seeing the highlighted path.
+	if match.Address == "" {
+		// Detail-pane match still uses Row.
+		m.tree.SetCursor(match.Row)
+		return
+	}
+	target := match.Address
+	for target != "" {
+		for i, row := range m.tree.FlatList() {
+			if row.Addr == target {
+				m.tree.SetCursor(i)
+				return
+			}
+		}
+		// Strip one segment and try again with the parent.
+		slash := strings.LastIndex(target, "/")
+		if slash < 0 {
+			return
+		}
+		target = target[:slash]
+	}
 }
 
 func (m TUIModel) handleCopy() tea.Cmd {
@@ -1330,24 +1408,51 @@ func (m *TUIModel) startWatcher() tea.Cmd {
 		if store == nil {
 			return nil
 		}
-		logDir := ""
-		instanceDir := ""
-		if repo != nil {
-			logDir = repo.LogDir()
-		}
-		if dir, err := instanceRegistryDir(); err == nil {
-			instanceDir = dir
-		}
-		w := tui.NewWatcher(store, logDir, instanceDir, events)
-		// Prefer fsnotify when available; fall back to mtime polling
-		// if the OS watcher cannot be initialized. Either path drives
-		// the same WatcherMsg envelope back through the model.
-		if err := w.Start(); err != nil {
-			w.StartPolling()
-		}
-		m.watcher = w
+		m.watcher = newWatcherFor(store, repo, events)
 		return nil
 	}
+}
+
+// newWatcherFor is the single canonical entrypoint for constructing
+// and starting a Watcher. EVERY caller that touches m.watcher must
+// route through this helper, never call tui.NewWatcher directly.
+//
+// The helper does four things in order:
+//
+//  1. Resolve logDir and instanceDir from the daemon repo and the
+//     instance registry override.
+//  2. Construct the Watcher with the events channel.
+//  3. Start fsnotify (with polling fallback if fsnotify init fails).
+//  4. Walk the index and call EagerPrefetchAndSubscribe so the
+//     per-leaf cache is populated AND every leaf gets an fsnotify
+//     subscription. Without step 4 the leaf-level glyph in the tree
+//     stays in sync with the index file (which is watched), but the
+//     per-task glyphs go stale because no per-leaf state.json
+//     subscriptions exist.
+//
+// The instance-switch handler used to inline these four steps but
+// skip step 4, which silently broke task-level cache freshness for
+// any user who switched instances during a session. Routing through
+// this helper makes that class of bug structurally impossible: if
+// you forget to call newWatcherFor, you don't get a watcher at all.
+func newWatcherFor(store *state.Store, repo *daemon.DaemonRepository, events chan tea.Msg) *tui.Watcher {
+	if store == nil {
+		return nil
+	}
+	logDir := ""
+	if repo != nil {
+		logDir = repo.LogDir()
+	}
+	instanceDir := ""
+	if dir, err := instanceRegistryDir(); err == nil {
+		instanceDir = dir
+	}
+	w := tui.NewWatcher(store, logDir, instanceDir, events)
+	if err := w.Start(); err != nil {
+		w.StartPolling()
+	}
+	_ = w.EagerPrefetchAndSubscribe()
+	return w
 }
 
 func (m TUIModel) startPoller() tea.Cmd {

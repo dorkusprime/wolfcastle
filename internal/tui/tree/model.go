@@ -59,7 +59,14 @@ type TreeModel struct {
 	width         int
 	height        int
 	currentTarget string
-	searchMatches map[int]bool
+	// Search highlight sets keyed by tree address so collapse/expand
+	// operations don't invalidate them. searchLiteral marks rows whose
+	// own name matches the query; searchAncestor marks rows that are
+	// on the path to a literal match somewhere below them in the
+	// tree. A row can appear in both, in which case the literal
+	// treatment wins at render time.
+	searchLiteral  map[string]bool
+	searchAncestor map[string]bool
 }
 
 // NewTreeModel returns an initialized TreeModel with empty maps.
@@ -108,13 +115,14 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 
 	case NodeUpdatedMsg:
 		m.nodes[msg.Address] = msg.Node
-		// Only start the eviction timer if the node is currently collapsed.
-		// Expanded nodes must stay cached so their tasks remain visible.
-		if !m.expanded[msg.Address] {
-			m.cacheExpiry[msg.Address] = time.Now().Add(30 * time.Second)
-		} else {
-			delete(m.cacheExpiry, msg.Address)
-		}
+		// No cache eviction. The watcher's per-leaf fsnotify
+		// subscription keeps every cached entry fresh, so there is
+		// no point in evicting collapsed nodes after a timer; doing
+		// so would erase the eager-prefetch state and break the
+		// active-task display, the search-in-collapsed-leaves
+		// feature, and any future feature that depends on cache
+		// freshness for non-visible nodes.
+		delete(m.cacheExpiry, msg.Address)
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -125,11 +133,7 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 			return m, nil
 		}
 		m.nodes[msg.Address] = msg.Node
-		if !m.expanded[msg.Address] {
-			m.cacheExpiry[msg.Address] = time.Now().Add(30 * time.Second)
-		} else {
-			delete(m.cacheExpiry, msg.Address)
-		}
+		delete(m.cacheExpiry, msg.Address)
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -184,9 +188,9 @@ func (m TreeModel) handleExpand() (TreeModel, tea.Cmd) {
 	}
 
 	if m.expanded[row.Addr] {
-		// Already expanded; collapse instead.
+		// Already expanded; collapse instead. Cache stays populated
+		// because the watcher is keeping it fresh; no eviction.
 		delete(m.expanded, row.Addr)
-		m.cacheExpiry[row.Addr] = time.Now().Add(30 * time.Second)
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -194,9 +198,6 @@ func (m TreeModel) handleExpand() (TreeModel, tea.Cmd) {
 	}
 
 	m.expanded[row.Addr] = true
-	// Clear any pending eviction so the cached node stays for as long
-	// as it's expanded.
-	delete(m.cacheExpiry, row.Addr)
 
 	// For leaf nodes we may need to load the NodeState from disk to get
 	// tasks. If the cache is stale or missing, fire a command.
@@ -224,7 +225,7 @@ func (m TreeModel) handleCollapse() TreeModel {
 
 	if m.expanded[row.Addr] {
 		delete(m.expanded, row.Addr)
-		m.cacheExpiry[row.Addr] = time.Now().Add(30 * time.Second)
+		// Cache stays populated; the watcher keeps it fresh.
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
@@ -264,10 +265,32 @@ func (m *TreeModel) SetCurrentTarget(addr string) {
 	m.currentTarget = addr
 }
 
-// SetSearchMatches replaces the set of row indices that should be
-// highlighted as search matches. Pass nil to clear highlighting.
-func (m *TreeModel) SetSearchMatches(matches map[int]bool) {
-	m.searchMatches = matches
+// SetSearchAddresses replaces the literal-match and ancestor-of-match
+// highlight sets. Both maps are keyed by tree address so they survive
+// flat-list rebuilds (collapse/expand). Pass two nil maps to clear
+// all highlighting.
+func (m *TreeModel) SetSearchAddresses(literal, ancestor map[string]bool) {
+	m.searchLiteral = literal
+	m.searchAncestor = ancestor
+}
+
+// SearchLiteralAddresses returns the literal-match address set.
+// Read-only accessor used by wiring smoke tests.
+func (m *TreeModel) SearchLiteralAddresses() map[string]bool {
+	return m.searchLiteral
+}
+
+// SearchAncestorAddresses returns the ancestor-of-match address set.
+// Read-only accessor used by wiring smoke tests.
+func (m *TreeModel) SearchAncestorAddresses() map[string]bool {
+	return m.searchAncestor
+}
+
+// HasSearchHighlights reports whether any search highlights are
+// currently active. Used by the Esc handler to decide whether to
+// clear highlights or fall through to other Esc semantics.
+func (m *TreeModel) HasSearchHighlights() bool {
+	return len(m.searchLiteral) > 0 || len(m.searchAncestor) > 0
 }
 
 // Reset collapses all expanded nodes, clears the cursor back to row 0,

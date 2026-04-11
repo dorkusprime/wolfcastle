@@ -118,7 +118,10 @@ func TestUpdate_ForwardsDaemonStatusMsg(t *testing.T) {
 func TestUpdate_ForwardsLogLinesMsg(t *testing.T) {
 	t.Parallel()
 	m := NewDetailModel()
-	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{"hello", "world"}})
+	m, _ = m.Update(tui.LogLinesMsg{Lines: []string{
+		`{"type":"stage_start","stage":"intake","node":"alpha"}`,
+		`{"type":"stage_complete","stage":"exec","node":"alpha","exit_code":0}`,
+	}})
 	if len(m.dashboard.recentActivity) != 2 {
 		t.Errorf("expected 2 activity entries, got %d", len(m.dashboard.recentActivity))
 	}

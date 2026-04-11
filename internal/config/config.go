@@ -86,7 +86,7 @@ func Defaults() *Config {
 			MaxIterations:              -1,
 			MaxTurnsPerInvocation:      200,
 			InvocationTimeoutSeconds:   3600,
-			StallTimeoutSeconds:        120,
+			StallTimeoutSeconds:        600,
 			MaxRestarts:                3,
 			RestartDelaySeconds:        2,
 			LogLevel:                   "info",

@@ -61,11 +61,27 @@ func (m DetailModel) IsCapturingInput() bool {
 }
 
 // Update routes messages to the active sub-view.
+//
+// Some messages are broadcast to background sub-models regardless of
+// which mode is active so the data stays fresh when the user switches:
+//
+//   - InboxUpdatedMsg → inbox sub-model
+//   - LogLinesMsg     → log view sub-model (so the watcher's tail-load
+//     at startup is captured even when the detail
+//     pane is currently in dashboard mode and the
+//     user hasn't pressed L yet)
+//   - NewLogFileMsg   → log view sub-model (same rationale: rotation
+//     events must reach the log view even when it
+//     is not the active mode)
 func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
-	// InboxUpdatedMsg is always forwarded to the inbox sub-model regardless of
-	// which mode is active, so the data stays fresh when the user switches.
 	if inboxMsg, ok := msg.(tui.InboxUpdatedMsg); ok {
 		m.inbox, _ = m.inbox.Update(inboxMsg)
+	}
+	if _, ok := msg.(tui.LogLinesMsg); ok && m.mode != ModeLogStream {
+		m.logView, _ = m.logView.Update(msg)
+	}
+	if _, ok := msg.(tui.NewLogFileMsg); ok && m.mode != ModeLogStream {
+		m.logView, _ = m.logView.Update(msg)
 	}
 
 	switch m.mode {
