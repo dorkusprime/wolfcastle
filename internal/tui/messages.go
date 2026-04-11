@@ -142,6 +142,10 @@ type AddInboxItemCmd struct {
 	Text string
 }
 
+// Modal messages
+
+type DaemonConfirmedMsg struct{}
+
 // Phase 5 messages
 
 type ToastMsg struct {

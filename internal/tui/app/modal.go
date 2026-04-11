@@ -1,0 +1,181 @@
+package app
+
+import (
+	"strings"
+
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+
+	"github.com/dorkusprime/wolfcastle/internal/tui"
+)
+
+// ActiveModal tracks which modal overlay (if any) is currently visible.
+// Only one modal can be open at a time; the enum enforces this
+// structurally rather than relying on runtime checks.
+type ActiveModal int
+
+const (
+	ModalNone ActiveModal = iota
+	ModalInbox
+	ModalLog
+	ModalDaemon
+)
+
+func (m TUIModel) isModalActive() bool {
+	return m.activeModal != ModalNone
+}
+
+func (m *TUIModel) closeModal() {
+	// Restore sub-model dimensions that may have been resized for the
+	// modal. propagateSize will fix them on the next frame, but calling
+	// it here avoids a single-frame glitch.
+	m.activeModal = ModalNone
+	m.propagateSize()
+}
+
+// updateActiveModal dispatches keypresses to the active modal's sub-model.
+// Every branch must return early so keys never leak to tree/detail routing.
+func (m TUIModel) updateActiveModal(msg tea.KeyPressMsg) (TUIModel, tea.Cmd) {
+	switch m.activeModal {
+	case ModalInbox:
+		return m.updateInboxModal(msg)
+	case ModalLog:
+		return m.updateLogModal(msg)
+	case ModalDaemon:
+		dm, cmd := m.daemonModal.Update(msg)
+		m.daemonModal = dm
+		if !m.daemonModal.IsActive() {
+			m.activeModal = ModalNone
+		}
+		return m, cmd
+	}
+	return m, nil
+}
+
+func (m TUIModel) updateInboxModal(msg tea.KeyPressMsg) (TUIModel, tea.Cmd) {
+	inbox := m.detail.InboxModelRef()
+
+	// When the text input is active, route everything to it (including
+	// Esc, which cancels input mode rather than closing the modal).
+	if inbox.IsInputActive() {
+		updated, cmd := inbox.Update(msg)
+		*inbox = updated
+		return m, cmd
+	}
+
+	// Esc dismisses the modal when not in input mode.
+	if key.Matches(msg, dismissKey) {
+		m.closeModal()
+		return m, nil
+	}
+
+	// All other keys go to the inbox model (j/k nav, a to add, etc).
+	updated, cmd := inbox.Update(msg)
+	*inbox = updated
+	return m, cmd
+}
+
+func (m TUIModel) updateLogModal(msg tea.KeyPressMsg) (TUIModel, tea.Cmd) {
+	if key.Matches(msg, dismissKey) {
+		m.closeModal()
+		return m, nil
+	}
+
+	logView := m.detail.LogViewModelRef()
+	updated, cmd := logView.Update(msg)
+	*logView = updated
+	return m, cmd
+}
+
+// renderActiveModal renders the active modal as a centered overlay that
+// replaces the content area. Each modal computes its own preferred
+// dimensions, sizes the sub-model accordingly, and wraps the result in
+// the standard modal chrome.
+func (m TUIModel) renderActiveModal(contentHeight int) string {
+	switch m.activeModal {
+	case ModalInbox:
+		return m.renderInboxModal(contentHeight)
+	case ModalLog:
+		return m.renderLogModal(contentHeight)
+	case ModalDaemon:
+		return m.daemonModal.View()
+	}
+	return ""
+}
+
+func (m TUIModel) renderInboxModal(contentHeight int) string {
+	overlayW := m.width * 60 / 100
+	if overlayW < 40 {
+		overlayW = 40
+	}
+	overlayH := contentHeight * 80 / 100
+	if overlayH < 20 {
+		overlayH = 20
+	}
+	if overlayH > contentHeight {
+		overlayH = contentHeight
+	}
+	// chrome: 2 border + 2 padding vertical, 2 border + 4 padding horizontal
+	innerW := overlayW - 6
+	innerH := overlayH - 4
+	if innerW < 1 {
+		innerW = 1
+	}
+	if innerH < 1 {
+		innerH = 1
+	}
+
+	inbox := m.detail.InboxModelRef()
+	inbox.SetSize(innerW, innerH)
+	inbox.SetFocused(true)
+
+	content := inbox.View()
+	box := tui.ModalOverlayStyle.
+		Width(overlayW).
+		Height(overlayH).
+		Padding(1, 2).
+		Render(content)
+
+	return lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, box)
+}
+
+func (m TUIModel) renderLogModal(contentHeight int) string {
+	overlayW := m.width * 80 / 100
+	if overlayW < 60 {
+		overlayW = 60
+	}
+	overlayH := contentHeight * 90 / 100
+	if overlayH < 20 {
+		overlayH = 20
+	}
+	if overlayH > contentHeight {
+		overlayH = contentHeight
+	}
+	innerW := overlayW - 6
+	innerH := overlayH - 4
+	if innerW < 1 {
+		innerW = 1
+	}
+	if innerH < 1 {
+		innerH = 1
+	}
+
+	logView := m.detail.LogViewModelRef()
+	logView.SetSize(innerW, innerH)
+	logView.SetFocused(true)
+
+	content := logView.View()
+
+	// Add dismiss hint below the log content.
+	hint := strings.Repeat(" ", 2) + tui.ModalDimStyle.Render("[Esc] Close")
+	content += "\n" + hint
+
+	box := tui.ModalOverlayStyle.
+		Width(overlayW).
+		Height(overlayH).
+		Padding(1, 2).
+		Render(content)
+
+	return lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, box)
+}

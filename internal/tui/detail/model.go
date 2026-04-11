@@ -60,6 +60,19 @@ func (m DetailModel) IsCapturingInput() bool {
 	return m.mode == ModeInbox && m.inbox.IsInputActive()
 }
 
+// InboxModelRef returns a pointer to the inbox sub-model so the modal
+// layer can borrow it for rendering and key routing without moving
+// ownership out of the detail container.
+func (m *DetailModel) InboxModelRef() *InboxModel {
+	return &m.inbox
+}
+
+// LogViewModelRef returns a pointer to the log view sub-model so the
+// modal layer can borrow it for rendering and key routing.
+func (m *DetailModel) LogViewModelRef() *LogViewModel {
+	return &m.logView
+}
+
 // Update routes messages to the active sub-view.
 //
 // Some messages are broadcast to background sub-models regardless of

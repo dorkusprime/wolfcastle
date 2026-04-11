@@ -26,6 +26,11 @@ type NodeUpdatedMsg struct {
 	Node    *state.NodeState
 }
 
+// CollapseAtRootMsg is emitted when the user tries to collapse past the
+// top-level tree roots (h/left/esc at the outermost level). The app
+// handles this by switching to the dashboard overview.
+type CollapseAtRootMsg struct{}
+
 // LoadNodeMsg is an internal command result carrying a freshly-read node.
 type LoadNodeMsg struct {
 	Address string
@@ -161,7 +166,7 @@ func (m TreeModel) handleKey(msg tea.KeyPressMsg) (TreeModel, tea.Cmd) {
 		return m.handleExpand()
 
 	case key.Matches(msg, keys.Collapse):
-		return m.handleCollapse(), nil
+		return m.handleCollapse()
 
 	case key.Matches(msg, keys.Top):
 		m.cursor = 0
@@ -217,9 +222,9 @@ func (m TreeModel) handleExpand() (TreeModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m TreeModel) handleCollapse() TreeModel {
+func (m TreeModel) handleCollapse() (TreeModel, tea.Cmd) {
 	if len(m.flatList) == 0 {
-		return m
+		return m, func() tea.Msg { return CollapseAtRootMsg{} }
 	}
 	row := m.flatList[m.cursor]
 
@@ -229,7 +234,7 @@ func (m TreeModel) handleCollapse() TreeModel {
 		m.buildFlatList()
 		m.clampCursor()
 		m.scrollIntoCursor()
-		return m
+		return m, nil
 	}
 
 	// Already collapsed (or a task): jump cursor to parent.
@@ -237,8 +242,12 @@ func (m TreeModel) handleCollapse() TreeModel {
 	if idx >= 0 {
 		m.cursor = idx
 		m.scrollIntoCursor()
+		return m, nil
 	}
-	return m
+
+	// At the top level with nothing to collapse: signal the app to
+	// switch to the process overview.
+	return m, func() tea.Msg { return CollapseAtRootMsg{} }
 }
 
 // SetSize updates the viewport dimensions.
