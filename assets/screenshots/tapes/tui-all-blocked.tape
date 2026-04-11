@@ -11,13 +11,13 @@ Set TypingSpeed 0
 
 Type "wolfcastle"
 Enter
-Sleep 8s
+Sleep 10s
 
-# Nudge cursor to sync alt-screen buffer
-Down
-Sleep 500ms
-Up
-Sleep 1s
+# Force a re-render by pressing d (dashboard)
+Type "d"
+Sleep 3s
+Type "d"
+Sleep 2s
 
 Screenshot tui-all-blocked.png
 Type "q"
