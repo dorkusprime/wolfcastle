@@ -994,6 +994,154 @@ func TestEagerPrefetchAndSubscribe_AddsFsnotifySubscriptions(t *testing.T) {
 	}
 }
 
+// TestEagerPrefetchAndSubscribe_IsIdempotent verifies that calling
+// the function repeatedly with no index changes does not re-emit
+// NodeUpdatedMsg events for already-subscribed leaves. The
+// idempotence is what makes it safe to call after every index
+// update without spamming the channel with redundant events.
+func TestEagerPrefetchAndSubscribe_IsIdempotent(t *testing.T) {
+	tmp := t.TempDir()
+	store := newPopulatedStoreForTest(t, tmp, map[string][]testTask{
+		"alpha": {{ID: "task-0001", Title: "first", State: state.StatusComplete}},
+	})
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, "", "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	// First call should emit one NodeUpdatedMsg.
+	if err := w.EagerPrefetchAndSubscribe(); err != nil {
+		t.Fatalf("first call: %v", err)
+	}
+	first := next()
+	if env, ok := first.(WatcherMsg); !ok {
+		t.Fatalf("first call did not produce a WatcherMsg, got %T", first)
+	} else if _, ok := env.Inner.(NodeUpdatedMsg); !ok {
+		t.Fatalf("first call envelope did not contain NodeUpdatedMsg, got %T", env.Inner)
+	}
+
+	// Second call with no index changes should produce no events.
+	if err := w.EagerPrefetchAndSubscribe(); err != nil {
+		t.Fatalf("second call: %v", err)
+	}
+	select {
+	case msg := <-events:
+		if env, ok := msg.(WatcherMsg); ok {
+			if _, ok := env.Inner.(NodeUpdatedMsg); ok {
+				t.Errorf("second call should be a no-op for already-subscribed leaves, but emitted a NodeUpdatedMsg")
+			}
+		}
+	case <-time.After(50 * time.Millisecond):
+		// Expected: no events.
+	}
+}
+
+// TestEagerPrefetchAndSubscribe_PicksUpLeavesAddedAfterStartup is
+// the regression test for the new-leaves-after-startup gap. The
+// daemon decomposes nodes during a session, adding new leaves to
+// the index. Without this fix, those leaves never got an fsnotify
+// subscription or an initial cache load, so their per-task glyphs
+// went stale forever even though the leaf glyph (which comes from
+// the index) updated correctly.
+//
+// This test simulates the flow:
+//  1. Watcher starts with one leaf in the index
+//  2. EagerPrefetchAndSubscribe runs, subscribes to it
+//  3. The user/daemon adds a new leaf to the index AND writes its
+//     state.json
+//  4. EagerPrefetchAndSubscribe runs again (in production this
+//     happens automatically inside the flush handler after a
+//     StateUpdatedMsg is emitted)
+//  5. The new leaf must produce a NodeUpdatedMsg
+func TestEagerPrefetchAndSubscribe_PicksUpLeavesAddedAfterStartup(t *testing.T) {
+	tmp := t.TempDir()
+	store := newPopulatedStoreForTest(t, tmp, map[string][]testTask{
+		"alpha": {{ID: "task-0001", Title: "alpha task", State: state.StatusInProgress}},
+	})
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, "", "", events)
+	if err := w.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer w.Stop()
+
+	if err := w.EagerPrefetchAndSubscribe(); err != nil {
+		t.Fatalf("initial prefetch: %v", err)
+	}
+	// Drain alpha's initial event.
+	_ = next()
+
+	// Now simulate decomposition: add a new leaf "beta" to the
+	// index and write its state.json. This is what happens when
+	// the daemon decomposes an orchestrator into new leaves.
+	if err := store.MutateIndex(func(idx *state.RootIndex) error {
+		idx.Root = append(idx.Root, "beta")
+		idx.Nodes["beta"] = state.IndexEntry{
+			Name:    "beta",
+			Type:    state.NodeLeaf,
+			State:   state.StatusInProgress,
+			Address: "beta",
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	betaPath, err := store.NodePath("beta")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(betaPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeLeafState(t, betaPath, []testTask{
+		{ID: "task-0001", Title: "beta brand-new task", State: state.StatusInProgress},
+	})
+
+	// Re-run EagerPrefetchAndSubscribe (in production this happens
+	// automatically inside the flush handler after the index
+	// update is detected). The new beta leaf should produce a
+	// NodeUpdatedMsg, while the already-subscribed alpha leaf
+	// should NOT.
+	if err := w.EagerPrefetchAndSubscribe(); err != nil {
+		t.Fatalf("re-prefetch: %v", err)
+	}
+
+	betaSeen := false
+drain:
+	for i := 0; i < 4; i++ {
+		select {
+		case msg := <-events:
+			env, ok := msg.(WatcherMsg)
+			if !ok {
+				continue
+			}
+			nu, ok := env.Inner.(NodeUpdatedMsg)
+			if !ok {
+				continue
+			}
+			if nu.Address == "alpha" {
+				t.Errorf("alpha should not be re-emitted (already subscribed); idempotence check failed")
+			}
+			if nu.Address == "beta" {
+				betaSeen = true
+				if nu.Node == nil || len(nu.Node.Tasks) == 0 || nu.Node.Tasks[0].Title != "beta brand-new task" {
+					t.Errorf("beta event did not carry the freshly-written task content; node = %+v", nu.Node)
+				}
+				break drain
+			}
+		case <-time.After(50 * time.Millisecond):
+			break drain
+		}
+	}
+	if !betaSeen {
+		t.Error("EagerPrefetchAndSubscribe did not emit a NodeUpdatedMsg for the newly-added beta leaf; daemon decomposition will silently break per-leaf cache freshness")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Test helpers for the eager-prefetch tests
 // ---------------------------------------------------------------------------

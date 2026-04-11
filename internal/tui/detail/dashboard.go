@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/dorkusprime/wolfcastle/internal/logrender"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
@@ -83,8 +84,16 @@ func (m DashboardModel) Update(msg tea.Msg) (DashboardModel, tea.Cmd) {
 		m.currentNode = msg.CurrentNode
 		m.currentTask = msg.CurrentTask
 	case tui.LogLinesMsg:
-		for _, s := range msg.Lines {
-			m.pushActivity(s)
+		for _, raw := range msg.Lines {
+			rec, err := logrender.ParseRecord(raw)
+			if err != nil {
+				continue
+			}
+			summary := summarizeForActivity(rec)
+			if summary == "" {
+				continue
+			}
+			m.pushActivity(summary)
 		}
 	}
 	return m, nil
@@ -113,6 +122,48 @@ func (m *DashboardModel) recomputeFromIndex(idx *state.RootIndex) {
 	m.auditCounts = auditCounts
 	m.openGaps = gaps
 	m.openEscalations = escalations
+}
+
+// summarizeForActivity converts a parsed log record into a one-line summary
+// suitable for the Recent Activity feed, or returns "" for records that are
+// too noisy or low-signal to surface (assistant chatter, debug frames,
+// unknown types). The dashboard wants milestones, not a full transcript.
+func summarizeForActivity(rec logrender.Record) string {
+	nodeTask := rec.Node
+	if rec.Task != "" {
+		nodeTask += "/" + rec.Task
+	}
+	switch rec.Type {
+	case "stage_start":
+		if nodeTask == "" {
+			return fmt.Sprintf("▶ %s", rec.Stage)
+		}
+		return fmt.Sprintf("▶ %s %s", rec.Stage, nodeTask)
+	case "stage_complete":
+		exit := ""
+		if rec.ExitCode != nil {
+			exit = fmt.Sprintf(" (exit=%d)", *rec.ExitCode)
+		}
+		if nodeTask == "" {
+			return fmt.Sprintf("✓ %s%s", rec.Stage, exit)
+		}
+		return fmt.Sprintf("✓ %s %s%s", rec.Stage, nodeTask, exit)
+	case "stage_error":
+		return fmt.Sprintf("✗ %s %s: %s", rec.Stage, nodeTask, rec.Error)
+	case "failure_increment":
+		return fmt.Sprintf("⚠ %s failure #%d", nodeTask, rec.Counter)
+	case "auto_block":
+		return fmt.Sprintf("⛔ blocked %s: %s", nodeTask, rec.Reason)
+	case "daemon_start":
+		return "Daemon started"
+	case "daemon_lifecycle":
+		if rec.Event == "" {
+			return ""
+		}
+		return fmt.Sprintf("[lifecycle] %s", rec.Event)
+	default:
+		return ""
+	}
 }
 
 func (m *DashboardModel) pushActivity(text string) {
@@ -293,7 +344,7 @@ func (m DashboardModel) renderActivity() string {
 	}
 
 	for _, entry := range m.recentActivity {
-		ts := entry.timestamp.Format("15:04")
+		ts := entry.timestamp.Local().Format("15:04")
 		b.WriteByte('\n')
 		b.WriteString(body.Render(fmt.Sprintf("  %s  %s", ts, entry.text)))
 	}

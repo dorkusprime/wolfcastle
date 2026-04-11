@@ -471,6 +471,46 @@ func TestRenderLine_Assistant(t *testing.T) {
 	}
 }
 
+// TestRenderLine_AssistantWithClaudeEnvelope verifies that an assistant record
+// whose text field carries a Claude API JSON envelope is rendered as a
+// readable summary instead of being dumped raw into the viewport.
+func TestRenderLine_AssistantWithClaudeEnvelope(t *testing.T) {
+	t.Parallel()
+	m := NewLogViewModel()
+	envelope := `{"type":"assistant","message":{"content":[{"type":"text","text":"Reviewing the diff now"},{"type":"tool_use","name":"Read"}]}}`
+	line := makeLogJSON(map[string]any{"type": "assistant", "text": envelope})
+	m.AppendLines([]string{line})
+
+	if len(m.lines) != 1 {
+		t.Fatalf("expected 1 rendered line, got %d", len(m.lines))
+	}
+	rendered := m.lines[0].rendered
+	if !strings.Contains(rendered, "Reviewing the diff now") {
+		t.Errorf("expected text content to be extracted, got %q", rendered)
+	}
+	if !strings.Contains(rendered, "[tool: Read]") {
+		t.Errorf("expected tool_use to be tagged, got %q", rendered)
+	}
+	if strings.Contains(rendered, `"content"`) {
+		t.Errorf("rendered line should not contain raw JSON, got %q", rendered)
+	}
+}
+
+// TestRenderLine_AssistantSystemFrameSkipped verifies that system init frames
+// (Claude Code's session bootstrap) produce no entry rather than a noisy raw
+// dump.
+func TestRenderLine_AssistantSystemFrameSkipped(t *testing.T) {
+	t.Parallel()
+	m := NewLogViewModel()
+	envelope := `{"type":"system","subtype":"init","cwd":"/tmp"}`
+	line := makeLogJSON(map[string]any{"type": "assistant", "text": envelope})
+	m.AppendLines([]string{line})
+
+	if len(m.lines) != 0 {
+		t.Errorf("expected system init frames to be skipped, got %d lines", len(m.lines))
+	}
+}
+
 func TestRenderLine_FailureIncrement(t *testing.T) {
 	t.Parallel()
 	m := NewLogViewModel()
