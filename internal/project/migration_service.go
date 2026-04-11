@@ -51,6 +51,9 @@ func (m *MigrationService) MigrateDirectoryLayout() error {
 		}
 	}
 
+	// Legacy filenames from the pre-v0.3 flat layout. These are intentionally
+	// hardcoded because they describe the old on-disk format being migrated
+	// away from, not the current system's naming conventions.
 	filesToMove := []string{"wolfcastle.pid", "stop", "daemon.log", "daemon.meta.json"}
 	for _, f := range filesToMove {
 		src := filepath.Join(m.root, f)

@@ -1,3 +1,4 @@
+// Package notify implements a transient toast notification stack for the TUI.
 package notify
 
 import (

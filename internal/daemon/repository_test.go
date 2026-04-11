@@ -8,10 +8,10 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/testutil"
 )
 
-func TestDaemonRepository_StopFile(t *testing.T) {
+func TestRepository_StopFile(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := daemon.NewDaemonRepository(env.Root)
+	repo := daemon.NewRepository(env.Root)
 
 	if repo.HasStopFile() {
 		t.Error("HasStopFile: expected false before write")
@@ -34,10 +34,10 @@ func TestDaemonRepository_StopFile(t *testing.T) {
 	}
 }
 
-func TestDaemonRepository_LogDir(t *testing.T) {
+func TestRepository_LogDir(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := daemon.NewDaemonRepository(env.Root)
+	repo := daemon.NewRepository(env.Root)
 
 	want := filepath.Join(env.Root, "system", "logs")
 	if got := repo.LogDir(); got != want {
@@ -45,10 +45,10 @@ func TestDaemonRepository_LogDir(t *testing.T) {
 	}
 }
 
-func TestDaemonRepository_RemoveStopFile_Idempotent(t *testing.T) {
+func TestRepository_RemoveStopFile_Idempotent(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := daemon.NewDaemonRepository(env.Root)
+	repo := daemon.NewRepository(env.Root)
 
 	// No stop file exists; RemoveStopFile should succeed silently.
 	if err := repo.RemoveStopFile(); err != nil {

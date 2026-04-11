@@ -80,7 +80,7 @@ func taskStatusGlyphOnBg(s state.NodeStatus, bg color.Color) string {
 	return statusGlyphOnBg(s, bg)
 }
 
-// RenderRow produces a single styled line for the given TreeRow.
+// RenderRow produces a single styled line for the given Row.
 //
 // hits encodes the search highlight state for this row:
 //
@@ -95,7 +95,7 @@ func taskStatusGlyphOnBg(s state.NodeStatus, bg color.Color) string {
 // When both flags are set the literal treatment wins. Older callers
 // may pass a single bool which is interpreted as literal-only for
 // backward compatibility with the variadic shape.
-func RenderRow(row TreeRow, width int, selected bool, isCurrentTarget bool, hits ...bool) string {
+func RenderRow(row Row, width int, selected bool, isCurrentTarget bool, hits ...bool) string {
 	literal := len(hits) > 0 && hits[0]
 	ancestor := len(hits) > 1 && hits[1]
 	if row.IsTask {
@@ -104,7 +104,7 @@ func RenderRow(row TreeRow, width int, selected bool, isCurrentTarget bool, hits
 	return renderNodeRow(row, width, selected, isCurrentTarget, literal, ancestor)
 }
 
-func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool, literalHit, ancestorHit bool) string {
+func renderNodeRow(row Row, width int, selected bool, isCurrentTarget bool, literalHit, ancestorHit bool) string {
 	indent := strings.Repeat("  ", row.Depth)
 
 	var marker string
@@ -186,7 +186,7 @@ func renderNodeRow(row TreeRow, width int, selected bool, isCurrentTarget bool, 
 // color (used for both literal-match and ancestor-of-match
 // highlights). The two cases differ only in the bg/fg pair, so the
 // shared layout/padding logic lives here.
-func renderNodeRowWithBg(row TreeRow, width int, indent, marker, name string, isCurrentTarget bool, bgColor, fgColor color.Color) string {
+func renderNodeRowWithBg(row Row, width int, indent, marker, name string, isCurrentTarget bool, bgColor, fgColor color.Color) string {
 	bg := lipgloss.NewStyle().Background(bgColor).Foreground(fgColor)
 	var target string
 	if isCurrentTarget {
@@ -205,7 +205,7 @@ func renderNodeRowWithBg(row TreeRow, width int, indent, marker, name string, is
 	return text
 }
 
-func renderTaskRow(row TreeRow, width int, selected bool, literalHit, ancestorHit bool) string {
+func renderTaskRow(row Row, width int, selected bool, literalHit, ancestorHit bool) string {
 	indent := strings.Repeat("  ", row.Depth)
 
 	// Extract the task ID from the address (last segment after /).
@@ -253,7 +253,7 @@ func renderTaskRow(row TreeRow, width int, selected bool, literalHit, ancestorHi
 // renderTaskRowWithBg renders a task row with a solid background
 // for both literal-match and ancestor-of-match highlight cases.
 // The two differ only in the bg/fg pair.
-func renderTaskRowWithBg(row TreeRow, width int, indent, taskID, title string, bgColor, fgColor color.Color) string {
+func renderTaskRowWithBg(row Row, width int, indent, taskID, title string, bgColor, fgColor color.Color) string {
 	glyph := taskStatusGlyphOnBg(row.Status, bgColor)
 	bg := lipgloss.NewStyle().Background(bgColor).Foreground(fgColor)
 	text := bg.Render(indent) + glyph + bg.Render(" "+taskID+": "+title)
@@ -265,7 +265,7 @@ func renderTaskRowWithBg(row TreeRow, width int, indent, taskID, title string, b
 }
 
 // View renders the visible portion of the tree as a single string.
-func (m TreeModel) View() string {
+func (m Model) View() string {
 	if len(m.flatList) == 0 {
 		return styleNormal.Render("  (no nodes)")
 	}

@@ -102,3 +102,4 @@
 | 098 | [Per-Worktree Daemon Lock](098-per-worktree-daemon-lock.md) | Accepted | 2026-04-06 |
 | 099 | [File-Per-Instance Registry](099-instance-registry.md) | Accepted | 2026-04-06 |
 | 100 | [CWD-Based Instance Routing](100-cwd-instance-routing.md) | Accepted | 2026-04-06 |
+| 101 | [Vendor All Dependencies](101-vendor-dependencies.md) | Accepted | 2026-04-06 |

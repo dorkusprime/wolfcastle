@@ -170,7 +170,7 @@ func runInteractiveUnblockWith(ctx context.Context, taskAddr, diagnostic string,
 		return fmt.Errorf("unblock model %q not found in config. Add it to the models section of your config or set unblock.model to an existing model name (see 'wolfcastle config show models')", cfg.Unblock.Model)
 	}
 
-	invokeFn := invoke.InvokeSimple
+	invokeFn := invoke.Simple
 	var rlStdin io.ReadCloser
 	var rlStdout io.Writer
 	if opts != nil {

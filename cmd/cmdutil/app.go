@@ -30,7 +30,7 @@ type App struct {
 	Identity *config.Identity // nil if identity not configured
 	Prompts  *pipeline.PromptRepository
 	Classes  *pipeline.ClassRepository
-	Daemon   *daemon.DaemonRepository
+	Daemon   *daemon.Repository
 	State    *state.Store // nil if identity not configured
 	Git      git.Provider
 
@@ -126,7 +126,7 @@ func (a *App) initFromRoot(root string) error {
 	// Create repositories.
 	a.Config = config.NewRepository(root)
 	a.Prompts = pipeline.NewPromptRepository(root)
-	a.Daemon = daemon.NewDaemonRepository(root)
+	a.Daemon = daemon.NewRepository(root)
 	a.Git = git.NewService(filepath.Dir(root))
 	a.Classes = pipeline.NewClassRepository(a.Prompts)
 
@@ -167,7 +167,7 @@ func (a *App) InitFromDir(dir string) error {
 
 	a.Config = config.NewRepository(candidate)
 	a.Prompts = pipeline.NewPromptRepository(candidate)
-	a.Daemon = daemon.NewDaemonRepository(candidate)
+	a.Daemon = daemon.NewRepository(candidate)
 	a.Git = git.NewService(dir)
 	a.Classes = pipeline.NewClassRepository(a.Prompts)
 

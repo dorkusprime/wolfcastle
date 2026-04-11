@@ -52,7 +52,11 @@ Each tier has the same internal layout. The resolution order, from lowest to hig
 
 **custom/** is where your team puts shared configuration: model definitions, pipeline tweaks, validation commands, custom class prompts. Because it's committed, everyone on the team gets the same settings. Code review applies here just as it does to application code.
 
-**local/** is yours alone. Identity (username and machine) lives here automatically after `init`. Personal model overrides, experimental prompt tweaks, looser permissions for your own workflow, anything you wouldn't commit but need for your environment.
+**local/** is yours alone. Personal model overrides, experimental prompt tweaks, looser permissions for your own workflow, anything you wouldn't commit but need for your environment.
+
+### Identity
+
+Identity (username and machine) lives in `local/config.json` automatically after `wolfcastle init`. The identity fields tell the daemon which engineer namespace to use and which machine name to stamp on commits and logs. These are set once during init and rarely touched afterward.
 
 ### Prompt and Rule Resolution
 

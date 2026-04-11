@@ -1,3 +1,4 @@
+// Package detail implements the right-pane detail views: dashboard, node detail, task detail, log stream, and inbox.
 package detail
 
 import (

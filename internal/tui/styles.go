@@ -8,6 +8,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/dorkusprime/wolfcastle/internal/instance"
+	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
 // Color palette constants
@@ -123,18 +124,20 @@ type StatusGlyph struct {
 	Color color.Color
 }
 
+// NodeStatusGlyphs maps node statuses (complete, in_progress, etc.) to their display glyphs and colors.
 var NodeStatusGlyphs = map[string]StatusGlyph{
-	"complete":    {Glyph: "●", Color: ColorGreen},
-	"in_progress": {Glyph: "◐", Color: ColorYellow},
-	"not_started": {Glyph: "◯", Color: ColorDimWhite},
-	"blocked":     {Glyph: "☢", Color: ColorRed},
+	string(state.StatusComplete):   {Glyph: "●", Color: ColorGreen},
+	string(state.StatusInProgress): {Glyph: "◐", Color: ColorYellow},
+	string(state.StatusNotStarted): {Glyph: "◯", Color: ColorDimWhite},
+	string(state.StatusBlocked):    {Glyph: "☢", Color: ColorRed},
 }
 
+// AuditStatusGlyphs maps audit statuses (passed, failed, etc.) to their display glyphs and colors.
 var AuditStatusGlyphs = map[string]StatusGlyph{
-	"passed":      {Glyph: "⏸", Color: ColorGreen},
-	"in_progress": {Glyph: "◐", Color: ColorYellow},
-	"pending":     {Glyph: "◯", Color: ColorDimWhite},
-	"failed":      {Glyph: "⊘", Color: ColorRed},
+	string(state.AuditPassed):     {Glyph: "⏸", Color: ColorGreen},
+	string(state.AuditInProgress): {Glyph: "◐", Color: ColorYellow},
+	string(state.AuditPending):    {Glyph: "◯", Color: ColorDimWhite},
+	string(state.AuditFailed):     {Glyph: "⊘", Color: ColorRed},
 }
 
 // GlyphForStatus returns the styled glyph string for a node status.

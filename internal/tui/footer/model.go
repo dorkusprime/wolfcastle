@@ -1,3 +1,4 @@
+// Package footer implements the single-line key-hint bar displayed at the bottom of the TUI.
 package footer
 
 import (

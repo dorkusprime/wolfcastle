@@ -12,7 +12,7 @@ import (
 func TestStopFileExists_NoFile(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := daemon.NewDaemonRepository(env.Root)
+	repo := daemon.NewRepository(env.Root)
 
 	if repo.StopFileExists() {
 		t.Error("StopFileExists: expected false when no stop file exists")
@@ -22,7 +22,7 @@ func TestStopFileExists_NoFile(t *testing.T) {
 func TestStopFileExists_WithFile(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnvironment(t)
-	repo := daemon.NewDaemonRepository(env.Root)
+	repo := daemon.NewRepository(env.Root)
 
 	if err := repo.WriteStopFile(); err != nil {
 		t.Fatalf("WriteStopFile: %v", err)
@@ -41,7 +41,7 @@ func TestIsAlive_NoRegistration(t *testing.T) {
 	instance.RegistryDirOverride = regDir
 	defer func() { instance.RegistryDirOverride = old }()
 
-	repo := daemon.NewDaemonRepository(env.Root)
+	repo := daemon.NewRepository(env.Root)
 
 	if repo.IsAlive() {
 		t.Error("IsAlive: expected false when no instance is registered")
@@ -65,7 +65,7 @@ func TestIsAlive_CurrentProcess(t *testing.T) {
 	}
 	defer func() { _ = instance.Deregister(env.Root) }()
 
-	repo := daemon.NewDaemonRepository(env.Root)
+	repo := daemon.NewRepository(env.Root)
 	if !repo.IsAlive() {
 		t.Error("IsAlive: expected true for current process PID")
 	}

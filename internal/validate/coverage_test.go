@@ -226,7 +226,7 @@ func TestFixWithVerification_WithWolfcastleDirArg(t *testing.T) {
 	idxPath := filepath.Join(projDir, "state.json")
 	_ = state.SaveRootIndex(idxPath, idx)
 
-	_, _, err := FixWithVerification(projDir, idxPath, DefaultNodeLoader(projDir), daemon.NewDaemonRepository(wolfDir))
+	_, _, err := FixWithVerification(projDir, idxPath, DefaultNodeLoader(projDir), daemon.NewRepository(wolfDir))
 	if err != nil {
 		t.Fatal(err)
 	}

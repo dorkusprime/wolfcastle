@@ -76,7 +76,7 @@ func TestGetDaemonStatus_NoInstance(t *testing.T) {
 	instance.RegistryDirOverride = regDir
 	defer func() { instance.RegistryDirOverride = "" }()
 
-	repo := dmn.NewDaemonRepository(tmp)
+	repo := dmn.NewRepository(tmp)
 	status := getDaemonStatus(repo, "")
 	if status != "stopped" {
 		t.Errorf("expected 'stopped', got %q", status)
@@ -96,7 +96,7 @@ func TestGetDaemonStatus_Running(t *testing.T) {
 	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"main","started_at":"2026-01-01T00:00:00Z"}`, os.Getpid(), cwd)
 	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
-	repo := dmn.NewDaemonRepository(tmp)
+	repo := dmn.NewRepository(tmp)
 	status := getDaemonStatus(repo, "")
 	if !strings.Contains(status, "running") {
 		t.Errorf("expected 'running' status, got %q", status)
@@ -117,7 +117,7 @@ func TestGetDaemonStatus_Draining(t *testing.T) {
 
 	// Create the system dir + drain file so HasDrainFile returns true.
 	_ = os.MkdirAll(filepath.Join(tmp, "system"), 0755)
-	repo := dmn.NewDaemonRepository(tmp)
+	repo := dmn.NewRepository(tmp)
 	if err := repo.WriteDrainFile(); err != nil {
 		t.Fatalf("writing drain file: %v", err)
 	}
@@ -478,7 +478,7 @@ func TestGetDaemonStatus_RunningProcess(t *testing.T) {
 	entryJSON := fmt.Sprintf(`{"pid":%d,"worktree":%q,"branch":"test","started_at":"2026-01-01T00:00:00Z"}`, pid, cwd)
 	_ = os.WriteFile(filepath.Join(regDir, slug+".json"), []byte(entryJSON), 0644)
 
-	repo := dmn.NewDaemonRepository(tmp)
+	repo := dmn.NewRepository(tmp)
 	status := getDaemonStatus(repo, "")
 	if status == "stopped" {
 		t.Error("expected running status for own PID")

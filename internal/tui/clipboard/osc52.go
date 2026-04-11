@@ -1,3 +1,4 @@
+// Package clipboard provides clipboard write support via OSC 52 escape sequences and platform-native tools.
 package clipboard
 
 import (

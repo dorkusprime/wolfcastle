@@ -49,7 +49,7 @@ type AppFields struct {
 	Identity *config.Identity
 	Prompts  *pipeline.PromptRepository
 	Classes  *pipeline.ClassRepository
-	Daemon   *daemon.DaemonRepository
+	Daemon   *daemon.Repository
 	State    *state.Store
 	Git      git.Provider
 }
@@ -77,7 +77,7 @@ type Environment struct {
 	Classes *pipeline.ClassRepository
 
 	// Daemon provides access to daemon filesystem operations (PID, stop file, logs).
-	Daemon *daemon.DaemonRepository
+	Daemon *daemon.Repository
 
 	// Identity holds the resolved user+machine identity extracted from config.
 	Identity *config.Identity
@@ -192,7 +192,7 @@ func NewEnvironment(t *testing.T) *Environment {
 		Config:    cfgRepo,
 		Prompts:   prompts,
 		Classes:   pipeline.NewClassRepository(prompts),
-		Daemon:    daemon.NewDaemonRepository(wolfcastleDir),
+		Daemon:    daemon.NewRepository(wolfcastleDir),
 		Identity:  identity,
 		t:         t,
 		namespace: namespace,

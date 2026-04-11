@@ -15,14 +15,17 @@ wolfcastle/
 │   ├── knowledge/           # add, show, edit, prune
 │   ├── project/             # create
 │   ├── orchestrator/        # criteria (planning pipeline support)
-│   └── task/                # add, amend, claim, complete, block, unblock, deliverable
+│   ├── task/                # add, amend, claim, complete, block, unblock, deliverable
+│   └── tui/                 # TUI launch command
 ├── internal/                # Core logic (not importable outside the module)
 │   ├── archive/             # Archive entry rollup (Markdown generation)
 │   ├── clock/               # Time abstraction for deterministic testing (ADR-052)
 │   ├── config/              # Config loading, merging, validation, types
 │   ├── daemon/              # Daemon loop, pipeline execution, marker parsing
 │   ├── errors/              # Typed error categories (ADR-065)
+│   ├── fsutil/              # Filesystem helpers (atomic writes, path resolution)
 │   ├── git/                 # Git operations behind Provider interface
+│   ├── instance/            # Per-worktree instance registry and routing (ADR-099, ADR-100)
 │   ├── invoke/              # Model CLI invocation (buffered + streaming)
 │   ├── knowledge/           # Per-namespace codebase knowledge files
 │   ├── logging/             # Per-iteration NDJSON logging
@@ -36,9 +39,10 @@ wolfcastle/
 │   ├── testutil/            # Shared test helpers
 │   ├── tierfs/              # Three-tier file resolution (ADR-063)
 │   ├── tree/                # Tree addressing, slug generation, resolver
+│   ├── tui/                 # TUI application (Bubbletea v2 models and views)
 │   └── validate/            # Structural validation engine and auto-fix
 ├── docs/
-│   ├── decisions/           # ADRs (001-097)
+│   ├── decisions/           # ADRs (001-101)
 │   ├── specs/               # Implementation specs (timestamped)
 │   └── agents/              # This directory (agent guidance)
 └── Makefile
@@ -86,7 +90,8 @@ User input → cmd/ → internal/ → filesystem (.wolfcastle/)
 
 Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/` packages never import `cmd/`. Within `internal/`, the dependency graph is:
 
-- `daemon` → `archive`, `clock`, `config`, `errors`, `git`, `invoke`, `knowledge`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
+- `tui` → `config`, `daemon`, `instance`, `logging`, `logrender`, `output`, `state`, `tree`
+- `daemon` → `archive`, `clock`, `config`, `errors`, `git`, `instance`, `invoke`, `knowledge`, `logging`, `output`, `pipeline`, `signals`, `state`, `tree`
 - `validate` → `config`, `invoke`, `pipeline`, `state`, `tree`
 - `pipeline` → `config`, `invoke`, `knowledge`, `state`, `tierfs`
 - `archive` → `clock`, `config`, `state`
@@ -104,4 +109,6 @@ Dependencies flow strictly downward. `cmd/` imports `internal/`, but `internal/`
 - `tierfs` → (standalone)
 - `signals` → (standalone)
 - `output` → (standalone)
+- `instance` → `config` (ADR-099, ADR-100)
+- `fsutil` → (standalone)
 - `errors` → (standalone)

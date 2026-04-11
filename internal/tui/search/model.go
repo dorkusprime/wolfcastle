@@ -1,3 +1,4 @@
+// Package search implements the interactive search bar and match navigation for TUI panes.
 package search
 
 import (

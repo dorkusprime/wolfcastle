@@ -4,9 +4,11 @@
 
 The most common path: you tell your coding agent what you want done. "Add OAuth2 PKCE support to the auth service." You go back and forth with the agent, refining scope, adding constraints, clarifying how you want things structured, until the plan feels right. Then the agent uses Wolfcastle's [CLI](cli.md) to inject the work, decompose it into tasks, and start [the daemon](#the-daemon). Wolfcastle handles the orchestration from there.
 
+The quickest path for humans at a keyboard: open the [TUI](the-tui.md) inbox (`i`), press `a`, and type your idea. The daemon's intake stage picks it up from there.
+
 When you want direct control, the CLI has you covered:
 
-**The inbox** is for quick capture. `wolfcastle inbox add "support OAuth2 PKCE"` drops an item into a queue. The daemon's [intake stage](#the-pipeline) picks it up in a background goroutine, uses a model to create projects and tasks directly in the tree. You throw an idea at Wolfcastle. It figures out the rest. ([More on the inbox.](cli.md#the-inbox))
+**The inbox** is for quick capture. In the TUI, press `i` to open the inbox modal, then `a` to add an item. From the command line, `wolfcastle inbox add "support OAuth2 PKCE"` drops an item into a queue. The daemon's [intake stage](#the-pipeline) picks it up in a background goroutine, uses a model to create projects and tasks directly in the tree. You throw an idea at Wolfcastle. It figures out the rest. ([More on the inbox.](cli.md#the-inbox))
 
 **Project creation** is for structured planning. `wolfcastle project create --node backend/auth` creates an orchestrator or leaf node at a specific point in the tree. You define the shape of the work; the daemon fills in the tasks, or you add them manually.
 
@@ -105,7 +107,7 @@ When a root-level project completes, the daemon can automatically archive it. Au
 
 ## The Daemon
 
-`wolfcastle start` launches the daemon. It owns the pipeline loop.
+Press `s` in the [TUI](the-tui.md) to start the daemon, or launch it from the command line:
 
 ```
 wolfcastle start                          # foreground
@@ -113,6 +115,8 @@ wolfcastle start -d                       # background
 wolfcastle start --node backend/auth      # scoped to a subtree
 wolfcastle start --worktree feature/auth  # isolated git worktree
 ```
+
+The TUI dashboard shows daemon status, current target, and progress in real time. `wolfcastle status` provides the same information from the command line.
 
 Each iteration walks the [configured pipeline stages](configuration.md#pipeline-stages), invokes [models](configuration.md#model-configuration), and advances the tree. Between iterations, it checks for stop signals. On SIGTERM or SIGINT, it finishes the current stage, cleans up child processes, and shuts down. It does not leave a mess.
 

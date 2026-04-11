@@ -69,7 +69,7 @@ type TUIModel struct {
 	lastFocused FocusedPane
 
 	header  header.HeaderModel
-	tree    tree.TreeModel
+	tree    tree.Model
 	detail  detail.DetailModel
 	footer  footer.FooterModel
 	welcome *welcome.WelcomeModel
@@ -89,7 +89,7 @@ type TUIModel struct {
 
 	entryState  EntryState
 	store       *state.Store
-	daemonRepo  *daemon.DaemonRepository
+	daemonRepo  *daemon.Repository
 	worktreeDir string
 	version     string
 
@@ -108,12 +108,12 @@ type TUIModel struct {
 // NewTUIModel creates a fully wired TUIModel. When store is nil (no
 // .wolfcastle directory found), the model opens in welcome mode so the
 // user can pick a directory and initialize.
-func NewTUIModel(store *state.Store, daemonRepo *daemon.DaemonRepository, worktreeDir, version string) TUIModel {
+func NewTUIModel(store *state.Store, daemonRepo *daemon.Repository, worktreeDir, version string) TUIModel {
 	m := TUIModel{
 		treeVisible: true,
 		focused:     PaneTree,
 		header:      header.NewHeaderModel(version),
-		tree:        tree.NewTreeModel(),
+		tree:        tree.NewModel(),
 		detail:      detail.NewDetailModel(),
 		footer:      footer.NewFooterModel(),
 		search:      search.NewSearchModel(),
@@ -250,6 +250,12 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, tui.GlobalKeyMap.Quit):
 			return m, tea.Quit
+
+		case key.Matches(msg, tui.GlobalKeyMap.Dashboard):
+			m.detail.SwitchToDashboard()
+			m.focused = PaneDetail
+			m.syncFocus()
+			return m, nil
 
 		case key.Matches(msg, tui.GlobalKeyMap.LogStream):
 			m.activeModal = ModalLog
@@ -615,7 +621,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Update store and daemon repo for the new worktree.
 		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
 		m.store = storeFromWolfcastleDir(wolfDir)
-		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+		m.daemonRepo = daemon.NewRepository(wolfDir)
 		m.worktreeDir = msg.Entry.Worktree
 
 		// Restart watcher: stop old, create+start+eager-prefetch new.
@@ -688,7 +694,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.welcome = nil
 			m.worktreeDir = msg.Dir
 			wolfDir := filepath.Join(msg.Dir, ".wolfcastle")
-			m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+			m.daemonRepo = daemon.NewRepository(wolfDir)
 			m.store = storeFromWolfcastleDir(wolfDir)
 			m.header.SetLoading(true)
 			cmds = append(cmds, m.detectEntryState(), m.startWatcher(), m.startPoller(), m.loadInitialState())
@@ -704,7 +710,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notify = notify.NewNotificationModel()
 		m.worktreeDir = msg.Entry.Worktree
 		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
-		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+		m.daemonRepo = daemon.NewRepository(wolfDir)
 		m.store = storeFromWolfcastleDir(wolfDir)
 		m.instances, _ = instance.List()
 		for i, inst := range m.instances {
@@ -1470,7 +1476,7 @@ func (m *TUIModel) startWatcher() tea.Cmd {
 // any user who switched instances during a session. Routing through
 // this helper makes that class of bug structurally impossible: if
 // you forget to call newWatcherFor, you don't get a watcher at all.
-func newWatcherFor(store *state.Store, repo *daemon.DaemonRepository, events chan tea.Msg) *tui.Watcher {
+func newWatcherFor(store *state.Store, repo *daemon.Repository, events chan tea.Msg) *tui.Watcher {
 	if store == nil {
 		return nil
 	}
@@ -1620,7 +1626,7 @@ func (m *TUIModel) stopCurrentDaemon() tea.Cmd {
 			time.Sleep(200 * time.Millisecond)
 		}
 		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
-		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
+		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("daemon not responding, try wolfcastle stop --force")}
 	}
 }
 
@@ -1658,7 +1664,7 @@ func (m *TUIModel) handleStopAll() tea.Cmd {
 			return tui.DaemonStopFailedMsg{Err: lastErr}
 		}
 		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
-		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
+		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("daemon not responding, try wolfcastle stop --force")}
 	}
 }
 

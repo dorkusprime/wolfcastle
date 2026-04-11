@@ -1,3 +1,4 @@
+// Package help implements the scrollable key-binding help overlay for the TUI.
 package help
 
 import (
@@ -146,10 +147,15 @@ func (m *HelpOverlayModel) buildContent() {
 			title: "Log Stream",
 			bindings: []binding{
 				{"L", "open log stream"},
+				{"f", "toggle follow"},
+				{"L", "cycle level filter"},
+				{"T", "cycle trace filter"},
 				{"j / \u2193", "scroll down"},
 				{"k / \u2191", "scroll up"},
 				{"g", "jump to top"},
 				{"G", "jump to bottom"},
+				{"Ctrl+D", "half page down"},
+				{"Ctrl+U", "half page up"},
 			},
 		},
 		{
