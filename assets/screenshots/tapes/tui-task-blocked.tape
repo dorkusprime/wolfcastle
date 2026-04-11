@@ -20,27 +20,27 @@ Sleep 1s
 Type "l"
 Sleep 1s
 
-# Move down past backend to frontend
+# Move to backend (first child) and expand
 Type "j"
 Sleep 500ms
-Type "j"
-Sleep 500ms
-
-# Expand frontend
 Type "l"
 Sleep 1s
 
-# Move down past components to routing (blocked)
+# Move down past api, auth, database to payments (blocked)
+Type "j"
+Sleep 500ms
+Type "j"
+Sleep 500ms
 Type "j"
 Sleep 500ms
 Type "j"
 Sleep 500ms
 
-# Enter routing leaf to see tasks
+# Enter payments leaf to see tasks
 Type "l"
 Sleep 1s
 
-# Select the first task (the blocked one, not audit)
+# Select the first task (blocked Stripe integration)
 Type "l"
 Sleep 1s
 

@@ -123,7 +123,7 @@ cat > "$NS_MAIN/state.json" << 'STATEEOF'
       "state": "in_progress",
       "address": "warzone/backend",
       "parent": "warzone",
-      "children": ["warzone/backend/api", "warzone/backend/auth", "warzone/backend/database"]
+      "children": ["warzone/backend/api", "warzone/backend/auth", "warzone/backend/database", "warzone/backend/payments"]
     },
     "warzone/backend/api": {
       "name": "api",
@@ -146,10 +146,17 @@ cat > "$NS_MAIN/state.json" << 'STATEEOF'
       "address": "warzone/backend/database",
       "parent": "warzone/backend"
     },
+    "warzone/backend/payments": {
+      "name": "payments",
+      "type": "leaf",
+      "state": "blocked",
+      "address": "warzone/backend/payments",
+      "parent": "warzone/backend"
+    },
     "warzone/frontend": {
       "name": "frontend",
       "type": "orchestrator",
-      "state": "blocked",
+      "state": "in_progress",
       "address": "warzone/frontend",
       "parent": "warzone",
       "children": ["warzone/frontend/components", "warzone/frontend/routing"]
@@ -164,7 +171,7 @@ cat > "$NS_MAIN/state.json" << 'STATEEOF'
     "warzone/frontend/routing": {
       "name": "routing",
       "type": "leaf",
-      "state": "blocked",
+      "state": "in_progress",
       "address": "warzone/frontend/routing",
       "parent": "warzone/frontend"
     },
@@ -194,13 +201,17 @@ create_node "$NS_MAIN" "warzone/backend/database" "database" "leaf" "not_started
   {"id":"task-1","title":"Schema migration framework","state":"not_started","class":"coding/go"},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
 ]'
-create_node "$NS_MAIN" "warzone/frontend" "frontend" "orchestrator" "blocked"
+create_node "$NS_MAIN" "warzone/backend/payments" "payments" "leaf" "blocked" '[
+  {"id":"task-1","title":"Integrate Stripe payment flow","state":"blocked","class":"coding/go","block_reason":"Waiting for Stripe webhook secret from ops team","failure_count":3,"last_failure_type":"dependency"},
+  {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
+]'
+create_node "$NS_MAIN" "warzone/frontend" "frontend" "orchestrator" "in_progress"
 create_node "$NS_MAIN" "warzone/frontend/components" "components" "leaf" "complete" '[
   {"id":"task-1","title":"Build component library","state":"complete","class":"coding/react"},
   {"id":"audit","title":"Audit","state":"complete","is_audit":true}
 ]'
-create_node "$NS_MAIN" "warzone/frontend/routing" "routing" "leaf" "blocked" '[
-  {"id":"task-1","title":"Implement client-side routing","state":"blocked","class":"coding/react","block_reason":"Waiting for auth API to expose public endpoints","failure_count":3,"last_failure_type":"dependency"},
+create_node "$NS_MAIN" "warzone/frontend/routing" "routing" "leaf" "in_progress" '[
+  {"id":"task-1","title":"Implement client-side routing","state":"in_progress","class":"coding/react"},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
 ]'
 create_node "$NS_MAIN" "warzone/infra" "infra" "leaf" "not_started" '[
