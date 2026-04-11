@@ -1,3 +1,5 @@
+// Package footer renders the bottom status bar showing context-sensitive
+// key hints and daemon status.
 package footer
 
 import (
@@ -63,6 +65,7 @@ func (m FooterModel) View() string {
 	hints := []hint{
 		{"q", "quit"},
 		{"Tab", "focus"},
+		{"d", "dashboard"},
 	}
 
 	// Mode-specific bindings

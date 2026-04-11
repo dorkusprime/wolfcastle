@@ -1,3 +1,5 @@
+// Package notify provides timed toast notifications that appear in the
+// TUI and auto-dismiss after a configurable duration.
 package notify
 
 import (

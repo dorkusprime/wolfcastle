@@ -1764,6 +1764,73 @@ func TestPropagateSize_TreeHidden(t *testing.T) {
 	m.propagateSize()
 }
 
+func TestStateUpdatedMsg_DiscardsStale(t *testing.T) {
+	m := newColdModel(t)
+	m.worktreeDir = "/current"
+
+	idx := &state.RootIndex{
+		Root: []string{"stale"},
+		Nodes: map[string]state.IndexEntry{
+			"stale": {Name: "stale", Type: state.NodeLeaf, State: state.StatusComplete, Address: "stale"},
+		},
+	}
+	result, _ := m.Update(tui.StateUpdatedMsg{Index: idx, Worktree: "/old-instance"})
+	model := toModel(t, result)
+	if model.tree.Index() != nil && len(model.tree.Index().Nodes) > 0 {
+		t.Error("stale StateUpdatedMsg should have been discarded")
+	}
+}
+
+func TestStateUpdatedMsg_AcceptsMatchingWorktree(t *testing.T) {
+	m := newColdModel(t)
+	m.worktreeDir = "/current"
+
+	idx := &state.RootIndex{
+		Root: []string{"fresh"},
+		Nodes: map[string]state.IndexEntry{
+			"fresh": {Name: "fresh", Type: state.NodeLeaf, State: state.StatusComplete, Address: "fresh"},
+		},
+	}
+	result, _ := m.Update(tui.StateUpdatedMsg{Index: idx, Worktree: "/current"})
+	model := toModel(t, result)
+	if model.tree.Index() == nil || len(model.tree.Index().Nodes) == 0 {
+		t.Error("matching StateUpdatedMsg should have been accepted")
+	}
+}
+
+func TestStateUpdatedMsg_AcceptsEmptyWorktree(t *testing.T) {
+	m := newColdModel(t)
+
+	idx := &state.RootIndex{
+		Root: []string{"watcher"},
+		Nodes: map[string]state.IndexEntry{
+			"watcher": {Name: "watcher", Type: state.NodeLeaf, State: state.StatusComplete, Address: "watcher"},
+		},
+	}
+	result, _ := m.Update(tui.StateUpdatedMsg{Index: idx, Worktree: ""})
+	model := toModel(t, result)
+	if model.tree.Index() == nil || len(model.tree.Index().Nodes) == 0 {
+		t.Error("empty-worktree StateUpdatedMsg (from watcher) should have been accepted")
+	}
+}
+
+func TestStopAndDrainWatcher(t *testing.T) {
+	m := newColdModel(t)
+	m.watcherEvents <- tui.WatcherMsg{Inner: tui.StateUpdatedMsg{}}
+	m.watcherEvents <- tui.WatcherMsg{Inner: tui.StateUpdatedMsg{}}
+
+	m.stopAndDrainWatcher()
+
+	select {
+	case <-m.watcherEvents:
+		t.Error("channel should be empty after drain")
+	default:
+	}
+	if m.watcher != nil {
+		t.Error("watcher should be nil after stop")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Coverage: Update() routing paths
 // ---------------------------------------------------------------------------

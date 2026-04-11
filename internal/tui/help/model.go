@@ -1,3 +1,5 @@
+// Package help renders the full-screen help overlay listing all key
+// bindings grouped by context.
 package help
 
 import (

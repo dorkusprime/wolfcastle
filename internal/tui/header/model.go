@@ -247,8 +247,8 @@ func (m HeaderModel) View() string {
 	left2 := m.renderNodeCounts(barStyle)
 	line2 := composeLine(barStyle, left2, "", innerWidth)
 
-	// Line 3 (optional): instance tab bar when wide enough and multiple instances exist.
-	if m.width > 100 && len(m.instances) > 1 {
+	// Line 3 (optional): instance tab bar when wide enough and at least one instance exists.
+	if m.width > 100 && len(m.instances) > 0 {
 		tabBar := m.renderTabBar(barStyle, boldStyle, innerWidth)
 		return wrap(line1) + "\n" + wrap(line2) + "\n" + wrap(tabBar)
 	}
