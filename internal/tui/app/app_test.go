@@ -1491,7 +1491,7 @@ func TestJumpTreeToSearchMatch_WithRowMatch(t *testing.T) {
 	m := newColdModel(t)
 	// Populate the tree with some nodes.
 	idx := &state.RootIndex{
-		Root:  []string{"alpha", "beta"},
+		Root: []string{"alpha", "beta"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 			"beta":  {Name: "beta", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "beta"},
@@ -1521,7 +1521,7 @@ func TestLoadDetailForSelection_NilRow(t *testing.T) {
 func TestLoadDetailForSelection_NodeRow(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"alpha"},
+		Root: []string{"alpha"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 		},
@@ -1661,7 +1661,7 @@ func TestMaxInt(t *testing.T) {
 func TestHandleCopy_Tree(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"alpha"},
+		Root: []string{"alpha"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 		},
@@ -1798,7 +1798,7 @@ func TestDetailCapturingInput(t *testing.T) {
 func TestEscClearsSearchHighlights(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"alpha"},
+		Root: []string{"alpha"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 		},
@@ -1830,7 +1830,7 @@ func TestEscReturnsDetailToDashboard(t *testing.T) {
 func TestSearchMatchNavigation(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"alpha", "beta"},
+		Root: []string{"alpha", "beta"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 			"beta":  {Name: "beta", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "beta"},
@@ -1850,7 +1850,7 @@ func TestSearchMatchNavigation(t *testing.T) {
 func TestFocusedPaneRouting_Tree(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"alpha"},
+		Root: []string{"alpha"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 		},
@@ -1873,7 +1873,7 @@ func TestFocusedPaneRouting_Detail(t *testing.T) {
 func TestTreeExpandLoadsDetail(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"alpha"},
+		Root: []string{"alpha"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 		},
@@ -1951,7 +1951,7 @@ func TestComputeTreeSearchMatches_WithNodes(t *testing.T) {
 func TestJumpTreeToSearchMatch_DetailMatch(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"alpha"},
+		Root: []string{"alpha"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 		},
@@ -1966,7 +1966,7 @@ func TestJumpTreeToSearchMatch_DetailMatch(t *testing.T) {
 func TestJumpTreeToSearchMatch_AddressWithFallback(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"parent"},
+		Root: []string{"parent"},
 		Nodes: map[string]state.IndexEntry{
 			"parent":       {Name: "parent", Type: state.NodeOrchestrator, State: state.StatusInProgress, Address: "parent"},
 			"parent/child": {Name: "child", Type: state.NodeLeaf, State: state.StatusComplete, Address: "parent/child"},
@@ -1983,7 +1983,7 @@ func TestJumpTreeToSearchMatch_AddressWithFallback(t *testing.T) {
 func TestJumpTreeToSearchMatch_NoFallbackFound(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"alpha"},
+		Root: []string{"alpha"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 		},
@@ -2076,11 +2076,8 @@ func TestRenderContent_DetailSearchOverlay(t *testing.T) {
 	m := newColdModel(t)
 	m.treeVisible = false
 	m.search.Activate(int(PaneDetail))
-	view := m.renderContent(30)
-	if !strings.Contains(view, "/") {
-		// Search bar should be visible somewhere.
-	}
-	_ = view // Exercise the render path.
+	// Exercise the render path with search active on detail pane.
+	_ = m.renderContent(30)
 }
 
 func TestRenderContent_SplitPaneWithSearch(t *testing.T) {
@@ -2205,7 +2202,7 @@ func TestRenderActiveModal_None(t *testing.T) {
 func TestCollapseAtRootSwitchesToDashboard(t *testing.T) {
 	m := newColdModel(t)
 	idx := &state.RootIndex{
-		Root:  []string{"alpha"},
+		Root: []string{"alpha"},
 		Nodes: map[string]state.IndexEntry{
 			"alpha": {Name: "alpha", Type: state.NodeLeaf, State: state.StatusComplete, Address: "alpha"},
 		},
