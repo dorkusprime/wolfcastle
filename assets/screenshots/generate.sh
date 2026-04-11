@@ -36,8 +36,10 @@ export PATH="$(dirname "$WOLFCASTLE"):$PATH"
 
 cleanup_dirs=("")
 make_stage() {
-    local d
-    d="$(mktemp -d)"
+    local label="${1:-demo}"
+    local d="/tmp/wolfcastle-${label}"
+    rm -rf "$d"
+    mkdir -p "$d"
     cleanup_dirs+=("$d")
     echo "$d"
 }
@@ -97,7 +99,7 @@ init_stage() {
 # ---------------------------------------------------------------------------
 # STAGE_MAIN: the primary staging directory with a realistic mixed-state tree
 # ---------------------------------------------------------------------------
-STAGE_MAIN="$(make_stage)"
+STAGE_MAIN="$(make_stage demo)"
 NS_MAIN="$(init_stage "$STAGE_MAIN")"
 
 cat > "$NS_MAIN/state.json" << 'STATEEOF'
@@ -222,7 +224,7 @@ echo "Main namespace:  $NS_MAIN"
 # ---------------------------------------------------------------------------
 # STAGE_COMPLETE: all nodes in "complete" state
 # ---------------------------------------------------------------------------
-STAGE_COMPLETE="$(make_stage)"
+STAGE_COMPLETE="$(make_stage complete)"
 NS_COMPLETE="$(init_stage "$STAGE_COMPLETE")"
 
 cat > "$NS_COMPLETE/state.json" << 'STATEEOF'
@@ -335,7 +337,7 @@ echo "Complete staging: $STAGE_COMPLETE"
 # ---------------------------------------------------------------------------
 # STAGE_BLOCKED: all nodes in "blocked" state
 # ---------------------------------------------------------------------------
-STAGE_BLOCKED="$(make_stage)"
+STAGE_BLOCKED="$(make_stage blocked)"
 NS_BLOCKED="$(init_stage "$STAGE_BLOCKED")"
 
 cat > "$NS_BLOCKED/state.json" << 'STATEEOF'
@@ -448,7 +450,7 @@ echo "Blocked staging:  $STAGE_BLOCKED"
 # ---------------------------------------------------------------------------
 # STAGE_WELCOME: empty directory, no .wolfcastle/ (welcome screen)
 # ---------------------------------------------------------------------------
-STAGE_WELCOME="$(make_stage)"
+STAGE_WELCOME="$(make_stage welcome)"
 echo "Welcome staging:  $STAGE_WELCOME"
 
 echo ""
