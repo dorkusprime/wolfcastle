@@ -314,7 +314,7 @@ func (m LogViewModel) renderLine(rec logrender.Record) string {
 
 	// Trace prefix
 	if rec.Trace != "" {
-		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Render(
+		b.WriteString(lipgloss.NewStyle().Foreground(tui.ColorNeonCyan).Render(
 			fmt.Sprintf("[%s]", rec.Trace),
 		))
 		b.WriteByte(' ')
@@ -451,7 +451,7 @@ func truncate(s string, max int) string {
 func applyLevelTint(level, s string) string {
 	switch level {
 	case "debug":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(s)
+		return lipgloss.NewStyle().Foreground(tui.ColorDimGray).Render(s)
 	case "warn":
 		return lipgloss.NewStyle().Foreground(tui.ColorYellow).Render(s)
 	case "error":

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
@@ -366,8 +367,11 @@ func TestRenderLayoutNormalTerminal(t *testing.T) {
 	if out == "" {
 		t.Error("renderLayout should produce non-empty output")
 	}
-	// Should contain the header (version string) and footer.
-	if !strings.Contains(out, "WOLFCASTLE") {
+	// Should contain the header title. The gradient renderer wraps each
+	// character in individual ANSI sequences, so we strip escapes before
+	// checking for the literal string.
+	stripped := ansi.Strip(out)
+	if !strings.Contains(stripped, "WOLFCASTLE") {
 		t.Error("layout should contain header with WOLFCASTLE title")
 	}
 }

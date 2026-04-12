@@ -11,29 +11,51 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
-// Color palette constants
+// Color palette constants.
+//
+// Structural colors carry the brand (neon cyan, magenta, gold, deep blue).
+// Status colors (green, yellow, red, dim) are functional and universal.
+// See docs/agents/design-system.md for the full rationale.
 var (
-	ColorWhite     = lipgloss.Color("15")
-	ColorDimWhite  = lipgloss.Color("245")
-	ColorLightGray = lipgloss.Color("252")
-	ColorDarkGray  = lipgloss.Color("236")
-	ColorDimGray   = lipgloss.Color("240")
-	ColorOverlayBg = lipgloss.Color("235")
-	ColorDarkRed   = lipgloss.Color("52")
-	ColorRed       = lipgloss.Color("1")
-	ColorGreen     = lipgloss.Color("2")
-	ColorYellow    = lipgloss.Color("3")
+	// Text
+	ColorWhite     = lipgloss.Color("15")  // bright: headings, active content
+	ColorDimWhite  = lipgloss.Color("245") // muted: timestamps, hints, footer
+	ColorLightGray = lipgloss.Color("252") // normal: body text, tree labels
+	ColorDimGray   = lipgloss.Color("240") // faint: debug logs, disabled items
+
+	// Brand
+	ColorNeonCyan    = lipgloss.Color("51")  // primary brand: header title, focused border, trace prefix
+	ColorDeepCyan    = lipgloss.Color("30")  // dimmed primary: inactive borders, secondary chrome
+	ColorMagenta     = lipgloss.Color("198") // accent: search match, active selection
+	ColorDeepMagenta = lipgloss.Color("125") // dimmed accent: search ancestor path
+	ColorGold        = lipgloss.Color("220") // target: daemon focus, confirm button, target mark
+
+	// Backgrounds
+	ColorBaseBg    = lipgloss.Color("234") // full-screen base (near-black, ANSI 256 for Terminal.app compat)
+	ColorCharcoal  = lipgloss.Color("234") // header bg, toast bg (barely off-black)
+	ColorSelection = lipgloss.Color("23")  // selected row in tree (dark teal)
+	ColorOverlayBg = lipgloss.Color("235") // modal overlay fill
+	ColorSlate     = lipgloss.Color("236") // neutral dark: dividers, alt-rows
+	ColorDarkRed   = lipgloss.Color("52")  // error bar bg only
+
+	// Status (functional, never decorative)
+	ColorRed    = lipgloss.Color("1") // blocked, error
+	ColorGreen  = lipgloss.Color("2") // complete, passed
+	ColorYellow = lipgloss.Color("3") // in progress, pending
+
+	// Legacy alias (kept for grep-ability during migration)
+	ColorDarkGray = ColorSlate
 )
 
 // Header styles
 var (
 	HeaderStyle = lipgloss.NewStyle().
 			Foreground(ColorWhite).
-			Background(ColorDarkRed)
+			Background(ColorCharcoal)
 
 	HeaderBoldStyle = lipgloss.NewStyle().
-			Foreground(ColorWhite).
-			Background(ColorDarkRed).
+			Foreground(ColorNeonCyan).
+			Background(ColorCharcoal).
 			Bold(true)
 )
 
@@ -41,14 +63,14 @@ var (
 var (
 	TreeSelectedStyle = lipgloss.NewStyle().
 				Foreground(ColorWhite).
-				Background(ColorDarkGray).
+				Background(ColorSelection).
 				Bold(true)
 
 	TreeNormalStyle = lipgloss.NewStyle().
 			Foreground(ColorLightGray)
 
 	TreeSearchHighlight = lipgloss.NewStyle().
-				Background(ColorYellow)
+				Background(ColorMagenta)
 )
 
 // Footer styles
@@ -74,33 +96,38 @@ var (
 // Border styles
 var (
 	FocusedBorderStyle = lipgloss.NewStyle().
+				Background(ColorBaseBg).
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(ColorRed)
+				BorderForeground(ColorNeonCyan).
+				BorderBackground(ColorBaseBg)
 
 	UnfocusedBorderStyle = lipgloss.NewStyle().
+				Background(ColorBaseBg).
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(ColorDimGray)
+				BorderForeground(ColorSlate).
+				BorderBackground(ColorBaseBg)
 )
 
 // Spinner style
 var SpinnerStyle = lipgloss.NewStyle().
-	Foreground(ColorYellow)
+	Foreground(ColorNeonCyan)
 
 // Overlay styles (shared by help and modals)
 var (
 	HelpOverlayStyle = lipgloss.NewStyle().
 				Background(ColorOverlayBg).
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(ColorDimWhite)
+				BorderForeground(ColorDeepCyan).
+				BorderBackground(ColorOverlayBg)
 
 	HelpTitleStyle = lipgloss.NewStyle().
-			Foreground(ColorWhite).
+			Foreground(ColorNeonCyan).
 			Bold(true)
 
 	ModalOverlayStyle = lipgloss.NewStyle().
 				Background(ColorOverlayBg).
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(ColorDimWhite).
+				BorderForeground(ColorDeepCyan).
 				BorderBackground(ColorOverlayBg)
 
 	ModalTitleStyle = lipgloss.NewStyle().
@@ -114,12 +141,12 @@ var (
 
 	ModalAccentStyle = lipgloss.NewStyle().
 				Background(ColorOverlayBg).
-				Foreground(ColorYellow)
+				Foreground(ColorGold)
 )
 
 // Current target indicator
 var TargetIndicatorStyle = lipgloss.NewStyle().
-	Foreground(ColorYellow).
+	Foreground(ColorGold).
 	Bold(true)
 
 // StatusGlyph pairs a Unicode glyph with its display color.

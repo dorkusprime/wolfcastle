@@ -12,19 +12,19 @@ import (
 
 // Colors and styles for the tree view.
 var (
-	colorSelected    = lipgloss.Color("52")  // dark red background (matches header)
+	colorSelected    = lipgloss.Color("23")  // dark teal (selection)
 	colorNormal      = lipgloss.Color("252") // light gray text
 	colorGreen       = lipgloss.Color("2")
 	colorYellow      = lipgloss.Color("3")
 	colorRed         = lipgloss.Color("1")
 	colorDim         = lipgloss.Color("240")
-	colorTargetMark  = lipgloss.Color("11") // bright yellow
-	colorSearchMatch = lipgloss.Color("3")  // yellow background for search hits
+	colorTargetMark  = lipgloss.Color("220") // gold
+	colorSearchMatch = lipgloss.Color("220") // gold foreground for search hits
 	// Muted version of colorSearchMatch used for rows that are on the
 	// path to a hidden literal match. Reads as related-but-secondary
 	// at a glance so the user can follow the trail without confusing
 	// ancestor markers for direct hits.
-	colorSearchAncestor = lipgloss.Color("58") // dark olive
+	colorSearchAncestor = lipgloss.Color("94") // dark gold foreground (muted)
 
 	styleNormal = lipgloss.NewStyle().Foreground(colorNormal)
 )
@@ -55,7 +55,7 @@ func statusGlyphOnBg(s state.NodeStatus, bg color.Color) string {
 	case state.StatusBlocked:
 		return st.Foreground(colorRed).Render("☢")
 	default:
-		return st.Foreground(lipgloss.Color("250")).Render("◯")
+		return st.Foreground(lipgloss.Color("245")).Render("◯")
 	}
 }
 
@@ -135,7 +135,7 @@ func renderNodeRow(row Row, width int, selected bool, isCurrentTarget bool, lite
 	name := truncate(row.Name, maxName)
 
 	if selected {
-		bg := lipgloss.NewStyle().Background(colorSelected).Foreground(lipgloss.Color("255")).Bold(true)
+		bg := lipgloss.NewStyle().Background(colorSelected).Foreground(lipgloss.Color("15")).Bold(true)
 		var target string
 		if isCurrentTarget {
 			target = lipgloss.NewStyle().
@@ -149,7 +149,7 @@ func renderNodeRow(row Row, width int, selected bool, isCurrentTarget bool, lite
 		if row.TaskHint != "" {
 			hint = lipgloss.NewStyle().
 				Background(colorSelected).
-				Foreground(lipgloss.Color("250")).
+				Foreground(lipgloss.Color("245")).
 				Render(" " + row.TaskHint)
 		}
 		text := bg.Render(indent+marker+" ") + target + bg.Render(name+" ") + glyph + hint
@@ -161,11 +161,13 @@ func renderNodeRow(row Row, width int, selected bool, isCurrentTarget bool, lite
 	}
 
 	// Literal match wins over ancestor when both are set.
+	// Search results use foreground color changes (not backgrounds)
+	// to avoid visual clutter from highlighted blocks.
 	if literalHit {
-		return renderNodeRowWithBg(row, width, indent, marker, name, isCurrentTarget, colorSearchMatch, lipgloss.Color("0"))
+		return renderNodeRowWithFg(row, width, indent, marker, name, isCurrentTarget, colorSearchMatch)
 	}
 	if ancestorHit {
-		return renderNodeRowWithBg(row, width, indent, marker, name, isCurrentTarget, colorSearchAncestor, lipgloss.Color("253"))
+		return renderNodeRowWithFg(row, width, indent, marker, name, isCurrentTarget, colorSearchAncestor)
 	}
 
 	// Unselected: apply per-element coloring on top of styleNormal.
@@ -205,6 +207,32 @@ func renderNodeRowWithBg(row Row, width int, indent, marker, name string, isCurr
 	return text
 }
 
+// renderNodeRowWithFg renders a node row with a colored foreground
+// (no background change). Used for search highlighting to avoid
+// the visual clutter of background-colored blocks.
+func renderNodeRowWithFg(row Row, width int, indent, marker, name string, isCurrentTarget bool, fgColor color.Color) string {
+	fg := lipgloss.NewStyle().Foreground(fgColor)
+	var coloredTarget string
+	if isCurrentTarget {
+		coloredTarget = lipgloss.NewStyle().Foreground(colorTargetMark).Bold(true).Render("▶ ")
+	}
+	coloredGlyph := statusGlyph(row.Status)
+	var coloredHint string
+	if row.TaskHint != "" {
+		coloredHint = " " + fg.Render(row.TaskHint)
+	}
+	colored := fmt.Sprintf("%s%s %s%s %s%s", indent, fg.Render(marker), coloredTarget, fg.Bold(true).Render(name), coloredGlyph, coloredHint)
+	return styleNormal.Width(width).Render(colored)
+}
+
+// renderTaskRowWithFg renders a task row with a colored foreground.
+func renderTaskRowWithFg(row Row, width int, indent, taskID, title string, fgColor color.Color) string {
+	fg := lipgloss.NewStyle().Foreground(fgColor)
+	glyph := taskStatusGlyph(row.Status)
+	line := fmt.Sprintf("%s%s %s: %s", indent, glyph, fg.Render(taskID), fg.Bold(true).Render(title))
+	return styleNormal.Width(width).Render(line)
+}
+
 func renderTaskRow(row Row, width int, selected bool, literalHit, ancestorHit bool) string {
 	indent := strings.Repeat("  ", row.Depth)
 
@@ -228,7 +256,7 @@ func renderTaskRow(row Row, width int, selected bool, literalHit, ancestorHit bo
 		// the wolfcastle status screen.
 		glyph := taskStatusGlyphOnBg(row.Status, colorSelected)
 		// Build the line: pad before/after glyph with the selected background.
-		bg := lipgloss.NewStyle().Background(colorSelected).Foreground(lipgloss.Color("255")).Bold(true)
+		bg := lipgloss.NewStyle().Background(colorSelected).Foreground(lipgloss.Color("15")).Bold(true)
 		text := bg.Render(indent) + glyph + bg.Render(" "+taskID+": "+title)
 		// Fill remaining width with selected background.
 		used := lipgloss.Width(text)
@@ -237,12 +265,11 @@ func renderTaskRow(row Row, width int, selected bool, literalHit, ancestorHit bo
 		}
 		return text
 	}
-	// Literal match wins over ancestor when both are set.
 	if literalHit {
-		return renderTaskRowWithBg(row, width, indent, taskID, title, colorSearchMatch, lipgloss.Color("0"))
+		return renderTaskRowWithFg(row, width, indent, taskID, title, colorSearchMatch)
 	}
 	if ancestorHit {
-		return renderTaskRowWithBg(row, width, indent, taskID, title, colorSearchAncestor, lipgloss.Color("253"))
+		return renderTaskRowWithFg(row, width, indent, taskID, title, colorSearchAncestor)
 	}
 
 	glyph := taskStatusGlyph(row.Status)

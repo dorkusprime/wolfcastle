@@ -173,15 +173,21 @@ func (m *Model) buildContent() {
 		},
 	}
 
+	sectionStyle := lipgloss.NewStyle().Foreground(tui.ColorNeonCyan).Bold(true)
+	keyStyle := lipgloss.NewStyle().Foreground(tui.ColorGold)
+	descStyle := lipgloss.NewStyle().Foreground(tui.ColorLightGray)
+
 	var b strings.Builder
 	for i, sec := range sections {
 		if i > 0 {
 			b.WriteString("\n")
 		}
-		b.WriteString(sec.title)
+		b.WriteString(sectionStyle.Render(sec.title))
 		b.WriteString("\n")
 		for _, kb := range sec.bindings {
-			fmt.Fprintf(&b, "  %-12s%s\n", kb.key, kb.desc)
+			b.WriteString(fmt.Sprintf("  %s%s\n",
+				keyStyle.Render(fmt.Sprintf("%-12s", kb.key)),
+				descStyle.Render(kb.desc)))
 		}
 	}
 

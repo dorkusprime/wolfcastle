@@ -46,6 +46,39 @@ func fillModalBg(content string, width int) string {
 	return canvas.Render()
 }
 
+// fillBaseBg stamps the base background (near-black) onto every cell
+// of the full-screen view that doesn't already have a background.
+// This ensures the TUI is readable on light terminals without
+// breaking transparency on dark ones.
+func fillBaseBg(content string, width, height int) string {
+	if height == 0 || width == 0 {
+		return content
+	}
+
+	canvas := lipgloss.NewCanvas(width, height)
+	ss := uv.NewStyledString(content)
+	canvas.Compose(ss)
+
+	bg := tui.ColorBaseBg
+	bounds := canvas.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := canvas.CellAt(x, y)
+			if c == nil {
+				canvas.SetCell(x, y, &uv.Cell{
+					Content: " ",
+					Width:   1,
+					Style:   uv.Style{Bg: bg},
+				})
+			} else if c.Style.Bg == nil {
+				c.Style.Bg = bg
+			}
+		}
+	}
+
+	return canvas.Render()
+}
+
 // ActiveModal tracks which modal overlay (if any) is currently visible.
 // Only one modal can be open at a time; the enum enforces this
 // structurally rather than relying on runtime checks.

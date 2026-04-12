@@ -8,6 +8,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+
+	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
 const (
@@ -120,11 +122,11 @@ func (m NotificationModel) View() string {
 	}
 
 	toastStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15")).
-		Background(lipgloss.Color("236")).
+		Foreground(tui.ColorWhite).
+		Background(tui.ColorCharcoal).
 		BorderLeft(true).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(lipgloss.Color("1")).
+		BorderForeground(tui.ColorNeonCyan).
 		PaddingLeft(1).
 		PaddingRight(1).
 		MaxWidth(maxWidth)
