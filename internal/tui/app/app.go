@@ -115,8 +115,9 @@ func (m *TUIModel) createTab(worktreeDir string, store *state.Store, daemonRepo 
 	return &m.tabs[len(m.tabs)-1]
 }
 
-// NewTUIModel creates a TUIModel shell. Tab creation happens in Init()
-// or via user actions. The constructor no longer takes store/daemonRepo.
+// NewTUIModel creates a TUIModel and resolves the initial tab from the
+// working directory. Tab creation happens here (not Init) because Init
+// uses a value receiver in Bubbletea v2 and cannot mutate the model.
 func NewTUIModel(worktreeDir, version string) TUIModel {
 	m := TUIModel{
 		header:      header.NewModel(version),
@@ -126,29 +127,17 @@ func NewTUIModel(worktreeDir, version string) TUIModel {
 		originalCWD: worktreeDir,
 		version:     version,
 	}
-	return m
-}
 
-// Init returns the batch of startup commands. It creates the initial tab
-// based on CWD state: if .wolfcastle/ exists, the tab starts in Cold state
-// with a watcher; otherwise, a Welcome-state tab is created.
-func (m TUIModel) Init() tea.Cmd {
-	var cmds []tea.Cmd
-
-	wolfDir := filepath.Join(m.originalCWD, ".wolfcastle")
+	wolfDir := filepath.Join(worktreeDir, ".wolfcastle")
 	if info, err := os.Stat(wolfDir); err == nil && info.IsDir() {
 		store := storeFromWolfcastleDir(wolfDir)
 		daemonRepo := daemon.NewRepository(wolfDir)
-		tab := m.createTab(m.originalCWD, store, daemonRepo)
+		tab := m.createTab(worktreeDir, store, daemonRepo)
 		m.activeTabID = tab.ID
 		m.header.SetLoading(true)
-		if startCmd := tab.Start(); startCmd != nil {
-			cmds = append(cmds, startCmd)
-		}
-		cmds = append(cmds, m.detectEntryState())
 	} else {
 		// No .wolfcastle in CWD. Try instance resolution.
-		if entry, resolveErr := instance.Resolve(m.originalCWD); resolveErr == nil {
+		if entry, resolveErr := instance.Resolve(worktreeDir); resolveErr == nil {
 			wDir := entry.Worktree
 			wf := filepath.Join(wDir, ".wolfcastle")
 			store := storeFromWolfcastleDir(wf)
@@ -156,18 +145,31 @@ func (m TUIModel) Init() tea.Cmd {
 			tab := m.createTab(wDir, store, daemonRepo)
 			m.activeTabID = tab.ID
 			m.header.SetLoading(true)
-			if startCmd := tab.Start(); startCmd != nil {
-				cmds = append(cmds, startCmd)
-			}
-			cmds = append(cmds, m.detectEntryState())
 		} else {
 			// Welcome state: no local project, no resolved instance.
-			tab := m.createTab(m.originalCWD, nil, nil)
+			tab := m.createTab(worktreeDir, nil, nil)
 			m.activeTabID = tab.ID
 			instances, _ := instance.List()
-			w := welcome.NewModel(m.originalCWD, instances)
+			w := welcome.NewModel(worktreeDir, instances)
 			m.welcome = &w
 		}
+	}
+
+	return m
+}
+
+// Init returns the batch of startup commands. The initial tab was already
+// created by NewTUIModel; Init only starts the watcher, loads state, and
+// kicks off the poll chain.
+func (m TUIModel) Init() tea.Cmd {
+	var cmds []tea.Cmd
+
+	tab := m.activeTab()
+	if tab != nil && tab.Store != nil {
+		if startCmd := tab.Start(); startCmd != nil {
+			cmds = append(cmds, startCmd)
+		}
+		cmds = append(cmds, m.detectEntryState())
 	}
 
 	// Global instance discovery poll.

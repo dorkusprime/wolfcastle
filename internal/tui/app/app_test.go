@@ -45,6 +45,9 @@ func toModel(t *testing.T, m tea.Model) TUIModel {
 // newWelcomeModel returns a TUIModel in StateWelcome with no store.
 func newWelcomeModel(dir string) TUIModel {
 	m := NewTUIModel(dir, "1.0.0")
+	// NewTUIModel auto-creates an initial tab; reset so we control tab state.
+	m.tabs = nil
+	m.nextTabID = 0
 	tab := m.createTab(dir, nil, nil)
 	m.activeTabID = tab.ID
 	m.width = 80
@@ -58,6 +61,9 @@ func newColdModel(t *testing.T) TUIModel {
 	dir := t.TempDir()
 	store := state.NewStore(dir, 0)
 	m := NewTUIModel(dir, "1.0.0")
+	// NewTUIModel auto-creates an initial tab; reset so we control tab state.
+	m.tabs = nil
+	m.nextTabID = 0
 	tab := m.createTab(dir, store, nil)
 	m.activeTabID = tab.ID
 	tab.EntryState = StateCold
