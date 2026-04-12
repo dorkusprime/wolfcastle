@@ -16,7 +16,12 @@
 - `wolfcastle scope add` reports failures as errors instead of calling `os.Exit(1)`, so Cobra-managed cleanup runs and exit codes flow normally. (#224)
 - Atomic write helpers in `config` and `tierfs` now share `internal/fsutil.AtomicWriteFile`, fixing a missing temp-file cleanup on rename failure. (#224)
 
+### Documentation
+- Comprehensive TUI guide (`docs/humans/the-tui.md`): launching, every screen, every keybinding, navigation flows. 16 VHS-generated screenshots with scripted state and retry logic for deterministic captures. (#246, #256)
+- Existing concept docs reframed to present TUI as the primary interface, CLI as secondary. Both READMEs updated. (#246)
+
 ### Quality
+- TUI acceptance test suite: 35 tests exercising a real `tea.Program` headless via `charmbracelet/x/exp/teatest/v2`. Covers welcome screen, dashboard, tree navigation, inbox, help overlay, search, daemon modal, log stream, terminal states, status glyphs, and all key binding categories. Zero flakes across 105 runs. (#247)
 - New `internal/fsutil` package with full test coverage for `AtomicWriteFile` (happy path, overwrite, parent creation, permission errors, rename failures). (#225)
 - Comprehensive multi-process tests covering two-worktree coexistence, deep-subdirectory CWD routing, prefix-boundary cross-match prevention, `--instance` overriding CWD end-to-end, tier regeneration from a partial scaffold, `stop --all` with mixed live/stale entries, and full coverage for the new `App.InitFromDir` and `resolveInstance` helpers. (#239)
 - TUI wiring smoke tests and app-package coverage expanded from 65% to 80%. Overall project coverage at 91%. (#241, #244)
