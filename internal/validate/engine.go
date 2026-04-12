@@ -62,7 +62,7 @@ func DefaultNodeLoader(projectsDir string) NodeLoader {
 		if err != nil {
 			return nil, err
 		}
-		return state.LoadNodeState(filepath.Join(projectsDir, filepath.Join(a.Parts...), "state.json"))
+		return state.LoadNodeState(filepath.Join(projectsDir, filepath.Join(a.Parts...), state.StateFileName))
 	}
 }
 
@@ -76,7 +76,7 @@ func RecoveringNodeLoader(projectsDir string, onRecover func(addr string, report
 		if err != nil {
 			return nil, err
 		}
-		statePath := filepath.Join(projectsDir, filepath.Join(a.Parts...), "state.json")
+		statePath := filepath.Join(projectsDir, filepath.Join(a.Parts...), state.StateFileName)
 
 		// Try normal load first.
 		ns, loadErr := state.LoadNodeState(statePath)

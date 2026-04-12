@@ -221,7 +221,7 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	if err != nil {
 		_ = d.Logger.Log(map[string]any{"type": "planning_error", "error": err.Error()})
 		d.Logger.Close()
-		return err
+		return fmt.Errorf("planning invocation for %s: %w", nodeAddr, err)
 	}
 
 	_ = d.Logger.Log(map[string]any{

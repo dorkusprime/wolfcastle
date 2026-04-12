@@ -4,9 +4,9 @@ The full spec lives at `../2026-04-06T01-00Z-tui-v01.md` (2,179 lines). These fi
 
 ## Reading Order
 
-1. **`common.md`** (1,027 lines) — Read first. Contains summary, dependencies, entry states, layout, data sources, real-time update strategy, Bubbletea architecture, performance, package structure, voice, and error handling.
+1. **`common.md`** (1,027 lines): read first. Contains summary, dependencies, entry states, layout, data sources, real-time update strategy, Bubbletea architecture, performance, package structure, voice, and error handling.
 
-2. **`phase1.md`** through **`phase5.md`** — Read the phase you're implementing. Each phase document includes models, messages, key bindings, rendering, and test cases.
+2. **`phase1.md`** through **`phase5.md`**: read the phase you're implementing. Each phase document includes models, messages, key bindings, rendering, and test cases.
 
 ## For Build Sessions
 

@@ -130,7 +130,7 @@ func (s *ScaffoldService) Init(identity *config.Identity) error {
 		return fmt.Errorf("scaffold: marshaling root index: %w", err)
 	}
 	idxData = append(idxData, '\n')
-	if err := os.WriteFile(filepath.Join(nsDir, "state.json"), idxData, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(nsDir, state.StateFileName), idxData, 0644); err != nil {
 		return fmt.Errorf("scaffold: writing root index: %w", err)
 	}
 

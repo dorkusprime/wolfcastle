@@ -248,11 +248,11 @@ func (s *Store) nodePath(addr string) (string, error) {
 			return "", fmt.Errorf("invalid address segment %q in %q", p, addr)
 		}
 	}
-	return filepath.Join(s.dir, filepath.Join(parts...), "state.json"), nil
+	return filepath.Join(s.dir, filepath.Join(parts...), StateFileName), nil
 }
 
 func (s *Store) indexPath() string {
-	return filepath.Join(s.dir, "state.json")
+	return filepath.Join(s.dir, StateFileName)
 }
 
 func (s *Store) inboxPath() string {

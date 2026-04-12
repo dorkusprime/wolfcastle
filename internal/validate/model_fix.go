@@ -64,7 +64,7 @@ func TryModelAssistedFix(ctx context.Context, invoker invoke.Invoker, model conf
 	if err != nil {
 		return false, err
 	}
-	statePath := filepath.Join(projectsDir, filepath.Join(a.Parts...), "state.json")
+	statePath := filepath.Join(projectsDir, filepath.Join(a.Parts...), state.StateFileName)
 	ns, err := state.LoadNodeState(statePath)
 	if err != nil {
 		return false, err

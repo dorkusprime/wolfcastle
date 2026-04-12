@@ -8,6 +8,9 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/fsutil"
 )
 
+// StateFileName is the canonical filename for node and root-index state files.
+const StateFileName = "state.json"
+
 // LoadRootIndex reads the root state.json for an engineer namespace.
 func LoadRootIndex(path string) (*RootIndex, error) {
 	data, err := os.ReadFile(path)
