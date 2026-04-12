@@ -120,6 +120,12 @@ func PropagateUp(
 		}
 
 		newState := RecomputeState(parent.Children, parent.Tasks)
+		// An orchestrator with pending planning isn't truly complete.
+		// Without this guard, propagation marks the parent complete
+		// before the planning pass runs, and dfsFindPlanning skips it.
+		if newState == StatusComplete && parent.NeedsPlanning {
+			newState = StatusInProgress
+		}
 		parent.State = newState
 
 		if err := saveParent(parentAddr, parent); err != nil {

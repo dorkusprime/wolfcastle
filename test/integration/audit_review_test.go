@@ -3,14 +3,11 @@
 package integration
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
 // TestDaemon_ExploratoryReview_CreatesRemediationLeaf verifies the full
@@ -115,75 +112,3 @@ fi
 	}
 }
 
-// configureMockModelsWithPlanning sets up mock models AND enables the
-// planning pipeline.
-func configureMockModelsWithPlanning(t *testing.T, dir string, scriptPath string) {
-	t.Helper()
-
-	cfg := map[string]any{
-		"models": map[string]any{
-			"fast":  map[string]any{"command": scriptPath, "args": []string{}},
-			"mid":   map[string]any{"command": scriptPath, "args": []string{}},
-			"heavy": map[string]any{"command": scriptPath, "args": []string{}},
-		},
-		"pipeline": map[string]any{
-			"stages": map[string]any{
-				"intake": map[string]any{
-					"model":      "mid",
-					"prompt_file": "stages/intake.md",
-					"enabled":    false,
-				},
-				"execute": map[string]any{
-					"model":      "mid",
-					"prompt_file": "stages/execute.md",
-				},
-			},
-			"planning": map[string]any{
-				"enabled":            true,
-				"model":              "heavy",
-				"max_children":       10,
-				"max_tasks_per_leaf": 8,
-				"max_replans":        3,
-				"max_review_passes":  3,
-			},
-		},
-		"daemon": map[string]any{
-			"poll_interval_seconds":         1,
-			"blocked_poll_interval_seconds": 1,
-			"max_iterations":                -1,
-			"invocation_timeout_seconds":    60,
-			"max_restarts":                  0,
-			"restart_delay_seconds":         0,
-		},
-		"git": map[string]any{
-			"auto_commit":   false,
-			"verify_branch": false,
-		},
-		"retries": map[string]any{
-			"initial_delay_seconds": 1,
-			"max_delay_seconds":     1,
-			"max_retries":           0,
-		},
-		"overlap_advisory": map[string]any{
-			"enabled": false,
-		},
-		"summary": map[string]any{
-			"enabled": false,
-		},
-	}
-
-	data, _ := json.MarshalIndent(cfg, "", "  ")
-	customDir := filepath.Join(dir, ".wolfcastle", "system", "custom")
-	_ = os.MkdirAll(customDir, 0755)
-	if err := os.WriteFile(filepath.Join(customDir, "config.json"), data, 0644); err != nil {
-		t.Fatalf("writing config: %v", err)
-	}
-}
-
-func nodeAddresses(idx *state.RootIndex) []string {
-	addrs := make([]string, 0, len(idx.Nodes))
-	for addr := range idx.Nodes {
-		addrs = append(addrs, addr)
-	}
-	return addrs
-}

@@ -99,6 +99,39 @@ func TestPropagateUp_DetectsCycle(t *testing.T) {
 	}
 }
 
+func TestPropagateUp_NeedsPlanning_PreventsComplete(t *testing.T) {
+	t.Parallel()
+	// An orchestrator with NeedsPlanning=true should not be set to complete
+	// even when all children are complete. This prevents propagation from
+	// overwriting the planning trigger before the planning pass runs.
+	orchState := &NodeState{
+		ID:            "orch",
+		Type:          NodeOrchestrator,
+		NeedsPlanning: true,
+		Children:      []ChildRef{{ID: "leaf", Address: "leaf", State: StatusNotStarted}},
+	}
+	states := map[string]*NodeState{"orch": orchState}
+	parents := map[string]string{"leaf": "orch"}
+	var savedState NodeStatus
+
+	_, err := PropagateUp(
+		"leaf",
+		StatusComplete,
+		func(addr string) (*NodeState, error) { return states[addr], nil },
+		func(addr string, ns *NodeState) error { savedState = ns.State; return nil },
+		func(addr string) string { return parents[addr] },
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if savedState == StatusComplete {
+		t.Error("orchestrator with NeedsPlanning=true should not be marked complete")
+	}
+	if savedState != StatusInProgress {
+		t.Errorf("expected in_progress, got %s", savedState)
+	}
+}
+
 func TestPropagateUp_NormalChain(t *testing.T) {
 	t.Parallel()
 	states := map[string]*NodeState{
