@@ -39,10 +39,10 @@ Examples:
 			}
 
 			body, _ := cmd.Flags().GetString("body")
-			addDeliverable, _ := cmd.Flags().GetStringSlice("add-deliverable")
-			addConstraint, _ := cmd.Flags().GetStringSlice("add-constraint")
-			addAcceptance, _ := cmd.Flags().GetStringSlice("add-acceptance")
-			addReference, _ := cmd.Flags().GetStringSlice("add-reference")
+			addDeliverable, _ := cmd.Flags().GetStringArray("add-deliverable")
+			addConstraint, _ := cmd.Flags().GetStringArray("add-constraint")
+			addAcceptance, _ := cmd.Flags().GetStringArray("add-acceptance")
+			addReference, _ := cmd.Flags().GetStringArray("add-reference")
 			taskType, _ := cmd.Flags().GetString("type")
 			integration, _ := cmd.Flags().GetString("integration")
 
@@ -100,10 +100,10 @@ Examples:
 
 	cmd.Flags().String("node", "", "Task address: node-path/task-id (alias for positional argument)")
 	cmd.Flags().String("body", "", "Replace task body/description")
-	cmd.Flags().StringSlice("add-deliverable", nil, "Append deliverable (repeatable)")
-	cmd.Flags().StringSlice("add-constraint", nil, "Append constraint (repeatable)")
-	cmd.Flags().StringSlice("add-acceptance", nil, "Append acceptance criterion (repeatable)")
-	cmd.Flags().StringSlice("add-reference", nil, "Append reference (repeatable)")
+	cmd.Flags().StringArray("add-deliverable", nil, "Append deliverable (repeatable)")
+	cmd.Flags().StringArray("add-constraint", nil, "Append constraint (repeatable)")
+	cmd.Flags().StringArray("add-acceptance", nil, "Append acceptance criterion (repeatable)")
+	cmd.Flags().StringArray("add-reference", nil, "Append reference (repeatable)")
 	cmd.Flags().String("type", "", "Task type: discovery, spec, adr, implementation, integration, cleanup")
 	cmd.Flags().String("integration", "", "How this task connects to other work")
 	return cmd

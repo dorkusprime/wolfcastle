@@ -4,8 +4,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/x/ansi"
+
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
+
+// viewText returns the task model's rendered view with ANSI escapes
+// stripped, so tests can assert on plain text content without being
+// sensitive to glamour's intra-word styling spans.
+func viewText(m TaskModel) string {
+	return ansi.Strip(m.View())
+}
 
 func makeFullTask() *state.Task {
 	return &state.Task{
@@ -57,7 +66,7 @@ func TestLoad_FullTask(t *testing.T) {
 	task := makeFullTask()
 	m.Load("root/leaf", "task-0001", task)
 
-	view := m.View()
+	view := viewText(m)
 
 	// Title and status
 	if !strings.Contains(view, "task-0001") {
@@ -354,7 +363,7 @@ func TestDeliverables_Bulleted(t *testing.T) {
 	}
 	m.Load("root", "t1", task)
 
-	view := m.View()
+	view := viewText(m)
 	if !strings.Contains(view, "•") {
 		t.Errorf("deliverables should use bullet points, got %q", view)
 	}
@@ -378,7 +387,7 @@ func TestAcceptanceCriteria_Bulleted(t *testing.T) {
 	}
 	m.Load("root", "t1", task)
 
-	view := m.View()
+	view := viewText(m)
 	if !strings.Contains(view, "criterion one") {
 		t.Errorf("should list criteria, got %q", view)
 	}
@@ -396,7 +405,7 @@ func TestConstraints_Bulleted(t *testing.T) {
 	}
 	m.Load("root", "t1", task)
 
-	view := m.View()
+	view := viewText(m)
 	if !strings.Contains(view, "max 100 LOC") {
 		t.Errorf("should list constraints, got %q", view)
 	}
@@ -592,7 +601,7 @@ func TestTitle_Empty(t *testing.T) {
 	}
 	m.Load("root", "t1", task)
 
-	view := m.View()
+	view := viewText(m)
 	if !strings.Contains(view, "description only") {
 		t.Errorf("should show description when no title, got %q", view)
 	}

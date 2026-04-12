@@ -401,10 +401,12 @@ func extractAssistantContent(raw string) string {
 		Subtype string `json:"subtype"`
 		Message struct {
 			Content []struct {
-				Type     string `json:"type"`
-				Text     string `json:"text"`
-				Thinking string `json:"thinking"`
-				Name     string `json:"name"`
+				Type     string          `json:"type"`
+				Text     string          `json:"text"`
+				Thinking string          `json:"thinking"`
+				Name     string          `json:"name"`
+				Input    json.RawMessage `json:"input"`
+				Content  json.RawMessage `json:"content"`
 			} `json:"content"`
 		} `json:"message"`
 	}
@@ -431,13 +433,75 @@ func extractAssistantContent(raw string) string {
 			}
 		case "tool_use":
 			if c.Name != "" {
-				parts = append(parts, "[tool: "+c.Name+"]")
+				parts = append(parts, formatToolUse(c.Name, c.Input))
 			}
 		case "tool_result":
-			parts = append(parts, "[tool result]")
+			parts = append(parts, formatToolResult(c.Content))
 		}
 	}
 	return strings.Join(parts, " | ")
+}
+
+// formatToolUse renders a tool_use block as `[tool: Name] arg-summary`.
+// The arg summary picks whichever of the well-known fields (command,
+// file_path, path, url, pattern, description) the tool happened to
+// populate, so Bash, Read, Edit, Grep, and WebFetch all produce a line
+// with useful context instead of a bare tool name. Unknown tools fall
+// back to the compact JSON of their input map.
+func formatToolUse(name string, input json.RawMessage) string {
+	label := "[tool: " + name + "]"
+	if len(input) == 0 || string(input) == "null" || string(input) == "{}" {
+		return label
+	}
+	var args map[string]any
+	if err := json.Unmarshal(input, &args); err != nil {
+		return label
+	}
+	for _, key := range []string{"command", "file_path", "path", "url", "pattern", "query", "description"} {
+		if v, ok := args[key].(string); ok && v != "" {
+			return label + " " + truncate(v, 200)
+		}
+	}
+	compact, err := json.Marshal(args)
+	if err != nil {
+		return label
+	}
+	return label + " " + truncate(string(compact), 200)
+}
+
+// formatToolResult renders a tool_result block. The Claude envelope
+// ships result content as either a plain string or an array of typed
+// blocks ([{type:"text", text:"..."}, ...]). We accept both shapes and
+// fall back to a bare marker when the result is empty or unreadable.
+func formatToolResult(content json.RawMessage) string {
+	label := "[tool result]"
+	if len(content) == 0 || string(content) == "null" {
+		return label
+	}
+	var text string
+	if err := json.Unmarshal(content, &text); err == nil {
+		if text == "" {
+			return label
+		}
+		return label + " " + truncate(text, 240)
+	}
+	var blocks []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal(content, &blocks); err == nil {
+		var parts []string
+		for _, b := range blocks {
+			if b.Type == "text" && b.Text != "" {
+				parts = append(parts, b.Text)
+			}
+		}
+		if len(parts) == 0 {
+			return label
+		}
+		return label + " " + truncate(strings.Join(parts, " "), 240)
+	}
+	return label
 }
 
 func truncate(s string, max int) string {

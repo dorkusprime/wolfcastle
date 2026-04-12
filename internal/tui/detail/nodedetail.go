@@ -93,9 +93,9 @@ func (m *NodeModel) rebuildContent() {
 	heading := tui.DashboardHeadingStyle
 	body := tui.DashboardBodyStyle
 	n := m.node
-	wrapWidth := m.width
+	wrapWidth := m.width - 4
 	if wrapWidth < 20 {
-		wrapWidth = 80
+		wrapWidth = 76
 	}
 
 	var b strings.Builder
@@ -158,7 +158,10 @@ func (m *NodeModel) rebuildContent() {
 			if title == "" {
 				title = t.Description
 			}
-			b.WriteString(body.Render(fmt.Sprintf("  %s %s: %s", glyph, t.ID, title)))
+			header := fmt.Sprintf("  %s %s:", glyph, t.ID)
+			b.WriteString(body.Render(header))
+			b.WriteByte('\n')
+			b.WriteString(body.Render(wrapIndent(title, wrapWidth, "    ")))
 			b.WriteByte('\n')
 		}
 	}
@@ -190,7 +193,10 @@ func (m *NodeModel) rebuildContent() {
 			b.WriteString(body.Render(fmt.Sprintf("  Breadcrumbs: %d", len(audit.Breadcrumbs))))
 			b.WriteByte('\n')
 			for _, bc := range audit.Breadcrumbs {
-				b.WriteString(body.Render(fmt.Sprintf("    [%s] %s: %s", bc.Timestamp.Local().Format("15:04:05"), bc.Task, bc.Text)))
+				header := fmt.Sprintf("    [%s] %s:", bc.Timestamp.Local().Format("15:04:05"), bc.Task)
+				b.WriteString(body.Render(header))
+				b.WriteByte('\n')
+				b.WriteString(body.Render(wrapIndent(bc.Text, wrapWidth, "      ")))
 				b.WriteByte('\n')
 			}
 		}
@@ -198,16 +204,48 @@ func (m *NodeModel) rebuildContent() {
 		openGaps, fixedGaps := countGaps(audit.Gaps)
 		b.WriteString(body.Render(fmt.Sprintf("  Gaps: %d open, %d fixed", openGaps, fixedGaps)))
 		b.WriteByte('\n')
+		for _, g := range audit.Gaps {
+			statusGlyph := "◯"
+			if g.Status == state.GapFixed {
+				statusGlyph = "●"
+			}
+			header := fmt.Sprintf("    %s [%s] %s:", statusGlyph, g.Timestamp.Local().Format("15:04:05"), g.ID)
+			b.WriteString(body.Render(header))
+			b.WriteByte('\n')
+			b.WriteString(body.Render(wrapIndent(g.Description, wrapWidth, "      ")))
+			b.WriteByte('\n')
+			if g.Source != "" {
+				b.WriteString(body.Render("      source: " + g.Source))
+				b.WriteByte('\n')
+			}
+			if g.RemediationTaskID != "" {
+				b.WriteString(body.Render("      remediation: " + g.RemediationTaskID))
+				b.WriteByte('\n')
+			}
+		}
 
 		openEsc := countOpenEscalations(audit.Escalations)
 		b.WriteString(body.Render(fmt.Sprintf("  Escalations: %d open", openEsc)))
 		b.WriteByte('\n')
+		for _, e := range audit.Escalations {
+			header := fmt.Sprintf("    [%s] %s (%s):", e.Timestamp.Local().Format("15:04:05"), e.ID, e.Status)
+			b.WriteString(body.Render(header))
+			b.WriteByte('\n')
+			b.WriteString(body.Render(wrapIndent(e.Description, wrapWidth, "      ")))
+			b.WriteByte('\n')
+			if e.SourceNode != "" {
+				b.WriteString(body.Render("      source: " + e.SourceNode))
+				b.WriteByte('\n')
+			}
+		}
 
+		b.WriteString(body.Render("  Summary:"))
+		b.WriteByte('\n')
 		summary := "none yet"
 		if audit.ResultSummary != "" {
 			summary = audit.ResultSummary
 		}
-		b.WriteString(body.Render("  Summary: " + summary))
+		b.WriteString(body.Render(wrapIndent(summary, wrapWidth, "    ")))
 		b.WriteByte('\n')
 	}
 
