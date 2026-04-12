@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.0
+## 0.6.2
 
 ### Features
 - Per-directory workspace tabs. Each tab owns its own tree, detail pane, search, daemon lifecycle, and watcher. Press `+` to open a directory picker, `-` to close a tab, `<`/`>` to switch. The header renders a tab bar when multiple tabs are open. All directory-dependent state lives on the Tab struct, eliminating the class of bugs where context switches left stale fields on TUIModel.
