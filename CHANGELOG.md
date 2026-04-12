@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.4
+
+### Features
+- Task detail pane renders description, body, deliverables, acceptance criteria, and constraints through glamour, vendorized. File paths and other meta characters are escaped so `file_a.go` stays literal instead of triggering italic emphasis. Glamour's dark style sets the tone; document margins are accounted for in the wrap width so content never overflows the pane.
+- Node detail pane shows gap and escalation details inline under the audit section. Each entry carries a timestamp, ID, source, and a full wrapped description. Audit `result_summary` now wraps cleanly under its own label instead of running off the right edge.
+- Log modal enriches tool activity: `[tool: Bash] command…`, `[tool: Read] /path`, `[tool: Grep] pattern`, and so on. Tool result blocks surface a truncated preview of their content instead of a bare `[tool result]` marker.
+
+### Bug Fixes
+- `wolfcastle task add` and `wolfcastle task amend` switched from pflag's `StringSlice` to `StringArray` for `--deliverable`, `--constraint`, `--acceptance`, `--reference`, and their `--add-*` counterparts. `StringSlice` silently shreds any value containing a comma, so a single acceptance criterion listing "name, slug, description" ended up as three bullets with leading spaces. Newly ingested tasks keep their fields intact; existing state.json files are not self-healed.
+- Long task titles and audit breadcrumb text in node detail are now broken onto their own indented lines with `wrapIndent` instead of being emitted as raw one-shot `fmt.Sprintf` rows.
+- Empty pad lines around glamour blocks are stripped so each section butts flush against its heading instead of floating in a vertical moat.
+
 ## 0.6.3
 
 ### Features

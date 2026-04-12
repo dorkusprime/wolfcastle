@@ -81,9 +81,9 @@ func (m *TaskModel) rebuildContent() {
 	heading := tui.DashboardHeadingStyle
 	body := tui.DashboardBodyStyle
 	t := m.task
-	wrapWidth := m.width
+	wrapWidth := m.width - 4
 	if wrapWidth < 20 {
-		wrapWidth = 80
+		wrapWidth = 76
 	}
 
 	var b strings.Builder
@@ -105,17 +105,15 @@ func (m *TaskModel) rebuildContent() {
 	// Description (skip if identical to title to avoid duplicate)
 	if t.Description != "" && t.Description != t.Title {
 		b.WriteByte('\n')
-		b.WriteString(body.Render(wrapIndent(t.Description, wrapWidth, "")))
-		b.WriteByte('\n')
+		b.WriteString(renderMarkdown(t.Description, wrapWidth))
 	}
 
-	// Body
+	// Body (rendered as markdown)
 	if t.Body != "" {
 		b.WriteByte('\n')
 		b.WriteString(heading.Render("Body:"))
 		b.WriteByte('\n')
-		b.WriteString(body.Render(wrapIndent(t.Body, wrapWidth, "  ")))
-		b.WriteByte('\n')
+		b.WriteString(renderMarkdown(t.Body, wrapWidth))
 	}
 
 	// Class and Type (shown on one block if either is present)
@@ -136,10 +134,7 @@ func (m *TaskModel) rebuildContent() {
 		b.WriteByte('\n')
 		b.WriteString(heading.Render("Deliverables:"))
 		b.WriteByte('\n')
-		for _, d := range t.Deliverables {
-			b.WriteString(body.Render(wrapBullet(d, wrapWidth)))
-			b.WriteByte('\n')
-		}
+		b.WriteString(renderMarkdownList(t.Deliverables, wrapWidth))
 	}
 
 	// Acceptance Criteria
@@ -147,10 +142,7 @@ func (m *TaskModel) rebuildContent() {
 		b.WriteByte('\n')
 		b.WriteString(heading.Render("Acceptance Criteria:"))
 		b.WriteByte('\n')
-		for _, c := range t.AcceptanceCriteria {
-			b.WriteString(body.Render(wrapBullet(c, wrapWidth)))
-			b.WriteByte('\n')
-		}
+		b.WriteString(renderMarkdownList(t.AcceptanceCriteria, wrapWidth))
 	}
 
 	// Constraints
@@ -158,10 +150,7 @@ func (m *TaskModel) rebuildContent() {
 		b.WriteByte('\n')
 		b.WriteString(heading.Render("Constraints:"))
 		b.WriteByte('\n')
-		for _, c := range t.Constraints {
-			b.WriteString(body.Render(wrapBullet(c, wrapWidth)))
-			b.WriteByte('\n')
-		}
+		b.WriteString(renderMarkdownList(t.Constraints, wrapWidth))
 	}
 
 	// References
