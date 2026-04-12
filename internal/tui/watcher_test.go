@@ -823,6 +823,103 @@ func TestPollTick_DeliversLogLinesThroughChannel(t *testing.T) {
 	}
 }
 
+func TestPollTick_DetectsNodeStateChange(t *testing.T) {
+	dir := t.TempDir()
+	store := state.NewStore(dir, time.Second)
+
+	// Create index with one leaf.
+	if err := store.MutateIndex(func(idx *state.RootIndex) error {
+		idx.Root = []string{"proj"}
+		idx.Nodes["proj"] = state.IndexEntry{
+			Name: "proj", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "proj",
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Write per-node state file.
+	ns := state.NewNodeState("proj", "proj", state.NodeLeaf)
+	ns.Tasks = []state.Task{
+		{ID: "task-0001", Title: "do something", State: state.StatusNotStarted},
+	}
+	p, _ := store.NodePath("proj")
+	_ = os.MkdirAll(filepath.Dir(p), 0o755)
+	if err := state.SaveNodeState(p, ns); err != nil {
+		t.Fatal(err)
+	}
+
+	events, next := drainEvents(t)
+	w := NewWatcher(store, "", "", events)
+	// Mark "proj" as subscribed so pollTick checks it.
+	w.subscribed["proj"] = true
+	// Seed index mtime so pollTick doesn't emit a StateUpdatedMsg
+	// that fills the channel before we check for NodeUpdatedMsg.
+	if info, err := os.Stat(store.IndexPath()); err == nil {
+		w.indexMtime = info.ModTime()
+	}
+
+	// First tick: seeds the mtime, emits NodeUpdatedMsg.
+	w.pollTick()
+	found := false
+	for i := 0; i < 8 && !found; i++ {
+		got := next()
+		envelope, ok := got.(WatcherMsg)
+		if !ok {
+			break
+		}
+		if n, ok := envelope.Inner.(NodeUpdatedMsg); ok && n.Address == "proj" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("first pollTick should emit NodeUpdatedMsg for newly-seen node")
+	}
+
+	// Second tick without changes: no new NodeUpdatedMsg.
+	w.pollTick()
+	// Drain: check for spurious NodeUpdatedMsg.
+	for {
+		select {
+		case got := <-events:
+			envelope, ok := got.(WatcherMsg)
+			if !ok {
+				continue
+			}
+			if n, ok := envelope.Inner.(NodeUpdatedMsg); ok && n.Address == "proj" {
+				t.Fatal("pollTick should not re-emit NodeUpdatedMsg when mtime unchanged")
+			}
+		default:
+			goto drained
+		}
+	}
+drained:
+
+	// Mutate the node state and tick again.
+	_ = store.MutateNode("proj", func(ns *state.NodeState) error {
+		ns.Tasks[0].State = state.StatusInProgress
+		return nil
+	})
+	w.pollTick()
+	found = false
+	for i := 0; i < 8 && !found; i++ {
+		got := next()
+		envelope, ok := got.(WatcherMsg)
+		if !ok {
+			break
+		}
+		if n, ok := envelope.Inner.(NodeUpdatedMsg); ok && n.Address == "proj" {
+			if n.Node.Tasks[0].State != state.StatusInProgress {
+				t.Errorf("expected in_progress, got %s", n.Node.Tasks[0].State)
+			}
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("pollTick should emit NodeUpdatedMsg after node state changed")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // EagerPrefetchAndSubscribe — covers the cache-freshness fix
 // ---------------------------------------------------------------------------

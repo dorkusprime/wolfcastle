@@ -501,7 +501,7 @@ func (w *Watcher) pollTick() {
 		if err != nil {
 			continue
 		}
-		if prev, ok := w.nodeMtimes[addr]; ok && info.ModTime() == prev {
+		if prev, ok := w.nodeMtimes[addr]; ok && info.ModTime().Equal(prev) {
 			continue
 		}
 		w.nodeMtimes[addr] = info.ModTime()
