@@ -246,16 +246,19 @@ cat > "$LOG_DIR/0001-exec-20260411T08-00Z.jsonl" << 'LOGEOF'
 {"type":"intake_end","timestamp":"2026-04-11T08:05:15Z","level":"info","trace":"intake","text":"intake complete: 1 filed, 2 deferred"}
 LOGEOF
 
-# Register a fake daemon instance so the TUI shows "hunting" in the header.
-# We start a background sleep process and register its PID, so isProcessRunning
-# returns true during the VHS run.
+# Fake daemon instance setup. We start a background sleep process and
+# register/deregister the instance around tape runs so only the main
+# stage tapes see "hunting" in the header.
 sleep 9999 &
 FAKE_DAEMON_PID=$!
 INSTANCE_DIR="$HOME/.wolfcastle/instances"
 mkdir -p "$INSTANCE_DIR"
 RESOLVED_STAGE="$(cd "$STAGE_MAIN" && pwd -P)"
-SLUG="$(echo "$RESOLVED_STAGE" | tr '/' '-' | sed 's/^-//')"
-cat > "$INSTANCE_DIR/${SLUG}.json" << EOF
+INSTANCE_SLUG="$(echo "$RESOLVED_STAGE" | tr '/' '-' | sed 's/^-//')"
+INSTANCE_FILE="$INSTANCE_DIR/${INSTANCE_SLUG}.json"
+
+register_fake_daemon() {
+    cat > "$INSTANCE_FILE" << EOF
 {
   "pid": $FAKE_DAEMON_PID,
   "worktree": "$RESOLVED_STAGE",
@@ -263,11 +266,16 @@ cat > "$INSTANCE_DIR/${SLUG}.json" << EOF
   "started_at": "2026-04-11T08:00:00Z"
 }
 EOF
-# Clean up the fake instance and process on exit.
-original_cleanup="$(declare -f cleanup)"
+}
+
+deregister_fake_daemon() {
+    rm -f "$INSTANCE_FILE"
+}
+
+# Clean up on exit.
 cleanup() {
     kill $FAKE_DAEMON_PID 2>/dev/null
-    rm -f "$INSTANCE_DIR/${SLUG}.json"
+    deregister_fake_daemon
     for d in "${cleanup_dirs[@]}"; do
         [[ -n "$d" ]] && rm -rf "$d"
     done
@@ -586,6 +594,13 @@ for tape in "$TAPE_DIR"/*.tape; do
 
     # Clean stale lock files from previous VHS runs.
     find "$stage" -name '.lock' -delete 2>/dev/null
+
+    # Register the fake daemon only when running main-stage tapes.
+    if [[ "$stage" == "$STAGE_MAIN" ]]; then
+        register_fake_daemon
+    else
+        deregister_fake_daemon
+    fi
 
     echo "Recording: $name (from $stage)"
 
