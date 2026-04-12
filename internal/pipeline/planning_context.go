@@ -29,6 +29,13 @@ func BuildPlanningContext(nodeAddr string, ns *state.NodeState, trigger string) 
 	if ns.TotalReplans > 0 {
 		fmt.Fprintf(&b, "**Remediation Attempt:** %d of %d\n", ns.TotalReplans, maxReplans)
 	}
+	if ns.ReviewPass > 0 || trigger == "completion_review" {
+		maxReview := ns.MaxReviewPasses
+		if maxReview == 0 {
+			maxReview = 3
+		}
+		fmt.Fprintf(&b, "**Review Pass:** %d of %d\n", ns.ReviewPass, maxReview)
+	}
 	b.WriteString("\n")
 
 	// Scope (never truncated)

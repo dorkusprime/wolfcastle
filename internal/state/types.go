@@ -112,6 +112,8 @@ type NodeState struct {
 	TotalReplans    int            `json:"total_replans,omitempty"` // cumulative replan count across all triggers
 	MaxReplans      int            `json:"max_replans,omitempty"`
 	PlanningHistory []PlanningPass `json:"planning_history,omitempty"`
+	ReviewPass      int            `json:"review_pass,omitempty"`
+	MaxReviewPasses int            `json:"max_review_passes,omitempty"`
 	// Common
 	Audit AuditState     `json:"audit"`
 	AARs  map[string]AAR `json:"aars,omitempty"`

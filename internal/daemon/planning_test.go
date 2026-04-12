@@ -903,3 +903,37 @@ func TestParseOverlapMarkers_BadAddress(t *testing.T) {
 	output := `OVERLAP: "some work" overlaps with Ghost (nonexistent-node)`
 	d.parseOverlapMarkers(output)
 }
+
+func TestSelectPlanningPrompt_CompletionReview(t *testing.T) {
+	t.Parallel()
+	got := selectPlanningPrompt("completion_review")
+	if got != "stages/plan-review.md" {
+		t.Errorf("expected stages/plan-review.md, got %q", got)
+	}
+}
+
+func TestMaxReviewPassesDefault(t *testing.T) {
+	t.Parallel()
+	cfg := config.Defaults()
+	if cfg.Pipeline.Planning.MaxReviewPasses != 3 {
+		t.Errorf("expected default MaxReviewPasses 3, got %d", cfg.Pipeline.Planning.MaxReviewPasses)
+	}
+}
+
+func TestWriteActivityDuringPlanning(t *testing.T) {
+	t.Parallel()
+	d := testDaemon(t)
+
+	d.writeActivity("warzone/backend", "completion_review")
+
+	activity := LoadDaemonActivity(d.WolfcastleDir)
+	if activity == nil {
+		t.Fatal("expected activity file to exist")
+	}
+	if activity.CurrentNode != "warzone/backend" {
+		t.Errorf("expected current_node warzone/backend, got %q", activity.CurrentNode)
+	}
+	if activity.CurrentTask != "completion_review" {
+		t.Errorf("expected current_task completion_review, got %q", activity.CurrentTask)
+	}
+}

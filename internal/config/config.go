@@ -34,6 +34,7 @@ func Defaults() *Config {
 				MaxChildren:     10,
 				MaxTasksPerLeaf: 8,
 				MaxReplans:      3,
+				MaxReviewPasses: 3,
 			},
 			StageOrder: []string{"intake", "execute"},
 			Stages: map[string]PipelineStage{
