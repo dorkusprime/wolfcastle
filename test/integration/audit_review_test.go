@@ -111,4 +111,3 @@ fi
 		t.Errorf("expected 1 completion review, got %s", count)
 	}
 }
-
