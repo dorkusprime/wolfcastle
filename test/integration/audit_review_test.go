@@ -75,7 +75,20 @@ fi
 		t.Fatalf("writing mock script: %v", err)
 	}
 
-	configureMockModelsWithPlanning(t, dir, scriptPath)
+	configureMockModels(t, dir, scriptPath)
+	// Enable planning and set tight iteration limit.
+	mergeLocalConfig(t, dir, map[string]any{
+		"pipeline": map[string]any{
+			"planning": map[string]any{
+				"enabled":           true,
+				"model":             "heavy",
+				"max_review_passes": 3,
+			},
+		},
+		"daemon": map[string]any{
+			"max_iterations": 20,
+		},
+	})
 
 	// Seed the tree via CLI: orchestrator with one child leaf.
 	// Success criteria are required for completion_review to trigger.
@@ -84,7 +97,6 @@ fi
 	run(t, dir, "project", "create", "--node", "review-project", "feature-a")
 	run(t, dir, "task", "add", "--node", "review-project/feature-a", "build the thing")
 
-	setMaxIterations(t, dir, 40)
 	run(t, dir, "start")
 
 	// Verify review_pass was incremented by the CONTINUE handler
