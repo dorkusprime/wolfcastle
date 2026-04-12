@@ -4,7 +4,7 @@ Bare `wolfcastle` launches the terminal interface. No subcommands, no flags. The
 
 The [CLI](cli.md) remains available for scripting, automation, and agent integration. Anything you can see in the TUI, you can query from the command line. The TUI is for humans at a keyboard.
 
-![Wolfcastle TUI](../assets/screenshots/tui-full-layout.png)
+![Wolfcastle TUI](../../assets/screenshots/tui-full-layout.png)
 
 ## Launching
 
@@ -20,7 +20,7 @@ If you run `wolfcastle` inside an initialized project with a running daemon, you
 
 ## The Welcome Screen
 
-![Welcome screen](../assets/screenshots/tui-welcome-sessions.png)
+![Welcome screen](../../assets/screenshots/tui-welcome-sessions.png)
 
 Two panels, side by side. The left panel lists running Wolfcastle sessions across your machine: any daemon that's alive shows up here with its branch and directory. The right panel is a directory browser rooted at your current location.
 
@@ -71,7 +71,7 @@ The main interface is a four-part layout:
 
 ## The Tree
 
-![Tree pane](../assets/screenshots/tui-tree-expanded.png)
+![Tree pane](../../assets/screenshots/tui-tree-expanded.png)
 
 The tree pane renders the project hierarchy with status glyphs, expand/collapse indicators, and a cursor.
 
@@ -109,7 +109,7 @@ Tasks that are in progress show `→` (yellow arrow) instead of `◐`, matching 
 
 ## The Dashboard
 
-![Dashboard](../assets/screenshots/tui-dashboard-active.png)
+![Dashboard](../../assets/screenshots/tui-dashboard-active.png)
 
 Press `d` from anywhere to return to the dashboard. It's the default detail view, the mission briefing.
 
@@ -127,12 +127,12 @@ Two terminal states replace the normal dashboard content:
 - **"All targets eliminated"** when every node in the tree is complete
 - **"Blocked on all fronts. Human intervention required."** when every remaining node is blocked
 
-![All complete](../assets/screenshots/tui-all-complete.png)
-![All blocked](../assets/screenshots/tui-all-blocked.png)
+![All complete](../../assets/screenshots/tui-all-complete.png)
+![All blocked](../../assets/screenshots/tui-all-blocked.png)
 
 ## Node Detail
 
-![Node detail](../assets/screenshots/tui-node-detail.png)
+![Node detail](../../assets/screenshots/tui-node-detail.png)
 
 Press `Enter` on a tree node to open its detail view. The header shows the node name with its status glyph, node type (orchestrator or leaf), and address.
 
@@ -149,7 +149,7 @@ The view scrolls if the content exceeds the terminal height.
 
 ## Task Detail
 
-![Task detail](../assets/screenshots/tui-task-detail.png)
+![Task detail](../../assets/screenshots/tui-task-detail.png)
 
 Press `Enter` on a task row within a node detail to see the full task. The header shows the task ID with its status glyph.
 
@@ -172,17 +172,17 @@ When the task is blocked:
 - **Needs decomposition**: whether the task has hit the decomposition threshold
 - **Is audit**: whether this is an audit task
 
-![Blocked task](../assets/screenshots/tui-task-blocked.png)
+![Blocked task](../../assets/screenshots/tui-task-blocked.png)
 
 ## The Inbox
 
-![Inbox modal](../assets/screenshots/tui-inbox-modal.png)
+![Inbox modal](../../assets/screenshots/tui-inbox-modal.png)
 
 Press `i` to open the inbox modal. The inbox is a list of items you've submitted for the daemon to triage. Each item shows a glyph (`○` for new, `●` for filed), a status label, and a relative timestamp.
 
 `j`/`k` navigate the list. Press `a` to add a new item: a text input appears at the bottom of the modal. Type your idea and press `Enter` to submit it. `Esc` cancels the input if you change your mind, or closes the modal entirely if no input is active.
 
-![Inbox input](../assets/screenshots/tui-inbox-input.png)
+![Inbox input](../../assets/screenshots/tui-inbox-input.png)
 
 The inbox is the fastest path from thought to task. Type a sentence, hit Enter, and the daemon's intake stage picks it up, decomposes it into projects and tasks, and files them into the tree. You can also add items from the CLI with `wolfcastle inbox add`.
 
@@ -197,7 +197,7 @@ The inbox is the fastest path from thought to task. Type a sentence, hit Enter, 
 
 ## The Log Stream
 
-![Log stream](../assets/screenshots/tui-log-modal.png)
+![Log stream](../../assets/screenshots/tui-log-modal.png)
 
 Press `L` (capital) to open the log stream modal. This is a live, scrollable, filterable view of the daemon's log output.
 
@@ -209,7 +209,7 @@ The header bar shows three indicators:
 
 The log stream maintains a circular buffer of up to 10,000 lines. When log files rotate between daemon iterations, a visual separator (`── iteration N ──`) appears in the stream so you can see where one run ends and the next begins.
 
-![Filtered logs](../assets/screenshots/tui-log-filtered.png)
+![Filtered logs](../../assets/screenshots/tui-log-filtered.png)
 
 | Key | Action |
 |-----|--------|
@@ -228,15 +228,13 @@ Scrolling manually pauses follow mode. Press `f` to re-enable it, or `G` to jump
 
 ## Daemon Control
 
-![Start daemon](../assets/screenshots/tui-daemon-start.png)
+![Start daemon](../../assets/screenshots/tui-daemon-start.png)
 
 Press `s` to open the daemon control modal. If no daemon is running, the modal offers to start one. If a daemon is running, it offers to stop it. The modal shows contextual information: current branch, worktree path, and (when stopping) the daemon's PID and whether it's draining.
 
 `Enter` confirms the action. `Esc` cancels without doing anything.
 
 `S` (capital) stops all running daemons across all instances. Use this when you want a clean shutdown of everything.
-
-![Stop daemon](../assets/screenshots/tui-daemon-stop.png)
 
 | Key | Action |
 |-----|--------|
@@ -246,8 +244,6 @@ Press `s` to open the daemon control modal. If no daemon is running, the modal o
 | `Esc` | Cancel |
 
 ## Instance Switching
-
-![Multiple instances](../assets/screenshots/tui-multi-instance.png)
 
 When multiple Wolfcastle daemons are running (different branches, different worktrees), the header bar shows each as a tab. The active instance is highlighted.
 
@@ -261,7 +257,7 @@ When multiple Wolfcastle daemons are running (different branches, different work
 
 ## Search
 
-![Search](../assets/screenshots/tui-search-active.png)
+![Search](../../assets/screenshots/tui-search-active.png)
 
 Press `/` to activate the search bar at the bottom of the screen. Type a query and press `Enter` to search the tree. `Esc` dismisses the search bar without searching.
 
@@ -279,8 +275,6 @@ Matches highlight in yellow. Ancestor nodes of matching nodes (nodes that contai
 
 ## Notifications
 
-![Toast notification](../assets/screenshots/tui-toast.png)
-
 Toast notifications appear in the upper right corner of the terminal. They announce events: task completions, blocks, audit results, daemon state changes. Each toast auto-dismisses after 3 seconds. Up to 5 toasts can stack. Long text is front-truncated to keep the meaningful part visible, with a maximum width of 60 characters.
 
 Notifications are informational. They don't require interaction and won't block your workflow.
@@ -289,7 +283,7 @@ Notifications are informational. They don't require interaction and won't block 
 
 The complete set, organized by context. Press `?` to see this in the TUI itself.
 
-![Help overlay](../assets/screenshots/tui-help-overlay.png)
+![Help overlay](../../assets/screenshots/tui-help-overlay.png)
 
 ### Global
 
