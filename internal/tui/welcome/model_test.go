@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
@@ -333,7 +334,7 @@ func TestView_ShowsTitle(t *testing.T) {
 	m.SetSize(80, 24)
 
 	view := m.View()
-	if !strings.Contains(view, "WOLFCASTLE") {
+	if !strings.Contains(ansi.Strip(view), "WOLFCASTLE") {
 		t.Fatal("expected WOLFCASTLE in view output")
 	}
 }
@@ -856,7 +857,7 @@ func TestPlace_ZeroDimensions(t *testing.T) {
 	m.SetSize(0, 0)
 
 	view := m.View()
-	if !strings.Contains(view, "WOLFCASTLE") {
+	if !strings.Contains(ansi.Strip(view), "WOLFCASTLE") {
 		t.Fatal("expected WOLFCASTLE in view even with zero dimensions")
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"path/filepath"
+	"strings"
 
 	"charm.land/lipgloss/v2"
 
@@ -206,4 +207,27 @@ func InstanceLabel(inst instance.Entry) string {
 		return dir
 	}
 	return dir + " (" + branch + ")"
+}
+
+// BrandGradient are the ANSI 256 color stops for the WOLFCASTLE
+// gradient title: cyan → purple → magenta → gold.
+var BrandGradient = []string{"51", "44", "135", "170", "205", "211", "214", "220", "220", "226"}
+
+// RenderGradientTitle renders each character of text with the brand
+// gradient, using bg as the background color for each character cell.
+// Pass nil for bg to use the terminal default.
+func RenderGradientTitle(text string, bg color.Color) string {
+	var b strings.Builder
+	runes := []rune(text)
+	for i, r := range runes {
+		idx := i * (len(BrandGradient) - 1) / max(len(runes)-1, 1)
+		style := lipgloss.NewStyle().
+			Foreground(lipgloss.Color(BrandGradient[idx])).
+			Bold(true)
+		if bg != nil {
+			style = style.Background(bg)
+		}
+		b.WriteString(style.Render(string(r)))
+	}
+	return b.String()
 }
