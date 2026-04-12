@@ -203,6 +203,40 @@ run_tape() {
     return 1
 }
 
+# ---------------------------------------------------------------------------
+# Run a tape that produces a .gif (VHS `Output foo.gif`). Same retry shape
+# as run_tape, but the size floor is larger since gifs are heavier.
+# ---------------------------------------------------------------------------
+run_tape_gif() {
+    local tape="$1" stage="$2" name="$3"
+    local min_bytes=100000
+    echo "Recording: $name (from $stage) [gif]"
+    for attempt in 1 2 3 4 5; do
+        find "$stage" -name '.lock' -delete 2>/dev/null || true
+        (cd "$stage" && vhs "$tape" 2>&1) || {
+            echo "  attempt $attempt: vhs failed" >&2
+            sleep 2
+            continue
+        }
+        if [[ -f "$stage/$name.gif" ]] && [[ $(wc -c < "$stage/$name.gif") -gt $min_bytes ]]; then
+            mv "$stage/$name.gif" "$OUT_DIR/$name.gif"
+            echo "  -> $OUT_DIR/$name.gif ($(wc -c < "$OUT_DIR/$name.gif" | tr -d ' ') bytes)"
+            return 0
+        fi
+        local sz=0
+        [[ -f "$stage/$name.gif" ]] && sz=$(wc -c < "$stage/$name.gif" | tr -d ' ')
+        echo "  attempt $attempt: gif ${sz} bytes (need >${min_bytes}), retrying..." >&2
+        sleep 2
+    done
+    if [[ -f "$stage/$name.gif" ]]; then
+        mv "$stage/$name.gif" "$OUT_DIR/$name.gif"
+        echo "  WARNING: $name.gif captured but small ($(wc -c < "$OUT_DIR/$name.gif" | tr -d ' ') bytes)" >&2
+        return 0
+    fi
+    echo "  FAILED: $name.gif not captured after 5 attempts" >&2
+    return 1
+}
+
 
 # ===========================================================================
 #
@@ -351,28 +385,23 @@ INBOXEOF
 # Log data
 LOG_DIR="$STAGE_MAIN/.wolfcastle/system/logs"
 mkdir -p "$LOG_DIR"
-cat > "$LOG_DIR/0001-exec-20260411T08-00Z.jsonl" << 'LOGEOF'
-{"type":"daemon_lifecycle","timestamp":"2026-04-11T08:00:01Z","level":"info","trace":"exec","event":"start","text":"daemon started on branch main"}
-{"type":"iteration_header","timestamp":"2026-04-11T08:00:02Z","level":"info","trace":"exec","iteration":1,"node":"warzone/backend/api","task":"task-1","text":"claiming task: Implement REST endpoints"}
-{"type":"stage_start","timestamp":"2026-04-11T08:00:03Z","level":"info","trace":"exec","stage":"execute","node":"warzone/backend/api","task":"task-1"}
-{"type":"model_invoke","timestamp":"2026-04-11T08:00:04Z","level":"debug","trace":"exec","stage":"execute","text":"invoking model: claude -p --model claude-sonnet-4-20250514","node":"warzone/backend/api"}
-{"type":"breadcrumb","timestamp":"2026-04-11T08:01:30Z","level":"info","trace":"exec","node":"warzone/backend/api","task":"task-1","text":"implemented GET /api/donuts, POST /api/donuts, DELETE /api/donuts/:id"}
-{"type":"breadcrumb","timestamp":"2026-04-11T08:01:45Z","level":"info","trace":"exec","node":"warzone/backend/api","task":"task-1","text":"added integration tests for all CRUD endpoints, 100% pass rate"}
-{"type":"marker","timestamp":"2026-04-11T08:02:00Z","level":"info","trace":"exec","marker":"WOLFCASTLE_COMPLETE","node":"warzone/backend/api","task":"task-1","text":"task complete"}
-{"type":"commit","timestamp":"2026-04-11T08:02:05Z","level":"info","trace":"exec","text":"committed: wolfcastle: warzone/backend/api/task-1 complete","node":"warzone/backend/api"}
-{"type":"stage_end","timestamp":"2026-04-11T08:02:06Z","level":"info","trace":"exec","stage":"execute","duration_ms":123000,"exit_code":0}
-{"type":"iteration_header","timestamp":"2026-04-11T08:02:10Z","level":"info","trace":"exec","iteration":2,"node":"warzone/backend/auth","task":"task-1","text":"claiming task: Add OAuth2 PKCE flow"}
+cat > "$LOG_DIR/9999-exec-20260411T08-00Z.jsonl" << 'LOGEOF'
+{"type":"daemon_lifecycle","timestamp":"2026-04-11T08:00:01Z","level":"info","trace":"exec","event":"start"}
 {"type":"stage_start","timestamp":"2026-04-11T08:02:11Z","level":"info","trace":"exec","stage":"execute","node":"warzone/backend/auth","task":"task-1"}
-{"type":"model_invoke","timestamp":"2026-04-11T08:02:12Z","level":"debug","trace":"exec","stage":"execute","text":"invoking model: claude -p --model claude-sonnet-4-20250514","node":"warzone/backend/auth"}
-{"type":"breadcrumb","timestamp":"2026-04-11T08:04:00Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"scaffolded /authorize and /token endpoints with PKCE challenge verification"}
-{"type":"validation","timestamp":"2026-04-11T08:04:15Z","level":"warn","trace":"exec","node":"warzone/backend/auth","text":"test coverage at 78%, below 80% threshold"}
-{"type":"breadcrumb","timestamp":"2026-04-11T08:04:30Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"added JWKS rotation with configurable key lifetime (default 24h)"}
-{"type":"validation","timestamp":"2026-04-11T08:04:45Z","level":"info","trace":"exec","node":"warzone/backend/auth","text":"test coverage now 91%, all OAuth2 conformance tests pass"}
-{"type":"marker","timestamp":"2026-04-11T08:05:00Z","level":"info","trace":"exec","marker":"WOLFCASTLE_YIELD","node":"warzone/backend/auth","task":"task-1","text":"yielding for next iteration"}
-{"type":"stage_end","timestamp":"2026-04-11T08:05:01Z","level":"info","trace":"exec","stage":"execute","duration_ms":170000,"exit_code":0}
-{"type":"intake_start","timestamp":"2026-04-11T08:05:05Z","level":"info","trace":"intake","text":"processing inbox: 3 items pending"}
-{"type":"intake_item","timestamp":"2026-04-11T08:05:10Z","level":"info","trace":"intake","text":"filed: Add rate limiting to the API -> warzone/backend/api"}
-{"type":"intake_end","timestamp":"2026-04-11T08:05:15Z","level":"info","trace":"intake","text":"intake complete: 1 filed, 2 deferred"}
+{"type":"assistant","timestamp":"2026-04-11T08:02:14Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"thinking\",\"thinking\":\"I need to implement the OAuth2 PKCE flow for public clients. Let me start by reading the existing auth module to see what's already wired up.\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:02:16Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"I'll start by exploring the internal/auth directory layout.\"},{\"type\":\"tool_use\",\"name\":\"Glob\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:02:22Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"thinking\",\"thinking\":\"Good, there's an existing session.go but no PKCE support. I'll need /authorize and /token endpoints plus a code challenge verifier. The S256 method is required for public clients per RFC 7636.\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:02:28Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Writing the PKCE challenge verification helper first, then I'll wire it into the authorize endpoint.\"},{\"type\":\"tool_use\",\"name\":\"Write\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:02:41Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"thinking\",\"thinking\":\"Now I need to add the /authorize handler that generates code challenges using SHA256. I'll use crypto/subtle for the constant-time comparison on the verifier side.\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:02:49Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Adding the /authorize route handler with S256 challenge generation.\"},{\"type\":\"tool_use\",\"name\":\"Edit\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:03:02Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Now wiring the /token endpoint to verify the code verifier against the stored challenge.\"},{\"type\":\"tool_use\",\"name\":\"Edit\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:03:14Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"thinking\",\"thinking\":\"I need to add JWKS rotation so the signing keys don't live forever. I'll make the lifetime configurable and default to 24h, which matches what most providers use.\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:03:21Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Implementing JWKS key rotation with a 24h default lifetime.\"},{\"type\":\"tool_use\",\"name\":\"Write\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:03:35Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Running the OAuth2 conformance suite.\"},{\"type\":\"tool_use\",\"name\":\"Bash\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:03:48Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"thinking\",\"thinking\":\"Tests pass but coverage dropped to 78%, below the 80% threshold. I'm missing a test for the refresh token rotation path, which is the one the threat model cares about most.\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:03:55Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Adding a refresh token rotation test that exercises the replay-detection path.\"},{\"type\":\"tool_use\",\"name\":\"Edit\"}]}}"}
+{"type":"assistant","timestamp":"2026-04-11T08:04:08Z","level":"info","trace":"exec","node":"warzone/backend/auth","task":"task-1","text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Coverage is now at 91%. All OAuth2 PKCE conformance tests pass. Task complete.\"}]}}"}
+{"type":"stage_complete","timestamp":"2026-04-11T08:04:10Z","level":"info","trace":"exec","stage":"execute","exit_code":0}
 LOGEOF
 
 echo "  Main stage:     $STAGE_MAIN"
@@ -961,6 +990,34 @@ for name in "${MAIN_TAPES[@]}"; do
         FAILED=$((FAILED + 1))
     fi
 done
+
+# ---------------------------------------------------------------------------
+# Hero GIF: README hero image. Runs last in the MAIN group so the daemon is
+# still alive (header shows "hunting") and so the post-boot log seed below
+# is the freshest thing in the log directory.
+#
+# The daemon's logger scans the log dir at boot to set its iteration counter,
+# then never rescans. Dropping a duplicate of the seeded narrative log at an
+# astronomically high iteration after boot means the TUI watcher's
+# LatestLogFile query prefers it over anything the daemon writes at runtime,
+# so the log modal in the gif shows the scripted assistant narrative instead
+# of the daemon's iteration-loop churn on the stale in-progress task.
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== HERO tape (gif) ==="
+cp "$STAGE_MAIN/.wolfcastle/system/logs/9999-exec-20260411T08-00Z.jsonl" \
+   "$STAGE_MAIN/.wolfcastle/system/logs/99999999-exec-20260412T02-00Z.jsonl"
+hero_tape="$TAPE_DIR/tui-hero.tape"
+if [[ -f "$hero_tape" ]]; then
+    if run_tape_gif "$hero_tape" "$STAGE_MAIN" "tui-hero"; then
+        SUCCESS=$((SUCCESS + 1))
+    else
+        FAILED=$((FAILED + 1))
+    fi
+else
+    echo "WARNING: tape not found: $hero_tape" >&2
+    FAILED=$((FAILED + 1))
+fi
 
 # ---------------------------------------------------------------------------
 # Stop the main daemon before running no-daemon groups
