@@ -185,9 +185,9 @@ func (m *Model) buildContent() {
 		b.WriteString(sectionStyle.Render(sec.title))
 		b.WriteString("\n")
 		for _, kb := range sec.bindings {
-			b.WriteString(fmt.Sprintf("  %s%s\n",
+			fmt.Fprintf(&b, "  %s%s\n",
 				keyStyle.Render(fmt.Sprintf("%-12s", kb.key)),
-				descStyle.Render(kb.desc)))
+				descStyle.Render(kb.desc))
 		}
 	}
 

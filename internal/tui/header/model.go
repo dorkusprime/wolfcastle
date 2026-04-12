@@ -49,7 +49,7 @@ type SpinnerTickMsg struct{}
 // ---------------------------------------------------------------------------
 
 var (
-	headerBg  color.Color = lipgloss.Color("23") // deep teal
+	headerBg  color.Color = lipgloss.Color("23")  // deep teal
 	headerFg  color.Color = lipgloss.Color("15")  // white
 	clrGreen  color.Color = lipgloss.Color("2")   // ● complete
 	clrYellow color.Color = lipgloss.Color("3")   // ◐ in_progress

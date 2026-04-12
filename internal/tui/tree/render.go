@@ -184,29 +184,6 @@ func renderNodeRow(row Row, width int, selected bool, isCurrentTarget bool, lite
 	return styleNormal.Width(width).Render(colored)
 }
 
-// renderNodeRowWithBg renders a node row with a solid background
-// color (used for both literal-match and ancestor-of-match
-// highlights). The two cases differ only in the bg/fg pair, so the
-// shared layout/padding logic lives here.
-func renderNodeRowWithBg(row Row, width int, indent, marker, name string, isCurrentTarget bool, bgColor, fgColor color.Color) string {
-	bg := lipgloss.NewStyle().Background(bgColor).Foreground(fgColor)
-	var target string
-	if isCurrentTarget {
-		target = bg.Bold(true).Render("▶ ")
-	}
-	glyph := statusGlyphOnBg(row.Status, bgColor)
-	var hint string
-	if row.TaskHint != "" {
-		hint = bg.Render(" " + row.TaskHint)
-	}
-	text := bg.Render(indent+marker+" ") + target + bg.Render(name+" ") + glyph + hint
-	used := lipgloss.Width(text)
-	if used < width {
-		text += bg.Render(strings.Repeat(" ", width-used))
-	}
-	return text
-}
-
 // renderNodeRowWithFg renders a node row with a colored foreground
 // (no background change). Used for search highlighting to avoid
 // the visual clutter of background-colored blocks.
@@ -278,19 +255,6 @@ func renderTaskRow(row Row, width int, selected bool, literalHit, ancestorHit bo
 }
 
 // renderTaskRowWithBg renders a task row with a solid background
-// for both literal-match and ancestor-of-match highlight cases.
-// The two differ only in the bg/fg pair.
-func renderTaskRowWithBg(row Row, width int, indent, taskID, title string, bgColor, fgColor color.Color) string {
-	glyph := taskStatusGlyphOnBg(row.Status, bgColor)
-	bg := lipgloss.NewStyle().Background(bgColor).Foreground(fgColor)
-	text := bg.Render(indent) + glyph + bg.Render(" "+taskID+": "+title)
-	used := lipgloss.Width(text)
-	if used < width {
-		text += bg.Render(strings.Repeat(" ", width-used))
-	}
-	return text
-}
-
 // View renders the visible portion of the tree as a single string.
 func (m Model) View() string {
 	if len(m.flatList) == 0 {
