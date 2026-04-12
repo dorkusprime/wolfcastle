@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.6.1
+
+### Bug Fixes
+- TUI launched from outside a project directory (cold start) now updates live. The poll chain, watcher event drain, and per-node state polling all start unconditionally in Init(), so instance auto-discovery works correctly. (#268)
+- Orchestrator state propagation no longer overwrites `NeedsPlanning`. PropagateUp and reconcileOrchestratorStates hold orchestrators at in_progress when planning is pending, preventing completion_review from being silently skipped. (#261)
+- Stale in-memory index no longer blocks completion_review triggers. The index entry for a completed node is refreshed from disk before checkReplanningTriggers runs. (#261)
+- Log renderer in `wolfcastle start` no longer replays old session logs. SnapshotExisting records file sizes before the daemon starts; only new content is rendered. (#263, #267)
+- Per-node state polling added as a fallback alongside fsnotify. macOS kqueue can silently drop events for certain paths; the 2-second poll tick now checks subscribed node mtimes directly. (#268)
+
+### Quality
+- Extracted `state.StateFileName` constant, replacing 6 hardcoded `"state.json"` literals. (#262)
+- Wrapped bare error return in `runPlanningPass` with context. (#262)
+- Integration test for the full completion_review loop (`TestDaemon_ExploratoryReview_CreatesRemediationLeaf`). (#261)
+- Unit test for PropagateUp NeedsPlanning guard. (#261)
+- Unit test for per-node mtime polling in the TUI watcher. (#268)
+
+### Documentation
+- Voice fixes: replaced "helps" with direct phrasing, em dashes with colons. (#262)
+- Screenshot generator: orchestrator nodes include ChildRef arrays, stall model prevents state mutation during capture. Regenerated all 16 screenshots. (#264, #265, #266)
+
 ## 0.6.0
 
 ### Features
