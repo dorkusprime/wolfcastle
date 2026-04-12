@@ -36,9 +36,14 @@ Sleep 250ms
 Type "l"
 Sleep 900ms
 
-# Drop to frontend and expand -> components, routing
+# Drop to frontend and expand -> components, routing.
+# Tree order after warzone+backend expanded:
+#   warzone, backend, api, auth, database, frontend, infra, demo-app
+# G lands on demo-app; two k's step up past infra to frontend.
 Type "G"
 Sleep 250ms
+Type "k"
+Sleep 150ms
 Type "k"
 Sleep 250ms
 Type "l"
