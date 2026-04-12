@@ -155,13 +155,19 @@ func (m TUIModel) Init() tea.Cmd {
 
 	cmds = append(cmds, m.detectEntryState())
 
+	// Always start the poll chain and watcher event drain, even when
+	// store is nil (no .wolfcastle in CWD). Without the poller, the
+	// 2-second state refresh never begins after instance auto-discovery.
+	// Without the drain, watcher events from a post-switch watcher
+	// pile up in the channel and never reach the model (no log
+	// streaming, no per-node updates).
+	cmds = append(cmds, m.startPoller(), waitForWatcherEvent(m.watcherEvents))
+
 	if m.store != nil {
 		m.header.SetLoading(true)
 		cmds = append(cmds,
 			m.startWatcher(),
-			m.startPoller(),
 			m.loadInitialState(),
-			waitForWatcherEvent(m.watcherEvents),
 		)
 	}
 
@@ -1540,9 +1546,12 @@ func newWatcherFor(store *state.Store, repo *daemon.Repository, events chan tea.
 		instanceDir = dir
 	}
 	w := tui.NewWatcher(store, logDir, instanceDir, events)
-	if err := w.Start(); err != nil {
-		w.StartPolling()
-	}
+	_ = w.Start() // best-effort fsnotify for instant reactivity
+	// Always start polling regardless of fsnotify status. macOS
+	// kqueue silently drops events for certain paths (/tmp, etc.).
+	// Polling checks mtimes before emitting, so duplicate events
+	// from both mechanisms are harmless.
+	w.StartPolling()
 	_ = w.EagerPrefetchAndSubscribe()
 	return w
 }

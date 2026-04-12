@@ -41,6 +41,11 @@ type Watcher struct {
 	mu          sync.Mutex
 	useFsnotify bool
 
+	// nodeMtimes tracks the last-seen mtime for each subscribed
+	// node's state.json, used by pollTick to detect changes when
+	// fsnotify events don't arrive.
+	nodeMtimes map[string]time.Time
+
 	// subscribed tracks which leaf addresses already have an
 	// fsnotify subscription via AddNodeWatch + an initial cache
 	// load via NodeUpdatedMsg. EagerPrefetchAndSubscribe consults
@@ -72,6 +77,7 @@ func NewWatcher(store *state.Store, logDir, instanceDir string, events chan<- te
 		done:        make(chan struct{}),
 		useFsnotify: true,
 		subscribed:  make(map[string]bool),
+		nodeMtimes:  make(map[string]time.Time),
 	}
 }
 
@@ -479,11 +485,32 @@ func (w *Watcher) pollTick() {
 			}
 		}
 	}
-	// PollTickMsg is owned by the model's own tea.Tick scheduler; the
-	// watcher does not emit it. The model uses tea.Tick to drive
-	// detect-entry-state and pollState refreshes on a fixed cadence
-	// regardless of whether filesystem activity triggered a watcher
-	// event.
+	// Check subscribed node state files for changes.
+	w.mu.Lock()
+	addrs := make([]string, 0, len(w.subscribed))
+	for addr := range w.subscribed {
+		addrs = append(addrs, addr)
+	}
+	w.mu.Unlock()
+	for _, addr := range addrs {
+		p, err := w.store.NodePath(addr)
+		if err != nil {
+			continue
+		}
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		if prev, ok := w.nodeMtimes[addr]; ok && info.ModTime().Equal(prev) {
+			continue
+		}
+		w.nodeMtimes[addr] = info.ModTime()
+		node, err := w.store.ReadNode(addr)
+		if err != nil {
+			continue
+		}
+		w.emit(NodeUpdatedMsg{Address: addr, Node: node})
+	}
 }
 
 // AddNodeWatch adds an fsnotify watch on a specific node's state.json,
