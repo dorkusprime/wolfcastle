@@ -1,4 +1,15 @@
-# Search bar with query
+# Search screenshot: uses dedicated search staging directory
+# Tree designed so "auth" matches:
+#   warzone       olive (ancestor)
+#   backend       olive (ancestor, expanded)
+#     api         unhighlighted
+#     auth        YELLOW (literal leaf match, expanded)
+#       -> PKCE   YELLOW (literal task match, contains "auth")
+#       -> Session unhighlighted task
+#       -> Audit  unhighlighted
+#     database    unhighlighted
+#   frontend      olive (ancestor, COLLAPSED, contains auth-gateway)
+#   infra         unhighlighted
 Set Shell "bash"
 Set Width 1200
 Set Height 800
@@ -12,22 +23,38 @@ Set TypingSpeed 0
 Type "wolfcastle"
 Enter
 Sleep 10s
-# Sync alt-screen with refresh
 Type "R"
 Sleep 2s
 Type "R"
 Sleep 1s
 
-# Expand tree first so search has visible nodes
+# Expand warzone
 Type "l"
 Sleep 1s
 
-# Open search
-Type "/"
+# Expand backend
+Type "j"
+Sleep 500ms
+Type "l"
 Sleep 1s
 
-# Type search query
-Type "backend"
+# Navigate to auth and expand to show task rows
+Type "g"
+Sleep 500ms
+Type "j"
+Sleep 200ms
+Type "j"
+Sleep 200ms
+Type "j"
+Sleep 200ms
+Type "l"
+Sleep 1s
+
+# Search for "auth"
+Type "/"
+Sleep 500ms
+Type "auth"
+Enter
 Sleep 1s
 
 Screenshot tui-search-active.png
