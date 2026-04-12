@@ -124,7 +124,7 @@ func ApplyDeterministicFixesRepo(
 		if err != nil {
 			return nil, "", err
 		}
-		statePath := filepath.Join(projectsDir, filepath.Join(a.Parts...), "state.json")
+		statePath := filepath.Join(projectsDir, filepath.Join(a.Parts...), state.StateFileName)
 		if cached, ok := modifiedStates[statePath]; ok {
 			return cached, statePath, nil
 		}

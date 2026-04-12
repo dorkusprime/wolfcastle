@@ -16,7 +16,7 @@ The TUI opens in one of three states depending on the project directory:
 | **Cold** | `.wolfcastle/` exists, no daemon | Tree pane, dashboard (static), daemon controls |
 | **Welcome** | No `.wolfcastle/` directory | Session browser and directory navigator |
 
-If you run `wolfcastle` inside an initialized project with a running daemon, you land in the live view immediately. If the daemon isn't running, you get the same layout but static, with the option to start one. Outside any project, the welcome screen helps you find or create one.
+If you run `wolfcastle` inside an initialized project with a running daemon, you land in the live view immediately. If the daemon isn't running, you get the same layout but static, with the option to start one. Outside any project, the welcome screen lets you find or create one.
 
 ## The Welcome Screen
 

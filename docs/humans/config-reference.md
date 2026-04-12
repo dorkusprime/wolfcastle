@@ -662,7 +662,7 @@ Configures the structural validation and repair command (see ADR-025). The `wolf
 
 ## unblock
 
-Configures the unblock workflow (see ADR-028). The `wolfcastle unblock` command helps resolve blocked tasks by analyzing the blocking condition and suggesting remediation.
+Configures the unblock workflow (see ADR-028). The `wolfcastle unblock` command resolves blocked tasks by analyzing the blocking condition and suggesting remediation.
 
 ### unblock.model
 
