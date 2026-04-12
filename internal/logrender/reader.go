@@ -78,9 +78,10 @@ func (r *ReplayReader) readFile(path string, ch chan<- Record) {
 // configurable interval. It detects new iteration files as they appear and
 // streams records from them in order. Cancelling the context stops the reader.
 type FollowReader struct {
-	dir        string
-	interval   time.Duration
-	aliveCheck func() bool
+	dir          string
+	interval     time.Duration
+	aliveCheck   func() bool
+	skipExisting bool
 }
 
 // NewFollowReader creates a reader that tails logDir for new NDJSON content.
@@ -91,6 +92,13 @@ func NewFollowReader(logDir string, interval time.Duration) *FollowReader {
 		interval = 200 * time.Millisecond
 	}
 	return &FollowReader{dir: logDir, interval: interval}
+}
+
+// SetSkipExisting causes the first poll cycle to fast-forward all existing
+// files to EOF so only content written after the reader starts is emitted.
+// Call before Records().
+func (r *FollowReader) SetSkipExisting() {
+	r.skipExisting = true
 }
 
 // SetAliveCheck registers an optional callback that the poll loop calls
@@ -134,7 +142,15 @@ func (r *FollowReader) poll(ctx context.Context, ch chan<- Record) {
 	defer ticker.Stop()
 
 	// Run one cycle immediately before waiting on the ticker.
-	r.cycle(tracked, &orderedPaths, ch)
+	// When skipExisting is set, the first cycle discovers files and
+	// fast-forwards to EOF so only new content is emitted. This
+	// prevents replaying old session logs when wolfcastle start
+	// creates a renderer.
+	if r.skipExisting {
+		r.cycle(tracked, &orderedPaths, nil) // nil ch = discover + seek, no emit
+	} else {
+		r.cycle(tracked, &orderedPaths, ch)
+	}
 
 	cycles := 0
 	for {
@@ -196,13 +212,23 @@ func (r *FollowReader) cycle(tracked map[string]*fileState, orderedPaths *[]stri
 
 // readNewLines reads any content appended since the last read and sends
 // parsed records to ch. Only complete lines (terminated by \n) are consumed;
-// a partial trailing line is left for the next poll cycle.
+// a partial trailing line is left for the next poll cycle. When ch is nil
+// the file is seeked to EOF without parsing (used by SetSkipExisting).
 func (r *FollowReader) readNewLines(fs *fileState, ch chan<- Record) {
 	f, err := os.Open(fs.path)
 	if err != nil {
 		return
 	}
 	defer func() { _ = f.Close() }()
+
+	// Fast-forward: seek to EOF and record the position.
+	if ch == nil {
+		end, err := f.Seek(0, io.SeekEnd)
+		if err == nil {
+			fs.offset = end
+		}
+		return
+	}
 
 	// Read all new bytes from the last-known offset.
 	if _, err := f.Seek(fs.offset, io.SeekStart); err != nil {
