@@ -34,8 +34,8 @@ func TestView_RendersKeyHints(t *testing.T) {
 	if !strings.Contains(v, "[Tab] focus") {
 		t.Errorf("expected [Tab] focus, got: %s", v)
 	}
-	if !strings.Contains(v, "[<>] switch") {
-		t.Errorf("expected [<>] switch, got: %s", v)
+	if !strings.Contains(v, "[<>] tab") {
+		t.Errorf("expected [<>] tab, got: %s", v)
 	}
 	if !strings.Contains(v, "[?] help") {
 		t.Errorf("expected [?] help, got: %s", v)

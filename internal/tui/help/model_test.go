@@ -14,15 +14,17 @@ func TestHelpContentIncludesDaemonControl(t *testing.T) {
 
 	view := m.View()
 
-	if !strings.Contains(view, "Daemon Control") {
-		t.Error("help overlay should include 'Daemon Control' section")
+	if !strings.Contains(view, "Daemon & Tabs") {
+		t.Error("help overlay should include 'Daemon & Tabs' section")
 	}
 
 	expectedBindings := []string{
 		"start/stop daemon",
 		"stop all",
-		"switch instance",
-		"select instance",
+		"new tab",
+		"close tab",
+		"prev tab",
+		"next tab",
 	}
 	for _, binding := range expectedBindings {
 		if !strings.Contains(view, binding) {

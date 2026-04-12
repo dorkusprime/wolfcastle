@@ -127,12 +127,14 @@ func (m *Model) buildContent() {
 			},
 		},
 		{
-			title: "Daemon Control",
+			title: "Daemon & Tabs",
 			bindings: []binding{
 				{"s", "start/stop daemon (modal)"},
 				{"S", "stop all daemons"},
-				{"< >", "switch instance"},
-				{"1-9", "select instance"},
+				{"+", "new tab"},
+				{"-", "close tab"},
+				{"<", "prev tab"},
+				{">", "next tab"},
 			},
 		},
 		{

@@ -30,7 +30,7 @@ const (
 func newWelcomeTUI(t *testing.T) *teatest.TestModel {
 	t.Helper()
 	dir := t.TempDir()
-	m := app.NewTUIModel(nil, nil, dir, "test")
+	m := app.NewTUIModel(dir, "test")
 	return teatest.NewTestModel(t, m, teatest.WithInitialTermSize(termWidth, termHeight))
 }
 
@@ -39,7 +39,7 @@ func newColdTUI(t *testing.T) *teatest.TestModel {
 	t.Helper()
 	env := testutil.NewEnvironment(t)
 	repoDir := filepath.Dir(env.Root) // parent of .wolfcastle/
-	m := app.NewTUIModel(env.State, env.Daemon, repoDir, "test")
+	m := app.NewTUIModel(repoDir, "test")
 	return teatest.NewTestModel(t, m, teatest.WithInitialTermSize(termWidth, termHeight))
 }
 
@@ -49,7 +49,7 @@ func newColdTUIWithTree(t *testing.T) *teatest.TestModel {
 	env := testutil.NewEnvironment(t)
 	populateTree(t, env)
 	repoDir := filepath.Dir(env.Root)
-	m := app.NewTUIModel(env.State, env.Daemon, repoDir, "test")
+	m := app.NewTUIModel(repoDir, "test")
 	return teatest.NewTestModel(t, m, teatest.WithInitialTermSize(termWidth, termHeight))
 }
 
@@ -133,7 +133,7 @@ func newColdTUIAllComplete(t *testing.T) *teatest.TestModel {
 	env := testutil.NewEnvironment(t)
 	populateAllComplete(t, env)
 	repoDir := filepath.Dir(env.Root)
-	m := app.NewTUIModel(env.State, env.Daemon, repoDir, "test")
+	m := app.NewTUIModel(repoDir, "test")
 	return teatest.NewTestModel(t, m, teatest.WithInitialTermSize(termWidth, termHeight))
 }
 
@@ -143,7 +143,7 @@ func newColdTUIAllBlocked(t *testing.T) *teatest.TestModel {
 	env := testutil.NewEnvironment(t)
 	populateAllBlocked(t, env)
 	repoDir := filepath.Dir(env.Root)
-	m := app.NewTUIModel(env.State, env.Daemon, repoDir, "test")
+	m := app.NewTUIModel(repoDir, "test")
 	return teatest.NewTestModel(t, m, teatest.WithInitialTermSize(termWidth, termHeight))
 }
 
@@ -154,7 +154,7 @@ func newColdTUIWithMixedStates(t *testing.T) *teatest.TestModel {
 	env := testutil.NewEnvironment(t)
 	populateMixedTree(t, env)
 	repoDir := filepath.Dir(env.Root)
-	m := app.NewTUIModel(env.State, env.Daemon, repoDir, "test")
+	m := app.NewTUIModel(repoDir, "test")
 	return teatest.NewTestModel(t, m, teatest.WithInitialTermSize(termWidth, termHeight))
 }
 

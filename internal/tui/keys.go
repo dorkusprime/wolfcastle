@@ -54,20 +54,24 @@ var TreeKeyMap = TreeKeys{
 	Bottom:   key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "bottom")),
 }
 
-// DaemonKeys defines key bindings for daemon start/stop and instance switching.
+// DaemonKeys defines key bindings for daemon start/stop and tab management.
 type DaemonKeys struct {
 	ToggleDaemon key.Binding
 	StopAll      key.Binding
-	PrevInstance key.Binding
-	NextInstance key.Binding
+	PrevTab      key.Binding
+	NextTab      key.Binding
+	NewTab       key.Binding
+	CloseTab     key.Binding
 }
 
-// DaemonKeyMap is the default set of daemon control key bindings.
+// DaemonKeyMap is the default set of daemon and tab key bindings.
 var DaemonKeyMap = DaemonKeys{
 	ToggleDaemon: key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "start/stop")),
 	StopAll:      key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "stop all")),
-	PrevInstance: key.NewBinding(key.WithKeys("<"), key.WithHelp("<", "prev instance")),
-	NextInstance: key.NewBinding(key.WithKeys(">"), key.WithHelp(">", "next instance")),
+	PrevTab:      key.NewBinding(key.WithKeys("<"), key.WithHelp("<", "prev tab")),
+	NextTab:      key.NewBinding(key.WithKeys(">"), key.WithHelp(">", "next tab")),
+	NewTab:       key.NewBinding(key.WithKeys("+"), key.WithHelp("+", "new tab")),
+	CloseTab:     key.NewBinding(key.WithKeys("-"), key.WithHelp("-", "close tab")),
 }
 
 // SearchKeys defines key bindings for the search bar and match navigation.

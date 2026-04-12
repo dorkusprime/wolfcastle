@@ -243,16 +243,32 @@ Press `s` to open the daemon control modal. If no daemon is running, the modal o
 | `Enter` | Confirm |
 | `Esc` | Cancel |
 
-## Instance Switching
+## Tabs (Workspaces)
 
-When multiple Wolfcastle daemons are running (different repositories, different branches, different worktrees), the header bar shows each as a tab. The active instance is highlighted.
+Each tab is a self-contained workspace: its own directory, tree, detail pane, search state, and daemon lifecycle. You can have one tab watching a backend daemon churn through tasks while another sits open on a frontend project you haven't started yet. Background tabs keep their watchers running, so switching back is instant and up to date.
 
-`<` and `>` cycle through instances. `1` through `9` jump directly to an instance by position. The tree pane, dashboard, and all detail views update to reflect the selected instance.
+The header bar renders a tab strip when more than one tab is open. The active tab is bold; inactive tabs are dim. A `●` glyph appears next to any tab whose daemon is running.
+
+### Creating a tab
+
+Press `+` to open a directory picker overlay. It looks like the welcome screen's directory browser: a list of running sessions at the top (from the instance registry) and a filesystem navigator below. Select a directory or running session and press `Enter`. If the directory already has an open tab, the TUI switches to it rather than creating a duplicate.
+
+If the chosen directory has no `.wolfcastle/` project, you'll be prompted to initialize one. Declining puts the tab in a browse state where you can look around but there's no tree or daemon. Pressing `s` in browse state re-triggers the init prompt.
+
+### Closing a tab
+
+Press `-` to close the current tab. If only one tab remains, `-` is a no-op (the TUI shows a toast: "Last tab. Use `q` to quit."). If the tab has a running daemon, a confirmation dialog asks whether to stop it first, leave it running in the background, or cancel.
+
+### Switching tabs
+
+`<` and `>` move to the previous and next tab. Tab switching is blocked while a modal overlay (log stream, inbox, daemon confirm) is open; dismiss the modal first. Switching swaps the entire split-pane layout: tree, detail, search, and pane focus all belong to the destination tab.
 
 | Key | Action |
 |-----|--------|
-| `<` | Previous instance |
-| `>` | Next instance |
+| `+` | New tab (opens directory picker) |
+| `-` | Close current tab |
+| `<` | Previous tab |
+| `>` | Next tab |
 | `1`-`9` | Select instance by index |
 
 ## Search
@@ -312,13 +328,16 @@ The complete set, organized by context. Press `?` to see this in the TUI itself.
 | `g` | Jump to top |
 | `G` | Jump to bottom |
 
-### Daemon Control
+### Daemon & Tabs
 
 | Key | Action |
 |-----|--------|
 | `s` | Start/stop daemon (modal) |
 | `S` | Stop all daemons |
-| `<` `>` | Switch instance |
+| `+` | New tab |
+| `-` | Close tab |
+| `<` | Previous tab |
+| `>` | Next tab |
 | `1`-`9` | Select instance |
 
 ### Inbox
