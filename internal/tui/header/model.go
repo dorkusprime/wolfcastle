@@ -12,7 +12,6 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
 // ---------------------------------------------------------------------------
@@ -100,10 +99,15 @@ type Model struct {
 	spinner         int // index into spinnerFrames
 	loading         bool
 
-	// Instance tab bar (Phase 3)
+	// Instance tab bar (Phase 3, now used for tabs)
 	instances   []instance.Entry
 	activeIndex int
 	statusHint  string // transient hint like "Starting daemon..."
+
+	// Tab bar
+	tabLabels     []string
+	activeTabIdx  int
+	tabRunningSet map[int]bool // indices of tabs with running daemons
 }
 
 // NewModel creates a Model with sensible zero-state defaults.
@@ -136,6 +140,13 @@ func (m *Model) SetInstances(entries []instance.Entry, activeIdx int) {
 	m.instances = entries
 	m.activeIndex = activeIdx
 	m.instanceCount = len(entries)
+}
+
+// SetTabs updates the tab bar labels, active index, and running indicators.
+func (m *Model) SetTabs(labels []string, activeIdx int, running map[int]bool) {
+	m.tabLabels = labels
+	m.activeTabIdx = activeIdx
+	m.tabRunningSet = running
 }
 
 // SetStatusHint sets a transient status message (e.g. "Starting daemon...").
@@ -223,8 +234,14 @@ func (m Model) View() string {
 	} else {
 		rightParts = append(rightParts, m.daemonStatus)
 	}
-	if m.instanceCount > 1 {
-		rightParts = append(rightParts, fmt.Sprintf("[%d running]", m.instanceCount))
+	runningCount := 0
+	for _, r := range m.tabRunningSet {
+		if r {
+			runningCount++
+		}
+	}
+	if runningCount > 1 {
+		rightParts = append(rightParts, fmt.Sprintf("[%d running]", runningCount))
 	}
 	right1 := barStyle.Render(strings.Join(rightParts, " "))
 
@@ -247,8 +264,8 @@ func (m Model) View() string {
 	left2 := m.renderNodeCounts(barStyle)
 	line2 := composeLine(barStyle, left2, "", innerWidth)
 
-	// Line 3 (optional): instance tab bar when wide enough and at least one instance exists.
-	if m.width > 100 && len(m.instances) > 0 {
+	// Line 3 (optional): tab bar when wide enough and more than one tab exists.
+	if m.width > 100 && len(m.tabLabels) > 1 {
 		tabBar := m.renderTabBar(barStyle, boldStyle, innerWidth)
 		return wrap(line1) + "\n" + wrap(line2) + "\n" + wrap(tabBar)
 	}
@@ -330,7 +347,7 @@ func composeLine(base lipgloss.Style, left, right string, width int) string {
 	return left + filler + right
 }
 
-// renderTabBar builds the instance tab bar: [feat/auth ●] [fix/login]
+// renderTabBar builds the tab bar: [wc-tui-test ●] [my-saas-app] [+]
 func (m Model) renderTabBar(base, bold lipgloss.Style, width int) string {
 	dimStyle := lipgloss.NewStyle().
 		Background(headerBg).
@@ -346,28 +363,43 @@ func (m Model) renderTabBar(base, bold lipgloss.Style, width int) string {
 		Foreground(clrGreen)
 
 	var tabs []string
-	for i, inst := range m.instances {
-		label := instanceLabel(inst)
-		if i == m.activeIndex {
-			tabs = append(tabs, activeStyle.Render("["+label+" ")+dotStyle.Render("●")+activeStyle.Render("]"))
+	for i, label := range m.tabLabels {
+		isActive := i == m.activeTabIdx
+		isRunning := m.tabRunningSet[i]
+
+		if isActive {
+			if isRunning {
+				tabs = append(tabs, activeStyle.Render("["+label+" ")+dotStyle.Render("●")+activeStyle.Render("]"))
+			} else {
+				tabs = append(tabs, activeStyle.Render("["+label+"]"))
+			}
 		} else {
-			tabs = append(tabs, dimStyle.Render("["+label+"]"))
+			if isRunning {
+				tabs = append(tabs, dimStyle.Render("["+label+" ")+dotStyle.Render("●")+dimStyle.Render("]"))
+			} else {
+				tabs = append(tabs, dimStyle.Render("["+label+"]"))
+			}
 		}
 	}
 
-	// Join tabs with a styled space so the separator carries the bar background.
+	// [+] hint at the end.
+	tabs = append(tabs, dimStyle.Render("[+]"))
+
 	left := strings.Join(tabs, base.Render(" "))
 
-	// Count running instances on the right.
-	running := len(m.instances)
-	right := base.Render(fmt.Sprintf("%d running", running))
+	// Count running tabs on the right.
+	running := 0
+	for _, r := range m.tabRunningSet {
+		if r {
+			running++
+		}
+	}
+	var right string
+	if running > 0 {
+		right = base.Render(fmt.Sprintf("%d running", running))
+	}
 
 	return composeLine(base, left, right, width)
-}
-
-// instanceLabel delegates to the shared tui.InstanceLabel.
-func instanceLabel(inst instance.Entry) string {
-	return tui.InstanceLabel(inst)
 }
 
 // pluralize appends "s" when count != 1.

@@ -20,6 +20,7 @@ const (
 	ModalInbox
 	ModalLog
 	ModalDaemon
+	ModalNewTab
 )
 
 func (m TUIModel) isModalActive() bool {
@@ -49,28 +50,36 @@ func (m TUIModel) updateActiveModal(msg tea.KeyPressMsg) (TUIModel, tea.Cmd) {
 			m.activeModal = ModalNone
 		}
 		return m, cmd
+	case ModalNewTab:
+		return m.updateNewTabModal(msg)
 	}
 	return m, nil
 }
 
-func (m TUIModel) updateInboxModal(msg tea.KeyPressMsg) (TUIModel, tea.Cmd) {
-	inbox := m.detail.InboxModelRef()
+func (m TUIModel) updateNewTabModal(msg tea.KeyPressMsg) (TUIModel, tea.Cmd) {
+	picker, cmd := m.tabPicker.Update(msg)
+	m.tabPicker = picker
+	return m, cmd
+}
 
-	// When the text input is active, route everything to it (including
-	// Esc, which cancels input mode rather than closing the modal).
+func (m TUIModel) updateInboxModal(msg tea.KeyPressMsg) (TUIModel, tea.Cmd) {
+	tab := m.activeTab()
+	if tab == nil {
+		return m, nil
+	}
+	inbox := tab.Detail.InboxModelRef()
+
 	if inbox.IsInputActive() {
 		updated, cmd := inbox.Update(msg)
 		*inbox = updated
 		return m, cmd
 	}
 
-	// Esc dismisses the modal when not in input mode.
 	if key.Matches(msg, dismissKey) {
 		m.closeModal()
 		return m, nil
 	}
 
-	// All other keys go to the inbox model (j/k nav, a to add, etc).
 	updated, cmd := inbox.Update(msg)
 	*inbox = updated
 	return m, cmd
@@ -82,7 +91,11 @@ func (m TUIModel) updateLogModal(msg tea.KeyPressMsg) (TUIModel, tea.Cmd) {
 		return m, nil
 	}
 
-	logView := m.detail.LogViewModelRef()
+	tab := m.activeTab()
+	if tab == nil {
+		return m, nil
+	}
+	logView := tab.Detail.LogViewModelRef()
 	updated, cmd := logView.Update(msg)
 	*logView = updated
 	return m, cmd
@@ -100,11 +113,43 @@ func (m TUIModel) renderActiveModal(contentHeight int) string {
 		return m.renderLogModal(contentHeight)
 	case ModalDaemon:
 		return m.daemonModal.View()
+	case ModalNewTab:
+		return m.renderNewTabModal(contentHeight)
 	}
 	return ""
 }
 
+func (m TUIModel) renderNewTabModal(contentHeight int) string {
+	overlayW := m.width * 60 / 100
+	if overlayW < 50 {
+		overlayW = 50
+	}
+	overlayH := contentHeight * 80 / 100
+	if overlayH < 15 {
+		overlayH = 15
+	}
+	if overlayH > contentHeight {
+		overlayH = contentHeight
+	}
+
+	picker := m.tabPicker
+	picker.SetSize(overlayW-6, overlayH-4)
+	content := picker.View()
+
+	box := tui.ModalOverlayStyle.
+		Width(overlayW).
+		Height(overlayH).
+		Padding(1, 2).
+		Render(content)
+
+	return lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, box)
+}
+
 func (m TUIModel) renderInboxModal(contentHeight int) string {
+	tab := m.activeTab()
+	if tab == nil {
+		return ""
+	}
 	overlayW := m.width * 60 / 100
 	if overlayW < 40 {
 		overlayW = 40
@@ -116,7 +161,6 @@ func (m TUIModel) renderInboxModal(contentHeight int) string {
 	if overlayH > contentHeight {
 		overlayH = contentHeight
 	}
-	// chrome: 2 border + 2 padding vertical, 2 border + 4 padding horizontal
 	innerW := overlayW - 6
 	innerH := overlayH - 4
 	if innerW < 1 {
@@ -126,13 +170,12 @@ func (m TUIModel) renderInboxModal(contentHeight int) string {
 		innerH = 1
 	}
 
-	inbox := m.detail.InboxModelRef()
+	inbox := tab.Detail.InboxModelRef()
 	inbox.SetSize(innerW, innerH)
 	inbox.SetFocused(true)
 
 	content := inbox.View()
 
-	// Add dismiss hint below the inbox content.
 	hint := strings.Repeat(" ", 2) + tui.ModalDimStyle.Render("[Esc] Close")
 	content += "\n" + hint
 
@@ -146,6 +189,10 @@ func (m TUIModel) renderInboxModal(contentHeight int) string {
 }
 
 func (m TUIModel) renderLogModal(contentHeight int) string {
+	tab := m.activeTab()
+	if tab == nil {
+		return ""
+	}
 	overlayW := m.width * 80 / 100
 	if overlayW < 60 {
 		overlayW = 60
@@ -166,13 +213,12 @@ func (m TUIModel) renderLogModal(contentHeight int) string {
 		innerH = 1
 	}
 
-	logView := m.detail.LogViewModelRef()
+	logView := tab.Detail.LogViewModelRef()
 	logView.SetSize(innerW, innerH)
 	logView.SetFocused(true)
 
 	content := logView.View()
 
-	// Add dismiss hint below the log content.
 	hint := strings.Repeat(" ", 2) + tui.ModalDimStyle.Render("[Esc] Close")
 	content += "\n" + hint
 

@@ -33,10 +33,7 @@ func TestSetInstances(t *testing.T) {
 func TestViewTabBarWideTerminal(t *testing.T) {
 	m := NewModel("1.0.0")
 	m.SetSize(120)
-	m.SetInstances([]instance.Entry{
-		{PID: 100, Branch: "feat/auth"},
-		{PID: 200, Branch: "fix/login"},
-	}, 0)
+	m.SetTabs([]string{"feat-auth", "fix-login"}, 0, map[int]bool{0: true})
 
 	view := m.View()
 	lines := strings.Split(view, "\n")
@@ -47,43 +44,40 @@ func TestViewTabBarWideTerminal(t *testing.T) {
 	}
 
 	tabLine := lines[2]
-	if !strings.Contains(tabLine, "feat/auth") {
-		t.Errorf("tab bar missing feat/auth: %q", tabLine)
+	if !strings.Contains(tabLine, "feat-auth") {
+		t.Errorf("tab bar missing feat-auth: %q", tabLine)
 	}
-	if !strings.Contains(tabLine, "fix/login") {
-		t.Errorf("tab bar missing fix/login: %q", tabLine)
+	if !strings.Contains(tabLine, "fix-login") {
+		t.Errorf("tab bar missing fix-login: %q", tabLine)
+	}
+	if !strings.Contains(tabLine, "[+]") {
+		t.Errorf("tab bar missing [+] hint: %q", tabLine)
 	}
 }
 
 func TestViewNoTabBarNarrowTerminal(t *testing.T) {
 	m := NewModel("1.0.0")
 	m.SetSize(80) // <= 100: no tab bar
-	m.SetInstances([]instance.Entry{
-		{PID: 100, Branch: "feat/auth"},
-		{PID: 200, Branch: "fix/login"},
-	}, 0)
+	m.SetTabs([]string{"project-a", "project-b"}, 0, map[int]bool{0: true, 1: true})
 
 	view := m.View()
 	lines := strings.Split(view, "\n")
 
-	// Two lines: line1, line2.
+	// Two lines: line1, line2 (no tab bar when narrow).
 	if len(lines) != 2 {
 		t.Errorf("expected 2 lines (no tab bar), got %d:\n%s", len(lines), view)
 	}
 
-	// Should still show the instance badge.
+	// Should still show the running count badge.
 	if !strings.Contains(view, "[2 running]") {
-		t.Errorf("narrow view should show badge, got: %q", view)
+		t.Errorf("narrow view should show running badge, got: %q", view)
 	}
 }
 
-func TestActiveInstanceMarker(t *testing.T) {
+func TestActiveTabMarker(t *testing.T) {
 	m := NewModel("1.0.0")
 	m.SetSize(120)
-	m.SetInstances([]instance.Entry{
-		{PID: 100, Branch: "feat/auth"},
-		{PID: 200, Branch: "fix/login"},
-	}, 0)
+	m.SetTabs([]string{"feat-auth", "fix-login"}, 0, map[int]bool{0: true})
 
 	view := m.View()
 	lines := strings.Split(view, "\n")
@@ -92,17 +86,17 @@ func TestActiveInstanceMarker(t *testing.T) {
 	}
 	tabLine := lines[2]
 
-	// Active instance (index 0, feat/auth) should have the ● marker.
+	// Active tab (index 0, feat-auth) should have the ● marker.
 	if !strings.Contains(tabLine, "●") {
-		t.Errorf("active instance missing ● marker: %q", tabLine)
+		t.Errorf("active tab missing ● marker: %q", tabLine)
 	}
 
-	// The ● should appear near "feat/auth", not near "fix/login".
-	authIdx := strings.Index(tabLine, "feat/auth")
+	// The ● should appear near "feat-auth", not near "fix-login".
+	authIdx := strings.Index(tabLine, "feat-auth")
 	dotIdx := strings.Index(tabLine, "●")
-	loginIdx := strings.Index(tabLine, "fix/login")
+	loginIdx := strings.Index(tabLine, "fix-login")
 	if dotIdx < authIdx || dotIdx > loginIdx {
-		t.Errorf("● marker at %d should be between feat/auth(%d) and fix/login(%d)", dotIdx, authIdx, loginIdx)
+		t.Errorf("● marker at %d should be between feat-auth(%d) and fix-login(%d)", dotIdx, authIdx, loginIdx)
 	}
 }
 
@@ -311,22 +305,34 @@ func TestPluralize(t *testing.T) {
 	}
 }
 
-func TestRenderTabBarSingleInstance(t *testing.T) {
+func TestRenderTabBarSingleTab(t *testing.T) {
 	m := NewModel("1.0.0")
 	m.SetSize(120)
-	m.SetInstances([]instance.Entry{
-		{PID: 100, Branch: "main"},
-	}, 0)
+	m.SetTabs([]string{"my-project"}, 0, nil)
 
-	// Even with 1 instance, the tab bar should be visible so the user
-	// always sees which instance is active.
+	// Single tab: tab bar is hidden (only shown with 2+ tabs).
+	view := m.View()
+	lines := strings.Split(view, "\n")
+	if len(lines) != 2 {
+		t.Errorf("single tab should produce 2 lines (no tab bar), got %d", len(lines))
+	}
+}
+
+func TestRenderTabBarMultipleTabs(t *testing.T) {
+	m := NewModel("1.0.0")
+	m.SetSize(120)
+	m.SetTabs([]string{"project-a", "project-b"}, 0, map[int]bool{0: true})
+
 	view := m.View()
 	lines := strings.Split(view, "\n")
 	if len(lines) != 3 {
-		t.Errorf("single instance should produce 3 lines (with tab bar), got %d", len(lines))
+		t.Errorf("two tabs should produce 3 lines (with tab bar), got %d", len(lines))
 	}
-	if !strings.Contains(view, "main") {
-		t.Errorf("tab bar should show the instance branch: %q", view)
+	if !strings.Contains(view, "project-a") || !strings.Contains(view, "project-b") {
+		t.Errorf("tab bar should show both tab labels: %q", view)
+	}
+	if !strings.Contains(view, "[+]") {
+		t.Errorf("tab bar should show [+] hint: %q", view)
 	}
 }
 

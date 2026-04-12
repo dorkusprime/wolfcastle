@@ -75,7 +75,8 @@ func (m Model) View() string {
 		hints = append(hints, hint{"s", "start"})
 	}
 	hints = append(hints,
-		hint{"<>", "switch"},
+		hint{"<>", "tab"},
+		hint{"+", "new tab"},
 		hint{"i", "inbox"},
 		hint{"L", "logs"},
 		hint{"t", "tree"},

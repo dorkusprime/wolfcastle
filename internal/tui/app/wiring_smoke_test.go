@@ -27,10 +27,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/dorkusprime/wolfcastle/internal/daemon"
-	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 	"github.com/dorkusprime/wolfcastle/internal/tui"
@@ -196,41 +194,43 @@ func TestWiring_TaskCacheReflectsStateFile(t *testing.T) {
 	// alpha so the rendered tree knows the task states without the
 	// user having to expand the leaf manually first.
 	store := state.NewStore(storeDir, 0)
-	m := NewTUIModel(store, daemon.NewRepository(wcDir), tmp, "1.0.0")
-	m.entryState = StateLive
+	m := NewTUIModel(tmp, "1.0.0")
+	tab := m.createTab(tmp, store, daemon.NewRepository(wcDir))
+	m.activeTabID = tab.ID
+	tab.EntryState = StateLive
 	m.width = 120
 	m.height = 40
 	m.propagateSize()
 
-	// Run startWatcher: the watcher gets created and (after the fix)
-	// eagerly walks the leaves into the cache via the events channel.
-	if cmd := m.startWatcher(); cmd != nil {
+	// Run Tab.Start() which creates the watcher and eagerly prefetches.
+	if cmd := tab.Start(); cmd != nil {
 		_ = cmd()
-	}
-	// Run loadInitialState to seed the index so the tree has rows.
-	if cmd := m.loadInitialState(); cmd != nil {
-		msg := cmd()
-		if msg != nil {
-			updated, _ := m.Update(msg)
-			m = toModel(t, updated)
-		}
 	}
 	// Drain whatever the watcher's eager prefetch deposited into the
 	// events channel without blocking. After the fix, this should
 	// include one NodeUpdatedMsg per leaf.
 	drainNonBlocking(t, &m)
 
-	// Expand alpha so its task rows enter the flat list. After the
-	// fix, the tasks should already be in the cache so expand
-	// produces fresh rows immediately.
-	m.tree.SetCursor(0)
-	tm, _ := m.tree.Update(keyMsg("enter"))
-	m.tree = tm
+	// Load initial state to seed the index.
+	if tab.Store != nil {
+		idx, err := tab.Store.ReadIndex()
+		if err == nil {
+			result, _ := m.Update(tui.StateUpdatedMsg{Index: idx, Worktree: tmp})
+			m = toModel(t, result)
+		}
+	}
+
+	// Expand alpha so its task rows enter the flat list.
+	tab = m.activeTab()
+	tab.Tree.SetSize(80, 30)
+	tab.Tree.SetFocused(true)
+	tab.Tree.SetCursor(0)
+	tab.Tree, _ = tab.Tree.Update(keyMsg("l"))
 
 	// Find the task rows in the flat list.
 	var task1Row, task2Row *tree.Row
-	for i := range m.tree.FlatList() {
-		row := &m.tree.FlatList()[i]
+	for i := range tab.Tree.FlatList() {
+		row := &tab.Tree.FlatList()[i]
 		if strings.Contains(row.Addr, "task-0001") {
 			task1Row = row
 		}
@@ -239,7 +239,7 @@ func TestWiring_TaskCacheReflectsStateFile(t *testing.T) {
 		}
 	}
 	if task1Row == nil || task2Row == nil {
-		t.Fatalf("expected both task rows to be present after expand; got flat list: %+v", m.tree.FlatList())
+		t.Fatalf("expected both task rows to be present after expand; got flat list: %+v", tab.Tree.FlatList())
 	}
 
 	// The smoke assertion: each task row's Status field reflects the
@@ -261,10 +261,19 @@ func TestWiring_TaskCacheReflectsStateFile(t *testing.T) {
 // startWatcher cmd already put there before returning).
 func drainNonBlocking(t *testing.T, m *TUIModel) {
 	t.Helper()
+	tab := m.activeTab()
+	if tab == nil {
+		return
+	}
+	tabID := tab.ID
 	for i := 0; i < 256; i++ {
 		select {
-		case msg := <-m.watcherEvents:
-			updated, _ := m.Update(msg)
+		case msg := <-tab.Events:
+			// Wrap in TabMsg so the model's Update routes it correctly.
+			// The watcher emits raw messages (WatcherMsg{Inner: ...})
+			// into the channel; in production, waitForTabEvent wraps them.
+			wrapped := TabMsg{TabID: tabID, Inner: msg}
+			updated, _ := m.Update(wrapped)
 			if tm, ok := updated.(TUIModel); ok {
 				*m = tm
 			}
@@ -333,21 +342,22 @@ func TestStartWatcher_TriggersEagerPrefetch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Construct the model and run startWatcher cmd.
+	// Construct the model with a tab and run Tab.Start().
 	store := state.NewStore(storeDir, 0)
-	m := NewTUIModel(store, daemon.NewRepository(wcDir), tmp, "1.0.0")
-	m.entryState = StateLive
+	m := NewTUIModel(tmp, "1.0.0")
+	tab := m.createTab(tmp, store, daemon.NewRepository(wcDir))
+	m.activeTabID = tab.ID
+	tab.EntryState = StateLive
 	m.width = 120
 	m.height = 40
 	m.propagateSize()
 
-	cmd := m.startWatcher()
+	cmd := tab.Start()
 	if cmd == nil {
-		t.Fatal("startWatcher returned nil cmd")
+		t.Fatal("Tab.Start() returned nil cmd")
 	}
-	if msg := cmd(); msg != nil {
-		t.Fatalf("startWatcher cmd should return nil msg, got %T", msg)
-	}
+	// Execute batch; ignore results (they're async Cmd closures).
+	_ = cmd()
 
 	// At this point the watcher should have eagerly prefetched
 	// alpha's state into the events channel. Drain and assert.
@@ -355,7 +365,7 @@ func TestStartWatcher_TriggersEagerPrefetch(t *testing.T) {
 drainLoop:
 	for i := 0; i < 8; i++ {
 		select {
-		case msg := <-m.watcherEvents:
+		case msg := <-tab.Events:
 			envelope, ok := msg.(tui.WatcherMsg)
 			if !ok {
 				continue
@@ -373,31 +383,19 @@ drainLoop:
 		}
 	}
 	if !found {
-		t.Error("startWatcher did not trigger eager prefetch; no NodeUpdatedMsg for alpha arrived in the events channel")
+		t.Error("Tab.Start() did not trigger eager prefetch; no NodeUpdatedMsg for alpha arrived in the events channel")
 	}
 }
 
-// TestWiring_InstanceSwitchTriggersEagerPrefetch is the regression
-// test for the dead-wiring bug found in the debug log: the
-// InstanceSwitchedMsg handler used to inline tui.NewWatcher calls
-// without calling EagerPrefetchAndSubscribe, so users who switched
-// instances mid-session lost per-leaf cache freshness for the new
-// worktree. The fix routes both call sites through newWatcherFor;
-// this test exercises the InstanceSwitchedMsg path end-to-end so
-// any future regression that re-introduces an inline construction
-// is caught immediately.
-func TestWiring_InstanceSwitchTriggersEagerPrefetch(t *testing.T) {
-	// Set up a target worktree with a real config (so
-	// storeFromWolfcastleDir resolves an identity), a real index,
-	// and one leaf so the eager prefetch has something to find.
+// TestWiring_NewTabTriggersEagerPrefetch verifies that creating a tab
+// and calling Tab.Start() on a new worktree eagerly prefetches leaf
+// states into the events channel. This replaces the old instance-switch
+// prefetch test; with tabs, each worktree gets its own tab with an
+// independent watcher.
+func TestWiring_NewTabTriggersEagerPrefetch(t *testing.T) {
 	tmp := t.TempDir()
 	wcDir := filepath.Join(tmp, ".wolfcastle")
 
-	// Local-tier config provides an identity, which makes
-	// storeFromWolfcastleDir return a non-nil store. Without this,
-	// the InstanceSwitchedMsg handler silently fails to construct
-	// a watcher and the test doesn't actually exercise the code
-	// path under test.
 	if err := os.MkdirAll(filepath.Join(wcDir, "system", "local"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -406,9 +404,6 @@ func TestWiring_InstanceSwitchTriggersEagerPrefetch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Stage the index and leaf state under the namespace dir that
-	// id.ProjectsDir() will derive from the identity above:
-	// <wcDir>/system/projects/<user>-<machine>
 	storeDir := filepath.Join(wcDir, "system", "projects", "tester-box")
 	if err := os.MkdirAll(storeDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -448,50 +443,25 @@ func TestWiring_InstanceSwitchTriggersEagerPrefetch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Build a model that's already in StateLive with a (different)
-	// store, then feed an InstanceSwitchedMsg pointing at the
-	// staged target. This is exactly what happens when a user
-	// presses < or > or a digit key to switch instances.
-	m := newColdModel(t)
-	m.entryState = StateLive
+	store := state.NewStore(storeDir, 0)
+	m := NewTUIModel(tmp, "1.0.0")
+	tab := m.createTab(tmp, store, daemon.NewRepository(wcDir))
+	m.activeTabID = tab.ID
+	tab.EntryState = StateLive
+	m.width = 120
+	m.height = 40
 
-	// Drain anything left in the events channel from newColdModel
-	// setup so we can assert against a fresh state below.
-	for {
-		select {
-		case <-m.watcherEvents:
-		default:
-			goto drained
-		}
+	cmd := tab.Start()
+	if cmd == nil {
+		t.Fatal("Tab.Start() returned nil cmd")
 	}
-drained:
+	_ = cmd()
 
-	freshStore := state.NewStore(storeDir, 0)
-	freshIdx, err := freshStore.ReadIndex()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = freshStore // only used for the index read above
-	switchMsg := tui.InstanceSwitchedMsg{
-		Index: freshIdx,
-		Entry: instance.Entry{
-			Worktree:  tmp,
-			PID:       os.Getpid(),
-			Branch:    "main",
-			StartedAt: time.Now(),
-		},
-	}
-	result, _ := m.Update(switchMsg)
-	m = toModel(t, result)
-
-	// After the handler runs, the events channel should contain a
-	// WatcherMsg{NodeUpdatedMsg} for the target leaf because the
-	// new watcher's eager prefetch fired during construction.
 	found := false
-drainSwitchLoop:
+drainNewTab:
 	for i := 0; i < 8; i++ {
 		select {
-		case msg := <-m.watcherEvents:
+		case msg := <-tab.Events:
 			envelope, ok := msg.(tui.WatcherMsg)
 			if !ok {
 				continue
@@ -502,14 +472,14 @@ drainSwitchLoop:
 			}
 			if nu.Address == "target" && nu.Node != nil && len(nu.Node.Tasks) == 1 {
 				found = true
-				break drainSwitchLoop
+				break drainNewTab
 			}
 		default:
-			break drainSwitchLoop
+			break drainNewTab
 		}
 	}
 	if !found {
-		t.Error("InstanceSwitchedMsg handler constructed a watcher without triggering eager prefetch; no NodeUpdatedMsg for target arrived in the events channel. The handler must route through newWatcherFor.")
+		t.Error("Tab.Start() did not trigger eager prefetch; no NodeUpdatedMsg for target arrived in the events channel")
 	}
 }
 
@@ -559,22 +529,24 @@ func TestWiring_LogViewShowsExistingContent(t *testing.T) {
 	// channel so the LogLinesMsg reaches the LogViewModel, then
 	// switch the detail pane to log view.
 	store := state.NewStore(filepath.Join(wcDir, "system", "projects", "default"), 0)
-	m := NewTUIModel(store, daemon.NewRepository(wcDir), tmp, "1.0.0")
-	m.entryState = StateLive
+	m := NewTUIModel(tmp, "1.0.0")
+	tab := m.createTab(tmp, store, daemon.NewRepository(wcDir))
+	m.activeTabID = tab.ID
+	tab.EntryState = StateLive
 	m.width = 120
 	m.height = 40
 	m.propagateSize()
 
-	if cmd := m.startWatcher(); cmd != nil {
+	if cmd := tab.Start(); cmd != nil {
 		_ = cmd()
 	}
 	drainNonBlocking(t, &m)
 
-	m.detail.SwitchToLogView()
-	m.focused = PaneDetail
+	tab.Detail.SwitchToLogView()
+	tab.Focused = PaneDetail
 	m.syncFocus()
 
-	view := m.detail.View()
+	view := tab.Detail.View()
 	if strings.Contains(view, "No transmissions") {
 		t.Errorf("log view should show existing log file content on switch, but rendered the empty-state placeholder. Staged file: %s\nView:\n%s", logFile, view)
 	}
@@ -631,7 +603,7 @@ func TestWiring_LatestLogFile_PrefersNewestExec(t *testing.T) {
 // must be a row whose name actually contains the query.
 //
 // Should fail today: handleCollapse rebuilds the flat list but does
-// not recompute m.tree.searchMatches, so the map's old indices now
+// not recompute m.activeTab().Tree.searchMatches, so the map's old indices now
 // point at unrelated rows in the new list.
 func TestWiring_SearchHighlightSurvivesFold(t *testing.T) {
 	m := newColdModel(t)
@@ -649,21 +621,22 @@ func TestWiring_SearchHighlightSurvivesFold(t *testing.T) {
 	m = toModel(t, result)
 
 	// Expand alpha and alpha/beta so the task rows enter the flat list.
-	m.tree.SetCursor(0)
-	tm, _ := m.tree.Update(keyMsg("enter"))
-	m.tree = tm
-	for i, row := range m.tree.FlatList() {
+	m.activeTab().Tree.SetFocused(true)
+	m.activeTab().Tree.SetCursor(0)
+	tm, _ := m.activeTab().Tree.Update(keyMsg("enter"))
+	m.activeTab().Tree = tm
+	for i, row := range m.activeTab().Tree.FlatList() {
 		if row.Addr == "alpha/beta" {
-			m.tree.SetCursor(i)
+			m.activeTab().Tree.SetCursor(i)
 			break
 		}
 	}
-	tm, _ = m.tree.Update(keyMsg("enter"))
-	m.tree = tm
+	tm, _ = m.activeTab().Tree.Update(keyMsg("enter"))
+	m.activeTab().Tree = tm
 
 	// Sanity: the frobnicator task should now be visible.
 	taskVisible := false
-	for _, row := range m.tree.FlatList() {
+	for _, row := range m.activeTab().Tree.FlatList() {
 		if strings.Contains(row.Name, "frobnicator") {
 			taskVisible = true
 			break
@@ -674,27 +647,27 @@ func TestWiring_SearchHighlightSurvivesFold(t *testing.T) {
 	}
 
 	// Run a search that matches the frobnicator task.
-	m.search.Activate(int(PaneTree))
+	m.activeTab().Search.Activate(int(PaneTree))
 	for _, ch := range "frob" {
-		s, _ := m.search.Update(keyMsg(string(ch)))
-		m.search = s
+		s, _ := m.activeTab().Search.Update(keyMsg(string(ch)))
+		m.activeTab().Search = s
 	}
 	m.computeTreeSearchMatches()
 
 	// Find the alpha/beta row index in the current flat list,
 	// position the cursor on it, and collapse.
-	for i, row := range m.tree.FlatList() {
+	for i, row := range m.activeTab().Tree.FlatList() {
 		if row.Addr == "alpha/beta" {
-			m.tree.SetCursor(i)
+			m.activeTab().Tree.SetCursor(i)
 			break
 		}
 	}
-	tm, _ = m.tree.Update(keyMsg("h"))
-	m.tree = tm
+	tm, _ = m.activeTab().Tree.Update(keyMsg("h"))
+	m.activeTab().Tree = tm
 
 	// Sanity: the frobnicator row should no longer be in the flat
 	// list (it's hidden inside the collapsed leaf).
-	for _, row := range m.tree.FlatList() {
+	for _, row := range m.activeTab().Tree.FlatList() {
 		if strings.Contains(row.Name, "frobnicator") {
 			t.Fatal("frobnicator should be hidden after collapse; smoke test cannot proceed")
 		}
@@ -706,13 +679,13 @@ func TestWiring_SearchHighlightSurvivesFold(t *testing.T) {
 	// unrelated rows after collapse; the address-keyed map can't
 	// produce that failure mode by construction, but the assertion
 	// stays because it's the most direct expression of correctness.
-	literal := m.tree.SearchLiteralAddresses()
+	literal := m.activeTab().Tree.SearchLiteralAddresses()
 	for addr := range literal {
 		// The address might point at a task (alpha/beta/task-0001),
 		// in which case we look up the task title from the cached
 		// node state. For node addresses we look up the index entry.
 		var name string
-		if cached := m.tree.CachedNode(strings.SplitN(addr, "/", 2)[0]); cached != nil {
+		if cached := m.activeTab().Tree.CachedNode(strings.SplitN(addr, "/", 2)[0]); cached != nil {
 			for _, task := range cached.Tasks {
 				if addr == "alpha/beta/"+task.ID {
 					name = task.Title
@@ -720,7 +693,7 @@ func TestWiring_SearchHighlightSurvivesFold(t *testing.T) {
 			}
 		}
 		if name == "" {
-			if entry, ok := m.tree.Index().Nodes[addr]; ok {
+			if entry, ok := m.activeTab().Tree.Index().Nodes[addr]; ok {
 				name = entry.Name
 			}
 		}
@@ -739,7 +712,7 @@ func TestWiring_SearchHighlightSurvivesFold(t *testing.T) {
 // been expanded. A search query matching one of those task titles
 // must produce at least one match.
 //
-// Should fail today: computeTreeSearchMatches walks m.tree.FlatList()
+// Should fail today: computeTreeSearchMatches walks m.activeTab().Tree.FlatList()
 // which is the visible flat list. Tasks in unexpanded leaves are not
 // in the flat list, so they are not searched.
 func TestWiring_SearchFindsTasksInUnexpandedLeaves(t *testing.T) {
@@ -761,21 +734,21 @@ func TestWiring_SearchFindsTasksInUnexpandedLeaves(t *testing.T) {
 
 	// alpha/beta is collapsed by default. Confirm the frobnicator
 	// task is NOT in the visible flat list.
-	for _, row := range m.tree.FlatList() {
+	for _, row := range m.activeTab().Tree.FlatList() {
 		if strings.Contains(row.Name, "frobnicator") {
 			t.Fatal("setup error: alpha/beta is supposed to be collapsed but the task is already in the flat list")
 		}
 	}
 
 	// Run a search that matches the frobnicator task.
-	m.search.Activate(int(PaneTree))
+	m.activeTab().Search.Activate(int(PaneTree))
 	for _, ch := range "frob" {
-		s, _ := m.search.Update(keyMsg(string(ch)))
-		m.search = s
+		s, _ := m.activeTab().Search.Update(keyMsg(string(ch)))
+		m.activeTab().Search = s
 	}
 	m.computeTreeSearchMatches()
 
-	if !m.search.HasMatches() {
+	if !m.activeTab().Search.HasMatches() {
 		t.Errorf("search for 'frob' should find the cached task in collapsed leaf alpha/beta, but the search model reports zero matches")
 	}
 }
