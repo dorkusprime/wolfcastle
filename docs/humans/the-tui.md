@@ -245,7 +245,7 @@ Press `s` to open the daemon control modal. If no daemon is running, the modal o
 
 ## Instance Switching
 
-When multiple Wolfcastle daemons are running (different branches, different worktrees), the header bar shows each as a tab. The active instance is highlighted.
+When multiple Wolfcastle daemons are running (different repositories, different branches, different worktrees), the header bar shows each as a tab. The active instance is highlighted.
 
 `<` and `>` cycle through instances. `1` through `9` jump directly to an instance by position. The tree pane, dashboard, and all detail views update to reflect the selected instance.
 
