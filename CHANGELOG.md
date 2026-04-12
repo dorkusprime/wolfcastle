@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.6.0
+
+### Features
+- Interactive TUI: launching `wolfcastle` with no subcommand opens a full Bubbletea v2 terminal interface. Node tree with vi-style navigation, dashboard overview, real-time log stream, node and task detail views, inbox, instance switcher, and notification toasts. Inbox, logs, and daemon start/stop are modal overlays that take focus and dismiss with Esc; the daemon toggle requires Enter confirmation. The welcome screen lists running daemons alongside a directory browser for `init`. State refreshes via fsnotify with per-leaf subscriptions (including leaves added mid-session by daemon decomposition) and a 2-second polling fallback. Log rendering extracts human-readable content from structured NDJSON; Recent Activity filters to milestones only. All displayed timestamps are local. (#228, #231, #232, #233, #234, #236, #237, #238, #240, #241, #242, #243, #244)
+- Multi-process architecture: per-worktree daemon locking replaces the global lock, so multiple daemons can run concurrently across separate worktrees. A new `internal/instance` registry under `~/.wolfcastle/instances/` routes commands by CWD with longest-prefix matching and prunes stale PIDs on read. (#227)
+- `--instance` flag on `start`, `stop`, `status`, `log`, and `inbox` to target a daemon by worktree path instead of CWD discovery. Useful when acting on a daemon from outside its worktree, or when multiple daemons are running and you want to be explicit. (#239)
+- Worktree-aware tier regeneration on `start`: when `.wolfcastle/` exists with tracked content but the gitignored base/local tiers are missing (the fresh-checkout case), `start` regenerates them automatically before loading config instead of failing with a confusing config-load error. (#239)
+
+### Bug Fixes
+- `DeriveParentStatus` treats blocked children with `superseded` or `decomposed` reasons as effectively complete, ending the retry-decompose loop on parents whose remaining children were intentionally cleared. (#230)
+- Daemon accepts COMPLETE results when deliverables exist on disk, even if the iteration produced no git progress. (#230)
+- Tasks that wrote deliverables to `.wolfcastle/docs/` no longer get stuck in infinite retry-decompose cycles. (#230)
+- Default stall timeout raised from 120s to 600s. The previous value was killing Opus sessions that were thinking on large contexts, not genuinely stalled. (#243)
+- `wolfcastle scope add` reports failures as errors instead of calling `os.Exit(1)`, so Cobra-managed cleanup runs and exit codes flow normally. (#224)
+- Atomic write helpers in `config` and `tierfs` now share `internal/fsutil.AtomicWriteFile`, fixing a missing temp-file cleanup on rename failure. (#224)
+
+### Documentation
+- Comprehensive TUI guide (`docs/humans/the-tui.md`): launching, every screen, every keybinding, navigation flows. 16 VHS-generated screenshots with scripted state and retry logic for deterministic captures. (#246, #256)
+- Existing concept docs reframed to present TUI as the primary interface, CLI as secondary. Both READMEs updated. (#246)
+
+### Quality
+- TUI acceptance test suite: 35 tests exercising a real `tea.Program` headless via `charmbracelet/x/exp/teatest/v2`. Covers welcome screen, dashboard, tree navigation, inbox, help overlay, search, daemon modal, log stream, terminal states, status glyphs, and all key binding categories. Zero flakes across 105 runs. (#247)
+- New `internal/fsutil` package with full test coverage for `AtomicWriteFile` (happy path, overwrite, parent creation, permission errors, rename failures). (#225)
+- Comprehensive multi-process tests covering two-worktree coexistence, deep-subdirectory CWD routing, prefix-boundary cross-match prevention, `--instance` overriding CWD end-to-end, tier regeneration from a partial scaffold, `stop --all` with mixed live/stale entries, and full coverage for the new `App.InitFromDir` and `resolveInstance` helpers. (#239)
+- TUI wiring smoke tests and app-package coverage expanded from 65% to 80%. Overall project coverage at 91%. (#241, #244)
+- Daemon test suite trimmed: hardcoded 1-second context timeouts in fifteen tests dropped to 200-300ms, cutting ~5 seconds off every full daemon test run. (#229)
+
 ## 0.4.3
 
 ### Bug Fixes
