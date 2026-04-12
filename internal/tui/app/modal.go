@@ -6,25 +6,44 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/x/ansi"
+	uv "github.com/charmbracelet/ultraviolet"
 
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
-// fillModalBg pads every line of content to the given width with the
-// modal overlay background color. This prevents transparent gaps where
-// individually styled spans reset the background.
+// fillModalBg stamps the overlay background color onto every cell of
+// the rendered content that doesn't already have an explicit background.
+// This operates at the cell level (via lipgloss Canvas + ultraviolet),
+// so ANSI resets between styled spans no longer punch transparent holes.
 func fillModalBg(content string, width int) string {
-	bg := lipgloss.NewStyle().Background(tui.ColorOverlayBg)
 	lines := strings.Split(content, "\n")
-	for i, line := range lines {
-		w := ansi.StringWidth(line)
-		if w < width {
-			line += bg.Render(strings.Repeat(" ", width-w))
-		}
-		lines[i] = line
+	height := len(lines)
+	if height == 0 || width == 0 {
+		return content
 	}
-	return strings.Join(lines, "\n")
+
+	canvas := lipgloss.NewCanvas(width, height)
+	ss := uv.NewStyledString(content)
+	canvas.Compose(ss)
+
+	bg := tui.ColorOverlayBg
+	bounds := canvas.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := canvas.CellAt(x, y)
+			if c == nil {
+				canvas.SetCell(x, y, &uv.Cell{
+					Content: " ",
+					Width:   1,
+					Style:   uv.Style{Bg: bg},
+				})
+			} else if c.Style.Bg == nil {
+				c.Style.Bg = bg
+			}
+		}
+	}
+
+	return canvas.Render()
 }
 
 // ActiveModal tracks which modal overlay (if any) is currently visible.
