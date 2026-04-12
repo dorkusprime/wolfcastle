@@ -76,24 +76,17 @@ create_node() {
     local dir="$ns_dir/$addr"
     mkdir -p "$dir"
     local tasks="${1:-}"
+    local children="${2:-}"
+    # Build JSON with optional tasks and children fields
+    local json="{\n  \"name\": \"$name\",\n  \"type\": \"$type\",\n  \"state\": \"$nstate\""
     if [[ -n "$tasks" ]]; then
-        cat > "$dir/state.json" << EOF
-{
-  "name": "$name",
-  "type": "$type",
-  "state": "$nstate",
-  "tasks": $tasks
-}
-EOF
-    else
-        cat > "$dir/state.json" << EOF
-{
-  "name": "$name",
-  "type": "$type",
-  "state": "$nstate"
-}
-EOF
+        json="$json,\n  \"tasks\": $tasks"
     fi
+    if [[ -n "$children" ]]; then
+        json="$json,\n  \"children\": $children"
+    fi
+    json="$json\n}"
+    printf "$json" > "$dir/state.json"
 }
 
 # ---------------------------------------------------------------------------
@@ -277,8 +270,16 @@ cat > "$NS_MAIN/state.json" << 'STATEEOF'
 }
 STATEEOF
 
-create_node "$NS_MAIN" "warzone" "warzone" "orchestrator" "in_progress"
-create_node "$NS_MAIN" "warzone/backend" "backend" "orchestrator" "in_progress"
+create_node "$NS_MAIN" "warzone" "warzone" "orchestrator" "in_progress" '' '[
+  {"id":"backend","address":"warzone/backend","state":"in_progress"},
+  {"id":"frontend","address":"warzone/frontend","state":"in_progress"},
+  {"id":"infra","address":"warzone/infra","state":"not_started"}
+]'
+create_node "$NS_MAIN" "warzone/backend" "backend" "orchestrator" "in_progress" '' '[
+  {"id":"api","address":"warzone/backend/api","state":"complete"},
+  {"id":"auth","address":"warzone/backend/auth","state":"in_progress"},
+  {"id":"database","address":"warzone/backend/database","state":"not_started"}
+]'
 create_node "$NS_MAIN" "warzone/backend/api" "api" "leaf" "complete" '[
   {"id":"task-1","title":"Implement REST endpoints","state":"complete","class":"coding/go","description":"Build CRUD endpoints for the donut API"},
   {"id":"audit","title":"Audit","state":"complete","is_audit":true}
@@ -293,7 +294,10 @@ create_node "$NS_MAIN" "warzone/backend/database" "database" "leaf" "not_started
   {"id":"task-1","title":"Schema migration framework","state":"not_started","class":"coding/go"},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
 ]'
-create_node "$NS_MAIN" "warzone/frontend" "frontend" "orchestrator" "in_progress"
+create_node "$NS_MAIN" "warzone/frontend" "frontend" "orchestrator" "in_progress" '' '[
+  {"id":"components","address":"warzone/frontend/components","state":"complete"},
+  {"id":"routing","address":"warzone/frontend/routing","state":"in_progress"}
+]'
 create_node "$NS_MAIN" "warzone/frontend/components" "components" "leaf" "complete" '[
   {"id":"task-1","title":"Build component library","state":"complete","class":"coding/react"},
   {"id":"audit","title":"Audit","state":"complete","is_audit":true}
@@ -456,8 +460,16 @@ cat > "$NS_COMPLETE/state.json" << 'STATEEOF'
 }
 STATEEOF
 
-create_node "$NS_COMPLETE" "warzone" "warzone" "orchestrator" "complete"
-create_node "$NS_COMPLETE" "warzone/backend" "backend" "orchestrator" "complete"
+create_node "$NS_COMPLETE" "warzone" "warzone" "orchestrator" "complete" '' '[
+  {"id":"backend","address":"warzone/backend","state":"complete"},
+  {"id":"frontend","address":"warzone/frontend","state":"complete"},
+  {"id":"infra","address":"warzone/infra","state":"complete"}
+]'
+create_node "$NS_COMPLETE" "warzone/backend" "backend" "orchestrator" "complete" '' '[
+  {"id":"api","address":"warzone/backend/api","state":"complete"},
+  {"id":"auth","address":"warzone/backend/auth","state":"complete"},
+  {"id":"database","address":"warzone/backend/database","state":"complete"}
+]'
 create_node "$NS_COMPLETE" "warzone/backend/api" "api" "leaf" "complete" '[
   {"id":"task-1","title":"Implement REST endpoints","state":"complete","class":"coding/go"},
   {"id":"audit","title":"Audit","state":"complete","is_audit":true}
@@ -470,7 +482,10 @@ create_node "$NS_COMPLETE" "warzone/backend/database" "database" "leaf" "complet
   {"id":"task-1","title":"Schema migration framework","state":"complete","class":"coding/go"},
   {"id":"audit","title":"Audit","state":"complete","is_audit":true}
 ]'
-create_node "$NS_COMPLETE" "warzone/frontend" "frontend" "orchestrator" "complete"
+create_node "$NS_COMPLETE" "warzone/frontend" "frontend" "orchestrator" "complete" '' '[
+  {"id":"components","address":"warzone/frontend/components","state":"complete"},
+  {"id":"routing","address":"warzone/frontend/routing","state":"complete"}
+]'
 create_node "$NS_COMPLETE" "warzone/frontend/components" "components" "leaf" "complete" '[
   {"id":"task-1","title":"Build component library","state":"complete","class":"coding/react"},
   {"id":"audit","title":"Audit","state":"complete","is_audit":true}
@@ -576,8 +591,16 @@ cat > "$NS_BLOCKED/state.json" << 'STATEEOF'
 }
 STATEEOF
 
-create_node "$NS_BLOCKED" "warzone" "warzone" "orchestrator" "blocked"
-create_node "$NS_BLOCKED" "warzone/backend" "backend" "orchestrator" "blocked"
+create_node "$NS_BLOCKED" "warzone" "warzone" "orchestrator" "blocked" '' '[
+  {"id":"backend","address":"warzone/backend","state":"blocked"},
+  {"id":"frontend","address":"warzone/frontend","state":"blocked"},
+  {"id":"infra","address":"warzone/infra","state":"blocked"}
+]'
+create_node "$NS_BLOCKED" "warzone/backend" "backend" "orchestrator" "blocked" '' '[
+  {"id":"api","address":"warzone/backend/api","state":"blocked"},
+  {"id":"auth","address":"warzone/backend/auth","state":"blocked"},
+  {"id":"database","address":"warzone/backend/database","state":"blocked"}
+]'
 create_node "$NS_BLOCKED" "warzone/backend/api" "api" "leaf" "blocked" '[
   {"id":"task-1","title":"Implement REST endpoints","state":"blocked","class":"coding/go","block_reason":"External API unavailable","failure_count":5},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
@@ -590,7 +613,10 @@ create_node "$NS_BLOCKED" "warzone/backend/database" "database" "leaf" "blocked"
   {"id":"task-1","title":"Schema migration framework","state":"blocked","class":"coding/go","block_reason":"Migration lock held by another process","failure_count":1},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
 ]'
-create_node "$NS_BLOCKED" "warzone/frontend" "frontend" "orchestrator" "blocked"
+create_node "$NS_BLOCKED" "warzone/frontend" "frontend" "orchestrator" "blocked" '' '[
+  {"id":"components","address":"warzone/frontend/components","state":"blocked"},
+  {"id":"routing","address":"warzone/frontend/routing","state":"blocked"}
+]'
 create_node "$NS_BLOCKED" "warzone/frontend/components" "components" "leaf" "blocked" '[
   {"id":"task-1","title":"Build component library","state":"blocked","class":"coding/react","block_reason":"Design system not finalized","failure_count":4},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
@@ -645,7 +671,9 @@ cat > "$NS_TASK_BLOCKED/state.json" << 'STATEEOF'
 }
 STATEEOF
 
-create_node "$NS_TASK_BLOCKED" "warzone" "warzone" "orchestrator" "blocked"
+create_node "$NS_TASK_BLOCKED" "warzone" "warzone" "orchestrator" "blocked" '' '[
+  {"id":"payments","address":"warzone/payments","state":"blocked"}
+]'
 create_node "$NS_TASK_BLOCKED" "warzone/payments" "payments" "leaf" "blocked" '[
   {"id":"task-1","title":"Integrate Stripe payment flow","state":"blocked","class":"coding/go","block_reason":"Waiting for Stripe webhook secret from ops team","failure_count":3,"last_failure_type":"dependency"},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
@@ -692,7 +720,9 @@ cat > "$NS_DAEMON_START/state.json" << 'STATEEOF'
 }
 STATEEOF
 
-create_node "$NS_DAEMON_START" "warzone" "warzone" "orchestrator" "in_progress"
+create_node "$NS_DAEMON_START" "warzone" "warzone" "orchestrator" "in_progress" '' '[
+  {"id":"backend","address":"warzone/backend","state":"in_progress"}
+]'
 create_node "$NS_DAEMON_START" "warzone/backend" "backend" "leaf" "in_progress" '[
   {"id":"task-1","title":"Implement REST endpoints","state":"in_progress","class":"coding/go"},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
@@ -802,8 +832,16 @@ cat > "$NS_SEARCH/state.json" << 'STATEEOF'
 }
 STATEEOF
 
-create_node "$NS_SEARCH" "warzone" "warzone" "orchestrator" "in_progress"
-create_node "$NS_SEARCH" "warzone/backend" "backend" "orchestrator" "in_progress"
+create_node "$NS_SEARCH" "warzone" "warzone" "orchestrator" "in_progress" '' '[
+  {"id":"backend","address":"warzone/backend","state":"in_progress"},
+  {"id":"frontend","address":"warzone/frontend","state":"in_progress"},
+  {"id":"infra","address":"warzone/infra","state":"not_started"}
+]'
+create_node "$NS_SEARCH" "warzone/backend" "backend" "orchestrator" "in_progress" '' '[
+  {"id":"api","address":"warzone/backend/api","state":"complete"},
+  {"id":"auth","address":"warzone/backend/auth","state":"in_progress"},
+  {"id":"database","address":"warzone/backend/database","state":"not_started"}
+]'
 create_node "$NS_SEARCH" "warzone/backend/api" "api" "leaf" "complete" '[
   {"id":"task-1","title":"Implement REST endpoints","state":"complete"},
   {"id":"audit","title":"Audit","state":"complete","is_audit":true}
@@ -817,7 +855,10 @@ create_node "$NS_SEARCH" "warzone/backend/database" "database" "leaf" "not_start
   {"id":"task-1","title":"Schema migration framework","state":"not_started"},
   {"id":"audit","title":"Audit","state":"not_started","is_audit":true}
 ]'
-create_node "$NS_SEARCH" "warzone/frontend" "frontend" "orchestrator" "in_progress"
+create_node "$NS_SEARCH" "warzone/frontend" "frontend" "orchestrator" "in_progress" '' '[
+  {"id":"components","address":"warzone/frontend/components","state":"complete"},
+  {"id":"auth-gateway","address":"warzone/frontend/auth-gateway","state":"not_started"}
+]'
 create_node "$NS_SEARCH" "warzone/frontend/components" "components" "leaf" "complete" '[
   {"id":"task-1","title":"Build component library","state":"complete"},
   {"id":"audit","title":"Audit","state":"complete","is_audit":true}
