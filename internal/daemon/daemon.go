@@ -105,9 +105,9 @@ func (d *Daemon) logInbox(record map[string]any) {
 	}
 }
 
-// repo returns a DaemonRepository for the daemon's wolfcastle directory.
-func (d *Daemon) repo() *DaemonRepository {
-	return NewDaemonRepository(d.WolfcastleDir)
+// repo returns a Repository for the daemon's wolfcastle directory.
+func (d *Daemon) repo() *Repository {
+	return NewRepository(d.WolfcastleDir)
 }
 
 // namespace derives the engineer namespace from the daemon's config identity.
@@ -122,7 +122,7 @@ func (d *Daemon) namespace() string {
 
 // New creates a new daemon.
 func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode string, repoDir string) (*Daemon, error) {
-	logDir := NewDaemonRepository(wolfcastleDir).LogDir()
+	logDir := NewRepository(wolfcastleDir).LogDir()
 	logger, err := logging.NewLogger(logDir)
 	if err != nil {
 		return nil, err

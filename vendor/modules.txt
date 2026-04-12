@@ -14,6 +14,10 @@ charm.land/lipgloss/v2
 # github.com/atotto/clipboard v0.1.4
 ## explicit
 github.com/atotto/clipboard
+# github.com/aymanbagabas/go-udiff v0.4.1
+## explicit; go 1.24
+github.com/aymanbagabas/go-udiff
+github.com/aymanbagabas/go-udiff/lcs
 # github.com/charmbracelet/colorprofile v0.4.2
 ## explicit; go 1.24.2
 github.com/charmbracelet/colorprofile
@@ -25,6 +29,12 @@ github.com/charmbracelet/ultraviolet
 github.com/charmbracelet/x/ansi
 github.com/charmbracelet/x/ansi/kitty
 github.com/charmbracelet/x/ansi/parser
+# github.com/charmbracelet/x/exp/golden v0.0.0-20251109135125-8916d276318f
+## explicit; go 1.24.0
+github.com/charmbracelet/x/exp/golden
+# github.com/charmbracelet/x/exp/teatest/v2 v2.0.0-20260406091427-a791e22d5143
+## explicit; go 1.24.2
+github.com/charmbracelet/x/exp/teatest/v2
 # github.com/charmbracelet/x/term v0.2.2
 ## explicit; go 1.24.0
 github.com/charmbracelet/x/term

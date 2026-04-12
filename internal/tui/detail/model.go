@@ -1,3 +1,4 @@
+// Package detail implements the right-pane detail views: dashboard, node detail, task detail, log stream, and inbox.
 package detail
 
 import (
@@ -8,24 +9,24 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
-// DetailMode selects which sub-view the detail container renders.
-type DetailMode int
+// Mode selects which sub-view the detail container renders.
+type Mode int
 
 const (
-	ModeDashboard DetailMode = iota
+	ModeDashboard Mode = iota
 	ModeNodeDetail
 	ModeTaskDetail
 	ModeLogStream
 	ModeInbox
 )
 
-// DetailModel is the right-pane container that delegates rendering to the
+// Model is the right-pane container that delegates rendering to the
 // active sub-view.
-type DetailModel struct {
-	mode       DetailMode
+type Model struct {
+	mode       Mode
 	dashboard  DashboardModel
-	nodeDetail NodeDetailModel
-	taskDetail TaskDetailModel
+	nodeDetail NodeModel
+	taskDetail TaskModel
 	logView    LogViewModel
 	inbox      InboxModel
 	viewport   viewport.Model
@@ -34,14 +35,14 @@ type DetailModel struct {
 	focused    bool
 }
 
-// NewDetailModel creates a DetailModel starting in dashboard mode.
-func NewDetailModel() DetailModel {
+// NewModel creates a Model starting in dashboard mode.
+func NewModel() Model {
 	vp := viewport.New()
-	return DetailModel{
+	return Model{
 		mode:       ModeDashboard,
 		dashboard:  NewDashboardModel(),
-		nodeDetail: NewNodeDetailModel(),
-		taskDetail: NewTaskDetailModel(),
+		nodeDetail: NewNodeModel(),
+		taskDetail: NewTaskModel(),
 		logView:    NewLogViewModel(),
 		inbox:      NewInboxModel(),
 		viewport:   vp,
@@ -49,15 +50,28 @@ func NewDetailModel() DetailModel {
 }
 
 // Mode returns the current detail mode.
-func (m DetailModel) Mode() DetailMode {
+func (m Model) Mode() Mode {
 	return m.mode
 }
 
 // IsCapturingInput returns true when a sub-view is capturing keyboard
 // input (e.g., the inbox text input field is active). The app
 // orchestrator should suppress global key bindings in this state.
-func (m DetailModel) IsCapturingInput() bool {
+func (m Model) IsCapturingInput() bool {
 	return m.mode == ModeInbox && m.inbox.IsInputActive()
+}
+
+// InboxModelRef returns a pointer to the inbox sub-model so the modal
+// layer can borrow it for rendering and key routing without moving
+// ownership out of the detail container.
+func (m *Model) InboxModelRef() *InboxModel {
+	return &m.inbox
+}
+
+// LogViewModelRef returns a pointer to the log view sub-model so the
+// modal layer can borrow it for rendering and key routing.
+func (m *Model) LogViewModelRef() *LogViewModel {
+	return &m.logView
 }
 
 // Update routes messages to the active sub-view.
@@ -73,7 +87,7 @@ func (m DetailModel) IsCapturingInput() bool {
 //   - NewLogFileMsg   → log view sub-model (same rationale: rotation
 //     events must reach the log view even when it
 //     is not the active mode)
-func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	if inboxMsg, ok := msg.(tui.InboxUpdatedMsg); ok {
 		m.inbox, _ = m.inbox.Update(inboxMsg)
 	}
@@ -100,7 +114,7 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 	}
 }
 
-func (m DetailModel) updateDashboard(msg tea.Msg) (DetailModel, tea.Cmd) {
+func (m Model) updateDashboard(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg.(type) {
 	case tui.StateUpdatedMsg, tui.DaemonStatusMsg, tui.LogLinesMsg:
 		var cmd tea.Cmd
@@ -114,7 +128,7 @@ func (m DetailModel) updateDashboard(msg tea.Msg) (DetailModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m DetailModel) updateNodeDetail(msg tea.Msg) (DetailModel, tea.Cmd) {
+func (m Model) updateNodeDetail(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyPressMsg:
 		var cmd tea.Cmd
@@ -124,7 +138,7 @@ func (m DetailModel) updateNodeDetail(msg tea.Msg) (DetailModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m DetailModel) updateTaskDetail(msg tea.Msg) (DetailModel, tea.Cmd) {
+func (m Model) updateTaskDetail(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyPressMsg:
 		var cmd tea.Cmd
@@ -134,7 +148,7 @@ func (m DetailModel) updateTaskDetail(msg tea.Msg) (DetailModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m DetailModel) updateLogView(msg tea.Msg) (DetailModel, tea.Cmd) {
+func (m Model) updateLogView(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyPressMsg, tui.LogLinesMsg, tui.NewLogFileMsg:
 		var cmd tea.Cmd
@@ -144,7 +158,7 @@ func (m DetailModel) updateLogView(msg tea.Msg) (DetailModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m DetailModel) updateInbox(msg tea.Msg) (DetailModel, tea.Cmd) {
+func (m Model) updateInbox(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyPressMsg, tui.InboxUpdatedMsg:
 		var cmd tea.Cmd
@@ -154,7 +168,7 @@ func (m DetailModel) updateInbox(msg tea.Msg) (DetailModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m DetailModel) updatePlaceholder(msg tea.Msg) (DetailModel, tea.Cmd) {
+func (m Model) updatePlaceholder(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyPressMsg:
 		var cmd tea.Cmd
@@ -165,7 +179,7 @@ func (m DetailModel) updatePlaceholder(msg tea.Msg) (DetailModel, tea.Cmd) {
 }
 
 // SetSize propagates dimensions to all sub-models.
-func (m *DetailModel) SetSize(width, height int) {
+func (m *Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 	m.dashboard.SetSize(width, height)
@@ -178,44 +192,44 @@ func (m *DetailModel) SetSize(width, height int) {
 }
 
 // SetFocused marks whether this container currently holds keyboard focus.
-func (m *DetailModel) SetFocused(focused bool) {
+func (m *Model) SetFocused(focused bool) {
 	m.focused = focused
 }
 
 // SetMode switches the active sub-view.
-func (m *DetailModel) SetMode(mode DetailMode) {
+func (m *Model) SetMode(mode Mode) {
 	m.mode = mode
 }
 
 // LoadNodeDetail switches to node detail mode and populates the view.
-func (m *DetailModel) LoadNodeDetail(addr string, node *state.NodeState, entry *state.IndexEntry, isTarget bool) {
+func (m *Model) LoadNodeDetail(addr string, node *state.NodeState, entry *state.IndexEntry, isTarget bool) {
 	m.mode = ModeNodeDetail
 	m.nodeDetail.Load(addr, node, entry, isTarget)
 }
 
 // LoadTaskDetail switches to task detail mode and populates the view.
-func (m *DetailModel) LoadTaskDetail(addr, taskID string, task *state.Task) {
+func (m *Model) LoadTaskDetail(addr, taskID string, task *state.Task) {
 	m.mode = ModeTaskDetail
 	m.taskDetail.Load(addr, taskID, task)
 }
 
 // SwitchToLogView switches to log stream mode.
-func (m *DetailModel) SwitchToLogView() {
+func (m *Model) SwitchToLogView() {
 	m.mode = ModeLogStream
 }
 
 // SwitchToDashboard switches to dashboard mode.
-func (m *DetailModel) SwitchToDashboard() {
+func (m *Model) SwitchToDashboard() {
 	m.mode = ModeDashboard
 }
 
 // Reset clears all data from the detail sub-views, used when switching
 // instances. The dashboard shows a "loading..." placeholder until fresh
 // data arrives.
-func (m *DetailModel) Reset() {
+func (m *Model) Reset() {
 	m.dashboard.Reset()
-	m.nodeDetail = NewNodeDetailModel()
-	m.taskDetail = NewTaskDetailModel()
+	m.nodeDetail = NewNodeModel()
+	m.taskDetail = NewTaskModel()
 	m.logView = NewLogViewModel()
 	m.inbox = NewInboxModel()
 	m.mode = ModeDashboard
@@ -223,30 +237,30 @@ func (m *DetailModel) Reset() {
 }
 
 // SwitchToInbox switches to inbox mode.
-func (m *DetailModel) SwitchToInbox() {
+func (m *Model) SwitchToInbox() {
 	m.mode = ModeInbox
 	m.inbox.SetFocused(m.focused)
 }
 
 // LoadInbox updates the inbox model with fresh data.
-func (m *DetailModel) LoadInbox(items []state.InboxItem) {
+func (m *Model) LoadInbox(items []state.InboxItem) {
 	m.inbox.SetItems(items)
 }
 
 // SetDashboardInbox updates the dashboard's cached inbox items for the
 // summary line, independent of the inbox detail view.
-func (m *DetailModel) SetDashboardInbox(items []state.InboxItem) {
+func (m *Model) SetDashboardInbox(items []state.InboxItem) {
 	m.dashboard.SetInbox(items)
 }
 
 // SetInboxReadError flags the inbox as unreadable.
-func (m *DetailModel) SetInboxReadError(err bool) {
+func (m *Model) SetInboxReadError(err bool) {
 	m.inbox.SetReadError(err)
 }
 
 // SearchContent returns the searchable lines for the current detail mode.
 // The app uses this when search is activated on the detail pane.
-func (m DetailModel) SearchContent() []string {
+func (m Model) SearchContent() []string {
 	switch m.mode {
 	case ModeNodeDetail:
 		return m.nodeDetail.SearchContent()
@@ -262,7 +276,7 @@ func (m DetailModel) SearchContent() []string {
 }
 
 // CopyTarget returns the appropriate copy text for the current mode.
-func (m DetailModel) CopyTarget() string {
+func (m Model) CopyTarget() string {
 	switch m.mode {
 	case ModeNodeDetail:
 		return m.nodeDetail.Addr()
@@ -278,7 +292,7 @@ func (m DetailModel) CopyTarget() string {
 }
 
 // View renders the active sub-view.
-func (m DetailModel) View() string {
+func (m Model) View() string {
 	switch m.mode {
 	case ModeDashboard:
 		return m.dashboard.View()

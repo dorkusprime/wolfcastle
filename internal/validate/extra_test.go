@@ -209,7 +209,7 @@ func TestValidateAll_DetectsStaleStopFile(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(wDir, "system"), 0755)
 	_ = os.WriteFile(filepath.Join(wDir, "system", "stop"), []byte(""), 0644)
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wDir))
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewRepository(wDir))
 	report := engine.ValidateAll(idx)
 
 	found := false
@@ -325,7 +325,7 @@ func TestApplyDeterministicFixes_StaleStopFile(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewDaemonRepository(wDir))
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewRepository(wDir))
 	if err != nil {
 		t.Fatal(err)
 	}

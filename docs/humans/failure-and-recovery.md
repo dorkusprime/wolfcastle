@@ -4,6 +4,8 @@
 
 Tasks fail. Wolfcastle does not take it personally. It takes it systematically.
 
+In the [TUI](the-tui.md), blocked tasks show the `☢` glyph in the tree. Toast notifications announce auto-blocks as they happen. Press `Enter` on a blocked task to see the block reason, failure count, and last failure type in the [task detail](the-tui.md#task-detail) view.
+
 Each task tracks a failure counter. All thresholds are [configurable](config-reference.md#failure):
 
 | Failures | Depth OK | Action |

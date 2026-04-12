@@ -7,8 +7,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-func TestNewSearchModel(t *testing.T) {
-	m := NewSearchModel()
+func TestNewModel(t *testing.T) {
+	m := NewModel()
 	if m.IsActive() {
 		t.Error("new model should not be active")
 	}
@@ -21,7 +21,7 @@ func TestNewSearchModel(t *testing.T) {
 }
 
 func TestActivate(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(1)
 	if !m.IsActive() {
 		t.Error("expected active after Activate")
@@ -38,9 +38,9 @@ func TestActivate(t *testing.T) {
 }
 
 func TestDismiss(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
-	m.SetMatches([]SearchMatch{{Row: 1, Col: 2, Length: 3}})
+	m.SetMatches([]Match{{Row: 1, Col: 2, Length: 3}})
 	m.Dismiss()
 
 	if m.IsActive() {
@@ -55,10 +55,10 @@ func TestDismiss(t *testing.T) {
 }
 
 func TestConfirm(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
 	m.query = "test"
-	m.SetMatches([]SearchMatch{
+	m.SetMatches([]Match{
 		{Row: 0, Col: 0, Length: 4},
 		{Row: 1, Col: 5, Length: 4},
 	})
@@ -73,9 +73,9 @@ func TestConfirm(t *testing.T) {
 }
 
 func TestConfirmClampsCurrentIndex(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
-	m.SetMatches([]SearchMatch{{Row: 0, Col: 0, Length: 1}})
+	m.SetMatches([]Match{{Row: 0, Col: 0, Length: 1}})
 	m.current = 5 // artificially out of range
 	m.Confirm()
 	if m.current != 0 {
@@ -84,7 +84,7 @@ func TestConfirmClampsCurrentIndex(t *testing.T) {
 }
 
 func TestAccessors(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	if m.IsActive() {
 		t.Error("IsActive should be false on new model")
 	}
@@ -107,8 +107,8 @@ func TestAccessors(t *testing.T) {
 }
 
 func TestSetMatches(t *testing.T) {
-	m := NewSearchModel()
-	matches := []SearchMatch{
+	m := NewModel()
+	matches := []Match{
 		{Row: 0, Col: 0, Length: 3},
 		{Row: 2, Col: 1, Length: 3},
 	}
@@ -122,18 +122,18 @@ func TestSetMatches(t *testing.T) {
 }
 
 func TestSetMatchesClampsCurrentIndex(t *testing.T) {
-	m := NewSearchModel()
-	m.SetMatches([]SearchMatch{{}, {}, {}})
+	m := NewModel()
+	m.SetMatches([]Match{{}, {}, {}})
 	m.current = 2
 	// Now shrink matches so current is out of range.
-	m.SetMatches([]SearchMatch{{Row: 0}})
+	m.SetMatches([]Match{{Row: 0}})
 	if m.current != 0 {
 		t.Errorf("current = %d, want 0 after clamp", m.current)
 	}
 }
 
 func TestSetMatchesEmpty(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.current = 5
 	m.SetMatches(nil)
 	if m.current != 0 {
@@ -142,8 +142,8 @@ func TestSetMatchesEmpty(t *testing.T) {
 }
 
 func TestNextMatch(t *testing.T) {
-	m := NewSearchModel()
-	m.SetMatches([]SearchMatch{{Row: 0}, {Row: 1}, {Row: 2}})
+	m := NewModel()
+	m.SetMatches([]Match{{Row: 0}, {Row: 1}, {Row: 2}})
 	m.NextMatch()
 	if m.Current() != 1 {
 		t.Errorf("after NextMatch: current = %d, want 1", m.Current())
@@ -160,7 +160,7 @@ func TestNextMatch(t *testing.T) {
 }
 
 func TestNextMatchNoMatches(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.NextMatch() // should not panic
 	if m.Current() != 0 {
 		t.Errorf("current = %d, want 0", m.Current())
@@ -168,8 +168,8 @@ func TestNextMatchNoMatches(t *testing.T) {
 }
 
 func TestPrevMatch(t *testing.T) {
-	m := NewSearchModel()
-	m.SetMatches([]SearchMatch{{Row: 0}, {Row: 1}, {Row: 2}})
+	m := NewModel()
+	m.SetMatches([]Match{{Row: 0}, {Row: 1}, {Row: 2}})
 	// Wrap backward from 0.
 	m.PrevMatch()
 	if m.Current() != 2 {
@@ -182,7 +182,7 @@ func TestPrevMatch(t *testing.T) {
 }
 
 func TestPrevMatchNoMatches(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.PrevMatch() // should not panic
 	if m.Current() != 0 {
 		t.Errorf("current = %d, want 0", m.Current())
@@ -190,8 +190,8 @@ func TestPrevMatchNoMatches(t *testing.T) {
 }
 
 func TestCurrentMatch(t *testing.T) {
-	m := NewSearchModel()
-	m.SetMatches([]SearchMatch{
+	m := NewModel()
+	m.SetMatches([]Match{
 		{Row: 5, Col: 3, Length: 2},
 		{Row: 10, Col: 0, Length: 4},
 	})
@@ -214,7 +214,7 @@ func TestCurrentMatch(t *testing.T) {
 }
 
 func TestCurrentMatchEmpty(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	_, ok := m.CurrentMatch()
 	if ok {
 		t.Error("expected ok = false when no matches")
@@ -222,9 +222,9 @@ func TestCurrentMatchEmpty(t *testing.T) {
 }
 
 func TestUpdateEscWhenActive(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
-	m.SetMatches([]SearchMatch{{Row: 1}})
+	m.SetMatches([]Match{{Row: 1}})
 
 	m, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	if m.IsActive() {
@@ -236,10 +236,10 @@ func TestUpdateEscWhenActive(t *testing.T) {
 }
 
 func TestUpdateEnterWhenActive(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
 	m.query = "foo"
-	m.SetMatches([]SearchMatch{{Row: 0}, {Row: 1}})
+	m.SetMatches([]Match{{Row: 0}, {Row: 1}})
 
 	m, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if m.IsActive() {
@@ -251,7 +251,7 @@ func TestUpdateEnterWhenActive(t *testing.T) {
 }
 
 func TestUpdateTypingWhenActive(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
 
 	// Send a regular key; the textinput should process it.
@@ -263,8 +263,8 @@ func TestUpdateTypingWhenActive(t *testing.T) {
 }
 
 func TestUpdateNWhenInactiveWithMatches(t *testing.T) {
-	m := NewSearchModel()
-	m.SetMatches([]SearchMatch{{Row: 0}, {Row: 1}, {Row: 2}})
+	m := NewModel()
+	m.SetMatches([]Match{{Row: 0}, {Row: 1}, {Row: 2}})
 
 	m, _ = m.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
 	if m.Current() != 1 {
@@ -273,8 +273,8 @@ func TestUpdateNWhenInactiveWithMatches(t *testing.T) {
 }
 
 func TestUpdateShiftNWhenInactiveWithMatches(t *testing.T) {
-	m := NewSearchModel()
-	m.SetMatches([]SearchMatch{{Row: 0}, {Row: 1}, {Row: 2}})
+	m := NewModel()
+	m.SetMatches([]Match{{Row: 0}, {Row: 1}, {Row: 2}})
 
 	m, _ = m.Update(tea.KeyPressMsg{Code: 'N', Text: "N", Mod: tea.ModShift})
 	if m.Current() != 2 {
@@ -283,7 +283,7 @@ func TestUpdateShiftNWhenInactiveWithMatches(t *testing.T) {
 }
 
 func TestUpdateNonKeyMsg(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
 	// A non-key message should pass through without error.
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
@@ -293,10 +293,10 @@ func TestUpdateNonKeyMsg(t *testing.T) {
 }
 
 func TestViewActiveWithMatches(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
 	m.query = "test"
-	m.SetMatches([]SearchMatch{{Row: 0}, {Row: 3}})
+	m.SetMatches([]Match{{Row: 0}, {Row: 3}})
 
 	v := m.View()
 	if !strings.Contains(v, "1/2 matches") {
@@ -305,7 +305,7 @@ func TestViewActiveWithMatches(t *testing.T) {
 }
 
 func TestViewActiveNoMatches(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
 	m.query = "nonexistent"
 
@@ -316,7 +316,7 @@ func TestViewActiveNoMatches(t *testing.T) {
 }
 
 func TestViewActiveEmptyQuery(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
 
 	v := m.View()
@@ -327,18 +327,29 @@ func TestViewActiveEmptyQuery(t *testing.T) {
 }
 
 func TestViewInactiveNoMatches(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	v := m.View()
 	if v != "" {
 		t.Errorf("expected empty view when inactive with no matches, got: %q", v)
 	}
 }
 
+func TestPaneType(t *testing.T) {
+	m := NewModel()
+	if m.PaneType() != 0 {
+		t.Errorf("default PaneType = %d, want 0", m.PaneType())
+	}
+	m.Activate(1)
+	if m.PaneType() != 1 {
+		t.Errorf("PaneType after Activate(1) = %d, want 1", m.PaneType())
+	}
+}
+
 func TestViewInactiveWithConfirmedMatches(t *testing.T) {
-	m := NewSearchModel()
+	m := NewModel()
 	m.Activate(0)
 	m.query = "foo"
-	m.SetMatches([]SearchMatch{{Row: 0}, {Row: 1}})
+	m.SetMatches([]Match{{Row: 0}, {Row: 1}})
 	m.Confirm()
 
 	v := m.View()

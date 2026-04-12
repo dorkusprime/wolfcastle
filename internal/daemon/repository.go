@@ -9,39 +9,39 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tierfs"
 )
 
-// DaemonRepository consolidates all filesystem operations the daemon
+// Repository consolidates all filesystem operations the daemon
 // performs against its system directory. Every path the daemon touches
 // (PID file, stop file, log directory) flows through this struct,
 // eliminating scattered filepath.Join constructions.
-type DaemonRepository struct {
+type Repository struct {
 	systemDir string
 }
 
-// NewDaemonRepository creates a DaemonRepository rooted at the given
+// NewRepository creates a Repository rooted at the given
 // wolfcastle directory. All paths are derived from wolfcastleRoot/system.
-func NewDaemonRepository(wolfcastleRoot string) *DaemonRepository {
-	return &DaemonRepository{
+func NewRepository(wolfcastleRoot string) *Repository {
+	return &Repository{
 		systemDir: filepath.Join(wolfcastleRoot, tierfs.SystemPrefix),
 	}
 }
 
-func (r *DaemonRepository) stopPath() string {
+func (r *Repository) stopPath() string {
 	return filepath.Join(r.systemDir, "stop")
 }
 
 // HasStopFile reports whether the stop file exists.
-func (r *DaemonRepository) HasStopFile() bool {
+func (r *Repository) HasStopFile() bool {
 	_, err := os.Stat(r.stopPath())
 	return err == nil
 }
 
 // WriteStopFile creates the stop file (empty, 0644).
-func (r *DaemonRepository) WriteStopFile() error {
+func (r *Repository) WriteStopFile() error {
 	return os.WriteFile(r.stopPath(), nil, 0644)
 }
 
 // RemoveStopFile removes the stop file. Returns nil if the file does not exist.
-func (r *DaemonRepository) RemoveStopFile() error {
+func (r *Repository) RemoveStopFile() error {
 	err := os.Remove(r.stopPath())
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -50,14 +50,14 @@ func (r *DaemonRepository) RemoveStopFile() error {
 }
 
 // StopFileExists reports whether the stop file exists on disk.
-func (r *DaemonRepository) StopFileExists() bool {
+func (r *Repository) StopFileExists() bool {
 	_, err := os.Stat(r.stopPath())
 	return err == nil
 }
 
 // IsAlive checks the instance registry for a running daemon whose
 // worktree matches this repository's root directory (parent of systemDir).
-func (r *DaemonRepository) IsAlive() bool {
+func (r *Repository) IsAlive() bool {
 	repoDir := filepath.Dir(r.systemDir)
 	entry, err := instance.Resolve(repoDir)
 	if err != nil {
@@ -67,18 +67,18 @@ func (r *DaemonRepository) IsAlive() bool {
 }
 
 // HasDrainFile reports whether the drain file exists.
-func (r *DaemonRepository) HasDrainFile() bool {
+func (r *Repository) HasDrainFile() bool {
 	_, err := os.Stat(r.drainPath())
 	return err == nil
 }
 
 // WriteDrainFile creates the drain file (empty, 0644).
-func (r *DaemonRepository) WriteDrainFile() error {
+func (r *Repository) WriteDrainFile() error {
 	return os.WriteFile(r.drainPath(), nil, 0644)
 }
 
 // RemoveDrainFile removes the drain file. Returns nil if the file does not exist.
-func (r *DaemonRepository) RemoveDrainFile() error {
+func (r *Repository) RemoveDrainFile() error {
 	err := os.Remove(r.drainPath())
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -86,7 +86,7 @@ func (r *DaemonRepository) RemoveDrainFile() error {
 	return err
 }
 
-func (r *DaemonRepository) drainPath() string {
+func (r *Repository) drainPath() string {
 	return filepath.Join(r.systemDir, "drain")
 }
 
@@ -94,6 +94,6 @@ func (r *DaemonRepository) drainPath() string {
 // intentional escape hatch: the Logger manages its own file handles,
 // rotation, and compression, so it needs the directory path rather
 // than a repository method for each log operation.
-func (r *DaemonRepository) LogDir() string {
+func (r *Repository) LogDir() string {
 	return filepath.Join(r.systemDir, "logs")
 }

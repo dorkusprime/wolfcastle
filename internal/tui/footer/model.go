@@ -1,3 +1,5 @@
+// Package footer renders the single-line key-hint bar at the bottom of the TUI,
+// showing context-sensitive key hints and daemon status.
 package footer
 
 import (
@@ -9,21 +11,21 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
-// FooterModel renders a single-line key-hint bar at the bottom of the TUI.
-type FooterModel struct {
+// Model renders a single-line key-hint bar at the bottom of the TUI.
+type Model struct {
 	focusedPane   int // 0=PaneTree, 1=PaneDetail
 	detailMode    int // 0=Dashboard, 1=NodeDetail, 2=TaskDetail, 3=LogStream, 4=Inbox
 	daemonRunning bool
 	width         int
 }
 
-// NewFooterModel returns a zero-value footer ready for use.
-func NewFooterModel() FooterModel {
-	return FooterModel{}
+// NewModel returns a zero-value footer ready for use.
+func NewModel() Model {
+	return Model{}
 }
 
 // Update handles messages relevant to the footer.
-func (m FooterModel) Update(msg tea.Msg) (FooterModel, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -35,22 +37,22 @@ func (m FooterModel) Update(msg tea.Msg) (FooterModel, tea.Cmd) {
 }
 
 // SetFocus updates which pane is focused.
-func (m *FooterModel) SetFocus(pane int) {
+func (m *Model) SetFocus(pane int) {
 	m.focusedPane = pane
 }
 
 // SetDetailMode updates the current detail-pane mode.
-func (m *FooterModel) SetDetailMode(mode int) {
+func (m *Model) SetDetailMode(mode int) {
 	m.detailMode = mode
 }
 
 // SetSize updates the available width for rendering.
-func (m *FooterModel) SetSize(width int) {
+func (m *Model) SetSize(width int) {
 	m.width = width
 }
 
 // View renders the footer as a single line of key hints.
-func (m FooterModel) View() string {
+func (m Model) View() string {
 	style := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
 
 	// Build hints in priority order (highest priority first).
@@ -63,6 +65,7 @@ func (m FooterModel) View() string {
 	hints := []hint{
 		{"q", "quit"},
 		{"Tab", "focus"},
+		{"d", "dashboard"},
 	}
 
 	// Mode-specific bindings

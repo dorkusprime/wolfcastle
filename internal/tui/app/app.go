@@ -68,26 +68,30 @@ type TUIModel struct {
 	focused     FocusedPane
 	lastFocused FocusedPane
 
-	header  header.HeaderModel
-	tree    tree.TreeModel
-	detail  detail.DetailModel
-	footer  footer.FooterModel
-	welcome *welcome.WelcomeModel
-	search  search.SearchModel
-	help    help.HelpOverlayModel
+	header  header.Model
+	tree    tree.Model
+	detail  detail.Model
+	footer  footer.Model
+	welcome *welcome.Model
+	search  search.Model
+	help    help.Model
 	notify  notify.NotificationModel
 
 	// State diffing for toast notifications (Phase 5).
 	prevIndex *state.RootIndex
 	prevNodes map[string]*state.NodeState
 
+	activeModal ActiveModal
+	daemonModal DaemonModalModel
+
 	switching   bool   // true while instance switch is in flight
 	switchLabel string // label of the instance being switched to
 
 	entryState  EntryState
 	store       *state.Store
-	daemonRepo  *daemon.DaemonRepository
-	worktreeDir string
+	daemonRepo  *daemon.Repository
+	worktreeDir string // tracks the currently-viewed instance's worktree
+	originalCWD string // the directory the TUI was launched from; never mutated
 	version     string
 
 	watcher       *tui.Watcher
@@ -105,21 +109,22 @@ type TUIModel struct {
 // NewTUIModel creates a fully wired TUIModel. When store is nil (no
 // .wolfcastle directory found), the model opens in welcome mode so the
 // user can pick a directory and initialize.
-func NewTUIModel(store *state.Store, daemonRepo *daemon.DaemonRepository, worktreeDir, version string) TUIModel {
+func NewTUIModel(store *state.Store, daemonRepo *daemon.Repository, worktreeDir, version string) TUIModel {
 	m := TUIModel{
 		treeVisible: true,
 		focused:     PaneTree,
-		header:      header.NewHeaderModel(version),
-		tree:        tree.NewTreeModel(),
-		detail:      detail.NewDetailModel(),
-		footer:      footer.NewFooterModel(),
-		search:      search.NewSearchModel(),
-		help:        help.NewHelpOverlayModel(),
+		header:      header.NewModel(version),
+		tree:        tree.NewModel(),
+		detail:      detail.NewModel(),
+		footer:      footer.NewModel(),
+		search:      search.NewModel(),
+		help:        help.NewModel(),
 		notify:      notify.NewNotificationModel(),
 		prevNodes:   make(map[string]*state.NodeState),
 		store:       store,
 		daemonRepo:  daemonRepo,
 		worktreeDir: worktreeDir,
+		originalCWD: worktreeDir,
 		version:     version,
 		// 256 is enough headroom that a brief render stall (the model
 		// taking a few ms to drain) does not cause the watcher to drop
@@ -133,7 +138,7 @@ func NewTUIModel(store *state.Store, daemonRepo *daemon.DaemonRepository, worktr
 		m.entryState = StateWelcome
 		// Discover running instances for the sessions panel.
 		instances, _ := instance.List()
-		w := welcome.NewWelcomeModel(worktreeDir, instances)
+		w := welcome.NewModel(worktreeDir, instances)
 		m.welcome = &w
 	} else {
 		m.entryState = StateCold
@@ -227,6 +232,11 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		// Modal overlay absorbs all keys while active.
+		if m.activeModal != ModalNone {
+			return m.updateActiveModal(msg)
+		}
+
 		// Active search bar captures input.
 		if m.search.IsActive() {
 			prevQuery := m.search.Query()
@@ -243,19 +253,18 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, tui.GlobalKeyMap.Quit):
 			return m, tea.Quit
 
-		case key.Matches(msg, tui.GlobalKeyMap.LogStream):
-			// Switch the detail pane to the log stream view from any
-			// focus state. The binding is capital L so it doesn't
-			// collide with the tree pane's vi-style l = expand.
-			m.detail.SwitchToLogView()
+		case key.Matches(msg, tui.GlobalKeyMap.Dashboard):
+			m.detail.SwitchToDashboard()
 			m.focused = PaneDetail
 			m.syncFocus()
 			return m, nil
 
+		case key.Matches(msg, tui.GlobalKeyMap.LogStream):
+			m.activeModal = ModalLog
+			return m, nil
+
 		case key.Matches(msg, tui.GlobalKeyMap.Inbox):
-			m.detail.SwitchToInbox()
-			m.focused = PaneDetail
-			m.syncFocus()
+			m.activeModal = ModalInbox
 			return m, m.loadInbox()
 
 		case key.Matches(msg, tui.GlobalKeyMap.ToggleTree):
@@ -291,8 +300,28 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.handleCopy()
 
 		case key.Matches(msg, tui.DaemonKeyMap.ToggleDaemon):
-			cmd := m.handleToggleDaemon()
-			return m, cmd
+			if m.daemonStarting || m.daemonStopping {
+				return m, nil
+			}
+			action := "start"
+			isRunning := m.entryState == StateLive
+			if isRunning {
+				action = "stop"
+			}
+			var pid int
+			var branch string
+			var isDraining bool
+			worktree := m.worktreeDir
+			if len(m.instances) > 0 && m.activeInstanceIndex < len(m.instances) {
+				inst := m.instances[m.activeInstanceIndex]
+				pid = inst.PID
+				branch = inst.Branch
+				worktree = inst.Worktree
+			}
+			m.daemonModal.Open(action, isRunning, isDraining, pid, branch, worktree)
+			m.daemonModal.SetSize(m.width, m.height)
+			m.activeModal = ModalDaemon
+			return m, nil
 
 		case key.Matches(msg, tui.DaemonKeyMap.StopAll):
 			cmd := m.handleStopAll()
@@ -388,6 +417,14 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Data messages: always broadcast regardless of overlay state
 	// ---------------------------------------------------------------
 	case tui.StateUpdatedMsg:
+		// Discard stale reads from in-flight commands that were
+		// dispatched before an instance switch or daemon stop.
+		// Watcher events have empty Worktree and are always current
+		// (the watcher gets replaced on switch).
+		if msg.Worktree != "" && msg.Worktree != m.worktreeDir {
+			return m, nil
+		}
+
 		m.header.SetLoading(false)
 		h, hcmd := m.header.Update(header.StateUpdatedMsg{Index: msg.Index})
 		m.header = h
@@ -414,10 +451,10 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case tui.DaemonStatusMsg:
-		// Update instance list on the TUI model.
 		if msg.Instances != nil {
-			m.instances = msg.Instances
-			m.header.SetInstances(m.instances, m.activeInstanceIndex)
+			if cmd := m.reconcileActiveInstance(msg.Instances); cmd != nil {
+				cmds = append(cmds, cmd)
+			}
 		}
 
 		h, hcmd := m.header.Update(header.DaemonStatusMsg{
@@ -445,6 +482,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.entryState = StateCold
 		}
+
 		return m, tea.Batch(cmds...)
 
 	case tui.NodeUpdatedMsg:
@@ -465,6 +503,13 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, tea.Batch(cmds...)
+
+	case tree.CollapseAtRootMsg:
+		// User pressed h/left/esc at the top-level tree root. Show the
+		// dashboard in the detail pane but keep focus on the tree so
+		// navigation isn't interrupted.
+		m.detail.SwitchToDashboard()
+		return m, nil
 
 	case tree.LoadNodeMsg:
 		// The tree fires this when expanding a leaf whose NodeState isn't
@@ -491,14 +536,20 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tui.InstancesUpdatedMsg:
-		m.instances = msg.Instances
+		if cmd := m.reconcileActiveInstance(msg.Instances); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 		h, hcmd := m.header.Update(header.InstancesUpdatedMsg{
 			Instances: msg.Instances,
 		})
 		m.header = h
 		cmds = append(cmds, hcmd)
-		m.header.SetInstances(msg.Instances, m.activeInstanceIndex)
 		return m, tea.Batch(cmds...)
+
+	case tui.DaemonConfirmedMsg:
+		m.closeModal()
+		cmd := m.handleToggleDaemon()
+		return m, cmd
 
 	case tui.DaemonStartedMsg:
 		m.daemonStarting = false
@@ -542,7 +593,26 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.daemonStopping = false
 		m.entryState = StateCold
 		m.header.SetStatusHint("")
-		return m, m.handleRefresh()
+
+		m.worktreeDir = m.originalCWD
+		wolfDir := filepath.Join(m.originalCWD, ".wolfcastle")
+		m.store = storeFromWolfcastleDir(wolfDir)
+		m.daemonRepo = daemon.NewRepository(wolfDir)
+
+		m.tree.Reset()
+		m.detail.Reset()
+		m.detail.SwitchToDashboard()
+		m.prevIndex = nil
+		m.prevNodes = make(map[string]*state.NodeState)
+		m.instances = nil
+		m.activeInstanceIndex = 0
+		m.header.SetInstances(nil, 0)
+
+		m.stopAndDrainWatcher()
+		m.watcher = newWatcherFor(m.store, m.daemonRepo, m.watcherEvents)
+
+		refreshCmd := m.handleRefresh()
+		return m, refreshCmd
 
 	case tui.DaemonStopFailedMsg:
 		m.daemonStopping = false
@@ -583,7 +653,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Update store and daemon repo for the new worktree.
 		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
 		m.store = storeFromWolfcastleDir(wolfDir)
-		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+		m.daemonRepo = daemon.NewRepository(wolfDir)
 		m.worktreeDir = msg.Entry.Worktree
 
 		// Restart watcher: stop old, create+start+eager-prefetch new.
@@ -591,9 +661,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// you inline tui.NewWatcher here you'll silently break the
 		// per-leaf cache freshness because no AddNodeWatch calls
 		// will be made for the new instance's leaves.
-		if m.watcher != nil {
-			m.watcher.Stop()
-		}
+		m.stopAndDrainWatcher()
 		m.watcher = newWatcherFor(m.store, m.daemonRepo, m.watcherEvents)
 
 		// Immediately probe daemon status and inbox so the dashboard
@@ -656,7 +724,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.welcome = nil
 			m.worktreeDir = msg.Dir
 			wolfDir := filepath.Join(msg.Dir, ".wolfcastle")
-			m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+			m.daemonRepo = daemon.NewRepository(wolfDir)
 			m.store = storeFromWolfcastleDir(wolfDir)
 			m.header.SetLoading(true)
 			cmds = append(cmds, m.detectEntryState(), m.startWatcher(), m.startPoller(), m.loadInitialState())
@@ -672,7 +740,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notify = notify.NewNotificationModel()
 		m.worktreeDir = msg.Entry.Worktree
 		wolfDir := filepath.Join(msg.Entry.Worktree, ".wolfcastle")
-		m.daemonRepo = daemon.NewDaemonRepository(wolfDir)
+		m.daemonRepo = daemon.NewRepository(wolfDir)
 		m.store = storeFromWolfcastleDir(wolfDir)
 		m.instances, _ = instance.List()
 		for i, inst := range m.instances {
@@ -798,6 +866,8 @@ func (m TUIModel) renderLayout() string {
 
 	if m.help.IsActive() {
 		contentView = m.help.View()
+	} else if m.activeModal != ModalNone {
+		contentView = m.renderActiveModal(contentHeight)
 	}
 
 	var parts []string
@@ -945,12 +1015,12 @@ func (m *TUIModel) computeTreeSearchMatches() {
 	}
 
 	literal := make(map[string]bool)
-	var matches []search.SearchMatch
+	var matches []search.Match
 
 	for addr, entry := range idx.Nodes {
 		if strings.Contains(strings.ToLower(entry.Name), query) {
 			literal[addr] = true
-			matches = append(matches, search.SearchMatch{Address: addr})
+			matches = append(matches, search.Match{Address: addr})
 		}
 		if entry.Type != state.NodeLeaf {
 			continue
@@ -963,7 +1033,7 @@ func (m *TUIModel) computeTreeSearchMatches() {
 			if strings.Contains(strings.ToLower(task.Title), query) {
 				taskAddr := addr + "/" + task.ID
 				literal[taskAddr] = true
-				matches = append(matches, search.SearchMatch{Address: taskAddr})
+				matches = append(matches, search.Match{Address: taskAddr})
 			}
 		}
 	}
@@ -994,10 +1064,10 @@ func (m *TUIModel) computeTreeSearchMatches() {
 
 func (m *TUIModel) computeDetailSearchMatches(query string) {
 	lines := m.detail.SearchContent()
-	var matches []search.SearchMatch
+	var matches []search.Match
 	for i, line := range lines {
 		if strings.Contains(strings.ToLower(line), query) {
-			matches = append(matches, search.SearchMatch{Row: i})
+			matches = append(matches, search.Match{Row: i})
 		}
 	}
 	m.search.SetMatches(matches)
@@ -1141,6 +1211,7 @@ func (m TUIModel) handleRefresh() tea.Cmd {
 
 	if m.store != nil {
 		store := m.store
+		worktree := m.worktreeDir
 		cmds = append(cmds, func() tea.Msg {
 			idx, err := store.ReadIndex()
 			if err != nil {
@@ -1149,7 +1220,7 @@ func (m TUIModel) handleRefresh() tea.Cmd {
 					Message:  "State corruption detected: state.json. Run wolfcastle doctor.",
 				}
 			}
-			return tui.StateUpdatedMsg{Index: idx}
+			return tui.StateUpdatedMsg{Index: idx, Worktree: worktree}
 		})
 	}
 
@@ -1210,6 +1281,7 @@ func (m *TUIModel) propagateSize() {
 	m.header.SetSize(m.width)
 	m.footer.SetSize(m.width)
 	m.help.SetSize(m.width, m.height)
+	m.daemonModal.SetSize(m.width, m.height)
 	m.notify.SetSize(m.width)
 
 	if m.welcome != nil {
@@ -1435,7 +1507,27 @@ func (m *TUIModel) startWatcher() tea.Cmd {
 // any user who switched instances during a session. Routing through
 // this helper makes that class of bug structurally impossible: if
 // you forget to call newWatcherFor, you don't get a watcher at all.
-func newWatcherFor(store *state.Store, repo *daemon.DaemonRepository, events chan tea.Msg) *tui.Watcher {
+// stopAndDrainWatcher stops the current watcher and drains any stale
+// messages from the events channel. Call this BEFORE constructing the
+// new watcher so the drain doesn't eat the new watcher's eager-prefetch
+// events.
+func (m *TUIModel) stopAndDrainWatcher() {
+	if m.watcher != nil {
+		m.watcher.Stop()
+		m.watcher = nil
+	}
+	// Drain stale messages. The channel is buffered (256), so this is
+	// bounded and non-blocking once the buffer empties.
+	for {
+		select {
+		case <-m.watcherEvents:
+		default:
+			return
+		}
+	}
+}
+
+func newWatcherFor(store *state.Store, repo *daemon.Repository, events chan tea.Msg) *tui.Watcher {
 	if store == nil {
 		return nil
 	}
@@ -1470,6 +1562,7 @@ func (m TUIModel) schedulePollTick() tea.Cmd {
 // TUI in sync with daemon activity.
 func (m TUIModel) pollState() tea.Cmd {
 	store := m.store
+	worktree := m.worktreeDir
 	return func() tea.Msg {
 		if store == nil {
 			return nil
@@ -1478,12 +1571,13 @@ func (m TUIModel) pollState() tea.Cmd {
 		if err != nil {
 			return nil // silent on poll errors; next tick will retry
 		}
-		return tui.StateUpdatedMsg{Index: idx}
+		return tui.StateUpdatedMsg{Index: idx, Worktree: worktree}
 	}
 }
 
 func (m TUIModel) loadInitialState() tea.Cmd {
 	store := m.store
+	worktree := m.worktreeDir
 	return func() tea.Msg {
 		if store == nil {
 			return nil
@@ -1495,7 +1589,7 @@ func (m TUIModel) loadInitialState() tea.Cmd {
 				Message:  "State corruption detected: state.json. Run wolfcastle doctor.",
 			}
 		}
-		return tui.StateUpdatedMsg{Index: idx}
+		return tui.StateUpdatedMsg{Index: idx, Worktree: worktree}
 	}
 }
 
@@ -1584,8 +1678,7 @@ func (m *TUIModel) stopCurrentDaemon() tea.Cmd {
 			}
 			time.Sleep(200 * time.Millisecond)
 		}
-		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
-		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
+		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("daemon not responding, try wolfcastle stop --force")}
 	}
 }
 
@@ -1622,8 +1715,7 @@ func (m *TUIModel) handleStopAll() tea.Cmd {
 		if lastErr != nil {
 			return tui.DaemonStopFailedMsg{Err: lastErr}
 		}
-		//nolint:staticcheck // ST1005: user-facing TUI message displayed in toast notification
-		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("Daemon not responding. Try wolfcastle stop --force.")}
+		return tui.DaemonStopFailedMsg{Err: fmt.Errorf("daemon not responding, try wolfcastle stop --force")}
 	}
 }
 

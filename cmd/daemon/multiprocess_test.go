@@ -394,7 +394,7 @@ func TestGetDaemonStatus_ExplicitRepoDir(t *testing.T) {
 		StartedAt: time.Now().UTC(),
 	})
 
-	repoObj := dmn.NewDaemonRepository(filepath.Join(repo, ".wolfcastle"))
+	repoObj := dmn.NewRepository(filepath.Join(repo, ".wolfcastle"))
 	status := getDaemonStatus(repoObj, repo)
 	if !strings.HasPrefix(status, "running") {
 		t.Errorf("expected status to start with 'running', got %q", status)
@@ -407,7 +407,7 @@ func TestGetDaemonStatus_ExplicitRepoDir(t *testing.T) {
 // registry has nothing matching the test's actual CWD.
 func TestGetDaemonStatus_EmptyRepoDirFallsBackToCWD(t *testing.T) {
 	_ = setupRegistry(t) // empty registry
-	repo := dmn.NewDaemonRepository(t.TempDir())
+	repo := dmn.NewRepository(t.TempDir())
 	status := getDaemonStatus(repo, "")
 	if status != "stopped" {
 		t.Errorf("expected 'stopped' for an empty registry, got %q", status)

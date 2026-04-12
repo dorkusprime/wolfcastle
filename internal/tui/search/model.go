@@ -1,3 +1,5 @@
+// Package search implements the interactive search bar and match navigation,
+// filtering the tree view by node and task names.
 package search
 
 import (
@@ -10,42 +12,42 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
-// SearchMatch identifies a single match position within pane content.
+// Match identifies a single match position within pane content.
 // Address is the tree address of the matching node or task and is the
 // identity that survives flat-list rebuilds (collapse/expand). Row is
 // retained for the detail-pane line-based search where addresses do
 // not apply.
-type SearchMatch struct {
+type Match struct {
 	Row     int
 	Col     int
 	Length  int
 	Address string
 }
 
-// SearchModel manages the search bar state, match navigation, and input
+// Model manages the search bar state, match navigation, and input
 // handling for a single pane.
-type SearchModel struct {
+type Model struct {
 	input    textinput.Model
 	active   bool
 	query    string
-	matches  []SearchMatch
+	matches  []Match
 	current  int // index into matches for n/N navigation
 	paneType int // which pane this search is bound to (0=tree, 1=detail)
 }
 
-// NewSearchModel returns a SearchModel with a textinput configured for
+// NewModel returns a Model with a textinput configured for
 // slash-prompt search entry.
-func NewSearchModel() SearchModel {
+func NewModel() Model {
 	ti := textinput.New()
 	ti.Prompt = "/"
 	ti.CharLimit = 0
-	return SearchModel{input: ti}
+	return Model{input: ti}
 }
 
 // Update processes key messages for the search bar. When active, it captures
 // Esc, Enter, and printable input. When inactive with confirmed matches, it
 // handles n/N for match cycling.
-func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		if m.active {
@@ -81,7 +83,7 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 
 // Activate opens the search bar for the given pane, clearing any previous
 // search state and focusing the text input.
-func (m *SearchModel) Activate(paneType int) {
+func (m *Model) Activate(paneType int) {
 	m.active = true
 	m.paneType = paneType
 	m.query = ""
@@ -92,7 +94,7 @@ func (m *SearchModel) Activate(paneType int) {
 }
 
 // Dismiss closes the search bar and clears all state.
-func (m *SearchModel) Dismiss() {
+func (m *Model) Dismiss() {
 	m.active = false
 	m.query = ""
 	m.matches = nil
@@ -102,7 +104,7 @@ func (m *SearchModel) Dismiss() {
 
 // Confirm closes the search bar but preserves matches and the current index
 // so that n/N navigation continues to work.
-func (m *SearchModel) Confirm() {
+func (m *Model) Confirm() {
 	m.active = false
 	m.input.Blur()
 	if len(m.matches) > 0 && m.current >= len(m.matches) {
@@ -111,42 +113,42 @@ func (m *SearchModel) Confirm() {
 }
 
 // IsActive reports whether the search bar is open and accepting input.
-func (m SearchModel) IsActive() bool {
+func (m Model) IsActive() bool {
 	return m.active
 }
 
 // PaneType returns which pane this search is bound to (0=tree, 1=detail).
-func (m SearchModel) PaneType() int {
+func (m Model) PaneType() int {
 	return m.paneType
 }
 
 // HasMatches reports whether there are any search matches.
-func (m SearchModel) HasMatches() bool {
+func (m Model) HasMatches() bool {
 	return len(m.matches) > 0
 }
 
 // Query returns the current search string.
-func (m SearchModel) Query() string {
+func (m Model) Query() string {
 	return m.query
 }
 
 // Current returns the index of the currently selected match.
-func (m SearchModel) Current() int {
+func (m Model) Current() int {
 	return m.current
 }
 
 // CurrentMatch returns the match at the current index, or false if there are
 // no matches.
-func (m SearchModel) CurrentMatch() (SearchMatch, bool) {
+func (m Model) CurrentMatch() (Match, bool) {
 	if len(m.matches) == 0 {
-		return SearchMatch{}, false
+		return Match{}, false
 	}
 	return m.matches[m.current], true
 }
 
 // SetMatches replaces the match list. Called by the parent model after
 // filtering pane content against the query.
-func (m *SearchModel) SetMatches(matches []SearchMatch) {
+func (m *Model) SetMatches(matches []Match) {
 	m.matches = matches
 	if len(matches) == 0 {
 		m.current = 0
@@ -156,7 +158,7 @@ func (m *SearchModel) SetMatches(matches []SearchMatch) {
 }
 
 // NextMatch advances to the next match, wrapping to the beginning.
-func (m *SearchModel) NextMatch() {
+func (m *Model) NextMatch() {
 	if len(m.matches) == 0 {
 		return
 	}
@@ -164,7 +166,7 @@ func (m *SearchModel) NextMatch() {
 }
 
 // PrevMatch moves to the previous match, wrapping to the end.
-func (m *SearchModel) PrevMatch() {
+func (m *Model) PrevMatch() {
 	if len(m.matches) == 0 {
 		return
 	}
@@ -173,7 +175,7 @@ func (m *SearchModel) PrevMatch() {
 
 // View renders the search bar line. The parent is responsible for placing this
 // at the bottom of the appropriate pane.
-func (m SearchModel) View() string {
+func (m Model) View() string {
 	if !m.active && len(m.matches) == 0 {
 		return ""
 	}

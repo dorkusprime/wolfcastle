@@ -11,7 +11,7 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DaemonRepository drain file operations
+// Repository drain file operations
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestDrainFile_WriteHasRemove(t *testing.T) {

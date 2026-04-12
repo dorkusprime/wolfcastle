@@ -40,8 +40,8 @@ type ConnectInstanceMsg struct {
 	Entry instance.Entry
 }
 
-// WelcomeModel drives the launcher screen.
-type WelcomeModel struct {
+// Model drives the launcher screen.
+type Model struct {
 	// Sessions panel
 	instances     []instance.Entry
 	sessionCursor int
@@ -61,15 +61,15 @@ type WelcomeModel struct {
 	spinnerFrame int
 }
 
-// NewWelcomeModel creates a launcher rooted at startDir's parent directory.
+// NewModel creates a launcher rooted at startDir's parent directory.
 // If instances are provided, the sessions panel starts with focus.
-func NewWelcomeModel(startDir string, instances []instance.Entry) WelcomeModel {
+func NewModel(startDir string, instances []instance.Entry) Model {
 	abs, err := filepath.Abs(startDir)
 	if err != nil {
 		abs = startDir
 	}
 
-	m := WelcomeModel{
+	m := Model{
 		currentDir: abs,
 		instances:  instances,
 	}
@@ -94,20 +94,22 @@ func NewWelcomeModel(startDir string, instances []instance.Entry) WelcomeModel {
 	return m
 }
 
-func (m *WelcomeModel) SetSize(width, height int) {
+// SetSize updates the terminal dimensions for layout calculations.
+func (m *Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 }
 
 // SetInstances updates the running sessions list (called on InstancesUpdatedMsg).
-func (m *WelcomeModel) SetInstances(instances []instance.Entry) {
+func (m *Model) SetInstances(instances []instance.Entry) {
 	m.instances = instances
 	if m.sessionCursor >= len(instances) {
 		m.sessionCursor = max(0, len(instances)-1)
 	}
 }
 
-func (m WelcomeModel) Update(msg tea.Msg) (WelcomeModel, tea.Cmd) {
+// Update handles keyboard input and messages for the welcome screen.
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
@@ -139,7 +141,7 @@ func (m WelcomeModel) Update(msg tea.Msg) (WelcomeModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m WelcomeModel) handleKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
+func (m Model) handleKey(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	if m.initializing {
 		if key.Matches(msg, tui.WelcomeKeyMap.Quit) {
 			return m, tea.Quit
@@ -163,7 +165,7 @@ func (m WelcomeModel) handleKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
 	return m.handleDirKey(msg)
 }
 
-func (m WelcomeModel) handleSessionKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
+func (m Model) handleSessionKey(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, tui.WelcomeKeyMap.MoveDown):
 		if m.sessionCursor < len(m.instances)-1 {
@@ -191,7 +193,7 @@ func (m WelcomeModel) handleSessionKey(msg tea.KeyPressMsg) (WelcomeModel, tea.C
 	return m, nil
 }
 
-func (m WelcomeModel) handleDirKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
+func (m Model) handleDirKey(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, tui.WelcomeKeyMap.MoveDown):
 		if m.dirCursor < len(m.entries)-1 {
@@ -231,7 +233,7 @@ func (m WelcomeModel) handleDirKey(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) 
 	return m, nil
 }
 
-func (m WelcomeModel) handleEnter(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
+func (m Model) handleEnter(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	if len(m.entries) == 0 {
 		return m, nil
 	}
@@ -253,7 +255,7 @@ func (m WelcomeModel) handleEnter(msg tea.KeyPressMsg) (WelcomeModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m WelcomeModel) startInit() (WelcomeModel, tea.Cmd) {
+func (m Model) startInit() (Model, tea.Cmd) {
 	m.initializing = true
 	m.spinnerFrame = 0
 	m.err = nil
@@ -265,7 +267,7 @@ func (m WelcomeModel) startInit() (WelcomeModel, tea.Cmd) {
 	)
 }
 
-func (m WelcomeModel) runInit(dir string) tea.Cmd {
+func (m Model) runInit(dir string) tea.Cmd {
 	return func() tea.Msg {
 		wcDir := filepath.Join(dir, ".wolfcastle")
 		// If the directory already exists, treat init as a no-op success
@@ -284,13 +286,13 @@ func (m WelcomeModel) runInit(dir string) tea.Cmd {
 	}
 }
 
-func (m WelcomeModel) tickSpinner() tea.Cmd {
+func (m Model) tickSpinner() tea.Cmd {
 	return tea.Tick(80*time.Millisecond, func(time.Time) tea.Msg {
 		return tui.SpinnerTickMsg{}
 	})
 }
 
-func (m *WelcomeModel) loadDir() {
+func (m *Model) loadDir() {
 	dirEntries, err := os.ReadDir(m.currentDir)
 	if err != nil {
 		m.entries = nil
@@ -325,7 +327,7 @@ func (m *WelcomeModel) loadDir() {
 	m.entries = filtered
 }
 
-func (m *WelcomeModel) scrollIntoCursor() {
+func (m *Model) scrollIntoCursor() {
 	if m.dirCursor < m.scrollTop {
 		m.scrollTop = m.dirCursor
 	}
@@ -335,10 +337,8 @@ func (m *WelcomeModel) scrollIntoCursor() {
 }
 
 // ---------------------------------------------------------------------------
-// View
-// ---------------------------------------------------------------------------
-
-func (m WelcomeModel) View() string {
+// View renders the welcome screen with session and directory panels.
+func (m Model) View() string {
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite)
 	subtitleStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
 	spinnerStyle := lipgloss.NewStyle().Foreground(tui.ColorYellow)
@@ -405,7 +405,7 @@ func (m WelcomeModel) View() string {
 	return m.place(b.String())
 }
 
-func (m WelcomeModel) renderSessions() string {
+func (m Model) renderSessions() string {
 	headingStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite)
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Background(tui.ColorDarkGray)
 	normalStyle := lipgloss.NewStyle().Foreground(tui.ColorLightGray)
@@ -440,7 +440,7 @@ func (m WelcomeModel) renderSessions() string {
 	return b.String()
 }
 
-func (m WelcomeModel) renderDirBrowser() string {
+func (m Model) renderDirBrowser() string {
 	headingStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite)
 	subtitleStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Background(tui.ColorDarkGray)
@@ -511,7 +511,7 @@ func (m WelcomeModel) renderDirBrowser() string {
 	return b.String()
 }
 
-func (m WelcomeModel) renderHints() string {
+func (m Model) renderHints() string {
 	hintStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
 	dir := filepath.Base(m.currentDir)
 	if dir == "" || dir == "/" {
@@ -538,7 +538,7 @@ func (m WelcomeModel) renderHints() string {
 	return hintStyle.Render(line1) + "\n" + hintStyle.Render(line2)
 }
 
-func (m WelcomeModel) visibleEntries() []os.DirEntry {
+func (m Model) visibleEntries() []os.DirEntry {
 	end := m.scrollTop + maxVisible
 	if end > len(m.entries) {
 		end = len(m.entries)
@@ -546,7 +546,7 @@ func (m WelcomeModel) visibleEntries() []os.DirEntry {
 	return m.entries[m.scrollTop:end]
 }
 
-func (m WelcomeModel) place(content string) string {
+func (m Model) place(content string) string {
 	w := m.width
 	h := m.height
 	if w <= 0 {

@@ -4,6 +4,8 @@
 
 Every [leaf](how-it-works.md#the-project-tree) ends with an audit task. Auto-created. Cannot be moved. Cannot be deleted. Runs last, after every other task in the leaf has completed. Its job: verify that the work actually happened and actually works.
 
+Audit state is visible in the [TUI](the-tui.md) node detail view: press `Enter` on any node in the tree to see its audit status glyph, breadcrumb count, gap and escalation counts, and result summary when the audit is finished. The [dashboard](the-tui.md#the-dashboard) also shows an aggregate audit summary across the entire project.
+
 ### Breadcrumbs
 
 As tasks execute, they write timestamped breadcrumbs via `wolfcastle audit breadcrumb` (during the [record phase](how-it-works.md#execution-protocol) of execution). Each breadcrumb describes what was done, why, and what changed. These are not terse commit messages. They are rich, explanatory records: the raw material for verification.

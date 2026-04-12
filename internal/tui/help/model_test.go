@@ -8,7 +8,7 @@ import (
 )
 
 func TestHelpContentIncludesDaemonControl(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	m.SetSize(120, 80) // tall enough to show all sections without scrolling
 	m.Toggle()         // activate to build content
 
@@ -32,7 +32,7 @@ func TestHelpContentIncludesDaemonControl(t *testing.T) {
 }
 
 func TestHelpToggleActivatesAndDeactivates(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	m.SetSize(120, 40)
 
 	if m.IsActive() {
@@ -51,7 +51,7 @@ func TestHelpToggleActivatesAndDeactivates(t *testing.T) {
 }
 
 func TestHelpViewEmptyWhenInactive(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	m.SetSize(120, 40)
 
 	if m.View() != "" {
@@ -69,7 +69,7 @@ func specialKey(code rune) tea.KeyPressMsg {
 }
 
 func TestUpdate_InactiveSwallowsKeys(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	m.SetSize(120, 40)
 	// Inactive: keys should be swallowed without state change.
 	m2, cmd := m.Update(keyPress('j'))
@@ -82,7 +82,7 @@ func TestUpdate_InactiveSwallowsKeys(t *testing.T) {
 }
 
 func TestUpdate_DismissKey(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	m.SetSize(120, 40)
 	m.Toggle()
 	if !m.IsActive() {
@@ -96,7 +96,7 @@ func TestUpdate_DismissKey(t *testing.T) {
 }
 
 func TestUpdate_ScrollDownAndUp(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	// Tiny size forces a small visible window so scrolling is meaningful.
 	m.SetSize(40, 20)
 	m.Toggle()
@@ -123,7 +123,7 @@ func TestUpdate_ScrollDownAndUp(t *testing.T) {
 }
 
 func TestUpdate_UnknownKeyAbsorbed(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	m.SetSize(120, 40)
 	m.Toggle()
 
@@ -138,7 +138,7 @@ func TestUpdate_UnknownKeyAbsorbed(t *testing.T) {
 }
 
 func TestUpdate_WindowSizeRebuildsContent(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	// First Toggle builds content at zero size.
 	m.Toggle()
 	initialLines := m.lines
@@ -158,7 +158,7 @@ func TestUpdate_WindowSizeRebuildsContent(t *testing.T) {
 }
 
 func TestMaxScroll_ZeroWhenContentFits(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	m.SetSize(200, 200) // huge window so all content fits
 	m.Toggle()
 
@@ -168,7 +168,7 @@ func TestMaxScroll_ZeroWhenContentFits(t *testing.T) {
 }
 
 func TestMaxScroll_PositiveWhenContentOverflows(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	m.SetSize(40, 20) // small window so content overflows
 	m.Toggle()
 
@@ -178,7 +178,7 @@ func TestMaxScroll_PositiveWhenContentOverflows(t *testing.T) {
 }
 
 func TestView_ClampsScrollOnRender(t *testing.T) {
-	m := NewHelpOverlayModel()
+	m := NewModel()
 	m.SetSize(40, 20)
 	m.Toggle()
 

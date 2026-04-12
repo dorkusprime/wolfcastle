@@ -72,7 +72,7 @@ func TestValidateStartup_WithWolfcastleDir(t *testing.T) {
 		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusNotStarted, Address: "leaf",
 	}
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfDir))
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewRepository(wolfDir))
 	report := engine.ValidateStartup(idx)
 	if report == nil {
 		t.Fatal("expected non-nil report from ValidateStartup")

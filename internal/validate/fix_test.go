@@ -796,7 +796,7 @@ func TestFix_StaleStopFile(t *testing.T) {
 		CanAutoFix: true, FixType: FixDeterministic,
 	}}
 
-	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewDaemonRepository(wolfcastleDir))
+	fixes, _, err := ApplyDeterministicFixes(idx, issues, dir, idxPath, daemon.NewRepository(wolfcastleDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -865,7 +865,7 @@ func TestDetect_StaleStopFile(t *testing.T) {
 	stopPath := filepath.Join(wolfcastleDir, "system", "stop")
 	_ = os.WriteFile(stopPath, []byte(""), 0644)
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfcastleDir))
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewRepository(wolfcastleDir))
 	report := engine.ValidateAll(idx)
 
 	found := false
@@ -893,7 +893,7 @@ func TestIsDaemonAlive_NoWolfcastleDir(t *testing.T) {
 func TestIsDaemonAlive_NoRegistryEntry(t *testing.T) {
 	t.Parallel()
 	wolfcastleDir := t.TempDir()
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
+	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewRepository(wolfcastleDir))
 	if engine.isDaemonAlive() {
 		t.Error("expected false when no instance is registered")
 	}
@@ -913,7 +913,7 @@ func TestIsDaemonAlive_LiveProcess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewDaemonRepository(wolfcastleDir))
+	engine := NewEngine(t.TempDir(), DefaultNodeLoader(t.TempDir()), daemon.NewRepository(wolfcastleDir))
 	if !engine.isDaemonAlive() {
 		t.Error("expected true for our own PID (we are alive)")
 	}
@@ -1117,7 +1117,7 @@ func TestDetect_StaleInProgress(t *testing.T) {
 		Name: "Leaf", Type: state.NodeLeaf, State: state.StatusInProgress, Address: "leaf",
 	}
 
-	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewDaemonRepository(wolfcastleDir))
+	engine := NewEngine(dir, DefaultNodeLoader(dir), daemon.NewRepository(wolfcastleDir))
 	report := engine.ValidateAll(idx)
 
 	found := false

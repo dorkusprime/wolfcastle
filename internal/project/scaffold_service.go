@@ -37,7 +37,7 @@ var scaffoldFiles = map[string]string{
 type ScaffoldService struct {
 	config  *config.Repository
 	prompts promptWriter
-	daemon  any    // *daemon.DaemonRepository; stored for future use, typed as any to avoid import cycle
+	daemon  any    // *daemon.Repository; stored for future use, typed as any to avoid import cycle
 	root    string // path to .wolfcastle/
 }
 

@@ -37,7 +37,7 @@ A yielded task is reset to `not_started` and becomes eligible for re-dispatch on
 
 ## Worker Status
 
-Run `wolfcastle status` to see the worker pool while the daemon is running. The parallel section appears below the daemon line and shows active workers, their scope locks, and any yielded tasks waiting on scope. See [status](cli/status.md) for the full output format.
+The [TUI dashboard](the-tui.md#the-dashboard) shows the current target and progress for all active workers in real time. From the command line, run `wolfcastle status` to see the worker pool while the daemon is running. The parallel section appears below the daemon line and shows active workers, their scope locks, and any yielded tasks waiting on scope. See [status](cli/status.md) for the full output format.
 
 ## Failure Handling
 
@@ -51,4 +51,4 @@ On daemon startup, `selfHeal` cleans up stale scope locks left by a previous cra
 
 Parallel mode is most effective when your project tree has multiple independent leaf nodes with non-overlapping scope. A project with three modules that each touch different directories will see near-linear speedup at `max_workers: 3`.
 
-It is less useful when tasks frequently overlap in scope, since the yield-and-retry overhead can approach serial execution time. The yield tracking in `wolfcastle status` helps you diagnose this: if you see the same tasks yielding repeatedly, consider restructuring the task tree to reduce file contention.
+It is less useful when tasks frequently overlap in scope, since the yield-and-retry overhead can approach serial execution time. The yield tracking in the TUI dashboard and `wolfcastle status` helps you diagnose this: if you see the same tasks yielding repeatedly, consider restructuring the task tree to reduce file contention.

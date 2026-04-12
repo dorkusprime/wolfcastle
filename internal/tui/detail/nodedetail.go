@@ -12,9 +12,9 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
-// NodeDetailModel renders detailed information about a single node, including
+// NodeModel renders detailed information about a single node, including
 // scope, success criteria, children or tasks, audit state, and specs.
-type NodeDetailModel struct {
+type NodeModel struct {
 	addr     string
 	node     *state.NodeState
 	index    *state.IndexEntry
@@ -25,15 +25,15 @@ type NodeDetailModel struct {
 	isTarget bool
 }
 
-// NewNodeDetailModel creates a NodeDetailModel with an empty viewport.
-func NewNodeDetailModel() NodeDetailModel {
-	return NodeDetailModel{
+// NewNodeModel creates a NodeModel with an empty viewport.
+func NewNodeModel() NodeModel {
+	return NodeModel{
 		viewport: viewport.New(),
 	}
 }
 
 // Load populates the model with node data and rebuilds the viewport content.
-func (m *NodeDetailModel) Load(addr string, node *state.NodeState, entry *state.IndexEntry, isTarget bool) {
+func (m *NodeModel) Load(addr string, node *state.NodeState, entry *state.IndexEntry, isTarget bool) {
 	m.addr = addr
 	m.node = node
 	m.index = entry
@@ -43,7 +43,7 @@ func (m *NodeDetailModel) Load(addr string, node *state.NodeState, entry *state.
 }
 
 // SetSize stores the available rendering area and propagates to the viewport.
-func (m *NodeDetailModel) SetSize(width, height int) {
+func (m *NodeModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 	m.viewport.SetWidth(width)
@@ -52,7 +52,7 @@ func (m *NodeDetailModel) SetSize(width, height int) {
 }
 
 // SetReadError marks the model as unable to read node state.
-func (m *NodeDetailModel) SetReadError(addr string) {
+func (m *NodeModel) SetReadError(addr string) {
 	m.addr = addr
 	m.node = nil
 	m.index = nil
@@ -65,12 +65,12 @@ func (m *NodeDetailModel) SetReadError(addr string) {
 }
 
 // Addr returns the node address, suitable for clipboard copy.
-func (m NodeDetailModel) Addr() string {
+func (m NodeModel) Addr() string {
 	return m.addr
 }
 
 // Update forwards key events to the viewport for scrolling.
-func (m NodeDetailModel) Update(msg tea.Msg) (NodeDetailModel, tea.Cmd) {
+func (m NodeModel) Update(msg tea.Msg) (NodeModel, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyPressMsg:
 		var cmd tea.Cmd
@@ -81,11 +81,11 @@ func (m NodeDetailModel) Update(msg tea.Msg) (NodeDetailModel, tea.Cmd) {
 }
 
 // View renders the viewport.
-func (m NodeDetailModel) View() string {
+func (m NodeModel) View() string {
 	return m.viewport.View()
 }
 
-func (m *NodeDetailModel) rebuildContent() {
+func (m *NodeModel) rebuildContent() {
 	if m.readErr || m.node == nil {
 		return
 	}
@@ -226,7 +226,7 @@ func (m *NodeDetailModel) rebuildContent() {
 }
 
 // SearchContent returns the viewport content split into lines for search.
-func (m NodeDetailModel) SearchContent() []string {
+func (m NodeModel) SearchContent() []string {
 	return strings.Split(m.viewport.GetContent(), "\n")
 }
 

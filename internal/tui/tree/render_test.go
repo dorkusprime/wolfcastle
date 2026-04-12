@@ -10,7 +10,7 @@ import (
 )
 
 func TestRenderRow_OrchestratorCollapsed(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:       "parent",
 		Name:       "My Orchestrator",
 		Depth:      0,
@@ -30,7 +30,7 @@ func TestRenderRow_OrchestratorCollapsed(t *testing.T) {
 }
 
 func TestRenderRow_OrchestratorExpanded(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:       "parent",
 		Name:       "My Orchestrator",
 		Depth:      0,
@@ -47,7 +47,7 @@ func TestRenderRow_OrchestratorExpanded(t *testing.T) {
 }
 
 func TestRenderRow_Leaf_NoExpandMarker(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:       "leaf1",
 		Name:       "Simple Leaf",
 		Depth:      1,
@@ -64,7 +64,7 @@ func TestRenderRow_Leaf_NoExpandMarker(t *testing.T) {
 }
 
 func TestRenderRow_Task(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:   "leaf1/t-001",
 		Name:   "Implement feature",
 		Depth:  2,
@@ -82,11 +82,11 @@ func TestRenderRow_Task(t *testing.T) {
 }
 
 func TestRenderRow_Selected(t *testing.T) {
-	normal := RenderRow(TreeRow{
+	normal := RenderRow(Row{
 		Addr: "a", Name: "Node", NodeType: state.NodeLeaf, Expandable: true,
 	}, 40, false, false)
 
-	selected := RenderRow(TreeRow{
+	selected := RenderRow(Row{
 		Addr: "a", Name: "Node", NodeType: state.NodeLeaf, Expandable: true,
 	}, 40, true, false)
 
@@ -97,7 +97,7 @@ func TestRenderRow_Selected(t *testing.T) {
 }
 
 func TestRenderRow_CurrentTarget(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:       "target-node",
 		Name:       "Target",
 		Depth:      0,
@@ -113,7 +113,7 @@ func TestRenderRow_CurrentTarget(t *testing.T) {
 }
 
 func TestRenderRow_NotCurrentTarget(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:       "other-node",
 		Name:       "Other",
 		Depth:      0,
@@ -191,7 +191,7 @@ func TestTruncate(t *testing.T) {
 }
 
 func TestView_Empty(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	v := m.View()
 	if !strings.Contains(v, "no nodes") {
 		t.Errorf("empty tree view should contain 'no nodes', got %q", v)
@@ -199,7 +199,7 @@ func TestView_Empty(t *testing.T) {
 }
 
 func TestView_RendersVisibleRows(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(60, 2) // only 2 rows visible
 
@@ -211,7 +211,7 @@ func TestView_RendersVisibleRows(t *testing.T) {
 }
 
 func TestView_ScrollTopRespected(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(60, 2)
 	m.scrollTop = 1
@@ -228,7 +228,7 @@ func TestView_ScrollTopRespected(t *testing.T) {
 }
 
 func TestView_ScrollTopBeyondList(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(60, 10)
 	m.scrollTop = 100
@@ -240,7 +240,7 @@ func TestView_ScrollTopBeyondList(t *testing.T) {
 }
 
 func TestView_NegativeScrollTop(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(60, 10)
 	m.scrollTop = -5
@@ -254,7 +254,7 @@ func TestView_NegativeScrollTop(t *testing.T) {
 
 func TestRenderRow_LongNameTruncation(t *testing.T) {
 	longName := strings.Repeat("A", 200)
-	row := TreeRow{
+	row := Row{
 		Addr:       "long",
 		Name:       longName,
 		Depth:      0,
@@ -273,7 +273,7 @@ func TestRenderRow_LongNameTruncation(t *testing.T) {
 }
 
 func TestRenderRow_VeryNarrowWidth(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:       "narrow",
 		Name:       "Some Node",
 		Depth:      0,
@@ -290,7 +290,7 @@ func TestRenderRow_VeryNarrowWidth(t *testing.T) {
 }
 
 func TestView_CurrentTargetHighlighted(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(60, 10)
 	m.SetCurrentTarget("beta")
@@ -303,7 +303,7 @@ func TestView_CurrentTargetHighlighted(t *testing.T) {
 
 func TestRenderTaskRow_IDExtraction(t *testing.T) {
 	// The task ID is extracted from the last segment of the address.
-	row := TreeRow{
+	row := Row{
 		Addr:   "deep/nested/node/task-42",
 		Name:   "A Task",
 		Depth:  3,
@@ -318,7 +318,7 @@ func TestRenderTaskRow_IDExtraction(t *testing.T) {
 }
 
 func TestRenderRow_SearchHit(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:       "a",
 		Name:       "SearchMe",
 		Depth:      0,
@@ -336,7 +336,7 @@ func TestRenderRow_SearchHit(t *testing.T) {
 }
 
 func TestRenderRow_SearchHit_SelectedTakesPrecedence(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:       "a",
 		Name:       "SearchMe",
 		Depth:      0,
@@ -355,7 +355,7 @@ func TestRenderRow_SearchHit_SelectedTakesPrecedence(t *testing.T) {
 }
 
 func TestView_SearchMatchHighlighted(t *testing.T) {
-	m := NewTreeModel()
+	m := NewModel()
 	m.SetIndex(simpleIndex())
 	m.SetSize(60, 10)
 	m.SetSearchAddresses(map[string]bool{"beta": true}, nil)
@@ -368,7 +368,7 @@ func TestView_SearchMatchHighlighted(t *testing.T) {
 }
 
 func TestRenderRow_TaskSearchHit(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:   "node/t-001",
 		Name:   "A task",
 		Depth:  1,
@@ -385,11 +385,11 @@ func TestRenderRow_TaskSearchHit(t *testing.T) {
 }
 
 func TestRenderRow_DepthIndentation(t *testing.T) {
-	shallow := RenderRow(TreeRow{
+	shallow := RenderRow(Row{
 		Addr: "a", Name: "Shallow", Depth: 0, NodeType: state.NodeLeaf, Expandable: true,
 	}, 80, false, false)
 
-	deep := RenderRow(TreeRow{
+	deep := RenderRow(Row{
 		Addr: "b", Name: "Deep", Depth: 3, NodeType: state.NodeLeaf, Expandable: true,
 	}, 80, false, false)
 
@@ -465,7 +465,7 @@ func TestTaskStatusGlyphOnBg_InProgressShowsArrow(t *testing.T) {
 // row rendering path (not just the glyph helper) to confirm the
 // new glyph reaches the rendered output.
 func TestRenderTaskRow_InProgressUsesArrow(t *testing.T) {
-	row := TreeRow{
+	row := Row{
 		Addr:   "alpha/task-0001",
 		Name:   "deploy frobnicator",
 		Depth:  1,
