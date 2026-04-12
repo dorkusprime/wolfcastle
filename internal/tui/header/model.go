@@ -12,6 +12,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
+	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
 // ---------------------------------------------------------------------------
@@ -222,7 +223,7 @@ func (m Model) View() string {
 	}
 
 	version := strings.TrimPrefix(m.version, "v")
-	title := renderGradientTitle("WOLFCASTLE", headerBg) +
+	title := tui.RenderGradientTitle("WOLFCASTLE", headerBg) +
 		barStyle.Render(fmt.Sprintf(" v%s", version))
 
 	// Build right side of line 1: optional spinner, daemon status, instance badge.
@@ -401,28 +402,6 @@ func (m Model) renderTabBar(base, bold lipgloss.Style, width int) string {
 	}
 
 	return composeLine(base, left, right, width)
-}
-
-// renderGradientTitle renders each character of the title with a
-// gradient from neon cyan through magenta to gold, matching the
-// Wolfcastle neon-wolf logo palette.
-func renderGradientTitle(text string, bg color.Color) string {
-	// ANSI 256 colors stepping through cyan → purple → magenta → gold.
-	// 10 stops for "WOLFCASTLE"; interpolated for other lengths.
-	gradient := []string{"51", "44", "135", "170", "205", "211", "214", "220", "220", "226"}
-
-	var b strings.Builder
-	runes := []rune(text)
-	for i, r := range runes {
-		// Map character position to gradient index.
-		idx := i * (len(gradient) - 1) / max(len(runes)-1, 1)
-		style := lipgloss.NewStyle().
-			Background(bg).
-			Foreground(lipgloss.Color(gradient[idx])).
-			Bold(true)
-		b.WriteString(style.Render(string(r)))
-	}
-	return b.String()
 }
 
 // pluralize appends "s" when count != 1.

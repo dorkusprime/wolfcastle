@@ -339,13 +339,12 @@ func (m *Model) scrollIntoCursor() {
 // ---------------------------------------------------------------------------
 // View renders the welcome screen with session and directory panels.
 func (m Model) View() string {
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorNeonCyan)
 	subtitleStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
 	spinnerStyle := lipgloss.NewStyle().Foreground(tui.ColorNeonCyan)
 
 	var b strings.Builder
 
-	b.WriteString(titleStyle.Render("WOLFCASTLE"))
+	b.WriteString(tui.RenderGradientTitle("WOLFCASTLE", nil))
 	b.WriteString("\n\n")
 
 	if m.initializing {
