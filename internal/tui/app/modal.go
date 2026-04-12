@@ -6,9 +6,26 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
+
+// fillModalBg pads every line of content to the given width with the
+// modal overlay background color. This prevents transparent gaps where
+// individually styled spans reset the background.
+func fillModalBg(content string, width int) string {
+	bg := lipgloss.NewStyle().Background(tui.ColorOverlayBg)
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		w := ansi.StringWidth(line)
+		if w < width {
+			line += bg.Render(strings.Repeat(" ", width-w))
+		}
+		lines[i] = line
+	}
+	return strings.Join(lines, "\n")
+}
 
 // ActiveModal tracks which modal overlay (if any) is currently visible.
 // Only one modal can be open at a time; the enum enforces this
@@ -132,9 +149,11 @@ func (m TUIModel) renderNewTabModal(contentHeight int) string {
 		overlayH = contentHeight
 	}
 
+	innerW := overlayW - 6
 	picker := m.tabPicker
-	picker.SetSize(overlayW-6, overlayH-4)
+	picker.SetSize(innerW, overlayH-4)
 	content := picker.View()
+	content = fillModalBg(content, innerW)
 
 	box := tui.ModalOverlayStyle.
 		Width(overlayW).
@@ -178,6 +197,7 @@ func (m TUIModel) renderInboxModal(contentHeight int) string {
 
 	hint := strings.Repeat(" ", 2) + tui.ModalDimStyle.Render("[Esc] Close")
 	content += "\n" + hint
+	content = fillModalBg(content, innerW)
 
 	box := tui.ModalOverlayStyle.
 		Width(overlayW).
@@ -221,6 +241,7 @@ func (m TUIModel) renderLogModal(contentHeight int) string {
 
 	hint := strings.Repeat(" ", 2) + tui.ModalDimStyle.Render("[Esc] Close")
 	content += "\n" + hint
+	content = fillModalBg(content, innerW)
 
 	box := tui.ModalOverlayStyle.
 		Width(overlayW).

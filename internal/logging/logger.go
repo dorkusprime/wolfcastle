@@ -263,7 +263,7 @@ func LatestLogFile(logDir string) (string, error) {
 	var allLogs []string
 
 	for _, e := range entries {
-		if e.IsDir() || !isLogFile(e.Name()) {
+		if e.IsDir() || !IsLogFile(e.Name()) {
 			continue
 		}
 		allLogs = append(allLogs, e.Name())
@@ -330,8 +330,8 @@ func parseLogFilename(name string) (iteration int, prefix string, ok bool) {
 	return n, prefix, true
 }
 
-// isLogFile returns true for .jsonl and .jsonl.gz filenames.
-func isLogFile(name string) bool {
+// IsLogFile reports whether name looks like a log filename (.jsonl or .jsonl.gz).
+func IsLogFile(name string) bool {
 	return strings.HasSuffix(name, ".jsonl") || strings.HasSuffix(name, ".jsonl.gz")
 }
 
@@ -349,7 +349,7 @@ func EnforceRetention(logDir string, maxFiles int, maxAgeDays int, opts ...Reten
 	}
 	var logs []os.DirEntry
 	for _, e := range entries {
-		if !e.IsDir() && isLogFile(e.Name()) {
+		if !e.IsDir() && IsLogFile(e.Name()) {
 			logs = append(logs, e)
 		}
 	}
@@ -376,7 +376,7 @@ func EnforceRetention(logDir string, maxFiles int, maxAgeDays int, opts ...Reten
 	entries, _ = os.ReadDir(logDir)
 	logs = nil
 	for _, e := range entries {
-		if !e.IsDir() && isLogFile(e.Name()) {
+		if !e.IsDir() && IsLogFile(e.Name()) {
 			logs = append(logs, e)
 		}
 	}
@@ -497,7 +497,7 @@ func IterationFromDir(logDir string) int {
 	}
 	maxIter := 0
 	for _, e := range entries {
-		if e.IsDir() || !isLogFile(e.Name()) {
+		if e.IsDir() || !IsLogFile(e.Name()) {
 			continue
 		}
 		var n int

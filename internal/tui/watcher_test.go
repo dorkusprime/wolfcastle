@@ -599,8 +599,12 @@ func TestStartPolling_SeedsFields(t *testing.T) {
 	if w.logFile == "" {
 		t.Fatal("expected logFile to be seeded")
 	}
-	if w.logOffset == 0 {
-		t.Fatal("expected logOffset to be seeded with file size")
+	if len(w.logFiles) == 0 {
+		t.Fatal("expected logFiles map to be seeded")
+	}
+	// The seeded file should have its offset at EOF.
+	if fs, ok := w.logFiles[logFile]; !ok || fs.offset == 0 {
+		t.Fatal("expected logFiles entry to be seeded with file size")
 	}
 }
 
@@ -777,9 +781,14 @@ func TestPollTick_DeliversLogLinesThroughChannel(t *testing.T) {
 	events, next := drainEvents(t)
 	w := NewWatcher(store, logDir, "", events)
 	w.logFile = logFile
+	// Seed the logFiles map at current file size so pollLogFiles
+	// only reads content appended AFTER this point.
 	if info, err := os.Stat(logFile); err == nil {
-		w.logOffset = info.Size()
-		w.logFileSize = info.Size()
+		w.logFiles[logFile] = &logFileState{
+			path:   logFile,
+			offset: info.Size(),
+			size:   info.Size(),
+		}
 	}
 
 	// Append more bytes to the log file, simulating the daemon writing

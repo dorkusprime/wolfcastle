@@ -130,7 +130,7 @@ func TestEnforceRetention_DeletesByCount(t *testing.T) {
 	entries, _ := os.ReadDir(dir)
 	count := 0
 	for _, e := range entries {
-		if isLogFile(e.Name()) {
+		if IsLogFile(e.Name()) {
 			count++
 		}
 	}

@@ -241,7 +241,7 @@ func TestEnforceRetention_UnreadableDirectory(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// isLogFile
+// IsLogFile
 // ═══════════════════════════════════════════════════════════════════════════
 
 func TestIsLogFile_ExtendedCases(t *testing.T) {
@@ -257,8 +257,8 @@ func TestIsLogFile_ExtendedCases(t *testing.T) {
 		{"something.jsonl.bak", false},
 	}
 	for _, tc := range cases {
-		if got := isLogFile(tc.name); got != tc.expected {
-			t.Errorf("isLogFile(%q) = %v, want %v", tc.name, got, tc.expected)
+		if got := IsLogFile(tc.name); got != tc.expected {
+			t.Errorf("IsLogFile(%q) = %v, want %v", tc.name, got, tc.expected)
 		}
 	}
 }

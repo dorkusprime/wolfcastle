@@ -30,8 +30,8 @@ type Watcher struct {
 	watcher     *fsnotify.Watcher
 	store       *state.Store
 	logDir      string
-	logFile     string
-	logOffset   int64
+	logFile     string    // latest log file (for NewLogFileMsg)
+	logOffset   int64     // deprecated: use logFiles map instead
 	instanceDir string
 	debounce    *time.Timer
 	maxSlide    *time.Timer
@@ -56,11 +56,24 @@ type Watcher struct {
 	// (decomposition, planning passes, etc).
 	subscribed map[string]bool
 
+	// Multi-file log tracking. Each uncompressed .jsonl in the log
+	// directory gets its own entry so exec, plan, intake, and inbox
+	// logs are all read and streamed to the TUI.
+	logFiles map[string]*logFileState
+
 	// polling state
 	indexMtime    time.Time
 	instanceMtime time.Time
-	logFileSize   int64
-	lineBuf       string // incomplete trailing line from last read
+	logFileSize   int64     // deprecated: use logFiles map
+	lineBuf       string    // deprecated: use logFiles map
+}
+
+// logFileState tracks read progress for a single log file.
+type logFileState struct {
+	path    string
+	offset  int64
+	size    int64
+	lineBuf string // incomplete trailing line from last read
 }
 
 // NewWatcher creates a Watcher that will observe the given store's state
@@ -78,6 +91,7 @@ func NewWatcher(store *state.Store, logDir, instanceDir string, events chan<- te
 		useFsnotify: true,
 		subscribed:  make(map[string]bool),
 		nodeMtimes:  make(map[string]time.Time),
+		logFiles:    make(map[string]*logFileState),
 	}
 }
 
@@ -153,61 +167,55 @@ func (w *Watcher) Start() error {
 // historical context the user sees on first switch.
 const defaultLogTailLines = 500
 
-// LoadInitialLogTail reads the last maxLines from the currently
-// seeded w.logFile and emits them as a LogLinesMsg via the events
-// channel, then advances w.logOffset to the end of file so the next
-// incremental read produces only new content.
-//
-// Skips files ending in .jsonl.gz; the live exec log is always the
-// plain .jsonl (rotated archives are .gz). If the latest file is
-// gz-only because the daemon has stopped between iterations, we
-// emit nothing rather than feeding gzipped binary into the
-// LogViewModel's NDJSON parser.
+// LoadInitialLogTail reads the tail of ALL uncompressed log files in
+// the log directory, merges them, trims to maxLines, and emits a
+// LogLinesMsg. It also seeds the logFiles map with current offsets so
+// subsequent pollLogFiles calls only read new content.
 func (w *Watcher) LoadInitialLogTail(maxLines int) {
-	w.mu.Lock()
-	logFile := w.logFile
-	w.mu.Unlock()
-
-	if logFile == "" || strings.HasSuffix(logFile, ".gz") {
+	if w.logDir == "" {
 		return
 	}
-
-	f, err := os.Open(logFile)
-	if err != nil {
-		return
-	}
-	defer func() { _ = f.Close() }()
-
-	info, err := f.Stat()
+	entries, err := os.ReadDir(w.logDir)
 	if err != nil {
 		return
 	}
 
-	// Read every complete line from the file. For multi-megabyte
-	// logs this is wasteful but the daemon's per-iteration log
-	// files cap out around a few hundred KB in practice. If that
-	// ever becomes a real concern, replace this with a backwards
-	// chunked read that stops once it has gathered maxLines.
-	scanner := bufio.NewScanner(f)
-	// Allow long NDJSON lines that contain embedded prompts.
-	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
-	var lines []string
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+	var allLines []string
+	for _, e := range entries {
+		if e.IsDir() || !logging.IsLogFile(e.Name()) || strings.HasSuffix(e.Name(), ".gz") {
+			continue
+		}
+		fullPath := filepath.Join(w.logDir, e.Name())
+
+		f, err := os.Open(fullPath)
+		if err != nil {
+			continue
+		}
+		info, _ := f.Stat()
+		scanner := bufio.NewScanner(f)
+		scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+		for scanner.Scan() {
+			allLines = append(allLines, scanner.Text())
+		}
+		_ = f.Close()
+
+		// Seed the logFiles map so pollLogFiles starts from EOF.
+		if info != nil {
+			w.logFiles[fullPath] = &logFileState{
+				path:   fullPath,
+				offset: info.Size(),
+				size:   info.Size(),
+			}
+		}
 	}
 
 	// Trim to the last maxLines.
-	if maxLines > 0 && len(lines) > maxLines {
-		lines = lines[len(lines)-maxLines:]
+	if maxLines > 0 && len(allLines) > maxLines {
+		allLines = allLines[len(allLines)-maxLines:]
 	}
 
-	w.mu.Lock()
-	w.logOffset = info.Size()
-	w.lineBuf = ""
-	w.mu.Unlock()
-
-	if len(lines) > 0 {
-		w.emit(LogLinesMsg{Lines: lines})
+	if len(allLines) > 0 {
+		w.emit(LogLinesMsg{Lines: allLines})
 	}
 }
 
@@ -461,29 +469,9 @@ func (w *Watcher) pollTick() {
 		}
 	}
 
-	// Check for new log files.
+	// Scan all uncompressed log files for new content.
 	if w.logDir != "" {
-		if latest, err := logging.LatestLogFile(w.logDir); err == nil && latest != w.logFile {
-			w.mu.Lock()
-			w.logFile = latest
-			w.logOffset = 0
-			w.logFileSize = 0
-			w.lineBuf = ""
-			w.mu.Unlock()
-			w.emit(NewLogFileMsg{Path: latest})
-		}
-	}
-
-	// Check current log file size.
-	if w.logFile != "" {
-		if info, err := os.Stat(w.logFile); err == nil {
-			if info.Size() != w.logFileSize {
-				w.logFileSize = info.Size()
-				if lines := w.readNewLogLines(); len(lines) > 0 {
-					w.emit(LogLinesMsg{Lines: lines})
-				}
-			}
-		}
+		w.pollLogFiles()
 	}
 	// Check subscribed node state files for changes.
 	w.mu.Lock()
@@ -634,9 +622,108 @@ func (w *Watcher) Stop() {
 	}
 }
 
+// pollLogFiles scans the log directory for all uncompressed .jsonl files,
+// discovers new ones, reads new content from any that grew, and emits
+// a single LogLinesMsg with all new lines. This replaces the old
+// single-file approach so exec, plan, intake, and inbox logs all stream.
+func (w *Watcher) pollLogFiles() {
+	entries, err := os.ReadDir(w.logDir)
+	if err != nil {
+		return
+	}
+
+	// Discover new files.
+	for _, e := range entries {
+		if e.IsDir() || !logging.IsLogFile(e.Name()) || strings.HasSuffix(e.Name(), ".gz") {
+			continue
+		}
+		fullPath := filepath.Join(w.logDir, e.Name())
+		if _, tracked := w.logFiles[fullPath]; !tracked {
+			w.logFiles[fullPath] = &logFileState{path: fullPath}
+		}
+	}
+
+	// Remove files that were compressed or deleted.
+	for path := range w.logFiles {
+		if _, err := os.Stat(path); err != nil {
+			delete(w.logFiles, path)
+		}
+	}
+
+	// Read new content from each tracked file.
+	var allLines []string
+	for _, fs := range w.logFiles {
+		info, err := os.Stat(fs.path)
+		if err != nil {
+			continue
+		}
+		if info.Size() == fs.size {
+			continue
+		}
+		fs.size = info.Size()
+		lines := readFromLogFile(fs)
+		allLines = append(allLines, lines...)
+	}
+
+	if len(allLines) > 0 {
+		w.emit(LogLinesMsg{Lines: allLines})
+	}
+
+	// Track the "latest" file for NewLogFileMsg (used by the log view
+	// header to show the current iteration number).
+	if latest, err := logging.LatestLogFile(w.logDir); err == nil && latest != w.logFile {
+		w.logFile = latest
+		w.emit(NewLogFileMsg{Path: latest})
+	}
+}
+
+// readFromLogFile reads new content from a tracked log file starting at
+// the stored offset. Returns only complete lines; incomplete trailing
+// data is buffered for the next read.
+func readFromLogFile(fs *logFileState) []string {
+	f, err := os.Open(fs.path)
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = f.Close() }()
+
+	if _, err := f.Seek(fs.offset, io.SeekStart); err != nil {
+		return nil
+	}
+
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+	var lines []string
+	var bytesRead int64
+	buf := fs.lineBuf
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		bytesRead += int64(len(scanner.Bytes())) + 1
+		lines = append(lines, buf+line)
+		buf = ""
+	}
+
+	newOffset := fs.offset + bytesRead
+
+	// Check for trailing incomplete line.
+	if info, err := f.Stat(); err == nil && info.Size() > newOffset {
+		trailing := make([]byte, info.Size()-newOffset)
+		if _, err := f.ReadAt(trailing, newOffset); err == nil {
+			buf = string(trailing)
+			newOffset = info.Size()
+		}
+	}
+
+	fs.offset = newOffset
+	fs.lineBuf = buf
+	return lines
+}
+
 // readNewLogLines reads from logOffset to EOF in the current log file and
 // returns only complete lines. Any trailing incomplete line is buffered
 // internally for the next read.
+// Deprecated: use pollLogFiles instead. Kept for LoadInitialLogTail.
 func (w *Watcher) readNewLogLines() []string {
 	w.mu.Lock()
 	logFile := w.logFile

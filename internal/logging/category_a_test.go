@@ -43,7 +43,7 @@ func TestLog_UnmarshalableMapValue(t *testing.T) {
 	logger.Close()
 	entries, _ := os.ReadDir(dir)
 	for _, e := range entries {
-		if isLogFile(e.Name()) {
+		if IsLogFile(e.Name()) {
 			info, _ := e.Info()
 			if info.Size() > 0 {
 				t.Log("log file has some content (timestamp/level injected before marshal error)")
