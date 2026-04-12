@@ -1472,3 +1472,109 @@ func TestLoadInitialLogTail_SkipsGzFiles(t *testing.T) {
 		// No event = expected.
 	}
 }
+
+// ---------------------------------------------------------------------------
+// pollLogFiles — file removal (compressed/deleted)
+// ---------------------------------------------------------------------------
+
+func TestPollLogFiles_RemovesDeletedFile(t *testing.T) {
+	dir := t.TempDir()
+	logDir := filepath.Join(dir, "logs")
+	_ = os.MkdirAll(logDir, 0o755)
+
+	logFile := filepath.Join(logDir, "wolfcastle-2026-04-10.jsonl")
+	_ = os.WriteFile(logFile, []byte("line\n"), 0o644)
+
+	store := state.NewStore(dir, time.Second)
+	_ = store.MutateIndex(func(*state.RootIndex) error { return nil })
+
+	w := NewWatcher(store, logDir, "", nil)
+	// Seed the logFiles map as if we already discovered this file.
+	info, _ := os.Stat(logFile)
+	w.logFiles[logFile] = &logFileState{
+		path:   logFile,
+		offset: info.Size(),
+		size:   info.Size(),
+	}
+
+	if len(w.logFiles) != 1 {
+		t.Fatalf("expected 1 tracked file, got %d", len(w.logFiles))
+	}
+
+	// Remove the file (simulating compression or deletion).
+	_ = os.Remove(logFile)
+
+	w.pollLogFiles()
+
+	if len(w.logFiles) != 0 {
+		t.Errorf("expected 0 tracked files after deletion, got %d", len(w.logFiles))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// readFromLogFile — partial/trailing line handling
+// ---------------------------------------------------------------------------
+
+func TestReadFromLogFile_PartialTrailingLine(t *testing.T) {
+	dir := t.TempDir()
+	logFile := filepath.Join(dir, "test.jsonl")
+
+	// Write a complete line followed by an incomplete trailing line (no newline).
+	_ = os.WriteFile(logFile, []byte("complete line\npartial"), 0o644)
+
+	fs := &logFileState{
+		path:   logFile,
+		offset: 0,
+		size:   0,
+	}
+
+	lines := readFromLogFile(fs)
+
+	// The scanner reads "complete line" as a full line and "partial" as
+	// the last scanned token. The trailing-data check then picks up the
+	// incomplete bytes as lineBuf for the next read.
+	if len(lines) < 1 {
+		t.Fatalf("expected at least 1 line, got %d", len(lines))
+	}
+	if lines[0] != "complete line" {
+		t.Errorf("first line should be 'complete line', got %q", lines[0])
+	}
+
+	// Now append more data that completes the partial line.
+	f, _ := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0o644)
+	_, _ = f.WriteString(" continued\nnew line\n")
+	_ = f.Close()
+
+	lines2 := readFromLogFile(fs)
+	if len(lines2) == 0 {
+		t.Fatal("expected lines from second read")
+	}
+	// The first line of the second read should be the completed partial
+	// (the lineBuf from the first read prepended to the next scanned line).
+	found := false
+	for _, l := range lines2 {
+		if strings.Contains(l, "continued") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected a line containing 'continued' (from completed partial), got %v", lines2)
+	}
+}
+
+func TestReadFromLogFile_AllComplete(t *testing.T) {
+	dir := t.TempDir()
+	logFile := filepath.Join(dir, "test.jsonl")
+	_ = os.WriteFile(logFile, []byte("alpha\nbeta\ngamma\n"), 0o644)
+
+	fs := &logFileState{path: logFile}
+	lines := readFromLogFile(fs)
+
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 lines, got %d: %v", len(lines), lines)
+	}
+	if fs.lineBuf != "" {
+		t.Errorf("expected empty lineBuf for fully terminated file, got %q", fs.lineBuf)
+	}
+}

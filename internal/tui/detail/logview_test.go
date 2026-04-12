@@ -885,3 +885,42 @@ func TestRebuildViewport_FilterChangesContent(t *testing.T) {
 		t.Errorf("expected 1 filtered line, got %d", len(filtered))
 	}
 }
+
+// ---------------------------------------------------------------------------
+// traceCategory
+// ---------------------------------------------------------------------------
+
+func TestTraceCategory(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		trace string
+		want  string
+	}{
+		{"exec-0002", "exec"},
+		{"exec", "exec"},
+		{"plan-0001", "plan"},
+		{"plan", "plan"},
+		{"intake-10001", "inbox"},
+		{"intake", "inbox"},
+		{"inbox-init-10003", "inbox"},
+		{"inbox", "inbox"},
+		{"heal-0001", "system"},
+		{"heal", "system"},
+		{"shutdown-0001", "system"},
+		{"shutdown", "system"},
+		{"crash-0001", "system"},
+		{"crash", "system"},
+		{"", "other"},
+		{"unknown-prefix", "other"},
+		{"something-else", "other"},
+	}
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("trace=%q", tc.trace), func(t *testing.T) {
+			t.Parallel()
+			got := traceCategory(tc.trace)
+			if got != tc.want {
+				t.Errorf("traceCategory(%q) = %q, want %q", tc.trace, got, tc.want)
+			}
+		})
+	}
+}

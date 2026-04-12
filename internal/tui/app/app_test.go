@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -2415,5 +2416,276 @@ func TestDashboardKeySwitch(t *testing.T) {
 	}
 	if cmd != nil {
 		t.Error("dashboard switch should not produce a command")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// tabLabels
+// ---------------------------------------------------------------------------
+
+func TestTabLabels_SingleTab(t *testing.T) {
+	m := newColdModel(t)
+	labels := m.tabLabels()
+	if len(labels) != 1 {
+		t.Fatalf("expected 1 label, got %d", len(labels))
+	}
+	// The label is the basename of the temp dir created by newColdModel.
+	if labels[0] == "" {
+		t.Error("label should not be empty")
+	}
+}
+
+func TestTabLabels_MultipleTabs(t *testing.T) {
+	m := newColdModel(t)
+	dir2 := t.TempDir()
+	store2 := state.NewStore(dir2, 0)
+	m.createTab(dir2, store2, nil)
+
+	labels := m.tabLabels()
+	if len(labels) != 2 {
+		t.Fatalf("expected 2 labels, got %d", len(labels))
+	}
+	if labels[0] == labels[1] {
+		t.Errorf("labels should differ (different dirs), got %q and %q", labels[0], labels[1])
+	}
+}
+
+func TestTabLabels_Empty(t *testing.T) {
+	m := newColdModel(t)
+	m.tabs = nil
+	labels := m.tabLabels()
+	if len(labels) != 0 {
+		t.Fatalf("expected 0 labels for no tabs, got %d", len(labels))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// activeTabIndex
+// ---------------------------------------------------------------------------
+
+func TestActiveTabIndex_FirstTab(t *testing.T) {
+	m := newColdModel(t)
+	idx := m.activeTabIndex()
+	if idx != 0 {
+		t.Errorf("expected index 0 for single tab, got %d", idx)
+	}
+}
+
+func TestActiveTabIndex_SecondTab(t *testing.T) {
+	m := newColdModel(t)
+	dir2 := t.TempDir()
+	store2 := state.NewStore(dir2, 0)
+	tab2 := m.createTab(dir2, store2, nil)
+	m.activeTabID = tab2.ID
+
+	idx := m.activeTabIndex()
+	if idx != 1 {
+		t.Errorf("expected index 1 for second tab, got %d", idx)
+	}
+}
+
+func TestActiveTabIndex_InvalidIDReturnsZero(t *testing.T) {
+	m := newColdModel(t)
+	m.activeTabID = 9999 // no tab has this ID
+	idx := m.activeTabIndex()
+	if idx != 0 {
+		t.Errorf("expected fallback index 0, got %d", idx)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// tabRunningSet
+// ---------------------------------------------------------------------------
+
+func TestTabRunningSet_NoneRunning(t *testing.T) {
+	m := newColdModel(t)
+	running := m.tabRunningSet()
+	if len(running) != 0 {
+		t.Errorf("expected empty running set, got %v", running)
+	}
+}
+
+func TestTabRunningSet_OneRunning(t *testing.T) {
+	m := newColdModel(t)
+	dir2 := t.TempDir()
+	store2 := state.NewStore(dir2, 0)
+	tab2 := m.createTab(dir2, store2, nil)
+	tab2.EntryState = StateLive
+	// createTab returns a pointer into the slice, but the slice may have
+	// been reallocated. Fetch the tab by index to be safe.
+	m.tabs[1].EntryState = StateLive
+
+	running := m.tabRunningSet()
+	if len(running) != 1 {
+		t.Fatalf("expected 1 running tab, got %d", len(running))
+	}
+	if !running[1] {
+		t.Errorf("expected index 1 to be running, got %v", running)
+	}
+}
+
+func TestTabRunningSet_AllRunning(t *testing.T) {
+	m := newColdModel(t)
+	m.activeTab().EntryState = StateLive
+	dir2 := t.TempDir()
+	store2 := state.NewStore(dir2, 0)
+	m.createTab(dir2, store2, nil)
+	m.tabs[1].EntryState = StateLive
+
+	running := m.tabRunningSet()
+	if len(running) != 2 {
+		t.Fatalf("expected 2 running tabs, got %d", len(running))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// handleCloseTab
+// ---------------------------------------------------------------------------
+
+func TestHandleCloseTab_LastTab(t *testing.T) {
+	m := newColdModel(t)
+	cmd := m.handleCloseTab()
+	// Should refuse to close the last tab and produce a notification.
+	if len(m.tabs) != 1 {
+		t.Errorf("last tab should not be closed, got %d tabs", len(m.tabs))
+	}
+	if cmd == nil {
+		t.Error("closing last tab should produce a notification command")
+	}
+}
+
+func TestHandleCloseTab_MiddleTab(t *testing.T) {
+	m := newColdModel(t)
+	dir2 := t.TempDir()
+	store2 := state.NewStore(dir2, 0)
+	tab2 := m.createTab(dir2, store2, nil)
+	dir3 := t.TempDir()
+	store3 := state.NewStore(dir3, 0)
+	m.createTab(dir3, store3, nil)
+
+	// Activate the middle tab and close it.
+	m.activeTabID = tab2.ID
+	m.handleCloseTab()
+
+	if len(m.tabs) != 2 {
+		t.Fatalf("expected 2 tabs after closing middle, got %d", len(m.tabs))
+	}
+	// Active tab should have moved to an adjacent tab.
+	if m.activeTabID == tab2.ID {
+		t.Error("active tab should no longer be the closed tab")
+	}
+}
+
+func TestHandleCloseTab_LastInSlice(t *testing.T) {
+	m := newColdModel(t)
+	dir2 := t.TempDir()
+	store2 := state.NewStore(dir2, 0)
+	tab2 := m.createTab(dir2, store2, nil)
+
+	// Activate the last tab and close it.
+	m.activeTabID = tab2.ID
+	m.handleCloseTab()
+
+	if len(m.tabs) != 1 {
+		t.Fatalf("expected 1 tab after close, got %d", len(m.tabs))
+	}
+	// Should fall back to the first (now only) tab.
+	if m.activeTabID != m.tabs[0].ID {
+		t.Errorf("expected active to be first tab, got ID %d", m.activeTabID)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// resolveStoreForDir
+// ---------------------------------------------------------------------------
+
+func TestResolveStoreForDir_NoWolfcastle(t *testing.T) {
+	dir := t.TempDir()
+	store, repo := resolveStoreForDir(dir)
+	if store != nil {
+		t.Error("expected nil store for dir without .wolfcastle")
+	}
+	if repo != nil {
+		t.Error("expected nil repo for dir without .wolfcastle")
+	}
+}
+
+func TestResolveStoreForDir_WithWolfcastleDir(t *testing.T) {
+	dir := t.TempDir()
+	wolfDir := dir + "/.wolfcastle"
+	if err := os.MkdirAll(wolfDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// The directory exists but has no config, so storeFromWolfcastleDir
+	// returns nil for the store. The daemonRepo should still be non-nil
+	// since NewRepository just wraps the path.
+	store, repo := resolveStoreForDir(dir)
+	// Store may be nil if config/identity resolution fails, which it
+	// will for an empty .wolfcastle dir. The important thing is that
+	// the function doesn't panic and returns a daemon repo.
+	_ = store // may be nil without config
+	if repo == nil {
+		t.Error("expected non-nil repo for dir with .wolfcastle directory")
+	}
+}
+
+func TestResolveStoreForDir_FileNotDir(t *testing.T) {
+	dir := t.TempDir()
+	// Create .wolfcastle as a file, not a directory.
+	if err := os.WriteFile(dir+"/.wolfcastle", []byte("not a dir"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	store, repo := resolveStoreForDir(dir)
+	if store != nil {
+		t.Error("expected nil store when .wolfcastle is a file")
+	}
+	if repo != nil {
+		t.Error("expected nil repo when .wolfcastle is a file")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// fillModalBg
+// ---------------------------------------------------------------------------
+
+func TestFillModalBg_EmptyContent(t *testing.T) {
+	// Empty string splits to [""], yielding height=1, so the canvas
+	// still fills cells with the background color. Verify it doesn't panic
+	// and returns something (the background-filled row).
+	result := fillModalBg("", 80)
+	if result == "" {
+		t.Error("expected non-empty result (canvas fills empty cells with bg)")
+	}
+}
+
+func TestFillModalBg_ZeroWidth(t *testing.T) {
+	result := fillModalBg("some content", 0)
+	if result != "some content" {
+		t.Errorf("expected original content for zero width, got %q", result)
+	}
+}
+
+func TestFillModalBg_ZeroHeight(t *testing.T) {
+	// An input with no lines at all can't happen from strings.Split
+	// (it always returns at least one element), but the guard is
+	// height == 0 || width == 0. We test width == 0 above; this
+	// exercises the code path through the canvas for a single empty line.
+	result := fillModalBg("", 0)
+	if result != "" {
+		t.Errorf("expected original content for zero width and empty content, got %q", result)
+	}
+}
+
+func TestFillModalBg_NormalContent(t *testing.T) {
+	result := fillModalBg("hello", 10)
+	if result == "" {
+		t.Error("expected non-empty result for normal content")
+	}
+}
+
+func TestFillModalBg_MultilineContent(t *testing.T) {
+	result := fillModalBg("line1\nline2\nline3", 20)
+	if result == "" {
+		t.Error("expected non-empty result for multiline content")
 	}
 }
