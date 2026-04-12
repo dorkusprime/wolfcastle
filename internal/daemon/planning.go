@@ -71,7 +71,11 @@ func (d *Daemon) reconcileOrchestratorStates(idx *state.RootIndex) {
 			if !changed {
 				return errNoChange
 			}
-			ns.State = state.RecomputeState(ns.Children, ns.Tasks)
+			newState := state.RecomputeState(ns.Children, ns.Tasks)
+			if newState == state.StatusComplete && ns.NeedsPlanning {
+				newState = state.StatusInProgress
+			}
+			ns.State = newState
 			return nil
 		})
 	}
