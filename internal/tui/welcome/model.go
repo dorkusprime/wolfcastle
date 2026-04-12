@@ -339,9 +339,9 @@ func (m *Model) scrollIntoCursor() {
 // ---------------------------------------------------------------------------
 // View renders the welcome screen with session and directory panels.
 func (m Model) View() string {
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite)
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorNeonCyan)
 	subtitleStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
-	spinnerStyle := lipgloss.NewStyle().Foreground(tui.ColorYellow)
+	spinnerStyle := lipgloss.NewStyle().Foreground(tui.ColorNeonCyan)
 
 	var b strings.Builder
 
@@ -366,8 +366,10 @@ func (m Model) View() string {
 	}
 
 	panelBase := lipgloss.NewStyle().
+		Background(tui.ColorBaseBg).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(tui.ColorDimGray).
+		BorderForeground(tui.ColorDeepCyan).
+		BorderBackground(tui.ColorBaseBg).
 		Padding(0, 1).
 		Width(innerWidth)
 
@@ -375,7 +377,7 @@ func (m Model) View() string {
 	if len(m.instances) > 0 {
 		sessionsStyle := panelBase
 		if m.focus == panelSessions {
-			sessionsStyle = sessionsStyle.BorderForeground(tui.ColorRed)
+			sessionsStyle = sessionsStyle.BorderForeground(tui.ColorNeonCyan)
 		}
 		b.WriteString(sessionsStyle.Render(m.renderSessions()))
 		b.WriteString("\n")
@@ -384,7 +386,7 @@ func (m Model) View() string {
 	// Directory browser panel
 	dirStyle := panelBase
 	if m.focus == panelDirs {
-		dirStyle = dirStyle.BorderForeground(tui.ColorRed)
+		dirStyle = dirStyle.BorderForeground(tui.ColorNeonCyan)
 	}
 	b.WriteString(dirStyle.Render(m.renderDirBrowser()))
 
@@ -407,7 +409,7 @@ func (m Model) View() string {
 
 func (m Model) renderSessions() string {
 	headingStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite)
-	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Background(tui.ColorDarkGray)
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Background(tui.ColorSelection)
 	normalStyle := lipgloss.NewStyle().Foreground(tui.ColorLightGray)
 	dimStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
 	activeMarker := lipgloss.NewStyle().Foreground(tui.ColorGreen).Render("●")
@@ -443,7 +445,7 @@ func (m Model) renderSessions() string {
 func (m Model) renderDirBrowser() string {
 	headingStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite)
 	subtitleStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)
-	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Background(tui.ColorDarkGray)
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(tui.ColorWhite).Background(tui.ColorSelection)
 	normalStyle := lipgloss.NewStyle().Foreground(tui.ColorLightGray)
 	pathStyle := lipgloss.NewStyle().Foreground(tui.ColorWhite).Bold(true)
 	dimStyle := lipgloss.NewStyle().Foreground(tui.ColorDimWhite)

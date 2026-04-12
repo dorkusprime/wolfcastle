@@ -292,7 +292,7 @@ func (m InboxModel) renderItem(idx int) string {
 	if selected && m.focused {
 		selStyle := lipgloss.NewStyle().
 			Foreground(tui.ColorWhite).
-			Background(tui.ColorDarkGray).
+			Background(tui.ColorSelection).
 			Bold(true)
 		return selStyle.Render(line)
 	}

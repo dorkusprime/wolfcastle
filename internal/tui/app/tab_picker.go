@@ -210,8 +210,8 @@ func (m TabPickerModel) View() string {
 
 		if selected {
 			line = lipgloss.NewStyle().
-				Background(tui.ColorDarkRed).
-				Foreground(lipgloss.Color("255")).
+				Background(tui.ColorSelection).
+				Foreground(tui.ColorWhite).
 				Bold(true).
 				Width(m.width - 4).
 				Render(line)

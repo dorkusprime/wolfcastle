@@ -938,6 +938,11 @@ func (m TUIModel) View() tea.View {
 	// runtime layout changes (tab bar appearance, error bar visibility).
 	m.propagateSize()
 	rendered := m.renderLayout()
+	// Fill the entire alt-screen with a dark background so the TUI
+	// is readable on light terminals and transparent terminals show
+	// through slightly. Uses cell-level fill (same approach as modal
+	// backgrounds) so ANSI resets don't punch through.
+	rendered = fillBaseBg(rendered, m.width, m.height)
 	v := tea.NewView(rendered)
 	v.AltScreen = true
 	v.WindowTitle = "WOLFCASTLE"

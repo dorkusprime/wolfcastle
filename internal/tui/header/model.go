@@ -49,7 +49,7 @@ type SpinnerTickMsg struct{}
 // ---------------------------------------------------------------------------
 
 var (
-	headerBg  color.Color = lipgloss.Color("52")  // dark red
+	headerBg  color.Color = lipgloss.Color("23")  // deep teal
 	headerFg  color.Color = lipgloss.Color("15")  // white
 	clrGreen  color.Color = lipgloss.Color("2")   // ● complete
 	clrYellow color.Color = lipgloss.Color("3")   // ◐ in_progress
@@ -222,7 +222,8 @@ func (m Model) View() string {
 	}
 
 	version := strings.TrimPrefix(m.version, "v")
-	title := boldStyle.Render(fmt.Sprintf("WOLFCASTLE v%s", version))
+	title := renderGradientTitle("WOLFCASTLE", headerBg) +
+		barStyle.Render(fmt.Sprintf(" v%s", version))
 
 	// Build right side of line 1: optional spinner, daemon status, instance badge.
 	rightParts := []string{}
@@ -355,7 +356,7 @@ func (m Model) renderTabBar(base, bold lipgloss.Style, width int) string {
 
 	activeStyle := lipgloss.NewStyle().
 		Background(headerBg).
-		Foreground(headerFg).
+		Foreground(lipgloss.Color("51")). // neon cyan (matches tui.ColorNeonCyan)
 		Bold(true)
 
 	dotStyle := lipgloss.NewStyle().
@@ -400,6 +401,28 @@ func (m Model) renderTabBar(base, bold lipgloss.Style, width int) string {
 	}
 
 	return composeLine(base, left, right, width)
+}
+
+// renderGradientTitle renders each character of the title with a
+// gradient from neon cyan through magenta to gold, matching the
+// Wolfcastle neon-wolf logo palette.
+func renderGradientTitle(text string, bg color.Color) string {
+	// ANSI 256 colors stepping through cyan → purple → magenta → gold.
+	// 10 stops for "WOLFCASTLE"; interpolated for other lengths.
+	gradient := []string{"51", "44", "135", "170", "205", "211", "214", "220", "220", "226"}
+
+	var b strings.Builder
+	runes := []rune(text)
+	for i, r := range runes {
+		// Map character position to gradient index.
+		idx := i * (len(gradient) - 1) / max(len(runes)-1, 1)
+		style := lipgloss.NewStyle().
+			Background(bg).
+			Foreground(lipgloss.Color(gradient[idx])).
+			Bold(true)
+		b.WriteString(style.Render(string(r)))
+	}
+	return b.String()
 }
 
 // pluralize appends "s" when count != 1.
