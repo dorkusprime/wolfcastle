@@ -27,7 +27,7 @@ wolfcastle
 
 This opens the [TUI](docs/humans/the-tui.md). Press `I` to initialize the project, `i` then `a` to add work to the inbox, `s` to start the daemon. The dashboard shows progress in real time: tree state, audit results, log stream, everything. The TUI is the primary interface.
 
-![Wolfcastle TUI](assets/screenshots/tui-full-layout.png)
+![Wolfcastle TUI](assets/screenshots/tui-hero.gif)
 
 ### Headless / CI
 
