@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0
+
+### Features
+- Per-directory workspace tabs. Each tab owns its own tree, detail pane, search, daemon lifecycle, and watcher. Press `+` to open a directory picker, `-` to close a tab, `<`/`>` to switch. The header renders a tab bar when multiple tabs are open. All directory-dependent state lives on the Tab struct, eliminating the class of bugs where context switches left stale fields on TUIModel.
+- Directory picker overlay (`+`): shows running daemon sessions at the top, followed by a filesystem browser. Directories with `.wolfcastle/` are highlighted. Selecting a running session opens a tab connected to that daemon. Duplicate directories refocus the existing tab.
+- Tab-scoped daemon control: `s` starts/stops the daemon in the active tab's directory, not the CWD. The daemon modal shows which directory it will affect.
+
+### Breaking Changes
+- Instance tab bar replaced by user-managed tabs. The `<`/`>` keys now switch tabs instead of instances. Digit keys (1-9) for instance selection removed.
+
 ## 0.6.1
 
 ### Bug Fixes
