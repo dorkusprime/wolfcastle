@@ -28,9 +28,13 @@ Sleep 500ms
 Type "l"
 Sleep 1s
 
-# Expand frontend (go to bottom, up past infra, expand)
+# Expand frontend. Tree order after warzone+backend expanded:
+#   warzone, backend, api, auth, database, frontend, infra, demo-app
+# G lands on demo-app, then k twice steps up past infra to frontend.
 Type "G"
 Sleep 500ms
+Type "k"
+Sleep 200ms
 Type "k"
 Sleep 500ms
 Type "l"
