@@ -199,7 +199,7 @@ Examples:
 			// whichever output mode was selected (default: summary).
 			logDir := filepath.Join(app.Config.Root(), tierfs.SystemPrefix, "logs")
 			reader := logrender.NewFollowReader(logDir, 200*time.Millisecond)
-			reader.SetSkipExisting()
+			reader.SnapshotExisting()
 			records := reader.Records(ctx)
 			renderDone := make(chan struct{})
 			w := &output.SpinnerWriter{W: os.Stdout}

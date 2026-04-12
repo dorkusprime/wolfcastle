@@ -78,10 +78,14 @@ func (r *ReplayReader) readFile(path string, ch chan<- Record) {
 // configurable interval. It detects new iteration files as they appear and
 // streams records from them in order. Cancelling the context stops the reader.
 type FollowReader struct {
-	dir          string
-	interval     time.Duration
-	aliveCheck   func() bool
-	skipExisting bool
+	dir        string
+	interval   time.Duration
+	aliveCheck func() bool
+	// skipSnapshot maps file paths to sizes captured before the daemon
+	// starts. Files in the snapshot are seeked to their snapshot size on
+	// first discovery so old session content is skipped. Files created
+	// after the snapshot are read from offset 0.
+	skipSnapshot map[string]int64
 }
 
 // NewFollowReader creates a reader that tails logDir for new NDJSON content.
@@ -94,11 +98,27 @@ func NewFollowReader(logDir string, interval time.Duration) *FollowReader {
 	return &FollowReader{dir: logDir, interval: interval}
 }
 
-// SetSkipExisting causes the first poll cycle to fast-forward all existing
-// files to EOF so only content written after the reader starts is emitted.
-// Call before Records().
-func (r *FollowReader) SetSkipExisting() {
-	r.skipExisting = true
+// SnapshotExisting records the current size of every log file in the
+// directory. When the poll loop first discovers these files, it seeks
+// past the snapshot content so old session logs are not replayed. Files
+// created after the snapshot are read from offset 0. Call before
+// Records() and before starting the daemon.
+func (r *FollowReader) SnapshotExisting() {
+	r.skipSnapshot = make(map[string]int64)
+	entries, err := os.ReadDir(r.dir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		if e.IsDir() || !isLogFile(e.Name()) || strings.HasSuffix(e.Name(), ".gz") {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		r.skipSnapshot[filepath.Join(r.dir, e.Name())] = info.Size()
+	}
 }
 
 // SetAliveCheck registers an optional callback that the poll loop calls
@@ -142,15 +162,7 @@ func (r *FollowReader) poll(ctx context.Context, ch chan<- Record) {
 	defer ticker.Stop()
 
 	// Run one cycle immediately before waiting on the ticker.
-	// When skipExisting is set, the first cycle discovers files and
-	// fast-forwards to EOF so only new content is emitted. This
-	// prevents replaying old session logs when wolfcastle start
-	// creates a renderer.
-	if r.skipExisting {
-		r.cycle(tracked, &orderedPaths, nil) // nil ch = discover + seek, no emit
-	} else {
-		r.cycle(tracked, &orderedPaths, ch)
-	}
+	r.cycle(tracked, &orderedPaths, ch)
 
 	cycles := 0
 	for {
@@ -198,6 +210,12 @@ func (r *FollowReader) cycle(tracked map[string]*fileState, orderedPaths *[]stri
 		fullPath := filepath.Join(r.dir, name)
 		if _, ok := tracked[fullPath]; !ok {
 			fs := &fileState{path: fullPath}
+			// If this file existed when SnapshotExisting was called,
+			// start reading after the snapshot position so old session
+			// content is not replayed. New files start at offset 0.
+			if snapSize, ok := r.skipSnapshot[fullPath]; ok {
+				fs.offset = snapSize
+			}
 			tracked[fullPath] = fs
 			*orderedPaths = append(*orderedPaths, fullPath)
 		}
@@ -212,23 +230,13 @@ func (r *FollowReader) cycle(tracked map[string]*fileState, orderedPaths *[]stri
 
 // readNewLines reads any content appended since the last read and sends
 // parsed records to ch. Only complete lines (terminated by \n) are consumed;
-// a partial trailing line is left for the next poll cycle. When ch is nil
-// the file is seeked to EOF without parsing (used by SetSkipExisting).
+// a partial trailing line is left for the next poll cycle.
 func (r *FollowReader) readNewLines(fs *fileState, ch chan<- Record) {
 	f, err := os.Open(fs.path)
 	if err != nil {
 		return
 	}
 	defer func() { _ = f.Close() }()
-
-	// Fast-forward: seek to EOF and record the position.
-	if ch == nil {
-		end, err := f.Seek(0, io.SeekEnd)
-		if err == nil {
-			fs.offset = end
-		}
-		return
-	}
 
 	// Read all new bytes from the last-known offset.
 	if _, err := f.Seek(fs.offset, io.SeekStart); err != nil {
