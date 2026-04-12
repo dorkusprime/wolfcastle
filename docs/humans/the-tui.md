@@ -22,11 +22,11 @@ If you run `wolfcastle` inside an initialized project with a running daemon, you
 
 ![Welcome screen](../../assets/screenshots/tui-welcome-sessions.png)
 
-Two panels, side by side. The left panel lists running Wolfcastle sessions across your machine: any daemon that's alive shows up here with its branch and directory. The right panel is a directory browser rooted at your current location.
+Two panels, stacked. The top panel lists running Wolfcastle sessions across your machine: any daemon that's alive shows up here with its branch, directory, and PID. It only appears when at least one session is active. Below it, the directory browser shows the contents of your current location under the "INITIALIZE" heading.
 
-`Tab` switches focus between panels. `j`/`k` move the cursor within whichever panel is focused. In the directory browser, `Enter` or `l` navigates into a directory, `h` goes up a level. If the selected directory contains a `.wolfcastle/` project, pressing `Enter` connects to it. `I` initializes a new project in the current directory.
+`Tab` switches focus between panels when both are visible. `j`/`k` move the cursor within whichever panel is focused. In the directory browser, `Enter` or `l` navigates into a directory, `h` goes up a level. Selecting a running session connects to it. `I` initializes a new project in the current directory.
 
-The welcome screen is a launcher. Once you select a session or navigate into an initialized project, the TUI transitions to the live or cold state and the welcome screen disappears.
+The welcome screen is a launcher. Once you connect to a session or navigate into an initialized project, the TUI transitions to the live or cold state and the welcome screen disappears.
 
 | Key | Action |
 |-----|--------|
