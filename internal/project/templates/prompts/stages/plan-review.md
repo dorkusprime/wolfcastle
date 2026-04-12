@@ -42,26 +42,65 @@ When children produce or modify files in more than one language stack (e.g., Pyt
 #### Inbox item completeness
 When the orchestrator was created from an inbox item containing a numbered list of sub-items, verify each sub-item was addressed by at least one child's deliverables. Explicitly check off each sub-item. Flag any that were missed as gaps.
 
-### D. Decide
-If all success criteria are met, no unaddressed action items remain, and no gaps exist, this orchestrator's work is done.
+### D. Exploratory Quality Review
 
-If gaps or action items remain:
+Step back from the acceptance criteria and deliverables. Read the actual code these children produced. The question is no longer "did the tasks deliver what they promised?" but "what quality issues exist that nobody checked for?"
+
+Read all files in scope, not just deliverables. Look for problems that acceptance criteria wouldn't catch:
+
+- Naming inconsistencies (stuttering, casing violations, convention drift)
+- Dead code (unused functions, unreferenced files, stale imports)
+- Missing or inaccurate documentation
+- Error handling gaps (unchecked errors, missing context wrapping)
+- Architectural violations (circular dependencies, wrong-layer access, leaked abstractions)
+- Test gaps (untested code paths, tests that verify implementation instead of behavior)
+- Security issues (injection vectors, hardcoded secrets, unsafe deserialization)
+- Performance concerns (unbounded allocations, missing context cancellation, goroutine leaks)
+
+The knowledge entries below describe patterns this project has encountered before. Verify those, but do not limit yourself to them. Use your judgment. The value of this phase is finding what nobody thought to check.
+
+For each finding, record it as a breadcrumb with location and description:
+```
+wolfcastle audit breadcrumb --node <your-node> "Quality finding: <file:line> <description>"
+```
+
+Check the **Review Pass** counter in the iteration context above. If it equals the maximum (shown in the context), this is the final pass: record any remaining findings as informational breadcrumbs and proceed to phase E. Do not create remediation work on the final pass.
+
+If findings warrant remediation (and this is not the final pass):
+1. Create a new leaf under this orchestrator for the remediation work. Name it with the review pass number for traceability:
+   ```
+   wolfcastle project create --node <your-node>/quality-remediation-<pass-number>
+   ```
+2. Add tasks targeting the specific files and issues. Assign appropriate task classes.
+3. For any pattern-level finding that future work should avoid, write a knowledge entry:
+   ```
+   wolfcastle knowledge add "<description of the pattern to avoid and why>"
+   ```
+4. Proceed to phase F and emit WOLFCASTLE_CONTINUE.
+
+If no findings warrant remediation, proceed to phase E.
+
+### E. Decide
+If all success criteria are met, no unaddressed action items remain, and the exploratory review found nothing requiring remediation, this orchestrator's work is done.
+
+If gaps or action items from phases B or C remain:
 - Create new leaves with `wolfcastle project create` and add tasks with `wolfcastle task add`. Do NOT add tasks to child orchestrators or grandchildren. Assign a task class to every new task using `--class` with the most specific key from `wolfcastle config show task_classes`. Each task gets one class; if a task would need multiple classes, split it into separate tasks.
 - Update success criteria if the scope has evolved: `wolfcastle orchestrator criteria --node <your-node> "updated criterion"`.
 
-### E. Record
+### F. Record
 Write a planning breadcrumb:
 ```
-wolfcastle audit breadcrumb --node <your-node> "Completion review: [PASS|gaps found]. [details]."
+wolfcastle audit breadcrumb --node <your-node> "Completion review: [PASS|gaps found|quality issues found]. [details]."
 ```
 
-### F. Signal
+### G. Signal
 Emit WOLFCASTLE_COMPLETE if all criteria are met and no new work was created.
 Emit WOLFCASTLE_CONTINUE if new work was created (the orchestrator transitions back to active and will be reviewed again when the new work finishes).
 
 ## Rules
 
-- Do not write application code.
+- Do not write application code. Create tasks for others to execute.
 - Be honest about gaps. A premature COMPLETE is worse than creating additional work.
-- WOLFCASTLE_CONTINUE means "I found gaps and created work to fix them." The daemon will process the new work and re-invoke this review when it's done.
+- WOLFCASTLE_CONTINUE means "I found issues and created work to fix them." The daemon will process the new work and re-invoke this review when it's done.
 - Always emit exactly one terminal marker: WOLFCASTLE_COMPLETE or WOLFCASTLE_CONTINUE.
+- Knowledge entries are permanent. Write them for patterns, not for one-off fixes. "State values must use typed constants" is a good knowledge entry. "Fixed a typo in line 42" is not.

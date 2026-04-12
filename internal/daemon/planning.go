@@ -172,6 +172,14 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	// Select the planning prompt variant
 	promptFile := selectPlanningPrompt(trigger)
 
+	// Ensure max review passes is set from config for context rendering.
+	if ns.MaxReviewPasses == 0 {
+		ns.MaxReviewPasses = d.Config.Pipeline.Planning.MaxReviewPasses
+	}
+
+	// Write activity so the TUI shows what the daemon is working on.
+	d.writeActivity(nodeAddr, trigger)
+
 	// Build planning context
 	planCtx := pipeline.BuildPlanningContext(nodeAddr, ns, trigger)
 
@@ -291,6 +299,11 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 		_ = d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 			ns.NeedsPlanning = false
 			ns.PlanningTrigger = ""
+			// Track review passes for completion_review so the exploratory
+			// review loop converges at max_review_passes.
+			if trigger == "completion_review" {
+				ns.ReviewPass++
+			}
 			return nil
 		})
 

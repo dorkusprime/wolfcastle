@@ -251,3 +251,47 @@ func TestBuildPlanningContext_EmptyState(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildPlanningContext_ReviewPass(t *testing.T) {
+	ns := state.NewNodeState("orch-010", "Review Test", state.NodeOrchestrator)
+	ns.ReviewPass = 2
+	ns.MaxReviewPasses = 3
+
+	ctx := BuildPlanningContext("project/orch-010", ns, "completion_review")
+
+	if !strings.Contains(ctx, "**Review Pass:** 2 of 3") {
+		t.Error("context should include review pass counter for completion_review trigger")
+	}
+}
+
+func TestBuildPlanningContext_ReviewPass_ZeroOmitted(t *testing.T) {
+	ns := state.NewNodeState("orch-011", "Initial Plan", state.NodeOrchestrator)
+
+	ctx := BuildPlanningContext("project/orch-011", ns, "initial")
+
+	if strings.Contains(ctx, "Review Pass") {
+		t.Error("context should not include review pass for non-completion triggers with zero passes")
+	}
+}
+
+func TestBuildPlanningContext_ReviewPass_ShownOnFirstCompletionReview(t *testing.T) {
+	ns := state.NewNodeState("orch-012", "First Review", state.NodeOrchestrator)
+	ns.MaxReviewPasses = 3
+
+	ctx := BuildPlanningContext("project/orch-012", ns, "completion_review")
+
+	if !strings.Contains(ctx, "**Review Pass:** 0 of 3") {
+		t.Error("context should show review pass on first completion_review even when pass is 0")
+	}
+}
+
+func TestBuildPlanningContext_ReviewPass_DefaultMax(t *testing.T) {
+	ns := state.NewNodeState("orch-013", "Default Max", state.NodeOrchestrator)
+	// MaxReviewPasses not set (0), should default to 3.
+
+	ctx := BuildPlanningContext("project/orch-013", ns, "completion_review")
+
+	if !strings.Contains(ctx, "**Review Pass:** 0 of 3") {
+		t.Error("context should default to 3 max review passes")
+	}
+}

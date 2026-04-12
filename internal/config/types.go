@@ -49,6 +49,7 @@ type PlanningConfig struct {
 	MaxChildren     int    `json:"max_children,omitempty"`
 	MaxTasksPerLeaf int    `json:"max_tasks_per_leaf,omitempty"`
 	MaxReplans      int    `json:"max_replans,omitempty"`
+	MaxReviewPasses int    `json:"max_review_passes,omitempty"`
 }
 
 // PipelineStage defines a single pipeline stage.
