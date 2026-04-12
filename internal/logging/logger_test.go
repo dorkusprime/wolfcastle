@@ -901,7 +901,7 @@ func TestMultipleIterations_CreateSeparateFiles(t *testing.T) {
 	}
 }
 
-// ── isLogFile Tests ───────────────────────────────────────────────
+// ── IsLogFile Tests ───────────────────────────────────────────────
 
 func TestIsLogFile(t *testing.T) {
 	t.Parallel()
@@ -917,8 +917,8 @@ func TestIsLogFile(t *testing.T) {
 		{"foo.jsonl.gz", true},
 	}
 	for _, tc := range cases {
-		if got := isLogFile(tc.name); got != tc.want {
-			t.Errorf("isLogFile(%q) = %v, want %v", tc.name, got, tc.want)
+		if got := IsLogFile(tc.name); got != tc.want {
+			t.Errorf("IsLogFile(%q) = %v, want %v", tc.name, got, tc.want)
 		}
 	}
 }
@@ -1610,7 +1610,7 @@ func countLogFiles(dir string) int {
 	entries, _ := os.ReadDir(dir)
 	count := 0
 	for _, e := range entries {
-		if !e.IsDir() && isLogFile(e.Name()) {
+		if !e.IsDir() && IsLogFile(e.Name()) {
 			count++
 		}
 	}

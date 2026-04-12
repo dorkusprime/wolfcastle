@@ -106,6 +106,7 @@ func (m DaemonModalModel) View() string {
 	content := title + "\n\n" +
 		lipgloss.NewStyle().Width(innerW).Render(body.String()) +
 		"\n\n" + footer
+	content = fillModalBg(content, innerW)
 
 	box := tui.ModalOverlayStyle.
 		Width(overlayW).

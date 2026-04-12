@@ -200,7 +200,7 @@ func TestKey_T_CycleTraceFilter(t *testing.T) {
 	m := NewLogViewModel()
 	m.SetSize(80, 24)
 
-	expected := []string{"exec", "intake", "all"}
+	expected := []string{"exec", "plan", "inbox", "system", "all"}
 	for _, want := range expected {
 		m, _ = m.Update(keyPress('T'))
 		if m.traceFilter != want {

@@ -100,16 +100,20 @@ var (
 	ModalOverlayStyle = lipgloss.NewStyle().
 				Background(ColorOverlayBg).
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(ColorDimWhite)
+				BorderForeground(ColorDimWhite).
+				BorderBackground(ColorOverlayBg)
 
 	ModalTitleStyle = lipgloss.NewStyle().
+			Background(ColorOverlayBg).
 			Foreground(ColorWhite).
 			Bold(true)
 
 	ModalDimStyle = lipgloss.NewStyle().
+			Background(ColorOverlayBg).
 			Foreground(ColorDimWhite)
 
 	ModalAccentStyle = lipgloss.NewStyle().
+				Background(ColorOverlayBg).
 				Foreground(ColorYellow)
 )
 

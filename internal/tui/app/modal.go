@@ -6,9 +6,45 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	uv "github.com/charmbracelet/ultraviolet"
 
 	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
+
+// fillModalBg stamps the overlay background color onto every cell of
+// the rendered content that doesn't already have an explicit background.
+// This operates at the cell level (via lipgloss Canvas + ultraviolet),
+// so ANSI resets between styled spans no longer punch transparent holes.
+func fillModalBg(content string, width int) string {
+	lines := strings.Split(content, "\n")
+	height := len(lines)
+	if height == 0 || width == 0 {
+		return content
+	}
+
+	canvas := lipgloss.NewCanvas(width, height)
+	ss := uv.NewStyledString(content)
+	canvas.Compose(ss)
+
+	bg := tui.ColorOverlayBg
+	bounds := canvas.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := canvas.CellAt(x, y)
+			if c == nil {
+				canvas.SetCell(x, y, &uv.Cell{
+					Content: " ",
+					Width:   1,
+					Style:   uv.Style{Bg: bg},
+				})
+			} else if c.Style.Bg == nil {
+				c.Style.Bg = bg
+			}
+		}
+	}
+
+	return canvas.Render()
+}
 
 // ActiveModal tracks which modal overlay (if any) is currently visible.
 // Only one modal can be open at a time; the enum enforces this
@@ -132,9 +168,11 @@ func (m TUIModel) renderNewTabModal(contentHeight int) string {
 		overlayH = contentHeight
 	}
 
+	innerW := overlayW - 6
 	picker := m.tabPicker
-	picker.SetSize(overlayW-6, overlayH-4)
+	picker.SetSize(innerW, overlayH-4)
 	content := picker.View()
+	content = fillModalBg(content, innerW)
 
 	box := tui.ModalOverlayStyle.
 		Width(overlayW).
@@ -178,6 +216,7 @@ func (m TUIModel) renderInboxModal(contentHeight int) string {
 
 	hint := strings.Repeat(" ", 2) + tui.ModalDimStyle.Render("[Esc] Close")
 	content += "\n" + hint
+	content = fillModalBg(content, innerW)
 
 	box := tui.ModalOverlayStyle.
 		Width(overlayW).
@@ -221,6 +260,7 @@ func (m TUIModel) renderLogModal(contentHeight int) string {
 
 	hint := strings.Repeat(" ", 2) + tui.ModalDimStyle.Render("[Esc] Close")
 	content += "\n" + hint
+	content = fillModalBg(content, innerW)
 
 	box := tui.ModalOverlayStyle.
 		Width(overlayW).

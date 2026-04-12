@@ -471,11 +471,34 @@ func (m LogViewModel) levelMatches(rec logrender.Record) bool {
 }
 
 // traceMatches returns true if the record passes the current trace filter.
+// Trace IDs look like "exec-0002", "intake-10001", or "inbox-init-10003".
+// The filter matches on the trace category, not the full ID.
 func (m LogViewModel) traceMatches(rec logrender.Record) bool {
 	if m.traceFilter == "all" {
 		return true
 	}
-	return rec.Trace == m.traceFilter
+	cat := traceCategory(rec.Trace)
+	return cat == m.traceFilter
+}
+
+// traceCategory extracts the category from a trace ID. "exec-0002" yields
+// "exec", "inbox-init-10003" yields "inbox", "intake-10001" yields "inbox"
+// (intake is the inbox processing stage).
+func traceCategory(trace string) string {
+	switch {
+	case strings.HasPrefix(trace, "exec"):
+		return "exec"
+	case strings.HasPrefix(trace, "plan"):
+		return "plan"
+	case strings.HasPrefix(trace, "intake"), strings.HasPrefix(trace, "inbox"):
+		return "inbox"
+	case strings.HasPrefix(trace, "heal"):
+		return "system"
+	case strings.HasPrefix(trace, "shutdown"), strings.HasPrefix(trace, "crash"):
+		return "system"
+	default:
+		return "other"
+	}
 }
 
 func levelOrd(level string) int {
@@ -505,7 +528,7 @@ func (m *LogViewModel) cycleLevelFilter() {
 	m.levelFilter = "all"
 }
 
-var traceCycle = []string{"all", "exec", "intake"}
+var traceCycle = []string{"all", "exec", "plan", "inbox", "system"}
 
 func (m *LogViewModel) cycleTraceFilter() {
 	for i, v := range traceCycle {

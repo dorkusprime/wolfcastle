@@ -474,7 +474,7 @@ func TestStartIteration_ClosePreviousBeforeNew(t *testing.T) {
 	entries, _ := os.ReadDir(dir)
 	logCount := 0
 	for _, e := range entries {
-		if isLogFile(e.Name()) {
+		if IsLogFile(e.Name()) {
 			logCount++
 		}
 	}

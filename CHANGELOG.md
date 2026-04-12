@@ -7,6 +7,11 @@
 - Directory picker overlay (`+`): shows running daemon sessions at the top, followed by a filesystem browser. Directories with `.wolfcastle/` are highlighted. Selecting a running session opens a tab connected to that daemon. Duplicate directories refocus the existing tab.
 - Tab-scoped daemon control: `s` starts/stops the daemon in the active tab's directory, not the CWD. The daemon modal shows which directory it will affect.
 
+### Bug Fixes
+- Log modal now streams ALL log types (exec, plan, intake, inbox), not just exec. The watcher tracks every uncompressed `.jsonl` file in the log directory.
+- Trace filter (`T` in log modal) matches by category prefix instead of exact trace ID. Expanded cycle: all, exec, plan, inbox, system.
+- Modal overlays (inbox, logs, daemon confirm, new tab picker) have solid dark backgrounds. Cell-level background fill via lipgloss Canvas prevents ANSI resets from punching transparent holes.
+
 ### Breaking Changes
 - Instance tab bar replaced by user-managed tabs. The `<`/`>` keys now switch tabs instead of instances. Digit keys (1-9) for instance selection removed.
 
