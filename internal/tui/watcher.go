@@ -30,8 +30,8 @@ type Watcher struct {
 	watcher     *fsnotify.Watcher
 	store       *state.Store
 	logDir      string
-	logFile     string    // latest log file (for NewLogFileMsg)
-	logOffset   int64     // deprecated: use logFiles map instead
+	logFile     string // latest log file (for NewLogFileMsg)
+	logOffset   int64  // deprecated: use logFiles map instead
 	instanceDir string
 	debounce    *time.Timer
 	maxSlide    *time.Timer
@@ -64,8 +64,8 @@ type Watcher struct {
 	// polling state
 	indexMtime    time.Time
 	instanceMtime time.Time
-	logFileSize   int64     // deprecated: use logFiles map
-	lineBuf       string    // deprecated: use logFiles map
+	logFileSize   int64  // deprecated: use logFiles map
+	lineBuf       string // deprecated: use logFiles map
 }
 
 // logFileState tracks read progress for a single log file.
