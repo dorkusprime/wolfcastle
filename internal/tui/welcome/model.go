@@ -241,10 +241,20 @@ func (m Model) handleEnter(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	if m.dirCursor >= 0 && m.dirCursor < len(m.entries) {
 		entry := m.entries[m.dirCursor]
 		if entry.Name() == ".wolfcastle" {
-			// .wolfcastle is not navigable. Use I to init.
-			return m, nil
+			// Opening the .wolfcastle entry itself opens a session
+			// rooted at the current directory. startInit's runInit
+			// detects the existing scaffold and resolves as an
+			// immediate success, which routes through the same
+			// InitCompleteMsg handler the fresh-init path uses.
+			return m.startInit()
 		}
 		child := filepath.Join(m.currentDir, entry.Name())
+		// If the child is already a wolfcastle project, open a
+		// session there instead of descending into its filesystem.
+		if hasWolfcastle(child) {
+			m.currentDir = child
+			return m.startInit()
+		}
 		m.currentDir = child
 		m.dirCursor = 0
 		m.scrollTop = 0
@@ -253,6 +263,12 @@ func (m Model) handleEnter(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+// hasWolfcastle reports whether dir contains a .wolfcastle directory.
+func hasWolfcastle(dir string) bool {
+	info, err := os.Stat(filepath.Join(dir, ".wolfcastle"))
+	return err == nil && info.IsDir()
 }
 
 func (m Model) startInit() (Model, tea.Cmd) {
@@ -472,10 +488,12 @@ func (m Model) renderDirBrowser() string {
 			b.WriteString("\n")
 		}
 
+		projectStyle := lipgloss.NewStyle().Foreground(tui.ColorGold)
 		for i, entry := range visible {
 			idx := m.scrollTop + i
 			isLast := idx == len(m.entries)-1
 			name := entry.Name()
+			isProject := entry.Name() != ".wolfcastle" && hasWolfcastle(filepath.Join(m.currentDir, name))
 
 			connector := "├── "
 			if isLast {
@@ -486,12 +504,23 @@ func (m Model) renderDirBrowser() string {
 				marker := pathStyle.Render("▸ ")
 				dirName := selectedStyle.Render(name + "/")
 				hint := ""
-				if name == ".wolfcastle" {
-					hint = subtitleStyle.Render("  [Enter to init]")
+				switch {
+				case name == ".wolfcastle":
+					hint = subtitleStyle.Render("  [Enter to open]")
+				case isProject:
+					hint = subtitleStyle.Render("  [Enter to open]")
 				}
 				b.WriteString(connectorStyle.Render(connector) + marker + dirName + hint)
 			} else {
-				b.WriteString(connectorStyle.Render(connector) + normalStyle.Render(name+"/"))
+				style := normalStyle
+				if isProject {
+					style = projectStyle
+				}
+				suffix := ""
+				if isProject {
+					suffix = subtitleStyle.Render(" ◆")
+				}
+				b.WriteString(connectorStyle.Render(connector) + style.Render(name+"/") + suffix)
 			}
 			b.WriteString("\n")
 		}

@@ -227,7 +227,7 @@ func TestInitKey_StartsInitInCurrentDir(t *testing.T) {
 	}
 }
 
-func TestEnterOnDotWolfcastle_DoesNotInit(t *testing.T) {
+func TestEnterOnDotWolfcastle_OpensCurrentDir(t *testing.T) {
 	dir := setupTestDir(t, ".wolfcastle")
 
 	m := NewModel(dir, nil)
@@ -238,9 +238,63 @@ func TestEnterOnDotWolfcastle_DoesNotInit(t *testing.T) {
 		}
 	}
 
+	m, cmd := m.Update(enterKey())
+	if !m.initializing {
+		t.Fatal("Enter on .wolfcastle should open a session (via init no-op) in the current dir")
+	}
+	if cmd == nil {
+		t.Fatal("expected a command to kick off the open sequence")
+	}
+}
+
+func TestEnterOnProjectDir_OpensThatDir(t *testing.T) {
+	parent := t.TempDir()
+	child := filepath.Join(parent, "my-project")
+	if err := os.MkdirAll(filepath.Join(child, ".wolfcastle"), 0o755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	m := NewModel(parent, nil)
+	for i, e := range m.entries {
+		if e.Name() == "my-project" {
+			m.dirCursor = i
+			break
+		}
+	}
+
+	m, cmd := m.Update(enterKey())
+	if !m.initializing {
+		t.Fatal("Enter on a project dir should open a session")
+	}
+	if m.currentDir != child {
+		t.Fatalf("currentDir should move into the project, got %q", m.currentDir)
+	}
+	if cmd == nil {
+		t.Fatal("expected a command")
+	}
+}
+
+func TestEnterOnNonProjectDir_Descends(t *testing.T) {
+	parent := t.TempDir()
+	child := filepath.Join(parent, "plain")
+	if err := os.MkdirAll(child, 0o755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	m := NewModel(parent, nil)
+	for i, e := range m.entries {
+		if e.Name() == "plain" {
+			m.dirCursor = i
+			break
+		}
+	}
+
 	m, _ = m.Update(enterKey())
 	if m.initializing {
-		t.Fatal("Enter on .wolfcastle should not trigger init, use I")
+		t.Fatal("Enter on a non-project dir should descend, not init")
+	}
+	if m.currentDir != child {
+		t.Fatalf("currentDir should descend into child, got %q", m.currentDir)
 	}
 }
 

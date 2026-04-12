@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.5
+
+### Bug Fixes
+- Welcome screen: pressing Enter on a subdirectory that already contains `.wolfcastle` now opens a session there instead of descending into its filesystem. Enter on the `.wolfcastle` entry itself opens the current directory as a project. Both paths route through the existing init-is-a-no-op branch, so the app/tab wiring stays in one place.
+- Project directories in the welcome browser are badged with a gold `◆` and their selected-row hint reads `[Enter to open]`, so a fresh-start user browsing the filesystem can spot and open existing projects without guessing.
+
 ## 0.6.4
 
 ### Features
