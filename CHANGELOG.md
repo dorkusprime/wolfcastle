@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.3
+
+### Features
+- TUI design system overhaul. Color palette derived from the neon-wolf logo: neon cyan primary, gold targets, deep teal header, magenta accents. Gradient "WOLFCASTLE" title cycles cyan through purple and magenta to gold. (#274)
+- Near-black base background (ANSI 234) fills the entire alt-screen via cell-level canvas, making the TUI readable on light terminals without breaking transparency on dark ones. (#274)
+- Help overlay restyled: section titles in neon cyan, key hints in gold. (#274)
+- Toast notifications use neon cyan borders instead of red. (#274)
+- Search results use gold/dark-gold foreground tinting instead of background highlighting. (#274)
+
+### Documentation
+- Design system reference at `docs/agents/design-system.md`: full palette, component specs, principles, Terminal.app limitations. (#274)
+
 ## 0.6.2
 
 ### Features
