@@ -12,7 +12,6 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/instance"
 	"github.com/dorkusprime/wolfcastle/internal/state"
-	"github.com/dorkusprime/wolfcastle/internal/tui"
 )
 
 // ---------------------------------------------------------------------------
@@ -401,11 +400,6 @@ func (m Model) renderTabBar(base, bold lipgloss.Style, width int) string {
 	}
 
 	return composeLine(base, left, right, width)
-}
-
-// instanceLabel delegates to the shared tui.InstanceLabel.
-func instanceLabel(inst instance.Entry) string {
-	return tui.InstanceLabel(inst)
 }
 
 // pluralize appends "s" when count != 1.
