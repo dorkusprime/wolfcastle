@@ -92,8 +92,34 @@ create_node() {
 # ---------------------------------------------------------------------------
 # Daemon management
 # ---------------------------------------------------------------------------
+# configure_stall_model writes a mock model config that sleeps forever.
+# The daemon shows "hunting" status without modifying the fake state.
+configure_stall_model() {
+    local dir="$1"
+    local custom_dir="$dir/.wolfcastle/system/custom"
+    mkdir -p "$custom_dir"
+    cat > "$custom_dir/config.json" << 'CFGEOF'
+{
+  "models": {
+    "fast":  {"command": "sleep", "args": ["3600"]},
+    "mid":   {"command": "sleep", "args": ["3600"]},
+    "heavy": {"command": "sleep", "args": ["3600"]}
+  },
+  "daemon": {
+    "invocation_timeout_seconds": 3600,
+    "stall_timeout_seconds": 3600
+  },
+  "git": {
+    "auto_commit": false,
+    "verify_branch": false
+  }
+}
+CFGEOF
+}
+
 start_daemon_in() {
     local dir="$1"
+    configure_stall_model "$dir"
     (cd "$dir" && wolfcastle start -d 2>/dev/null) || true
     sleep 3
     # Verify it's actually running (daemon field in status JSON)
