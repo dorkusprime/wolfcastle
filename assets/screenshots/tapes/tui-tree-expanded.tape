@@ -1,4 +1,4 @@
-# Tree pane with multi-level expanded nodes, dashboard in detail pane
+# Tree pane fully expanded with all orchestrators open, dashboard in detail
 Set Shell "bash"
 Set Width 1200
 Set Height 800
@@ -18,17 +18,27 @@ Sleep 2s
 Type "R"
 Sleep 1s
 
-# Expand warzone orchestrator
+# Expand warzone
 Type "l"
 Sleep 1s
 
-# Move down to backend and expand it
+# Expand backend (first child)
 Type "j"
 Sleep 500ms
 Type "l"
 Sleep 1s
 
-# Return to dashboard so detail pane shows the mission briefing
+# Navigate past backend's children to frontend and expand it
+# Tree: warzone, backend, api, auth, database, frontend, ...
+# Go to bottom, up past infra, land on frontend
+Type "G"
+Sleep 500ms
+Type "k"
+Sleep 500ms
+Type "l"
+Sleep 1s
+
+# Return to dashboard view and keep focus on tree
 Type "d"
 Sleep 1s
 
