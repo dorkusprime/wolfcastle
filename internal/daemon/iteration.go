@@ -440,6 +440,16 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 	if !d.Config.Pipeline.Planning.Enabled {
 		d.autoCompleteDecomposedParents(nav.NodeAddress)
 	}
+	// Refresh the in-memory index entry for the completed leaf so
+	// checkReplanningTriggers sees the current state. Without this,
+	// the stale index still shows in_progress and the "all children
+	// complete" check fails.
+	if freshNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
+		if entry, ok := idx.Nodes[nav.NodeAddress]; ok {
+			entry.State = freshNS.State
+			idx.Nodes[nav.NodeAddress] = entry
+		}
+	}
 	// Check replanning triggers BEFORE propagation. Propagation may
 	// mark the parent orchestrator complete, after which the planning
 	// DFS skips it. The trigger must be set while the parent is still
