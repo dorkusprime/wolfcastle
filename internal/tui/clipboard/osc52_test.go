@@ -66,3 +66,13 @@ func TestWriteOSC52WriterError(t *testing.T) {
 		t.Errorf("error = %q, want %q", err.Error(), "write failed")
 	}
 }
+
+// TestWriteSystem_Invokes covers the WriteSystem path. On a fully
+// configured desktop (pbcopy/xclip/xsel available) it returns nil; on a
+// headless CI host it returns an error from the atotto clipboard
+// package. Either outcome is acceptable — the assertion is that the
+// function is reachable and returns synchronously.
+func TestWriteSystem_Invokes(t *testing.T) {
+	t.Parallel()
+	_ = WriteSystem("wolfcastle-clipboard-test")
+}

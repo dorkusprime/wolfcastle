@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -139,6 +140,50 @@ func TestAtomicWriteFile_RenameError(t *testing.T) {
 	data, _ := os.ReadFile(targetPath)
 	if string(data) != "old" {
 		t.Errorf("original file should be unchanged, got %s", data)
+	}
+}
+
+// TestAtomicWriteFile_RenameOverDirectory exercises the rename error
+// branch directly: the target path already exists as a non-empty
+// directory, so os.Rename fails after the temp file has been created
+// and written. Previous RenameError test actually hit CreateTemp
+// because its target dir was read-only.
+func TestAtomicWriteFile_RenameOverDirectory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("rename-over-nonempty-dir semantics differ on Windows")
+	}
+	t.Parallel()
+	dir := t.TempDir()
+	// Create a directory at the exact target path.
+	targetPath := filepath.Join(dir, "busy")
+	if err := os.MkdirAll(targetPath, 0o755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	// Put a file inside so the dir isn't empty — prevents Linux from
+	// quietly allowing rename(file, emptyDir).
+	if err := os.WriteFile(filepath.Join(targetPath, "occupant"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	err := AtomicWriteFile(targetPath, []byte("new"))
+	if err == nil {
+		t.Error("expected error when target is a non-empty directory")
+	}
+
+	// The directory and its occupant should be untouched.
+	info, statErr := os.Stat(targetPath)
+	if statErr != nil {
+		t.Fatalf("target should still exist: %v", statErr)
+	}
+	if !info.IsDir() {
+		t.Error("target should still be a directory after failed rename")
+	}
+	// The leaked temp file should have been cleaned up.
+	entries, _ := os.ReadDir(dir)
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), ".wolfcastle-tmp-") {
+			t.Errorf("temp file should be cleaned up after rename failure, found %s", e.Name())
+		}
 	}
 }
 
