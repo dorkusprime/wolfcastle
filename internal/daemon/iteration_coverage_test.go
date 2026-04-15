@@ -35,7 +35,7 @@ func TestRunIteration_AlreadyInProgress_SkipsClaim(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "skip-claim", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -87,7 +87,7 @@ with open('%s','w') as f: json.dump(data, f)
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "yield-decomp", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -146,7 +146,7 @@ with open('%s','w') as f: json.dump(data, f)
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "yield-plan", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestRunIteration_YieldNoNewTasks(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "yield-no-new", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -227,7 +227,7 @@ func TestRunIteration_BlockedSuperseded_TreatedAsSkip(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "superseded-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -279,7 +279,7 @@ func TestRunIteration_BlockedAudit_CreatesRemediationSubtasks(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "audit-remediation", TaskID: "audit", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -332,7 +332,7 @@ func TestRunIteration_RemediationSubtasks_InheritClass(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "class-inherit", TaskID: "audit", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -370,7 +370,7 @@ func TestRunIteration_BlockedNormal_BlocksAndPropagates(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "blocked-normal", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -408,7 +408,7 @@ func TestRunIteration_Complete_MissingDeliverables(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "deliv-warn", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -445,7 +445,7 @@ func TestRunIteration_CompleteAudit_SkipsGitCheck(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "audit-complete", TaskID: "audit", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -488,7 +488,7 @@ func TestRunIteration_CompleteNoGitProgress_FailsTask(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "no-progress", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -539,7 +539,7 @@ func TestRunIteration_Skip_AutoCompleteDecomposedParent(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "skip-auto", TaskID: "task-0003", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -970,7 +970,7 @@ func TestAutoCompleteDecomposedParents_MissingSubtask(t *testing.T) {
 		{ID: "task-0002", Description: "child 1", State: state.StatusComplete},
 	})
 
-	d.autoCompleteDecomposedParents("auto-missing")
+	d.autoCompleteDecomposedParents(d.Logger, "auto-missing")
 
 	ns, _ := d.Store.ReadNode("auto-missing")
 	for _, task := range ns.Tasks {
@@ -992,7 +992,7 @@ func TestAutoCompleteDecomposedParents_NotDecomposed(t *testing.T) {
 			BlockedReason: "some other reason"},
 	})
 
-	d.autoCompleteDecomposedParents("auto-notdecomp")
+	d.autoCompleteDecomposedParents(d.Logger, "auto-notdecomp")
 
 	ns, _ := d.Store.ReadNode("auto-notdecomp")
 	for _, task := range ns.Tasks {
@@ -1008,7 +1008,7 @@ func TestAutoCompleteDecomposedParents_NotDecomposed(t *testing.T) {
 func TestAutoCompleteDecomposedParents_ReadError(t *testing.T) {
 	t.Parallel()
 	d := testDaemon(t)
-	d.autoCompleteDecomposedParents("nonexistent-node")
+	d.autoCompleteDecomposedParents(d.Logger, "nonexistent-node")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1114,7 +1114,7 @@ func TestRunIteration_NoProgress_FailureType(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "fp-node", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	ns, _ := d.Store.ReadNode("fp-node")
 	for _, task := range ns.Tasks {
@@ -1149,7 +1149,7 @@ func TestRunIteration_NoMarker_FailureType(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "ftm-node", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	ns, _ := d.Store.ReadNode("ftm-node")
 	for _, task := range ns.Tasks {

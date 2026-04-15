@@ -3,6 +3,7 @@ package daemon
 import (
 	"fmt"
 
+	"github.com/dorkusprime/wolfcastle/internal/logging"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
 
@@ -12,13 +13,17 @@ import (
 // that CLI commands (called by the intake model) added during iteration.
 // All reads and writes happen inside a single lock hold, so the
 // load/save callbacks use raw I/O (no nested locking).
-func (d *Daemon) propagateState(nodeAddr string, nodeState state.NodeStatus, idx *state.RootIndex) error {
+//
+// lg is the logger for the fallback-diagnostic record emitted when the
+// index can't be re-read. Callers pass the worker's child logger in
+// parallel mode and d.Logger in the sequential path.
+func (d *Daemon) propagateState(lg *logging.Logger, nodeAddr string, nodeState state.NodeStatus, idx *state.RootIndex) error {
 	return d.Store.WithLock(func() error {
 		// Re-read the index from disk to pick up concurrent modifications.
 		freshIdx, err := state.LoadRootIndex(d.Store.IndexPath())
 		if err != nil {
 			// Fall back to the in-memory copy if the file can't be read.
-			_ = d.Logger.Log(map[string]any{
+			_ = lg.Log(map[string]any{
 				"type":  "propagate_index_read_fallback",
 				"node":  nodeAddr,
 				"error": err.Error(),

@@ -214,7 +214,7 @@ func TestPropagateState_InvalidParentAddress(t *testing.T) {
 	}
 	writeJSON(t, filepath.Join(projDir, "valid-child", "state.json"), childNS)
 
-	err := d.propagateState("valid-child", state.StatusComplete, idx)
+	err := d.propagateState(d.Logger, "valid-child", state.StatusComplete, idx)
 	if err == nil {
 		t.Error("expected error when parent address is invalid for ParseAddress")
 	}
@@ -257,7 +257,7 @@ func TestPropagateState_SaveRootIndexFailure(t *testing.T) {
 	_ = os.Remove(stateFile)
 	_ = os.MkdirAll(stateFile, 0755) // create a directory where the file should be
 
-	err := d.propagateState("parent/child", state.StatusComplete, idx)
+	err := d.propagateState(d.Logger, "parent/child", state.StatusComplete, idx)
 	if err == nil {
 		t.Error("expected error when SaveRootIndex fails")
 	}

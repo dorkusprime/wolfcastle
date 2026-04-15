@@ -71,7 +71,7 @@ func TestEnforceRetention_CompressUnreadableFile(t *testing.T) {
 	_ = os.Chmod(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), 0000)
 	defer func() { _ = os.Chmod(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), 0644) }()
 
-	err := EnforceRetention(dir, 100, 30, WithCompression())
+	err := EnforceRetention(dir, 100, 30, WithCompression(), WithQuietWindow(0))
 	if err != nil {
 		t.Fatalf("EnforceRetention should succeed even when compression of one file fails: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestEnforceRetention_CompressWithReadOnlyDestDir(t *testing.T) {
 	_ = os.Chmod(dir, 0555)
 	defer func() { _ = os.Chmod(dir, 0755) }()
 
-	err := EnforceRetention(dir, 100, 30, WithCompression())
+	err := EnforceRetention(dir, 100, 30, WithCompression(), WithQuietWindow(0))
 	if err != nil {
 		t.Fatalf("EnforceRetention should succeed even when .gz creation fails: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestEnforceRetention_DeletesByCount(t *testing.T) {
 	}
 
 	// Keep only 2 newest
-	err := EnforceRetention(dir, 2, 30)
+	err := EnforceRetention(dir, 2, 30, WithQuietWindow(0))
 	if err != nil {
 		t.Fatal(err)
 	}

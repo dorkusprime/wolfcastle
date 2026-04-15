@@ -486,7 +486,7 @@ func TestCreateRemediationSubtasks_AuditWithGaps(t *testing.T) {
 	ns2.Audit = ns.Audit
 	writeJSON(t, nsPath, ns2)
 
-	created := d.createRemediationSubtasks("my-node", "audit")
+	created := d.createRemediationSubtasks(d.Logger, "my-node", "audit")
 	if created != 2 {
 		t.Fatalf("expected 2 subtasks (only open gaps), got %d", created)
 	}
@@ -526,7 +526,7 @@ func TestCreateRemediationSubtasks_NonAuditReturnsZero(t *testing.T) {
 		{ID: "task-0001", State: state.StatusBlocked, BlockedReason: "stuck"},
 	})
 
-	created := d.createRemediationSubtasks("my-node", "task-0001")
+	created := d.createRemediationSubtasks(d.Logger, "my-node", "task-0001")
 	if created != 0 {
 		t.Errorf("non-audit task should not create subtasks, got %d", created)
 	}
@@ -538,7 +538,7 @@ func TestCreateRemediationSubtasks_AuditNoGapsReturnsZero(t *testing.T) {
 		{ID: "audit", State: state.StatusBlocked, IsAudit: true},
 	})
 
-	created := d.createRemediationSubtasks("my-node", "audit")
+	created := d.createRemediationSubtasks(d.Logger, "my-node", "audit")
 	if created != 0 {
 		t.Errorf("audit without gaps should not create subtasks, got %d", created)
 	}
@@ -722,7 +722,7 @@ func TestRunIteration_ClaimTask(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	if err := d.runIteration(context.Background(), nav, idx); err != nil {
+	if err := d.runIteration(context.Background(), d.Logger, nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
 
@@ -759,7 +759,7 @@ func TestRunIteration_TerminalMarkers(t *testing.T) {
 
 			idx, _ := d.Store.ReadIndex()
 			nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-			if err := d.runIteration(context.Background(), nav, idx); err != nil {
+			if err := d.runIteration(context.Background(), d.Logger, nav, idx); err != nil {
 				t.Fatalf("runIteration should succeed with terminal marker: %v", err)
 			}
 		})
@@ -779,7 +779,7 @@ func TestRunIteration_NoTerminalMarker_IncrFailure(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	if err := d.runIteration(context.Background(), nav, idx); err != nil {
+	if err := d.runIteration(context.Background(), d.Logger, nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
 
@@ -812,7 +812,7 @@ func TestRunIteration_DecompositionThreshold(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	addr, _ := tree.ParseAddress("my-node")
 	ns, _ := state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(addr.Parts...), "state.json"))
@@ -856,7 +856,7 @@ func TestRunIteration_DecompAtMaxDepth_AutoBlocks(t *testing.T) {
 
 	idx2, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx2)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx2)
 
 	addr, _ := tree.ParseAddress("my-node")
 	ns2, _ := state.LoadNodeState(filepath.Join(projDir, filepath.Join(addr.Parts...), "state.json"))
@@ -889,7 +889,7 @@ func TestRunIteration_HardCap_AutoBlocks(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	addr, _ := tree.ParseAddress("my-node")
 	ns, _ := state.LoadNodeState(filepath.Join(d.Store.Dir(), filepath.Join(addr.Parts...), "state.json"))
@@ -923,7 +923,7 @@ func TestRunIteration_ModelNotFound(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err == nil || !strings.Contains(err.Error(), "model") {
 		t.Errorf("expected model-not-found error, got: %v", err)
 	}
@@ -946,7 +946,7 @@ func TestRunIteration_DisabledStageSkipped(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	if err := d.runIteration(context.Background(), nav, idx); err != nil {
+	if err := d.runIteration(context.Background(), d.Logger, nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
 }
@@ -969,7 +969,7 @@ func TestRunIteration_IntakeStageSkippedInPipeline(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	if err := d.runIteration(context.Background(), nav, idx); err != nil {
+	if err := d.runIteration(context.Background(), d.Logger, nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
 }
@@ -987,7 +987,7 @@ func TestRunIteration_InvocationTimeout(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	if err := d.runIteration(context.Background(), nav, idx); err != nil {
+	if err := d.runIteration(context.Background(), d.Logger, nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
 }
@@ -1005,7 +1005,7 @@ func TestRunIteration_ZeroInvocationTimeout(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	if err := d.runIteration(context.Background(), nav, idx); err != nil {
+	if err := d.runIteration(context.Background(), d.Logger, nav, idx); err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
 }
@@ -1115,7 +1115,7 @@ func TestInvokeWithRetry_SuccessFirstTry(t *testing.T) {
 	defer d.Logger.Close()
 
 	model := config.ModelDef{Command: "echo", Args: []string{"hello"}}
-	result, err := d.invokeWithRetry(context.Background(), model, "prompt", d.RepoDir, d.Logger.AssistantWriter(), "test")
+	result, err := d.invokeWithRetry(context.Background(), d.Logger, model, "prompt", d.RepoDir, d.Logger.AssistantWriter(), "test")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1131,7 +1131,7 @@ func TestInvokeWithRetry_MaxRetriesExceeded(t *testing.T) {
 	defer d.Logger.Close()
 
 	model := config.ModelDef{Command: "nonexistent-command-xyz", Args: []string{}}
-	_, err := d.invokeWithRetry(context.Background(), model, "prompt", d.RepoDir, d.Logger.AssistantWriter(), "test")
+	_, err := d.invokeWithRetry(context.Background(), d.Logger, model, "prompt", d.RepoDir, d.Logger.AssistantWriter(), "test")
 	if err == nil {
 		t.Fatal("expected error for nonexistent command")
 	}
@@ -1147,7 +1147,7 @@ func TestInvokeWithRetry_ContextCancelled(t *testing.T) {
 	cancel()
 
 	model := config.ModelDef{Command: "nonexistent-command-xyz", Args: []string{}}
-	_, err := d.invokeWithRetry(ctx, model, "prompt", d.RepoDir, nil, "test")
+	_, err := d.invokeWithRetry(ctx, d.Logger, model, "prompt", d.RepoDir, nil, "test")
 	if err == nil {
 		t.Fatal("expected error for cancelled context")
 	}
@@ -1161,7 +1161,7 @@ func TestInvokeWithRetry_BackoffCaps(t *testing.T) {
 
 	model := config.ModelDef{Command: "nonexistent-cmd-backoff", Args: []string{}}
 	start := time.Now()
-	_, _ = d.invokeWithRetry(context.Background(), model, "", d.RepoDir, nil, "test")
+	_, _ = d.invokeWithRetry(context.Background(), d.Logger, model, "", d.RepoDir, nil, "test")
 	elapsed := time.Since(start)
 	// With 0s delays and 2 retries, should finish very quickly
 	if elapsed > 5*time.Second {
@@ -1175,7 +1175,7 @@ func TestInvokeWithRetry_NilLogWriter(t *testing.T) {
 	defer d.Logger.Close()
 
 	model := config.ModelDef{Command: "echo", Args: []string{"hello"}}
-	result, err := d.invokeWithRetry(context.Background(), model, "prompt", d.RepoDir, nil, "test")
+	result, err := d.invokeWithRetry(context.Background(), d.Logger, model, "prompt", d.RepoDir, nil, "test")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1482,7 +1482,7 @@ func TestPropagateState(t *testing.T) {
 	childNS.State = state.StatusInProgress
 	writeJSON(t, filepath.Join(projDir, "parent", "child", "state.json"), childNS)
 
-	if err := d.propagateState("parent/child", state.StatusInProgress, idx); err != nil {
+	if err := d.propagateState(d.Logger, "parent/child", state.StatusInProgress, idx); err != nil {
 		t.Fatalf("propagateState error: %v", err)
 	}
 
@@ -1502,7 +1502,7 @@ func TestPropagateState_SingleNode(t *testing.T) {
 	writeJSON(t, filepath.Join(d.Store.Dir(), "state.json"), idx)
 
 	// No parent => just updates root index entry
-	if err := d.propagateState("my-node", state.StatusInProgress, idx); err != nil {
+	if err := d.propagateState(d.Logger, "my-node", state.StatusInProgress, idx); err != nil {
 		t.Fatalf("propagateState error: %v", err)
 	}
 	if idx.Nodes["my-node"].State != state.StatusInProgress {

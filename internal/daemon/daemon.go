@@ -329,7 +329,7 @@ func (d *Daemon) selfHeal() error {
 				if e, ok := idx.Nodes[addr]; ok && e.State != updatedNS.State {
 					e.State = updatedNS.State
 					idx.Nodes[addr] = e
-					_ = d.propagateState(addr, updatedNS.State, idx)
+					_ = d.propagateState(d.Logger, addr, updatedNS.State, idx)
 				}
 			}
 		}
@@ -830,7 +830,7 @@ execute:
 	_ = d.Logger.LogIterationStart("execute", navResult.NodeAddress)
 
 	// Run pipeline stages
-	err = d.runIteration(ctx, navResult, idx)
+	err = d.runIteration(ctx, d.Logger, navResult, idx)
 	d.Logger.Close()
 
 	if err != nil {

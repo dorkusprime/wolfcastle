@@ -217,7 +217,7 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 	})
 
 	// Invoke the model
-	result, err := d.invokeWithRetry(ctx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "plan")
+	result, err := d.invokeWithRetry(ctx, d.Logger, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), "plan")
 	if err != nil {
 		_ = d.Logger.Log(map[string]any{"type": "planning_error", "error": err.Error()})
 		d.Logger.Close()
@@ -282,7 +282,7 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 		if freshNS, readErr := d.Store.ReadNode(nodeAddr); readErr == nil {
 			derivedState = freshNS.State
 		}
-		if err := d.propagateState(nodeAddr, derivedState, idx); err != nil {
+		if err := d.propagateState(d.Logger, nodeAddr, derivedState, idx); err != nil {
 			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 		}
 

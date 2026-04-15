@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.6
+
+### Bug Fixes
+- **Parallel mode: worker execution content is captured on disk.** `runIteration` and every helper it calls (`handleYieldMarker`, `handleBlockedMarker`, `handleCompleteMarker`, `handleFailure`, `autoCompleteDecomposedParents`, `createRemediationSubtasks`, `maybeWriteAuditReport`, `invokeWithRetry`, `propagateState`) now take an explicit `*logging.Logger`. Sequential callers pass `d.Logger`; parallel workers pass their own child logger. Before this change, `d.Logger` had no active file during worker invocations, so every `d.Logger.Log(...)` call inside `runIteration` hit the "no active iteration" guard and was silently dropped. Parallel daemon runs produced 170-byte stub files containing one `iteration_start` record and nothing else; the TUI's log modal was dark.
+- **Worker log filenames are unique per task address.** The child logger's prefix now includes the slugified node path (`worker-<slug(nodeAddr)>-<taskID>`), so three concurrent workers with the same `task-0001` on different leaves write to three distinct files instead of stomping the same `0001-worker-task-0001-{ts}.jsonl` inode.
+- **Retention respects active workers.** `EnforceRetention` now sorts log files by mtime (not by filename) and applies a 30-second quiet window to compression, count-delete, and age-delete. Previously, worker filenames starting with `0001-` sorted alphabetically before parent daemon files (`0519-heal`, `10497-intake`), so count-based retention treated brand-new worker files as the oldest and deleted them first. And even before that, compression was unlinking files while sibling workers still held the inode open.
+- **Silent-drop canary.** `logging.Logger.Log` now writes a diagnostic line to stderr and increments a global counter when called without an active iteration file. Exposed as `logging.DroppedRecords()`. A healthy daemon should always return 0; any non-zero value means a code path is logging to an uninitialized Logger (the class of bug that hid the parallel logger problem for months behind `_ =` error discards).
+
+### Quality
+- Worker trace IDs are compact: `worker-<leaf-basename>-<taskID>-<iter>` instead of the full slugified node path. The filename stays long for uniqueness, but the log view's `[trace]` column is readable again.
+- The TUI log modal's trace filter cycle gains a `worker` category so you can isolate parallel worker output with `T`. `traceCategory` recognizes `worker-*` prefixes.
+
 ## 0.6.5
 
 ### Bug Fixes

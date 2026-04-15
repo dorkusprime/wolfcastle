@@ -561,7 +561,7 @@ func TestEnforceRetention_DeletesOldFilesByCount(t *testing.T) {
 		_ = os.WriteFile(name, []byte("{}"), 0644)
 	}
 
-	if err := EnforceRetention(dir, 2, 365); err != nil {
+	if err := EnforceRetention(dir, 2, 365, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -583,7 +583,7 @@ func TestEnforceRetention_DeletesOldFilesByAge(t *testing.T) {
 	newFile := filepath.Join(dir, "0002-20260301T00-00Z.jsonl")
 	_ = os.WriteFile(newFile, []byte("{}"), 0644)
 
-	if err := EnforceRetention(dir, 100, 30); err != nil {
+	if err := EnforceRetention(dir, 100, 30, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -601,7 +601,7 @@ func TestEnforceRetention_MaxFilesZero_DeletesAll(t *testing.T) {
 		_ = os.WriteFile(filepath.Join(dir, fmt.Sprintf("%04d-20260101T00-00Z.jsonl", i)), []byte("{}"), 0644)
 	}
 
-	if err := EnforceRetention(dir, 0, 365); err != nil {
+	if err := EnforceRetention(dir, 0, 365, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -621,7 +621,7 @@ func TestEnforceRetention_MaxAgeDaysZero_DeletesAllByAge(t *testing.T) {
 		_ = os.Chtimes(name, old, old)
 	}
 
-	if err := EnforceRetention(dir, 100, 0); err != nil {
+	if err := EnforceRetention(dir, 100, 0, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -637,7 +637,7 @@ func TestEnforceRetention_IgnoresDirectories(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
 	_ = os.MkdirAll(filepath.Join(dir, "subdir"), 0755)
 
-	if err := EnforceRetention(dir, 100, 365); err != nil {
+	if err := EnforceRetention(dir, 100, 365, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -659,7 +659,7 @@ func TestEnforceRetention_CountsGzFiles(t *testing.T) {
 		_ = os.WriteFile(filepath.Join(dir, fmt.Sprintf("%04d-20260101T00-00Z%s", i, suffix)), []byte("{}"), 0644)
 	}
 
-	if err := EnforceRetention(dir, 3, 365); err != nil {
+	if err := EnforceRetention(dir, 3, 365, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -670,7 +670,7 @@ func TestEnforceRetention_CountsGzFiles(t *testing.T) {
 
 func TestEnforceRetention_ErrorOnMissingDir(t *testing.T) {
 	t.Parallel()
-	err := EnforceRetention(filepath.Join(t.TempDir(), "nonexistent"), 10, 30)
+	err := EnforceRetention(filepath.Join(t.TempDir(), "nonexistent"), 10, 30, WithQuietWindow(0))
 	if err == nil {
 		t.Error("expected error for missing directory")
 	}
@@ -687,7 +687,16 @@ func TestEnforceRetention_WithCompression(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte(content), 0644)
 	_ = os.WriteFile(filepath.Join(dir, "0003-20260103T00-00Z.jsonl"), []byte(content), 0644)
 
-	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
+	// Back-date fixtures past the compression quiet window so they
+	// are eligible for compression immediately. The real daemon
+	// relies on mtime staleness to avoid compressing files that
+	// active workers are still writing to.
+	backdate := time.Now().Add(-2 * time.Minute)
+	for _, name := range []string{"0001-20260101T00-00Z.jsonl", "0002-20260102T00-00Z.jsonl", "0003-20260103T00-00Z.jsonl"} {
+		_ = os.Chtimes(filepath.Join(dir, name), backdate, backdate)
+	}
+
+	if err := EnforceRetention(dir, 100, 365, WithCompression(), WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -738,7 +747,7 @@ func TestEnforceRetention_WithCompression_SingleFile_NotCompressed(t *testing.T)
 
 	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
 
-	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
+	if err := EnforceRetention(dir, 100, 365, WithCompression(), WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 

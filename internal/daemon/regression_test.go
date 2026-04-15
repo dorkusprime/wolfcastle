@@ -60,7 +60,7 @@ func TestPropagateState_PreservesNewNodesAddedDuringIteration(t *testing.T) {
 
 	// Now propagate using the daemon's stale in-memory idx (which
 	// knows nothing about node-b).
-	if err := d.propagateState("node-a", state.StatusComplete, idx); err != nil {
+	if err := d.propagateState(d.Logger, "node-a", state.StatusComplete, idx); err != nil {
 		t.Fatalf("propagateState error: %v", err)
 	}
 
@@ -112,7 +112,7 @@ func TestPropagateState_FallsBackToInMemoryOnDiskError(t *testing.T) {
 	// behavior is that it doesn't panic or return a load error.
 	// The save may or may not succeed depending on the fallback path;
 	// we only verify no panic and that the in-memory idx gets the update.
-	_ = d.propagateState("node-a", state.StatusComplete, idx)
+	_ = d.propagateState(d.Logger, "node-a", state.StatusComplete, idx)
 
 	if idx.Nodes["node-a"].State != state.StatusComplete {
 		t.Errorf("expected in-memory state to be complete, got %s", idx.Nodes["node-a"].State)

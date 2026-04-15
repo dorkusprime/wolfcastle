@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -156,6 +157,15 @@ func (l *Logger) LogIterationStart(stageType, nodeAddr string) error {
 // LevelInfo (backward compatible per ADR-046).
 func (l *Logger) Log(record map[string]any, levels ...Level) error {
 	if l.file == nil {
+		// Silent-drop canary. Parallel mode introduced a class of
+		// bugs where worker content was logged to a Logger whose
+		// file had never been opened, and every call site's `_ =`
+		// swallowed the "no active iteration" error. The next time
+		// that regression ships, this line makes it visible in the
+		// daemon.log tail instead of hiding behind empty log files.
+		fmt.Fprintf(os.Stderr, "wolfcastle: log record dropped (no active iteration): type=%v trace=%q\n",
+			record["type"], l.TraceID)
+		droppedRecords.Add(1)
 		return fmt.Errorf("no active iteration")
 	}
 
@@ -338,74 +348,108 @@ func IsLogFile(name string) bool {
 // EnforceRetention deletes old log files based on max count and age,
 // then optionally compresses remaining files if compress is true.
 func EnforceRetention(logDir string, maxFiles int, maxAgeDays int, opts ...RetentionOption) error {
-	ro := retentionOpts{compress: false}
+	ro := retentionOpts{compress: false, quietWindow: compressionQuietWindow}
 	for _, o := range opts {
 		o(&ro)
 	}
 
-	entries, err := os.ReadDir(logDir)
-	if err != nil {
-		return fmt.Errorf("reading log directory for retention: %w", err)
-	}
-	var logs []os.DirEntry
-	for _, e := range entries {
-		if !e.IsDir() && IsLogFile(e.Name()) {
-			logs = append(logs, e)
-		}
-	}
+	now := nowFunc()
+	quietCutoff := now.Add(-ro.quietWindow)
 
-	// Sort by name (which sorts by iteration number + timestamp)
-	sort.Slice(logs, func(i, j int) bool {
-		return logs[i].Name() < logs[j].Name()
-	})
-
-	cutoff := nowFunc().AddDate(0, 0, -maxAgeDays)
-
-	// Delete by age
-	for _, l := range logs {
-		info, err := l.Info()
+	// collect captures every log file along with its mtime. Sorting by
+	// mtime — rather than filename — is what keeps parallel workers
+	// safe: a worker logger's filename starts with "0001-..." because
+	// its child iteration counter is fresh, so an alphabetical sort
+	// treats brand-new worker files as the oldest in the directory
+	// and retention would happily delete or compress them first.
+	collect := func() []logFileInfo {
+		entries, err := os.ReadDir(logDir)
 		if err != nil {
+			return nil
+		}
+		out := make([]logFileInfo, 0, len(entries))
+		for _, e := range entries {
+			if e.IsDir() || !IsLogFile(e.Name()) {
+				continue
+			}
+			info, err := e.Info()
+			if err != nil {
+				continue
+			}
+			out = append(out, logFileInfo{name: e.Name(), modTime: info.ModTime()})
+		}
+		sort.Slice(out, func(i, j int) bool {
+			return out[i].modTime.Before(out[j].modTime)
+		})
+		return out
+	}
+
+	logs := collect()
+	if logs == nil {
+		return fmt.Errorf("reading log directory for retention: unreadable")
+	}
+
+	ageCutoff := now.AddDate(0, 0, -maxAgeDays)
+
+	// Delete by age. Files still in the quiet window are skipped so an
+	// active worker's file can never be removed out from under it.
+	for _, l := range logs {
+		if l.modTime.After(quietCutoff) {
 			continue
 		}
-		if info.ModTime().Before(cutoff) {
-			_ = os.Remove(filepath.Join(logDir, l.Name()))
+		if l.modTime.Before(ageCutoff) {
+			_ = os.Remove(filepath.Join(logDir, l.name))
 		}
 	}
 
-	// Re-read and delete by count
-	entries, _ = os.ReadDir(logDir)
-	logs = nil
-	for _, e := range entries {
-		if !e.IsDir() && IsLogFile(e.Name()) {
-			logs = append(logs, e)
-		}
-	}
+	// Re-read and delete by count (oldest mtime first, skipping any
+	// file still in the quiet window).
+	logs = collect()
 	if len(logs) > maxFiles {
-		sort.Slice(logs, func(i, j int) bool {
-			return logs[i].Name() < logs[j].Name()
-		})
-		for _, l := range logs[:len(logs)-maxFiles] {
-			_ = os.Remove(filepath.Join(logDir, l.Name()))
+		stale := make([]logFileInfo, 0, len(logs))
+		for _, l := range logs {
+			if l.modTime.After(quietCutoff) {
+				continue
+			}
+			stale = append(stale, l)
+		}
+		// Delete from the oldest stale files until either the budget
+		// is met or we run out of stale candidates. Fresh files are
+		// never removed even if that leaves the dir temporarily
+		// over budget — retention will catch up on the next tick.
+		overBy := len(logs) - maxFiles
+		if overBy > len(stale) {
+			overBy = len(stale)
+		}
+		for _, l := range stale[:overBy] {
+			_ = os.Remove(filepath.Join(logDir, l.name))
 		}
 	}
 
-	// Compress surviving uncompressed files (excluding the newest, which
-	// may still be actively written to).
+	// Compress surviving uncompressed files, skipping any file whose
+	// mtime is within compressionQuietWindow. In parallel mode several
+	// workers write concurrently, and compressing a file still held
+	// open by another worker unlinks it mid-write and silently loses
+	// the content. We also keep the single mtime-newest stale file
+	// uncompressed so the sequential daemon's tail stays readable on
+	// disk without a gzip round-trip.
 	if ro.compress {
-		entries, _ = os.ReadDir(logDir)
-		var uncompressed []os.DirEntry
-		for _, e := range entries {
-			if !e.IsDir() && strings.HasSuffix(e.Name(), ".jsonl") {
-				uncompressed = append(uncompressed, e)
+		logs = collect()
+		var stale []logFileInfo
+		for _, l := range logs {
+			if !strings.HasSuffix(l.name, ".jsonl") {
+				continue
 			}
+			if l.modTime.After(quietCutoff) {
+				continue
+			}
+			stale = append(stale, l)
 		}
-		// Keep the newest uncompressed file open. Compress only older ones.
-		if len(uncompressed) > 1 {
-			sort.Slice(uncompressed, func(i, j int) bool {
-				return uncompressed[i].Name() < uncompressed[j].Name()
-			})
-			for _, e := range uncompressed[:len(uncompressed)-1] {
-				src := filepath.Join(logDir, e.Name())
+		if len(stale) > 1 {
+			// collect() sorted by mtime ascending, so the mtime-newest
+			// stale file is at the end — skip it.
+			for _, l := range stale[:len(stale)-1] {
+				src := filepath.Join(logDir, l.name)
 				if err := compressFile(src); err != nil {
 					// Non-fatal: the file simply stays uncompressed.
 					continue
@@ -417,17 +461,58 @@ func EnforceRetention(logDir string, maxFiles int, maxAgeDays int, opts ...Reten
 	return nil
 }
 
+// logFileInfo is the minimal view of a log file used by retention: we
+// only need the basename (to open/delete it) and the mtime (to sort and
+// gate against the compression quiet window).
+type logFileInfo struct {
+	name    string
+	modTime time.Time
+}
+
+// compressionQuietWindow is the duration a log file must be idle (no
+// writes) before retention is allowed to compress or delete it. In
+// parallel mode, compressing or unlinking a file still held open by a
+// worker orphans the content, so retention backs off until the file
+// has been quiescent.
+const compressionQuietWindow = 30 * time.Second
+
+// droppedRecords counts records dropped because Logger.Log was called
+// without an active iteration file. Exposed via DroppedRecords for
+// daemon health checks and test assertions; incremented atomically
+// because workers hold independent Logger instances.
+var droppedRecords atomic.Uint64
+
+// DroppedRecords returns the total number of log records silently
+// dropped because no iteration file was open when Log was invoked.
+// A healthy daemon should return 0 at all times; any non-zero value
+// means a code path is calling Log on an uninitialized Logger.
+func DroppedRecords() uint64 {
+	return droppedRecords.Load()
+}
+
 // RetentionOption configures optional retention behaviour.
 type RetentionOption func(*retentionOpts)
 
 type retentionOpts struct {
-	compress bool
+	compress    bool
+	quietWindow time.Duration
 }
 
 // WithCompression enables gzip compression of old log files.
 func WithCompression() RetentionOption {
 	return func(o *retentionOpts) {
 		o.compress = true
+	}
+}
+
+// WithQuietWindow overrides the default quiet window that retention
+// uses to decide when a file is safe to compress or delete. The daemon
+// relies on the default (see compressionQuietWindow) so active workers
+// never have their open files removed; tests that want retention to
+// operate on fresh fixtures can pass WithQuietWindow(0).
+func WithQuietWindow(d time.Duration) RetentionOption {
+	return func(o *retentionOpts) {
+		o.quietWindow = d
 	}
 }
 

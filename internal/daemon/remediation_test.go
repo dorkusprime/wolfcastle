@@ -40,7 +40,7 @@ func TestRunIteration_SkipBypassesProgressCheck(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "skip-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestRunIteration_AuditSkipsProgressCheck(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "audit-node", TaskID: "audit-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestRunIteration_MissingDeliverables_WarnsButCompletes(t *testing.T) {
 
 	idx2, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "deliv-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx2)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx2)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -258,7 +258,7 @@ func TestAutoCompleteDecomposedParents(t *testing.T) {
 		},
 	})
 
-	d.autoCompleteDecomposedParents("decomp-node")
+	d.autoCompleteDecomposedParents(d.Logger, "decomp-node")
 
 	ns, _ := d.Store.ReadNode("decomp-node")
 	for _, task := range ns.Tasks {
@@ -297,7 +297,7 @@ func TestAutoCompleteDecomposedParents_IncompleteSubtask(t *testing.T) {
 		},
 	})
 
-	d.autoCompleteDecomposedParents("partial-node")
+	d.autoCompleteDecomposedParents(d.Logger, "partial-node")
 
 	ns, _ := d.Store.ReadNode("partial-node")
 	for _, task := range ns.Tasks {

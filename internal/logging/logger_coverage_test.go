@@ -92,7 +92,7 @@ func TestEnforceRetention_AgeCutoff_WithFrozenClock(t *testing.T) {
 	newFile := filepath.Join(dir, "0002-20260314T00-00Z.jsonl")
 	_ = os.WriteFile(newFile, []byte("{}"), 0644)
 
-	if err := EnforceRetention(dir, 100, 30); err != nil {
+	if err := EnforceRetention(dir, 100, 30, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -109,12 +109,14 @@ func TestEnforceRetention_CompressionWithMultipleFiles(t *testing.T) {
 	dir := t.TempDir()
 
 	content := `{"level":"info"}` + "\n"
+	backdate := time.Now().Add(-2 * time.Minute)
 	for i := 1; i <= 5; i++ {
 		name := filepath.Join(dir, fmt.Sprintf("%04d-20260101T00-00Z.jsonl", i))
 		_ = os.WriteFile(name, []byte(content), 0644)
+		_ = os.Chtimes(name, backdate, backdate)
 	}
 
-	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
+	if err := EnforceRetention(dir, 100, 365, WithCompression(), WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -145,8 +147,12 @@ func TestEnforceRetention_MixedGzAndPlain(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl.gz"), []byte("compressed"), 0644)
 	_ = os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), []byte("{}"), 0644)
 	_ = os.WriteFile(filepath.Join(dir, "0003-20260103T00-00Z.jsonl"), []byte("{}"), 0644)
+	// Back-date the plain files so compression is eligible immediately.
+	backdate := time.Now().Add(-2 * time.Minute)
+	_ = os.Chtimes(filepath.Join(dir, "0002-20260102T00-00Z.jsonl"), backdate, backdate)
+	_ = os.Chtimes(filepath.Join(dir, "0003-20260103T00-00Z.jsonl"), backdate, backdate)
 
-	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
+	if err := EnforceRetention(dir, 100, 365, WithCompression(), WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -168,7 +174,7 @@ func TestEnforceRetention_CountDeletesOldestFirst(t *testing.T) {
 		_ = os.WriteFile(name, []byte("{}"), 0644)
 	}
 
-	if err := EnforceRetention(dir, 3, 365); err != nil {
+	if err := EnforceRetention(dir, 3, 365, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -268,7 +274,7 @@ func TestEnforceRetention_CompressionErrorNonFatal(t *testing.T) {
 	defer func() { _ = os.Chmod(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), 0644) }()
 
 	// Should not error. Compression failures are non-fatal
-	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
+	if err := EnforceRetention(dir, 100, 365, WithCompression(), WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -341,7 +347,7 @@ func TestEnforceRetention_OnlyGzFiles_NoCompression(t *testing.T) {
 	}
 
 	// No uncompressed files. Compression pass should be a no-op
-	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
+	if err := EnforceRetention(dir, 100, 365, WithCompression(), WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -395,7 +401,7 @@ func TestEnforceRetention_NoUncompressedFiles_SkipsCompression(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl.gz"), []byte("gz1"), 0644)
 	_ = os.WriteFile(filepath.Join(dir, "0002-20260102T00-00Z.jsonl.gz"), []byte("gz2"), 0644)
 
-	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
+	if err := EnforceRetention(dir, 100, 365, WithCompression(), WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -412,7 +418,7 @@ func TestEnforceRetention_SingleUncompressed_NotCompressed(t *testing.T) {
 	// Single uncompressed file should NOT be compressed (might be active)
 	_ = os.WriteFile(filepath.Join(dir, "0001-20260101T00-00Z.jsonl"), []byte("{}"), 0644)
 
-	if err := EnforceRetention(dir, 100, 365, WithCompression()); err != nil {
+	if err := EnforceRetention(dir, 100, 365, WithCompression(), WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -440,7 +446,7 @@ func TestEnforceRetention_AgeAndCountCombined(t *testing.T) {
 	}
 
 	// maxFiles=10 (won't trigger), maxAgeDays=30 (removes 2 old)
-	if err := EnforceRetention(dir, 10, 30); err != nil {
+	if err := EnforceRetention(dir, 10, 30, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -498,7 +504,7 @@ func TestEnforceRetention_SymlinkInfoError(t *testing.T) {
 	_ = os.Symlink(brokenTarget, brokenLink)
 
 	// EnforceRetention should handle Info() errors gracefully
-	if err := EnforceRetention(dir, 100, 1); err != nil {
+	if err := EnforceRetention(dir, 100, 1, WithQuietWindow(0)); err != nil {
 		t.Fatal(err)
 	}
 }

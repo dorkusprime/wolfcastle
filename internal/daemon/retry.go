@@ -10,13 +10,20 @@ import (
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	werrors "github.com/dorkusprime/wolfcastle/internal/errors"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
+	"github.com/dorkusprime/wolfcastle/internal/logging"
 )
 
 // invokeWithRetry wraps ProcessInvoker.Invoke with exponential backoff
 // governed by the config's retries settings. Only invocation errors (non-nil
 // error returns) are retried. A successful process exit (even with a
 // non-zero exit code captured in Result) is not retried here.
-func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, prompt string, workDir string, logWriter io.Writer, stageName string) (*invoke.Result, error) {
+//
+// lg is the logger that receives retry/exhaustion records. In parallel
+// mode each worker passes its own child logger; the sequential path
+// passes d.Logger. Callers must never pass nil — the records would be
+// dropped on the floor just like they were before parallel mode's
+// logger plumbing was fixed.
+func (d *Daemon) invokeWithRetry(ctx context.Context, lg *logging.Logger, model config.ModelDef, prompt string, workDir string, logWriter io.Writer, stageName string) (*invoke.Result, error) {
 	rc := d.Config.Retries
 	delay := time.Duration(rc.InitialDelaySeconds) * time.Second
 	maxDelay := time.Duration(rc.MaxDelaySeconds) * time.Second
@@ -39,7 +46,7 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 
 		// Check whether we've exhausted our retry budget (-1 = unlimited).
 		if rc.MaxRetries >= 0 && attempt >= rc.MaxRetries {
-			_ = d.Logger.Log(map[string]any{
+			_ = lg.Log(map[string]any{
 				"type":     "retry_exhausted",
 				"stage":    stageName,
 				"attempts": attempt + 1,
@@ -48,7 +55,7 @@ func (d *Daemon) invokeWithRetry(ctx context.Context, model config.ModelDef, pro
 			return result, werrors.Invocation(err)
 		}
 
-		_ = d.Logger.Log(map[string]any{
+		_ = lg.Log(map[string]any{
 			"type":    "retry",
 			"stage":   stageName,
 			"attempt": attempt + 1,

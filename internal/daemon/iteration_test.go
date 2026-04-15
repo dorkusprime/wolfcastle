@@ -404,7 +404,7 @@ func TestRunIteration_SuccessCommit_CreatesCommit(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "success-commit", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -460,7 +460,7 @@ func TestRunIteration_SuccessCommit_SkippedWhenDisabled(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "no-success-commit", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	afterLog := gitLog(t, repoDir)
 	if strings.Contains(afterLog, "task-0001 complete") {
@@ -508,7 +508,7 @@ func TestRunIteration_SuccessCommit_SkippedWhenAutoCommitDisabled(t *testing.T) 
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "no-auto-commit", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	afterLog := gitLog(t, repoDir)
 	if strings.Count(afterLog, "\n") != strings.Count(beforeLog, "\n") {
@@ -556,7 +556,7 @@ func TestRunIteration_FailureCommit_CreatesCommit(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "fail-commit", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	log := gitLog(t, repoDir)
 	if !strings.Contains(log, "task-0001 partial (attempt 1)") {
@@ -602,7 +602,7 @@ func TestRunIteration_FailureCommit_SkippedWhenDisabled(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "no-fail-commit", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	afterLog := gitLog(t, repoDir)
 	if strings.Contains(afterLog, "partial (attempt") {
@@ -650,7 +650,7 @@ func TestRunIteration_SuccessCleanTree_NoEmptyCommit(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "clean-tree", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	afterLog := gitLog(t, repoDir)
 	if strings.Contains(afterLog, "wolfcastle:") && !strings.Contains(beforeLog, "wolfcastle:") {
@@ -1077,7 +1077,7 @@ func TestRunIteration_StageComplete_HasDurationMs(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "duration-test", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 	d.Logger.Close()
 
 	records := readLogRecords(t, logDir)

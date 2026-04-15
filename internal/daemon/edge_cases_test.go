@@ -219,7 +219,7 @@ func TestInvokeWithRetry_UnlimitedRetriesRespectsContextCancel(t *testing.T) {
 	defer cancel()
 
 	model := config.ModelDef{Command: "/nonexistent/binary/xyz", Args: []string{}}
-	_, err := d.invokeWithRetry(ctx, model, "prompt", d.RepoDir, nil, "test")
+	_, err := d.invokeWithRetry(ctx, d.Logger, model, "prompt", d.RepoDir, nil, "test")
 	if err == nil {
 		t.Fatal("expected error when context times out during unlimited retries")
 	}
@@ -238,7 +238,7 @@ func TestInvokeWithRetry_ZeroMaxRetries_NoRetry(t *testing.T) {
 
 	model := config.ModelDef{Command: "/nonexistent/binary/xyz", Args: []string{}}
 	start := time.Now()
-	_, err := d.invokeWithRetry(context.Background(), model, "", d.RepoDir, nil, "test")
+	_, err := d.invokeWithRetry(context.Background(), d.Logger, model, "", d.RepoDir, nil, "test")
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -282,7 +282,7 @@ echo "Let me know if you have questions."`},
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "chatty-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration should succeed (no fatal error): %v", err)
 	}
@@ -334,7 +334,7 @@ func TestRunIteration_NonzeroExitCode_NoMarker(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "exitcode-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Logf("runIteration returned error (may be acceptable): %v", err)
 	}
@@ -384,7 +384,7 @@ echo "WOLFCASTLE_COMPLETE"`},
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "warn-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -558,7 +558,7 @@ func TestRunIteration_ContextCancelledDuringExecution(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "cancel-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(ctx, nav, idx)
+	err := d.runIteration(ctx, d.Logger, nav, idx)
 	// When context is cancelled, the model process is killed. Depending on
 	// timing, this may return an error (context cancelled) or succeed with
 	// no marker (incrementing failure count). Both outcomes are correct.
@@ -624,7 +624,7 @@ func TestRunIteration_PartialMarkerOutput(t *testing.T) {
 
 			idx, _ := d.Store.ReadIndex()
 			nav := &state.NavigationResult{NodeAddress: "partial-node", TaskID: "task-0001", Found: true}
-			_ = d.runIteration(context.Background(), nav, idx)
+			_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 			ns, _ := d.Store.ReadNode("partial-node")
 			for _, task := range ns.Tasks {
@@ -674,7 +674,7 @@ echo 'random text at the end'`},
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "garbage-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration should handle garbage gracefully: %v", err)
 	}
@@ -719,7 +719,7 @@ func TestRunIteration_EmptyOutput(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "silent-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration should handle empty output: %v", err)
 	}
@@ -757,7 +757,7 @@ func TestRunIteration_PromptAssemblyError(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "prompt-err-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err == nil {
 		t.Fatal("expected error for missing prompt file")
 	}
@@ -830,7 +830,7 @@ func TestRunIteration_NoGitProgress_RejectsComplete(t *testing.T) {
 
 	idx2, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "unchanged-node", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx2)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx2)
 
 	// Task should NOT be complete since git shows no changes
 	reloaded, _ := d.Store.ReadNode("unchanged-node")
@@ -1001,7 +1001,7 @@ func TestRunIteration_MultipleStages_CustomStagesRun(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "multi-stage-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
