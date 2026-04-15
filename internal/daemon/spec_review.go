@@ -113,7 +113,7 @@ func (d *Daemon) checkSpecReviewNeeded(nodeAddr, taskID string) bool {
 	})
 
 	if mutErr != nil {
-		_ = d.Logger.Log(map[string]any{
+		d.logParent(map[string]any{
 			"type":  "spec_review_create_error",
 			"node":  nodeAddr,
 			"task":  taskID,
@@ -122,13 +122,13 @@ func (d *Daemon) checkSpecReviewNeeded(nodeAddr, taskID string) bool {
 		return false
 	}
 
-	_ = d.Logger.Log(map[string]any{
+	d.logParent(map[string]any{
 		"type":      "spec_review_created",
 		"node":      nodeAddr,
 		"spec_task": taskID,
 		"review_id": reviewID,
 	})
-	d.log(map[string]any{"type": "spec_event", "action": "review_queued", "node": nodeAddr, "text": fmt.Sprintf("Spec review queued: %s", reviewID)})
+	d.logParent(map[string]any{"type": "spec_event", "action": "review_queued", "node": nodeAddr, "text": fmt.Sprintf("Spec review queued: %s", reviewID)})
 	return true
 }
 
@@ -188,12 +188,12 @@ func (d *Daemon) handleSpecReviewBlocked(nodeAddr, taskID string) bool {
 		return false
 	}
 
-	_ = d.Logger.Log(map[string]any{
+	d.logParent(map[string]any{
 		"type":      "spec_review_feedback",
 		"node":      nodeAddr,
 		"review_id": taskID,
 		"spec_task": specTaskID,
 	})
-	d.log(map[string]any{"type": "spec_event", "action": "review_failed", "node": nodeAddr, "text": fmt.Sprintf("Spec review failed, revision queued for %s", specTaskID)})
+	d.logParent(map[string]any{"type": "spec_event", "action": "review_failed", "node": nodeAddr, "text": fmt.Sprintf("Spec review failed, revision queued for %s", specTaskID)})
 	return true
 }

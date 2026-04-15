@@ -135,14 +135,14 @@ func (pd *ParallelDispatcher) runWorker(ctx context.Context, nav *state.Navigati
 		// (the same string we use for the filename to guarantee unique
 		// paths across workers). Override to a compact form — the last
 		// segment of the node address plus the task ID — so the log
-		// view's [trace] column stays readable. Collisions in the
-		// compact form are fine; records already carry the full node
-		// address for disambiguation.
+		// view's [trace] column stays readable. Each worker is a fresh
+		// Child logger and runs exactly one iteration, so the iter
+		// counter would always be "0001" and adds nothing to the ID.
 		shortNode := nav.NodeAddress
 		if idx := strings.LastIndex(shortNode, "/"); idx >= 0 {
 			shortNode = shortNode[idx+1:]
 		}
-		logger.TraceID = fmt.Sprintf("worker-%s-%s-%04d", shortNode, nav.TaskID, logger.Iteration)
+		logger.TraceID = fmt.Sprintf("worker-%s-%s", shortNode, nav.TaskID)
 		_ = logger.LogIterationStart("execute", nav.NodeAddress)
 
 		err := pd.daemon.runIteration(workerCtx, logger, nav, idx)
@@ -202,7 +202,7 @@ done:
 		// callers below must guard against that rather than crashing.
 		ns, nsErr := d.Store.ReadNode(wr.Node)
 		if nsErr != nil {
-			_ = d.Logger.Log(map[string]any{
+			d.logParent(map[string]any{
 				"type":  "read_node_error",
 				"task":  taskAddr,
 				"node":  wr.Node,
@@ -230,7 +230,7 @@ done:
 			entry := pd.blocked[taskAddr]
 			pd.mu.Unlock()
 
-			_ = d.Logger.Log(map[string]any{
+			d.logParent(map[string]any{
 				"type":        "scope_yield_tracking",
 				"task":        taskAddr,
 				"blocker":     wr.Blocker,
@@ -245,7 +245,7 @@ done:
 				if ns != nil {
 					meta = extractTaskCommitMeta(ns, wr.Task)
 				}
-				commitAfterIteration(d.RepoDir, d.Logger, wr.Task, "failure", 0, d.Config.Git, meta, scope)
+				commitAfterIteration(d.RepoDir, d.ParentLogger, wr.Task, "failure", 0, d.Config.Git, meta, scope)
 				d.gitMu.Unlock()
 			}
 
@@ -281,7 +281,7 @@ done:
 				// State write failed: the task remains in_progress permanently
 				// because fillSlots will never rediscover it. Log so operators
 				// can intervene.
-				_ = d.Logger.Log(map[string]any{
+				d.logParent(map[string]any{
 					"type":  "scope_conflict_reset_error",
 					"task":  taskAddr,
 					"node":  wr.Node,
@@ -303,7 +303,7 @@ done:
 			if ns != nil {
 				meta = extractTaskCommitMeta(ns, wr.Task)
 			}
-			commitAfterIteration(d.RepoDir, d.Logger, wr.Task, "success", 0, d.Config.Git, meta, scope)
+			commitAfterIteration(d.RepoDir, d.ParentLogger, wr.Task, "success", 0, d.Config.Git, meta, scope)
 			d.gitMu.Unlock()
 
 			if ns != nil {
@@ -311,13 +311,12 @@ done:
 				if updated, err := d.Store.ReadNode(wr.Node); err == nil {
 					idx, idxErr := d.Store.ReadIndex()
 					if idxErr == nil {
-						// The worker's logger is already closed at this
-						// point; drainCompleted runs back in the main
-						// loop. The fallback-diagnostic record in
-						// propagateState only fires if the index can't
-						// be re-read, so dropping it to d.Logger is a
-						// small regression if no parent file is open.
-						_ = d.propagateState(d.Logger, wr.Node, updated.State, idx)
+						// drainCompleted runs on the main loop after
+						// the worker has closed its child logger.
+						// Route through ParentLogger so propagate's
+						// fallback-diagnostic record lands on disk
+						// instead of tripping the silent-drop canary.
+						_ = d.propagateState(d.ParentLogger, wr.Node, updated.State, idx)
 					}
 				}
 			}
@@ -345,7 +344,7 @@ done:
 				// State write failed: failure count was not incremented, so
 				// the task may retry indefinitely or remain stuck. Log so
 				// operators can intervene.
-				_ = d.Logger.Log(map[string]any{
+				d.logParent(map[string]any{
 					"type":  "failure_increment_error",
 					"task":  taskAddr,
 					"node":  wr.Node,
@@ -358,7 +357,7 @@ done:
 			if ns != nil {
 				failMeta = extractTaskCommitMeta(ns, wr.Task)
 			}
-			commitAfterIteration(d.RepoDir, d.Logger, wr.Task, "failure", failCount, d.Config.Git, failMeta, scope)
+			commitAfterIteration(d.RepoDir, d.ParentLogger, wr.Task, "failure", failCount, d.Config.Git, failMeta, scope)
 			d.gitMu.Unlock()
 
 			// Release scope locks and clean up active/blocked state.
@@ -431,7 +430,7 @@ func (pd *ParallelDispatcher) reclaimOrphans(idx *state.RootIndex) int {
 				continue
 			}
 
-			_ = d.Logger.Log(map[string]any{
+			d.logParent(map[string]any{
 				"type": "reclaim_orphan",
 				"task": taskAddr,
 				"node": addr,
@@ -470,7 +469,7 @@ func (pd *ParallelDispatcher) fillSlots(ctx context.Context, idx *state.RootInde
 
 	tasks, err := state.FindParallelTasks(idx, d.ScopeNode, nodeLoader, available)
 	if err != nil {
-		_ = d.Logger.Log(map[string]any{
+		d.logParent(map[string]any{
 			"type":  "fill_slots_error",
 			"error": err.Error(),
 		})
@@ -499,7 +498,7 @@ func (pd *ParallelDispatcher) fillSlots(ctx context.Context, idx *state.RootInde
 			return state.TaskClaim(ns, nav.TaskID)
 		})
 		if claimErr != nil {
-			_ = d.Logger.Log(map[string]any{
+			d.logParent(map[string]any{
 				"type":  "claim_error",
 				"task":  taskAddr,
 				"error": claimErr.Error(),

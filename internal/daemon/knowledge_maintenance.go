@@ -108,13 +108,13 @@ func (d *Daemon) checkKnowledgeBudget(nodeAddr string) bool {
 		return false
 	}
 
-	_ = d.Logger.Log(map[string]any{
+	d.logParent(map[string]any{
 		"type":       "knowledge_maintenance_created",
 		"node":       nodeAddr,
 		"task_id":    taskID,
 		"tokens":     tokens,
 		"max_tokens": maxTokens,
 	})
-	d.log(map[string]any{"type": "knowledge_event", "action": "budget_exceeded", "node": nodeAddr, "text": fmt.Sprintf("Knowledge budget exceeded (%d/%d tokens), maintenance task queued", tokens, maxTokens)})
+	d.logParent(map[string]any{"type": "knowledge_event", "action": "budget_exceeded", "node": nodeAddr, "text": fmt.Sprintf("Knowledge budget exceeded (%d/%d tokens), maintenance task queued", tokens, maxTokens)})
 	return true
 }

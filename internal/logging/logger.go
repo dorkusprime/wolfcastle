@@ -155,16 +155,26 @@ func (l *Logger) LogIterationStart(stageType, nodeAddr string) error {
 // Log writes a structured record to the current iteration's log file.
 // The level parameter is optional: if omitted, the record is logged at
 // LevelInfo (backward compatible per ADR-046).
+//
+// A nil receiver is treated as "no active iteration" so tests that
+// build a Daemon directly without calling New — and any future caller
+// that holds a nil *Logger reference — are safe from panics. The
+// silent-drop canary still counts these and writes to stderr so the
+// nil path isn't invisible.
 func (l *Logger) Log(record map[string]any, levels ...Level) error {
-	if l.file == nil {
+	if l == nil || l.file == nil {
 		// Silent-drop canary. Parallel mode introduced a class of
 		// bugs where worker content was logged to a Logger whose
 		// file had never been opened, and every call site's `_ =`
 		// swallowed the "no active iteration" error. The next time
 		// that regression ships, this line makes it visible in the
 		// daemon.log tail instead of hiding behind empty log files.
+		trace := ""
+		if l != nil {
+			trace = l.TraceID
+		}
 		fmt.Fprintf(os.Stderr, "wolfcastle: log record dropped (no active iteration): type=%v trace=%q\n",
-			record["type"], l.TraceID)
+			record["type"], trace)
 		droppedRecords.Add(1)
 		return fmt.Errorf("no active iteration")
 	}
