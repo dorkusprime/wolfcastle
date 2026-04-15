@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.7
+
+### Features
+- **Dirty-tree start now confirms through a TUI modal** instead of silently refusing. `wolfcastle start` gains an `--allow-dirty` flag that skips the interactive y/N prompt and proceeds with a warning. The TUI detects "commit or stash changes first" in daemon-start stderr, pops an `UNCOMMITTED CHANGES` confirmation modal showing which files would be swept into the first commit, and on Enter re-invokes `start -d --allow-dirty`. Previously the TUI's `s` key ran `start -d`, which inherits no TTY and so returned an EOF to `confirmContinue()`, aborting with no visible error — the daemon would just fail to come up and the tab would go cold without explanation.
+
 ## 0.6.6
 
 ### Features

@@ -18,6 +18,7 @@ func Register(app *cmdutil.App, rootCmd *cobra.Command) {
 	startCmd.Flags().BoolP("verbose", "v", false, "Set console log level to debug")
 	startCmd.Flags().Bool("exit-when-done", false, "Exit after all available work is complete")
 	startCmd.Flags().String("instance", "", "Worktree path to target (bypasses CWD-based discovery)")
+	startCmd.Flags().Bool("allow-dirty", false, "Start even if the working tree has uncommitted changes (non-interactive bypass)")
 	_ = startCmd.RegisterFlagCompletionFunc("node", cmdutil.CompleteNodeAddresses(app))
 
 	stopCmd := newStopCmd(app)

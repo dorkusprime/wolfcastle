@@ -16,12 +16,13 @@ import (
 // draining status) and waits for Enter to confirm or Esc to cancel.
 type DaemonModalModel struct {
 	active     bool
-	action     string // "start" or "stop"
+	action     string // "start", "stop", or "dirty-start"
 	isRunning  bool
 	isDraining bool
 	pid        int
 	branch     string
 	worktree   string
+	dirtyBody  string // populated for the dirty-start variant
 	width      int
 	height     int
 }
@@ -35,6 +36,17 @@ func (m *DaemonModalModel) Open(action string, isRunning, isDraining bool, pid i
 	m.pid = pid
 	m.branch = branch
 	m.worktree = worktree
+	m.dirtyBody = ""
+}
+
+// OpenDirty activates the modal in dirty-tree confirmation mode. The
+// detail string is the git-status summary we want to show the user so
+// they know what's about to be swept into the first commit.
+func (m *DaemonModalModel) OpenDirty(worktree, detail string) {
+	m.active = true
+	m.action = "dirty-start"
+	m.worktree = worktree
+	m.dirtyBody = detail
 }
 
 // Close deactivates the modal.
@@ -65,7 +77,11 @@ func (m DaemonModalModel) Update(msg tea.Msg) (DaemonModalModel, tea.Cmd) {
 	}
 	switch {
 	case key.Matches(kp, confirmKey):
+		action := m.action
 		m.active = false
+		if action == "dirty-start" {
+			return m, func() tea.Msg { return tui.DaemonDirtyConfirmedMsg{} }
+		}
 		return m, func() tea.Msg { return tui.DaemonConfirmedMsg{} }
 	case key.Matches(kp, dismissKey):
 		m.active = false
@@ -94,7 +110,11 @@ func (m DaemonModalModel) View() string {
 		innerW = 1
 	}
 
-	title := tui.ModalTitleStyle.Render(strings.ToUpper(m.action + " DAEMON"))
+	titleText := m.action + " DAEMON"
+	if m.action == "dirty-start" {
+		titleText = "UNCOMMITTED CHANGES"
+	}
+	title := tui.ModalTitleStyle.Render(strings.ToUpper(titleText))
 
 	var body strings.Builder
 	body.WriteString(tui.ModalDimStyle.Render(m.bodyText()))
@@ -132,6 +152,20 @@ func (m DaemonModalModel) bodyText() string {
 			lines = append(lines, "")
 			lines = append(lines, "The daemon is currently draining. Stopping it will interrupt in-flight work.")
 		}
+		return strings.Join(lines, "\n")
+	}
+
+	if m.action == "dirty-start" {
+		lines := []string{
+			fmt.Sprintf("The working tree at %s has uncommitted changes.", m.worktree),
+			"",
+			"The daemon commits code and state together after each task, so these changes would be included in the first commit alongside whatever the first task writes.",
+		}
+		if m.dirtyBody != "" {
+			lines = append(lines, "")
+			lines = append(lines, m.dirtyBody)
+		}
+		lines = append(lines, "", "Continue anyway?")
 		return strings.Join(lines, "\n")
 	}
 
