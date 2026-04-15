@@ -1,7 +1,7 @@
 # Audit System Overhaul: Exploratory Review + Knowledge Pipeline
 
 ## Status
-Draft
+Accepted
 
 ## Problem
 

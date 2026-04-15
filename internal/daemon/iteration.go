@@ -613,6 +613,45 @@ func scanTerminalMarker(output string, validMarkers ...string) string {
 	return ""
 }
 
+// knowledgeMarkerPrefix is the inline signal the plan-review prompt uses
+// to hand a new knowledge entry back to the daemon. It must not collide
+// with any terminal marker; the trailing colon ensures it never matches
+// WOLFCASTLE_COMPLETE/CONTINUE/YIELD/BLOCKED even as a suffix.
+const knowledgeMarkerPrefix = "WOLFCASTLE_KNOWLEDGE:"
+
+// scanKnowledgeEntries extracts knowledge entries the model emitted via
+// the WOLFCASTLE_KNOWLEDGE: marker during a planning pass. Each line
+// prefixed with the marker contributes one entry. Handles both raw
+// text and Claude Code stream-json envelopes, mirroring the shape of
+// scanTerminalMarker so the parser stays consistent across markers.
+//
+// Empty-entry lines (just the prefix with no text) are dropped. Leading
+// and trailing whitespace on the entry is trimmed.
+func scanKnowledgeEntries(output string) []string {
+	var entries []string
+	for _, line := range strings.Split(output, "\n") {
+		trimmed := strings.TrimSpace(line)
+		text := extractAssistantText(trimmed)
+		if text == "" {
+			text = trimmed
+		}
+		for _, subline := range strings.Split(text, "\n") {
+			sub := strings.TrimSpace(subline)
+			sub = strings.Trim(sub, "*_`")
+			sub = strings.TrimSpace(sub)
+			if !strings.HasPrefix(sub, knowledgeMarkerPrefix) {
+				continue
+			}
+			entry := strings.TrimSpace(sub[len(knowledgeMarkerPrefix):])
+			if entry == "" {
+				continue
+			}
+			entries = append(entries, entry)
+		}
+	}
+	return entries
+}
+
 // scanYieldSuffix inspects the same output that scanTerminalMarker scans,
 // looking specifically for a WOLFCASTLE_YIELD line that carries a suffix.
 // Currently the only recognized suffix is "scope_conflict <task-address>".
