@@ -552,6 +552,8 @@ func traceCategory(trace string) string {
 	switch {
 	case strings.HasPrefix(trace, "exec"):
 		return "exec"
+	case strings.HasPrefix(trace, "worker"):
+		return "worker"
 	case strings.HasPrefix(trace, "plan"):
 		return "plan"
 	case strings.HasPrefix(trace, "intake"), strings.HasPrefix(trace, "inbox"):
@@ -592,7 +594,7 @@ func (m *LogViewModel) cycleLevelFilter() {
 	m.levelFilter = "all"
 }
 
-var traceCycle = []string{"all", "exec", "plan", "inbox", "system"}
+var traceCycle = []string{"all", "exec", "worker", "plan", "inbox", "system"}
 
 func (m *LogViewModel) cycleTraceFilter() {
 	for i, v := range traceCycle {

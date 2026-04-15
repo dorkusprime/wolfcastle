@@ -168,7 +168,7 @@ func TestPropagateState_MissingRootIndex(t *testing.T) {
 	}
 	// Don't write the root index to disk. SaveRootIndex will be attempted
 	// but the projects dir exists, so propagateState should still attempt to save.
-	err := d.propagateState("node-a", state.StatusInProgress, idx)
+	err := d.propagateState(d.Logger, "node-a", state.StatusInProgress, idx)
 	// This should succeed as it only needs to save the index
 	if err != nil {
 		t.Logf("propagateState returned error (acceptable): %v", err)
@@ -207,7 +207,7 @@ func TestPropagateState_DeepHierarchy(t *testing.T) {
 	cNS.State = state.StatusComplete
 	writeJSON(t, filepath.Join(projDir, "a", "b", "c", "state.json"), cNS)
 
-	if err := d.propagateState("a/b/c", state.StatusComplete, idx); err != nil {
+	if err := d.propagateState(d.Logger, "a/b/c", state.StatusComplete, idx); err != nil {
 		t.Fatalf("propagateState error: %v", err)
 	}
 
@@ -271,7 +271,7 @@ func TestRunIteration_IntakeStageSkipped(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "my-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	// Intake is skipped in the iteration loop; only execute runs
 	_ = err
 }

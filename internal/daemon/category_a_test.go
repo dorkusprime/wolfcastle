@@ -147,7 +147,7 @@ func TestRunIteration_InvokeErrorReturnsError(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "invoke-fail-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err == nil {
 		t.Fatal("expected error from failed invocation")
 	}
@@ -179,7 +179,7 @@ func TestRunIteration_DecompThreshold_SetsNeedsDecomposition(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "decomp-node", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	projDir := d.Store.Dir()
 	var ns state.NodeState
@@ -238,7 +238,7 @@ func TestRunIteration_DecompAtMaxDepth_TaskAutoBlocked(t *testing.T) {
 	writePromptFile(t, d.WolfcastleDir, "stages/execute.md")
 
 	nav := &state.NavigationResult{NodeAddress: "maxdepth-node", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	data, err := os.ReadFile(filepath.Join(projDir, "maxdepth-node", "state.json"))
 	if err != nil {
@@ -288,7 +288,7 @@ func TestRunIteration_HardCapReached_TaskAutoBlocked(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "hardcap-node", TaskID: "task-0001", Found: true}
-	_ = d.runIteration(context.Background(), nav, idx)
+	_ = d.runIteration(context.Background(), d.Logger, nav, idx)
 
 	projDir := d.Store.Dir()
 	data, err := os.ReadFile(filepath.Join(projDir, "hardcap-node", "state.json"))
@@ -339,7 +339,7 @@ func TestRunIteration_NoTerminalMarker_FailureIncremented(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "nonterminal-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Logf("runIteration error (may be acceptable): %v", err)
 	}
@@ -364,7 +364,7 @@ func TestPropagateState_EmptyParentAddr_LoadNodeError(t *testing.T) {
 		Address: "child", Parent: "",
 	}
 
-	err := d.propagateState("child", state.StatusInProgress, idx)
+	err := d.propagateState(d.Logger, "child", state.StatusInProgress, idx)
 	if err != nil {
 		if !strings.Contains(err.Error(), "parsing address") {
 			t.Logf("propagateState error: %v", err)
@@ -402,7 +402,7 @@ func TestPropagateState_SaveNodeCallbackExercised(t *testing.T) {
 	childNS := state.NewNodeState("sv-child", "Child", state.NodeLeaf)
 	writeJSON(t, filepath.Join(projDir, "sv-parent", "sv-child", "state.json"), childNS)
 
-	err := d.propagateState("sv-parent/sv-child", state.StatusInProgress, idx)
+	err := d.propagateState(d.Logger, "sv-parent/sv-child", state.StatusInProgress, idx)
 	if err != nil {
 		t.Logf("propagateState error (may be expected): %v", err)
 	}
@@ -423,7 +423,7 @@ func TestInvokeWithRetry_PreCancelledContext(t *testing.T) {
 	cancel()
 
 	model := config.ModelDef{Command: "/nonexistent/binary", Args: []string{}}
-	_, err := d.invokeWithRetry(ctx, model, "test prompt", d.RepoDir, d.Logger.AssistantWriter(), "test")
+	_, err := d.invokeWithRetry(ctx, d.Logger, model, "test prompt", d.RepoDir, d.Logger.AssistantWriter(), "test")
 	if err == nil {
 		t.Fatal("expected error when context is already cancelled")
 	}
@@ -450,7 +450,7 @@ func TestInvokeWithRetry_CancelDuringBackoff(t *testing.T) {
 	}()
 
 	model := config.ModelDef{Command: "/nonexistent/binary", Args: []string{}}
-	_, err := d.invokeWithRetry(ctx, model, "test prompt", d.RepoDir, d.Logger.AssistantWriter(), "test")
+	_, err := d.invokeWithRetry(ctx, d.Logger, model, "test prompt", d.RepoDir, d.Logger.AssistantWriter(), "test")
 	if err == nil {
 		t.Fatal("expected error when context cancelled during backoff")
 	}

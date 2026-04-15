@@ -234,7 +234,7 @@ func TestClose_Idempotent(t *testing.T) {
 
 func TestEnforceRetention_UnreadableDirectory(t *testing.T) {
 	t.Parallel()
-	err := EnforceRetention("/nonexistent/dir/xyz", 10, 30)
+	err := EnforceRetention("/nonexistent/dir/xyz", 10, 30, WithQuietWindow(0))
 	if err == nil {
 		t.Error("expected error for nonexistent directory")
 	}

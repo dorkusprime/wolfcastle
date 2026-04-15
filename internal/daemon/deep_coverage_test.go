@@ -17,7 +17,7 @@ func TestPropagateState_NodeNotInIndex(t *testing.T) {
 
 	// Node not in index. PropagateState succeeds but does nothing meaningful
 	// since there's nothing to propagate up from
-	err := d.propagateState("nonexistent-node", state.StatusInProgress, idx)
+	err := d.propagateState(d.Logger, "nonexistent-node", state.StatusInProgress, idx)
 	// Should succeed. The function just saves the index
 	if err != nil {
 		t.Logf("propagateState for missing node: %v (may be acceptable)", err)
@@ -42,7 +42,7 @@ func TestPropagateState_ParentLoadError(t *testing.T) {
 
 	// Don't create parent state.json on disk. LoadNode for parent will fail
 	// but propagateState should still succeed or return an error gracefully
-	err := d.propagateState("parent/child", state.StatusInProgress, idx)
+	err := d.propagateState(d.Logger, "parent/child", state.StatusInProgress, idx)
 	// This exercises the loadNode error path inside state.Propagate
 	_ = err
 }
@@ -88,7 +88,7 @@ func TestPropagateState_FourLevelHierarchy(t *testing.T) {
 	leafNS.State = state.StatusComplete
 	writeJSON(t, filepath.Join(projDir, "l1", "l2", "l3", "leaf", "state.json"), leafNS)
 
-	if err := d.propagateState("l1/l2/l3/leaf", state.StatusComplete, idx); err != nil {
+	if err := d.propagateState(d.Logger, "l1/l2/l3/leaf", state.StatusComplete, idx); err != nil {
 		t.Fatalf("propagateState error: %v", err)
 	}
 

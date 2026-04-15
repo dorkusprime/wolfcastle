@@ -227,7 +227,7 @@ func (d *Daemon) runIntakeStage(ctx context.Context, stage config.PipelineStage)
 		}
 
 		itemStart := time.Now()
-		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.InboxLogger.AssistantWriter(), "intake")
+		result, err := d.invokeWithRetry(invokeCtx, d.InboxLogger, model, prompt, d.RepoDir, d.InboxLogger.AssistantWriter(), "intake")
 		if invokeCancel != nil {
 			invokeCancel()
 		}

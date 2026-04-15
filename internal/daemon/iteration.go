@@ -30,7 +30,14 @@ const yieldSuffixScopeConflict = "scope_conflict"
 // runIteration executes a single daemon iteration: claims the task, runs each
 // enabled pipeline stage in order, reloads state from disk (to pick up CLI
 // mutations), handles terminal markers, and manages failure escalation.
-func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, idx *state.RootIndex) error {
+//
+// lg is the logger that receives every record produced during this
+// iteration. The sequential path passes d.Logger (which already has an
+// "exec" file open); parallel workers pass their own child logger so
+// their output doesn't collide with other concurrent workers. This must
+// never be nil — the guard in logging.Logger.Log would silently drop
+// every record, which is exactly the bug this plumbing fixes.
+func (d *Daemon) runIteration(ctx context.Context, lg *logging.Logger, nav *state.NavigationResult, idx *state.RootIndex) error {
 	// Claim the task
 	addr, err := tree.ParseAddress(nav.NodeAddress)
 	if err != nil {
@@ -102,7 +109,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		}
 
 		stageStartTime := time.Now()
-		_ = d.Logger.Log(map[string]any{
+		_ = lg.Log(map[string]any{
 			"type":  "stage_start",
 			"stage": stageName,
 			"model": stage.Model,
@@ -115,19 +122,19 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		beforeHEAD := d.Git.HEAD()
 		preInvocationNS := ns
 
-		result, err := d.invokeWithRetry(invokeCtx, model, prompt, d.RepoDir, d.Logger.AssistantWriter(), stageName)
+		result, err := d.invokeWithRetry(invokeCtx, lg, model, prompt, d.RepoDir, lg.AssistantWriter(), stageName)
 		if cancel != nil {
 			cancel()
 		}
 
 		// Restore terminal to cooked mode in case the child left it in raw mode.
 		if err != nil {
-			_ = d.Logger.Log(map[string]any{"type": "stage_error", "stage": stageName, "error": err.Error()})
+			_ = lg.Log(map[string]any{"type": "stage_error", "stage": stageName, "error": err.Error()})
 			return err
 		}
 
 		stageDuration := time.Since(stageStartTime)
-		_ = d.Logger.Log(map[string]any{
+		_ = lg.Log(map[string]any{
 			"type":        "stage_complete",
 			"stage":       stageName,
 			"exit_code":   result.ExitCode,
@@ -139,7 +146,7 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 		// have mutated state.json during execution (breadcrumbs, gaps, scope, etc.)
 		ns, err = d.Store.ReadNode(nav.NodeAddress)
 		if err != nil {
-			_ = d.Logger.Log(map[string]any{"type": "reload_error", "error": err.Error()})
+			_ = lg.Log(map[string]any{"type": "reload_error", "error": err.Error()})
 		}
 
 		// Check for terminal markers and transition task state.
@@ -153,20 +160,20 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			invoke.MarkerStringBlocked, invoke.MarkerStringYield,
 		)
 		if marker == invoke.MarkerStringYield {
-			return d.handleYieldMarker(nav, result, preInvocationNS)
+			return d.handleYieldMarker(lg, nav, result, preInvocationNS)
 		}
 		if marker == invoke.MarkerStringBlocked {
-			return d.handleBlockedMarker(nav, idx)
+			return d.handleBlockedMarker(lg, nav, idx)
 		}
 		if marker == invoke.MarkerStringSkip {
-			_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringSkip, "task": nav.TaskID})
+			_ = lg.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringSkip, "task": nav.TaskID})
 			if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 				return state.TaskComplete(ns, nav.TaskID)
 			}); err != nil {
-				_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
+				_ = lg.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 			}
 			if !d.Config.Pipeline.Planning.Enabled {
-				d.autoCompleteDecomposedParents(nav.NodeAddress)
+				d.autoCompleteDecomposedParents(lg, nav.NodeAddress)
 			}
 			// Check replanning triggers before propagation (see COMPLETE path).
 			d.checkReplanningTriggers(nav.NodeAddress, nav.TaskID, idx)
@@ -175,21 +182,21 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 			// internally, but re-propagating here updates the in-memory idx
 			// and guards against silent propagation failures in the store.
 			if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-				if err := d.propagateState(nav.NodeAddress, updatedNS.State, idx); err != nil {
-					_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+				if err := d.propagateState(lg, nav.NodeAddress, updatedNS.State, idx); err != nil {
+					_ = lg.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 				}
 			}
 			return nil
 		}
 		if marker == invoke.MarkerStringComplete {
-			if d.handleCompleteMarker(nav, ns, idx, beforeHEAD) {
+			if d.handleCompleteMarker(lg, nav, ns, idx, beforeHEAD) {
 				return nil
 			}
 			// Fell through: COMPLETE was cleared by no-progress check.
 			// Fall through to failure path.
 		}
 
-		d.handleFailure(nav, ns, result, marker)
+		d.handleFailure(lg, nav, ns, result, marker)
 	}
 
 	return nil
@@ -198,14 +205,14 @@ func (d *Daemon) runIteration(ctx context.Context, nav *state.NavigationResult, 
 // handleYieldMarker processes a WOLFCASTLE_YIELD terminal marker: checks for
 // scope-conflict suffixes, detects newly created subtasks, and handles legacy
 // block-parent decomposition when planning is disabled.
-func (d *Daemon) handleYieldMarker(nav *state.NavigationResult, result *invoke.Result, preInvocationNS *state.NodeState) error {
-	_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringYield})
+func (d *Daemon) handleYieldMarker(lg *logging.Logger, nav *state.NavigationResult, result *invoke.Result, preInvocationNS *state.NodeState) error {
+	_ = lg.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringYield})
 
 	// Check for a scope-conflict suffix. When present, return a
 	// typed error so the parallel dispatcher can record the
 	// conflict and avoid immediately re-dispatching into it.
 	if kind, conflictAddr := scanYieldSuffix(result.Stdout); kind == yieldSuffixScopeConflict {
-		_ = d.Logger.Log(map[string]any{
+		_ = lg.Log(map[string]any{
 			"type":    "yield_scope_conflict",
 			"task":    nav.TaskID,
 			"blocker": conflictAddr,
@@ -231,7 +238,7 @@ func (d *Daemon) handleYieldMarker(nav *state.NavigationResult, result *invoke.R
 				_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
 					return state.TaskBlock(ns2, nav.TaskID, reason)
 				})
-				_ = d.Logger.Log(map[string]any{
+				_ = lg.Log(map[string]any{
 					"type":      "yield_decomposition",
 					"task":      nav.TaskID,
 					"new_tasks": newTasks,
@@ -244,7 +251,7 @@ func (d *Daemon) handleYieldMarker(nav *state.NavigationResult, result *invoke.R
 		if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
 			newTasks := findNewTasks(preInvocationNS, updatedNS)
 			if len(newTasks) > 0 {
-				_ = d.Logger.Log(map[string]any{
+				_ = lg.Log(map[string]any{
 					"type":      "yield_decomposition",
 					"task":      nav.TaskID,
 					"new_tasks": newTasks,
@@ -258,19 +265,19 @@ func (d *Daemon) handleYieldMarker(nav *state.NavigationResult, result *invoke.R
 // handleBlockedMarker processes a WOLFCASTLE_BLOCKED terminal marker: checks
 // for superseded tasks, creates remediation subtasks for audit gaps, handles
 // spec review feedback, and propagates blocked state up the tree.
-func (d *Daemon) handleBlockedMarker(nav *state.NavigationResult, idx *state.RootIndex) error {
-	_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringBlocked, "task": nav.TaskID})
+func (d *Daemon) handleBlockedMarker(lg *logging.Logger, nav *state.NavigationResult, idx *state.RootIndex) error {
+	_ = lg.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringBlocked, "task": nav.TaskID})
 
 	// Check if the model blocked a task that's actually
 	// superseded. Superseded work should be SKIP, not BLOCKED.
 	// Treat it as complete so it doesn't poison node state.
 	if d.isSupersededBlock(nav.NodeAddress, nav.TaskID) {
-		_ = d.Logger.Log(map[string]any{"type": "superseded_to_skip", "task": nav.TaskID})
+		_ = lg.Log(map[string]any{"type": "superseded_to_skip", "task": nav.TaskID})
 		d.log(map[string]any{"type": "task_event", "action": "superseded", "task": nav.TaskID, "text": "Superseded (treating as skip)."})
 		if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 			return state.TaskComplete(ns, nav.TaskID)
 		}); err != nil {
-			_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+			_ = lg.Log(map[string]any{"type": "save_error", "error": err.Error()})
 		}
 		return nil
 	}
@@ -279,8 +286,8 @@ func (d *Daemon) handleBlockedMarker(nav *state.NavigationResult, idx *state.Roo
 	// instead of blocking. The subtasks fix each gap, and when
 	// they all complete, DeriveParentStatus resets the audit to
 	// not_started so it re-runs to verify the fixes.
-	if created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID); created > 0 {
-		_ = d.Logger.Log(map[string]any{"type": "audit_remediation", "task": nav.TaskID, "subtasks": created})
+	if created := d.createRemediationSubtasks(lg, nav.NodeAddress, nav.TaskID); created > 0 {
+		_ = lg.Log(map[string]any{"type": "audit_remediation", "task": nav.TaskID, "subtasks": created})
 		d.log(map[string]any{"type": "task_event", "action": "audit_remediation", "task": nav.TaskID, "text": fmt.Sprintf("Audit: %d gap(s), remediating.", created)})
 		return nil
 	}
@@ -295,14 +302,14 @@ func (d *Daemon) handleBlockedMarker(nav *state.NavigationResult, idx *state.Roo
 	if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 		return state.TaskBlock(ns, nav.TaskID, "blocked by model")
 	}); err != nil {
-		_ = d.Logger.Log(map[string]any{"type": "save_error", "error": err.Error()})
+		_ = lg.Log(map[string]any{"type": "save_error", "error": err.Error()})
 	}
 	// Check replanning triggers before propagation (see COMPLETE path).
 	d.checkReplanningTriggers(nav.NodeAddress, nav.TaskID, idx)
 	// Propagate blocked state so parent orchestrators can detect
 	// the block and trigger remediation planning.
-	if err := d.propagateState(nav.NodeAddress, state.StatusBlocked, idx); err != nil {
-		_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+	if err := d.propagateState(lg, nav.NodeAddress, state.StatusBlocked, idx); err != nil {
+		_ = lg.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 	}
 	return nil
 }
@@ -313,7 +320,7 @@ func (d *Daemon) handleBlockedMarker(nav *state.NavigationResult, idx *state.Roo
 // propagates completion state. Returns true if the task was actually
 // completed, false if COMPLETE was cleared (no git progress) and the
 // caller should fall through to the failure path.
-func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.NodeState, idx *state.RootIndex, beforeHEAD string) (completed bool) {
+func (d *Daemon) handleCompleteMarker(lg *logging.Logger, nav *state.NavigationResult, ns *state.NodeState, idx *state.RootIndex, beforeHEAD string) (completed bool) {
 	// Re-read state from disk since the model may have added
 	// deliverables via CLI during execution.
 	if updated, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
@@ -324,7 +331,7 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 	// not a completion failure. Git progress is the hard gate.
 	missing := checkDeliverables(d.RepoDir, ns, nav.TaskID)
 	if len(missing) > 0 {
-		_ = d.Logger.Log(map[string]any{
+		_ = lg.Log(map[string]any{
 			"type":    "deliverable_warning",
 			"task":    nav.TaskID,
 			"missing": missing,
@@ -347,25 +354,25 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 		// iteration (committed by the failure-path commit). Trust the
 		// agent's COMPLETE marker in that case.
 		if len(missing) > 0 || !hasDeliverables(ns, nav.TaskID) {
-			_ = d.Logger.Log(map[string]any{
+			_ = lg.Log(map[string]any{
 				"type": "no_progress",
 				"task": nav.TaskID,
 			})
 			d.log(map[string]any{"type": "task_event", "action": "no_progress", "task": nav.TaskID, "text": "No changes detected. Failing task."})
 			return false
 		}
-		_ = d.Logger.Log(map[string]any{
+		_ = lg.Log(map[string]any{
 			"type": "no_progress_but_deliverables_exist",
 			"task": nav.TaskID,
 			"text": "No new git changes, but all deliverables present. Accepting COMPLETE.",
 		})
 	}
 
-	_ = d.Logger.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringComplete})
+	_ = lg.Log(map[string]any{"type": "terminal_marker", "marker": invoke.MarkerStringComplete})
 	if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 		return state.TaskComplete(ns, nav.TaskID)
 	}); err != nil {
-		_ = d.Logger.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
+		_ = lg.Log(map[string]any{"type": "complete_error", "task": nav.TaskID, "error": err.Error()})
 	}
 
 	// Guard: audit tasks must not complete while open gaps remain.
@@ -400,9 +407,9 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 					return nil
 				})
 
-				created := d.createRemediationSubtasks(nav.NodeAddress, nav.TaskID)
+				created := d.createRemediationSubtasks(lg, nav.NodeAddress, nav.TaskID)
 				if created > 0 {
-					_ = d.Logger.Log(map[string]any{
+					_ = lg.Log(map[string]any{
 						"type":     "audit_complete_with_gaps",
 						"task":     nav.TaskID,
 						"subtasks": created,
@@ -414,7 +421,7 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 					_ = d.Store.MutateNode(nav.NodeAddress, func(ns2 *state.NodeState) error {
 						return state.TaskBlock(ns2, nav.TaskID, "open gaps remain")
 					})
-					_ = d.Logger.Log(map[string]any{
+					_ = lg.Log(map[string]any{
 						"type": "audit_blocked_open_gaps",
 						"task": nav.TaskID,
 					})
@@ -427,7 +434,7 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 				// under gitMu with scoped file lists.
 				if d.dispatcher == nil {
 					auditMeta := extractTaskCommitMeta(ns, nav.TaskID)
-					commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, auditMeta, nil)
+					commitAfterIteration(d.RepoDir, lg, nav.TaskID, "success", 0, d.Config.Git, auditMeta, nil)
 				}
 				return true
 			}
@@ -435,10 +442,10 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 	}
 
 	// Generate audit report when an audit task completes.
-	d.maybeWriteAuditReport(nav.NodeAddress, nav.TaskID)
+	d.maybeWriteAuditReport(lg, nav.NodeAddress, nav.TaskID)
 
 	if !d.Config.Pipeline.Planning.Enabled {
-		d.autoCompleteDecomposedParents(nav.NodeAddress)
+		d.autoCompleteDecomposedParents(lg, nav.NodeAddress)
 	}
 	// Refresh the in-memory index entry for the completed leaf so
 	// checkReplanningTriggers sees the current state. Without this,
@@ -461,15 +468,15 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 	// internally, but re-propagating here updates the in-memory idx
 	// and guards against silent propagation failures in the store.
 	if updatedNS, readErr := d.Store.ReadNode(nav.NodeAddress); readErr == nil {
-		if err := d.propagateState(nav.NodeAddress, updatedNS.State, idx); err != nil {
-			_ = d.Logger.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
+		if err := d.propagateState(lg, nav.NodeAddress, updatedNS.State, idx); err != nil {
+			_ = lg.Log(map[string]any{"type": "propagate_error", "error": err.Error()})
 		}
 	}
 
 	// Commit after successful completion. In parallel mode,
 	// drainCompleted commits under gitMu with scoped file lists.
 	if d.dispatcher == nil {
-		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID), nil)
+		commitAfterIteration(d.RepoDir, lg, nav.TaskID, "success", 0, d.Config.Git, extractTaskCommitMeta(ns, nav.TaskID), nil)
 	}
 
 	return true
@@ -479,7 +486,7 @@ func (d *Daemon) handleCompleteMarker(nav *state.NavigationResult, ns *state.Nod
 // found (or COMPLETE was cleared by the no-progress check). It records the
 // failure type, increments the failure counter, triggers decomposition or
 // auto-blocking at thresholds, and commits the result.
-func (d *Daemon) handleFailure(nav *state.NavigationResult, ns *state.NodeState, result *invoke.Result, marker string) {
+func (d *Daemon) handleFailure(lg *logging.Logger, nav *state.NavigationResult, ns *state.NodeState, result *invoke.Result, marker string) {
 	// Determine failure type for context injection on retry
 	failureType := "no_terminal_marker"
 	if scanTerminalMarker(result.Stdout) != "" {
@@ -487,7 +494,7 @@ func (d *Daemon) handleFailure(nav *state.NavigationResult, ns *state.NodeState,
 		failureType = "no_progress"
 	}
 
-	_ = d.Logger.Log(map[string]any{
+	_ = lg.Log(map[string]any{
 		"type":  failureType,
 		"empty": result.Stdout == "",
 		"task":  nav.TaskID,
@@ -511,29 +518,29 @@ func (d *Daemon) handleFailure(nav *state.NavigationResult, ns *state.NodeState,
 
 		if failCount >= d.Config.Failure.DecompositionThreshold && d.Config.Failure.DecompositionThreshold > 0 {
 			if ns.DecompositionDepth < d.Config.Failure.MaxDecompositionDepth {
-				_ = d.Logger.Log(map[string]any{"type": "decomposition_threshold", "task": nav.TaskID, "depth": ns.DecompositionDepth})
+				_ = lg.Log(map[string]any{"type": "decomposition_threshold", "task": nav.TaskID, "depth": ns.DecompositionDepth})
 				state.SetNeedsDecomposition(ns, nav.TaskID, true)
 			} else {
-				_ = d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "max_decomposition_depth"})
+				_ = lg.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "max_decomposition_depth"})
 				if blockErr := state.TaskBlock(ns, nav.TaskID, "auto-blocked: decomposition threshold reached at max depth"); blockErr != nil {
-					_ = d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
+					_ = lg.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
 				}
 			}
 		}
 
 		if failCount >= d.Config.Failure.HardCap && d.Config.Failure.HardCap > 0 {
-			_ = d.Logger.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "hard_cap", "count": failCount})
+			_ = lg.Log(map[string]any{"type": "auto_block", "task": nav.TaskID, "reason": "hard_cap", "count": failCount})
 			if blockErr := state.TaskBlock(ns, nav.TaskID, fmt.Sprintf("auto-blocked: failure hard cap reached (%d)", failCount)); blockErr != nil {
-				_ = d.Logger.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
+				_ = lg.Log(map[string]any{"type": "auto_block_error", "task": nav.TaskID, "error": blockErr.Error()})
 			}
 		}
 
 		return nil
 	})
 	if mutErr != nil {
-		_ = d.Logger.Log(map[string]any{"type": "failure_increment_error", "error": mutErr.Error()})
+		_ = lg.Log(map[string]any{"type": "failure_increment_error", "error": mutErr.Error()})
 	} else {
-		_ = d.Logger.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
+		_ = lg.Log(map[string]any{"type": "failure_increment", "task": nav.TaskID, "count": failCount})
 	}
 
 	// Commit code + state after all failure mutations are applied.
@@ -542,7 +549,7 @@ func (d *Daemon) handleFailure(nav *state.NavigationResult, ns *state.NodeState,
 	if d.dispatcher == nil {
 		failMeta := extractTaskCommitMeta(ns, nav.TaskID)
 		failMeta.FailureType = failureType
-		commitAfterIteration(d.RepoDir, d.Logger, nav.TaskID, "failure", failCount, d.Config.Git, failMeta, nil)
+		commitAfterIteration(d.RepoDir, lg, nav.TaskID, "failure", failCount, d.Config.Git, failMeta, nil)
 	}
 }
 
@@ -963,7 +970,7 @@ func commitDirect(repoDir string, gitCfg config.GitConfig, commitArgs []string, 
 	return nil
 }
 
-func (d *Daemon) autoCompleteDecomposedParents(nodeAddr string) {
+func (d *Daemon) autoCompleteDecomposedParents(lg *logging.Logger, nodeAddr string) {
 	ns, err := d.Store.ReadNode(nodeAddr)
 	if err != nil {
 		return
@@ -1011,7 +1018,7 @@ func (d *Daemon) autoCompleteDecomposedParents(nodeAddr string) {
 				}
 				return state.TaskComplete(ns2, taskID)
 			})
-			_ = d.Logger.Log(map[string]any{
+			_ = lg.Log(map[string]any{
 				"type": "auto_complete_parent",
 				"task": taskID,
 			})
@@ -1038,7 +1045,7 @@ func findNewTasks(before, after *state.NodeState) []string {
 // createRemediationSubtasks checks if the given task is an audit with
 // open gaps and, if so, creates a subtask for each gap. Returns the
 // number of subtasks created (0 if the task isn't an audit or has no gaps).
-func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
+func (d *Daemon) createRemediationSubtasks(lg *logging.Logger, nodeAddr, taskID string) int {
 	var created int
 	if err := d.Store.MutateNode(nodeAddr, func(ns *state.NodeState) error {
 		// Find the audit task
@@ -1117,7 +1124,7 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 
 		return nil
 	}); err != nil {
-		_ = d.Logger.Log(map[string]any{
+		_ = lg.Log(map[string]any{
 			"type":  "remediation_subtask_error",
 			"node":  nodeAddr,
 			"task":  taskID,
@@ -1130,7 +1137,7 @@ func (d *Daemon) createRemediationSubtasks(nodeAddr, taskID string) int {
 // maybeWriteAuditReport checks if the completed task is an audit and, if so,
 // writes a markdown report to the node's directory. This is a best-effort
 // operation; failures are logged but do not block task completion.
-func (d *Daemon) maybeWriteAuditReport(nodeAddr, taskID string) {
+func (d *Daemon) maybeWriteAuditReport(lg *logging.Logger, nodeAddr, taskID string) {
 	ns, err := d.Store.ReadNode(nodeAddr)
 	if err != nil {
 		return
@@ -1150,7 +1157,7 @@ func (d *Daemon) maybeWriteAuditReport(nodeAddr, taskID string) {
 	now := d.Clock.Now()
 	reportPath, err := state.WriteAuditReport(d.Store.Dir(), nodeAddr, ns.Audit, ns.Name, now)
 	if err != nil {
-		_ = d.Logger.Log(map[string]any{
+		_ = lg.Log(map[string]any{
 			"type":  "audit_report_error",
 			"node":  nodeAddr,
 			"error": err.Error(),
@@ -1158,7 +1165,7 @@ func (d *Daemon) maybeWriteAuditReport(nodeAddr, taskID string) {
 		return
 	}
 
-	_ = d.Logger.Log(map[string]any{
+	_ = lg.Log(map[string]any{
 		"type": "audit_report_written",
 		"node": nodeAddr,
 		"path": reportPath,

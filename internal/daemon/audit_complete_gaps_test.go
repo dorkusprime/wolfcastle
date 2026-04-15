@@ -64,7 +64,7 @@ func TestRunIteration_AuditCompleteWithOpenGaps_CreatesRemediation(t *testing.T)
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "audit-gaps-node", TaskID: "audit-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestRunIteration_AuditCompleteNoOpenGaps_Succeeds(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "audit-clean-node", TaskID: "audit-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestRunIteration_NonAuditCompleteWithOpenGaps_Succeeds(t *testing.T) {
 
 	idx, _ := d.Store.ReadIndex()
 	nav := &state.NavigationResult{NodeAddress: "noaudit-gaps-node", TaskID: "task-0001", Found: true}
-	err := d.runIteration(context.Background(), nav, idx)
+	err := d.runIteration(context.Background(), d.Logger, nav, idx)
 	if err != nil {
 		t.Fatalf("runIteration error: %v", err)
 	}

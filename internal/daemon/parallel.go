@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -84,7 +85,15 @@ func (pd *ParallelDispatcher) runWorker(ctx context.Context, nav *state.Navigati
 	taskAddr := nav.NodeAddress + "/" + nav.TaskID
 	workerCtx, cancel := context.WithCancel(ctx)
 
-	logger := pd.daemon.Logger.Child(fmt.Sprintf("worker-%s", nav.TaskID))
+	// Include the slugified node address in the prefix so workers on
+	// different nodes with the same task ID (e.g., "task-0001") don't
+	// collide on the same filename. The Child logger's iteration
+	// counter starts at zero per instance, so without the node slug
+	// every worker with the same TaskID would produce the identical
+	// "0001-worker-{TaskID}-{ts}.jsonl" path, stomping each other's
+	// writes.
+	nodeSlug := strings.ReplaceAll(nav.NodeAddress, "/", "-")
+	logger := pd.daemon.Logger.Child(fmt.Sprintf("worker-%s-%s", nodeSlug, nav.TaskID))
 
 	pd.mu.Lock()
 	pd.active[taskAddr] = &WorkerSlot{
@@ -121,9 +130,22 @@ func (pd *ParallelDispatcher) runWorker(ctx context.Context, nav *state.Navigati
 		}()
 
 		_ = logger.StartIteration()
+		// StartIteration stamps the full slugified prefix onto TraceID,
+		// which makes each record carry a 100+ character trace field
+		// (the same string we use for the filename to guarantee unique
+		// paths across workers). Override to a compact form — the last
+		// segment of the node address plus the task ID — so the log
+		// view's [trace] column stays readable. Collisions in the
+		// compact form are fine; records already carry the full node
+		// address for disambiguation.
+		shortNode := nav.NodeAddress
+		if idx := strings.LastIndex(shortNode, "/"); idx >= 0 {
+			shortNode = shortNode[idx+1:]
+		}
+		logger.TraceID = fmt.Sprintf("worker-%s-%s-%04d", shortNode, nav.TaskID, logger.Iteration)
 		_ = logger.LogIterationStart("execute", nav.NodeAddress)
 
-		err := pd.daemon.runIteration(workerCtx, nav, idx)
+		err := pd.daemon.runIteration(workerCtx, logger, nav, idx)
 		logger.Close()
 
 		wr := WorkerResult{
@@ -289,7 +311,13 @@ done:
 				if updated, err := d.Store.ReadNode(wr.Node); err == nil {
 					idx, idxErr := d.Store.ReadIndex()
 					if idxErr == nil {
-						_ = d.propagateState(wr.Node, updated.State, idx)
+						// The worker's logger is already closed at this
+						// point; drainCompleted runs back in the main
+						// loop. The fallback-diagnostic record in
+						// propagateState only fires if the index can't
+						// be re-read, so dropping it to d.Logger is a
+						// small regression if no parent file is open.
+						_ = d.propagateState(d.Logger, wr.Node, updated.State, idx)
 					}
 				}
 			}
