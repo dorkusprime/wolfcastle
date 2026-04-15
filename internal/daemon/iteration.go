@@ -273,7 +273,7 @@ func (d *Daemon) handleBlockedMarker(lg *logging.Logger, nav *state.NavigationRe
 	// Treat it as complete so it doesn't poison node state.
 	if d.isSupersededBlock(nav.NodeAddress, nav.TaskID) {
 		_ = lg.Log(map[string]any{"type": "superseded_to_skip", "task": nav.TaskID})
-		d.log(map[string]any{"type": "task_event", "action": "superseded", "task": nav.TaskID, "text": "Superseded (treating as skip)."})
+		_ = lg.Log(map[string]any{"type": "task_event", "action": "superseded", "task": nav.TaskID, "text": "Superseded (treating as skip)."})
 		if err := d.Store.MutateNode(nav.NodeAddress, func(ns *state.NodeState) error {
 			return state.TaskComplete(ns, nav.TaskID)
 		}); err != nil {
@@ -288,7 +288,7 @@ func (d *Daemon) handleBlockedMarker(lg *logging.Logger, nav *state.NavigationRe
 	// not_started so it re-runs to verify the fixes.
 	if created := d.createRemediationSubtasks(lg, nav.NodeAddress, nav.TaskID); created > 0 {
 		_ = lg.Log(map[string]any{"type": "audit_remediation", "task": nav.TaskID, "subtasks": created})
-		d.log(map[string]any{"type": "task_event", "action": "audit_remediation", "task": nav.TaskID, "text": fmt.Sprintf("Audit: %d gap(s), remediating.", created)})
+		_ = lg.Log(map[string]any{"type": "task_event", "action": "audit_remediation", "task": nav.TaskID, "text": fmt.Sprintf("Audit: %d gap(s), remediating.", created)})
 		return nil
 	}
 
@@ -336,7 +336,7 @@ func (d *Daemon) handleCompleteMarker(lg *logging.Logger, nav *state.NavigationR
 			"task":    nav.TaskID,
 			"missing": missing,
 		})
-		d.log(map[string]any{"type": "task_event", "action": "deliverable_warning", "task": nav.TaskID, "text": fmt.Sprintf("Warning: declared deliverables missing: %v", missing)})
+		_ = lg.Log(map[string]any{"type": "task_event", "action": "deliverable_warning", "task": nav.TaskID, "text": fmt.Sprintf("Warning: declared deliverables missing: %v", missing)})
 	}
 
 	// Audit tasks skip the git progress check: their output is
@@ -358,7 +358,7 @@ func (d *Daemon) handleCompleteMarker(lg *logging.Logger, nav *state.NavigationR
 				"type": "no_progress",
 				"task": nav.TaskID,
 			})
-			d.log(map[string]any{"type": "task_event", "action": "no_progress", "task": nav.TaskID, "text": "No changes detected. Failing task."})
+			_ = lg.Log(map[string]any{"type": "task_event", "action": "no_progress", "task": nav.TaskID, "text": "No changes detected. Failing task."})
 			return false
 		}
 		_ = lg.Log(map[string]any{
@@ -414,7 +414,7 @@ func (d *Daemon) handleCompleteMarker(lg *logging.Logger, nav *state.NavigationR
 						"task":     nav.TaskID,
 						"subtasks": created,
 					})
-					d.log(map[string]any{"type": "task_event", "action": "audit_gaps", "task": nav.TaskID, "text": fmt.Sprintf("Audit has %d open gap(s), creating remediation subtasks.", created)})
+					_ = lg.Log(map[string]any{"type": "task_event", "action": "audit_gaps", "task": nav.TaskID, "text": fmt.Sprintf("Audit has %d open gap(s), creating remediation subtasks.", created)})
 				} else {
 					// Edge case: open gaps exist but no subtasks created.
 					// Block the audit to prevent silent completion.
@@ -425,7 +425,7 @@ func (d *Daemon) handleCompleteMarker(lg *logging.Logger, nav *state.NavigationR
 						"type": "audit_blocked_open_gaps",
 						"task": nav.TaskID,
 					})
-					d.log(map[string]any{"type": "task_event", "action": "audit_blocked", "task": nav.TaskID, "text": "Audit blocked: open gaps remain."})
+					_ = lg.Log(map[string]any{"type": "task_event", "action": "audit_blocked", "task": nav.TaskID, "text": "Audit blocked: open gaps remain."})
 				}
 				// Commit the decomposition: audit gaps, remediation
 				// subtasks, and reverted audit state. This gives a

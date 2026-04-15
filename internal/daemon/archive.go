@@ -111,19 +111,19 @@ func (d *Daemon) tryAutoArchive(idx *state.RootIndex) bool {
 	// Archive one node per iteration to keep each cycle bounded.
 	addr := eligible[0]
 	if err := d.archiveNode(addr); err != nil {
-		_ = d.Logger.Log(map[string]any{
+		d.logParent(map[string]any{
 			"type":  "auto_archive_error",
 			"node":  addr,
 			"error": err.Error(),
 		})
-		d.log(map[string]any{"type": "archive_event", "action": "auto_archive_failed", "node": addr, "text": fmt.Sprintf("Auto-archive failed for %s: %v", addr, err), "error": err.Error()})
+		d.logParent(map[string]any{"type": "archive_event", "action": "auto_archive_failed", "node": addr, "text": fmt.Sprintf("Auto-archive failed for %s: %v", addr, err), "error": err.Error()})
 		return false
 	}
 
-	_ = d.Logger.Log(map[string]any{
+	d.logParent(map[string]any{
 		"type": "auto_archive",
 		"node": addr,
 	})
-	d.log(map[string]any{"type": "archive_event", "action": "archived", "node": addr, "text": fmt.Sprintf("Archived completed project: %s", addr)})
+	d.logParent(map[string]any{"type": "archive_event", "action": "archived", "node": addr, "text": fmt.Sprintf("Archived completed project: %s", addr)})
 	return true
 }

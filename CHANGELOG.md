@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.6.8
+
+### Features
+- **Dedicated `ParentLogger` for daemon-lifetime events.** A third `*logging.Logger` opens at `Run()` entry with a `daemon` prefix and stays open until the daemon exits. Parent-loop events — `drainCompleted` diagnostics, auto-archive decisions, spec-review hooks, knowledge maintenance, instance-registry warnings, shutdown-signal lifecycle — route through this logger instead of reaching for `d.Logger`, which in parallel mode has no active file between planning passes. File name is `2NNNN-daemon-TIMESTAMP.jsonl` (iteration counter offset by 20000 so it can't collide with exec/plan or inbox namespaces).
+- **Nil-safe `Logger.Log` receiver.** Calling `.Log(...)` on a nil `*logging.Logger` now returns an error and increments the dropped-records counter instead of panicking. Tests that construct `Daemon` directly without calling `New()` — and any future caller that holds a nil reference through a free function — no longer need defensive guards.
+
+### Bug Fixes
+- **Canary-caught silent drops closed up across the parent loop.** The v0.6.6 plumbing fixed `runIteration` itself, but several helpers and lifecycle paths were still calling `d.Logger.Log` (or `d.log`) on an iteration-scoped logger that had no active file. This release routes them through the always-live parent logger:
+  - `parallel.go` — every `drainCompleted`, `fillSlots`, `reclaimOrphans` diagnostic, plus the three `commitAfterIteration` invocations (success, failure, scope-conflict) and the `propagateState` fallback diagnostic.
+  - `archive.go` — `auto_archive_failed` and `archived` events fired from `tryAutoArchive` in the main loop.
+  - `spec_review.go` — `review_queued` and `review_failed` events fired from the post-iteration hook.
+  - `knowledge_maintenance.go` — `budget_exceeded` events.
+  - `daemon.go` — the shutdown-signal goroutine, the 2-second force-exit grace message, the instance-registry warning, and the three `task_event` sites (serial planning error, serial iteration error, parallel planning error).
+  - `iteration.go` — six `d.log(task_event ...)` calls inside `handleBlockedMarker` / `handleCompleteMarker` / `handleFailure` that the v0.6.6 sweep missed because they used the nil-safe wrapper instead of `d.Logger.Log` directly. Now route through the `lg` parameter alongside every other logger call in those methods.
+- **Worker trace IDs no longer duplicate the task number.** The previous format stamped `worker-<node>-task-0001-0001` — the trailing `0001` was the Child logger's iteration counter, which is always `0001` because each worker runs exactly one iteration. Dropped the redundant suffix; trace IDs read `worker-cart-and-promo-domain-task-0001` now.
+
+### Quality
+- **`DroppedRecords()` and the silent-drop canary on stderr** are now test-covered. New `internal/logging/dropped_records_test.go` pins the counter behavior: zero on the happy path, one on a nil receiver (no panic), one on a missing iteration, two after a close-then-log sequence.
+
 ## 0.6.7
 
 ### Features

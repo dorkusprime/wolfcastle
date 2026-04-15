@@ -67,6 +67,7 @@ type Daemon struct {
 	ScopeNode      string
 	Logger         *logging.Logger
 	InboxLogger    *logging.Logger // separate logger for the inbox goroutine
+	ParentLogger   *logging.Logger // always-open daemon-lifecycle file for parent-loop events
 	RepoDir        string
 	Clock          clock.Clock
 	Git            git.Provider
@@ -102,6 +103,16 @@ func (d *Daemon) log(record map[string]any) {
 func (d *Daemon) logInbox(record map[string]any) {
 	if d.InboxLogger != nil {
 		_ = d.InboxLogger.Log(record)
+	}
+}
+
+// logParent is a nil-safe wrapper around d.ParentLogger.Log. Parent-loop
+// events (drain diagnostics, auto-archive decisions, spec review hooks,
+// knowledge maintenance) route through this so tests that construct a
+// Daemon directly — without calling New — don't trip on a nil logger.
+func (d *Daemon) logParent(record map[string]any) {
+	if d.ParentLogger != nil {
+		_ = d.ParentLogger.Log(record)
 	}
 }
 
@@ -142,6 +153,17 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 	// their iteration numbers never overlap.
 	inboxLogger.Iteration = inboxIterationOffset + logging.IterationFromDir(logDir)
 
+	// A third logger captures events that happen in the daemon's
+	// parent loop — drain diagnostics, auto-archive decisions, spec
+	// review hooks — that don't belong to any single iteration. Its
+	// file stays open for the daemon's lifetime so the silent-drop
+	// canary never fires on these paths.
+	parentLogger, err := logging.NewLogger(logDir)
+	if err != nil {
+		return nil, err
+	}
+	parentLogger.Iteration = 20000 + logging.IterationFromDir(logDir)
+
 	// Build domain repositories for prompt and class resolution, then
 	// assemble a ContextBuilder that replaces the legacy standalone
 	// buildIterationContext functions.
@@ -162,6 +184,7 @@ func New(cfg *config.Config, wolfcastleDir string, store *state.Store, scopeNode
 		ScopeNode:      scopeNode,
 		Logger:         logger,
 		InboxLogger:    inboxLogger,
+		ParentLogger:   parentLogger,
 		RepoDir:        repoDir,
 		Clock:          clock.New(),
 		Git:            git.NewService(repoDir),
@@ -485,12 +508,19 @@ func (d *Daemon) Run(ctx context.Context) error {
 				if !ok {
 					return
 				}
-				d.log(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "signal", "text": "Wolfcastle standing down (signal)"})
+				// Route through the parent logger: the signal handler
+				// runs in its own goroutine and d.Logger's state at
+				// that moment depends on whether a planning/exec
+				// iteration is mid-flight. ParentLogger is always
+				// live for the daemon's lifetime, so lifecycle events
+				// land on disk no matter which iteration (if any) is
+				// currently holding the iteration file.
+				d.logParent(map[string]any{"type": "daemon_lifecycle", "event": "standing_down", "reason": "signal", "text": "Wolfcastle standing down (signal)"})
 				cancel()
 				d.shutdownOnce.Do(func() { close(d.shutdown) })
 				go func() {
 					time.Sleep(2 * time.Second)
-					_ = d.Logger.Log(map[string]any{"type": "force_exit", "message": "signal handler force exit after 2s grace period"})
+					d.logParent(map[string]any{"type": "force_exit", "message": "signal handler force exit after 2s grace period"})
 					_ = instance.Deregister(d.RepoDir)
 					d.removeActivityFile()
 					os.Exit(0)
@@ -516,6 +546,19 @@ func (d *Daemon) Run(ctx context.Context) error {
 	d.iteration.Store(0)
 	d.hasWorked = false
 
+	// Open the parent-loop logger file and keep it open for the
+	// daemon's entire lifetime. Parent-loop events (drain diagnostics,
+	// auto-archive, spec review hooks, knowledge maintenance, and any
+	// other housekeeping that isn't scoped to a specific iteration)
+	// write through this logger so they can't silently drop records
+	// when d.Logger has no active iteration file. Tests that build a
+	// Daemon directly without calling New() leave ParentLogger nil;
+	// the logParent helper is the nil-safe call path for those.
+	if d.ParentLogger != nil {
+		_ = d.ParentLogger.StartIterationWithPrefix("daemon")
+		defer d.ParentLogger.Close()
+	}
+
 	// Open a "heal" iteration to capture the startup banner, self-heal
 	// output, and git-check warning in a single structured log file.
 	_ = d.Logger.StartIterationWithPrefix("heal")
@@ -539,9 +582,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 	d.Logger.Close()
 
 	// Register this daemon in the instance registry so CLI commands
-	// can discover it by CWD matching.
+	// can discover it by CWD matching. The heal iteration file just
+	// closed, so route through the parent logger which stays open
+	// for the daemon's entire lifetime.
 	if regErr := instance.Register(d.RepoDir, d.branch); regErr != nil {
-		d.log(map[string]any{"type": "warning", "text": fmt.Sprintf("instance registry: %v", regErr)})
+		d.logParent(map[string]any{"type": "warning", "text": fmt.Sprintf("instance registry: %v", regErr)})
 	}
 	defer func() { _ = instance.Deregister(d.RepoDir) }()
 
@@ -773,7 +818,10 @@ func (d *Daemon) runOnceSerial(ctx context.Context, idx *state.RootIndex) (Itera
 	// its subtree needs work, not before.
 	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
 		if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
-			d.log(map[string]any{"type": "task_event", "action": "planning_error", "text": fmt.Sprintf("Planning error: %v", err), "error": err.Error()})
+			// runPlanningPass Close()s the plan file on error, so
+			// d.Logger has no active file by the time we get here.
+			// Route through the parent logger.
+			d.logParent(map[string]any{"type": "task_event", "action": "planning_error", "text": fmt.Sprintf("Planning error: %v", err), "error": err.Error()})
 			return IterationError, nil
 		}
 		return IterationDidWork, nil
@@ -834,7 +882,10 @@ execute:
 	d.Logger.Close()
 
 	if err != nil {
-		d.log(map[string]any{"type": "task_event", "action": "iteration_error", "text": fmt.Sprintf("Iteration error: %v", err), "error": err.Error()})
+		// d.Logger's exec file was just closed. Route the error
+		// record through the parent logger so it lands on disk
+		// instead of tripping the silent-drop canary.
+		d.logParent(map[string]any{"type": "task_event", "action": "iteration_error", "text": fmt.Sprintf("Iteration error: %v", err), "error": err.Error()})
 
 		// State corruption is fatal: continuing risks further damage.
 		var stateErr *werrors.StateError
@@ -903,7 +954,10 @@ func (d *Daemon) runOnceParallel(ctx context.Context, idx *state.RootIndex) (Ite
 
 	if planAddr, planNS := d.findPlanningTarget(idx); planAddr != "" {
 		if err := d.runPlanningPass(ctx, planAddr, planNS, idx); err != nil {
-			d.log(map[string]any{"type": "task_event", "action": "planning_error", "text": fmt.Sprintf("Planning error: %v", err), "error": err.Error()})
+			// Same rationale as the serial path: plan file is
+			// already closed by runPlanningPass, so route the
+			// error through the parent logger.
+			d.logParent(map[string]any{"type": "task_event", "action": "planning_error", "text": fmt.Sprintf("Planning error: %v", err), "error": err.Error()})
 			return IterationError, nil
 		}
 		return IterationDidWork, nil
