@@ -1,31 +1,29 @@
 # Model Provider Abstraction
 
 ## Status
-Draft
+Draft (v3 — post audit)
 
 ## Problem
 
 The README promises: *"Agents are defined as CLI commands. Anything that reads stdin and writes stdout works: Claude Code, Cursor, Copilot, GPT, Gemini, Llama, a bash script wrapping curl. Your agents, your choice. Switch providers by editing a JSON file."*
 
-That promise is partially true. `internal/invoke.ProcessInvoker` really will execute any CLI that reads stdin and writes stdout. But the surrounding daemon only produces useful behavior when the output happens to be **Claude Code's stream-json format**. Four codepaths are hard-coded to that format today:
+That promise is partially true. `internal/invoke.ProcessInvoker` really will execute any CLI that reads stdin and writes stdout. But the surrounding daemon only produces useful behavior when the output happens to be **Claude Code's stream-json format**. Four codepaths parse that format today:
 
-1. **`internal/invoke/format.go:FormatAssistantText`** parses Claude Code's `{"type":"assistant","message":{"content":[{"type":"text","text":"..."},{"type":"tool_use","name":"...","input":{...}}]}}` envelopes to produce a human-readable line. Called from `cmd/unblock.go:234` and was historically called from `logrender` too.
-2. **`internal/daemon/iteration.go:extractAssistantText`** parses the same envelope shape to extract the text content that the terminal-marker scanner will search.
-3. **`internal/logrender/*`** (specifically `thoughts.go` and `interleaved.go`) decode assistant envelopes with their own local parser (`extractThoughtText`) for NDJSON log rendering.
-4. **`internal/tui/detail/logview.go:extractAssistantContent`** decodes assistant envelopes plus `tool_use`, `tool_result`, and `thinking` content blocks for the TUI log modal.
+1. **`internal/invoke/format.go:FormatAssistantText`** parses Claude Code's `{"type":"assistant","message":{"content":[...]}}` envelopes into a human-readable line. Called from `cmd/unblock.go:234`.
+2. **`internal/daemon/iteration.go:extractAssistantText`** parses the same envelope shape to extract the text content that `scanTerminalMarker` searches for `WOLFCASTLE_*` markers.
+3. **`internal/logrender/thoughts.go:extractThoughtText`** (shared by `interleaved.go`) decodes assistant envelopes for NDJSON log rendering.
+4. **`internal/tui/detail/logview.go:extractAssistantContent`** decodes assistant + `tool_use` + `tool_result` + `thinking` blocks for the TUI log modal. This is the *most complex* of the four — `tool_result.content` is handled as either a plain string or an array of typed blocks, a subtlety the new provider parser must replicate exactly.
 
-On top of those parsers, there's a **double-envelope** situation on disk:
+On top of those four parsers, there's a **double-envelope** situation on disk. `internal/logging/logger.go:assistantLogWriter` wraps every raw byte from the model's stdout in a wolfcastle log record:
 
 ```json
-// wolfcastle log record (outer)
+// wolfcastle outer log envelope (written by assistantLogWriter)
 {"level":"debug","type":"assistant","trace":"exec-0042",
  "timestamp":"2026-04-15T04:42:00Z",
  "text":"{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}}\n"}
 ```
 
-The outer envelope is a wolfcastle log record written by `internal/logging/logger.go`. Its `"type":"assistant"` is not the model's assistant message — it's wolfcastle's way of tagging a record as "a line of streamed model output." The inner envelope (escaped inside `text`) is Claude Code's wire format. Every downstream reader has to unwrap twice.
-
-The `assistantLogWriter` that produces the outer envelope lives at `logging/logger.go:214`, tagging every streamed byte as `"type":"assistant"`. Daemon callers reach it via `d.Logger.AssistantWriter()`, passed as the `logWriter` parameter into `ProcessInvoker.Invoke`. In a multi-provider world, `"assistant"` as an outer tag is a misleading name — a raw stdout line from an OpenAI streaming response is not semantically an "assistant message" at the logging layer. This rename is part of the migration.
+The outer `type: "assistant"` is wolfcastle's historical category name for "a line of streamed model output." The inner envelope (escaped as a JSON string inside `text`) is Claude Code's wire format. Downstream readers have to unwrap twice. **Agent A audit confirmed that `"assistant"` is the *only* fixed-type string produced by `assistantLogWriter`** — the ~80 other `"type"` values scattered through `internal/daemon/*.go` (`stage_start`, `terminal_marker`, `yield_decomposition`, `auto_commit`, etc.) are semantic daemon events, not model-stdout records. The rename question in Phase 4 is narrowly scoped to that one tag.
 
 The config's `ModelDef` is minimal:
 
@@ -40,19 +38,23 @@ There's nowhere to declare *how the output should be parsed*. The daemon assumes
 
 ## Goals
 
-1. **A named provider per model** in config, orthogonal to the CLI command. `claude-code` is the default; `raw` ships alongside it. API-based providers (OpenAI, Anthropic API, Ollama HTTP) are explicitly deferred.
+1. **A named provider per model** in config, orthogonal to the CLI command. `claude-code` is the default; `raw` ships alongside it. API-based providers (OpenAI, Anthropic API, Ollama HTTP, Gemini) are explicitly Non-goal'd.
 2. **A `Provider` interface** under `internal/provider` that owns both invocation *and* stream parsing. Daemon code calls into the provider instead of reaching for raw stdout.
-3. **Backwards compatibility.** Existing configs without a `provider` field keep working as Claude Code. No prompt changes, no migration required for existing projects, no broken tests.
-4. **Minimum two shipping providers in v0.7:** `claude-code` (lifted from current code, identical behavior) and `raw` (opaque stdout, marker-only). The `raw` provider is the "bring your own agent" minimum and needs zero API credentials to build, test, or demo.
-5. **Pluggable log rendering.** The TUI and log renderers get a provider handle and ask it to format raw bytes into human-readable output. No more stream-json literals in `logrender` or `tui/detail/logview.go`.
-6. **Single source of truth for envelope parsing.** `claudecode`'s parser replaces the four sites listed above. No drift between them. Test coverage consolidated in one package.
+3. **Backwards compatibility.** Existing configs without a `provider` field keep working as Claude Code. Existing `.jsonl` logs on disk render correctly against the new code. No prompt changes, no config migration, no broken `jq` scripts tailing log files.
+4. **Two shipping providers in v0.7:** `claude-code` (lifted from current code, identical behavior) and `raw` (opaque stdout, marker-only). The `raw` provider is the "bring your own agent" minimum and needs zero API credentials to build, test, or demo.
+5. **Pluggable log rendering.** The TUI and log renderers consume `Event` from the provider instead of hand-parsing stream-json. Phase 1's `claudecode` parser is the **one true copy** — the four existing parser sites in the Problem statement are replaced by a single implementation.
+6. **Minimum viable surface.** v0.7's public `Provider` interface and `ModelSpec` carry only what v0.7 providers consume. HTTP endpoint, auth, cost tracking, and tool-call normalization are deliberately out of scope — a follow-up spec adds them when an API provider concretely lands.
 
 ## Non-goals
 
-- **API-based providers in v0.7.** OpenAI, Anthropic API, Ollama HTTP, Gemini — these are real providers we'll want eventually, but they add network-mocking infrastructure, auth key handling, per-call cost tracking, and rate limiting that deserve their own spec. v0.7 establishes the interface and proves it works with `raw` (zero network) and `claude-code` (current behavior). The follow-up spec picks one API-based provider and migrates this ground to production.
-- **A universal tool-call abstraction.** Each provider parses its own tool invocations into a common `ToolEvent` shape, but models still invoke whatever tools their native format exposes. We're not normalizing tool schemas across providers.
-- **Per-call provider selection at runtime by prompt instruction.** Providers are chosen at config time via the stage's `model` field, not dynamically mid-run by the model itself.
-- **Replacing `internal/invoke`.** The package stays as the CLI-process toolkit (stall detection, stdout streaming, terminal restoration, platform-specific `procattr_*` files). Non-CLI providers don't use it; CLI-based providers (`claude-code`, `raw`) compose it internally.
+- **API-based providers in v0.7.** OpenAI, Anthropic API, Ollama HTTP, Gemini. Each brings network mocking, auth key handling, per-call cost tracking, and rate limiting, none of which have design surface in v0.7. A follow-up spec picks one API-based provider and drives those concerns end-to-end.
+- **HTTP-specific fields in `ModelSpec` / `ModelDef`.** No `Endpoint`, no `Model`, no `Extra map[string]any`. These were in v2 of this spec as speculative hooks for future HTTP providers and have been cut. The minimum viable `ModelSpec` is `Command []string`. When the API-provider spec lands, it adds the fields it needs with types it can defend.
+- **A universal tool-call abstraction.** Each provider parses its own tool invocations into a common `ToolEvent` shape, but models still invoke whatever tools their native format exposes. We do not normalize tool schemas across providers.
+- **Per-call provider selection by prompt instruction.** Providers are chosen at config time via the stage's `model` field, not dynamically by the model itself.
+- **Replacing `internal/invoke` wholesale.** The package stays as the CLI-process toolkit (`ProcessInvoker`, `procattr_*`, `RestoreTerminal`). It shrinks by losing `FormatAssistantText`, the `Marker*` constants, and `RetryInvoker` — everything else is kept, some as type aliases through v0.7.
+- **Breaking on-disk log format for scripting users.** v0.6's jq-style consumers (`.type == "assistant"`) keep working. The outer envelope's `type` field stays as `"assistant"`; a new `provider` field is added beside it. Rename would have been cleaner architecturally but breaks every external tailer; not worth it for a name.
+- **Observability, cost tracking, secrets management, capability negotiation.** All deferred to the API-provider spec. v0.7 leaves them as open questions, not as fields or hooks on the `Provider` interface that would constrain the future design.
+- **Third-party providers via plugins.** `internal/provider` is in the `internal/` tree; external Go packages cannot import it. Stating this so the question doesn't come up again.
 
 ## Design
 
@@ -60,11 +62,11 @@ There's nowhere to declare *how the output should be parsed*. The daemon assumes
 
 ```
 internal/provider/
-├── provider.go             // Provider interface, Event, Result, Registry
+├── provider.go             // Provider interface, Event, EventKind, Result, Marker, Registry
 ├── testutil/
-│   └── fake.go             // provider.Provider test double for other packages
+│   └── fake.go             // provider.Provider test double
 ├── claudecode/
-│   ├── claudecode.go       // ClaudeCode implementation (lifted from current parsers)
+│   ├── claudecode.go       // ClaudeCode implementation (composes invoke.ProcessInvoker)
 │   ├── parse.go            // stream-json envelope parser (the One True Copy)
 │   └── claudecode_test.go
 └── raw/
@@ -72,26 +74,49 @@ internal/provider/
     └── raw_test.go
 ```
 
-`internal/invoke/` stays. Its public surface (`Invoker`, `Result`, `ProcessInvoker`, `Simple`, `FormatAssistantText`) is deprecated but not removed in v0.7 (see backwards compatibility).
+`internal/invoke/` stays in place. Its public surface shrinks: `FormatAssistantText`, `detectLineMarker`, `detectMarkers`, `Marker` type, `MarkerStringXXX` constants, and `RetryInvoker` are removed. `ProcessInvoker`, `Simple`, `LineCallback`, `Result`, `procattr_*`, `terminal_*`, and `RestoreTerminal` stay. The `Invoker` interface stays as a distinct deprecated type (not a type alias to `provider.Provider` — their signatures are incompatible, so an alias is literally impossible). `Invoker` is removed in v0.8 after call sites finish migrating.
 
 ### Core interface
 
 ```go
 // Provider is the contract for running a model and interpreting its
 // output. Implementations encapsulate both *how to invoke* the model
-// (the CLI / API contract) and *how to read its stream* (envelope
-// format, tool-call shape, marker positions). Every daemon, logrender,
-// and TUI code path above this layer is provider-agnostic.
+// and *how to read its stream* (envelope format, tool-call shape,
+// marker positions). Every daemon, logrender, and TUI code path above
+// this layer is provider-agnostic.
+//
+// Concurrency: all methods must be safe for concurrent use. The daemon
+// may call Invoke from multiple goroutines simultaneously in parallel
+// worker mode. Singletons holding shared state (HTTP clients, mutexes)
+// are the provider's responsibility.
 type Provider interface {
     // Name returns the canonical provider identifier used in config.
-    // Stable across releases; required by the registry.
+    // Stable across releases. If a provider's underlying wire format
+    // changes incompatibly, ship it as a new Name (e.g., claude-code-v2).
     Name() string
 
     // Invoke runs the model with the given prompt and returns a Result.
     // Implementations may shell out to a CLI, make an HTTP call, or
-    // anything else. logWriter, if non-nil, receives every raw line
-    // of stdout before any parsing. onLine, if non-nil, receives each
-    // line in real time for callers that need incremental access.
+    // anything else. See contract below.
+    //
+    // Contract:
+    //   - workDir is an absolute filesystem path. Implementations may
+    //     refuse relative paths or paths that don't exist.
+    //   - stdin delivery: the prompt is made available to the model on
+    //     stdin for CLI providers; the equivalent request body for API
+    //     providers.
+    //   - stderr: captured into Result.Stderr. Not streamed to logWriter.
+    //   - logWriter, if non-nil, receives every raw line of the model's
+    //     stdout before any parsing. One `fmt.Fprintln` per line.
+    //   - onLine, if non-nil, is invoked once per line after the line
+    //     is written to logWriter. Must not block.
+    //   - ctx cancellation: implementations must abort in-flight work
+    //     (SIGKILL for CLI, request cancellation for HTTP) and return
+    //     whatever output was captured so far in Result.Stdout.
+    //   - Partial-stream errors: Result is ALWAYS non-nil on return,
+    //     even when error is non-nil. The Result carries whatever
+    //     bytes the provider observed before the failure. Callers use
+    //     the partial output for diagnosis and retry decisions.
     Invoke(
         ctx context.Context,
         spec ModelSpec,
@@ -102,57 +127,53 @@ type Provider interface {
     ) (*Result, error)
 
     // ParseLine takes a raw line of provider output and returns the
-    // structured event it represents, or (nil, nil) for a line that
-    // carries no display-relevant content (blank line, debug noise,
-    // unrecognized envelope). Every downstream renderer calls this
-    // instead of parsing provider-specific JSON.
-    ParseLine(line string) (*Event, error)
+    // structured Event it represents, or nil for a line that carries
+    // no display-relevant content (blank, debug noise, unrecognized
+    // envelope). Pure string → Event; never errors (no I/O, no
+    // external state).
+    //
+    // Consistency: ParseLine(line) and ExtractText(line) must agree.
+    // Specifically, for every line where ParseLine returns a non-nil
+    // Event with Kind == EventText, ExtractText must return the same
+    // Text value. The shared test helper provider.TestConsistency
+    // enforces this in each provider's test suite.
+    ParseLine(line string) *Event
 
-    // ExtractText returns the human-readable text embedded in a raw
-    // line, or "" if none. Fast path for the terminal-marker scanner,
-    // which only cares about text content — the scanner intentionally
-    // does not construct a full Event per line during hot-loop scans.
+    // ExtractText returns the human-readable text content of a raw
+    // line, or "" if the line has no text content. Fast path for
+    // the terminal-marker scanner, which runs over every line of
+    // every iteration and cannot afford a full Event allocation per
+    // line. Implementations may share a helper with ParseLine to
+    // satisfy the consistency contract.
     ExtractText(line string) string
 }
 ```
 
-`ExtractText` is not strictly necessary — `ParseLine(line).Text` would produce the same answer — but the scanner runs over every line of model output and a full `Event` allocation per line is measurable. Keep it as an optimization hook.
-
 ### Supporting types
 
 ```go
-// ModelSpec replaces config.ModelDef inside the provider boundary. It
-// carries the fields each provider might consume. Providers document
-// which fields they require and ignore the rest.
+// ModelSpec is the per-call configuration a daemon hands to a provider.
+// v0.7 carries only the two fields both shipping providers consume.
+// Future providers that need more (endpoint, auth, timeouts) will add
+// fields in their respective specs, not speculatively here.
 type ModelSpec struct {
-    // CLI providers (claude-code, raw)
     Command string
     Args    []string
-
-    // HTTP providers (future, deferred)
-    Endpoint string
-    Model    string
-
-    // Per-provider overflow. Opaque to the registry; providers
-    // document any fields they consume.
-    Extra map[string]any
 }
 
-// Result is the output of a provider invocation. Same shape as the
-// legacy invoke.Result — this type IS the successor, not a re-export.
-// The old invoke.Result becomes a type alias during migration and is
-// removed in v0.8.
+// Result is the output of a provider invocation. See Provider.Invoke's
+// contract for guarantees on partial results during errors.
 type Result struct {
     Stdout         string
     Stderr         string
     ExitCode       int
     TerminalMarker Marker
-    Summary        string
+    Summary        string // set by claude-code from its "result" envelope; empty for raw
 }
 
-// Marker identifies a WOLFCASTLE_* terminal marker. Copied into
-// internal/provider so the invoke package can eventually be removed;
-// until then invoke.Marker becomes a type alias for provider.Marker.
+// Marker identifies a WOLFCASTLE_* terminal marker. The enum lives
+// in internal/provider; internal/invoke.Marker becomes a type alias
+// through v0.7 and is removed in v0.8.
 type Marker int
 
 const (
@@ -173,46 +194,51 @@ type Event struct {
     ToolName   string          // populated for EventToolUse
     ToolInput  json.RawMessage // opaque provider-native JSON for the tool's input
     ToolOutput string          // populated for EventToolResult
-    Marker     string          // populated for EventMarker
     Raw        string          // original line, always populated
-    Level      string          // "debug" | "info" | "warn" | "error"
 }
 
+// EventKind identifies the content of an Event. The zero value is
+// EventUnknown, so an uninitialized Event is never silently confused
+// with a well-formed EventRaw. Providers that don't know how to
+// classify a line set Kind = EventRaw explicitly.
 type EventKind int
 
 const (
-    EventRaw EventKind = iota // line didn't parse as a known envelope
-    EventText                 // human-readable model output
-    EventThinking             // model reasoning / scratchpad (Claude "thinking" blocks)
-    EventToolUse              // model invoked a tool
-    EventToolResult           // tool returned a result
-    EventMarker               // a WOLFCASTLE_* terminal marker was on this line
+    EventUnknown   EventKind = iota // zero-value sentinel; must not be returned
+    EventText                       // human-readable model output
+    EventThinking                   // model reasoning / scratchpad
+    EventToolUse                    // model invoked a tool
+    EventToolResult                 // tool returned a result
+    EventRaw                        // line didn't parse as a known envelope
 )
 
 // LineCallback receives each line of model output during streaming.
-// Implementations should not block; this runs on the output-read
-// goroutine and delays stall the process pipe.
+// Implementations must not block; runs on the output-read goroutine.
 type LineCallback func(line string)
 ```
 
-`ToolInput` is `json.RawMessage` so providers can hand back arbitrary nested input without losing structure and renderers can pretty-print it at display time. String concatenation of structured input would lose information.
+**Notes on what's missing vs v2:**
+
+- **No `Event.Level`**: was declared in v2, never set, never read. Deleted.
+- **No `Event.Marker` (string)**: `Result.TerminalMarker` is the authoritative place for marker info. Having Event carry its own marker string was two representations of one fact.
+- **No `EventMarker` kind**: same reason. Markers are a Result concern.
+- **No `ModelSpec.Endpoint`, `ModelSpec.Model`, `ModelSpec.Extra`**: v2 had these as speculative hooks for future HTTP providers. v0.7 doesn't use them. Cut.
+- **`ParseLine` returns `*Event`, not `(*Event, error)`**: nothing in a pure string parser can error.
 
 ### Registry
 
-The registry is a package-level map written at `init()` time:
+The registry is a package-level map written once at `init()`:
 
 ```go
-// Registry holds all providers registered at init() time. Lookup
-// returns singletons — one Provider per name for the life of the
-// process. This lets providers hold state (HTTP client pools, cache
-// handles, mutex-protected counters) safely, and means the daemon
-// doesn't pay a construction cost per iteration.
+// registry holds all providers keyed by Name(). Populated at init()
+// time by each provider subpackage. Lookup returns singletons — one
+// Provider per name for the life of the process.
 var registry = map[string]Provider{}
 
-// Register makes a Provider available by name. Intended to be called
-// from init() in a provider subpackage. Panics on duplicate names;
-// a duplicate means two providers are fighting over one identifier
-// and silent override would be worse than a startup crash.
+// Register adds a Provider to the global registry. Panics on duplicate
+// names; a duplicate means two providers fight over one identifier and
+// silent override would be worse than a startup crash. Intended to be
+// called only from init() in a provider subpackage.
 func Register(p Provider) {
     name := p.Name()
     if _, ok := registry[name]; ok {
@@ -227,64 +253,59 @@ func Lookup(name string) (Provider, bool) {
     return p, ok
 }
 
-// Names returns the registered provider names in deterministic order,
-// used by config validation to build error messages.
-func Names() []string { ... }
+// Names returns the registered provider names in alphabetical order,
+// used by config validation to build deterministic error messages.
+func Names() []string {
+    names := make([]string, 0, len(registry))
+    for n := range registry {
+        names = append(names, n)
+    }
+    sort.Strings(names)
+    return names
+}
 ```
 
-Each provider subpackage has an `init()` that calls `Register(&ClaudeCode{})` or `Register(&Raw{})`. A top-level `internal/provider/all.go` imports the subpackages for side effects so callers get every built-in provider via one import:
+Each provider subpackage has an `init()` calling `Register(&ClaudeCode{})` / `Register(&Raw{})`. A top-level `internal/provider/all.go` blank-imports the built-in subpackages so callers get every built-in provider via one import. `all.go` is updated incrementally across phases — it imports `claudecode` in Phase 1, `raw` in Phase 5.
 
-```go
-package provider
+**Singletons.** `Lookup` returns the same instance every call. Providers may hold internal state (mutex-protected counters, future HTTP client pools), but per-model state like `Command` / `Args` lives in `ModelSpec` and is passed per call — never stored on the singleton. This rule keeps providers safe to share across concurrent iterations.
 
-import (
-    _ "github.com/dorkusprime/wolfcastle/internal/provider/claudecode"
-    _ "github.com/dorkusprime/wolfcastle/internal/provider/raw"
-)
-```
-
-Providers are **singletons**. The `Invoke` method takes a `ModelSpec` per call, so per-model state (CLI args, model identifier) is not stored on the Provider instance. Provider-internal state (stall-timer settings, HTTP client pools in future providers) IS stored on the instance and shared across calls.
+**Test fake.** `internal/provider/testutil.Fake` is a `provider.Provider` implementation designed for direct injection into test helpers. It does **not** register with the global registry; tests that want it import it and pass it to `runIteration` / `TryModelAssistedFix` / etc. explicitly. No build tags, no registration races, no parallel-universe side effects. See "Test fake" section below for the full surface.
 
 ### Config surface
 
-`ModelDef` gains a `Provider` field:
+`ModelDef` gains exactly one field:
 
 ```go
 type ModelDef struct {
     Provider string   `json:"provider,omitempty"` // "claude-code" (default), "raw", ...
     Command  string   `json:"command,omitempty"`
     Args     []string `json:"args,omitempty"`
-    // HTTP fields for future providers; ignored by CLI providers.
-    Endpoint string   `json:"endpoint,omitempty"`
-    Model    string   `json:"model,omitempty"`
 }
 ```
 
-`config.Load()` gets a resolution pass: for each model entry, if `Provider == ""`, defaults to `"claude-code"` and appends an informational warning to the returned `Warnings` slice (`"model 'heavy' has no provider field; defaulting to claude-code. Set \"provider\": \"claude-code\" to silence."`). If the provider name is unknown, `config.Load()` returns a config error — the daemon refuses to start. A new validation category `UNKNOWN_PROVIDER` (matching the existing `INVALID_*` / `UNKNOWN_*` naming style used in `internal/validate`) catches the same error via `wolfcastle doctor`.
+`config.Load()` gains a resolution pass. For each model entry:
 
-Helper:
+- If `Provider == ""`, default to `"claude-code"`. Record that the default was applied; at the end of Load, emit **one** aggregated warning per config (`"8 models defaulted to provider=claude-code; add \"provider\":\"claude-code\" to each to silence"`) rather than one per model, to avoid flooding output in multi-model projects.
+- If `Provider` is non-empty and unknown, return a config error that lists valid provider names. A new validation category `UNKNOWN_PROVIDER` (matching the existing `UNKNOWN_*` naming in `internal/validate`) catches this via `wolfcastle doctor`.
+
+Helper on `ModelDef`:
 
 ```go
-// ResolveProvider returns the Provider registered for a ModelDef. Must
-// be called after config.Load() has defaulted empty Provider fields.
-// Returns an error when the provider is unknown.
+// ResolveProvider returns the Provider registered for this ModelDef.
+// Must be called after config.Load() has defaulted empty Provider
+// fields. Returns an error when the provider is unknown.
 func (m ModelDef) ResolveProvider() (provider.Provider, error) {
     p, ok := provider.Lookup(m.Provider)
     if !ok {
-        return nil, fmt.Errorf("unknown provider %q for model (known: %s)",
+        return nil, fmt.Errorf("unknown provider %q (known: %s)",
             m.Provider, strings.Join(provider.Names(), ", "))
     }
     return p, nil
 }
 
-// Spec returns a provider.ModelSpec built from the ModelDef fields.
+// Spec returns a provider.ModelSpec built from this ModelDef.
 func (m ModelDef) Spec() provider.ModelSpec {
-    return provider.ModelSpec{
-        Command:  m.Command,
-        Args:     m.Args,
-        Endpoint: m.Endpoint,
-        Model:    m.Model,
-    }
+    return provider.ModelSpec{Command: m.Command, Args: m.Args}
 }
 ```
 
@@ -309,187 +330,228 @@ Example config with two providers:
 
 ### Daemon integration
 
-1. **`runIteration`**, **`runPlanningPass`**, **`invokeWithRetry`** stop accepting `config.ModelDef` and accept a `provider.Provider` plus a `provider.ModelSpec` instead. Resolution happens once per iteration (at the start) via `modelDef.ResolveProvider()`; the resolved handle is passed down. The daemon never calls into `internal/invoke` directly for model execution — it goes through the provider.
+1. **`runIteration`**, **`runPlanningPass`**, **`invokeWithRetry`** stop accepting `config.ModelDef` and accept a `provider.Provider` plus a `provider.ModelSpec` instead. Resolution happens **once per stage invocation**, not once per iteration — each stage of an iteration (planning, worker, exploratory review) can have its own model with its own provider, and the resolution is on the hot path at stage start.
 
-2. **`scanTerminalMarker`** in `iteration.go` stops embedding knowledge of Claude Code's envelope format. It calls `provider.ExtractText(line)` to get the text content, then searches for `WOLFCASTLE_*` markers. The priority-ordered resolution stays in `iteration.go` because it's provider-agnostic; the per-line text extraction moves into each provider.
+2. **`scanTerminalMarker`** in `iteration.go` stops embedding Claude Code envelope knowledge. It calls `provider.ExtractText(line)` per line to get the text content, then searches for `WOLFCASTLE_*` substrings. The scanner runs over `result.Stdout` captured in memory by `Invoke`, not over log records on disk, so the Phase 4 log-format work doesn't affect the scanner. Priority-ordered marker resolution (`COMPLETE > BLOCKED > YIELD`) stays in the scanner because it's provider-agnostic.
 
-3. **`internal/validate/model_fix.go`**, which currently takes an `invoke.Invoker` and a `config.ModelDef`, now takes a `provider.Provider` and a `provider.ModelSpec`. Its signature updates:
+3. **`internal/validate/model_fix.go:TryModelAssistedFix`** currently takes `invoke.Invoker` + `config.ModelDef`. It's updated to take `provider.Provider` + `provider.ModelSpec`. Only caller: `cmd/doctor.go:135`. `doctor.go`'s migration is explicit in Phase 3 — it resolves the provider from config and passes both handles in.
 
-    ```go
-    func TryModelAssistedFix(
-        ctx context.Context,
-        prov provider.Provider,
-        spec provider.ModelSpec,
-        issue Issue,
-        projectsDir string,
-        wolfcastleDirs ...string,
-    ) (bool, error)
-    ```
+4. **`cmd/unblock.go`** currently uses `invoke.Simple` and `invoke.FormatAssistantText`. Migration: `provider.Lookup("claude-code")` returns the singleton; `.Invoke(...)` replaces `invoke.Simple`; `.ParseLine(line).Text` replaces `invoke.FormatAssistantText`. No behavioral change.
 
-    Callers in `cmd/doctor.go` (and anywhere else) resolve the provider before calling in.
-
-4. **`cmd/unblock.go`** uses `invoke.Simple` + `invoke.FormatAssistantText` to run a model synchronously and format its output. Both calls migrate: `provider.Lookup("claude-code").Invoke(...)` replaces `invoke.Simple`, and `provider.ClaudeCode().ParseLine(line).Text` replaces `invoke.FormatAssistantText`. The shape of `unblock` doesn't change.
-
-5. **`cmd/cmdutil/app.go`** has an `Invoker invoke.Invoker` field on the `App` struct, used for dependency injection in tests. It becomes `Provider provider.Provider`, defaulting to `claude-code`. The `App.Invoker` field is removed in v0.8 after call sites finish migrating.
+5. **`cmd/cmdutil/app.go`** has `Invoker invoke.Invoker` for dependency injection in command tests. It becomes `Provider provider.Provider`, defaulting to `claude-code`.
 
 ### Log record format
 
-The daemon's `logging.Logger.AssistantWriter()` currently wraps every raw model line as `{"type":"assistant","text":"..."}`. That outer `"assistant"` tag is a wolfcastle log category, not Claude Code's message type, but the name is actively confusing in a multi-provider world.
+The on-disk log envelope keeps its historical `type: "assistant"` tag. Renaming would break every external `jq` tailer matching `.type == "assistant"`, and "pay a documentation cost" is cheaper than "break all downstream scripts." Instead, Phase 4 **adds** a `provider` field alongside the existing `type`:
 
-Migration:
-
-1. A new method `logging.Logger.ProviderStreamWriter()` returns a writer that wraps lines as `{"type":"model_output","provider":"<name>","text":"..."}`. The `provider` field is stamped from whichever Provider is driving the iteration.
-2. `AssistantWriter()` is deprecated and kept as a thin wrapper that calls `ProviderStreamWriter("claude-code")` so existing test fixtures still work.
-3. `logrender` reader: the record-filter switch case `case "assistant":` becomes `case "assistant", "model_output":` for backwards compat, then narrows to `"model_output"` only in v0.8.
-4. Renderers dispatch by the `provider` field when present. When absent (legacy records), default to `claude-code`.
-
-On-disk log records from a mixed-provider run look like:
-
-```
-{"type":"model_output","provider":"claude-code","trace":"plan-0030","text":"{\"type\":\"assistant\",\"message\":..."}
-{"type":"model_output","provider":"raw","trace":"worker-leaf-task-0001","text":"Working on the task...\n"}
+```json
+{"level":"debug","type":"assistant","provider":"claude-code","trace":"exec-0042",
+ "timestamp":"...","text":"{\"type\":\"assistant\",\"message\":..."}
 ```
 
-The inner `text` is whatever the provider's stdout produced, byte-for-byte. Each renderer reads the outer envelope, finds the provider, and hands the inner `text` to `provider.ParseLine(...)` for display.
+```json
+{"level":"debug","type":"assistant","provider":"raw","trace":"worker-leaf-task-0001",
+ "timestamp":"...","text":"Working on the task...\n"}
+```
+
+The inner `text` is whatever the provider's stdout produced, byte-for-byte. Each renderer reads the outer envelope, finds the provider, and hands the inner text to `provider.ParseLine(...)` for display. Records without a `provider` field fall back to `claude-code`, which preserves every existing `.jsonl` on disk.
+
+Implementation:
+
+- `logging.Logger.ProviderStreamWriter(providerName string) io.Writer` is the new method. Returns a writer that tags records with both `type: "assistant"` (for compat) and `provider: <name>` (for routing).
+- `AssistantWriter()` stays, unchanged, forwarding to `ProviderStreamWriter("claude-code")`. There is no deprecation; it remains a legitimate API for callers that genuinely want the historical behavior. In-tree daemon call sites (`iteration.go`, `planning.go`, `stages.go`) switch to `ProviderStreamWriter(prov.Name())`.
+- `logrender.Record` gains a `Provider string` field. The reader at `internal/logrender/reader.go` populates it from the outer envelope if present, otherwise leaves it empty (renderers default empty to `claude-code`).
+- Renderers in `logrender/thoughts.go` and `logrender/interleaved.go` drop their local `extractThoughtText` parser and call `provider.Lookup(rec.Provider).ParseLine(rec.Text)` instead.
 
 ### TUI integration
 
-The TUI's `logview.go` `extractAssistantContent(raw string) string` becomes `formatByProvider(rec logrender.Record) string`:
+`internal/tui/detail/logview.go:extractAssistantContent(raw string) string` is replaced by `formatByProvider(rec logrender.Record) string`:
 
 ```go
 func formatByProvider(rec logrender.Record) string {
-    prov, ok := provider.Lookup(rec.Provider)
-    if !ok {
-        prov, _ = provider.Lookup("claude-code") // legacy fallback
+    name := rec.Provider
+    if name == "" {
+        name = "claude-code" // legacy fallback for pre-v0.7 records
     }
-    ev, err := prov.ParseLine(rec.Text)
-    if err != nil || ev == nil {
+    prov, ok := provider.Lookup(name)
+    if !ok {
         return rec.Text
     }
-    return renderEvent(ev) // existing icon/style logic
+    ev := prov.ParseLine(rec.Text)
+    if ev == nil {
+        return rec.Text
+    }
+    return renderEvent(ev) // existing icon/style logic, operates on Event
 }
 ```
 
-`renderEvent` keeps the current styling: tool_use → `[tool: name]`, tool_result → `[tool result] …`, thinking → `[thinking] …`, text → plain. The styling lives in the TUI and is provider-agnostic because it operates on `Event`, not raw strings.
+`renderEvent` keeps today's styling: `tool_use` → `[tool: name]`, `tool_result` → `[tool result] …`, `thinking` → `[thinking] …`, `text` → plain. It operates on `Event`, not on raw strings, so adding a new provider doesn't touch the TUI's rendering code.
 
-Mixed-provider sessions work because each log record names its provider. The TUI doesn't need to know which stage ran which model — it reads the provider off each record.
+**Mixed-provider sessions** work because each log record names its provider. The TUI never needs to know which stage ran which model — it reads the provider off each record.
 
 ### `internal/invoke` package fate
 
-Stays in place, shrunken:
+Concrete inventory:
 
-- **Removed** (moved to `internal/provider/claudecode/`): `FormatAssistantText`, `detectMarkers`, `detectLineMarker`, `Marker` constants, `MarkerStringXXX` constants.
-- **Deprecated with aliases** for v0.7: `Invoker`, `Result`, `LineCallback` become type aliases pointing at `provider.*` equivalents. `Simple` becomes a thin wrapper over `provider.Lookup("claude-code").Invoke(...)`.
-- **Kept as primitives**: `ProcessInvoker` (CLI spawn + stall timer), `procattr_unix.go`, `procattr_windows.go`, `terminal_*.go`, `RestoreTerminal`. These are CLI infrastructure that `claudecode` composes internally. Non-CLI providers don't import any of them.
-- **Removed entirely**: `RetryInvoker`. It's defined but never instantiated outside of its own tests (the daemon has its own retry loop in `daemon/retry.go`). v0.7 deletes it; tests that exercised `RetryInvoker` get rewritten to test the daemon's retry logic directly (where most of them belong anyway).
+| Symbol | Fate in v0.7 |
+|---|---|
+| `invoke.ProcessInvoker` | Stays. Internal primitive for CLI spawn + stall detection. Composed by `claudecode`. |
+| `invoke.Simple` | Stays as a thin wrapper over `provider.Lookup("claude-code").Invoke(...)` for test compatibility. Deprecation in v0.8. |
+| `invoke.LineCallback` | Stays as a type alias for `provider.LineCallback`. |
+| `invoke.Result` | Stays as a type alias for `provider.Result`. |
+| `invoke.Invoker` (interface) | Stays as a **distinct deprecated interface**. Cannot be a type alias because `provider.Provider` has different signatures and extra methods. Removed in v0.8. |
+| `invoke.FormatAssistantText` | Removed in Phase 3. Copied into `claudecode/parse.go` first (Phase 1), then deleted from `invoke` once the one caller (`cmd/unblock.go`) migrates (Phase 3). |
+| `invoke.Marker`, `MarkerStringXXX` constants | Removed in Phase 3. `provider.Marker` is the new source. |
+| `invoke.detectLineMarker`, `detectMarkers` | Removed in Phase 3. Logic folded into `claudecode/parse.go`. |
+| `invoke.RetryInvoker`, `NewRetryInvoker`, `RetryLogger` | **Deleted in Phase 3.** Defined but never instantiated outside its own tests; the daemon has its own retry loop at `daemon/retry.go:invokeWithRetry` which is the only production retry path. The unique feature of `RetryInvoker` (a separate `RetryLogger` interface) is already provided more directly by `daemon/retry.go`'s inline log calls. `retry_test.go` is deleted; anything it exercised that wasn't also covered in daemon tests becomes a daemon test. |
+| `invoke.procattr_unix.go`, `procattr_windows.go` | Stay. CLI infrastructure. |
+| `invoke.terminal_*.go`, `RestoreTerminal` | Stay. CLI infrastructure. |
 
-All the removals happen in phase 3 (see Migration). Aliasing preserves the old import paths through phase 3 so tests can be migrated file-by-file rather than in one atomic commit.
+**Non-CLI providers don't import `internal/invoke`.** `claudecode` composes `ProcessInvoker` internally for its CLI call. `raw` also composes `ProcessInvoker` (it's still a CLI provider, just one that doesn't parse output). A hypothetical future HTTP provider imports neither.
 
 ### Stream formats shipped
 
-- **`claude-code`**: parses Claude Code's stream-json envelopes. Returns `EventText` for `text` content blocks, `EventThinking` for `thinking` blocks, `EventToolUse` for `tool_use` blocks (with `ToolInput` as the raw JSON of `content[i].input`), `EventToolResult` for `tool_result` blocks. Unrecognized envelope types (`system`, `result`, unknown) return `EventRaw`. This is the current parser's behavior preserved exactly.
+- **`claude-code`**: parses Claude Code's stream-json envelopes. Returns `EventText` for `text` content blocks, `EventThinking` for `thinking` blocks, `EventToolUse` for `tool_use` blocks (with `ToolInput` as the raw JSON of `content[i].input`), `EventToolResult` for `tool_result` blocks. `tool_result.content` handling replicates the current logic in `tui/detail/logview.go:extractAssistantContent`: content may be either a plain string or an array of `{type: "text", text: "..."}` blocks; both shapes decode to the same `EventToolResult.ToolOutput`. Unrecognized envelopes (`system`, `result`, any unknown) return `EventRaw` with the original line in `Raw`. `Result.Summary` is populated from the `result` envelope's `.result` field if one appears in stdout (matching `invoke.FormatAssistantText`'s current behavior).
 
-- **`raw`**: `ParseLine` returns `&Event{Kind: EventText, Text: line, Raw: line}` for every non-blank line. No tool extraction, no thinking blocks, no envelope awareness. `ExtractText(line) == line`. Terminal-marker scanning works via substring match on the raw line, which is how the fallback path in the current `scanTerminalMarker` works when `extractAssistantText` returns empty.
+- **`raw`**: `ParseLine` returns `&Event{Kind: EventText, Text: line, Raw: line}` for every non-blank line. `ExtractText(line) == line`. No tool extraction, no thinking blocks, no envelope awareness. Terminal-marker scanning works via substring match on the raw line. **False-positive risk**: if a model echoes its prompt and the prompt contains `WOLFCASTLE_COMPLETE` as literal text (e.g., documentation strings), the marker scanner triggers early. Acceptable tradeoff for v0.7 — users of `raw` are running minimal bring-your-own-agent setups and can work around with stricter prompts. Documented in the `raw` provider's package doc.
 
 ### Test fake
 
-`internal/provider/testutil/fake.go` ships a `Fake` provider for use in daemon / TUI / logrender tests:
+`internal/provider/testutil/fake.go`:
 
 ```go
-// Fake is a programmable provider.Provider for tests. Callers set
-// fixed outputs and assert on captured calls.
+// Fake is a programmable Provider for tests. Import and inject
+// directly; it does not register with the global registry.
+//
+// Example:
+//
+//     fake := &testutil.Fake{
+//         Results: []*provider.Result{
+//             {Stdout: "WOLFCASTLE_COMPLETE\n", TerminalMarker: provider.MarkerComplete},
+//         },
+//     }
+//     d.runIteration(ctx, fake, provider.ModelSpec{}, nav, idx)
+//
 type Fake struct {
-    Results      []*provider.Result // popped in order per Invoke call
-    ParseFunc    func(line string) (*provider.Event, error)
-    ExtractFunc  func(line string) string
+    // Results are returned from successive Invoke calls, popped in
+    // FIFO order. A nil entry returns (nil, errors.New("fake: no
+    // results queued")).
+    Results []*provider.Result
 
-    // Capture
+    // ParseFunc, if set, overrides the default ParseLine. The default
+    // wraps every non-blank line in &Event{Kind: EventText, ...}.
+    ParseFunc func(line string) *provider.Event
+
+    // ExtractFunc, if set, overrides the default ExtractText. The
+    // default returns the line unchanged.
+    ExtractFunc func(line string) string
+
+    // Calls captures each invocation for post-assertion.
+    mu    sync.Mutex
     Calls []FakeCall
 }
 
 type FakeCall struct {
-    Spec   provider.ModelSpec
-    Prompt string
+    Spec    provider.ModelSpec
+    Prompt  string
+    WorkDir string
 }
 
-func (f *Fake) Name() string { return "fake" }
+func (f *Fake) Name() string                       { return "fake" }
 func (f *Fake) Invoke(...) (*provider.Result, error) { ... }
-func (f *Fake) ParseLine(line string) (*provider.Event, error) { ... }
-func (f *Fake) ExtractText(line string) string { ... }
+func (f *Fake) ParseLine(line string) *provider.Event { ... }
+func (f *Fake) ExtractText(line string) string      { ... }
 ```
 
-`Fake` is registered only in test builds (behind a `// +build testfake` or equivalent mechanism). Daemon tests that currently build a `ModelDef{Command: ..., Args: ...}` literal and rely on a mock CLI will be rewritten to inject a `Fake` provider directly, removing the shell-out from test paths and speeding up the daemon suite.
+Three existing mock invokers collapse into `testutil.Fake` during Phase 3:
+
+- `cmd/unblock_interactive_test.go:fakeInvoker` (8 test cases)
+- `cmd/doctor_invoker_test.go:mockInvoker` (8 test cases)
+- `cmd/audit/codebase_invoker_test.go:mockInvoker` (5 test cases)
+
+Each of those files currently reimplements the same "record calls, return canned results" pattern against `invoke.Invoker`. Phase 3 rewrites them as thin wrappers around `testutil.Fake` injected as a `provider.Provider`. The daemon's existing test-helper functions (`testDaemon`, `testConfig`, etc. in `internal/daemon/daemon_test.go`) do not carry an `Invoker` field on `Daemon` — invocation is threaded through call parameters — so the helpers themselves need minimal changes.
 
 ## Backwards compatibility
 
-- **Configs without `provider`**: default to `claude-code`, informational warning on load, behavior unchanged.
-- **Existing `config.ModelDef{Command: ..., Args: ...}` test literals** (29 sites across `internal/` + `cmd/`, enumerated below): each gains `Provider: "claude-code"` explicitly. Many will simultaneously migrate to injecting a `*testutil.Fake` instead of shelling out. Phase 3 does this mechanically; compiler-verified.
-- **`invoke.Invoker`, `invoke.Result`, `invoke.LineCallback`** remain as type aliases through v0.7 so external/downstream code (if any — wolfcastle has no published importers) compiles unchanged.
-- **`invoke.Simple`** remains as a thin shim: `provider.Lookup("claude-code").Invoke(ctx, provider.ModelSpec{Command: model.Command, Args: model.Args}, prompt, workDir, nil, nil)`.
-- **On-disk log records**: existing `.jsonl` files with `"type":"assistant"` (no `provider` field) continue to render correctly — the TUI / logrender falls back to `claude-code` when the field is missing. The migration doesn't require rewriting old logs.
+- **Configs without `provider`**: default to `claude-code`. One aggregated warning per config on load. Behavior unchanged.
+- **`config.ModelDef{Command: ..., Args: ...}` literals**: non-test sources have **7 occurrences** (Agent A audit). Test sources have many more — Agent B counted ~146 files touching `ModelDef`. Phase 2 adds the `Provider` field where missing, all compiler-verified. The test-side work is tedious but mechanical, done file-by-file as Phase 3 migrates each consumer.
+- **`invoke.Invoker`, `invoke.Result`, `invoke.LineCallback`, `invoke.Simple`**: remain through v0.7. `Result` and `LineCallback` are type aliases; `Invoker` is a distinct interface (alias impossible); `Simple` is a shim. All four removed in v0.8.
+- **On-disk `.jsonl` logs** from v0.6.x continue to render correctly: records without a `provider` field fall back to `claude-code` in all renderers.
+- **External jq/tailer scripts** keyed on `.type == "assistant"` keep working because the outer envelope tag is unchanged.
 
 ## Migration plan
 
-Five phases, each a separate PR against `release/0.7`. Phase numbering is the same throughout this spec (no 5-vs-7 confusion).
+Five phases, one PR each, all against `release/0.7`.
 
-### Phase 1 — Interface + registry + `claudecode` (no daemon changes)
-- New package `internal/provider` with `Provider`, `Event`, `Result`, `Marker`, `ModelSpec`, `LineCallback`, `Registry` API.
-- New subpackage `internal/provider/claudecode` wrapping current `ProcessInvoker` logic and lifting `FormatAssistantText` / `detectLineMarker` into a single `parse.go`.
-- Daemon and existing call sites unchanged; they still import `internal/invoke`. Zero behavioral change.
-- Full test coverage for `claudecode.ParseLine` / `ExtractText` mirroring the existing `invoke.FormatAssistantText` test cases.
+### Phase 1 — interface + `claudecode` (no daemon changes)
+- New package `internal/provider` with `Provider`, `Event`, `Result`, `Marker`, `ModelSpec`, `LineCallback`, registry API.
+- New subpackage `internal/provider/claudecode` with `claudecode.go` (composing `invoke.ProcessInvoker`) and `parse.go` (**copies**, not moves, `FormatAssistantText`/`detectLineMarker` logic plus the `tool_result`-string-or-array handling from `logview.go`). The original `invoke.FormatAssistantText` stays in place with its single caller, marked as deprecated.
+- Consistency test helper `provider.TestConsistency(t, p)` that verifies `ExtractText(line) == ParseLine(line).Text` for every `EventText` case across a shared corpus of lines. Both `claudecode` and (in Phase 5) `raw` must pass it.
+- `internal/provider/all.go` imports `claudecode`.
+- Daemon and existing call sites untouched. Zero behavioral change.
 
-### Phase 2 — Config field + validation + test fake
-- `ModelDef.Provider` field with defaulting in `config.Load()`.
+### Phase 2 — config field + validation + test fake (dormant)
+- `ModelDef.Provider` field with defaulting in `config.Load()` and one aggregated warning.
 - `UNKNOWN_PROVIDER` validation category in `internal/validate`; `wolfcastle doctor` reports it.
-- `internal/provider/testutil.Fake` ships and is usable from tests.
-- Daemon tests that currently build a `ModelDef` literal get the `Provider: "claude-code"` field mechanically. Still no runtime behavior change.
+- `internal/provider/testutil.Fake` ships, with no registry side effects. It's usable from tests but nothing injects it yet — the daemon entry points still take `invoke.Invoker`. Phase 3 wires it in.
+- Test fixtures (source + tests) that construct `ModelDef{Command: ..., Args: ...}` literals get the `Provider: "claude-code"` field added. Compiler-verified.
 
-### Phase 3 — Daemon runtime through `Provider`
+### Phase 3 — daemon runtime through `Provider`
 - `runIteration`, `runPlanningPass`, `invokeWithRetry`, `TryModelAssistedFix` swap `invoke.Invoker` + `config.ModelDef` for `provider.Provider` + `provider.ModelSpec`.
 - `scanTerminalMarker` in `iteration.go` delegates per-line text extraction to `provider.ExtractText`.
-- `cmd/unblock.go` and `cmd/cmdutil/app.go` migrate; `App.Invoker` becomes `App.Provider`.
-- `invoke.Simple` stays as a deprecated shim. `RetryInvoker` is deleted and its tests are either deleted or rewritten against the daemon's retry loop.
-- Daemon tests continue to pass; any that still used `ModelDef` literals with mocked CLIs are rewritten to inject `testutil.Fake`.
+- `cmd/unblock.go`, `cmd/doctor.go`, `cmd/cmdutil/app.go` migrate. `App.Invoker` becomes `App.Provider`.
+- `invoke.FormatAssistantText`, `invoke.Marker*`, `invoke.detectLineMarker`, `invoke.detectMarkers` deleted (they now live in `claudecode/parse.go`).
+- `invoke.RetryInvoker` deleted. Its test file (`retry_test.go`) is deleted; its unique coverage is already in `daemon/retry_test.go`.
+- Three existing mock invokers (`fakeInvoker`, `mockInvoker` × 2) rewritten as wrappers around `testutil.Fake`.
+- 18 `invoke.FormatAssistantText` call sites in `cmd/daemon/follow_test.go` migrate to `provider.Lookup("claude-code").ParseLine(...).Text`.
 
-### Phase 4 — Logging + log rendering + TUI through `Provider`
-- `logging.Logger.ProviderStreamWriter(providerName)` ships. `AssistantWriter()` is deprecated to a thin wrapper.
-- Daemon call sites in `iteration.go`, `planning.go`, `stages.go` (three files) switch from `d.Logger.AssistantWriter()` to `d.Logger.ProviderStreamWriter(prov.Name())`.
-- Log records on disk gain a `provider` field. `logrender.Record` gets a `Provider` field populated from that.
-- `logrender/thoughts.go` and `logrender/interleaved.go` drop their local `extractThoughtText` parsers and call `provider.Lookup(rec.Provider).ParseLine(rec.Text)` instead. Both renderers consume `Event.Text`.
-- `tui/detail/logview.go` migrates `extractAssistantContent` → `formatByProvider` per the design above.
-- Full acceptance test pass: `teatest` scripts covering the log modal under `claude-code`.
+### Phase 4 — log record field + renderers + TUI
+- `logging.Logger.ProviderStreamWriter(providerName)` ships.
+- Daemon call sites in `iteration.go`, `planning.go`, `stages.go` switch from `d.Logger.AssistantWriter()` to `d.Logger.ProviderStreamWriter(prov.Name())`.
+- Log records gain a `provider` field alongside the historical `type: "assistant"`.
+- `logrender.Record` gains a `Provider string` field; the reader populates it from the outer envelope.
+- `logrender/thoughts.go` and `logrender/interleaved.go` drop their local `extractThoughtText` parser and call `provider.Lookup(rec.Provider).ParseLine(rec.Text)`.
+- `tui/detail/logview.go` migrates `extractAssistantContent` → `formatByProvider`.
+- No on-disk format break: the outer `type` stays `"assistant"`, scripting consumers keep working.
+- TUI acceptance test pass (`teatest`): log modal renders text, tool_use, tool_result, thinking correctly under claude-code.
 
-### Phase 5 — `raw` provider + live smoke test
-- `internal/provider/raw` ships with unit tests.
-- Daemon integration test under `raw`: a mock CLI emits a fixed plain-text sequence ending in `WOLFCASTLE_COMPLETE`, runs through a full iteration, and the daemon commits. No stream-json involved.
-- Live smoke test with a real non-Claude model (target: `ollama run llama3:70b` with a trivial one-task project). Any issue found at this stage is a bug report against an earlier phase, not a new feature.
-- README and `docs/humans/configuration.md` updated to describe providers, `claude-code` as default, `raw` as fallback. CHANGELOG entry.
-- Finally, `release/0.7` opens its PR into `main` and the combined 0.7 → v0.7.0 release gets cut.
+### Phase 5 — `raw` provider + live smoke
+- `internal/provider/raw` ships with unit tests and passes `provider.TestConsistency`.
+- `internal/provider/all.go` imports `raw`.
+- Daemon integration test under `raw`: mock shell script emits plain text ending in `WOLFCASTLE_COMPLETE`, iteration completes, daemon commits.
+- Live smoke test: real wolfcastle project end-to-end with `raw` + `ollama run llama3:70b`. Success criterion: one leaf task completes, state propagates, TUI log modal shows output. Failure is a blocker.
+- README and `docs/humans/configuration.md` updated. CHANGELOG entry.
+- `release/0.7` opens its PR into `main`, combined 0.7 → v0.7.0 release is cut.
 
 ## Risks
 
-- **Test fixture churn**: 29 sites (internal + cmd, non-test) reference `ModelDef{}` literals; considerably more test files (estimate ~45-50 based on `grep -l ModelDef{ **/*_test.go`) will need updates during Phase 2/3. Compiler-verified, mechanical, but tedious. Mitigation: land the `testutil.Fake` in Phase 2 before the migration starts, so Phase 3 edits swap shell-out mocks for `Fake` at the same time.
-- **Event type drift**: once renderers consume `Event` instead of raw strings, adding a new event type (say, `EventImage` for multimodal models) is a cross-cutting change. Mitigation: keep `Event.Raw` always populated so a renderer that doesn't know about a new kind can still fall back to displaying the raw line.
-- **`invoke.Simple` users in downstream code**: wolfcastle has no known external importers today, but the public surface should stay stable through 0.7 in case. Type aliases + shim keep compatibility. v0.8 can remove.
-- **Double-envelope brittleness**: the outer `type=model_output` + inner provider-native JSON means every tool that tails `.jsonl` files still has to parse two layers. Normalizing the on-disk format (writing `Event`s directly instead of raw provider output) is tempting but would be a breaking change to the log format and require a data migration. v0.7 keeps the double envelope; a normalized format can be its own v0.8 spec if motivated.
-- **`RetryInvoker` deletion**: theoretically could break an external caller, though there is none inside the repo. If concern arises, keep the type and stub its implementation to delegate to the daemon's retry logic. Default plan is deletion.
+- **Test migration scope underestimation.** Agent B counted ~146 files referencing `ModelDef{}` across tests — Phase 2 and Phase 3 touch every one. All compiler-verified and mechanical, but it's real hours. Mitigation: land `testutil.Fake` in Phase 2, so Phase 3 file-by-file migration swaps shell-out mocks for `Fake` at the same time it adds the `Provider` field.
+- **`follow_test.go` as a hot spot.** 18 call sites to `invoke.FormatAssistantText` in one file. Migration is a mechanical replace-all but should ship as a single commit so reviewers can verify.
+- **`ExtractText` / `ParseLine` drift.** Two methods that must agree on text content. Mitigated by `provider.TestConsistency`, which every provider must call in its `_test.go`. If we're paranoid, add a reflection-based test at the `provider` package level that asserts every registered provider passes consistency, running in CI.
+- **Concurrent `Invoke` on a singleton.** `claudecode` is safe because each call spawns its own subprocess. Any future HTTP provider must declare itself safe for concurrent use or the daemon will break it. The interface comment is explicit; CI adds a smoke test that launches two parallel goroutines calling `claudecode.Invoke` against a mock CLI.
+- **`raw` false-positive markers.** A chatty model echoing its prompt can trip `WOLFCASTLE_COMPLETE` matching. Documented in `raw`'s package doc; users of `raw` pick their prompt carefully or use `claude-code`.
+- **Phase 4 rollback is clean.** The outer envelope stays `type: "assistant"`; only a new `provider` field is added. Rollback means reverting the Phase 4 commit, and pre-rollback logs still render (the new field is ignored, renderers default to claude-code). No data corruption risk.
+- **Event drift on future kinds.** Multimodal models (images, audio, video) add event shapes we haven't modeled. Mitigation: `Event.Raw` is always populated, so renderers that don't know a new kind fall back to displaying the raw line. New kinds are additive; no renderer breaks.
+- **Config hot-reload is not supported** for provider changes. Editing `provider` in a model mid-daemon requires a restart. This is consistent with all other config fields (models, prompts, planning) — wolfcastle has no hot-reload story in general. State in `docs/humans/configuration.md`.
 
 ## Verification
 
-1. **Unit tests per provider.** Each subpackage has a `_test.go` covering `ParseLine` happy/empty/malformed cases, `ExtractText` accuracy, marker detection, and tool-use round-trips (claude-code only).
-2. **Registry round-trip test.** `TestLookup_ReturnsSameInstance`: confirms `provider.Lookup("claude-code")` returns the identical singleton across calls. `TestLookup_UnknownProvider`: confirms unknown names return `(nil, false)`. `TestRegister_Duplicate_Panics`.
-3. **Config resolution test.** `TestConfigLoad_DefaultsEmptyProvider`: a config with no `provider` field loads with `provider="claude-code"` and an informational warning. `TestConfigLoad_UnknownProvider_Errors`: a config with `provider="oxnard"` fails to load with a clear error naming valid providers.
-4. **Daemon integration tests.** The existing `TestDaemon_ExploratoryReview_CreatesRemediationLeaf` continues to pass unchanged (runs under `claude-code`). A new `TestDaemon_RawProvider_CompletesTask` runs the same daemon loop under `raw` with a shell-script mock model. Both use `testutil.Fake` where possible to avoid spawning subprocesses.
-5. **TUI acceptance tests.** `teatest` scripts verify the log modal renders text, tool_use, tool_result, and thinking events correctly under `claude-code`, and renders opaque text under `raw`. A mixed-provider session test confirms the TUI dispatches per-record based on the `provider` field.
-6. **Migration smoke test.** Load a v0.6.x config (no `provider` field) and confirm startup logs the defaulting warning, the daemon runs one task, and the log file carries `"provider":"claude-code"` records.
-7. **Live test with ollama.** The final pre-merge step is a real wolfcastle project run end-to-end with `raw` pointed at `ollama run <some-small-model>`. Success criterion: one leaf task completes, state propagates, the TUI log modal shows the model's output as plain text. Failure is a blocker for the 0.7.0 merge.
+1. **Unit tests per provider.** `claudecode_test.go` and `raw_test.go` cover `ParseLine` (happy, empty, malformed, tool_use, tool_result as string and array), `ExtractText`, marker detection, and `Invoke` with a mock CLI. Both call `provider.TestConsistency(t, p)`.
+2. **Registry tests.** `TestLookup_ReturnsSingleton`, `TestLookup_UnknownProvider`, `TestRegister_Duplicate_Panics`, `TestNames_Alphabetical`.
+3. **Config resolution tests.** `TestConfigLoad_DefaultsEmptyProvider`, `TestConfigLoad_AggregatedWarning`, `TestConfigLoad_UnknownProvider_Errors`.
+4. **Daemon integration tests.** Existing `TestDaemon_ExploratoryReview_CreatesRemediationLeaf` passes unchanged under `claude-code`. New `TestDaemon_RawProvider_CompletesTask` runs the daemon loop under `raw` with a shell-script mock model; both use `testutil.Fake` where possible.
+5. **Concurrent invocation test.** `TestClaudeCode_Invoke_Concurrent` launches N goroutines calling `Invoke` on the singleton and asserts each completes with its own Result, no crosstalk.
+6. **TUI acceptance tests.** `teatest` scripts verify the log modal under `claude-code` (text, tool_use, tool_result, thinking), `raw` (opaque text), and a **mixed-provider** session confirming per-record dispatch.
+7. **Log backwards-compat test.** Load a v0.6.x-style `.jsonl` (no `provider` field) into `logrender`, confirm every record renders via the `claude-code` fallback, nothing drops, no errors.
+8. **Scripting-user contract test.** A small test reads a v0.7-era log file with `jq '.type == "assistant"'` and confirms the result count matches the number of model-output records. This pins the scripting contract we committed to preserving.
+9. **Live ollama smoke.** Final pre-merge step: real project, real ollama binary, one leaf task completes. Failure blocks the v0.7.0 merge.
 
 ## Implementation sequence
 
-Matches the Migration Plan above 1:1. This section reiterates for readers skipping to the bottom:
+Matches Migration Plan 1:1. Phase numbering is consistent throughout the spec.
 
-1. **Phase 1**: `internal/provider` + `claudecode` + tests. No daemon changes.
-2. **Phase 2**: `ModelDef.Provider` field, defaulting, validation, `UNKNOWN_PROVIDER`, `testutil.Fake`.
-3. **Phase 3**: Daemon runtime migration (`runIteration`, `runPlanningPass`, `invokeWithRetry`, `TryModelAssistedFix`, `cmd/unblock.go`, `cmd/cmdutil/app.go`). `invoke.RetryInvoker` deleted. `invoke.Simple` shimmed.
-4. **Phase 4**: `ProviderStreamWriter`, outer log envelope rename, `logrender` + `tui/detail/logview.go` migration, TUI acceptance tests.
-5. **Phase 5**: `raw` provider, daemon test under `raw`, live ollama smoke, docs, CHANGELOG, PR into main, tag v0.7.0.
+1. **Phase 1**: `internal/provider` + `claudecode` + `provider.TestConsistency`. No daemon changes.
+2. **Phase 2**: `ModelDef.Provider` + defaulting + aggregated warning + `UNKNOWN_PROVIDER` validation + `testutil.Fake` (dormant).
+3. **Phase 3**: daemon runtime migration (`runIteration`, `runPlanningPass`, `invokeWithRetry`, `TryModelAssistedFix`, `cmd/unblock.go`, `cmd/doctor.go`, `cmd/cmdutil/app.go`). `invoke.RetryInvoker`, `FormatAssistantText`, `Marker*`, `detectLineMarker`, `detectMarkers` deleted. Three mock invokers collapse into `Fake`.
+4. **Phase 4**: `ProviderStreamWriter` + `logrender.Record.Provider` field + `logrender` renderers + `tui/detail/logview.go` migration. Outer envelope unchanged; `provider` field added. TUI acceptance tests.
+5. **Phase 5**: `raw` provider + `all.go` adds `raw` import + daemon integration test + live ollama smoke + docs + CHANGELOG + PR into main + tag v0.7.0.
