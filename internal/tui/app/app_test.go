@@ -1260,7 +1260,7 @@ func TestDaemonStartFailedNotFoundError(t *testing.T) {
 	}
 }
 
-func TestDaemonStartFailedPrefersStderr(t *testing.T) {
+func TestDaemonStartFailedDirtyTreeOpensModal(t *testing.T) {
 	m := newColdModel(t)
 	m.activeTab().DaemonStarting = true
 	result, _ := m.Update(tui.DaemonStartFailedMsg{
@@ -1268,15 +1268,53 @@ func TestDaemonStartFailedPrefersStderr(t *testing.T) {
 		Stderr: "Error: aborted: commit or stash changes first\n",
 	})
 	model := toModel(t, result)
-	if !model.notify.HasToasts() {
-		t.Fatal("expected a toast for the failure")
+	// A dirty-tree failure routes into the confirmation modal, not a
+	// toast, so the user has an affordance to proceed with --allow-dirty.
+	if model.notify.HasToasts() {
+		t.Errorf("dirty-tree failure should not surface as a toast, got: %q", model.notify.View())
 	}
-	view := model.notify.View()
-	if !strings.Contains(view, "Uncommitted changes") {
-		t.Errorf("toast should mention uncommitted changes, got: %q", view)
+	if model.activeModal != ModalDaemon {
+		t.Fatalf("expected ModalDaemon to be active, got %v", model.activeModal)
 	}
-	if strings.Contains(view, "exit status 1") {
-		t.Errorf("should not surface bare exit code when stderr is available, got: %q", view)
+	if model.daemonModal.action != "dirty-start" {
+		t.Errorf("expected daemonModal action 'dirty-start', got %q", model.daemonModal.action)
+	}
+}
+
+func TestDaemonStartFailedDirtyTreeConfirmRetriesWithAllowDirty(t *testing.T) {
+	m := newColdModel(t)
+	m.activeTab().DaemonStarting = true
+	result, _ := m.Update(tui.DaemonStartFailedMsg{
+		Err:    fmt.Errorf("exit status 1"),
+		Stderr: "Error: aborted: commit or stash changes first\n",
+	})
+	model := toModel(t, result)
+	if model.activeModal != ModalDaemon || model.daemonModal.action != "dirty-start" {
+		t.Fatalf("expected dirty-start modal after failure, got action=%q activeModal=%v", model.daemonModal.action, model.activeModal)
+	}
+	// Pressing Enter confirms → DaemonDirtyConfirmedMsg → closeModal + startDaemonWithFlags(true).
+	result, cmd := model.Update(keyMsg("enter"))
+	model = toModel(t, result)
+	if cmd == nil {
+		t.Fatal("expected a command from Enter confirmation")
+	}
+	msg := cmd()
+	if _, ok := msg.(tui.DaemonDirtyConfirmedMsg); !ok {
+		t.Fatalf("expected DaemonDirtyConfirmedMsg from modal confirm, got %T", msg)
+	}
+	// Feed the confirm back in; the app should close the modal and
+	// emit the start command with --allow-dirty. We can't exec
+	// a daemon in-process, so we just assert the state transition.
+	result, cmd = model.Update(msg)
+	model = toModel(t, result)
+	if model.activeModal != ModalNone {
+		t.Errorf("modal should be closed after dirty confirm, got %v", model.activeModal)
+	}
+	if !model.activeTab().DaemonStarting {
+		t.Errorf("tab should be marked DaemonStarting after confirm retry")
+	}
+	if cmd == nil {
+		t.Error("expected a command to start the daemon with --allow-dirty")
 	}
 }
 

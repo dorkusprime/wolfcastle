@@ -615,11 +615,28 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.header.SetLoading(false)
 		m.header.SetStatusHint("")
-		raw := strings.TrimSpace(msg.Stderr)
-		if raw == "" && msg.Err != nil {
-			raw = msg.Err.Error()
+		// Keep the raw stderr around for substring probes — the dirty
+		// tree preamble is printed to stdout but we capture both
+		// streams into this field. Sanitization only runs for the
+		// toast path so error detection still sees the uncollapsed text.
+		rawFull := msg.Stderr
+		if rawFull == "" && msg.Err != nil {
+			rawFull = msg.Err.Error()
 		}
-		raw = sanitizeErrorLine(raw)
+		// Dirty-tree path: open a confirmation modal instead of a
+		// toast so the user has an affordance to proceed. The CLI's
+		// dirty-tree warning goes to stdout and ends with the "aborted:
+		// commit or stash changes first" error on stderr; either
+		// signal is enough to route into the modal.
+		if strings.Contains(rawFull, "uncommitted changes") || strings.Contains(rawFull, "commit or stash changes first") {
+			if tab != nil {
+				detail := extractDirtyTreeDetail(rawFull)
+				m.daemonModal.OpenDirty(tab.WorktreeDir, detail)
+				m.activeModal = ModalDaemon
+			}
+			return m, tea.Batch(cmds...)
+		}
+		raw := sanitizeErrorLine(strings.TrimSpace(rawFull))
 		var toastText string
 		switch {
 		case strings.Contains(raw, "already running"), strings.Contains(raw, "lock"):
@@ -628,14 +645,17 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			toastText = "No project found. Run wolfcastle init."
 		case strings.Contains(raw, "identity not configured"):
 			toastText = "Identity not configured. Run wolfcastle init."
-		case strings.Contains(raw, "uncommitted changes"), strings.Contains(raw, "commit or stash"):
-			toastText = "Uncommitted changes. Commit or stash first."
 		case raw == "":
 			toastText = "Daemon failed to start."
 		default:
 			toastText = "Daemon failed to start: " + raw
 		}
 		cmds = append(cmds, m.notify.Push(toastText))
+		return m, tea.Batch(cmds...)
+
+	case tui.DaemonDirtyConfirmedMsg:
+		m.closeModal()
+		cmds = append(cmds, m.startDaemonWithFlags(true))
 		return m, tea.Batch(cmds...)
 
 	case tui.DaemonStoppedMsg:
@@ -1496,6 +1516,35 @@ func (m *TUIModel) appendError(filename, message string) {
 // line so it can't blow up the error bar's height (which is what made
 // the panes collapse on repeated start failures). Trailing context past
 // a reasonable cap is dropped.
+// extractDirtyTreeDetail pulls the git-status summary out of the
+// CLI's dirty-tree warning so the modal can show the user which files
+// would be swept into the first commit. The CLI prints the summary on
+// a line immediately after "The working tree has uncommitted changes:",
+// so we grab everything between that header and the first blank line.
+func extractDirtyTreeDetail(raw string) string {
+	const header = "The working tree has uncommitted changes:"
+	idx := strings.Index(raw, header)
+	if idx < 0 {
+		return ""
+	}
+	tail := raw[idx+len(header):]
+	// Drop the leading newline(s) after the header.
+	tail = strings.TrimLeft(tail, "\r\n")
+	// Stop at the first blank line — the CLI follows the summary with
+	// explanation text and option bullets we don't want to duplicate
+	// in the modal body.
+	if end := strings.Index(tail, "\n\n"); end >= 0 {
+		tail = tail[:end]
+	}
+	detail := strings.TrimSpace(tail)
+	const maxLines = 8
+	lines := strings.Split(detail, "\n")
+	if len(lines) > maxLines {
+		lines = append(lines[:maxLines], fmt.Sprintf("… and %d more", len(lines)-maxLines))
+	}
+	return strings.Join(lines, "\n")
+}
+
 func sanitizeErrorLine(s string) string {
 	s = strings.ReplaceAll(s, "\r\n", " ")
 	s = strings.ReplaceAll(s, "\n", " ")
@@ -1651,6 +1700,15 @@ func (m *TUIModel) handleToggleDaemon() tea.Cmd {
 }
 
 func (m *TUIModel) startDaemon() tea.Cmd {
+	return m.startDaemonWithFlags(false)
+}
+
+// startDaemonWithFlags spawns `wolfcastle start -d`, optionally with
+// `--allow-dirty` when the user confirmed the dirty-tree modal. The
+// allowDirty path exists because `start -d` is detached: its parent
+// process can't answer an interactive y/N prompt, so a dirty tree
+// otherwise produces a silent exit and an empty daemon.log tail.
+func (m *TUIModel) startDaemonWithFlags(allowDirty bool) tea.Cmd {
 	tab := m.activeTab()
 	if tab == nil {
 		return nil
@@ -1664,14 +1722,20 @@ func (m *TUIModel) startDaemon() tea.Cmd {
 		if err != nil {
 			exe = "wolfcastle"
 		}
-		cmd := exec.Command(exe, "start", "-d")
+		args := []string{"start", "-d"}
+		if allowDirty {
+			args = append(args, "--allow-dirty")
+		}
+		cmd := exec.Command(exe, args...)
 		cmd.Dir = dir
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
+		var stdout bytes.Buffer
+		cmd.Stdout = &stdout
 		if runErr := cmd.Run(); runErr != nil {
 			return tui.DaemonStartFailedMsg{
 				Err:    runErr,
-				Stderr: stderr.String(),
+				Stderr: stderr.String() + stdout.String(),
 			}
 		}
 		instances, _ := instance.List()

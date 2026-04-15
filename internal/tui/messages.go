@@ -172,6 +172,12 @@ type AddInboxItemCmd struct {
 // DaemonConfirmedMsg signals that the user confirmed a daemon action in a modal dialog.
 type DaemonConfirmedMsg struct{}
 
+// DaemonDirtyConfirmedMsg signals that the user confirmed the dirty-tree
+// start prompt in a modal dialog. The app responds by re-invoking
+// startDaemonWithFlags(allowDirty=true) so the detached `start -d`
+// process skips its interactive y/N prompt.
+type DaemonDirtyConfirmedMsg struct{}
+
 // ToastMsg requests that a transient notification toast be displayed.
 type ToastMsg struct {
 	Text string

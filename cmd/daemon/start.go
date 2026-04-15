@@ -48,6 +48,7 @@ Examples:
 			worktreeBranch, _ := cmd.Flags().GetString("worktree")
 			verbose, _ := cmd.Flags().GetBool("verbose")
 			exitWhenDone, _ := cmd.Flags().GetBool("exit-when-done")
+			allowDirty, _ := cmd.Flags().GetBool("allow-dirty")
 
 			if err := resolveInstance(cmd, app); err != nil {
 				return err
@@ -114,13 +115,21 @@ Examples:
 					output.PrintHuman("The daemon commits code and state together after each task.")
 					output.PrintHuman("These changes will be included in the first commit.")
 					output.PrintHuman("")
-					output.PrintHuman("Options:")
-					output.PrintHuman("  1. Commit or stash your changes, then restart")
-					output.PrintHuman("  2. Disable auto-commit: wolfcastle config set git.auto_commit false")
-					output.PrintHuman("  3. Continue anyway (your changes will be committed with the first task)")
-					output.PrintHuman("")
-					if !confirmContinue() {
-						return fmt.Errorf("aborted: commit or stash changes first")
+					if allowDirty {
+						// Non-interactive bypass. The TUI uses this flag
+						// after confirming through its own modal; the
+						// daemon still prints the warning so background
+						// daemon.log has a record of what was swept in.
+						output.PrintHuman("Continuing anyway (--allow-dirty). Uncommitted changes will be included in the first commit.")
+					} else {
+						output.PrintHuman("Options:")
+						output.PrintHuman("  1. Commit or stash your changes, then restart")
+						output.PrintHuman("  2. Disable auto-commit: wolfcastle config set git.auto_commit false")
+						output.PrintHuman("  3. Continue anyway (your changes will be committed with the first task)")
+						output.PrintHuman("")
+						if !confirmContinue() {
+							return fmt.Errorf("aborted: commit or stash changes first")
+						}
 					}
 				}
 			}
