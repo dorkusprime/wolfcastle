@@ -49,6 +49,8 @@ if echo "$PROMPT" | grep -q "Completion Review" 2>/dev/null; then
         # First review: emit CONTINUE to test the review pass increment.
         # Then stop, since we didn't create actual remediation work.
         printf '{"type":"assistant","text":"Found quality issue."}\n'
+        printf '{"type":"assistant","text":"WOLFCASTLE_KNOWLEDGE: Integration-test pattern: mock scripts must seed a review counter file."}\n'
+        printf '{"type":"assistant","text":"WOLFCASTLE_KNOWLEDGE: Success criteria are required for completion_review to fire."}\n'
         printf '{"type":"result","text":"WOLFCASTLE_CONTINUE"}\n'
         touch "$STOP_FILE"
     else
@@ -109,5 +111,34 @@ fi
 	}
 	if count := strings.TrimSpace(string(data)); count != "1" {
 		t.Errorf("expected 1 completion review, got %s", count)
+	}
+
+	// Verify the knowledge entries emitted during phase D were persisted.
+	// The daemon's persistKnowledgeEntries parses WOLFCASTLE_KNOWLEDGE: lines
+	// from the completion_review output and appends them to the project's
+	// knowledge file — exercising the structured capture path that
+	// replaced the model-invoked `wolfcastle knowledge add` CLI call.
+	knowledgeDir := filepath.Join(dir, ".wolfcastle", "docs", "knowledge")
+	knowledgeFiles, err := os.ReadDir(knowledgeDir)
+	if err != nil {
+		t.Fatalf("reading knowledge dir: %v", err)
+	}
+	if len(knowledgeFiles) == 0 {
+		t.Fatal("expected at least one knowledge file after completion_review")
+	}
+	var combined strings.Builder
+	for _, kf := range knowledgeFiles {
+		body, readErr := os.ReadFile(filepath.Join(knowledgeDir, kf.Name()))
+		if readErr != nil {
+			t.Fatalf("reading knowledge file %s: %v", kf.Name(), readErr)
+		}
+		combined.Write(body)
+	}
+	content := combined.String()
+	if !strings.Contains(content, "mock scripts must seed a review counter file") {
+		t.Errorf("first knowledge entry missing from file:\n%s", content)
+	}
+	if !strings.Contains(content, "Success criteria are required for completion_review to fire") {
+		t.Errorf("second knowledge entry missing from file:\n%s", content)
 	}
 }

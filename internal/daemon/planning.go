@@ -7,6 +7,7 @@ import (
 
 	"github.com/dorkusprime/wolfcastle/internal/config"
 	"github.com/dorkusprime/wolfcastle/internal/invoke"
+	"github.com/dorkusprime/wolfcastle/internal/knowledge"
 	"github.com/dorkusprime/wolfcastle/internal/pipeline"
 	"github.com/dorkusprime/wolfcastle/internal/state"
 )
@@ -310,6 +311,14 @@ func (d *Daemon) runPlanningPass(ctx context.Context, nodeAddr string, ns *state
 			}
 			return nil
 		})
+		// Exploratory review knowledge capture. The plan-review prompt
+		// emits WOLFCASTLE_KNOWLEDGE: <entry> lines for pattern-level
+		// findings that future work should avoid. Persist those directly
+		// so the loop does not rely on the model remembering to shell
+		// out to `wolfcastle knowledge add`.
+		if trigger == "completion_review" {
+			d.persistKnowledgeEntries(nodeAddr, result.Stdout)
+		}
 
 	default:
 		_ = d.Logger.Log(map[string]any{
@@ -335,6 +344,64 @@ func selectPlanningPrompt(trigger string) string {
 		return "stages/plan-review.md"
 	default:
 		return "stages/plan-initial.md"
+	}
+}
+
+// persistKnowledgeEntries extracts WOLFCASTLE_KNOWLEDGE: markers from a
+// completion_review model output and appends each one to the project's
+// knowledge file. The caller is responsible for only invoking this on
+// the completion_review trigger, since knowledge capture is the Phase D
+// loop's channel for turning findings into durable checks.
+//
+// Failures on individual entries (budget exceeded, write error) are
+// logged as structured events but never break the planning pass: the
+// worst-case is a lost knowledge entry, which is strictly better than
+// the model's silent-shell-command behavior this replaces.
+func (d *Daemon) persistKnowledgeEntries(nodeAddr, output string) {
+	entries := scanKnowledgeEntries(output)
+	if len(entries) == 0 {
+		return
+	}
+
+	namespace := d.namespace()
+	if namespace == "" {
+		_ = d.Logger.Log(map[string]any{
+			"type":    "knowledge_add_error",
+			"node":    nodeAddr,
+			"reason":  "no identity namespace configured",
+			"skipped": len(entries),
+		})
+		return
+	}
+
+	budget := d.Config.Knowledge.MaxTokens
+	for _, entry := range entries {
+		if budget > 0 {
+			if err := knowledge.CheckBudget(d.WolfcastleDir, namespace, budget, entry); err != nil {
+				_ = d.Logger.Log(map[string]any{
+					"type":  "knowledge_add_error",
+					"node":  nodeAddr,
+					"entry": entry,
+					"error": err.Error(),
+				})
+				continue
+			}
+		}
+		if err := knowledge.Append(d.WolfcastleDir, namespace, entry); err != nil {
+			_ = d.Logger.Log(map[string]any{
+				"type":  "knowledge_add_error",
+				"node":  nodeAddr,
+				"entry": entry,
+				"error": err.Error(),
+			})
+			continue
+		}
+		_ = d.Logger.Log(map[string]any{
+			"type":      "knowledge_add",
+			"node":      nodeAddr,
+			"namespace": namespace,
+			"entry":     entry,
+		})
 	}
 }
 

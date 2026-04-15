@@ -72,10 +72,11 @@ If findings warrant remediation (and this is not the final pass):
    wolfcastle project create --node <your-node>/quality-remediation-<pass-number>
    ```
 2. Add tasks targeting the specific files and issues. Assign appropriate task classes.
-3. For any pattern-level finding that future work should avoid, write a knowledge entry:
+3. For any pattern-level finding that future work should avoid, emit a knowledge marker so the daemon can persist it to the project knowledge file. One marker per finding, each on its own line in your output:
    ```
-   wolfcastle knowledge add "<description of the pattern to avoid and why>"
+   WOLFCASTLE_KNOWLEDGE: <description of the pattern to avoid and why>
    ```
+   The daemon parses these markers, checks the knowledge token budget, and appends each entry to the project's knowledge file automatically. Do not invoke `wolfcastle knowledge add` — the marker is the channel. Record patterns, not instance-specific fixes: "UUIDs in seed data must be unique across all tables" rather than "file X had a duplicate UUID on line 42".
 4. Proceed to phase F and emit WOLFCASTLE_CONTINUE.
 
 If no findings warrant remediation, proceed to phase E.
