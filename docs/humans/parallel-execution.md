@@ -4,7 +4,7 @@ By default, Wolfcastle executes one task at a time. Parallel mode lets the daemo
 
 ## Enabling Parallel Mode
 
-Add this to your `.wolfcastle/config.json`:
+Add this to your `config.json` at [whatever tier you want](configuration.md#three-tier-directory-structure])
 
 ```json
 {
